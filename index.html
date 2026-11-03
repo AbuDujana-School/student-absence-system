@@ -85,7 +85,6 @@
               <span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
               <span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold"></span>
               
-              <!-- رابط صغير جداً لتغيير الرمز السري للمعلم (بدون أخذ حيز) -->
               <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <i class="fa-solid fa-key text-[10px]"></i> تغيير الرمز
               </button>
@@ -113,9 +112,7 @@
             <i class="fa-solid fa-calendar-days"></i> تاريخ الرصد النشط: <span id="activeSessionDateLabel"></span>
           </div>
         </div>
-        <div id="classesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4">
-          <!-- Dynamically Generated -->
-        </div>
+        <div id="classesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
       </div>
     </div>
 
@@ -163,9 +160,7 @@
           </div>
         </div>
         
-        <div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3">
-          <!-- Dynamically Generated -->
-        </div>
+        <div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3"></div>
 
         <div class="p-4 sm:p-5 bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
           <div class="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
@@ -359,7 +354,7 @@
           </div>
 
           <div>
-            <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2">قائمة المعلمين وأرميزهم السرية (يمكن للمدير الاطلاع عليها وتعديلها):</h5>
+            <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2">قائمة المعلمين وأرميزهم السرية:</h5>
             <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
           </div>
         </div>
@@ -388,23 +383,13 @@
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-4">
               <div>
-                <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة الإحصائيات الذكية لمتابعة تكرار الحالات</h4>
-                <p class="text-xs text-emerald-200 mt-1">اختر التصنيف المطلوب أدناه لعرض القائمة التفصيلية للطلاب</p>
+                <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> إحصائيات الطلاب (المتابعة السريعة)</h4>
+                <p class="text-xs text-emerald-200 mt-1">انقر فوق أي مربع أدناه لعرض القائمة التفصيلية وتصدير التقرير المخصص لكل حالة</p>
               </div>
-              <button onclick="printAdvancedStatsReport()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20 cursor-pointer"><i class="fa-solid fa-print"></i> طباعة التقرير الشامل</button>
             </div>
 
-            <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
-              <div>
-                <label class="block text-[11px] font-bold text-emerald-200 mb-1">التصنيف المطلوب:</label>
-                <select id="advCategorySelect" onchange="renderAdvancedStats()" class="w-full p-2.5 bg-slate-900/90 text-white border border-emerald-500/50 rounded-xl text-xs font-bold outline-none cursor-pointer">
-                  <option value="all_categories">عرض جميع التصنيفات</option>
-                  <option value="absent">الطلاب الأكثر غياباً</option>
-                  <option value="escape">الطلاب الأكثر تسرباً</option>
-                  <option value="outside">الطلاب الأكثر خروجاً</option>
-                  <option value="late">الطلاب الأكثر تأخراً</option>
-                </select>
-              </div>
+            <!-- الفلاتر -->
+            <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الصف الدراسي:</label>
                 <select id="advClassFilter" onchange="renderAdvancedStats()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
@@ -413,25 +398,22 @@
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الفترة الزمنية:</label>
-                <select id="advPeriodFilter" onchange="toggleCustomDates(); renderAdvancedStats();" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                <select id="advPeriodFilter" onchange="renderAdvancedStats()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
                   <option value="all">كل السجلات</option>
                   <option value="today">اليوم فقط</option>
                   <option value="week">هذا الأسبوع</option>
                   <option value="month">هذا الشهر</option>
-                  <option value="custom">فترة مخصصة...</option>
                 </select>
               </div>
               <button onclick="resetAdvFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition border cursor-pointer">إعادة ضبط</button>
             </div>
-            
-            <div id="customDateRangeBox" class="hidden grid grid-cols-2 gap-2 mt-2">
-              <div><label class="block text-[11px] font-bold text-emerald-200 mb-1">من تاريخ:</label><input type="date" id="advStartDate" onchange="renderAdvancedStats()" class="w-full p-2 bg-slate-900/80 text-white border rounded-xl text-xs font-bold"></div>
-              <div><label class="block text-[11px] font-bold text-emerald-200 mb-1">إلى تاريخ:</label><input type="date" id="advEndDate" onchange="renderAdvancedStats()" class="w-full p-2 bg-slate-900/80 text-white border rounded-xl text-xs font-bold"></div>
-            </div>
           </div>
 
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="advSummaryCards"></div>
-          <div class="grid grid-cols-1 lg:grid-cols-1 gap-6" id="advCategoriesContainer"></div>
+          <!-- المربعات الأربعة المطابقة للصورة -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4" id="advSummaryCards"></div>
+
+          <!-- الحاويات الخاصة بالقوائم التفصيلية وزر التصدير لكل خانة -->
+          <div class="space-y-6" id="advCategoriesContainer"></div>
         </div>
 
         <!-- Tab 5: Reports -->
@@ -474,6 +456,54 @@
     </div>
   </main>
 
+  <!-- Modal: Teacher Change PIN -->
+  <div id="changePinModal" class="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
+        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
+        </h3>
+        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الحالي:</label>
+          <input type="password" id="currentPinCheck" placeholder="أدخل رمزك الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الجديد:</label>
+          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+        </div>
+        <div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 p-2.5 rounded-xl border border-red-200"></div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer">إلغاء</button>
+        <button onclick="submitNewTeacherPin()" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow cursor-pointer">حفظ الرمز الجديد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Detailed Drill-Down Modal -->
+  <div id="studentDetailModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
+      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
+        <div>
+          <h3 id="modalStudentTitle" class="font-extrabold text-base flex items-center gap-2">
+            <i class="fa-solid fa-user-clock text-emerald-400"></i> سجل المخالفات التفصيلي للطالب
+          </h3>
+          <p id="modalStudentSubtitle" class="text-xs text-emerald-200 mt-0.5"></p>
+        </div>
+        <button onclick="closeStudentDetailModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody"></div>
+      <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
+        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">إغلاق النافذة</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     const BIN_ID = "6ae95cf6ac6210605a679163";
     const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -499,7 +529,7 @@
     ];
 
     let db = {
-      version: 4,
+      version: 6,
       adminPin: btoa("1234"),
       customUsers: [],
       teachers: [],
@@ -554,16 +584,16 @@
           const resData = await response.json();
           if (resData.record && resData.record.classes && resData.record.classes.length > 0) {
             db = resData.record;
-            if(!db.version) db.version = 4;
+            if(!db.version) db.version = 6;
             if(!db.customUsers) db.customUsers = [];
-            localStorage.setItem('abuDujana_db_v14', JSON.stringify(db));
+            localStorage.setItem('abuDujana_db_v16', JSON.stringify(db));
             updateSyncStatus(true, "متزامن سحابياً");
             return true;
           }
         }
         throw new Error("استجابة غير صالحة");
       } catch (e) {
-        const saved = localStorage.getItem('abuDujana_db_v14');
+        const saved = localStorage.getItem('abuDujana_db_v16');
         if (saved) {
           try {
             db = JSON.parse(saved);
@@ -592,7 +622,7 @@
           const cloudData = await getResponse.json();
           if (cloudData && cloudData.record) {
             const remoteRecord = cloudData.record;
-            db.version = Math.max(db.version || 4, (remoteRecord.version || 4)) + 1;
+            db.version = Math.max(db.version || 6, (remoteRecord.version || 6)) + 1;
 
             const remoteAttendance = remoteRecord.attendance || {};
             const mergedAttendance = { ...remoteAttendance };
@@ -610,21 +640,26 @@
             db.attendance = mergedAttendance;
 
             if (remoteRecord.classes) db.classes = [...new Set([...db.classes, ...remoteRecord.classes])];
-            
-            // دمج المعلمين بذكاء للحفاظ على الرموز المحدثة محلياً
             if (remoteRecord.teachers) {
               const teacherMap = new Map();
               remoteRecord.teachers.forEach(t => teacherMap.set(t.name, t));
-              db.teachers.forEach(t => teacherMap.set(t.name, t)); // الأحدث محلياً له الأولوية
+              db.teachers.forEach(t => teacherMap.set(t.name, t));
               db.teachers = Array.from(teacherMap.values());
             }
-
-            if (remoteRecord.customUsers) db.customUsers = remoteRecord.customUsers;
+            // دمج المستخدمين المخصصين بذكاء دون فقدان الإضافات المحلية
+            if (remoteRecord.customUsers) {
+              const userMap = new Map();
+              remoteRecord.customUsers.forEach(u => userMap.set(u.name, u));
+              if (db.customUsers) {
+                db.customUsers.forEach(u => userMap.set(u.name, u));
+              }
+              db.customUsers = Array.from(userMap.values());
+            }
             if (remoteRecord.students) db.students = { ...remoteRecord.students, ...db.students };
           }
         }
 
-        localStorage.setItem('abuDujana_db_v14', JSON.stringify(db));
+        localStorage.setItem('abuDujana_db_v16', JSON.stringify(db));
 
         const putResponse = await fetch(API_URL, {
           method: "PUT",
@@ -648,6 +683,7 @@
       loadSystemDataFromCloud().then((success) => {
         if (success) {
           alert('تم تحديث البيانات وجلبها من السحاب بنجاح!');
+          renderCustomUsersList();
           if(selectedClass) loadSessionAttendance();
           if(activeUser) renderClassesGrid();
           checkExistingSession();
@@ -668,7 +704,7 @@
     }
 
     function initDefaults() {
-      db.version = 4;
+      db.version = 6;
       db.adminPin = btoa("1234");
       db.customUsers = [];
       db.classes = [...DEFAULT_CLASSES];
@@ -676,7 +712,7 @@
       db.students = {};
       db.classes.forEach(c => { db.students[c] = []; });
       db.attendance = {};
-      localStorage.setItem('abuDujana_db_v14', JSON.stringify(db));
+      localStorage.setItem('abuDujana_db_v16', JSON.stringify(db));
       updateSyncStatus(false, "وضع افتراضي محلي");
     }
 
@@ -783,7 +819,6 @@
       document.getElementById('changeTeacherPinBtn').classList.add('hidden');
     }
 
-    // دوال تغيير الرمز السري للمعلم مع الفحص الشامل لعدم التكرار
     function openChangePinModal() {
       document.getElementById('currentPinCheck').value = '';
       document.getElementById('newPinInput').value = '';
@@ -812,10 +847,9 @@
         return;
       }
 
-      // فحص ما إذا كان الرقم مستخدماً من قبل معلم آخر، أو مدير، أو مستخدم مخصص
       const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
       if (newPin === adminDecoded) {
-        errorEl.textContent = 'الرمز الجديد مستخدم من قبل مدير النظام، يرجى اختيار رمز آخر.';
+        errorEl.textContent = 'الرمز الجديد مستخدم من قبل مدير النظام.';
         errorEl.classList.remove('hidden');
         return;
       }
@@ -824,17 +858,16 @@
       const isCustomTaken = db.customUsers.some(u => u.pin === newPin);
 
       if (isTeacherTaken || isCustomTaken) {
-        errorEl.textContent = 'الرمز السري مستخدم مسبقاً من قبل مستخدم أو معلم آخر، استعمل رقماً آخر.';
+        errorEl.textContent = 'الرمز السري مستخدم مسبقاً من قبل معلم أو مستخدم آخر.';
         errorEl.classList.remove('hidden');
         return;
       }
 
-      // تحديث المعلم محلياً
       const teacherObj = db.teachers.find(t => t.name === activeUser.name);
       if (teacherObj) {
         teacherObj.pin = newPin;
       } else {
-        errorEl.textContent = 'حدث خطأ في مطابقة حساب المعلم.';
+        errorEl.textContent = 'خطأ في مطابقة حساب المعلم.';
         errorEl.classList.remove('hidden');
         return;
       }
@@ -844,7 +877,7 @@
 
       const success = await saveSystemDataToCloud();
       closeChangePinModal();
-      alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم تغيير الرمز محلياً وتتعذر المزامنة السحابية مؤقتاً.');
+      alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم تغيير الرمز محلياً.');
     }
 
     function renderClassesGrid() {
@@ -1165,7 +1198,7 @@
       populateAdvClassSelect();
     }
 
-    // Custom Users
+    // إدارة المستخدمين المخصصين وإضافتهم بفعالية وتحديث القائمة فوراً
     async function addCustomUser() {
       const name = document.getElementById('newCustomUserName').value.trim();
       const pin = document.getElementById('newCustomUserPin').value.trim();
@@ -1185,8 +1218,23 @@
       };
 
       if (!db.customUsers) db.customUsers = [];
-      db.customUsers.push({ name, pin, permissions });
+      
+      // التأكد من عدم تكرار الاسم أو الرمز
+      const exists = db.customUsers.some(u => u.name === name);
+      if (exists) {
+        // تحديث الصلاحيات والرمز إذا كان موجوداً مسبقاً
+        const existingUser = db.customUsers.find(u => u.name === name);
+        existingUser.pin = pin;
+        existingUser.permissions = permissions;
+      } else {
+        db.customUsers.push({ name, pin, permissions });
+      }
 
+      // حفظ محلياً وفورياً
+      localStorage.setItem('abuDujana_db_v16', JSON.stringify(db));
+      renderCustomUsersList();
+
+      // مزامنة مع السحاب
       const success = await saveSystemDataToCloud();
       renderCustomUsersList();
       
@@ -1233,6 +1281,8 @@
     async function deleteCustomUser(idx) {
       if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
         db.customUsers.splice(idx, 1);
+        localStorage.setItem('abuDujana_db_v16', JSON.stringify(db));
+        renderCustomUsersList();
         const success = await saveSystemDataToCloud();
         renderCustomUsersList();
         alert(success ? 'تم الحذف بنجاح!' : 'تم الحذف محلياً.');
@@ -1340,7 +1390,6 @@
       }
     }
 
-    // إدارة المعلمين وعرض أرميزهم السرية للمدير
     function renderTeachersList() {
       const container = document.getElementById('teachersList');
       if(!container) return;
@@ -1377,7 +1426,6 @@
         return;
       }
 
-      // فحص عدم تكرار الرقم السري عند الإضافة من لوحة التحكم
       const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
       if (pin === adminDecoded || db.teachers.some(t => t.pin === pin) || db.customUsers.some(u => u.pin === pin)) {
         alert('الرمز السري مستخدم مسبقاً، يرجى اختيار رمز مختلف.');
@@ -1400,7 +1448,7 @@
         const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
         
         if (pinTrim === adminDecoded || db.teachers.some((t, i) => i !== idx && t.pin === pinTrim) || db.customUsers.some(u => u.pin === pinTrim)) {
-          alert('الرمز السري مستخدم مسبقاً من قبل مستخدم أو معلم آخر، يرجى اختيار رقم آخر.');
+          alert('الرمز السري مستخدم مسبقاً، يرجى اختيار رقم آخر.');
           return;
         }
 
@@ -1489,148 +1537,171 @@
       select.value = currentVal || 'all';
     }
 
-    function toggleCustomDates() {
-      const period = document.getElementById('advPeriodFilter').value;
-      const box = document.getElementById('customDateRangeBox');
-      if (period === 'custom') box.classList.remove('hidden');
-      else box.classList.add('hidden');
-    }
-
     function resetAdvFilters() {
-      document.getElementById('advCategorySelect').value = 'all_categories';
       document.getElementById('advClassFilter').value = 'all';
       document.getElementById('advPeriodFilter').value = 'all';
-      document.getElementById('advStartDate').value = '';
-      document.getElementById('advEndDate').value = '';
-      document.getElementById('customDateRangeBox').classList.add('hidden');
       renderAdvancedStats();
     }
 
-    let advShowAllState = { absent: false, escape: false, outside: false, late: false };
-
-    function calculateAdvancedStats() {
+    function calculateDetailedLogs(targetStatus) {
       const classFilter = document.getElementById('advClassFilter').value;
       const periodFilter = document.getElementById('advPeriodFilter').value;
-      const customStart = document.getElementById('advStartDate').value;
-      const customEnd = document.getElementById('advEndDate').value;
-
       const todayStr = getOmanLocalDate();
       const currentMonthStr = todayStr.substring(0, 7);
       const todayDate = new Date(todayStr);
       const weekAgoDate = new Date(todayDate);
       weekAgoDate.setDate(todayDate.getDate() - 7);
 
-      const statsMap = {};
+      let recordsList = [];
 
       Object.entries(db.attendance).forEach(([key, session]) => {
         if (!session || !session.records) return;
         const sessionDate = key.substring(0, 10);
         const sessionClass = session.className || key.split('_')[1];
+        const periodNum = session.period || key.match(/p(\d+)$/)?.[1] || '؟';
+        const teacherName = session.teacher || 'معلم';
 
         if (classFilter !== 'all' && sessionClass !== classFilter) return;
 
-        if (periodFilter === 'today') {
-          if (sessionDate !== todayStr) return;
-        } else if (periodFilter === 'week') {
+        if (periodFilter === 'today' && sessionDate !== todayStr) return;
+        if (periodFilter === 'week') {
           const d = new Date(sessionDate);
           if (d < weekAgoDate || d > todayDate) return;
-        } else if (periodFilter === 'month') {
-          if (sessionDate.substring(0, 7) !== currentMonthStr) return;
-        } else if (periodFilter === 'custom') {
-          if (customStart && sessionDate < customStart) return;
-          if (customEnd && sessionDate > customEnd) return;
         }
+        if (periodFilter === 'month' && sessionDate.substring(0, 7) !== currentMonthStr) return;
 
         Object.entries(session.records).forEach(([studentName, status]) => {
-          if (['absent', 'escape', 'outside', 'late'].includes(status)) {
-            const uniqueKey = `${sessionClass}::${studentName}`;
-            if (!statsMap[uniqueKey]) {
-              statsMap[uniqueKey] = { studentName, className: sessionClass, absent: 0, escape: 0, outside: 0, late: 0 };
-            }
-            statsMap[uniqueKey][status]++;
+          if (status === targetStatus) {
+            recordsList.push({
+              studentName,
+              className: sessionClass,
+              teacherName,
+              period: periodNum,
+              date: sessionDate,
+              status
+            });
           }
         });
       });
 
-      return statsMap;
-    }
-
-    function rankAndSortList(list, valueKey) {
-      list.sort((a, b) => {
-        if (b[valueKey] !== a[valueKey]) return b[valueKey] - a[valueKey];
-        return a.studentName.localeCompare(b.studentName, 'ar');
-      });
-
-      let ranked = [];
-      let currentRank = 1;
-      let previousVal = null;
-
-      list.forEach((item, index) => {
-        const val = item[valueKey];
-        if (val === 0) return;
-        if (index === 0) currentRank = 1;
-        else if (val < previousVal) currentRank = index + 1;
-        ranked.push({ ...item, count: val, rank: currentRank });
-        previousVal = val;
-      });
-
-      return ranked;
+      return recordsList;
     }
 
     function renderAdvancedStats() {
       populateAdvClassSelect();
-      const statsMap = calculateAdvancedStats();
-      const rawList = Object.values(statsMap);
-      const selectedCategory = document.getElementById('advCategorySelect').value;
 
       const categories = [
-        { key: 'absent', title: 'الطلاب الأكثر غياباً', icon: 'fa-user-slash', badge: 'bg-yellow-100 text-yellow-900 border-yellow-300' },
-        { key: 'escape', title: 'الطلاب الأكثر تسرباً', icon: 'fa-person-running', badge: 'bg-red-100 text-red-900 border-red-300' },
-        { key: 'outside', title: 'الطلاب الأكثر تواجداً خارج الفصل', icon: 'fa-door-open', badge: 'bg-purple-100 text-purple-900 border-purple-300' },
-        { key: 'late', title: 'الطلاب الأكثر تأخراً', icon: 'fa-clock', badge: 'bg-orange-100 text-orange-900 border-orange-300' }
+        { key: 'absent', title: 'غائب', color: 'bg-black text-white border-black', icon: 'fa-user-slash', countKey: 'absent' },
+        { key: 'escape', title: 'متسرب', color: 'bg-red-600 text-white border-red-600', icon: 'fa-person-running', countKey: 'escape' },
+        { key: 'late', title: 'متأخر', color: 'bg-orange-500 text-white border-orange-500', icon: 'fa-clock', countKey: 'late' },
+        { key: 'outside', title: 'خارج', color: 'bg-purple-600 text-white border-purple-600', icon: 'fa-door-open', countKey: 'outside' }
       ];
 
-      let totals = { absent: 0, escape: 0, outside: 0, late: 0 };
-      rawList.forEach(item => {
-        totals.absent += item.absent;
-        totals.escape += item.escape;
-        totals.outside += item.outside;
-        totals.late += item.late;
+      let counts = { absent: 0, escape: 0, late: 0, outside: 0 };
+      ['absent', 'escape', 'late', 'outside'].forEach(st => {
+        counts[st] = calculateDetailedLogs(st).length;
       });
 
-      document.getElementById('advSummaryCards').innerHTML = `
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-yellow-100 text-yellow-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-user-slash"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.absent}</span></div></div>
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-red-100 text-red-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-person-running"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي التسرب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.escape}</span></div></div>
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-door-open"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي الخارج</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.outside}</span></div></div>
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-clock"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي التأخير</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.late}</span></div></div>
-      `;
+      const cardsContainer = document.getElementById('advSummaryCards');
+      if(cardsContainer) {
+        cardsContainer.innerHTML = '';
+        categories.forEach(cat => {
+          cardsContainer.innerHTML += `
+            <div onclick="scrollToCategory('${cat.key}')" class="${cat.color} p-6 rounded-3xl shadow-xl flex flex-col items-center justify-center text-center cursor-pointer transform hover:scale-105 transition duration-300 border-2">
+              <i class="fa-solid ${cat.icon} text-2xl mb-2"></i>
+              <span class="text-xl font-extrabold tracking-wide">${cat.title}</span>
+              <span class="text-xs mt-1 bg-white/20 px-3 py-1 rounded-full font-bold">عدد السجلات: ${counts[cat.countKey]}</span>
+            </div>
+          `;
+        });
+      }
 
       const container = document.getElementById('advCategoriesContainer');
+      if(!container) return;
       container.innerHTML = '';
 
-      const filteredCategories = selectedCategory === 'all_categories' ? categories : categories.filter(c => c.key === selectedCategory);
+      categories.forEach(cat => {
+        const logs = calculateDetailedLogs(cat.key);
 
-      filteredCategories.forEach(cat => {
-        const rankedList = rankAndSortList(rawList, cat.key);
-        const showAll = advShowAllState[cat.key];
-        const displayList = showAll ? rankedList : rankedList.slice(0, 10);
-        const maxCount = rankedList.length > 0 ? rankedList[0].count : 1;
+        let cardHtml = `
+          <div id="section-${cat.key}" class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden mb-6">
+            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center bg-slate-50/50 dark:bg-slate-900/50 gap-3">
+              <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl flex items-center justify-center ${cat.color} font-bold text-sm shadow">
+                  <i class="fa-solid ${cat.icon}"></i>
+                </div>
+                <div>
+                  <h5 class="font-extrabold text-slate-800 dark:text-white text-base">قائمة الطلاب (${cat.title})</h5>
+                  <span class="text-xs text-slate-400">إجمالي الحالات المسجلة: ${logs.length}</span>
+                </div>
+              </div>
+              <button onclick="exportCategoryExcel('${cat.key}', '${cat.title}')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 shadow cursor-pointer">
+                <i class="fa-solid fa-file-excel"></i> تصدير قائمة (${cat.title}) إكسل
+              </button>
+            </div>
+            <div class="p-4 overflow-x-auto">
+        `;
 
-        let cardHtml = `<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden mb-4"><div class="p-5 border-b flex justify-between items-center bg-slate-50/50"><div class="flex items-center gap-2.5"><div class="w-9 h-9 rounded-xl flex items-center justify-center ${cat.badge} font-bold text-sm border"><i class="fa-solid ${cat.icon}"></i></div><div><h5 class="font-extrabold text-slate-800 dark:text-white text-sm">${cat.title}</h5><span class="text-[10px] text-slate-400">عدد الطلاب: ${rankedList.length} (انقر فوق اسم الطالب لعرض السجل)</span></div></div></div><div class="p-4 overflow-x-auto">`;
-
-        if (rankedList.length === 0) {
-          cardHtml += `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات مسجلة.</div>`;
+        if (logs.length === 0) {
+          cardHtml += `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات مسجلة لهذه الحالة ضمن الفلاتر المحددة.</div>`;
         } else {
-          cardHtml += `<table class="w-full text-xs text-right border-collapse"><thead><tr class="text-slate-400 border-b text-[11px]"><th class="py-2 px-2">الترتيب</th><th class="py-2 px-2">اسم الطالب (انقر للعرض)</th><th class="py-2 px-2">الصف</th><th class="py-2 px-2 text-center">المرات</th><th class="py-2 px-2 w-32">مؤشر التكرار</th></tr></thead><tbody class="divide-y">`;
-          displayList.forEach(item => {
-            const percentage = Math.round((item.count / maxCount) * 100);
-            cardHtml += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition"><td class="py-3 px-2 font-bold"><span class="w-6 h-6 rounded-lg bg-slate-100 inline-flex items-center justify-center text-[10px] font-extrabold">${item.rank}</span></td><td class="py-3 px-2 font-extrabold text-emerald-700 cursor-pointer hover:underline" onclick="openStudentDetailModal('${item.studentName}', '${item.className}', '${cat.key}')"><i class="fa-solid fa-circle-info text-[10px] me-1"></i> ${item.studentName}</td><td class="py-3 px-2 font-bold">${item.className}</td><td class="py-3 px-2 text-center font-black">${item.count}</td><td class="py-3 px-2"><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: ${percentage}%"></div></div></td></tr>`;
+          cardHtml += `
+            <table class="w-full text-xs text-right border-collapse">
+              <thead>
+                <tr class="text-slate-400 border-b border-slate-100 dark:border-slate-700 text-[11px]">
+                  <th class="py-3 px-3">اسم الطالب</th>
+                  <th class="py-3 px-3">الصف</th>
+                  <th class="py-3 px-3">اسم المعلم المسؤول</th>
+                  <th class="py-3 px-3 text-center">الحصة</th>
+                  <th class="py-3 px-3 text-center">التاريخ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
+          `;
+
+          logs.forEach(item => {
+            cardHtml += `
+              <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+                <td class="py-3 px-3 font-extrabold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="openStudentDetailModal('${item.studentName}', '${item.className}', '${cat.key}')">${item.studentName}</td>
+                <td class="py-3 px-3 font-bold text-emerald-700 dark:text-emerald-400">${item.className}</td>
+                <td class="py-3 px-3 font-medium">${item.teacherName}</td>
+                <td class="py-3 px-3 text-center font-bold"><span class="bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-lg">الحصة ${item.period}</span></td>
+                <td class="py-3 px-3 text-center text-slate-500">${item.date}</td>
+              </tr>
+            `;
           });
+
           cardHtml += `</tbody></table>`;
         }
         cardHtml += `</div></div>`;
         container.innerHTML += cardHtml;
       });
+    }
+
+    function scrollToCategory(key) {
+      const el = document.getElementById(`section-${key}`);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    function exportCategoryExcel(statusKey, statusTitle) {
+      const logs = calculateDetailedLogs(statusKey);
+      if (logs.length === 0) {
+        alert(`لا توجد سجلات لتصديرها لحالة (${statusTitle})!`);
+        return;
+      }
+
+      let csvContent = "\uFEFFاسم الطالب,الصف,المعلم المسؤول,الحصة الدراسية,التاريخ\n";
+      logs.forEach(item => {
+        csvContent += `"${item.studentName}","${item.className}","${item.teacherName}","الحصة ${item.period}","${item.date}"\n`;
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `تقرير_${statusTitle}_${getOmanLocalDate()}.csv`;
+      a.click();
     }
 
     function openStudentDetailModal(studentName, className, targetStatusKey = 'all') {
