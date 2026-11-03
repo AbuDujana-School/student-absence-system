@@ -143,7 +143,7 @@
             <span class="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-lg border border-emerald-200">حاضر: <span id="statPresent">0</span></span>
             <span class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-2 py-1 rounded-lg border border-slate-300">غائب: <span id="statAbsent">0</span></span>
             <span class="bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-lg border border-orange-200">متأخر: <span id="statLate">0</span></span>
-            <span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-1 rounded-lg border border-red-200">هارب: <span id="statEscape">0</span></span>
+            <span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-1 rounded-lg border border-red-200">متسرب: <span id="statEscape">0</span></span>
             <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg border border-purple-200">خارج: <span id="statOutside">0</span></span>
           </div>
         </div>
@@ -509,7 +509,6 @@
     }
 
     async function backgroundSync() {
-      // 🌟 منع التحديث الخلفي نهائياً إذا كان المستخدم يكتب في حقل الأسماء حالياً
       const bulkInput = document.getElementById('bulkStudentsInput');
       if (bulkInput && document.activeElement === bulkInput) {
         return; 
@@ -719,7 +718,7 @@
             <button type="button" onclick="setStudentStatus('${student}', 'present', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'present' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">حاضر 🟩</button>
             <button type="button" onclick="setStudentStatus('${student}', 'absent', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'absent' ? 'bg-black text-white border-black shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">غائب ⬛</button>
             <button type="button" onclick="setStudentStatus('${student}', 'late', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'late' ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">متأخر 🟧</button>
-            <button type="button" onclick="setStudentStatus('${student}', 'escape', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'escape' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">هارب 🟥</button>
+            <button type="button" onclick="setStudentStatus('${student}', 'escape', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'escape' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">متسرب 🟥</button>
             <button type="button" onclick="setStudentStatus('${student}', 'outside', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'outside' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">خارج 🟪</button>
           </div>
         `;
@@ -897,7 +896,6 @@
       
       const bulkInput = document.getElementById('bulkStudentsInput');
       
-      // 🌟 منع تحديث حقل الإدخال بالكامل إذا كان مؤشر الفأرة أو الكتابة داخله
       if (bulkInput && document.activeElement === bulkInput) {
         return;
       }
@@ -1075,7 +1073,7 @@
         return;
       }
 
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">هارب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th><th class="p-3 text-center">إجراء</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th><th class="p-3 text-center">إجراء</th></tr></thead><tbody class="divide-y">`;
       
       filteredStudents.forEach(([name, data]) => {
         html += `<tr><td class="p-3 font-bold">${name}</td><td class="p-3 text-center">${data.absent || 0}</td><td class="p-3 text-center">${data.late || 0}</td><td class="p-3 text-center">${data.escape || 0}</td><td class="p-3 text-center">${data.outside || 0}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${data.total}</span></td><td class="p-3 text-center"><button onclick="alertStudentNotice('${name}', ${data.absent || 0}, ${data.escape || 0})" class="bg-slate-800 hover:bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] font-bold cursor-pointer"><i class="fa-solid fa-bell"></i> تنبيه ولي الأمر</button></td></tr>`;
@@ -1085,7 +1083,7 @@
     }
 
     function alertStudentNotice(studentName, absentCount, escapeCount) {
-      alert(`إشعار إداري:\n\nالسادة ولي أمر الطالب: (${studentName})\nنحيطكم علماً بتكرار حالات الغياب (${absentCount}) والهروب (${escapeCount})، ونرجو التواصل مع الأخصائي الاجتماعي بالمدرسة.`);
+      alert(`إشعار إداري:\n\nالسادة ولي أمر الطالب: (${studentName})\nنحيطكم علماً بتكرار حالات الغياب (${absentCount}) والتسرب (${escapeCount})، ونرجو التواصل مع الأخصائي الاجتماعي بالمدرسة.`);
     }
 
     function loadPinSettings() {
@@ -1143,7 +1141,7 @@
             } else if (stStatus === 'late') {
               late += `<div style="color: #2563eb; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (متأخر)</div>`;
             } else if (stStatus === 'escape') {
-              esc += `<div style="color: #dc2626; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (هارب)</div>`;
+              esc += `<div style="color: #dc2626; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (متسرب)</div>`;
             } else if (stStatus === 'outside') {
               outside += `<div style="color: #9333ea; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (خارج)</div>`;
             }
