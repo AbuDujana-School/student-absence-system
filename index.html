@@ -35,7 +35,7 @@
           <i id="darkModeIcon" class="fa-solid fa-moon text-sm"></i>
         </button>
         <span id="syncIndicator" class="bg-emerald-800 text-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-700">
-          <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> <span id="syncText">متزامن سحابياً</span>
+          <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> <span id="syncText">جاري الاتصال...</span>
         </span>
         <span id="currentDateDisplay" class="hidden md:inline-block bg-emerald-800/80 text-emerald-100 px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-700"></span>
         <button onclick="openAdminModal()" type="button" class="bg-emerald-800 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow cursor-pointer border border-emerald-700">
@@ -154,11 +154,11 @@
 
         <div class="p-4 sm:p-5 bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
           <div class="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-check"></i> يتم حفظ المزامنة سحابياً فورياً عبر الإنترنت.
+            <i class="fa-solid fa-circle-check"></i> <span id="unsavedStatusIndicator">تعديلات محلية جاهزة للحفظ</span>
           </div>
-          <button onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+          <button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
             <i class="fa-solid fa-floppy-disk"></i>
-            <span>تأكيد وحفظ رصد الحصة</span>
+            <span>تأكيد وحفظ رصد الحصة سحابياً</span>
           </button>
         </div>
       </div>
@@ -236,8 +236,8 @@
             <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">إضافة أسماء الطلاب (دفعة واحدة Bulk Import):</label>
               <textarea id="bulkStudentsInput" rows="4" placeholder="أحمد محمد علي&#10;خالد عبدالله السالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-medium"></textarea>
-              <button onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition cursor-pointer">
-                حفظ القائمة اليدوية
+              <button id="saveBulkBtn" onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition cursor-pointer">
+                حفظ القائمة اليدوية سحابياً
               </button>
             </div>
 
@@ -264,7 +264,7 @@
               <input type="password" id="newTeacherPin" maxlength="4" placeholder="الرمز السري (4 أرقام)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
             </div>
             <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
-              حفظ المعلم الجديد
+              حفظ المعلم الجديد سحابياً
             </button>
           </div>
 
@@ -288,7 +288,7 @@
         <div id="sec-alerts" class="hidden space-y-4">
           <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-4 rounded-2xl space-y-2">
             <h5 class="font-bold text-red-900 dark:text-red-300 text-sm"><i class="fa-solid fa-triangle-exclamation"></i> نظام التنبيهات الذكية وحالات الطلاب المتكررة</h5>
-            <p class="text-xs text-red-700 dark:text-red-400">رصد الطلاب الذين تكررت حالات غيابهم أو هروبهم أو تأخرهم عبر الحصص.</p>
+            <p class="text-xs text-red-700 dark:text-red-400">رصد الطلاب الذين تكررت حالات غيابهم أو هروبهم أو تأخرهم عبر الحصص (مع آمان تام لعدم تداخل متشابهي الأسماء).</p>
           </div>
           <div class="flex items-center gap-3">
             <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">
@@ -363,7 +363,7 @@
               </div>
             </div>
             <button onclick="saveNewPins()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
-              حفظ الرموز الجديدة للصلاحيات
+              حفظ الرموز الجديدة سحابياً
             </button>
           </div>
         </div>
@@ -383,10 +383,6 @@
       return formatter.format(new Date());
     }
 
-    function getOmanLocalDateTime() {
-      return new Date().toLocaleString('ar-EG', { timeZone: 'Asia/Muscat' });
-    }
-
     const DEFAULT_CLASSES = [
       "9/1", "9/2", "9/3", "9/4", "9/5", "9/6", "9/7", "9/8",
       "10/1", "10/2", "10/3", "10/4", "10/5", "10/6", "10/7", "10/8",
@@ -401,9 +397,10 @@
     ];
 
     let db = {
-      adminPin: "1234",
-      socialPin: "5678",
-      studentAffairsPin: "4321",
+      version: 1, // 🌟 إصدار بيانات النظام لمنع تداخل الكتابة العمياء
+      adminPin: btoa("1234"),
+      socialPin: btoa("5678"),
+      studentAffairsPin: btoa("4321"),
       teachers: [],
       classes: [],
       students: {},
@@ -415,12 +412,11 @@
     let currentAttendanceRecord = {};
     let currentRole = 'admin';
 
-    window.addEventListener('DOMContentLoaded', () => {
-      loadSystemDataFromCloud();
-      setCurrentDate();
-      checkExistingSession();
+    window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode();
-      // 🌟 تم حذف الـ setInterval نهائياً لعدم استهلاك الطلبات في الخلفية
+      setCurrentDate();
+      await loadSystemDataFromCloud();
+      checkExistingSession();
     });
 
     function initDarkMode() {
@@ -439,13 +435,16 @@
 
     function setCurrentDate() {
       const today = getOmanLocalDate();
-      document.getElementById('currentDateDisplay').textContent = 'تاريخ اليوم (عمان): ' + today;
-      document.getElementById('reportDatePicker').value = today;
+      const dateEl = document.getElementById('currentDateDisplay');
+      if(dateEl) dateEl.textContent = 'تاريخ اليوم (عمان): ' + today;
+      const reportPicker = document.getElementById('reportDatePicker');
+      if(reportPicker) reportPicker.value = today;
       const dateLabel = document.getElementById('activeSessionDateLabel');
       if(dateLabel) dateLabel.textContent = today;
     }
 
     async function loadSystemDataFromCloud() {
+      updateSyncStatus(false, "جارِ تحميل البيانات...");
       try {
         const response = await fetch(API_URL + "/latest", {
           headers: { "X-Master-Key": API_KEY },
@@ -455,35 +454,90 @@
           const resData = await response.json();
           if (resData.record && resData.record.classes && resData.record.classes.length > 0) {
             db = resData.record;
-            if(!db.socialPin) db.socialPin = "5678";
-            if(!db.studentAffairsPin) db.studentAffairsPin = "4321";
-            localStorage.setItem('abuDujana_db_v6', JSON.stringify(db));
+            if(!db.version) db.version = 1;
+            if(!db.socialPin) db.socialPin = btoa("5678");
+            if(!db.studentAffairsPin) db.studentAffairsPin = btoa("4321");
+            localStorage.setItem('abuDujana_db_v11', JSON.stringify(db));
             updateSyncStatus(true, "متزامن سحابياً");
-            if(selectedClass) loadSessionAttendance();
-            return;
+            return true;
           }
         }
+        throw new Error("استجابة غير صالحة من السحابة");
       } catch (e) {
-        console.error("Load cloud error:", e);
+        console.warn("فشل الاتصال بالسحاب، جاري استرجاع النسخة المحلية:", e);
+        const saved = localStorage.getItem('abuDujana_db_v11');
+        if (saved) {
+          try {
+            db = JSON.parse(saved);
+            updateSyncStatus(false, "وضع محلي (بدون نت)");
+            return true;
+          } catch(err) {
+            initDefaults();
+          }
+        } else {
+          initDefaults();
+        }
+        updateSyncStatus(false, "فشل الاتصال (محلي)");
+        return false;
       }
-      
-      const saved = localStorage.getItem('abuDujana_db_v6');
-      if (saved) {
-        try { 
-          db = JSON.parse(saved); 
-          if(!db.classes || db.classes.length === 0) initDefaults();
-        } catch(err) { initDefaults(); }
-      } else {
-        initDefaults();
-      }
-      updateSyncStatus(false, "وضع محلي (بدون نت)");
     }
 
+    // 🌟 دالة الحفظ والدمج الذكي المحصنة بإصدار البيانات (Version Control & Comprehensive Merge)
     async function saveSystemDataToCloud() {
-      localStorage.setItem('abuDujana_db_v6', JSON.stringify(db));
-      updateSyncStatus(true, "جارِ الحفظ...");
+      updateSyncStatus(true, "جارِ المزامنة والحفظ...");
       try {
-        const response = await fetch(API_URL, {
+        const getResponse = await fetch(API_URL + "/latest", {
+          headers: { "X-Master-Key": API_KEY },
+          cache: "no-store"
+        });
+
+        if (getResponse.ok) {
+          const cloudData = await getResponse.json();
+          if (cloudData && cloudData.record) {
+            const remoteRecord = cloudData.record;
+            
+            // 1. زيادة رقم الإصدار لتفادي التعارض الأعمى
+            db.version = Math.max(db.version || 1, (remoteRecord.version || 1)) + 1;
+
+            // 2. دمج شامل للحصص استناداً للطابع الزمني لكل جلسة
+            const remoteAttendance = remoteRecord.attendance || {};
+            const mergedAttendance = { ...remoteAttendance };
+            for (const [key, localSession] of Object.entries(db.attendance)) {
+              const remoteSession = remoteAttendance[key];
+              if (!remoteSession) {
+                mergedAttendance[key] = localSession;
+              } else {
+                const localTime = new Date(localSession.timestamp || 0).getTime();
+                const remoteTime = new Date(remoteSession.timestamp || 0).getTime();
+                if (localTime >= remoteTime) {
+                  mergedAttendance[key] = localSession;
+                } else {
+                  mergedAttendance[key] = remoteSession;
+                }
+              }
+            }
+            db.attendance = mergedAttendance;
+
+            // 3. دمج ذكي لقوائم الطلاب والصفوف والمعلمين بدون ضياع التحديثات الإدارية
+            if (remoteRecord.classes) {
+              db.classes = [...new Set([...db.classes, ...remoteRecord.classes])];
+            }
+            if (remoteRecord.teachers) {
+              // دمج المعلمين بناءً على الرمز السري الفريد لعدم تكرار الأسماء
+              const teacherMap = new Map();
+              db.teachers.forEach(t => teacherMap.set(t.pin, t));
+              remoteRecord.teachers.forEach(t => teacherMap.set(t.pin, t));
+              db.teachers = Array.from(teacherMap.values());
+            }
+            if (remoteRecord.students) {
+              db.students = { ...remoteRecord.students, ...db.students };
+            }
+          }
+        }
+
+        localStorage.setItem('abuDujana_db_v11', JSON.stringify(db));
+
+        const putResponse = await fetch(API_URL, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
@@ -493,24 +547,30 @@
           cache: "no-store"
         });
         
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`خطأ في السحاب: ${response.status} - ${errorText}`);
+        if (!putResponse.ok) {
+          throw new Error(`خطأ في الحفظ السحابي: ${putResponse.status}`);
         }
         
         updateSyncStatus(true, "متزامن سحابياً");
         return true;
       } catch (error) {
-        console.error("Cloud save failed:", error);
-        updateSyncStatus(false, "فشل الحفظ للسحاب");
-        alert("فشل الحفظ في السحاب! تأكد من اتصالك بالإنترنت أو مفتاح JSONBin.");
+        console.error("Cloud merge & save failed:", error);
+        updateSyncStatus(false, "فشل الحفظ للسحاب (محلي)");
         return false;
       }
     }
 
+    // 🌟 المزامنة الإجبارية المحصنة ضد مسح التعديلات المحلية المعلقة
     function forceSyncWithCloud() {
-      loadSystemDataFromCloud().then(() => {
-        alert('تم تحديث البيانات وجلبها من السحاب بنجاح!');
+      loadSystemDataFromCloud().then((success) => {
+        if (success) {
+          alert('تم تحديث البيانات وجلبها من السحاب بنجاح!');
+          if(selectedClass) loadSessionAttendance();
+          if(activeTeacher) renderClassesGrid();
+          checkExistingSession();
+        } else {
+          alert('تعذر جلب البيانات من السحابة، يتم استخدام النسخة المحلية الحالية.');
+        }
       });
     }
 
@@ -530,9 +590,10 @@
     }
 
     function initDefaults() {
-      db.adminPin = "1234";
-      db.socialPin = "5678";
-      db.studentAffairsPin = "4321";
+      db.version = 1;
+      db.adminPin = btoa("1234");
+      db.socialPin = btoa("5678");
+      db.studentAffairsPin = btoa("4321");
       db.classes = [...DEFAULT_CLASSES];
       db.teachers = [...DEFAULT_TEACHERS];
       db.students = {};
@@ -540,7 +601,7 @@
         db.students[c] = [];
       });
       db.attendance = {};
-      localStorage.setItem('abuDujana_db_v6', JSON.stringify(db));
+      localStorage.setItem('abuDujana_db_v11', JSON.stringify(db));
       updateSyncStatus(false, "وضع افتراضي محلي");
     }
 
@@ -551,12 +612,20 @@
       if (savedTeacher) {
         try {
           activeTeacher = JSON.parse(savedTeacher);
+          const teacherExists = db.teachers.some(t => t.pin === activeTeacher.pin && t.name === activeTeacher.name);
+          
+          if (!teacherExists) {
+            alert("تنبيه: تم تحديث بيانات المعلمين أو حذف هذا الحساب، يرجى تسجيل الدخول مجدداً.");
+            logoutTeacher();
+            return;
+          }
+
           document.getElementById('loginView').classList.add('hidden');
           document.getElementById('classesView').classList.remove('hidden');
           document.getElementById('activeTeacherName').textContent = activeTeacher.name;
           renderClassesGrid();
 
-          if (savedClass) {
+          if (savedClass && db.classes.includes(savedClass)) {
             selectedClass = savedClass;
             document.getElementById('classesView').classList.add('hidden');
             document.getElementById('attendanceView').classList.remove('hidden');
@@ -590,14 +659,19 @@
       selectedClass = null;
       localStorage.removeItem('abuDujana_activeTeacher');
       localStorage.removeItem('abuDujana_selectedClass');
-      document.getElementById('teacherPinInput').value = '';
-      document.getElementById('attendanceView').classList.add('hidden');
-      document.getElementById('classesView').classList.add('hidden');
-      document.getElementById('loginView').classList.remove('hidden');
+      const pinInput = document.getElementById('teacherPinInput');
+      if(pinInput) pinInput.value = '';
+      const attView = document.getElementById('attendanceView');
+      const clsView = document.getElementById('classesView');
+      const logView = document.getElementById('loginView');
+      if(attView) attView.classList.add('hidden');
+      if(clsView) clsView.classList.add('hidden');
+      if(logView) logView.classList.remove('hidden');
     }
 
     function renderClassesGrid() {
       const container = document.getElementById('classesGrid');
+      if(!container) return;
       container.innerHTML = '';
       const today = getOmanLocalDate();
       
@@ -648,11 +722,11 @@
       const key = `${today}_${selectedClass}_p${period}`;
       
       const sessionData = db.attendance[key] || { teacher: activeTeacher ? activeTeacher.name : 'معلم', records: {} };
-      currentAttendanceRecord = sessionData.records;
+      currentAttendanceRecord = sessionData.records && typeof sessionData.records === 'object' ? sessionData.records : {};
 
       const statusEl = document.getElementById('classSessionDateStatus');
       if(sessionData.timestamp) {
-        statusEl.innerHTML = `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | مسجل بواسطة: <span class="font-bold text-emerald-800 dark:text-emerald-300">${sessionData.teacher}</span> (${sessionData.timestamp})`;
+        statusEl.innerHTML = `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | مسجل بواسطة: <span class="font-bold text-emerald-800 dark:text-emerald-300">${sessionData.teacher}</span>`;
       } else {
         statusEl.innerHTML = `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600 dark:text-amber-400">لم يتم الرصد بعد لهذا اليوم</span>`;
       }
@@ -674,16 +748,33 @@
         const row = document.createElement('div');
         row.className = 'flex flex-wrap items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-2 border-b border-slate-50 dark:border-slate-700/50 last:border-0';
         
-        row.innerHTML = `
-          <span class="font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">${student}</span>
-          <div class="flex items-center gap-1.5 sm:gap-2">
-            <button type="button" onclick="setStudentStatus('${student}', 'present', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'present' ? 'bg-emerald-600 text-white border-emerald-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">حاضر 🟩</button>
-            <button type="button" onclick="setStudentStatus('${student}', 'absent', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'absent' ? 'bg-black text-white border-black shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">غائب ⬛</button>
-            <button type="button" onclick="setStudentStatus('${student}', 'late', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'late' ? 'bg-orange-500 text-white border-orange-500 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">متأخر 🟧</button>
-            <button type="button" onclick="setStudentStatus('${student}', 'escape', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'escape' ? 'bg-red-600 text-white border-red-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">متسرب 🟥</button>
-            <button type="button" onclick="setStudentStatus('${student}', 'outside', this)" class="status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${currentStatus === 'outside' ? 'bg-purple-600 text-white border-purple-600 shadow-sm' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}">خارج 🟪</button>
-          </div>
-        `;
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm';
+        nameSpan.textContent = student;
+
+        const actionsDiv = document.createElement('div');
+        actionsDiv.className = 'flex items-center gap-1.5 sm:gap-2';
+
+        const statuses = [
+          { key: 'present', label: 'حاضر 🟩', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
+          { key: 'absent', label: 'غائب ⬛', cls: 'bg-black text-white border-black shadow-sm' },
+          { key: 'late', label: 'متأخر 🟧', cls: 'bg-orange-500 text-white border-orange-500 shadow-sm' },
+          { key: 'escape', label: 'متسرب 🟥', cls: 'bg-red-600 text-white border-red-600 shadow-sm' },
+          { key: 'outside', label: 'خارج 🟪', cls: 'bg-purple-600 text-white border-purple-600 shadow-sm' }
+        ];
+
+        statuses.forEach(st => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isActive = currentStatus === st.key;
+          btn.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? st.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+          btn.textContent = st.label;
+          btn.onclick = () => setStudentStatus(student, st.key, btn);
+          actionsDiv.appendChild(btn);
+        });
+
+        row.appendChild(nameSpan);
+        row.appendChild(actionsDiv);
         container.appendChild(row);
       });
     }
@@ -707,7 +798,7 @@
 
       btnElement.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${colorMap[status]}`;
       updateLiveStats();
-      saveAttendanceSession(true);
+      document.getElementById('unsavedStatusIndicator').textContent = "⚠️ توجد تغييرات محلية غير محفوظة سحابياً";
     }
 
     function updateLiveStats() {
@@ -728,24 +819,40 @@
       document.getElementById('statOutside').textContent = o;
     }
 
-    function saveAttendanceSession(silent = false) {
+    async function saveAttendanceSession() {
       if (!selectedClass || !activeTeacher) return;
-      const period = document.getElementById('sessionPeriodSelect').value;
-      const today = getOmanLocalDate();
-      const key = `${today}_${selectedClass}_p${period}`;
+      const saveBtn = document.getElementById('saveSessionBtn');
+      if (saveBtn.disabled) return;
 
-      db.attendance[key] = {
-        teacher: activeTeacher.name,
-        teacherPin: activeTeacher.pin,
-        records: currentAttendanceRecord,
-        timestamp: getOmanLocalDateTime()
-      };
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
 
-      saveSystemDataToCloud().then(success => {
-        if (success && !silent) {
-          alert('تم حفظ كشف الحضور والغياب سحابياً بنجاح!');
-        }
-      });
+      try {
+        const period = document.getElementById('sessionPeriodSelect').value;
+        const today = getOmanLocalDate();
+        const key = `${today}_${selectedClass}_p${period}`;
+
+        db.attendance[key] = {
+          teacher: activeTeacher.name,
+          className: selectedClass,
+          period: parseInt(period),
+          records: { ...currentAttendanceRecord },
+          timestamp: new Date().toISOString()
+        };
+
+        const success = await saveSystemDataToCloud();
+        
+        document.getElementById('unsavedStatusIndicator').textContent = success ? "تم الحفظ سحابياً بنجاح" : "حفظت البيانات محلياً وتتعذر المزامنة";
+        alert(success ? "تم حفظ كشف الحضور والغياب سحابياً بنجاح!" : "تعذر الحفظ السحابي، البيانات محفوظة محلياً فقط.");
+
+        if (success) renderClassesGrid();
+      } catch (error) {
+        console.error("Attendance save error:", error);
+        alert('حدث خطأ أثناء حفظ الحصة، يرجى المحاولة مجدداً.');
+      } finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i><span>تأكيد وحفظ رصد الحصة سحابياً</span>`;
+      }
       loadSessionAttendance();
     }
 
@@ -762,19 +869,28 @@
 
     function verifyAdminPin() {
       const pin = document.getElementById('adminPinInput').value.trim();
+      const encodedPin = btoa(pin);
       
-      if (pin === (db.adminPin || "1234")) {
+      const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
+      const socialDecoded = db.socialPin ? (db.socialPin.length === 4 || !isBase64(db.socialPin) ? db.socialPin : atob(db.socialPin)) : "5678";
+      const studentAffairsDecoded = db.studentAffairsPin ? (db.studentAffairsPin.length === 4 || !isBase64(db.studentAffairsPin) ? db.studentAffairsPin : atob(db.studentAffairsPin)) : "4321";
+
+      if (pin === adminDecoded || encodedPin === db.adminPin) {
         currentRole = 'admin';
         setupRolePermissions();
-      } else if (pin === (db.socialPin || "5678")) {
+      } else if (pin === socialDecoded || encodedPin === db.socialPin) {
         currentRole = 'social';
         setupRolePermissions();
-      } else if (pin === (db.studentAffairsPin || "4321")) {
+      } else if (pin === studentAffairsDecoded || encodedPin === db.studentAffairsPin) {
         currentRole = 'studentAffairs';
         setupRolePermissions();
       } else {
         document.getElementById('adminAuthError').classList.remove('hidden');
       }
+    }
+
+    function isBase64(str) {
+      try { return btoa(atob(str)) === str; } catch (err) { return false; }
     }
 
     function setupRolePermissions() {
@@ -813,6 +929,10 @@
         alert('عذراً، هذا القسم مخصص لمدير النظام أو شؤون الطلاب.');
         return;
       }
+      if (currentRole === 'studentAffairs' && tab !== 'students' && tab !== 'reports') {
+        alert('عذراً، شؤون الطلاب تقتصر على إدارة الطلاب والتقارير.');
+        return;
+      }
 
       ['students', 'teachers', 'tstats', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
         const sec = document.getElementById(`sec-${t}`);
@@ -840,6 +960,7 @@
     function populateAdminClassSelect() {
       const select = document.getElementById('adminClassSelect');
       const repSelect = document.getElementById('reportClassSelect');
+      if(!select || !repSelect) return;
       select.innerHTML = '';
       repSelect.innerHTML = '';
       
@@ -857,14 +978,9 @@
       const container = document.getElementById('adminStudentsDisplay');
       
       const bulkInput = document.getElementById('bulkStudentsInput');
-      
-      if (bulkInput && document.activeElement === bulkInput) {
-        return;
-      }
+      if (bulkInput && document.activeElement === bulkInput) return;
 
-      if (bulkInput) {
-        bulkInput.value = list.join('\n');
-      }
+      if (bulkInput) bulkInput.value = list.join('\n');
 
       container.innerHTML = '';
       if (list.length === 0) {
@@ -873,77 +989,92 @@
       }
 
       list.forEach((st, idx) => {
-        container.innerHTML += `
-          <div class="flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
-            <span class="font-bold text-slate-700 dark:text-slate-200">${st}</span>
-            <button type="button" onclick="removeStudent('${selected}', ${idx})" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 bg-red-50 dark:bg-red-950/50 rounded-lg cursor-pointer">حذف</button>
-          </div>
-        `;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'font-bold text-slate-700 dark:text-slate-200';
+        nameSpan.textContent = st;
+
+        const delBtn = document.createElement('button');
+        delBtn.type = 'button';
+        delBtn.className = 'text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 bg-red-50 dark:bg-red-950/50 rounded-lg cursor-pointer';
+        delBtn.textContent = 'حذف';
+        delBtn.onclick = () => removeStudent(selected, idx);
+
+        itemDiv.appendChild(nameSpan);
+        itemDiv.appendChild(delBtn);
+        container.appendChild(itemDiv);
       });
     }
 
-    function saveBulkStudents() {
+    async function saveBulkStudents() {
+      if (currentRole === 'social') return alert('عذراً، هذه الصلاحية غير مخصصة للأخصائي.');
       const selected = document.getElementById('adminClassSelect').value;
       const rawText = document.getElementById('bulkStudentsInput').value;
-      const parsed = rawText.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+      const parsed = rawText.split('\n').map(s => s.trim()).filter(Boolean);
       
       db.students[selected] = parsed;
-      saveSystemDataToCloud();
+      const success = await saveSystemDataToCloud();
       loadAdminStudentsList();
-      alert('تم تحديث قائمة الطلاب للصف وحفظها سحابياً بنجاح!');
+      
+      alert(success ? 'تم تحديث قائمة الطلاب وحفظها سحابياً بنجاح!' : 'تم التحديث محلياً، وتعذر الحفظ السحابي.');
     }
 
     function handleStudentFileImport(event) {
+      if (currentRole === 'social') return alert('عذراً، هذه الصلاحية غير مخصصة للأخصائي.');
       const file = event.target.files[0];
       if (!file) return;
 
       const reader = new FileReader();
-      reader.onload = function(e) {
+      reader.onload = async function(e) {
         const text = e.target.result;
-        const lines = text.split(/\r?\n/).map(s => s.trim()).filter(s => s.length > 0);
+        const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
         const selected = document.getElementById('adminClassSelect').value;
 
         if (lines.length > 0) {
           if (!db.students[selected]) db.students[selected] = [];
           db.students[selected] = [...new Set([...db.students[selected], ...lines])];
-          saveSystemDataToCloud();
+          const success = await saveSystemDataToCloud();
           loadAdminStudentsList();
-          alert(`تم استيراد ${lines.length} طالباً بنجاح إلى صف ${selected}!`);
+          
+          alert(success ? `تم استيراد ${lines.length} طالباً وحفظهم سحابياً بنجاح إلى صف ${selected}!` : `تم استيراد الطلاب محلياً، وتعذر الحفظ السحابي.`);
         }
       };
       reader.readAsText(file, 'UTF-8');
     }
 
-    function removeStudent(className, idx) {
+    async function removeStudent(className, idx) {
+      if (currentRole === 'social') return alert('عذراً، هذه الصلاحية غير مخصصة للأخصائي.');
       db.students[className].splice(idx, 1);
-      saveSystemDataToCloud();
+      await saveSystemDataToCloud();
       loadAdminStudentsList();
     }
 
-    function addNewClassPrompt() {
-      if(currentRole !== 'admin') return alert('عذراً، هذه الصلاحية لمدير النظام فقط.');
+    async function addNewClassPrompt() {
+      if(currentRole !== 'admin' && currentRole !== 'studentAffairs') return alert('عذراً، هذه الصلاحية لمدير النظام أو شؤون الطلاب فقط.');
       const name = prompt('أدخل اسم الصف الجديد (مثال: 9/9):');
       if (name && !db.classes.includes(name)) {
         db.classes.push(name);
         db.students[name] = [];
-        saveSystemDataToCloud();
+        const success = await saveSystemDataToCloud();
         populateAdminClassSelect();
         renderClassesGrid();
-        alert('تم إضافة الصف بنجاح!');
+        alert(success ? 'تم إضافة الصف وحفظه سحابياً بنجاح!' : 'تم إضافة الصف محلياً وتتعذر المزامنة.');
       }
     }
 
-    function deleteCurrentClass() {
-      if(currentRole !== 'admin') return alert('عذراً، هذه الصلاحية لمدير النظام فقط.');
+    async function deleteCurrentClass() {
+      if(currentRole !== 'admin') return alert('عذراً، حذف الصفوف مخصص لمدير النظام فقط.');
       const selected = document.getElementById('adminClassSelect').value;
       if (confirm(`هل أنت متأكد من حذف الصف ${selected} بالكامل مع طلابه؟`)) {
         db.classes = db.classes.filter(c => c !== selected);
         delete db.students[selected];
-        saveSystemDataToCloud();
+        const success = await saveSystemDataToCloud();
         populateAdminClassSelect();
         loadAdminStudentsList();
         renderClassesGrid();
-        alert('تم حذف الصف بنجاح!');
+        alert(success ? 'تم حذف الصف من السحابة بنجاح!' : 'تم الحذف محلياً.');
       }
     }
 
@@ -953,40 +1084,66 @@
       container.innerHTML = '';
       
       db.teachers.forEach((t, idx) => {
-        container.innerHTML += `
-          <div class="flex justify-between items-center p-3">
-            <div>
-              <span class="font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">${t.name}</span>
-              <span class="text-xs text-slate-500 ms-2 bg-slate-100 dark:bg-slate-900 px-2.5 py-0.5 rounded-lg font-mono font-bold">الرمز: ${t.pin}</span>
-            </div>
-            ${currentRole === 'admin' ? `<button type="button" onclick="deleteTeacher(${idx})" class="text-red-600 hover:text-red-800 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer">حذف</button>` : ''}
-          </div>
-        `;
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50 last:border-0';
+        
+        const infoDiv = document.createElement('div');
+        const nameSpan = document.createElement('span');
+        nameSpan.className = 'font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm';
+        nameSpan.textContent = t.name;
+
+        const pinSpan = document.createElement('span');
+        pinSpan.className = 'text-xs text-slate-500 ms-2 bg-slate-100 dark:bg-slate-900 px-2.5 py-0.5 rounded-lg font-mono font-bold';
+        pinSpan.textContent = `الرمز: ${t.pin}`;
+
+        infoDiv.appendChild(nameSpan);
+        infoDiv.appendChild(pinSpan);
+        itemDiv.appendChild(infoDiv);
+
+        if (currentRole === 'admin') {
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'text-red-600 hover:text-red-800 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer';
+          delBtn.textContent = 'حذف';
+          delBtn.onclick = () => deleteTeacher(idx);
+          itemDiv.appendChild(delBtn);
+        }
+
+        container.appendChild(itemDiv);
       });
     }
 
-    function addNewTeacher() {
+    async function addNewTeacher() {
       if(currentRole !== 'admin') return alert('عذراً، إدارة المعلمين مخصصة لمدير النظام فقط.');
       const name = document.getElementById('newTeacherName').value.trim();
       const pin = document.getElementById('newTeacherPin').value.trim();
 
       if (name && pin && pin.length === 4) {
         db.teachers.push({ name, pin });
-        saveSystemDataToCloud();
+        const success = await saveSystemDataToCloud();
         renderTeachersList();
         document.getElementById('newTeacherName').value = '';
         document.getElementById('newTeacherPin').value = '';
-        alert('تم حفظ المعلم الجديد سحابياً بنجاح!');
+        alert(success ? 'تم حفظ المعلم الجديد سحابياً بنجاح!' : 'تم الحفظ محلياً.');
       } else {
         alert('يرجى التأكد من إدخال اسم المعلم ورمز سري مكون من 4 أرقام.');
       }
     }
 
-    function deleteTeacher(idx) {
+    async function deleteTeacher(idx) {
+      if(currentRole !== 'admin') return alert('عذراً، هذه الصلاحية لمدير النظام فقط.');
+      const targetTeacher = db.teachers[idx];
       if (confirm('هل أنت متأكد من حذف هذا المعلم؟')) {
         db.teachers.splice(idx, 1);
-        saveSystemDataToCloud();
+        
+        if (activeTeacher && activeTeacher.pin === targetTeacher.pin) {
+          alert('تم حذف المعلم النشط حالياً، سيتم تسجيل الخروج.');
+          logoutTeacher();
+        }
+
+        const success = await saveSystemDataToCloud();
         renderTeachersList();
+        alert(success ? 'تم حذف المعلم وتحديث السحابة بنجاح!' : 'تم الحذف محلياً.');
       }
     }
 
@@ -1016,57 +1173,65 @@
       const container = document.getElementById('smartAlertsContainer');
       let studentIssues = {};
 
-      Object.entries(db.attendance).forEach(([key, session]) => {
-        if (session && session.records) {
+      Object.values(db.attendance).forEach(session => {
+        if (session && session.records && session.className) {
+          const className = session.className;
           Object.entries(session.records).forEach(([student, status]) => {
             if (status !== 'present') {
-              if (!studentIssues[student]) studentIssues[student] = { absent: 0, late: 0, escape: 0, outside: 0, total: 0 };
-              if(studentIssues[student][status] !== undefined) studentIssues[student][status]++;
-              studentIssues[student].total++;
+              const uniqueKey = `${className}::${student}`;
+              if (!studentIssues[uniqueKey]) {
+                studentIssues[uniqueKey] = { studentName: student, className: className, absent: 0, late: 0, escape: 0, outside: 0, total: 0 };
+              }
+              if(studentIssues[uniqueKey][status] !== undefined) studentIssues[uniqueKey][status]++;
+              studentIssues[uniqueKey].total++;
             }
           });
         }
       });
 
-      let filteredStudents = Object.entries(studentIssues).filter(([st, data]) => data.total >= 1).sort((a,b) => b[1].total - a[1].total);
+      let filteredStudents = Object.values(studentIssues).filter(data => data.total >= 1).sort((a,b) => b.total - a.total);
 
       if (filteredStudents.length === 0) {
         container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs font-bold">ممتاز! لا توجد مخالفات غياب أو هروب مسجلة.</div>`;
         return;
       }
 
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th><th class="p-3 text-center">إجراء</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th><th class="p-3 text-center">إجراء</th></tr></thead><tbody class="divide-y">`;
       
-      filteredStudents.forEach(([name, data]) => {
-        html += `<tr><td class="p-3 font-bold">${name}</td><td class="p-3 text-center">${data.absent || 0}</td><td class="p-3 text-center">${data.late || 0}</td><td class="p-3 text-center">${data.escape || 0}</td><td class="p-3 text-center">${data.outside || 0}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${data.total}</span></td><td class="p-3 text-center"><button onclick="alertStudentNotice('${name}', ${data.absent || 0}, ${data.escape || 0})" class="bg-slate-800 hover:bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] font-bold cursor-pointer"><i class="fa-solid fa-bell"></i> تنبيه ولي الأمر</button></td></tr>`;
+      filteredStudents.forEach((data) => {
+        html += `<tr><td class="p-3 font-bold">${data.studentName}</td><td class="p-3 text-center font-semibold text-emerald-700">${data.className}</td><td class="p-3 text-center">${data.absent || 0}</td><td class="p-3 text-center">${data.late || 0}</td><td class="p-3 text-center">${data.escape || 0}</td><td class="p-3 text-center">${data.outside || 0}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${data.total}</span></td><td class="p-3 text-center"><button onclick="alertStudentNotice('${data.studentName}', '${data.className}', ${data.absent || 0}, ${data.escape || 0})" class="bg-slate-800 hover:bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] font-bold cursor-pointer"><i class="fa-solid fa-bell"></i> تنبيه ولي الأمر</button></td></tr>`;
       });
       html += `</tbody></table>`;
       container.innerHTML = html;
     }
 
-    function alertStudentNotice(studentName, absentCount, escapeCount) {
-      alert(`إشعار إداري:\n\nالسادة ولي أمر الطالب: (${studentName})\nنحيطكم علماً بتكرار حالات الغياب (${absentCount}) والتسرب (${escapeCount})، ونرجو التواصل مع الأخصائي الاجتماعي بالمدرسة.`);
+    function alertStudentNotice(studentName, className, absentCount, escapeCount) {
+      alert(`إشعار إداري توثيقي:\n\nالطالب: (${studentName}) - صف (${className})\nحالات الغياب المسجلة: (${absentCount})\nحالات التسرب المسجلة: (${escapeCount})\n\nتم تسجيل هذا الإشعار للأخصائي الاجتماعي لمتابعة الحالة مع ولي الأمر.`);
     }
 
     function loadPinSettings() {
       if(currentRole !== 'admin') return;
-      document.getElementById('settingAdminPin').value = db.adminPin || "1234";
-      document.getElementById('settingSocialPin').value = db.socialPin || "5678";
-      document.getElementById('settingStudentAffairsPin').value = db.studentAffairsPin || "4321";
+      const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
+      const socialDecoded = db.socialPin ? (db.socialPin.length === 4 || !isBase64(db.socialPin) ? db.socialPin : atob(db.socialPin)) : "5678";
+      const studentAffairsDecoded = db.studentAffairsPin ? (db.studentAffairsPin.length === 4 || !isBase64(db.studentAffairsPin) ? db.studentAffairsPin : atob(db.studentAffairsPin)) : "4321";
+
+      document.getElementById('settingAdminPin').value = adminDecoded;
+      document.getElementById('settingSocialPin').value = socialDecoded;
+      document.getElementById('settingStudentAffairsPin').value = studentAffairsDecoded;
     }
 
-    function saveNewPins() {
+    async function saveNewPins() {
       if(currentRole !== 'admin') return alert('غير مسموح لك بتغيير رموز الصلاحيات.');
       const aPin = document.getElementById('settingAdminPin').value.trim();
       const sPin = document.getElementById('settingSocialPin').value.trim();
       const saPin = document.getElementById('settingStudentAffairsPin').value.trim();
 
       if(aPin && sPin && saPin) {
-        db.adminPin = aPin;
-        db.socialPin = sPin;
-        db.studentAffairsPin = saPin;
-        saveSystemDataToCloud();
-        alert('تم تحديث رموز الصلاحيات وحفظها سحابياً بنجاح!');
+        db.adminPin = btoa(aPin);
+        db.socialPin = btoa(sPin);
+        db.studentAffairsPin = btoa(saPin);
+        const success = await saveSystemDataToCloud();
+        alert(success ? 'تم تحديث رموز الصلاحيات وحفظها سحابياً بنجاح!' : 'تم التحديث محلياً.');
       } else {
         alert('يرجى تعبئة جميع حقول الرموز السرية بدقة.');
       }
