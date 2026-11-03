@@ -375,7 +375,8 @@
   <script>
     const BIN_ID = "6742517cad19ca34f8d22384";
     const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-    const API_KEY = "$2a$10$7R0Z4vQv0Y5Y4Z1vQv0Y5e3vQv0Y5Y4Z1vQv0Y5e3vQv0Y5Y4Z1vQ";
+    // 🌟 تم دمج مفتاح الـ MASTER-KEY الخاص بك بنجاح
+    const API_KEY = "$2a$10$rQH64McrG/5GJRp80l0Yy.ADS.NEm8yal8LLTmShDOwyYHgS2chO6";
 
     function getOmanLocalDate() {
       const options = { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' };
@@ -1097,7 +1098,6 @@
       }
     }
 
-    // 🌟 تعديل دالة إنشاء الـ PDF لدعم التمدد وحل مشكلة اختفاء الأسماء عند الغياب الكثيف
     function buildSingleClassHTML(className, date) {
       let html = `
         <div style="page-break-after: always; break-after: page; page-break-inside: avoid; margin-bottom: 25px; border: 2px solid #000; border-radius: 8px; padding: 12px; background: #fff; font-family: 'Tajawal', sans-serif;">
