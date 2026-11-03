@@ -373,10 +373,8 @@
   </main>
 
   <script>
-    // 🌟 تم تحديث معرّف السلة الخاص بك بدقة
     const BIN_ID = "6ae95cf6ac6210605a679163";
     const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
-    // 🌟 تم دمج مفتاح الـ MASTER-KEY الخاص بك بنجاح
     const API_KEY = "$2a$10$rQH64McrG/5GJRp80l0Yy.ADS.NEm8yal8LLTmShDOwyYHgS2chO6";
 
     function getOmanLocalDate() {
@@ -892,7 +890,12 @@
       const container = document.getElementById('adminStudentsDisplay');
       
       container.innerHTML = '';
-      document.getElementById('bulkStudentsInput').value = list.join('\n');
+      
+      // 🌟 حماية حقل الإدخال لكي لا يتحدث أو ينمسح إذا كان المستخدم يكتب فيه حالياً
+      const bulkInput = document.getElementById('bulkStudentsInput');
+      if (bulkInput && document.activeElement !== bulkInput) {
+        bulkInput.value = list.join('\n');
+      }
 
       if (list.length === 0) {
         container.innerHTML = `<div class="text-slate-400 text-center py-2 font-bold">لا يوجد طلاب في هذا الصف.</div>`;
