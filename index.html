@@ -359,7 +359,7 @@
             </div>
           </div>
 
-          <!-- Expandable Lists Container for All Classes & Periods (1-8) -->
+          <!-- Expandable Lists Container for All Classes & Periods (1-8) matching the reference image layout -->
           <div class="space-y-6" id="reportClassesContainer"></div>
         </div>
 
@@ -895,7 +895,6 @@
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    // Student Stats
     function renderStudentStats() {
       const container = document.getElementById('studentStatsContainer');
       let studentTotals = {};
@@ -944,26 +943,7 @@
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    function calculateReportLogs(targetStatus) {
-      const classFilter = document.getElementById('reportClassFilter').value, periodFilter = document.getElementById('reportPeriodFilter').value;
-      const todayStr = getOmanLocalDate(), currentMonth = todayStr.substring(0, 7), weekAgo = new Date(todayStr); weekAgo.setDate(weekAgo.getDate() - 7);
-      let list = [];
-      Object.entries(db.attendance).forEach(([key, session]) => {
-        if (!session?.records) return;
-        const sDate = key.substring(0, 10), sClass = session.className || key.split('_')[1];
-        if (classFilter !== 'all' && sClass !== classFilter) return;
-        if (periodFilter === 'today' && sDate !== todayStr) return;
-        if (periodFilter === 'week' && (new Date(sDate) < weekAgo || new Date(sDate) > new Date(todayStr))) return;
-        if (periodFilter === 'month' && sDate.substring(0, 7) !== currentMonth) return;
-
-        Object.entries(session.records).forEach(([studentName, status]) => {
-          if (status === targetStatus) list.push({ studentName, className: sClass, teacherName: session.teacher || 'معلم', period: session.period || '؟', date: sDate });
-        });
-      });
-      return list;
-    }
-
-    // Reports Section: Re-structured to match Image 5 with detailed sorting and absent highlight (image 6)
+    // Reports Section: Re-structured exactly like the reference image layout with absent students on top inside a pill
     function renderReportsSection() {
       const classFilter = document.getElementById('reportClassFilter').value;
       const targetDate = document.getElementById('reportDatePicker').value;
@@ -974,23 +954,20 @@
       let classesToDisplay = classFilter === 'all' ? db.classes : [classFilter];
 
       classesToDisplay.forEach(className => {
-        // الكتلة الرئيسية لكل صف (border, spacing as in Image 5)
         let classBlock = document.createElement('div');
-        classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden mb-6';
+        classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-300 dark:border-slate-700 overflow-hidden mb-6 p-4';
         
-        // رأس الكتلة: تاريخ الرصد والصف الدراسي (طرفين كما في الصورة)
         let blockHeader = document.createElement('div');
-        blockHeader.className = 'p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50 dark:bg-slate-900/50 gap-3';
+        blockHeader.className = 'pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center';
         blockHeader.innerHTML = `
           <span class="font-extrabold text-sm text-slate-800 dark:text-white">تاريخ الرصد: ${targetDate}</span>
           <span class="font-extrabold text-sm text-slate-800 dark:text-white">الصف الدراسي: ${className}</span>
         `;
         
-        // جسم الكتلة: شبكة الحصص من 1 إلى 8 أفقياً (Image 5 grid)
+        // Grid 8 periods from right to left (1 to 8)
         let blockBody = document.createElement('div');
-        blockBody.className = 'p-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3';
+        blockBody.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3';
 
-        // إنشاء الـ 8 مربعات حصص
         let periodsHtml = '';
         for (let p = 1; p <= 8; p++) {
           let sessionKey = `${targetDate}_${className}_p${p}`;
@@ -998,46 +975,41 @@
           let records = sessionData ? sessionData.records : {};
           let teacherName = sessionData ? sessionData.teacher : '(غير مسجل)';
 
-          // تصفية المخالفين وترتيبهم (غياب أولاً)
+          // Filter and sort: Absent students first at the top
           let issuesList = Object.entries(records).filter(([st, stVal]) => stVal !== 'present');
           issuesList.sort((a, b) => {
             if (a[1] === 'absent' && b[1] !== 'absent') return -1;
             if (a[1] !== 'absent' && b[1] === 'absent') return 1;
-            return 0; // الحفاظ على الترتيب الأصلي للبقية
+            return 0;
           });
 
-          // تنسيق مربع الحصة الواحدة (Image 5, flexible height)
           periodsHtml += `
-            <div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800 flex flex-col">
-              <div class="mb-2 pb-1 border-b border-slate-100 dark:border-slate-700 text-center">
-                <div class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300">الحصة ${p}</div>
-                <div class="text-[10px] text-slate-500">${teacherName}</div>
+            <div class="border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 flex flex-col min-h-[160px]">
+              <div class="mb-2 pb-1.5 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/40 rounded-lg p-1">
+                <div class="text-[11px] font-extrabold text-slate-800 dark:text-emerald-300">الحصة ${p}</div>
+                <div class="text-[9px] text-slate-500 font-semibold truncate">(${teacherName})</div>
               </div>
-              <div class="flex-grow space-y-1">
+              <div class="flex-grow space-y-1.5 pt-1">
           `;
 
           if (issuesList.length === 0) {
-            periodsHtml += `<div class="text-[10px] text-slate-400 py-1 text-center font-normal">لا يوجد مخالفات</div>`;
+            periodsHtml += `<div class="text-[10px] text-slate-400 py-4 text-center font-medium">لا يوجد مخالفات</div>`;
           } else {
             issuesList.forEach(([studentName, status]) => {
-              let badgeHtml = '';
-              
               if (status === 'absent') {
-                // تنسيق الغائب الخاص (Black, Gold border) - Image 6 pill style
-                badgeHtml = `<div class="p-1 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[10px] font-bold shadow-md">• ${studentName} (غائب)</div>`;
+                // Absent: black capsule with gold border matching image spec
+                periodsHtml += `<div class="p-1 px-2 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[10px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
               } else {
-                // تنسيق بقية الطلاب (Text colored) - Image 5 style
                 let textClass = '';
                 let statusLabel = '';
-                if (status === 'escape') { textClass = 'text-red-600 font-medium'; statusLabel = 'متسرب'; }
-                else if (status === 'late') { textClass = 'text-blue-600 font-medium'; statusLabel = 'متأخر'; }
-                else if (status === 'outside') { textClass = 'text-purple-600 font-medium'; statusLabel = 'خارج'; }
-                badgeHtml = `<div class="text-[10px] ${textClass} font-medium">• ${studentName} (${statusLabel})</div>`;
+                if (status === 'escape') { textClass = 'text-red-600 font-bold'; statusLabel = 'متسرب'; }
+                else if (status === 'late') { textClass = 'text-blue-600 font-bold'; statusLabel = 'متأخر'; }
+                else if (status === 'outside') { textClass = 'text-purple-600 font-bold'; statusLabel = 'خارج'; }
+                periodsHtml += `<div class="text-[10px] ${textClass} px-1">• ${studentName} (${statusLabel})</div>`;
               }
-              periodsHtml += badgeHtml;
             });
           }
-          periodsHtml += `</div></div>`; // إغلاق مربع الحصة
+          periodsHtml += `</div></div>`;
         }
 
         blockBody.innerHTML = periodsHtml;
@@ -1047,88 +1019,52 @@
       });
     }
 
-    function scrollToReportCategory(key) { document.getElementById(`report-section-${key}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
-
-    function exportCategoryExcel(statusKey, statusTitle) {
-      const logs = calculateReportLogs(statusKey);
-      if (logs.length === 0) { alert('لا توجد سجلات للتصدير!'); return; }
-      let csv = "\uFEFFالطالب,الصف,المعلم,الحصة,التاريخ\n";
-      logs.forEach(i => csv += `"${i.studentName}","${i.className}","${i.teacherName}","الحصة ${i.period}","${i.date}"\n`);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' }), a = document.createElement('a');
-      a.href = URL.createObjectURL(blob); a.download = `تقرير_${statusTitle}_${getOmanLocalDate()}.csv`; a.click();
-    }
-
-    function openStudentDetailModal(studentName, className, targetStatus = 'all') {
-      const modal = document.getElementById('studentDetailModal'), body = document.getElementById('modalStudentBody');
-      document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-clock text-emerald-400"></i> تفاصيل السجلات: ${studentName}`;
-      document.getElementById('modalStudentSubtitle').textContent = `الصف: ${className}`;
-      let matched = [];
-      Object.entries(db.attendance).forEach(([key, session]) => {
-        if (!session?.records || (session.className || key.split('_')[1]) !== className) return;
-        const st = session.records[studentName];
-        if (st && st !== 'present' && (targetStatus === 'all' || targetStatus === st)) {
-          matched.push({ date: key.substring(0, 10), period: session.period || '؟', teacher: session.teacher || 'معلم', status: st });
-        }
-      });
-      matched.sort((a,b) => b.date.localeCompare(a.date));
-      body.innerHTML = matched.length === 0 ? `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا توجد سجلات مسجلة.</div>` : 
-        `<div class="divide-y border rounded-2xl overflow-hidden bg-slate-50/50">` + matched.map(i => `<div class="p-3.5 flex justify-between items-center gap-2"><div><span class="font-extrabold text-xs">التاريخ: ${i.date} (الحصة ${i.period})</span><div class="text-[11px] text-slate-500 mt-1">المعلم: ${i.teacher}</div></div><span class="px-3 py-1 rounded-xl text-[11px] font-extrabold bg-slate-800 text-white">${i.status}</span></div>`).join('') + `</div>`;
-      modal.classList.remove('hidden');
-    }
-    function closeStudentDetailModal() { document.getElementById('studentDetailModal').classList.add('hidden'); }
-
-    // Export PDF Report for Attendance (Periods 1-8 for classes, restructured to match Image 5 with sorting and absent highlight)
+    // Export PDF Report matching the reference image layout precisely
     function exportAttendancePDF() {
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
       let classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
 
-      // تنسيق HTML للطباعة يطابق الهيكل الجديد (Image 5 + sorting + distinct styles)
       let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير غياب وتفريغ حصص - مدرسة أبو دجانة الأنصاري (${targetDate})</title><style>
-        @page { size: A4 landscape; margin: 10mm; }
-        body { font-family: 'Tajawal', sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 11px; }
-        h2 { text-align: center; margin-bottom: 10px; }
+        @page { size: A4 landscape; margin: 8mm; }
+        body { font-family: 'Tajawal', sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 10px; }
+        h2 { text-align: center; margin-bottom: 8px; font-size: 14px; color: #065f46; }
         
-        .class-block { page-break-after: always; border: 1px solid #ccc; border-radius: 10px; margin-bottom: 15px; overflow: hidden; }
-        .block-header { padding: 8px 12px; background-color: #f1f5f9; border-bottom: 1px solid #ccc; display: flex; justify-content: space-between; align-items: center; }
-        .block-header span { font-weight: bold; font-size: 11px; }
+        .class-block { page-break-after: always; border: 2px solid #333; border-radius: 12px; margin-bottom: 15px; overflow: hidden; background: #fff; }
+        .block-header { padding: 6px 12px; background-color: #f8fafc; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 11px; }
         
-        .block-body { padding: 10px; display: grid; grid-template-cols: repeat(8, 1fr); gap: 6px; }
+        .block-body { padding: 8px; display: grid; grid-template-cols: repeat(8, 1fr); gap: 6px; }
         
-        .period-box { border: 1px solid #ccc; border-radius: 8px; padding: 6px; background-color: #fff; display: flex; flex-direction: column; }
-        .period-header { text-align: center; margin-bottom: 4px; padding-bottom: 2px; border-bottom: 1px solid #eee; }
-        .period-title { font-weight: bold; color: #047857; font-size: 10px; }
-        .period-teacher { color: #666; font-size: 9px; }
+        .period-box { border: 1.5px solid #444; border-radius: 8px; padding: 5px; background-color: #fff; display: flex; flex-direction: column; min-height: 140px; }
+        .period-header { text-align: center; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #ddd; background: #fdfdfd; }
+        .period-title { font-weight: bold; color: #000; font-size: 10px; }
+        .period-teacher { color: #555; font-size: 8.5px; }
         
         .period-body { flex-grow: 1; }
-        .no-issues { text-align: center; color: #999; font-size: 9px; padding-top: 5px; font-weight: normal; }
+        .no-issues { text-align: center; color: #888; font-size: 9px; padding-top: 15px; }
         
-        /* تنسيق الغائب الخاص (Black capsule, Gold border) - تطابق Image 6 */
         .absent-pill {
           background-color: #000;
           color: #fff;
-          border: 2px solid #fbbf24; /* لون ذهبي */
+          border: 2px solid #fbbf24;
           border-radius: 9999px;
-          padding: 3px 6px;
+          padding: 3px 5px;
           margin-bottom: 3px;
           display: block;
           text-align: center;
           font-weight: bold;
           font-size: 9px;
-          box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
         }
         
-        /* تنسيقات نصية لبقية الطلاب - تطابق Image 5 */
-        .status-item { font-size: 9px; margin-bottom: 2px; font-weight: medium; }
-        .status-late-text { color: #2563eb; } /* أزرق */
-        .status-escape-text { color: #dc2626; } /* أحمر */
-        .status-outside-text { color: #7c3aed; } /* بنفسجي */
+        .status-item { font-size: 9px; margin-bottom: 2px; font-weight: bold; }
+        .status-late-text { color: #1d4ed8; }
+        .status-escape-text { color: #b91c1c; }
+        .status-outside-text { color: #6d28d9; }
       </style></head><body>`;
       
       printHTML += `<h2>تقرير تفريغ الغياب والحصص (من الأولى للثامنة) - مدرسة أبو دجانة الأنصاري</h2>`;
 
       classesToPrint.forEach(className => {
-        // الكتلة الرئيسية لكل صف
         printHTML += `<div class="class-block">`;
         printHTML += `
           <div class="block-header">
@@ -1137,7 +1073,6 @@
           </div>
         `;
         
-        // جسم الكتلة: شبكة الحصص من 1 إلى 8
         printHTML += `<div class="block-body">`;
         
         for (let p = 1; p <= 8; p++) {
@@ -1147,14 +1082,12 @@
           let records = sData ? sData.records : {};
           let issuesList = Object.entries(records).filter(([st, val]) => val !== 'present');
 
-          // --- منطق الترتيب: الغائب أولاً ---
           issuesList.sort((a, b) => {
             if (a[1] === 'absent' && b[1] !== 'absent') return -1;
             if (a[1] !== 'absent' && b[1] === 'absent') return 1;
             return 0;
           });
 
-          // مربع الحصة الواحدة
           printHTML += `<div class="period-box">`;
           printHTML += `
             <div class="period-header">
@@ -1169,10 +1102,8 @@
           } else {
             issuesList.forEach(([studentName, status]) => {
               if (status === 'absent') {
-                // تنسيق الغائب الخاص (Image 6)
                 printHTML += `<div class="absent-pill">• ${studentName} (غائب)</div>`;
               } else {
-                // تنسيق بقية الطلاب (Image 5 text styles)
                 let textCls = '';
                 let label = '';
                 if (status === 'escape') { textCls = 'status-escape-text'; label = 'متسرب'; }
@@ -1182,10 +1113,10 @@
               }
             });
           }
-          printHTML += `</div></div>`; // إغلاق مربع الحصة
+          printHTML += `</div></div>`;
         }
         
-        printHTML += `</div></div>`; // إغلاق الكتلة الرئيسية للصف
+        printHTML += `</div></div>`;
       });
 
       printHTML += `</body></html>`;
