@@ -509,6 +509,12 @@
     }
 
     async function backgroundSync() {
+      // 🌟 منع التحديث الخلفي نهائياً إذا كان المستخدم يكتب في حقل الأسماء حالياً
+      const bulkInput = document.getElementById('bulkStudentsInput');
+      if (bulkInput && document.activeElement === bulkInput) {
+        return; 
+      }
+
       try {
         const response = await fetch(API_URL + "/latest", {
           headers: { "X-Master-Key": API_KEY },
@@ -889,14 +895,18 @@
       const list = db.students[selected] || [];
       const container = document.getElementById('adminStudentsDisplay');
       
-      container.innerHTML = '';
-      
-      // 🌟 حماية حقل الإدخال لكي لا يتحدث أو ينمسح إذا كان المستخدم يكتب فيه حالياً
       const bulkInput = document.getElementById('bulkStudentsInput');
-      if (bulkInput && document.activeElement !== bulkInput) {
+      
+      // 🌟 منع تحديث حقل الإدخال بالكامل إذا كان مؤشر الفأرة أو الكتابة داخله
+      if (bulkInput && document.activeElement === bulkInput) {
+        return;
+      }
+
+      if (bulkInput) {
         bulkInput.value = list.join('\n');
       }
 
+      container.innerHTML = '';
       if (list.length === 0) {
         container.innerHTML = `<div class="text-slate-400 text-center py-2 font-bold">لا يوجد طلاب في هذا الصف.</div>`;
         return;
