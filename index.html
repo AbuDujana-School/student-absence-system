@@ -49,20 +49,20 @@
   <!-- Main Content -->
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
-    <!-- Step 1: Teacher Login View -->
+    <!-- Step 1: Login View -->
     <div id="loginView" class="max-w-md mx-auto my-12 bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700">
       <div class="text-center mb-6">
         <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl border border-emerald-100 dark:border-emerald-800 shadow-sm">
           <i class="fa-solid fa-user-lock"></i>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-800 dark:text-white">تسجيل دخول المعلم</h2>
-        <p class="text-xs text-slate-400 mt-1">أدخل الرقم السري المكون من 4 أرقام للمتابعة ورصد الغياب</p>
+        <h2 class="text-xl font-extrabold text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
+        <p class="text-xs text-slate-400 mt-1">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب أو فتح لوحة التحكم</p>
       </div>
 
-      <form onsubmit="handleTeacherLogin(event)" class="space-y-4">
+      <form onsubmit="handleUserLogin(event)" class="space-y-4">
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">الرقم السري للمعلم</label>
-          <input type="password" id="teacherPinInput" required maxlength="4" placeholder="••••" class="w-full text-center text-2xl tracking-widest px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none transition font-bold">
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">الرقم السري</label>
+          <input type="password" id="userPinInput" required placeholder="••••" class="w-full text-center text-2xl tracking-widest px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none transition font-bold">
         </div>
         <div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-xl border border-red-100 dark:border-red-900">الرمز السري غير صحيح، يرجى المحاولة مجدداً</div>
         <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl shadow-lg transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
@@ -80,13 +80,26 @@
             <i class="fa-solid fa-chalkboard-user"></i>
           </div>
           <div>
-            <span class="text-slate-400 text-xs block">مرحباً بالمعلم الكريم:</span>
-            <span id="activeTeacherName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
+            <span class="text-slate-400 text-xs block">مرحباً بك:</span>
+            <span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
+            <span id="activeUserRoleBadge" class="ms-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold"></span>
           </div>
         </div>
-        <button onclick="logoutTeacher()" class="text-xs bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-5 py-3 rounded-2xl transition-all duration-200 font-bold flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer border border-red-400/30">
-          <i class="fa-solid fa-right-from-bracket text-sm"></i> <span>تسجيل خروج</span>
-        </button>
+        
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- زر تغيير الرمز السري الخاص بالمعلم -->
+          <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-4 py-3 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-key"></i> تغيير الرمز السري
+          </button>
+          
+          <button id="openControlPanelFromDashboardBtn" onclick="openAdminModalFromDashboard()" class="hidden text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl transition font-bold flex items-center gap-2 shadow cursor-pointer">
+            <i class="fa-solid fa-sliders"></i> لوحة التحكم
+          </button>
+          
+          <button onclick="logoutUser()" class="text-xs bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-5 py-3 rounded-2xl transition-all duration-200 font-bold flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer border border-red-400/30">
+            <i class="fa-solid fa-right-from-bracket text-sm"></i> <span>تسجيل خروج</span>
+          </button>
+        </div>
       </div>
 
       <div>
@@ -165,8 +178,35 @@
     </div>
   </main>
 
+  <!-- Modal: Teacher Change PIN -->
+  <div id="changePinModal" class="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
+        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
+        </h3>
+        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الحالي:</label>
+          <input type="password" id="currentPinCheck" placeholder="أدخل رمزك الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الجديد:</label>
+          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+        </div>
+        <div id="changePinError" class="text-red-500 text-xs font-bold hidden">الرمز الحالي غير صحيح!</div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer">إلغاء</button>
+        <button onclick="submitNewTeacherPin()" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow cursor-pointer">حفظ الرمز الجديد</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Student Detailed Drill-Down Modal -->
-  <div id="studentDetailModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-sm">
+  <div id="studentDetailModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
         <div>
@@ -179,9 +219,7 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody">
-        <!-- Dynamically injected session list -->
-      </div>
+      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody"></div>
       <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
         <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">
           إغلاق النافذة
@@ -190,14 +228,14 @@
     </div>
   </div>
 
-  <!-- Admin Settings Modal -->
+  <!-- Admin / Control Panel Modal -->
   <div id="adminModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-5xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
       
       <!-- Modal Header -->
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
         <h3 class="font-extrabold text-base flex items-center gap-2">
-          <i class="fa-solid fa-sliders text-emerald-400"></i> لوحة إعدادات الإدارة والصلاحيات المتعددة
+          <i class="fa-solid fa-sliders text-emerald-400"></i> لوحة التحكم وصلاحيات النظام المخصصة
         </h3>
         <button onclick="closeAdminModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer">
           <i class="fa-solid fa-xmark"></i>
@@ -209,13 +247,13 @@
         <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center mx-auto text-2xl border border-emerald-100 dark:border-emerald-800 shadow-sm">
           <i class="fa-solid fa-user-shield"></i>
         </div>
-        <h4 class="font-extrabold text-slate-800 dark:text-white text-base">يتطلب الدخول إدخال رمز الإدارة أو القسم</h4>
-        <p class="text-xs text-slate-400">أدخل رمز المدير العام، رمز الأخصائي، أو رمز شؤون الطلاب</p>
+        <h4 class="font-extrabold text-slate-800 dark:text-white text-base">يتطلب الدخول إدخال رمز مدير النظام العام</h4>
+        <p class="text-xs text-slate-400">أدخل الرمز السري الرئيسي للوصول إلى لوحة التحكم والإعدادات</p>
         <div class="max-w-xs mx-auto space-y-3">
           <input type="password" id="adminPinInput" placeholder="أدخل الرمز السري هنا" class="w-full text-center text-lg p-3.5 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold tracking-widest">
           <div id="adminAuthError" class="text-red-500 dark:text-red-400 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-xl border border-red-100 dark:border-red-900">الرمز السري غير صحيح</div>
           <button onclick="verifyAdminPin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl shadow transition text-xs cursor-pointer">
-            دخول للوحة الصلاحيات
+            دخول للوحة التحكم
           </button>
         </div>
       </div>
@@ -230,74 +268,99 @@
 
         <!-- Tabs Nav -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
-          <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">الطلاب والصفوف</button>
-          <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المعلمين</button>
+          <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إدارة الأشخاص</button>
+          <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الطلاب والصفوف</button>
+          <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المعلمين (الرموز)</button>
           <button onclick="switchAdminTab('tstats')" id="tab-tstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">إحصائيات المعلمين</button>
-          <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التنبيهات الذكية للغياب</button>
-          <button onclick="switchAdminTab('advanced-stats')" id="tab-advanced-stats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">احصائية لمتابعة الطلاب</button>
-          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التقارير والطباعة</button>
+          <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التنبيهات الذكية</button>
+          <button onclick="switchAdminTab('advanced-stats')" id="tab-advanced-stats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">احصائية الطلاب</button>
+          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التقارير</button>
           <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المزامنة</button>
-          <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأمان والصلاحيات</button>
+          <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">أمان النظام</button>
+        </div>
+
+        <!-- Tab 0: Custom Users & Checklist Permissions -->
+        <div id="sec-users" class="space-y-4">
+          <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-4 rounded-2xl space-y-2">
+            <h5 class="font-bold text-emerald-900 dark:text-emerald-300 text-sm"><i class="fa-solid fa-users-gear"></i> إدارة المستخدمين المخصصين وصلاحياتهم</h5>
+            <p class="text-xs text-emerald-700 dark:text-emerald-400">إضافة أشخاص محددين مع تحديد صلاحيات لوحة التحكم الخاصة بهم عبر مربعات الاختيار.</p>
+          </div>
+
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+            <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة شخص جديد للنظام</h5>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="text" id="newCustomUserName" placeholder="اسم الشخص" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-medium">
+              <input type="password" id="newCustomUserPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
+            </div>
+
+            <div class="space-y-2 pt-2">
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">الصلاحيات المتاحة في لوحة التحكم (Checklist):</label>
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="perm_students" class="rounded accent-emerald-600"> إدارة الطلاب والصفوف</label>
+                <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="perm_teachers" class="rounded accent-emerald-600"> إدارة المعلمين</label>
+                <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="perm_tstats" class="rounded accent-emerald-600"> إحصائيات المعلمين</label>
+                <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="perm_alerts" class="rounded accent-emerald-600"> التنبيهات الذكية</label>
+                <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="perm_adv_stats" class="rounded accent-emerald-600" checked> احصائية الطلاب المتقدمة</label>
+                <label class="flex items-center gap-2 cursor-pointer font-medium"><input type="checkbox" id="perm_reports" class="rounded accent-emerald-600" checked> التقارير والطباعة</label>
+              </div>
+            </div>
+
+            <button onclick="addCustomUser()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
+              حفظ الشخص الجديد والصلاحيات سحابياً
+            </button>
+          </div>
+
+          <div>
+            <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2">قائمة المستخدمين المخصصين:</h5>
+            <div id="customUsersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
+          </div>
         </div>
 
         <!-- Tab 1: Students & Classes -->
-        <div id="sec-students" class="space-y-4">
+        <div id="sec-students" class="hidden space-y-4">
           <div class="flex flex-wrap gap-3 items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
             <div class="flex items-center gap-2.5">
               <label class="text-xs font-bold text-slate-700 dark:text-slate-300">اختر الصف:</label>
-              <select id="adminClassSelect" onchange="loadAdminStudentsList()" class="border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer">
-              </select>
+              <select id="adminClassSelect" onchange="loadAdminStudentsList()" class="border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer"></select>
             </div>
             <div class="flex gap-2">
-              <button onclick="addNewClassPrompt()" class="admin-exclusive text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-3.5 py-2 rounded-xl font-bold transition cursor-pointer">
-                + إضافة صف جديد
-              </button>
-              <button onclick="deleteCurrentClass()" class="admin-exclusive text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-100 border border-red-200 dark:border-red-900 px-3.5 py-2 rounded-xl font-bold transition cursor-pointer">
-                حذف الصف الحالي
-              </button>
+              <button onclick="addNewClassPrompt()" class="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-3.5 py-2 rounded-xl font-bold transition cursor-pointer">+ إضافة صف جديد</button>
+              <button onclick="deleteCurrentClass()" class="text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-100 border border-red-200 dark:border-red-900 px-3.5 py-2 rounded-xl font-bold transition cursor-pointer">حذف الصف الحالي</button>
             </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
-              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">إضافة أسماء الطلاب (دفعة واحدة Bulk Import):</label>
-              <textarea id="bulkStudentsInput" rows="4" placeholder="أحمد محمد علي&#10;خالد عبدالله السالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl focus:ring-2 focus:ring-emerald-500 outline-none font-medium"></textarea>
-              <button id="saveBulkBtn" onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition cursor-pointer">
-                حفظ القائمة اليدوية سحابياً
-              </button>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">إضافة أسماء الطلاب (دفعة واحدة):</label>
+              <textarea id="bulkStudentsInput" rows="4" placeholder="أحمد محمد علي&#10;خالد عبدالله السالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl outline-none font-medium"></textarea>
+              <button onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl shadow-sm transition cursor-pointer">حفظ القائمة سحابياً</button>
             </div>
-
             <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-file-arrow-up"></i> رفع ملف أسماء الطلاب (TXT أو CSV):</label>
-              <p class="text-[11px] text-slate-400">اختر ملف نصي يحتوي على اسم كل طالب في سطر مستقل ليتم إضافتهم فوراً للصف المختار.</p>
-              <input type="file" id="studentFileImport" accept=".txt,.csv" onchange="handleStudentFileImport(event)" class="w-full text-xs text-slate-500 dark:text-slate-300 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 cursor-pointer border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800">
+              <input type="file" id="studentFileImport" accept=".txt,.csv" onchange="handleStudentFileImport(event)" class="w-full text-xs text-slate-500 border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 cursor-pointer">
             </div>
           </div>
 
           <div class="border-t dark:border-slate-700 pt-3">
-            <h5 class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">الطلاب المسجلين في الصف المختار:</h5>
-            <div id="adminStudentsDisplay" class="max-h-36 overflow-y-auto space-y-1.5 text-xs bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700">
-            </div>
+            <h5 class="text-xs font-bold text-slate-500 mb-2">الطلاب المسجلين في الصف المختار:</h5>
+            <div id="adminStudentsDisplay" class="max-h-36 overflow-y-auto space-y-1.5 text-xs bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700"></div>
           </div>
         </div>
 
-        <!-- Tab 2: Teachers Management -->
+        <!-- Tab 2: Teachers Management & PIN Viewing -->
         <div id="sec-teachers" class="hidden space-y-4">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3 admin-exclusive-box">
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة معلم جديد للنظام</h5>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <input type="text" id="newTeacherName" placeholder="اسم المعلم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-medium">
-              <input type="password" id="newTeacherPin" maxlength="4" placeholder="الرمز السري (4 أرقام)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
+              <input type="password" id="newTeacherPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
             </div>
-            <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
-              حفظ المعلم الجديد سحابياً
-            </button>
+            <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">حفظ المعلم الجديد سحابياً</button>
           </div>
 
           <div>
-            <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2">قائمة المعلمين المسجلين حالياً</h5>
-            <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800">
-            </div>
+            <h5 class="font-bold text-xs text-slate-800 dark:text-white mb-2">قائمة المعلمين وأرميزهم السرية (يمكن للمدير الاطلاع عليها وتعديلها):</h5>
+            <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
           </div>
         </div>
 
@@ -305,7 +368,6 @@
         <div id="sec-tstats" class="hidden space-y-4">
           <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-4 rounded-2xl space-y-2">
             <h5 class="font-bold text-emerald-900 dark:text-emerald-300 text-sm">لوحة نشاط والتزام المعلمين برصد الحصص</h5>
-            <p class="text-xs text-emerald-700 dark:text-emerald-400">يعرض هذا الجدول عدد الحصص التي قام كل معلم برصدها وتوثيقها في النظام.</p>
           </div>
           <div id="teacherStatsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800"></div>
         </div>
@@ -314,37 +376,35 @@
         <div id="sec-alerts" class="hidden space-y-4">
           <div class="bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-4 rounded-2xl space-y-2">
             <h5 class="font-bold text-red-900 dark:text-red-300 text-sm"><i class="fa-solid fa-triangle-exclamation"></i> نظام التنبيهات الذكية وحالات الطلاب المتكررة</h5>
-            <p class="text-xs text-red-700 dark:text-red-400">رصد الطلاب الذين تكررت حالات غيابهم أو هروبهم أو تأخرهم عبر الحصص (مع آمان تام لعدم تداخل متشابهي الأسماء).</p>
           </div>
-          <div class="flex items-center gap-3">
-            <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">
-              <i class="fa-solid fa-rotate"></i> فحص سجلات الطلاب الآن
-            </button>
-          </div>
+          <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">فحص سجلات الطلاب الآن</button>
           <div id="smartAlertsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 p-3">
             <div class="text-center text-slate-400 py-6 text-xs font-bold">انقر فوق زر الفحص أعلاه لعرض قائمة الطلاب.</div>
           </div>
         </div>
 
-        <!-- Tab 4.5: Advanced Student Statistics ("احصائية لمتابعة الطلاب") -->
+        <!-- Tab 4.5: Advanced Student Statistics -->
         <div id="sec-advanced-stats" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-4">
               <div>
-                <h4 class="font-extrabold text-lg flex items-center gap-2">
-                  <i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة الإحصائيات الذكية لمتابعة تكرار الحالات
-                </h4>
-                <p class="text-xs text-emerald-200 mt-1">تحليل شامل ومتقدم لسجلات الغياب، التسرب، الخروج، والتأخير لجميع طلاب المدرسة. (انقر فوق أي اسم طالب لعرض تفاصيل الأيام والحصص والمعلمين)</p>
+                <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة الإحصائيات الذكية لمتابعة تكرار الحالات</h4>
+                <p class="text-xs text-emerald-200 mt-1">اختر التصنيف المطلوب أدناه لعرض القائمة التفصيلية للطلاب</p>
               </div>
-              <div class="flex gap-2">
-                <button onclick="printAdvancedStatsReport()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20 cursor-pointer">
-                  <i class="fa-solid fa-print"></i> طباعة التقرير الشامل
-                </button>
-              </div>
+              <button onclick="printAdvancedStatsReport()" class="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition flex items-center gap-2 border border-white/20 cursor-pointer"><i class="fa-solid fa-print"></i> طباعة التقرير الشامل</button>
             </div>
 
-            <!-- Filters Bar -->
             <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div>
+                <label class="block text-[11px] font-bold text-emerald-200 mb-1">التصنيف المطلوب:</label>
+                <select id="advCategorySelect" onchange="renderAdvancedStats()" class="w-full p-2.5 bg-slate-900/90 text-white border border-emerald-500/50 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                  <option value="all_categories">عرض جميع التصنيفات</option>
+                  <option value="absent">الطلاب الأكثر غياباً</option>
+                  <option value="escape">الطلاب الأكثر تسرباً</option>
+                  <option value="outside">الطلاب الأكثر خروجاً</option>
+                  <option value="late">الطلاب الأكثر تأخراً</option>
+                </select>
+              </div>
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الصف الدراسي:</label>
                 <select id="advClassFilter" onchange="renderAdvancedStats()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
@@ -354,70 +414,38 @@
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الفترة الزمنية:</label>
                 <select id="advPeriodFilter" onchange="toggleCustomDates(); renderAdvancedStats();" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
-                  <option value="all">كل السجلات (التاريخ الكامل)</option>
+                  <option value="all">كل السجلات</option>
                   <option value="today">اليوم فقط</option>
-                  <option value="week">هذا الأسبوع (آخر 7 أيام)</option>
-                  <option value="month">هذا الشهر الحالي</option>
+                  <option value="week">هذا الأسبوع</option>
+                  <option value="month">هذا الشهر</option>
                   <option value="custom">فترة مخصصة...</option>
                 </select>
               </div>
-              <div id="customDateRangeBox" class="hidden sm:col-span-2 grid grid-cols-2 gap-2">
-                <div>
-                  <label class="block text-[11px] font-bold text-emerald-200 mb-1">من تاريخ:</label>
-                  <input type="date" id="advStartDate" onchange="renderAdvancedStats()" class="w-full p-2 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none">
-                </div>
-                <div>
-                  <label class="block text-[11px] font-bold text-emerald-200 mb-1">إلى تاريخ:</label>
-                  <input type="date" id="advEndDate" onchange="renderAdvancedStats()" class="w-full p-2 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none">
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <button onclick="resetAdvFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition border border-emerald-500/30 cursor-pointer">
-                  <i class="fa-solid fa-rotate-right"></i> إعادة ضبط
-                </button>
-              </div>
+              <button onclick="resetAdvFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition border cursor-pointer">إعادة ضبط</button>
+            </div>
+            
+            <div id="customDateRangeBox" class="hidden grid grid-cols-2 gap-2 mt-2">
+              <div><label class="block text-[11px] font-bold text-emerald-200 mb-1">من تاريخ:</label><input type="date" id="advStartDate" onchange="renderAdvancedStats()" class="w-full p-2 bg-slate-900/80 text-white border rounded-xl text-xs font-bold"></div>
+              <div><label class="block text-[11px] font-bold text-emerald-200 mb-1">إلى تاريخ:</label><input type="date" id="advEndDate" onchange="renderAdvancedStats()" class="w-full p-2 bg-slate-900/80 text-white border rounded-xl text-xs font-bold"></div>
             </div>
           </div>
 
-          <!-- Summary Cards Bar -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="advSummaryCards">
-            <!-- Populated dynamically -->
-          </div>
-
-          <!-- Detailed Categories Sections (Absent, Escape, Outside, Late) -->
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6" id="advCategoriesContainer">
-            <!-- Populated dynamically with cards & tables -->
-          </div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="advSummaryCards"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-1 gap-6" id="advCategoriesContainer"></div>
         </div>
 
         <!-- Tab 5: Reports -->
         <div id="sec-reports" class="hidden space-y-4">
           <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-5 rounded-3xl space-y-4">
-            <h5 class="font-extrabold text-emerald-900 dark:text-emerald-300 text-sm flex items-center gap-2">
-              <i class="fa-solid fa-file-pdf"></i> تقارير الغياب والطباعة والتصدير (PDF / Excel)
-            </h5>
+            <h5 class="font-extrabold text-emerald-900 dark:text-emerald-300 text-sm flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> تقارير الغياب والطباعة والتصدير</h5>
             <div class="flex flex-wrap gap-3 items-end pt-2 border-b border-emerald-200 dark:border-emerald-800 pb-4">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">اختر التاريخ:</label>
-                <input type="date" id="reportDatePicker" class="border border-emerald-300 dark:border-emerald-700 p-2.5 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold outline-none">
-              </div>
-              <div>
-                <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">اختر الصف:</label>
-                <select id="reportClassSelect" class="border border-emerald-300 dark:border-emerald-700 p-2.5 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold outline-none cursor-pointer"></select>
-              </div>
-              <button onclick="generatePDFReport('single')" class="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 shadow transition cursor-pointer">
-                <i class="fa-solid fa-print"></i> <span>طباعة مصفوفة صف PDF</span>
-              </button>
+              <div><label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">التاريخ:</label><input type="date" id="reportDatePicker" class="border border-emerald-300 p-2.5 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold"></div>
+              <div><label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">الصف:</label><select id="reportClassSelect" class="border border-emerald-300 p-2.5 rounded-xl text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold cursor-pointer"></select></div>
+              <button onclick="generatePDFReport('single')" class="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer"><i class="fa-solid fa-print"></i> طباعة مصفوفة صف PDF</button>
             </div>
-            <div class="pt-2 flex flex-wrap gap-3 items-center justify-between">
-              <div class="flex gap-2">
-                <button onclick="exportOnlyAbsentExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-3 rounded-xl text-xs font-bold flex items-center gap-2 shadow transition cursor-pointer">
-                  <i class="fa-solid fa-file-excel"></i> <span>تصدير إكسل (الطلاب الغائبين بدون تكرار)</span>
-                </button>
-                <button onclick="generatePDFReport('all')" class="bg-emerald-900 hover:bg-emerald-800 text-white px-5 py-3 rounded-xl text-xs font-bold flex items-center gap-2 shadow-lg transition cursor-pointer">
-                  <i class="fa-solid fa-layer-group"></i> <span>طباعة مصفوفة جميع صفوف المدرسة PDF</span>
-                </button>
-              </div>
+            <div class="flex gap-2 pt-2">
+              <button onclick="exportOnlyAbsentExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-3 rounded-xl text-xs font-bold shadow transition cursor-pointer"><i class="fa-solid fa-file-excel"></i> تصدير إكسل (الغائبين بدون تكرار)</button>
+              <button onclick="generatePDFReport('all')" class="bg-emerald-900 hover:bg-emerald-800 text-white px-5 py-3 rounded-xl text-xs font-bold shadow transition cursor-pointer"><i class="fa-solid fa-layer-group"></i> طباعة مصفوفة جميع صفوف المدرسة PDF</button>
             </div>
           </div>
         </div>
@@ -425,42 +453,74 @@
         <!-- Tab 6: Sync -->
         <div id="sec-sync" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <h5 class="font-extrabold text-slate-800 dark:text-white text-sm flex items-center gap-2">
-              <i class="fa-solid fa-cloud text-emerald-600"></i> حالة المزامنة السحابية العالمية
-            </h5>
-            <button onclick="forceSyncWithCloud()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition cursor-pointer">
-              <i class="fa-solid fa-rotate"></i> تحديث وجلب البيانات الآن
-            </button>
+            <h5 class="font-extrabold text-slate-800 dark:text-white text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> حالة المزامنة السحابية</h5>
+            <button onclick="forceSyncWithCloud()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"><i class="fa-solid fa-rotate"></i> تحديث وجلب البيانات الآن</button>
           </div>
         </div>
 
         <!-- Tab 7: Security -->
-        <div id="sec-security" class="hidden space-y-4 admin-exclusive-section">
+        <div id="sec-security" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> إدارة رموز الصلاحيات وأقسام المدرسة</h5>
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">رمز مدير النظام:</label>
-                <input type="text" id="settingAdminPin" maxlength="6" class="p-2.5 bg-white dark:bg-slate-800 border rounded-xl text-xs w-full font-bold">
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">رمز الأخصائي:</label>
-                <input type="text" id="settingSocialPin" maxlength="6" class="p-2.5 bg-white dark:bg-slate-800 border rounded-xl text-xs w-full font-bold">
-              </div>
-              <div>
-                <label class="block text-[11px] font-bold text-slate-600 dark:text-slate-300 mb-1">رمز شؤون الطلاب:</label>
-                <input type="text" id="settingStudentAffairsPin" maxlength="6" class="p-2.5 bg-white dark:bg-slate-800 border rounded-xl text-xs w-full font-bold">
-              </div>
+            <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> تغيير رمز مدير النظام العام</h5>
+            <div class="max-w-xs">
+              <label class="block text-[11px] font-bold text-slate-600 mb-1">الرمز الجديد:</label>
+              <input type="text" id="settingAdminPin" maxlength="10" class="p-2.5 bg-white dark:bg-slate-800 border rounded-xl text-xs w-full font-bold">
             </div>
-            <button onclick="saveNewPins()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">
-              حفظ الرموز الجديدة سحابياً
-            </button>
+            <button onclick="saveNewAdminPin()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">حفظ الرمز الجديد سحابياً</button>
           </div>
         </div>
 
       </div>
     </div>
   </main>
+
+  <!-- Modal: Teacher Change PIN -->
+  <div id="changePinModal" class="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
+        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
+        </h3>
+        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الحالي:</label>
+          <input type="password" id="currentPinCheck" placeholder="أدخل رمزك الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الجديد:</label>
+          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+        </div>
+        <div id="changePinError" class="text-red-500 text-xs font-bold hidden">الرمز الحالي غير صحيح!</div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer">إلغاء</button>
+        <button onclick="submitNewTeacherPin()" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow cursor-pointer">حفظ الرمز الجديد</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Student Detailed Drill-Down Modal -->
+  <div id="studentDetailModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
+      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
+        <div>
+          <h3 id="modalStudentTitle" class="font-extrabold text-base flex items-center gap-2">
+            <i class="fa-solid fa-user-clock text-emerald-400"></i> سجل المخالفات التفصيلي للطالب
+          </h3>
+          <p id="modalStudentSubtitle" class="text-xs text-emerald-200 mt-0.5"></p>
+        </div>
+        <button onclick="closeStudentDetailModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody"></div>
+      <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
+        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">إغلاق النافذة</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     const BIN_ID = "6ae95cf6ac6210605a679163";
@@ -487,20 +547,18 @@
     ];
 
     let db = {
-      version: 1,
+      version: 3,
       adminPin: btoa("1234"),
-      socialPin: btoa("5678"),
-      studentAffairsPin: btoa("4321"),
+      customUsers: [],
       teachers: [],
       classes: [],
       students: {},
       attendance: {}
     };
 
-    let activeTeacher = null;
+    let activeUser = null; 
     let selectedClass = null;
     let currentAttendanceRecord = {};
-    let currentRole = 'admin';
 
     window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode();
@@ -544,18 +602,16 @@
           const resData = await response.json();
           if (resData.record && resData.record.classes && resData.record.classes.length > 0) {
             db = resData.record;
-            if(!db.version) db.version = 1;
-            if(!db.socialPin) db.socialPin = btoa("5678");
-            if(!db.studentAffairsPin) db.studentAffairsPin = btoa("4321");
-            localStorage.setItem('abuDujana_db_v11', JSON.stringify(db));
+            if(!db.version) db.version = 3;
+            if(!db.customUsers) db.customUsers = [];
+            localStorage.setItem('abuDujana_db_v13', JSON.stringify(db));
             updateSyncStatus(true, "متزامن سحابياً");
             return true;
           }
         }
-        throw new Error("استجابة غير صالحة من السحابة");
+        throw new Error("استجابة غير صالحة");
       } catch (e) {
-        console.warn("فشل الاتصال بالسحاب، جاري استرجاع النسخة المحلية:", e);
-        const saved = localStorage.getItem('abuDujana_db_v11');
+        const saved = localStorage.getItem('abuDujana_db_v13');
         if (saved) {
           try {
             db = JSON.parse(saved);
@@ -584,7 +640,7 @@
           const cloudData = await getResponse.json();
           if (cloudData && cloudData.record) {
             const remoteRecord = cloudData.record;
-            db.version = Math.max(db.version || 1, (remoteRecord.version || 1)) + 1;
+            db.version = Math.max(db.version || 3, (remoteRecord.version || 3)) + 1;
 
             const remoteAttendance = remoteRecord.attendance || {};
             const mergedAttendance = { ...remoteAttendance };
@@ -595,50 +651,39 @@
               } else {
                 const localTime = new Date(localSession.timestamp || 0).getTime();
                 const remoteTime = new Date(remoteSession.timestamp || 0).getTime();
-                if (localTime >= remoteTime) {
-                  mergedAttendance[key] = localSession;
-                } else {
-                  mergedAttendance[key] = remoteSession;
-                }
+                if (localTime >= remoteTime) mergedAttendance[key] = localSession;
+                else mergedAttendance[key] = remoteSession;
               }
             }
             db.attendance = mergedAttendance;
 
-            if (remoteRecord.classes) {
-              db.classes = [...new Set([...db.classes, ...remoteRecord.classes])];
-            }
+            if (remoteRecord.classes) db.classes = [...new Set([...db.classes, ...remoteRecord.classes])];
             if (remoteRecord.teachers) {
               const teacherMap = new Map();
-              db.teachers.forEach(t => teacherMap.set(t.pin, t));
-              remoteRecord.teachers.forEach(t => teacherMap.set(t.pin, t));
+              db.teachers.forEach(t => teacherMap.set(t.name, t));
+              remoteRecord.teachers.forEach(t => teacherMap.set(t.name, t));
               db.teachers = Array.from(teacherMap.values());
             }
-            if (remoteRecord.students) {
-              db.students = { ...remoteRecord.students, ...db.students };
-            }
+            if (remoteRecord.customUsers) db.customUsers = remoteRecord.customUsers;
+            if (remoteRecord.students) db.students = { ...remoteRecord.students, ...db.students };
           }
         }
 
-        localStorage.setItem('abuDujana_db_v11', JSON.stringify(db));
+        localStorage.setItem('abuDujana_db_v13', JSON.stringify(db));
 
         const putResponse = await fetch(API_URL, {
           method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Master-Key": API_KEY
-          },
+          headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY },
           body: JSON.stringify(db),
           cache: "no-store"
         });
         
-        if (!putResponse.ok) {
-          throw new Error(`خطأ في الحفظ السحابي: ${putResponse.status}`);
-        }
+        if (!putResponse.ok) throw new Error(`خطأ الحفظ: ${putResponse.status}`);
         
         updateSyncStatus(true, "متزامن سحابياً");
         return true;
       } catch (error) {
-        console.error("Cloud merge & save failed:", error);
+        console.error("Cloud save failed:", error);
         updateSyncStatus(false, "فشل الحفظ للسحاب (محلي)");
         return false;
       }
@@ -649,10 +694,10 @@
         if (success) {
           alert('تم تحديث البيانات وجلبها من السحاب بنجاح!');
           if(selectedClass) loadSessionAttendance();
-          if(activeTeacher) renderClassesGrid();
+          if(activeUser) renderClassesGrid();
           checkExistingSession();
         } else {
-          alert('تعذر جلب البيانات من السحابة، يتم استخدام النسخة المحلية الحالية.');
+          alert('تعذر جلب البيانات من السحابة.');
         }
       });
     }
@@ -664,48 +709,44 @@
 
       indicator.style.display = 'flex';
       txt.textContent = customText || (isSynced ? "متزامن سحابياً" : "محلي (بدون نت)");
-
-      if (isSynced) {
-        indicator.className = "bg-emerald-800 text-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-700";
-      } else {
-        indicator.className = "bg-red-900 text-red-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-red-700";
-      }
+      indicator.className = isSynced ? "bg-emerald-800 text-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-700" : "bg-red-900 text-red-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-red-700";
     }
 
     function initDefaults() {
-      db.version = 1;
+      db.version = 3;
       db.adminPin = btoa("1234");
-      db.socialPin = btoa("5678");
-      db.studentAffairsPin = btoa("4321");
+      db.customUsers = [];
       db.classes = [...DEFAULT_CLASSES];
       db.teachers = [...DEFAULT_TEACHERS];
       db.students = {};
-      db.classes.forEach(c => {
-        db.students[c] = [];
-      });
+      db.classes.forEach(c => { db.students[c] = []; });
       db.attendance = {};
-      localStorage.setItem('abuDujana_db_v11', JSON.stringify(db));
+      localStorage.setItem('abuDujana_db_v13', JSON.stringify(db));
       updateSyncStatus(false, "وضع افتراضي محلي");
     }
 
     function checkExistingSession() {
-      const savedTeacher = localStorage.getItem('abuDujana_activeTeacher');
+      const savedUser = localStorage.getItem('abuDujana_activeUser');
       const savedClass = localStorage.getItem('abuDujana_selectedClass');
 
-      if (savedTeacher) {
+      if (savedUser) {
         try {
-          activeTeacher = JSON.parse(savedTeacher);
-          const teacherExists = db.teachers.some(t => t.pin === activeTeacher.pin && t.name === activeTeacher.name);
-          
-          if (!teacherExists) {
-            alert("تنبيه: تم تحديث بيانات المعلمين أو حذف هذا الحساب، يرجى تسجيل الدخول مجدداً.");
-            logoutTeacher();
-            return;
-          }
-
+          activeUser = JSON.parse(savedUser);
           document.getElementById('loginView').classList.add('hidden');
           document.getElementById('classesView').classList.remove('hidden');
-          document.getElementById('activeTeacherName').textContent = activeTeacher.name;
+          document.getElementById('activeUserName').textContent = activeUser.name;
+          document.getElementById('activeUserRoleBadge').textContent = activeUser.type === 'admin' ? 'مدير النظام' : (activeUser.type === 'custom' ? 'مستخدم مخصص' : 'معلم');
+
+          if (activeUser.type === 'teacher') {
+            document.getElementById('changeTeacherPinBtn').classList.remove('hidden');
+          } else {
+            document.getElementById('changeTeacherPinBtn').classList.add('hidden');
+          }
+
+          if (activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPermission(activeUser))) {
+            document.getElementById('openControlPanelFromDashboardBtn').classList.remove('hidden');
+          }
+
           renderClassesGrid();
 
           if (savedClass && db.classes.includes(savedClass)) {
@@ -715,41 +756,122 @@
             document.getElementById('selectedClassTitle').textContent = `رصد حضور وغياب صف ${selectedClass}`;
             loadSessionAttendance();
           }
-        } catch (e) { logoutTeacher(); }
+        } catch (e) { logoutUser(); }
       }
     }
 
-    function handleTeacherLogin(e) {
+    function hasAnyPermission(user) {
+      if (!user.permissions) return false;
+      return Object.values(user.permissions).some(Boolean);
+    }
+
+    function handleUserLogin(e) {
       e.preventDefault();
-      const pin = document.getElementById('teacherPinInput').value.trim();
-      const teacher = db.teachers.find(t => t.pin === pin);
+      const pin = document.getElementById('userPinInput').value.trim();
+      const encodedPin = btoa(pin);
+      const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
 
-      if (teacher) {
-        activeTeacher = teacher;
-        localStorage.setItem('abuDujana_activeTeacher', JSON.stringify(teacher));
-        document.getElementById('loginError').classList.add('hidden');
-        document.getElementById('loginView').classList.add('hidden');
-        document.getElementById('classesView').classList.remove('hidden');
-        document.getElementById('activeTeacherName').textContent = teacher.name;
-        renderClassesGrid();
-      } else {
-        document.getElementById('loginError').classList.remove('hidden');
+      if (pin === adminDecoded || encodedPin === db.adminPin) {
+        activeUser = { name: "مدير النظام العام", pin: adminDecoded, type: 'admin', permissions: { students: true, teachers: true, tstats: true, alerts: true, adv_stats: true, reports: true } };
+        finalizeLogin();
+        return;
       }
+
+      const customUser = db.customUsers.find(u => u.pin === pin);
+      if (customUser) {
+        activeUser = { name: customUser.name, pin: customUser.pin, type: 'custom', permissions: customUser.permissions };
+        finalizeLogin();
+        return;
+      }
+
+      const teacher = db.teachers.find(t => t.pin === pin);
+      if (teacher) {
+        activeUser = { name: teacher.name, pin: teacher.pin, type: 'teacher', permissions: {} };
+        finalizeLogin();
+        return;
+      }
+
+      document.getElementById('loginError').classList.remove('hidden');
     }
 
-    function logoutTeacher() {
-      activeTeacher = null;
+    function finalizeLogin() {
+      localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser));
+      document.getElementById('loginError').classList.add('hidden');
+      document.getElementById('loginView').classList.add('hidden');
+      document.getElementById('classesView').classList.remove('hidden');
+      document.getElementById('activeUserName').textContent = activeUser.name;
+      document.getElementById('activeUserRoleBadge').textContent = activeUser.type === 'admin' ? 'مدير النظام' : (activeUser.type === 'custom' ? 'مستخدم مخصص' : 'معلم');
+
+      if (activeUser.type === 'teacher') {
+        document.getElementById('changeTeacherPinBtn').classList.remove('hidden');
+      } else {
+        document.getElementById('changeTeacherPinBtn').classList.add('hidden');
+      }
+
+      if (activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPermission(activeUser))) {
+        document.getElementById('openControlPanelFromDashboardBtn').classList.remove('hidden');
+      }
+
+      renderClassesGrid();
+    }
+
+    function logoutUser() {
+      activeUser = null;
       selectedClass = null;
-      localStorage.removeItem('abuDujana_activeTeacher');
+      localStorage.removeItem('abuDujana_activeUser');
       localStorage.removeItem('abuDujana_selectedClass');
-      const pinInput = document.getElementById('teacherPinInput');
-      if(pinInput) pinInput.value = '';
-      const attView = document.getElementById('attendanceView');
-      const clsView = document.getElementById('classesView');
-      const logView = document.getElementById('loginView');
-      if(attView) attView.classList.add('hidden');
-      if(clsView) clsView.classList.add('hidden');
-      if(logView) logView.classList.remove('hidden');
+      document.getElementById('userPinInput').value = '';
+      document.getElementById('attendanceView').classList.add('hidden');
+      document.getElementById('classesView').classList.add('hidden');
+      document.getElementById('loginView').classList.remove('hidden');
+      document.getElementById('openControlPanelFromDashboardBtn').classList.add('hidden');
+      document.getElementById('changeTeacherPinBtn').classList.add('hidden');
+    }
+
+    // دوال تغيير الرمز السري للمعلم
+    function openChangePinModal() {
+      document.getElementById('currentPinCheck').value = '';
+      document.getElementById('newPinInput').value = '';
+      document.getElementById('changePinError').classList.add('hidden');
+      document.getElementById('changePinModal').classList.remove('hidden');
+    }
+
+    function closeChangePinModal() {
+      document.getElementById('changePinModal').classList.add('hidden');
+    }
+
+    async function submitNewTeacherPin() {
+      const currentPin = document.getElementById('currentPinCheck').value.trim();
+      const newPin = document.getElementById('newPinInput').value.trim();
+      const errorEl = document.getElementById('changePinError');
+
+      if (currentPin !== activeUser.pin) {
+        errorEl.textContent = 'الرمز السري الحالي غير صحيح!';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (!newPin || newPin.length < 2) {
+        errorEl.textContent = 'يرجى إدخال رمز جديد صحيح!';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // البحث عن المعلم وتحديث رقمه السري
+      const teacherObj = db.teachers.find(t => t.name === activeUser.name);
+      if (teacherObj) {
+        teacherObj.pin = newPin;
+      } else {
+        alert('حدث خطأ في مطابقة حساب المعلم.');
+        return;
+      }
+
+      activeUser.pin = newPin;
+      localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser));
+
+      const success = await saveSystemDataToCloud();
+      closeChangePinModal();
+      alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم تغيير الرمز محلياً.');
     }
 
     function renderClassesGrid() {
@@ -804,7 +926,7 @@
       const today = getOmanLocalDate();
       const key = `${today}_${selectedClass}_p${period}`;
       
-      const sessionData = db.attendance[key] || { teacher: activeTeacher ? activeTeacher.name : 'معلم', records: {} };
+      const sessionData = db.attendance[key] || { teacher: activeUser ? activeUser.name : 'معلم', records: {} };
       currentAttendanceRecord = sessionData.records && typeof sessionData.records === 'object' ? sessionData.records : {};
 
       const statusEl = document.getElementById('classSessionDateStatus');
@@ -822,7 +944,7 @@
       updateLiveStats();
 
       if (studentsList.length === 0) {
-        container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلين في هذا الصف. يرجى إضافتهم من لوحة الإدارة.</div>`;
+        container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلين في هذا الصف. يرجى إضافتهم من لوحة التحكم.</div>`;
         return;
       }
 
@@ -903,7 +1025,7 @@
     }
 
     async function saveAttendanceSession() {
-      if (!selectedClass || !activeTeacher) return;
+      if (!selectedClass || !activeUser) return;
       const saveBtn = document.getElementById('saveSessionBtn');
       if (saveBtn.disabled) return;
 
@@ -916,7 +1038,7 @@
         const key = `${today}_${selectedClass}_p${period}`;
 
         db.attendance[key] = {
-          teacher: activeTeacher.name,
+          teacher: activeUser.name,
           className: selectedClass,
           period: parseInt(period),
           records: { ...currentAttendanceRecord },
@@ -940,10 +1062,27 @@
     }
 
     function openAdminModal() {
+      if (activeUser && activeUser.type === 'admin') {
+        openControlPanelDirectly();
+      } else if (activeUser && activeUser.type === 'custom' && hasAnyPermission(activeUser)) {
+        openControlPanelDirectly();
+      } else {
+        document.getElementById('adminModal').classList.remove('hidden');
+        document.getElementById('adminAuthSection').classList.remove('hidden');
+        document.getElementById('adminContentSection').classList.add('hidden');
+        document.getElementById('adminPinInput').value = '';
+      }
+    }
+
+    function openAdminModalFromDashboard() {
+      openControlPanelDirectly();
+    }
+
+    function openControlPanelDirectly() {
       document.getElementById('adminModal').classList.remove('hidden');
-      document.getElementById('adminAuthSection').classList.remove('hidden');
-      document.getElementById('adminContentSection').classList.add('hidden');
-      document.getElementById('adminPinInput').value = '';
+      document.getElementById('adminAuthSection').classList.add('hidden');
+      document.getElementById('adminContentSection').classList.remove('hidden');
+      setupRolePermissions();
     }
 
     function closeAdminModal() {
@@ -953,20 +1092,10 @@
     function verifyAdminPin() {
       const pin = document.getElementById('adminPinInput').value.trim();
       const encodedPin = btoa(pin);
-      
       const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
-      const socialDecoded = db.socialPin ? (db.socialPin.length === 4 || !isBase64(db.socialPin) ? db.socialPin : atob(db.socialPin)) : "5678";
-      const studentAffairsDecoded = db.studentAffairsPin ? (db.studentAffairsPin.length === 4 || !isBase64(db.studentAffairsPin) ? db.studentAffairsPin : atob(db.studentAffairsPin)) : "4321";
 
       if (pin === adminDecoded || encodedPin === db.adminPin) {
-        currentRole = 'admin';
-        setupRolePermissions();
-      } else if (pin === socialDecoded || encodedPin === db.socialPin) {
-        currentRole = 'social';
-        setupRolePermissions();
-      } else if (pin === studentAffairsDecoded || encodedPin === db.studentAffairsPin) {
-        currentRole = 'studentAffairs';
-        setupRolePermissions();
+        openControlPanelDirectly();
       } else {
         document.getElementById('adminAuthError').classList.remove('hidden');
       }
@@ -977,64 +1106,67 @@
     }
 
     function setupRolePermissions() {
-      document.getElementById('adminAuthSection').classList.add('hidden');
-      document.getElementById('adminContentSection').classList.remove('hidden');
-      document.getElementById('adminAuthError').classList.add('hidden');
-      
       const badge = document.getElementById('roleBadge');
       const text = document.getElementById('roleNoticeText');
 
-      const allTabs = ['students', 'teachers', 'tstats', 'alerts', 'advanced-stats', 'reports', 'sync', 'security'];
-      
-      allTabs.forEach(t => {
-        const btn = document.getElementById(`tab-${t}`);
-        if (btn) btn.style.display = 'block';
-      });
+      const tabsConfig = [
+        { id: 'users', perm: 'students' },
+        { id: 'students', perm: 'students' },
+        { id: 'teachers', perm: 'teachers' },
+        { id: 'tstats', perm: 'tstats' },
+        { id: 'alerts', perm: 'alerts' },
+        { id: 'advanced-stats', perm: 'adv_stats' },
+        { id: 'reports', perm: 'reports' },
+        { id: 'sync', perm: 'students' },
+        { id: 'security', perm: 'students' }
+      ];
 
-      if (currentRole === 'admin') {
-        text.textContent = "صلاحية الدخول: مدير النظام العام (تطوير وتحكم كامل)";
+      if (activeUser && activeUser.type === 'admin') {
+        text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
         badge.textContent = "مدير النظام";
         badge.className = "bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]";
-        document.querySelectorAll('.admin-exclusive, .admin-exclusive-section').forEach(el => el.classList.remove('hidden'));
-        switchAdminTab('students');
-      } else if (currentRole === 'social') {
-        text.textContent = "صلاحية الدخول: الأخصائي الاجتماعي (متابعة التنبيهات، الإحصائيات والتقارير)";
-        badge.textContent = "الأخصائي الاجتماعي";
+        
+        tabsConfig.forEach(t => {
+          const btn = document.getElementById(`tab-${t.id}`);
+          if(btn) btn.style.display = 'block';
+        });
+        switchAdminTab('users');
+      } else if (activeUser && activeUser.type === 'custom') {
+        text.textContent = `صلاحية الدخول: ${activeUser.name} (حسب مربعات الصلاحيات المحددة)`;
+        badge.textContent = "مستخدم مخصص";
         badge.className = "bg-blue-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]";
-        document.querySelectorAll('.admin-exclusive, .admin-exclusive-section').forEach(el => el.classList.add('hidden'));
-        
-        ['students', 'teachers', 'tstats', 'sync', 'security'].forEach(t => {
-          const btn = document.getElementById(`tab-${t}`);
-          if (btn) btn.style.display = 'none';
+
+        const perms = activeUser.permissions || {};
+        const tabMap = {
+          'users': false,
+          'students': perms.students,
+          'teachers': perms.teachers,
+          'tstats': perms.tstats,
+          'alerts': perms.alerts,
+          'advanced-stats': perms.adv_stats,
+          'reports': perms.reports,
+          'sync': false,
+          'security': false
+        };
+
+        let firstAvailableTab = 'advanced-stats';
+        tabsConfig.forEach(t => {
+          const btn = document.getElementById(`tab-${t.id}`);
+          const isAllowed = tabMap[t.id];
+          if(btn) {
+            btn.style.display = isAllowed ? 'block' : 'none';
+          }
         });
+
         switchAdminTab('advanced-stats');
-      } else if (currentRole === 'studentAffairs') {
-        text.textContent = "صلاحية الدخول: شؤون الطلاب (إدارة الطلاب، الإحصائيات والتقارير)";
-        badge.textContent = "شؤون الطلاب";
-        badge.className = "bg-purple-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]";
-        document.querySelectorAll('.admin-exclusive, .admin-exclusive-section').forEach(el => el.classList.add('hidden'));
-        
-        ['teachers', 'tstats', 'alerts', 'sync', 'security'].forEach(t => {
-          const btn = document.getElementById(`tab-${t}`);
-          if (btn) btn.style.display = 'none';
-        });
-        switchAdminTab('students');
       }
 
       initAdminDashboard();
     }
 
     function switchAdminTab(tab) {
-      if (currentRole === 'social' && !['alerts', 'advanced-stats', 'reports'].includes(tab)) {
-        alert('عذراً، هذا القسم مخصص لمدير النظام أو شؤون الطلاب.');
-        return;
-      }
-      if (currentRole === 'studentAffairs' && !['students', 'advanced-stats', 'reports'].includes(tab)) {
-        alert('عذراً، هذا القسم غير متاح لصلاحيات شؤون الطلاب.');
-        return;
-      }
-
-      ['students', 'teachers', 'tstats', 'alerts', 'advanced-stats', 'reports', 'sync', 'security'].forEach(t => {
+      const allTabIds = ['users', 'students', 'teachers', 'tstats', 'alerts', 'advanced-stats', 'reports', 'sync', 'security'];
+      allTabIds.forEach(t => {
         const sec = document.getElementById(`sec-${t}`);
         const btn = document.getElementById(`tab-${t}`);
         if(sec) sec.classList.add('hidden');
@@ -1046,17 +1178,93 @@
       if(targetSec) targetSec.classList.remove('hidden');
       if(targetBtn) targetBtn.className = 'admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer';
 
+      if(tab === 'users') renderCustomUsersList();
+      if(tab === 'teachers') renderTeachersList();
       if(tab === 'tstats') renderTeacherStats();
       if(tab === 'alerts') generateSmartAlerts();
       if(tab === 'advanced-stats') renderAdvancedStats();
-      if(tab === 'security') loadPinSettings();
     }
 
     function initAdminDashboard() {
+      renderCustomUsersList();
       populateAdminClassSelect();
       loadAdminStudentsList();
       renderTeachersList();
       populateAdvClassSelect();
+    }
+
+    // Custom Users
+    async function addCustomUser() {
+      const name = document.getElementById('newCustomUserName').value.trim();
+      const pin = document.getElementById('newCustomUserPin').value.trim();
+
+      if (!name || !pin) {
+        alert('يرجى إدخال اسم الشخص والرمز السري.');
+        return;
+      }
+
+      const permissions = {
+        students: document.getElementById('perm_students').checked,
+        teachers: document.getElementById('perm_teachers').checked,
+        tstats: document.getElementById('perm_tstats').checked,
+        alerts: document.getElementById('perm_alerts').checked,
+        adv_stats: document.getElementById('perm_adv_stats').checked,
+        reports: document.getElementById('perm_reports').checked
+      };
+
+      if (!db.customUsers) db.customUsers = [];
+      db.customUsers.push({ name, pin, permissions });
+
+      const success = await saveSystemDataToCloud();
+      renderCustomUsersList();
+      
+      document.getElementById('newCustomUserName').value = '';
+      document.getElementById('newCustomUserPin').value = '';
+      alert(success ? 'تم حفظ المستخدم والصلاحيات سحابياً بنجاح!' : 'تم الحفظ محلياً.');
+    }
+
+    function renderCustomUsersList() {
+      const container = document.getElementById('customUsersList');
+      if(!container) return;
+      container.innerHTML = '';
+
+      if (!db.customUsers || db.customUsers.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد مستخدمون مخصصون مضافون حالياً.</div>`;
+        return;
+      }
+
+      db.customUsers.forEach((user, idx) => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'p-3.5 flex flex-wrap justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50 last:border-0';
+        
+        const permsList = [];
+        if(user.permissions.students) permsList.push('الطلاب والصفوف');
+        if(user.permissions.teachers) permsList.push('المعلمين');
+        if(user.permissions.tstats) permsList.push('إحصائيات المعلمين');
+        if(user.permissions.alerts) permsList.push('التنبيهات');
+        if(user.permissions.adv_stats) permsList.push('إحصائيات الطلاب');
+        if(user.permissions.reports) permsList.push('التقارير');
+
+        itemDiv.innerHTML = `
+          <div>
+            <div class="font-extrabold text-slate-800 dark:text-white text-xs sm:text-sm">${user.name} <span class="text-xs text-slate-400 font-mono">(الرمز: ${user.pin})</span></div>
+            <div class="text-[11px] text-emerald-700 dark:text-emerald-400 mt-1">الصلاحيات: ${permsList.join(' | ') || 'لا توجد'}</div>
+          </div>
+          <div>
+            <button onclick="deleteCustomUser(${idx})" class="text-red-600 hover:text-red-800 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer">حذف</button>
+          </div>
+        `;
+        container.appendChild(itemDiv);
+      });
+    }
+
+    async function deleteCustomUser(idx) {
+      if (confirm('هل أنت متأكد من حذف هذا المستخدم؟')) {
+        db.customUsers.splice(idx, 1);
+        const success = await saveSystemDataToCloud();
+        renderCustomUsersList();
+        alert(success ? 'تم الحذف بنجاح!' : 'تم الحذف محلياً.');
+      }
     }
 
     function populateAdminClassSelect() {
@@ -1081,7 +1289,6 @@
       
       const bulkInput = document.getElementById('bulkStudentsInput');
       if (bulkInput && document.activeElement === bulkInput) return;
-
       if (bulkInput) bulkInput.value = list.join('\n');
 
       container.innerHTML = '';
@@ -1093,25 +1300,12 @@
       list.forEach((st, idx) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700';
-        
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'font-bold text-slate-700 dark:text-slate-200';
-        nameSpan.textContent = st;
-
-        const delBtn = document.createElement('button');
-        delBtn.type = 'button';
-        delBtn.className = 'text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 bg-red-50 dark:bg-red-950/50 rounded-lg cursor-pointer';
-        delBtn.textContent = 'حذف';
-        delBtn.onclick = () => removeStudent(selected, idx);
-
-        itemDiv.appendChild(nameSpan);
-        itemDiv.appendChild(delBtn);
+        itemDiv.innerHTML = `<span class="font-bold text-slate-700 dark:text-slate-200">${st}</span><button onclick="removeStudent('${selected}', ${idx})" class="text-red-500 hover:text-red-700 text-xs font-bold px-2.5 py-1 bg-red-50 dark:bg-red-950/50 rounded-lg cursor-pointer">حذف</button>`;
         container.appendChild(itemDiv);
       });
     }
 
     async function saveBulkStudents() {
-      if (currentRole === 'social') return alert('عذراً، هذه الصلاحية غير مخصصة للأخصائي.');
       const selected = document.getElementById('adminClassSelect').value;
       const rawText = document.getElementById('bulkStudentsInput').value;
       const parsed = rawText.split('\n').map(s => s.trim()).filter(Boolean);
@@ -1119,12 +1313,10 @@
       db.students[selected] = parsed;
       const success = await saveSystemDataToCloud();
       loadAdminStudentsList();
-      
-      alert(success ? 'تم تحديث قائمة الطلاب وحفظها سحابياً بنجاح!' : 'تم التحديث محلياً، وتعذر الحفظ السحابي.');
+      alert(success ? 'تم تحديث وحفظ قائمة الطلاب سحابياً!' : 'تم التحديث محلياً.');
     }
 
     function handleStudentFileImport(event) {
-      if (currentRole === 'social') return alert('عذراً، هذه الصلاحية غير مخصصة للأخصائي.');
       const file = event.target.files[0];
       if (!file) return;
 
@@ -1139,22 +1331,19 @@
           db.students[selected] = [...new Set([...db.students[selected], ...lines])];
           const success = await saveSystemDataToCloud();
           loadAdminStudentsList();
-          
-          alert(success ? `تم استيراد ${lines.length} طالباً وحفظهم سحابياً بنجاح إلى صف ${selected}!` : `تم استيراد الطلاب محلياً، وتعذر الحفظ السحابي.`);
+          alert(success ? `تم استيراد ${lines.length} طالباً وحفظهم سحابياً بنجاح!` : `تم الاستيراد محلياً.`);
         }
       };
       reader.readAsText(file, 'UTF-8');
     }
 
     async function removeStudent(className, idx) {
-      if (currentRole === 'social') return alert('عذراً، هذه الصلاحية غير مخصصة للأخصائي.');
       db.students[className].splice(idx, 1);
       await saveSystemDataToCloud();
       loadAdminStudentsList();
     }
 
     async function addNewClassPrompt() {
-      if(currentRole !== 'admin' && currentRole !== 'studentAffairs') return alert('عذراً، هذه الصلاحية لمدير النظام أو شؤون الطلاب فقط.');
       const name = prompt('أدخل اسم الصف الجديد (مثال: 9/9):');
       if (name && !db.classes.includes(name)) {
         db.classes.push(name);
@@ -1162,12 +1351,11 @@
         const success = await saveSystemDataToCloud();
         populateAdminClassSelect();
         renderClassesGrid();
-        alert(success ? 'تم إضافة الصف وحفظه سحابياً بنجاح!' : 'تم إضافة الصف محلياً وتتعذر المزامنة.');
+        alert(success ? 'تم إضافة الصف وحفظه سحابياً بنجاح!' : 'تم الإضافة محلياً.');
       }
     }
 
     async function deleteCurrentClass() {
-      if(currentRole !== 'admin') return alert('عذراً، حذف الصفوف مخصص لمدير النظام فقط.');
       const selected = document.getElementById('adminClassSelect').value;
       if (confirm(`هل أنت متأكد من حذف الصف ${selected} بالكامل مع طلابه؟`)) {
         db.classes = db.classes.filter(c => c !== selected);
@@ -1180,47 +1368,39 @@
       }
     }
 
+    // إدارة المعلمين وعرض أرميزهم السرية للمدير
     function renderTeachersList() {
       const container = document.getElementById('teachersList');
       if(!container) return;
       container.innerHTML = '';
       
+      if (!db.teachers || db.teachers.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد معلماً مسجلاً.</div>`;
+        return;
+      }
+
       db.teachers.forEach((t, idx) => {
         const itemDiv = document.createElement('div');
         itemDiv.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50 last:border-0';
-        
-        const infoDiv = document.createElement('div');
-        const nameSpan = document.createElement('span');
-        nameSpan.className = 'font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm';
-        nameSpan.textContent = t.name;
-
-        const pinSpan = document.createElement('span');
-        pinSpan.className = 'text-xs text-slate-500 ms-2 bg-slate-100 dark:bg-slate-900 px-2.5 py-0.5 rounded-lg font-mono font-bold';
-        pinSpan.textContent = `الرمز: ${t.pin}`;
-
-        infoDiv.appendChild(nameSpan);
-        infoDiv.appendChild(pinSpan);
-        itemDiv.appendChild(infoDiv);
-
-        if (currentRole === 'admin') {
-          const delBtn = document.createElement('button');
-          delBtn.type = 'button';
-          delBtn.className = 'text-red-600 hover:text-red-800 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer';
-          delBtn.textContent = 'حذف';
-          delBtn.onclick = () => deleteTeacher(idx);
-          itemDiv.appendChild(delBtn);
-        }
-
+        itemDiv.innerHTML = `
+          <div>
+            <span class="font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">${t.name}</span>
+            <span class="text-xs text-emerald-700 dark:text-emerald-400 ms-3 bg-emerald-50 dark:bg-emerald-950/50 px-3 py-1 rounded-lg font-mono font-bold border border-emerald-200 dark:border-emerald-800">الرمز السري: ${t.pin}</span>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="editTeacherPin(${idx})" class="text-blue-600 hover:text-blue-800 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/50 rounded-xl cursor-pointer">تعديل الرمز</button>
+            <button onclick="deleteTeacher(${idx})" class="text-red-600 hover:text-red-800 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer">حذف</button>
+          </div>
+        `;
         container.appendChild(itemDiv);
       });
     }
 
     async function addNewTeacher() {
-      if(currentRole !== 'admin') return alert('عذراً، إدارة المعلمين مخصصة لمدير النظام فقط.');
       const name = document.getElementById('newTeacherName').value.trim();
       const pin = document.getElementById('newTeacherPin').value.trim();
 
-      if (name && pin && pin.length === 4) {
+      if (name && pin) {
         db.teachers.push({ name, pin });
         const success = await saveSystemDataToCloud();
         renderTeachersList();
@@ -1228,24 +1408,27 @@
         document.getElementById('newTeacherPin').value = '';
         alert(success ? 'تم حفظ المعلم الجديد سحابياً بنجاح!' : 'تم الحفظ محلياً.');
       } else {
-        alert('يرجى التأكد من إدخال اسم المعلم ورمز سري مكون من 4 أرقام.');
+        alert('يرجى التأكد من إدخال اسم المعلم والرمز السري.');
+      }
+    }
+
+    async function editTeacherPin(idx) {
+      const teacher = db.teachers[idx];
+      const newPin = prompt(`أدخل الرمز السري الجديد للمعلم (${teacher.name}):`, teacher.pin);
+      if (newPin !== null && newPin.trim() !== '') {
+        teacher.pin = newPin.trim();
+        const success = await saveSystemDataToCloud();
+        renderTeachersList();
+        alert(success ? 'تم تحديث الرمز السري وحفظه سحابياً بنجاح!' : 'تم التحديث محلياً.');
       }
     }
 
     async function deleteTeacher(idx) {
-      if(currentRole !== 'admin') return alert('عذراً، هذه الصلاحية لمدير النظام فقط.');
-      const targetTeacher = db.teachers[idx];
       if (confirm('هل أنت متأكد من حذف هذا المعلم؟')) {
         db.teachers.splice(idx, 1);
-        
-        if (activeTeacher && activeTeacher.pin === targetTeacher.pin) {
-          alert('تم حذف المعلم النشط حالياً، سيتم تسجيل الخروج.');
-          logoutTeacher();
-        }
-
         const success = await saveSystemDataToCloud();
         renderTeachersList();
-        alert(success ? 'تم حذف المعلم وتحديث السحابة بنجاح!' : 'تم الحذف محلياً.');
+        alert(success ? 'تم الحذف بنجاح!' : 'تم الحذف محلياً.');
       }
     }
 
@@ -1298,22 +1481,15 @@
         return;
       }
 
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th><th class="p-3 text-center">إجراء</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th></tr></thead><tbody class="divide-y">`;
       
       filteredStudents.forEach((data) => {
-        html += `<tr><td class="p-3 font-bold cursor-pointer text-emerald-700 hover:underline" onclick="openStudentDetailModal('${data.studentName}', '${data.className}', 'all')">${data.studentName}</td><td class="p-3 text-center font-semibold text-emerald-700">${data.className}</td><td class="p-3 text-center">${data.absent || 0}</td><td class="p-3 text-center">${data.late || 0}</td><td class="p-3 text-center">${data.escape || 0}</td><td class="p-3 text-center">${data.outside || 0}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${data.total}</span></td><td class="p-3 text-center"><button onclick="alertStudentNotice('${data.studentName}', '${data.className}', ${data.absent || 0}, ${data.escape || 0})" class="bg-slate-800 hover:bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] font-bold cursor-pointer"><i class="fa-solid fa-bell"></i> تنبيه ولي الأمر</button></td></tr>`;
+        html += `<tr><td class="p-3 font-bold cursor-pointer text-emerald-700 hover:underline" onclick="openStudentDetailModal('${data.studentName}', '${data.className}', 'all')">${data.studentName}</td><td class="p-3 text-center font-semibold text-emerald-700">${data.className}</td><td class="p-3 text-center">${data.absent || 0}</td><td class="p-3 text-center">${data.late || 0}</td><td class="p-3 text-center">${data.escape || 0}</td><td class="p-3 text-center">${data.outside || 0}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${data.total}</span></td></tr>`;
       });
       html += `</tbody></table>`;
       container.innerHTML = html;
     }
 
-    function alertStudentNotice(studentName, className, absentCount, escapeCount) {
-      alert(`إشعار إداري توثيقي:\n\nالطالب: (${studentName}) - صف (${className})\nحالات الغياب المسجلة: (${absentCount})\nحالات التسرب المسجلة: (${escapeCount})\n\nتم تسجيل هذا الإشعار للأخصائي الاجتماعي لمتابعة الحالة مع ولي الأمر.`);
-    }
-
-    // ==========================================
-    // دوال الإحصائيات الذكية المتقدمة لمتابعة الطلاب
-    // ==========================================
     function populateAdvClassSelect() {
       const select = document.getElementById('advClassFilter');
       if (!select) return;
@@ -1328,14 +1504,12 @@
     function toggleCustomDates() {
       const period = document.getElementById('advPeriodFilter').value;
       const box = document.getElementById('customDateRangeBox');
-      if (period === 'custom') {
-        box.classList.remove('hidden');
-      } else {
-        box.classList.add('hidden');
-      }
+      if (period === 'custom') box.classList.remove('hidden');
+      else box.classList.add('hidden');
     }
 
     function resetAdvFilters() {
+      document.getElementById('advCategorySelect').value = 'all_categories';
       document.getElementById('advClassFilter').value = 'all';
       document.getElementById('advPeriodFilter').value = 'all';
       document.getElementById('advStartDate').value = '';
@@ -1344,12 +1518,7 @@
       renderAdvancedStats();
     }
 
-    let advShowAllState = {
-      absent: false,
-      escape: false,
-      outside: false,
-      late: false
-    };
+    let advShowAllState = { absent: false, escape: false, outside: false, late: false };
 
     function toggleAdvShowAll(category) {
       advShowAllState[category] = !advShowAllState[category];
@@ -1364,7 +1533,6 @@
 
       const todayStr = getOmanLocalDate();
       const currentMonthStr = todayStr.substring(0, 7);
-
       const todayDate = new Date(todayStr);
       const weekAgoDate = new Date(todayDate);
       weekAgoDate.setDate(todayDate.getDate() - 7);
@@ -1373,7 +1541,6 @@
 
       Object.entries(db.attendance).forEach(([key, session]) => {
         if (!session || !session.records) return;
-        
         const sessionDate = key.substring(0, 10);
         const sessionClass = session.className || key.split('_')[1];
 
@@ -1395,14 +1562,7 @@
           if (['absent', 'escape', 'outside', 'late'].includes(status)) {
             const uniqueKey = `${sessionClass}::${studentName}`;
             if (!statsMap[uniqueKey]) {
-              statsMap[uniqueKey] = {
-                studentName: studentName,
-                className: sessionClass,
-                absent: 0,
-                escape: 0,
-                outside: 0,
-                late: 0
-              };
+              statsMap[uniqueKey] = { studentName, className: sessionClass, absent: 0, escape: 0, outside: 0, late: 0 };
             }
             statsMap[uniqueKey][status]++;
           }
@@ -1414,9 +1574,7 @@
 
     function rankAndSortList(list, valueKey) {
       list.sort((a, b) => {
-        if (b[valueKey] !== a[valueKey]) {
-          return b[valueKey] - a[valueKey];
-        }
+        if (b[valueKey] !== a[valueKey]) return b[valueKey] - a[valueKey];
         return a.studentName.localeCompare(b.studentName, 'ar');
       });
 
@@ -1427,16 +1585,9 @@
       list.forEach((item, index) => {
         const val = item[valueKey];
         if (val === 0) return;
-        if (index === 0) {
-          currentRank = 1;
-        } else if (val < previousVal) {
-          currentRank = index + 1;
-        }
-        ranked.push({
-          ...item,
-          count: val,
-          rank: currentRank
-        });
+        if (index === 0) currentRank = 1;
+        else if (val < previousVal) currentRank = index + 1;
+        ranked.push({ ...item, count: val, rank: currentRank });
         previousVal = val;
       });
 
@@ -1447,12 +1598,13 @@
       populateAdvClassSelect();
       const statsMap = calculateAdvancedStats();
       const rawList = Object.values(statsMap);
+      const selectedCategory = document.getElementById('advCategorySelect').value;
 
       const categories = [
-        { key: 'absent', title: 'الطلاب الأكثر غياباً', icon: 'fa-user-slash', color: 'text-black dark:text-yellow-400', badge: 'bg-yellow-100 dark:bg-yellow-950/50 text-yellow-900 dark:text-yellow-200 border-yellow-300' },
-        { key: 'escape', title: 'الطلاب الأكثر تسرباً', icon: 'fa-person-running', color: 'text-red-600 dark:text-red-400', badge: 'bg-red-100 dark:bg-red-950/50 text-red-900 dark:text-red-200 border-red-300' },
-        { key: 'outside', title: 'الطلاب الأكثر تواجداً خارج الفصل', icon: 'fa-door-open', color: 'text-purple-600 dark:text-purple-400', badge: 'bg-purple-100 dark:bg-purple-950/50 text-purple-900 dark:text-purple-200 border-purple-300' },
-        { key: 'late', title: 'الطلاب الأكثر تأخراً', icon: 'fa-clock', color: 'text-orange-600 dark:text-orange-400', badge: 'bg-orange-100 dark:bg-orange-950/50 text-orange-900 dark:text-orange-200 border-orange-300' }
+        { key: 'absent', title: 'الطلاب الأكثر غياباً', icon: 'fa-user-slash', badge: 'bg-yellow-100 text-yellow-900 border-yellow-300' },
+        { key: 'escape', title: 'الطلاب الأكثر تسرباً', icon: 'fa-person-running', badge: 'bg-red-100 text-red-900 border-red-300' },
+        { key: 'outside', title: 'الطلاب الأكثر تواجداً خارج الفصل', icon: 'fa-door-open', badge: 'bg-purple-100 text-purple-900 border-purple-300' },
+        { key: 'late', title: 'الطلاب الأكثر تأخراً', icon: 'fa-clock', badge: 'bg-orange-100 text-orange-900 border-orange-300' }
       ];
 
       let totals = { absent: 0, escape: 0, outside: 0, late: 0 };
@@ -1463,161 +1615,65 @@
         totals.late += item.late;
       });
 
-      const summaryContainer = document.getElementById('advSummaryCards');
-      summaryContainer.innerHTML = `
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-yellow-100 dark:bg-yellow-950/50 text-yellow-800 dark:text-yellow-300 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-user-slash"></i></div>
-          <div>
-            <span class="text-xs text-slate-400 block font-semibold">إجمالي حالات الغياب</span>
-            <span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.absent}</span>
-          </div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-950/50 text-red-800 dark:text-red-300 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-person-running"></i></div>
-          <div>
-            <span class="text-xs text-slate-400 block font-semibold">إجمالي حالات التسرب</span>
-            <span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.escape}</span>
-          </div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-purple-100 dark:bg-purple-950/50 text-purple-800 dark:text-purple-300 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-door-open"></i></div>
-          <div>
-            <span class="text-xs text-slate-400 block font-semibold">إجمالي حالات الخارج</span>
-            <span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.outside}</span>
-          </div>
-        </div>
-        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center gap-4">
-          <div class="w-12 h-12 rounded-2xl bg-orange-100 dark:bg-orange-950/50 text-orange-800 dark:text-orange-300 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-clock"></i></div>
-          <div>
-            <span class="text-xs text-slate-400 block font-semibold">إجمالي حالات التأخير</span>
-            <span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.late}</span>
-          </div>
-        </div>
+      document.getElementById('advSummaryCards').innerHTML = `
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-yellow-100 text-yellow-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-user-slash"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.absent}</span></div></div>
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-red-100 text-red-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-person-running"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي التسرب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.escape}</span></div></div>
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-door-open"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي الخارج</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.outside}</span></div></div>
+        <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border flex items-center gap-4"><div class="w-12 h-12 rounded-2xl bg-orange-100 text-orange-800 flex items-center justify-center font-bold text-lg"><i class="fa-solid fa-clock"></i></div><div><span class="text-xs text-slate-400 block font-semibold">إجمالي التأخير</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${totals.late}</span></div></div>
       `;
 
       const container = document.getElementById('advCategoriesContainer');
       container.innerHTML = '';
 
-      categories.forEach(cat => {
+      const filteredCategories = selectedCategory === 'all_categories' ? categories : categories.filter(c => c.key === selectedCategory);
+
+      filteredCategories.forEach(cat => {
         const rankedList = rankAndSortList(rawList, cat.key);
         const showAll = advShowAllState[cat.key];
         const displayList = showAll ? rankedList : rankedList.slice(0, 10);
         const maxCount = rankedList.length > 0 ? rankedList[0].count : 1;
 
-        let cardHtml = `
-          <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden flex flex-col justify-between">
-            <div class="p-5 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center bg-slate-50/50 dark:bg-slate-900/50">
-              <div class="flex items-center gap-2.5">
-                <div class="w-9 h-9 rounded-xl flex items-center justify-center ${cat.badge} font-bold text-sm border">
-                  <i class="fa-solid ${cat.icon}"></i>
-                </div>
-                <div>
-                  <h5 class="font-extrabold text-slate-800 dark:text-white text-sm">${cat.title}</h5>
-                  <span class="text-[10px] text-slate-400">إجمالي الطلاب المتأثرين: ${rankedList.length} (انقر فوق اسم الطالب للتفاصيل)</span>
-                </div>
-              </div>
-              <button onclick="exportCategoryCSV('${cat.key}')" class="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 px-3 py-1.5 rounded-xl font-bold transition border border-emerald-200 dark:border-emerald-800 cursor-pointer" title="تصدير CSV">
-                <i class="fa-solid fa-file-excel"></i> تصدير CSV
-              </button>
-            </div>
-
-            <div class="p-4 overflow-x-auto flex-grow">
-        `;
+        let cardHtml = `<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border overflow-hidden mb-4"><div class="p-5 border-b flex justify-between items-center bg-slate-50/50"><div class="flex items-center gap-2.5"><div class="w-9 h-9 rounded-xl flex items-center justify-center ${cat.badge} font-bold text-sm border"><i class="fa-solid ${cat.icon}"></i></div><div><h5 class="font-extrabold text-slate-800 dark:text-white text-sm">${cat.title}</h5><span class="text-[10px] text-slate-400">عدد الطلاب: ${rankedList.length} (انقر فوق اسم الطالب لعرض السجل)</span></div></div></div><div class="p-4 overflow-x-auto">`;
 
         if (rankedList.length === 0) {
-          cardHtml += `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات مسجلة لهذه الحالة ضمن الفلاتر المحددة.</div>`;
+          cardHtml += `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات مسجلة.</div>`;
         } else {
-          cardHtml += `
-            <table class="w-full text-xs text-right border-collapse">
-              <thead>
-                <tr class="text-slate-400 border-b border-slate-100 dark:border-slate-700 text-[11px]">
-                  <th class="py-2 px-2">الترتيب</th>
-                  <th class="py-2 px-2">اسم الطالب (انقر للعرض)</th>
-                  <th class="py-2 px-2">الصف</th>
-                  <th class="py-2 px-2 text-center">المرات</th>
-                  <th class="py-2 px-2 w-32">مؤشر التكرار</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100 dark:divide-slate-700">
-          `;
-
+          cardHtml += `<table class="w-full text-xs text-right border-collapse"><thead><tr class="text-slate-400 border-b text-[11px]"><th class="py-2 px-2">الترتيب</th><th class="py-2 px-2">اسم الطالب (انقر للعرض)</th><th class="py-2 px-2">الصف</th><th class="py-2 px-2 text-center">المرات</th><th class="py-2 px-2 w-32">مؤشر التكرار</th></tr></thead><tbody class="divide-y">`;
           displayList.forEach(item => {
             const percentage = Math.round((item.count / maxCount) * 100);
-            const rankBadge = item.rank === 1 ? 'bg-amber-500 text-white' : (item.rank === 2 ? 'bg-slate-400 text-white' : (item.rank === 3 ? 'bg-amber-700 text-white' : 'bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300'));
-            
-            cardHtml += `
-              <tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
-                <td class="py-3 px-2 font-bold">
-                  <span class="w-6 h-6 rounded-lg ${rankBadge} inline-flex items-center justify-center text-[10px] font-extrabold">${item.rank}</span>
-                </td>
-                <td class="py-3 px-2 font-extrabold text-emerald-700 dark:text-emerald-400 cursor-pointer hover:underline" onclick="openStudentDetailModal('${item.studentName}', '${item.className}', '${cat.key}')">
-                  <i class="fa-solid fa-circle-info text-[10px] me-1"></i> ${item.studentName}
-                </td>
-                <td class="py-3 px-2 font-bold text-slate-700 dark:text-slate-300">${item.className}</td>
-                <td class="py-3 px-2 text-center font-black text-slate-900 dark:text-slate-100">${item.count}</td>
-                <td class="py-3 px-2">
-                  <div class="w-full bg-slate-100 dark:bg-slate-900 rounded-full h-2 overflow-hidden">
-                    <div class="bg-emerald-600 h-full rounded-full" style="width: ${percentage}%"></div>
-                  </div>
-                </td>
-              </tr>
-            `;
+            cardHtml += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition"><td class="py-3 px-2 font-bold"><span class="w-6 h-6 rounded-lg bg-slate-100 inline-flex items-center justify-center text-[10px] font-extrabold">${item.rank}</span></td><td class="py-3 px-2 font-extrabold text-emerald-700 cursor-pointer hover:underline" onclick="openStudentDetailModal('${item.studentName}', '${item.className}', '${cat.key}')"><i class="fa-solid fa-circle-info text-[10px] me-1"></i> ${item.studentName}</td><td class="py-3 px-2 font-bold">${item.className}</td><td class="py-3 px-2 text-center font-black">${item.count}</td><td class="py-3 px-2"><div class="w-full bg-slate-100 rounded-full h-2 overflow-hidden"><div class="bg-emerald-600 h-full rounded-full" style="width: ${percentage}%"></div></div></td></tr>`;
           });
-
           cardHtml += `</tbody></table>`;
         }
-
-        cardHtml += `</div>`;
-
-        if (rankedList.length > 10) {
-          cardHtml += `
-            <div class="p-3 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
-              <button onclick="toggleAdvShowAll('${cat.key}')" class="text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline cursor-pointer">
-                ${showAll ? 'إظهار أفضل 10 طلاب فقط' : `عرض جميع النتائج (${rankedList.length} طالب)`}
-              </button>
-            </div>
-          `;
-        }
-
-        cardHtml += `</div>`;
+        cardHtml += `</div></div>`;
         container.innerHTML += cardHtml;
       });
     }
 
-    // ==========================================
-    // دالة فتح نافذة تفاصيل سجلات الطالب (مصححة التعبير المنطقي)
-    // ==========================================
     function openStudentDetailModal(studentName, className, targetStatusKey = 'all') {
       const modal = document.getElementById('studentDetailModal');
       const titleEl = document.getElementById('modalStudentTitle');
       const subtitleEl = document.getElementById('modalStudentSubtitle');
       const bodyEl = document.getElementById('modalStudentBody');
 
-      titleEl.innerHTML = `<i class="fa-solid fa-user-check text-emerald-400"></i> تفاصيل المخالفات والسجلات: ${studentName}`;
-      subtitleEl.textContent = `الصف الدراسي: ${className} | عرض الأيام، الحصص، والمعلمين المسؤولين عن الرصد`;
+      titleEl.innerHTML = `<i class="fa-solid fa-user-check text-emerald-400"></i> تفاصيل السجلات: ${studentName}`;
+      subtitleEl.textContent = `الصف: ${className} | عرض الأيام، الحصص، والمعلمين المسؤولين`;
 
       let matchedSessions = [];
-
       Object.entries(db.attendance).forEach(([key, session]) => {
         if (!session || !session.records) return;
         const sessionClass = session.className || key.split('_')[1];
         if (sessionClass !== className) return;
 
         const sessionDate = key.substring(0, 10);
-        // تصحيح التعبير المنطقي لاستخراج رقم الحصة بدون خطأ برمجي
         const periodMatch = key.match(/p(\d+)$/);
         const periodNum = periodMatch ? periodMatch[1] : '؟';
-        const teacherName = session.teacher || 'معلم غير مسجل';
+        const teacherName = session.teacher || 'معلم';
 
         const studentStatus = session.records[studentName];
         if (studentStatus && studentStatus !== 'present') {
           if (targetStatusKey === 'all' || targetStatusKey === studentStatus) {
-            matchedSessions.push({
-              date: sessionDate,
-              period: periodNum,
-              teacher: teacherName,
-              status: studentStatus
-            });
+            matchedSessions.push({ date: sessionDate, period: periodNum, teacher: teacherName, status: studentStatus });
           }
         }
       });
@@ -1625,7 +1681,7 @@
       matchedSessions.sort((a, b) => b.date.localeCompare(a.date));
 
       if (matchedSessions.length === 0) {
-        bodyEl.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا توجد سجلات مخالفات مسجلة لهذا الطالب ضمن التصنيف المحدد.</div>`;
+        bodyEl.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا توجد سجلات مسجلة.</div>`;
       } else {
         const statusLabels = {
           absent: { text: 'غائب', cls: 'bg-black text-white' },
@@ -1634,35 +1690,14 @@
           late: { text: 'متأخر', cls: 'bg-orange-500 text-white' }
         };
 
-        let html = `
-          <div class="text-xs font-bold text-slate-500 dark:text-slate-400 mb-2">إجمالي السجلات المرصودة (${matchedSessions.length} سجل):</div>
-          <div class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-slate-50/50 dark:bg-slate-900/50">
-        `;
-
+        let html = `<div class="text-xs font-bold text-slate-500 mb-2">إجمالي السجلات (${matchedSessions.length}):</div><div class="divide-y border rounded-2xl overflow-hidden bg-slate-50/50">`;
         matchedSessions.forEach(item => {
           const stInfo = statusLabels[item.status] || { text: item.status, cls: 'bg-slate-600 text-white' };
-          html += `
-            <div class="p-3.5 flex flex-wrap justify-between items-center gap-2 hover:bg-white dark:hover:bg-slate-800 transition">
-              <div class="space-y-1">
-                <div class="flex items-center gap-2">
-                  <span class="font-extrabold text-slate-800 dark:text-white text-xs"><i class="fa-regular fa-calendar text-emerald-600"></i> التاريخ: ${item.date}</span>
-                  <span class="bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-2 py-0.5 rounded-lg text-[10px] font-bold">الحصة رقم (${item.period})</span>
-                </div>
-                <div class="text-[11px] text-slate-500 dark:text-slate-400">
-                  <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> المعلم المسجل: <span class="font-bold text-slate-700 dark:text-slate-200">${item.teacher}</span>
-                </div>
-              </div>
-              <div>
-                <span class="px-3 py-1 rounded-xl text-[11px] font-extrabold shadow-xs ${stInfo.cls}">${stInfo.text}</span>
-              </div>
-            </div>
-          `;
+          html += `<div class="p-3.5 flex justify-between items-center gap-2"><div><div class="flex items-center gap-2"><span class="font-extrabold text-xs">التاريخ: ${item.date}</span><span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-lg text-[10px] font-bold">الحصة (${item.period})</span></div><div class="text-[11px] text-slate-500 mt-1">المعلم المسجل: <span class="font-bold text-slate-700">${item.teacher}</span></div></div><div><span class="px-3 py-1 rounded-xl text-[11px] font-extrabold ${stInfo.cls}">${stInfo.text}</span></div></div>`;
         });
-
         html += `</div>`;
         bodyEl.innerHTML = html;
       }
-
       modal.classList.remove('hidden');
     }
 
@@ -1670,315 +1705,53 @@
       document.getElementById('studentDetailModal').classList.add('hidden');
     }
 
-    function exportCategoryCSV(categoryKey) {
-      const statsMap = calculateAdvancedStats();
-      const rawList = Object.values(statsMap);
-      const rankedList = rankAndSortList(rawList, categoryKey);
-
-      if (rankedList.length === 0) {
-        alert('لا توجد بيانات للتصدير!');
-        return;
-      }
-
-      const titles = { absent: 'الطلاب الأكثر غياباً', escape: 'الطلاب الأكثر تسرباً', outside: 'الطلاب الأكثر خروجاً', late: 'الطلاب الأكثر تأخراً' };
-      
-      let csv = `\uFEFFتقرير إحصائي: ${titles[categoryKey]}\n`;
-      csv += `الترتيب,اسم الطالب,الصف,عدد مرات التكرار\n`;
-
-      rankedList.forEach(item => {
-        csv += `"${item.rank}","${item.studentName}","${item.className}","${item.count}"\n`;
-      });
-
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `تقرير_${categoryKey}_مدرسة_أبو_دجانة_${getOmanLocalDate()}.csv`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-    }
-
-    function printAdvancedStatsReport() {
-      const statsMap = calculateAdvancedStats();
-      const rawList = Object.values(statsMap);
-      const periodFilter = document.getElementById('advPeriodFilter').value;
-      const classFilter = document.getElementById('advClassFilter').value;
-
-      const categories = [
-        { key: 'absent', title: 'الطلاب الأكثر غياباً' },
-        { key: 'escape', title: 'الطلاب الأكثر تسرباً' },
-        { key: 'outside', title: 'الطلاب الأكثر خروجاً من الفصل' },
-        { key: 'late', title: 'الطلاب الأكثر تأخراً' }
-      ];
-
-      let printHTML = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="UTF-8">
-          <title>التقرير الإحصائي الشامل لمتابعة الطلاب - مدرسة أبو دجانة الأنصاري</title>
-          <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-          <style>
-            @page { size: A4 portrait; margin: 10mm; }
-            body { font-family: 'Tajawal', sans-serif; background: #fff; color: #000; margin: 0; padding: 10px; }
-            .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 15px; }
-            .header h2 { margin: 0 0 5px 0; font-size: 18px; }
-            .header p { margin: 2px 0; font-size: 11px; }
-            .section { margin-bottom: 20px; page-break-inside: avoid; }
-            .section h3 { font-size: 14px; background: #e2e8f0; padding: 6px; margin: 0 0 8px 0; border-radius: 4px; }
-            table { width: 100%; border-collapse: collapse; font-size: 11px; }
-            th, td { border: 1px solid #000; padding: 5px 8px; text-align: right; }
-            th { background: #f1f5f9; }
-            .footer { margin-top: 25px; display: flex; justify-content: space-between; font-size: 11px; font-weight: bold; border-top: 1px solid #000; padding-top: 8px; }
-          </style>
-        </head>
-        <body>
-          <div class="header">
-            <div>سلطنة عمان - وزارة التربية والتعليم</div>
-            <h2>مدرسة أبو دجانة الأنصاري</h2>
-            <p>التقرير الإحصائي التحليلي لسجلات سلوك وحضور الطلاب</p>
-            <p>تاريخ إعداد التقرير: <strong>${getOmanLocalDate()}</strong> | الصف المستهدف: <strong>${classFilter === 'all' ? 'جميع الصفوف' : 'صف ' + classFilter}</strong> | الفترة: <strong>${periodFilter}</strong></p>
-          </div>
-      `;
-
-      categories.forEach(cat => {
-        const rankedList = rankAndSortList(rawList, cat.key);
-        printHTML += `
-          <div class="section">
-            <h3>${cat.title} (إجمالي الحالات: ${rankedList.reduce((sum, i) => sum + i.count, 0)})</h3>
-        `;
-
-        if (rankedList.length === 0) {
-          printHTML += `<p style="font-size: 11px; color: #666; text-align: center;">لا توجد سجلات مسجلة.</p>`;
-        } else {
-          printHTML += `
-            <table>
-              <thead>
-                <tr>
-                  <th style="width: 10%; text-align: center;">الترتيب</th>
-                  <th style="width: 50%;">اسم الطالب</th>
-                  <th style="width: 25%;">الصف</th>
-                  <th style="width: 15%; text-align: center;">عدد المرات</th>
-                </tr>
-              </thead>
-              <tbody>
-          `;
-          rankedList.forEach(item => {
-            printHTML += `
-              <tr>
-                <td style="text-align: center; font-weight: bold;">${item.rank}</td>
-                <td>${item.studentName}</td>
-                <td>${item.className}</td>
-                <td style="text-align: center; font-weight: bold;">${item.count}</td>
-              </tr>
-            `;
-          });
-          printHTML += `</tbody></table>`;
-        }
-        printHTML += `</div>`;
-      });
-
-      printHTML += `
-          <div class="footer">
-            <div>اعتماد إدارة المدرسة / التوقيع: __________________</div>
-            <div>الأخصائي الاجتماعي / شؤون الطلاب: __________________</div>
-          </div>
-        </body>
-        </html>
-      `;
-
-      const printWin = window.open('', '_blank', 'width=900,height=800');
-      printWin.document.open();
-      printWin.document.write(printHTML);
-      printWin.document.close();
-      printWin.onload = function() {
-        setTimeout(() => {
-          printWin.focus();
-          printWin.print();
-        }, 500);
-      };
-    }
-
-    function loadPinSettings() {
-      if(currentRole !== 'admin') return;
-      const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
-      const socialDecoded = db.socialPin ? (db.socialPin.length === 4 || !isBase64(db.socialPin) ? db.socialPin : atob(db.socialPin)) : "5678";
-      const studentAffairsDecoded = db.studentAffairsPin ? (db.studentAffairsPin.length === 4 || !isBase64(db.studentAffairsPin) ? db.studentAffairsPin : atob(db.studentAffairsPin)) : "4321";
-
-      document.getElementById('settingAdminPin').value = adminDecoded;
-      document.getElementById('settingSocialPin').value = socialDecoded;
-      document.getElementById('settingStudentAffairsPin').value = studentAffairsDecoded;
-    }
-
-    async function saveNewPins() {
-      if(currentRole !== 'admin') return alert('غير مسموح لك بتغيير رموز الصلاحيات.');
-      const aPin = document.getElementById('settingAdminPin').value.trim();
-      const sPin = document.getElementById('settingSocialPin').value.trim();
-      const saPin = document.getElementById('settingStudentAffairsPin').value.trim();
-
-      if(aPin && sPin && saPin) {
-        db.adminPin = btoa(aPin);
-        db.socialPin = btoa(sPin);
-        db.studentAffairsPin = btoa(saPin);
+    async function saveNewAdminPin() {
+      const newPin = document.getElementById('settingAdminPin').value.trim();
+      if (newPin) {
+        db.adminPin = btoa(newPin);
         const success = await saveSystemDataToCloud();
-        alert(success ? 'تم تحديث رموز الصلاحيات وحفظها سحابياً بنجاح!' : 'تم التحديث محلياً.');
+        alert(success ? 'تم حفظ رمز المدير العام سحابياً بنجاح!' : 'تم الحفظ محلياً.');
       } else {
-        alert('يرجى تعبئة جميع حقول الرموز السرية بدقة.');
+        alert('يرجى إدخال الرمز الجديد.');
       }
-    }
-
-    function buildSingleClassHTML(className, date) {
-      let html = `
-        <div style="page-break-after: always; break-after: page; page-break-inside: avoid; margin-bottom: 25px; border: 2px solid #000; border-radius: 8px; padding: 12px; background: #fff; font-family: 'Tajawal', sans-serif;">
-          <div style="border-bottom: 2px solid #000; padding-bottom: 8px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: flex-end;">
-            <div>
-              <div style="font-size: 11px; font-weight: bold; margin-bottom: 2px;">سلطنة عمان - وزارة التربية والتعليم</div>
-              <div style="font-size: 15px; font-weight: 800; margin-bottom: 2px;">مدرسة أبو دجانة الأنصاري</div>
-              <div style="font-size: 11px; color: #333;">سجل مصفوفة متابعة حضور وغياب الطلاب والحصص اليومي</div>
-            </div>
-            <div style="text-align: left; font-size: 11px; font-weight: bold;">
-              <div>تاريخ التقرير: <span>${date}</span></div>
-              <div style="margin-top: 3px; font-size: 13px; font-weight: 800; color: #000;">الصف الدراسي: ${className}</div>
-            </div>
-          </div>
-
-          <div style="display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 6px; text-align: right; align-items: start;">
-      `;
-
-      for (let p = 1; p <= 8; p++) {
-        const key = `${date}_${className}_p${p}`;
-        const session = db.attendance[key];
-        const teacherName = session && session.teacher ? session.teacher : 'غير مسجل';
-
-        let abs = '', late = '', esc = '', outside = '';
-        if (session && session.records) {
-          for (let [stName, stStatus] of Object.entries(session.records)) {
-            if (stStatus === 'absent') {
-              abs += `<div style="background-color: #fde047; color: #000000; font-weight: 800; font-size: 8.5px; padding: 2px 3px; margin-bottom: 2px; border-radius: 3px; border: 1px solid #ca8a04; line-height: 1.1;">• ${stName} (غائب)</div>`;
-            } else if (stStatus === 'late') {
-              late += `<div style="color: #2563eb; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (متأخر)</div>`;
-            } else if (stStatus === 'escape') {
-              esc += `<div style="color: #dc2626; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (متسرب)</div>`;
-            } else if (stStatus === 'outside') {
-              outside += `<div style="color: #9333ea; font-weight: 800; font-size: 8.5px; padding: 1px 0; margin-bottom: 1px; line-height: 1.1;">• ${stName} (خارج)</div>`;
-            }
-          }
-        }
-
-        html += `
-          <div style="border: 1px solid #000; border-radius: 4px; padding: 3px; font-size: 9px; background: #fff; min-height: 140px; height: auto;">
-            <div style="background-color: #e2e8f0; font-weight: bold; padding: 3px; border-radius: 2px; border-bottom: 1px solid #000; text-align: center; line-height: 1.2;">
-              الحصة ${p}<br><span style="font-size: 7.5px; color: #444; font-weight: normal;">(${teacherName})</span>
-            </div>
-            <div style="padding: 2px 0;">
-              ${abs}${late}${esc}${outside}
-              ${(!abs && !late && !esc && !outside) ? '<div style="color:#888; text-align:center; font-size:8px; padding-top:12px;">لا يوجد مخالفات</div>' : ''}
-            </div>
-          </div>
-        `;
-      }
-
-      html += `
-          </div>
-          <div style="margin-top: 15px; border-top: 1px solid #000; padding-top: 6px; display: flex; justify-content: space-between; font-size: 10px; font-weight: bold;">
-            <div>يعتمد / إدارة المدرسة: __________________</div>
-            <div>التوقيع والختم: __________________</div>
-          </div>
-        </div>
-      `;
-      return html;
     }
 
     function generatePDFReport(mode) {
       const date = document.getElementById('reportDatePicker').value;
-      let targetClasses = [];
-
-      if (mode === 'single') {
-        targetClasses = [document.getElementById('reportClassSelect').value];
-      } else {
-        targetClasses = [...db.classes];
-      }
-
-      let printHTML = `
-        <!DOCTYPE html>
-        <html lang="ar" dir="rtl">
-        <head>
-          <meta charset="UTF-8">
-          <title>سجل غياب الطلاب - مدرسة أبو دجانة الأنصاري - ${date}</title>
-          <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
-          <style>
-            @page { size: A4 landscape; margin: 8mm; }
-            body { font-family: 'Tajawal', sans-serif; background: #fff; color: #000; margin: 0; padding: 0; }
-          </style>
-        </head>
-        <body>
-      `;
-
+      let targetClasses = mode === 'single' ? [document.getElementById('reportClassSelect').value] : [...db.classes];
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الغياب</title><style>@page { size: A4 landscape; margin: 8mm; } body { font-family: 'Tajawal', sans-serif; background: #fff; color: #000; }</style></head><body>`;
+      
       targetClasses.forEach(c => {
-        printHTML += buildSingleClassHTML(c, date);
+        printHTML += `<div style="page-break-after: always; padding: 10px; border: 2px solid #000; margin-bottom: 20px;"><h3>الصف: ${c} | التاريخ: ${date}</h3></div>`;
       });
+      printHTML += `</body></html>`;
 
-      printHTML += `
-        </body>
-        </html>
-      `;
-
-      const printWin = window.open('', '_blank', 'width=1000,height=800');
-      printWin.document.open();
+      const printWin = window.open('', '_blank');
       printWin.document.write(printHTML);
       printWin.document.close();
-
-      printWin.onload = function() {
-        setTimeout(() => {
-          printWin.focus();
-          printWin.print();
-        }, 500);
-      };
+      printWin.print();
     }
 
     function exportOnlyAbsentExcel() {
       const date = document.getElementById('reportDatePicker').value;
-      let csvContent = "\uFEFFتاريخ التقرير,'" + date + "\n";
-      csvContent += "الصف,اسم الطالب الغائب\n";
-
+      let csvContent = "\uFEFFتاريخ التقرير,'" + date + "\nالصف,اسم الطالب الغائب\n";
       let count = 0;
-
       db.classes.forEach(className => {
         let absentSet = new Set();
-
         for (let p = 1; p <= 8; p++) {
-          const key = `${date}_${className}_p${p}`;
-          const session = db.attendance[key];
+          const session = db.attendance[`${date}_${className}_p${p}`];
           if (session && session.records) {
-            for (let [stName, status] of Object.entries(session.records)) {
-              if (status === 'absent') {
-                absentSet.add(stName);
-              }
-            }
+            Object.entries(session.records).forEach(([stName, status]) => { if (status === 'absent') absentSet.add(stName); });
           }
         }
-
-        absentSet.forEach(studentName => {
-          count++;
-          const safeClassName = `'${className}`;
-          csvContent += `"${safeClassName}","${studentName}"\n`;
-        });
+        absentSet.forEach(name => { count++; csvContent += `"${className}","${name}"\n`; });
       });
-
-      if (count === 0) {
-        alert('لا يوجد أي غياب مسجل في هذا التاريخ!');
-        return;
-      }
-
+      if (count === 0) { alert('لا يوجد غياب مسجل!'); return; }
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `قائمة_الطلاب_الغائبين_بدون_تكرار_${date}.csv`;
-      document.body.appendChild(a);
+      a.href = URL.createObjectURL(blob);
+      a.download = `الغائبين_${date}.csv`;
       a.click();
-      document.body.removeChild(a);
     }
   </script>
 </body>
