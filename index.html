@@ -234,7 +234,7 @@
           <button onclick="switchAdminTab('tstats')" id="tab-tstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">إحصائيات المعلمين</button>
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">إحصائيات الطلاب</button>
           <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التنبيهات</button>
-          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التقارير</button>
+          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التقارير والطباعة</button>
           <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المزامنة</button>
           <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأمان</button>
         </div>
@@ -326,41 +326,41 @@
           </div>
         </div>
 
-        <!-- Tab 6: Reports (Purely for Class Attendance Export, selection) -->
+        <!-- Tab 6: Reports & Printing Section -->
         <div id="sec-reports" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div>
-              <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير وتفريغ الغياب الشامل (من التاسع لأخر صف)</h4>
-              <p class="text-xs text-emerald-200 mt-1">اختر الصف والتاريخ أو اليوم الكامل لتصدير تقارير الغياب والحصص (من الأولى للثامنة أفقياً)</p>
+              <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير وتفريغ الغياب الشامل (التنسيق الأفقي)</h4>
+              <p class="text-xs text-emerald-200 mt-1">عرض وتفريغ كافة الحصص الثماني أفقياً بجانب بعضها لكل صف دراسي على حدة</p>
             </div>
             <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الصف الدراسي:</label>
                 <select id="reportClassFilter" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
-                  <option value="all">جميع الصفوف (تاسع إلى آخر صف)</option>
+                  <option value="all">جميع الصفوف الدراسية</option>
                 </select>
               </div>
               <div>
-                <label class="block text-[11px] font-bold text-emerald-200 mb-1">تاريخ مخصص أو يوم كامل:</label>
+                <label class="block text-[11px] font-bold text-emerald-200 mb-1">تاريخ الرصد والتفريغ:</label>
                 <input type="date" id="reportDatePicker" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none">
               </div>
-              <button onclick="resetReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition cursor-pointer">إعادة ضبط التاريخ</button>
+              <button onclick="resetReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition cursor-pointer">ضبط التواريخ</button>
             </div>
           </div>
 
-          <!-- Export Buttons -->
+          <!-- Printable Controls -->
           <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-5 rounded-3xl flex flex-wrap gap-3 items-center justify-between">
             <div class="text-xs font-bold text-emerald-900 dark:text-emerald-300">
-              <i class="fa-solid fa-print"></i> خيارات تصدير تفريغ الغياب (أفقي متكامل):
+              <i class="fa-solid fa-print"></i> التقرير العرضي الأفقي جاهز للتصدير والتفريغ:
             </div>
             <div class="flex flex-wrap gap-2">
-              <button onclick="exportAttendancePDF()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-file-pdf"></i> تصدير PDF أفقي (الحصص 1-8)</button>
+              <button onclick="printHorizontalReport()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-2"><i class="fa-solid fa-print"></i> طباعة / تصدير PDF أفقي</button>
               <button onclick="exportAttendanceExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
             </div>
           </div>
 
-          <!-- Expandable Lists Container for All Classes & Periods (1-8 Horizontal) -->
-          <div class="space-y-6" id="reportClassesContainer"></div>
+          <!-- Main Live Preview Container -->
+          <div class="space-y-6 overflow-x-auto" id="reportClassesContainer"></div>
         </div>
 
         <!-- Tab 7: Sync -->
@@ -398,7 +398,7 @@
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DEFAULT_TEACHERS = [{ name: "أ. سالم الوهيبي", pin: "1111" }, { name: "أ. محمد العبري", pin: "2222" }, { name: "أ. سعيد المقبالي", pin: "3333" }];
 
-    let db = { version: 9, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
+    let db = { version: 10, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -432,16 +432,15 @@
           const resData = await response.json();
           if (resData.record && resData.record.classes?.length > 0) {
             db = resData.record;
-            if(!db.version) db.version = 9;
             if(!db.customUsers) db.customUsers = [];
-            localStorage.setItem('abuDujana_db_v19', JSON.stringify(db));
+            localStorage.setItem('abuDujana_db_v20', JSON.stringify(db));
             updateSyncStatus(true, "متزامن سحابياً");
             return true;
           }
         }
         throw new Error();
       } catch (e) {
-        const saved = localStorage.getItem('abuDujana_db_v19');
+        const saved = localStorage.getItem('abuDujana_db_v20');
         if (saved) { db = JSON.parse(saved); updateSyncStatus(false, "وضع محلي"); return true; }
         initDefaults();
         updateSyncStatus(false, "فشل الاتصال");
@@ -452,8 +451,8 @@
     async function saveSystemDataToCloud() {
       updateSyncStatus(true, "جارِ الحفظ...");
       try {
-        db.version = (db.version || 9) + 1;
-        localStorage.setItem('abuDujana_db_v19', JSON.stringify(db));
+        db.version = (db.version || 10) + 1;
+        localStorage.setItem('abuDujana_db_v20', JSON.stringify(db));
         const putResponse = await fetch(API_URL, { method: "PUT", headers: { "Content-Type": "application/json", "X-Master-Key": API_KEY }, body: JSON.stringify(db), cache: "no-store" });
         if (!putResponse.ok) throw new Error();
         updateSyncStatus(true, "متزامن سحابياً");
@@ -479,9 +478,9 @@
     }
 
     function initDefaults() {
-      db = { version: 9, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
+      db = { version: 10, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
       db.classes.forEach(c => { db.students[c] = []; });
-      localStorage.setItem('abuDujana_db_v19', JSON.stringify(db));
+      localStorage.setItem('abuDujana_db_v20', JSON.stringify(db));
     }
 
     function checkExistingSession() {
@@ -782,7 +781,7 @@
     function populateReportClassSelect() {
       const sel = document.getElementById('reportClassFilter');
       if(!sel) return; const cur = sel.value;
-      sel.innerHTML = '<option value="all">جميع الصفوف (تاسع إلى آخر صف)</option>';
+      sel.innerHTML = '<option value="all">جميع الصفوف الدراسية</option>';
       db.classes.forEach(c => sel.innerHTML += `<option value="${c}">صف ${c}</option>`);
       sel.value = cur || 'all';
     }
@@ -878,7 +877,7 @@
       if (confirm('حذف هذا المعلم؟')) {
         db.teachers.splice(idx, 1);
         renderTeachersList();
-        localStorage.setItem('abuDujana_db_v19', JSON.stringify(db));
+        localStorage.setItem('abuDujana_db_v20', JSON.stringify(db));
         await saveSystemDataToCloud();
         renderTeachersList();
       }
@@ -943,7 +942,7 @@
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    // Reports Section: Horizontal layout (Periods 1 to 8 in a single row from right to left with class name on right)
+    // Reports Preview Display System (Horizontal 1 to 8 Layout)
     function renderReportsSection() {
       const classFilter = document.getElementById('reportClassFilter').value;
       const targetDate = document.getElementById('reportDatePicker').value;
@@ -955,18 +954,18 @@
 
       classesToDisplay.forEach(className => {
         let classBlock = document.createElement('div');
-        classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-300 dark:border-slate-700 overflow-hidden mb-6 p-4';
+        classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-300 dark:border-slate-700 overflow-hidden mb-6 p-4 min-w-[980px]';
         
         let blockHeader = document.createElement('div');
         blockHeader.className = 'pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center';
         blockHeader.innerHTML = `
-          <span class="font-extrabold text-sm text-slate-800 dark:text-white">الصف الدراسي: ${className}</span>
-          <span class="font-extrabold text-sm text-slate-800 dark:text-white">تاريخ الرصد: ${targetDate}</span>
+          <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف الدراسي: ${className}</span>
+          <span class="font-extrabold text-sm text-slate-700 dark:text-white">تاريخ الرصد: ${targetDate}</span>
         `;
         
-        // Horizontal Grid for 8 periods (Right to Left: Period 1 to Period 8)
+        // Strict 8-Column Horizontal Grid
         let blockBody = document.createElement('div');
-        blockBody.className = 'grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5';
+        blockBody.className = 'grid grid-cols-8 gap-2';
 
         let periodsHtml = '';
         for (let p = 1; p <= 8; p++) {
@@ -975,7 +974,7 @@
           let records = sessionData ? sessionData.records : {};
           let teacherName = sessionData ? sessionData.teacher : '(غير مسجل)';
 
-          // Filter and sort: Absent students first at the top
+          // Absent students positioned FIRST at top
           let issuesList = Object.entries(records).filter(([st, stVal]) => stVal !== 'present');
           issuesList.sort((a, b) => {
             if (a[1] === 'absent' && b[1] !== 'absent') return -1;
@@ -997,7 +996,6 @@
           } else {
             issuesList.forEach(([studentName, status]) => {
               if (status === 'absent') {
-                // Absent: black capsule with gold border
                 periodsHtml += `<div class="p-1 px-1.5 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[9.5px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
               } else {
                 let textClass = '';
@@ -1019,61 +1017,106 @@
       });
     }
 
-    // Export Horizontal PDF Report (Periods 1 to 8 laid horizontally per class)
-    function exportAttendancePDF() {
+    // 100% Strictly Horizontal PDF Export Engine
+    function printHorizontalReport() {
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
       let classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
 
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير غياب وتفريغ حصص أفقي - مدرسة أبو دجانة الأنصاري (${targetDate})</title><style>
-        @page { size: A4 landscape; margin: 8mm; }
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير تفريغ الحصص اليومي - مدرسة أبو دجانة الأنصاري (${targetDate})</title><style>
+        @page { size: A4 landscape; margin: 6mm; }
+        * { box-sizing: border-box; }
         body { font-family: 'Tajawal', sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 10px; }
-        h2 { text-align: center; margin-bottom: 8px; font-size: 13px; color: #065f46; }
+        h2 { text-align: center; margin-bottom: 10px; font-size: 14px; color: #065f46; font-weight: 800; }
         
-        .class-block { page-break-inside: avoid; border: 2px solid #222; border-radius: 10px; margin-bottom: 12px; overflow: hidden; background: #fff; }
-        .block-header { padding: 5px 10px; background-color: #f1f5f9; border-bottom: 2px solid #222; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 10.5px; }
-        
-        .block-body { padding: 6px; display: grid; grid-template-cols: repeat(8, 1fr); gap: 4px; }
-        
-        .period-box { border: 1px solid #444; border-radius: 6px; padding: 4px; background-color: #fff; display: flex; flex-direction: column; min-height: 110px; }
-        .period-header { text-align: center; margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1px solid #ddd; background: #fafafa; }
-        .period-title { font-weight: bold; color: #000; font-size: 9.5px; }
-        .period-teacher { color: #555; font-size: 8px; }
-        
-        .period-body { flex-grow: 1; }
-        .no-issues { text-align: center; color: #888; font-size: 8.5px; padding-top: 10px; }
-        
-        .absent-pill {
-          background-color: #000;
-          color: #fff;
-          border: 2px solid #fbbf24;
-          border-radius: 9999px;
-          padding: 2px 4px;
-          margin-bottom: 2px;
-          display: block;
-          text-align: center;
-          font-weight: bold;
-          font-size: 8.5px;
+        .class-row-card {
+          page-break-inside: avoid;
+          border: 2px solid #111;
+          border-radius: 8px;
+          margin-bottom: 12px;
+          overflow: hidden;
+          background: #fff;
+          width: 100%;
         }
         
-        .status-item { font-size: 8.5px; margin-bottom: 1.5px; font-weight: bold; }
-        .status-late-text { color: #1d4ed8; }
-        .status-escape-text { color: #b91c1c; }
-        .status-outside-text { color: #6d28d9; }
+        .class-header-bar {
+          padding: 6px 12px;
+          background-color: #f1f5f9;
+          border-bottom: 2px solid #111;
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          font-weight: bold;
+          font-size: 11px;
+        }
+        
+        /* Strict 8-column horizontal grid for Landscape PDF */
+        .periods-horizontal-grid {
+          display: grid;
+          grid-template-columns: repeat(8, 1fr);
+          gap: 4px;
+          padding: 6px;
+          width: 100%;
+        }
+        
+        .period-cell {
+          border: 1.5px solid #333;
+          border-radius: 6px;
+          padding: 4px;
+          background-color: #fff;
+          display: flex;
+          flex-direction: column;
+          min-height: 120px;
+        }
+        
+        .period-top {
+          text-align: center;
+          margin-bottom: 4px;
+          padding-bottom: 3px;
+          border-bottom: 1px solid #ccc;
+          background: #fafafa;
+        }
+        
+        .period-num { font-weight: 800; color: #000; font-size: 10px; }
+        .teacher-name { color: #444; font-size: 8.5px; font-weight: 600; }
+        
+        .period-content { flex-grow: 1; }
+        .no-records { text-align: center; color: #888; font-size: 8.5px; padding-top: 15px; }
+        
+        /* Absent Student Pill (Black background + Gold/Yellow border + Bold Text) */
+        .absent-pill-box {
+          background-color: #000 !important;
+          color: #fff !important;
+          border: 2px solid #f59e0b !important;
+          border-radius: 9999px;
+          padding: 3px 2px;
+          margin-bottom: 3px;
+          display: block;
+          text-align: center;
+          font-weight: 800;
+          font-size: 8.5px;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .other-status { font-size: 8.5px; margin-bottom: 2px; font-weight: 700; padding-right: 2px; }
+        .status-late { color: #2563eb; }
+        .status-escape { color: #dc2626; }
+        .status-outside { color: #7c3aed; }
       </style></head><body>`;
       
-      printHTML += `<h2>تقرير تفريغ الغياب والحصص (أفقي من الأولى للثامنة) - مدرسة أبو دجانة الأنصاري (${targetDate})</h2>`;
+      printHTML += `<h2>تقرير تفريغ الغياب والحصص أفقياً - مدرسة أبو دجانة الأنصاري (${targetDate})</h2>`;
 
       classesToPrint.forEach(className => {
-        printHTML += `<div class="class-block">`;
+        printHTML += `<div class="class-row-card">`;
         printHTML += `
-          <div class="block-header">
+          <div class="class-header-bar">
             <span>الصف الدراسي: ${className}</span>
             <span>تاريخ الرصد: ${targetDate}</span>
           </div>
         `;
         
-        printHTML += `<div class="block-body">`;
+        printHTML += `<div class="periods-horizontal-grid">`;
         
         for (let p = 1; p <= 8; p++) {
           let sessionKey = `${targetDate}_${className}_p${p}`;
@@ -1082,34 +1125,35 @@
           let records = sData ? sData.records : {};
           let issuesList = Object.entries(records).filter(([st, val]) => val !== 'present');
 
+          // Ensure ABSENT students appear AT THE TOP
           issuesList.sort((a, b) => {
             if (a[1] === 'absent' && b[1] !== 'absent') return -1;
             if (a[1] !== 'absent' && b[1] === 'absent') return 1;
             return 0;
           });
 
-          printHTML += `<div class="period-box">`;
+          printHTML += `<div class="period-cell">`;
           printHTML += `
-            <div class="period-header">
-              <div class="period-title">الحصة ${p}</div>
-              <div class="period-teacher">${teacher}</div>
+            <div class="period-top">
+              <div class="period-num">الحصة ${p}</div>
+              <div class="teacher-name">${teacher}</div>
             </div>
-            <div class="period-body">
+            <div class="period-content">
           `;
 
           if (issuesList.length === 0) {
-            printHTML += `<div class="no-issues">لا يوجد مخالفات</div>`;
+            printHTML += `<div class="no-records">لا يوجد مخالفات</div>`;
           } else {
             issuesList.forEach(([studentName, status]) => {
               if (status === 'absent') {
-                printHTML += `<div class="absent-pill">• ${studentName} (غائب)</div>`;
+                printHTML += `<div class="absent-pill-box">• ${studentName} (غائب)</div>`;
               } else {
                 let textCls = '';
                 let label = '';
-                if (status === 'escape') { textCls = 'status-escape-text'; label = 'متسرب'; }
-                else if (status === 'late') { textCls = 'status-late-text'; label = 'متأخر'; }
-                else if (status === 'outside') { textCls = 'status-outside-text'; label = 'خارج'; }
-                printHTML += `<div class="status-item ${textCls}">• ${studentName} (${label})</div>`;
+                if (status === 'escape') { textCls = 'status-escape'; label = 'متسرب'; }
+                else if (status === 'late') { textCls = 'status-late'; label = 'متأخر'; }
+                else if (status === 'outside') { textCls = 'status-outside'; label = 'خارج'; }
+                printHTML += `<div class="other-status ${textCls}">• ${studentName} (${label})</div>`;
               }
             });
           }
@@ -1123,10 +1167,11 @@
       const win = window.open('', '_blank');
       win.document.write(printHTML);
       win.document.close();
-      win.print();
+      win.focus();
+      setTimeout(() => { win.print(); }, 500);
     }
 
-    // Export Excel Report
+    // Export Excel Data
     function exportAttendanceExcel() {
       const targetDate = document.getElementById('reportDatePicker').value;
       let csv = "\uFEFFالصف,الحصة,المعلم,اسم الطالب,الحالة\n";
