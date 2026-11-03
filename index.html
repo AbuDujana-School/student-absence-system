@@ -420,7 +420,7 @@
       setCurrentDate();
       checkExistingSession();
       initDarkMode();
-      setInterval(backgroundSync, 15000);
+      // 🌟 تم حذف الـ setInterval نهائياً لعدم استهلاك الطلبات في الخلفية
     });
 
     function initDarkMode() {
@@ -505,44 +505,6 @@
         updateSyncStatus(false, "فشل الحفظ للسحاب");
         alert("فشل الحفظ في السحاب! تأكد من اتصالك بالإنترنت أو مفتاح JSONBin.");
         return false;
-      }
-    }
-
-    async function backgroundSync() {
-      const bulkInput = document.getElementById('bulkStudentsInput');
-      if (bulkInput && document.activeElement === bulkInput) {
-        return; 
-      }
-
-      try {
-        const response = await fetch(API_URL + "/latest", {
-          headers: { "X-Master-Key": API_KEY },
-          cache: "no-store"
-        });
-        if (response.ok) {
-          const resData = await response.json();
-          if (resData.record && resData.record.classes && resData.record.classes.length > 0) {
-            db = resData.record;
-            localStorage.setItem('abuDujana_db_v6', JSON.stringify(db));
-            updateSyncStatus(true, "متزامن سحابياً");
-            
-            if (activeTeacher && !selectedClass && document.getElementById('classesView') && !document.getElementById('classesView').classList.contains('hidden')) {
-              renderClassesGrid();
-            }
-            if (selectedClass) {
-              loadSessionAttendance();
-            }
-            const adminModal = document.getElementById('adminModal');
-            const adminContent = document.getElementById('adminContentSection');
-            if (adminModal && !adminModal.classList.contains('hidden') && adminContent && !adminContent.classList.contains('hidden')) {
-              populateAdminClassSelect();
-              loadAdminStudentsList();
-              renderTeachersList();
-            }
-          }
-        }
-      } catch(e) {
-        updateSyncStatus(false, "تعذر الاتصال بالسحاب");
       }
     }
 
