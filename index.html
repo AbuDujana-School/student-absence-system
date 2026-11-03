@@ -226,7 +226,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (Separated Stats and Reports) -->
+        <!-- Admin Tabs -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
           <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">الأشخاص</button>
           <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الطلاب</button>
@@ -331,7 +331,7 @@
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div>
               <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير وتفريغ الغياب الشامل (من التاسع لأخر صف)</h4>
-              <p class="text-xs text-emerald-200 mt-1">اختر الصف والتاريخ أو اليوم الكامل لتصدير تقارير الغياب والحصص (من الأولى للثامنة)</p>
+              <p class="text-xs text-emerald-200 mt-1">اختر الصف والتاريخ أو اليوم الكامل لتصدير تقارير الغياب والحصص (من الأولى للثامنة أفقياً)</p>
             </div>
             <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
@@ -351,15 +351,15 @@
           <!-- Export Buttons -->
           <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-5 rounded-3xl flex flex-wrap gap-3 items-center justify-between">
             <div class="text-xs font-bold text-emerald-900 dark:text-emerald-300">
-              <i class="fa-solid fa-print"></i> خيارات تصدير تفريغ الغياب (يوم كامل / تاريخ محدد):
+              <i class="fa-solid fa-print"></i> خيارات تصدير تفريغ الغياب (أفقي متكامل):
             </div>
             <div class="flex flex-wrap gap-2">
-              <button onclick="exportAttendancePDF()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-file-pdf"></i> تصدير PDF (الحصص 1-8)</button>
+              <button onclick="exportAttendancePDF()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-file-pdf"></i> تصدير PDF أفقي (الحصص 1-8)</button>
               <button onclick="exportAttendanceExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
             </div>
           </div>
 
-          <!-- Expandable Lists Container for All Classes & Periods (1-8) matching the reference image layout -->
+          <!-- Expandable Lists Container for All Classes & Periods (1-8 Horizontal) -->
           <div class="space-y-6" id="reportClassesContainer"></div>
         </div>
 
@@ -384,7 +384,7 @@
 
       </div>
     </div>
-  </div>
+  </main>
 
   <script>
     const BIN_ID = "6ae95cf6ac6210605a679163";
@@ -943,7 +943,7 @@
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    // Reports Section: Re-structured exactly like the reference image layout with absent students on top inside a pill
+    // Reports Section: Horizontal layout (Periods 1 to 8 in a single row from right to left with class name on right)
     function renderReportsSection() {
       const classFilter = document.getElementById('reportClassFilter').value;
       const targetDate = document.getElementById('reportDatePicker').value;
@@ -960,13 +960,13 @@
         let blockHeader = document.createElement('div');
         blockHeader.className = 'pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center';
         blockHeader.innerHTML = `
-          <span class="font-extrabold text-sm text-slate-800 dark:text-white">تاريخ الرصد: ${targetDate}</span>
           <span class="font-extrabold text-sm text-slate-800 dark:text-white">الصف الدراسي: ${className}</span>
+          <span class="font-extrabold text-sm text-slate-800 dark:text-white">تاريخ الرصد: ${targetDate}</span>
         `;
         
-        // Grid 8 periods from right to left (1 to 8)
+        // Horizontal Grid for 8 periods (Right to Left: Period 1 to Period 8)
         let blockBody = document.createElement('div');
-        blockBody.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3';
+        blockBody.className = 'grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5';
 
         let periodsHtml = '';
         for (let p = 1; p <= 8; p++) {
@@ -984,8 +984,8 @@
           });
 
           periodsHtml += `
-            <div class="border border-slate-300 dark:border-slate-700 rounded-xl p-2.5 bg-white dark:bg-slate-800 flex flex-col min-h-[160px]">
-              <div class="mb-2 pb-1.5 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/40 rounded-lg p-1">
+            <div class="border border-slate-300 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 flex flex-col min-h-[150px]">
+              <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/40 rounded-lg p-1">
                 <div class="text-[11px] font-extrabold text-slate-800 dark:text-emerald-300">الحصة ${p}</div>
                 <div class="text-[9px] text-slate-500 font-semibold truncate">(${teacherName})</div>
               </div>
@@ -993,19 +993,19 @@
           `;
 
           if (issuesList.length === 0) {
-            periodsHtml += `<div class="text-[10px] text-slate-400 py-4 text-center font-medium">لا يوجد مخالفات</div>`;
+            periodsHtml += `<div class="text-[10px] text-slate-400 py-3 text-center font-medium">لا يوجد مخالفات</div>`;
           } else {
             issuesList.forEach(([studentName, status]) => {
               if (status === 'absent') {
-                // Absent: black capsule with gold border matching image spec
-                periodsHtml += `<div class="p-1 px-2 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[10px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
+                // Absent: black capsule with gold border
+                periodsHtml += `<div class="p-1 px-1.5 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[9.5px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
               } else {
                 let textClass = '';
                 let statusLabel = '';
                 if (status === 'escape') { textClass = 'text-red-600 font-bold'; statusLabel = 'متسرب'; }
                 else if (status === 'late') { textClass = 'text-blue-600 font-bold'; statusLabel = 'متأخر'; }
                 else if (status === 'outside') { textClass = 'text-purple-600 font-bold'; statusLabel = 'خارج'; }
-                periodsHtml += `<div class="text-[10px] ${textClass} px-1">• ${studentName} (${statusLabel})</div>`;
+                periodsHtml += `<div class="text-[9.5px] ${textClass} px-1">• ${studentName} (${statusLabel})</div>`;
               }
             });
           }
@@ -1019,57 +1019,57 @@
       });
     }
 
-    // Export PDF Report matching the reference image layout precisely
+    // Export Horizontal PDF Report (Periods 1 to 8 laid horizontally per class)
     function exportAttendancePDF() {
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
       let classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
 
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير غياب وتفريغ حصص - مدرسة أبو دجانة الأنصاري (${targetDate})</title><style>
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير غياب وتفريغ حصص أفقي - مدرسة أبو دجانة الأنصاري (${targetDate})</title><style>
         @page { size: A4 landscape; margin: 8mm; }
         body { font-family: 'Tajawal', sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 10px; }
-        h2 { text-align: center; margin-bottom: 8px; font-size: 14px; color: #065f46; }
+        h2 { text-align: center; margin-bottom: 8px; font-size: 13px; color: #065f46; }
         
-        .class-block { page-break-after: always; border: 2px solid #333; border-radius: 12px; margin-bottom: 15px; overflow: hidden; background: #fff; }
-        .block-header { padding: 6px 12px; background-color: #f8fafc; border-bottom: 2px solid #333; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 11px; }
+        .class-block { page-break-inside: avoid; border: 2px solid #222; border-radius: 10px; margin-bottom: 12px; overflow: hidden; background: #fff; }
+        .block-header { padding: 5px 10px; background-color: #f1f5f9; border-bottom: 2px solid #222; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 10.5px; }
         
-        .block-body { padding: 8px; display: grid; grid-template-cols: repeat(8, 1fr); gap: 6px; }
+        .block-body { padding: 6px; display: grid; grid-template-cols: repeat(8, 1fr); gap: 4px; }
         
-        .period-box { border: 1.5px solid #444; border-radius: 8px; padding: 5px; background-color: #fff; display: flex; flex-direction: column; min-height: 140px; }
-        .period-header { text-align: center; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #ddd; background: #fdfdfd; }
-        .period-title { font-weight: bold; color: #000; font-size: 10px; }
-        .period-teacher { color: #555; font-size: 8.5px; }
+        .period-box { border: 1px solid #444; border-radius: 6px; padding: 4px; background-color: #fff; display: flex; flex-direction: column; min-height: 110px; }
+        .period-header { text-align: center; margin-bottom: 3px; padding-bottom: 2px; border-bottom: 1px solid #ddd; background: #fafafa; }
+        .period-title { font-weight: bold; color: #000; font-size: 9.5px; }
+        .period-teacher { color: #555; font-size: 8px; }
         
         .period-body { flex-grow: 1; }
-        .no-issues { text-align: center; color: #888; font-size: 9px; padding-top: 15px; }
+        .no-issues { text-align: center; color: #888; font-size: 8.5px; padding-top: 10px; }
         
         .absent-pill {
           background-color: #000;
           color: #fff;
           border: 2px solid #fbbf24;
           border-radius: 9999px;
-          padding: 3px 5px;
-          margin-bottom: 3px;
+          padding: 2px 4px;
+          margin-bottom: 2px;
           display: block;
           text-align: center;
           font-weight: bold;
-          font-size: 9px;
+          font-size: 8.5px;
         }
         
-        .status-item { font-size: 9px; margin-bottom: 2px; font-weight: bold; }
+        .status-item { font-size: 8.5px; margin-bottom: 1.5px; font-weight: bold; }
         .status-late-text { color: #1d4ed8; }
         .status-escape-text { color: #b91c1c; }
         .status-outside-text { color: #6d28d9; }
       </style></head><body>`;
       
-      printHTML += `<h2>تقرير تفريغ الغياب والحصص (من الأولى للثامنة) - مدرسة أبو دجانة الأنصاري</h2>`;
+      printHTML += `<h2>تقرير تفريغ الغياب والحصص (أفقي من الأولى للثامنة) - مدرسة أبو دجانة الأنصاري (${targetDate})</h2>`;
 
       classesToPrint.forEach(className => {
         printHTML += `<div class="class-block">`;
         printHTML += `
           <div class="block-header">
-            <span>تاريخ الرصد: ${targetDate}</span>
             <span>الصف الدراسي: ${className}</span>
+            <span>تاريخ الرصد: ${targetDate}</span>
           </div>
         `;
         
@@ -1147,7 +1147,7 @@
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = `تفريغ_الغياب_${targetDate}.csv`;
+      a.download = `تفريغ_الغياب_أفقي_${targetDate}.csv`;
       a.click();
     }
 
