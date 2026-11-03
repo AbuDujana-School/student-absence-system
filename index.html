@@ -241,13 +241,12 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs -->
+        <!-- Admin Tabs (Without Teacher Stats) -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إحصائيات الطلاب</button>
           <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأشخاص</button>
           <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الطلاب</button>
           <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المعلمين</button>
-          <button onclick="switchAdminTab('tstats')" id="tab-tstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">إحصائيات المعلمين</button>
           <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التنبيهات</button>
           <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التقارير والطباعة</button>
           <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المزامنة</button>
@@ -305,7 +304,7 @@
             <!-- Box 2: Escape / Truancy -->
             <div onclick="openStatusListModal('escape')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-red-500 transition cursor-pointer flex items-center justify-between group">
               <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">التسرب أو الشرود</span>
+                <span class="text-xs font-bold text-slate-400 block mb-1">التسرب</span>
                 <h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3>
                 <span class="text-[10px] text-slate-500 mt-1 block">حالات التسرب المسجلة</span>
               </div>
@@ -380,7 +379,7 @@
             <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
           </div>
 
-          <!-- Section: Teacher Statistics ("إحصائيات المعلمين") -->
+          <!-- Section: Teacher Activity Statistics ("إحصائيات المعلمين ونشاط الرصد") -->
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
             <div class="border-b pb-3 dark:border-slate-700">
               <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
@@ -403,7 +402,6 @@
             <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_students" class="accent-emerald-600"> إدارة الطلاب والصفوف</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_teachers" class="accent-emerald-600"> إدارة المعلمين</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_tstats" class="accent-emerald-600"> إحصائيات المعلمين</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600" checked> إحصائيات الطلاب</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_alerts" class="accent-emerald-600"> التنبيهات الذكية</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_reports" class="accent-emerald-600" checked> التقارير والطباعة</label>
@@ -452,15 +450,7 @@
           <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
         </div>
 
-        <!-- Tab 4: Teacher Stats -->
-        <div id="sec-tstats" class="hidden space-y-4">
-          <div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border border-emerald-200 dark:border-emerald-800">
-            <h5 class="font-bold text-emerald-900 dark:text-emerald-300 text-sm"><i class="fa-solid fa-chart-line"></i> إحصائيات المعلمين ونشاطهم في رصد الحصص</h5>
-          </div>
-          <div id="teacherStatsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800"></div>
-        </div>
-
-        <!-- Tab 5: Alerts -->
+        <!-- Tab 4: Alerts -->
         <div id="sec-alerts" class="hidden space-y-4">
           <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">فحص سجلات الطلاب الآن</button>
           <div id="smartAlertsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 p-3">
@@ -468,7 +458,7 @@
           </div>
         </div>
 
-        <!-- Tab 6: Reports & Printing Section -->
+        <!-- Tab 5: Reports & Printing Section -->
         <div id="sec-reports" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div>
@@ -505,7 +495,7 @@
           <div class="space-y-6 overflow-x-auto" id="reportClassesContainer"></div>
         </div>
 
-        <!-- Tab 7: Sync -->
+        <!-- Tab 6: Sync -->
         <div id="sec-sync" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-slate-800 dark:text-white text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> المزامنة السحابية</h5>
@@ -513,7 +503,7 @@
           </div>
         </div>
 
-        <!-- Tab 8: Security -->
+        <!-- Tab 7: Security -->
         <div id="sec-security" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> تغيير رمز مدير النظام العام</h5>
@@ -537,10 +527,25 @@
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
     }
 
+    // Helper function to robustly parse attendance keys: format ${date}_${className}_p${period}
+    function parseAttendanceKey(key) {
+      if (!key) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
+      const lastUnderscore = key.lastIndexOf('_');
+      if (lastUnderscore === -1) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
+      const periodPart = key.substring(lastUnderscore + 1);
+      const period = parseInt(periodPart.replace('p', '')) || 1;
+      const prefix = key.substring(0, lastUnderscore);
+      const firstUnderscore = prefix.indexOf('_');
+      if (firstUnderscore === -1) return { date: prefix, className: 'غير محدد', period };
+      const date = prefix.substring(0, firstUnderscore);
+      const className = prefix.substring(firstUnderscore + 1);
+      return { date, className, period };
+    }
+
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DEFAULT_TEACHERS = [{ name: "أ. سالم الوهيبي", pin: "1111" }, { name: "أ. محمد العبري", pin: "2222" }, { name: "أ. سعيد المقبالي", pin: "3333" }];
 
-    let db = { version: 11, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
+    let db = { version: 13, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 
     window.addEventListener('DOMContentLoaded', async () => {
@@ -622,7 +627,7 @@
     }
 
     function initDefaults() {
-      db = { version: 11, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
+      db = { version: 13, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
       db.classes.forEach(c => { db.students[c] = []; });
       localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
     }
@@ -646,7 +651,7 @@
       const adminDecoded = db.adminPin?.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin || "MTIzNA==");
 
       if (pin === adminDecoded || encodedPin === db.adminPin) {
-        activeUser = { name: "مدير النظام العام", pin: adminDecoded, type: 'admin', permissions: { students: true, teachers: true, tstats: true, studstats: true, alerts: true, reports: true } };
+        activeUser = { name: "مدير النظام العام", pin: adminDecoded, type: 'admin', permissions: { students: true, teachers: true, studstats: true, alerts: true, reports: true } };
       } else {
         const customUser = db.customUsers.find(u => u.pin === pin);
         if (customUser) {
@@ -847,7 +852,7 @@
 
     function setupRolePermissions() {
       const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
-      const tabsConfig = [{ id: 'studstats' }, { id: 'users' }, { id: 'students' }, { id: 'teachers' }, { id: 'tstats' }, { id: 'alerts' }, { id: 'reports' }, { id: 'sync' }, { id: 'security' }];
+      const tabsConfig = [{ id: 'studstats' }, { id: 'users' }, { id: 'students' }, { id: 'teachers' }, { id: 'alerts' }, { id: 'reports' }, { id: 'sync' }, { id: 'security' }];
 
       if (activeUser?.type === 'admin') {
         text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
@@ -858,7 +863,7 @@
         text.textContent = `صلاحية الدخول: ${activeUser.name}`;
         badge.textContent = "مستخدم مخصص"; badge.className = "bg-blue-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]";
         const perms = activeUser.permissions || {};
-        const tabMap = { studstats: perms.studstats, users: false, students: perms.students, teachers: perms.teachers, tstats: perms.tstats, alerts: perms.alerts, reports: perms.reports, sync: false, security: false };
+        const tabMap = { studstats: perms.studstats, users: false, students: perms.students, teachers: perms.teachers, alerts: perms.alerts, reports: perms.reports, sync: false, security: false };
         tabsConfig.forEach(t => document.getElementById(`tab-${t.id}`).style.display = tabMap[t.id] ? 'block' : 'none');
         switchAdminTab(perms.studstats ? 'studstats' : 'teachers');
       }
@@ -866,7 +871,7 @@
     }
 
     function switchAdminTab(tab) {
-      ['studstats', 'users', 'students', 'teachers', 'tstats', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
+      ['studstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
         document.getElementById(`sec-${t}`)?.classList.add('hidden');
         document.getElementById(`tab-${t}`).className = 'admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer';
       });
@@ -876,7 +881,6 @@
       if(tab === 'studstats') renderStudentStatsDashboard();
       if(tab === 'users') renderCustomUsersList();
       if(tab === 'teachers') renderTeachersList();
-      if(tab === 'tstats') renderTeacherStats();
       if(tab === 'alerts') generateSmartAlerts();
       if(tab === 'reports') renderReportsSection();
     }
@@ -886,7 +890,7 @@
     }
 
     // =========================================================================
-    // UPGRADED STUDENT STATS DASHBOARD LOGIC (Points 1 to 7)
+    // UPGRADED STUDENT STATS DASHBOARD LOGIC
     // =========================================================================
     function getFilteredAttendanceRecords() {
       const periodType = document.getElementById('statsPeriodFilter').value;
@@ -901,9 +905,11 @@
 
       let filteredSessions = [];
       Object.entries(db.attendance).forEach(([key, session]) => {
-        // key format: ${date}_${className}_p${period}
-        const parts = key.split('_');
-        const sessDateStr = parts[0];
+        const parsed = parseAttendanceKey(key);
+        const sessDateStr = session.date || parsed.date;
+        const sessClassName = session.className || parsed.className;
+        const sessPeriod = session.period || parsed.period;
+        const sessTeacher = session.teacher || 'معلم';
         const sessDate = new Date(sessDateStr);
 
         let include = false;
@@ -920,7 +926,7 @@
         } else if (periodType === 'month') {
           include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
         } else if (periodType === 'semester') {
-          include = true; // All records in db
+          include = true;
         } else if (periodType === 'custom') {
           const start = document.getElementById('statsStartDate').value;
           const end = document.getElementById('statsEndDate').value;
@@ -928,7 +934,7 @@
         }
 
         if (include && session && session.records) {
-          filteredSessions.push({ key, date: sessDateStr, className: session.className, period: session.period, teacher: session.teacher, records: session.records });
+          filteredSessions.push({ key, date: sessDateStr, className: sessClassName, period: sessPeriod, teacher: sessTeacher, records: session.records });
         }
       });
       return filteredSessions;
@@ -937,10 +943,9 @@
     function renderStudentStatsDashboard() {
       const sessions = getFilteredAttendanceRecords();
       
-      // 1. Tally totals for 4 boxes
       let counts = { absent: 0, escape: 0, late: 0, outside: 0 };
-      let studentViolations = {}; // key: `${className}::${studentName}` -> { name, className, absent: 0, escape: 0, late: 0, outside: 0, total: 0, history: [] }
-      let classStats = {}; // className -> { absent, escape, late, outside, total }
+      let studentViolations = {}; 
+      let classStats = {}; 
 
       db.classes.forEach(c => {
         classStats[c] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
@@ -967,13 +972,11 @@
         });
       });
 
-      // Update 4 Cards
       document.getElementById('cardCountAbsent').textContent = counts.absent;
       document.getElementById('cardCountEscape').textContent = counts.escape;
       document.getElementById('cardCountLate').textContent = counts.late;
       document.getElementById('cardCountOutside').textContent = counts.outside;
 
-      // 3. Needs Attention Section (Threshold: >= 2 violations in period)
       const threshold = 2;
       const needsAttentionList = Object.values(studentViolations).filter(s => s.total >= threshold).sort((a,b) => b.total - a.total);
       document.getElementById('needsAttentionCountBadge').textContent = `${needsAttentionList.length} طلاب`;
@@ -1002,7 +1005,6 @@
         attContainer.innerHTML = html + `</tbody></table>`;
       }
 
-      // 4. Class Statistics Table
       const sortOrder = document.getElementById('classSortOrder').value;
       let classEntries = Object.entries(classStats);
       if (sortOrder === 'violationsDesc') {
@@ -1027,18 +1029,13 @@
       });
       classTableContainer.innerHTML = classHtml + `</tbody></table>`;
 
-      // 6. Class Registration Tracking ("متابعة تسجيل الحصص")
       renderSessionRegistrationStats(sessions);
-
-      // 7. Teacher Activity Stats ("إحصائيات المعلمين")
       renderTeacherActivityStats();
     }
 
-    // Interactive Box Click -> Show List of Students for Status
     function openStatusListModal(statusKey) {
       const sessions = getFilteredAttendanceRecords();
-      const statusLabels = { absent: 'الغياب', escape: 'التسرب أو الشرود', late: 'التأخير', outside: 'الخروج من الصف' };
-      const statusColors = { absent: 'bg-black text-white border-amber-400', escape: 'bg-red-600 text-white', late: 'bg-orange-500 text-white', outside: 'bg-purple-600 text-white' };
+      const statusLabels = { absent: 'الغياب', escape: 'التسرب', late: 'التأخير', outside: 'الخروج من الصف' };
 
       let list = [];
       sessions.forEach(sess => {
@@ -1070,7 +1067,6 @@
       document.getElementById('generalModal').classList.remove('hidden');
     }
 
-    // Class Detail Modal when clicking class name
     function openClassDetailModal(className) {
       const sessions = getFilteredAttendanceRecords().filter(s => s.className === className);
       let list = [];
@@ -1109,27 +1105,58 @@
       document.getElementById('generalModal').classList.add('hidden');
     }
 
-    // 5. Student Detailed Profile Modal
     function openStudentProfileModal(className, studentName) {
-      document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب: ${studentName}`;
-      document.getElementById('modalStudentSubtitle').textContent = `الصف الدراسي: ${className}`;
+      let realClassName = className;
+      if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
+        for (const [cName, sList] of Object.entries(db.students || {})) {
+          if (Array.isArray(sList) && sList.includes(studentName)) {
+            realClassName = cName;
+            break;
+          }
+        }
+      }
+      if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
+        for (const [key, session] of Object.entries(db.attendance || {})) {
+          const parsed = parseAttendanceKey(key);
+          const sessClass = session.className || parsed.className;
+          if (session && session.records && session.records[studentName]) {
+            realClassName = sessClass;
+            break;
+          }
+        }
+      }
+      if (!realClassName || realClassName === 'undefined') {
+        realClassName = 'غير محدد';
+      }
 
-      // Aggregate all history for student across all attendance records
+      document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب: ${studentName}`;
+      document.getElementById('modalStudentSubtitle').textContent = `الصف الدراسي: ${realClassName}`;
+
       let counts = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
       let historyLogs = [];
 
-      Object.entries(db.attendance).forEach(([key, session]) => {
-        if (session && session.records && session.className === className) {
+      Object.entries(db.attendance || {}).forEach(([key, session]) => {
+        const parsed = parseAttendanceKey(key);
+        const sessClassName = session.className || parsed.className;
+        const sessDate = session.date || parsed.date;
+        const sessPeriod = session.period || parsed.period;
+
+        if (session && session.records && session.records[studentName]) {
           const status = session.records[studentName];
           if (status && status !== 'present') {
             counts[status] = (counts[status] || 0) + 1;
             counts.total++;
-            historyLogs.push({ date: key.split('_')[0], period: session.period, status, teacher: session.teacher });
+            historyLogs.push({ 
+              date: sessDate, 
+              period: sessPeriod, 
+              status: status, 
+              teacher: session.teacher || 'معلم',
+              className: sessClassName
+            });
           }
         }
       });
 
-      // Sort newest to oldest
       historyLogs.sort((a,b) => new Date(b.date) - new Date(a.date));
 
       let bodyHTML = `
@@ -1148,13 +1175,13 @@
         bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات مسجلة لهذا الطالب حتى الآن.</div>`;
       } else {
         historyLogs.forEach(log => {
-          let stLabel = log.status === 'absent' ? 'غياب كامل/حصة' : (log.status === 'escape' ? 'تسرب' : (log.status === 'late' ? 'تأخير' : 'خارج الصف'));
-          let badgeBg = log.status === 'absent' ? 'bg-black text-white border border-amber-400' : 'bg-red-100 text-red-700';
+          let stLabel = log.status === 'absent' ? 'غياب كامل/حصة' : (log.status === 'escape' ? 'متسرب' : (log.status === 'late' ? 'متأخر' : 'خارج الصف'));
+          let badgeBg = log.status === 'absent' ? 'bg-black text-white border border-amber-400' : (log.status === 'escape' ? 'bg-red-100 text-red-700' : (log.status === 'late' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'));
           bodyHTML += `
             <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-2">
               <div>
                 <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeBg}">${stLabel}</span>
-                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">الحصة ${log.period} | المعلم: ${log.teacher}</div>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">الحصة ${log.period} | صف ${log.className} | المعلم: ${log.teacher}</div>
               </div>
               <div class="text-left font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">${log.date}</div>
             </div>
@@ -1171,12 +1198,10 @@
       document.getElementById('studentDetailModal').classList.add('hidden');
     }
 
-    // 6. Session Registration Tracking ("متابعة تسجيل الحصص")
     function renderSessionRegistrationStats(sessions) {
       const container = document.getElementById('sessionRegistrationStatsContainer');
       const todayStr = getOmanLocalDate();
       
-      // Expected total sessions for today across all classes (classes * 8 periods)
       const totalClassesCount = db.classes.length;
       const totalExpected = totalClassesCount * 8;
       
@@ -1218,7 +1243,7 @@
             <span class="text-emerald-600">✔ مسجلة: ${recordedTodayCount}</span>
             <span class="text-red-600">✖ غير مسجلة: ${unrecordedToday}</span>
           </div>
-          <p class="text-[11px] text-slate-500 mt-1">ملاحظة: الحصص غير المسجلة لا تُحفتض تلقائياً كـ (حضور كامل) حتى يقوم المعلم باعتماد الرصد.</p>
+          <p class="text-[11px] text-slate-500 mt-1">ملاحظة: الحصص غير المسجلة لا تُحسب تلقائياً كـ (حضور كامل) حتى يقوم المعلم باعتماد الرصد.</p>
         </div>
 
         <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
@@ -1231,7 +1256,6 @@
       `;
     }
 
-    // 7. Teacher Statistics ("إحصائيات المعلمين")
     function renderTeacherActivityStats() {
       const container = document.getElementById('teacherActivityStatsContainer');
       let teacherStatsMap = {};
@@ -1267,7 +1291,6 @@
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    // 8. Daily Admin Report Modal & Export
     function openDailyAdminReportModal() {
       const todayStr = getOmanLocalDate();
       const sessions = getFilteredAttendanceRecords();
@@ -1318,7 +1341,6 @@
       setTimeout(() => win.print(), 500);
     }
 
-    // Reports Section: Horizontal layout (Periods 1 to 8 in a single row from right to left with class name on right)
     function renderReportsSection() {
       const classFilter = document.getElementById('reportClassFilter').value;
       const targetDate = document.getElementById('reportDatePicker').value;
@@ -1491,7 +1513,6 @@
       a.click();
     }
 
-    // Standard Admin / Utils
     function populateAdminClassSelect() {
       const sel = document.getElementById('adminClassSelect');
       if(!sel) return; sel.innerHTML = '';
@@ -1593,26 +1614,18 @@
         renderTeachersList();
       }
     }
-    function renderTeacherStats() {
-      const container = document.getElementById('teacherStatsContainer');
-      let counts = {}; db.teachers.forEach(t => counts[t.name] = 0); counts['أخرى'] = 0;
-      Object.values(db.attendance).forEach(s => { const name = s.teacher || 'أخرى'; counts[name] = (counts[name] || 0) + 1; });
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">المعلم</th><th class="p-3 text-center">الحصص المسجلة</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y">`;
-      Object.entries(counts).forEach(([name, count]) => {
-        html += `<tr><td class="p-3 font-bold">${name}</td><td class="p-3 text-center font-extrabold">${count} حصة</td><td class="p-3 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${count > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${count > 0 ? 'نشط' : 'غير مسجل'}</span></td></tr>`;
-      });
-      container.innerHTML = html + `</tbody></table>`;
-    }
     function generateSmartAlerts() {
       const container = document.getElementById('smartAlertsContainer'); let issues = {};
-      Object.values(db.attendance).forEach(session => {
-        if (session?.records && session.className) {
+      Object.entries(db.attendance).forEach(([key, session]) => {
+        const parsed = parseAttendanceKey(key);
+        const sClass = session?.className || parsed.className;
+        if (session?.records && sClass) {
           Object.entries(session.records).forEach(([student, status]) => {
             if (status !== 'present') {
-              const key = `${session.className}::${student}`;
-              if (!issues[key]) issues[key] = { studentName: student, className: session.className, absent: 0, late: 0, escape: 0, outside: 0, total: 0 };
-              if(issues[key][status] !== undefined) issues[key][status]++;
-              issues[key].total++;
+              const k = `${sClass}::${student}`;
+              if (!issues[k]) issues[k] = { studentName: student, className: sClass, absent: 0, late: 0, escape: 0, outside: 0, total: 0 };
+              if(issues[k][status] !== undefined) issues[k][status]++;
+              issues[k].total++;
             }
           });
         }
@@ -1628,7 +1641,7 @@
     async function addCustomUser() {
       const name = document.getElementById('newCustomUserName').value.trim(), pin = document.getElementById('newCustomUserPin').value.trim();
       if (!name || !pin) { alert('أدخل الاسم والرمز.'); return; }
-      const permissions = { students: document.getElementById('perm_students').checked, teachers: document.getElementById('perm_teachers').checked, tstats: document.getElementById('perm_tstats').checked, studstats: document.getElementById('perm_studstats').checked, alerts: document.getElementById('perm_alerts').checked, reports: document.getElementById('perm_reports').checked };
+      const permissions = { students: document.getElementById('perm_students').checked, teachers: document.getElementById('perm_teachers').checked, studstats: document.getElementById('perm_studstats').checked, alerts: document.getElementById('perm_alerts').checked, reports: document.getElementById('perm_reports').checked };
       if (!db.customUsers) db.customUsers = [];
       db.customUsers.push({ name, pin, permissions });
       const success = await saveSystemDataToCloud();
