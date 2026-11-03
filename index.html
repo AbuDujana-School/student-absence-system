@@ -81,17 +81,19 @@
           </div>
           <div>
             <span class="text-slate-400 text-xs block">مرحباً بك:</span>
-            <span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
-            <span id="activeUserRoleBadge" class="ms-2 text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold"></span>
+            <div class="flex items-center gap-2 flex-wrap">
+              <span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
+              <span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold"></span>
+              
+              <!-- رابط صغير جداً لتغيير الرمز السري للمعلم (بدون أخذ حيز) -->
+              <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+                <i class="fa-solid fa-key text-[10px]"></i> تغيير الرمز
+              </button>
+            </div>
           </div>
         </div>
         
         <div class="flex flex-wrap items-center gap-2">
-          <!-- زر تغيير الرمز السري الخاص بالمعلم -->
-          <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-4 py-3 rounded-2xl font-bold transition flex items-center gap-2 cursor-pointer">
-            <i class="fa-solid fa-key"></i> تغيير الرمز السري
-          </button>
-          
           <button id="openControlPanelFromDashboardBtn" onclick="openAdminModalFromDashboard()" class="hidden text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl transition font-bold flex items-center gap-2 shadow cursor-pointer">
             <i class="fa-solid fa-sliders"></i> لوحة التحكم
           </button>
@@ -185,7 +187,7 @@
         <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
           <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
         </h3>
-        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="space-y-3">
         <div>
@@ -196,7 +198,7 @@
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الجديد:</label>
           <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
         </div>
-        <div id="changePinError" class="text-red-500 text-xs font-bold hidden">الرمز الحالي غير صحيح!</div>
+        <div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 p-2.5 rounded-xl border border-red-200"></div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer">إلغاء</button>
@@ -221,9 +223,7 @@
       </div>
       <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody"></div>
       <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
-        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">
-          إغلاق النافذة
-        </button>
+        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">إغلاق النافذة</button>
       </div>
     </div>
   </div>
@@ -474,54 +474,6 @@
     </div>
   </main>
 
-  <!-- Modal: Teacher Change PIN -->
-  <div id="changePinModal" class="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
-      <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
-        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-          <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
-        </h3>
-        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
-      </div>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الحالي:</label>
-          <input type="password" id="currentPinCheck" placeholder="أدخل رمزك الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز السري الجديد:</label>
-          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
-        </div>
-        <div id="changePinError" class="text-red-500 text-xs font-bold hidden">الرمز الحالي غير صحيح!</div>
-      </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer">إلغاء</button>
-        <button onclick="submitNewTeacherPin()" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow cursor-pointer">حفظ الرمز الجديد</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Student Detailed Drill-Down Modal -->
-  <div id="studentDetailModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
-      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
-        <div>
-          <h3 id="modalStudentTitle" class="font-extrabold text-base flex items-center gap-2">
-            <i class="fa-solid fa-user-clock text-emerald-400"></i> سجل المخالفات التفصيلي للطالب
-          </h3>
-          <p id="modalStudentSubtitle" class="text-xs text-emerald-200 mt-0.5"></p>
-        </div>
-        <button onclick="closeStudentDetailModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody"></div>
-      <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
-        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">إغلاق النافذة</button>
-      </div>
-    </div>
-  </div>
-
   <script>
     const BIN_ID = "6ae95cf6ac6210605a679163";
     const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
@@ -547,7 +499,7 @@
     ];
 
     let db = {
-      version: 3,
+      version: 4,
       adminPin: btoa("1234"),
       customUsers: [],
       teachers: [],
@@ -602,16 +554,16 @@
           const resData = await response.json();
           if (resData.record && resData.record.classes && resData.record.classes.length > 0) {
             db = resData.record;
-            if(!db.version) db.version = 3;
+            if(!db.version) db.version = 4;
             if(!db.customUsers) db.customUsers = [];
-            localStorage.setItem('abuDujana_db_v13', JSON.stringify(db));
+            localStorage.setItem('abuDujana_db_v14', JSON.stringify(db));
             updateSyncStatus(true, "متزامن سحابياً");
             return true;
           }
         }
         throw new Error("استجابة غير صالحة");
       } catch (e) {
-        const saved = localStorage.getItem('abuDujana_db_v13');
+        const saved = localStorage.getItem('abuDujana_db_v14');
         if (saved) {
           try {
             db = JSON.parse(saved);
@@ -640,7 +592,7 @@
           const cloudData = await getResponse.json();
           if (cloudData && cloudData.record) {
             const remoteRecord = cloudData.record;
-            db.version = Math.max(db.version || 3, (remoteRecord.version || 3)) + 1;
+            db.version = Math.max(db.version || 4, (remoteRecord.version || 4)) + 1;
 
             const remoteAttendance = remoteRecord.attendance || {};
             const mergedAttendance = { ...remoteAttendance };
@@ -658,18 +610,21 @@
             db.attendance = mergedAttendance;
 
             if (remoteRecord.classes) db.classes = [...new Set([...db.classes, ...remoteRecord.classes])];
+            
+            // دمج المعلمين بذكاء للحفاظ على الرموز المحدثة محلياً
             if (remoteRecord.teachers) {
               const teacherMap = new Map();
-              db.teachers.forEach(t => teacherMap.set(t.name, t));
               remoteRecord.teachers.forEach(t => teacherMap.set(t.name, t));
+              db.teachers.forEach(t => teacherMap.set(t.name, t)); // الأحدث محلياً له الأولوية
               db.teachers = Array.from(teacherMap.values());
             }
+
             if (remoteRecord.customUsers) db.customUsers = remoteRecord.customUsers;
             if (remoteRecord.students) db.students = { ...remoteRecord.students, ...db.students };
           }
         }
 
-        localStorage.setItem('abuDujana_db_v13', JSON.stringify(db));
+        localStorage.setItem('abuDujana_db_v14', JSON.stringify(db));
 
         const putResponse = await fetch(API_URL, {
           method: "PUT",
@@ -713,7 +668,7 @@
     }
 
     function initDefaults() {
-      db.version = 3;
+      db.version = 4;
       db.adminPin = btoa("1234");
       db.customUsers = [];
       db.classes = [...DEFAULT_CLASSES];
@@ -721,7 +676,7 @@
       db.students = {};
       db.classes.forEach(c => { db.students[c] = []; });
       db.attendance = {};
-      localStorage.setItem('abuDujana_db_v13', JSON.stringify(db));
+      localStorage.setItem('abuDujana_db_v14', JSON.stringify(db));
       updateSyncStatus(false, "وضع افتراضي محلي");
     }
 
@@ -828,7 +783,7 @@
       document.getElementById('changeTeacherPinBtn').classList.add('hidden');
     }
 
-    // دوال تغيير الرمز السري للمعلم
+    // دوال تغيير الرمز السري للمعلم مع الفحص الشامل لعدم التكرار
     function openChangePinModal() {
       document.getElementById('currentPinCheck').value = '';
       document.getElementById('newPinInput').value = '';
@@ -857,12 +812,30 @@
         return;
       }
 
-      // البحث عن المعلم وتحديث رقمه السري
+      // فحص ما إذا كان الرقم مستخدماً من قبل معلم آخر، أو مدير، أو مستخدم مخصص
+      const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
+      if (newPin === adminDecoded) {
+        errorEl.textContent = 'الرمز الجديد مستخدم من قبل مدير النظام، يرجى اختيار رمز آخر.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const isTeacherTaken = db.teachers.some(t => t.pin === newPin && t.name !== activeUser.name);
+      const isCustomTaken = db.customUsers.some(u => u.pin === newPin);
+
+      if (isTeacherTaken || isCustomTaken) {
+        errorEl.textContent = 'الرمز السري مستخدم مسبقاً من قبل مستخدم أو معلم آخر، استعمل رقماً آخر.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      // تحديث المعلم محلياً
       const teacherObj = db.teachers.find(t => t.name === activeUser.name);
       if (teacherObj) {
         teacherObj.pin = newPin;
       } else {
-        alert('حدث خطأ في مطابقة حساب المعلم.');
+        errorEl.textContent = 'حدث خطأ في مطابقة حساب المعلم.';
+        errorEl.classList.remove('hidden');
         return;
       }
 
@@ -871,7 +844,7 @@
 
       const success = await saveSystemDataToCloud();
       closeChangePinModal();
-      alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم تغيير الرمز محلياً.');
+      alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم تغيير الرمز محلياً وتتعذر المزامنة السحابية مؤقتاً.');
     }
 
     function renderClassesGrid() {
@@ -1149,7 +1122,6 @@
           'security': false
         };
 
-        let firstAvailableTab = 'advanced-stats';
         tabsConfig.forEach(t => {
           const btn = document.getElementById(`tab-${t.id}`);
           const isAllowed = tabMap[t.id];
@@ -1400,23 +1372,39 @@
       const name = document.getElementById('newTeacherName').value.trim();
       const pin = document.getElementById('newTeacherPin').value.trim();
 
-      if (name && pin) {
-        db.teachers.push({ name, pin });
-        const success = await saveSystemDataToCloud();
-        renderTeachersList();
-        document.getElementById('newTeacherName').value = '';
-        document.getElementById('newTeacherPin').value = '';
-        alert(success ? 'تم حفظ المعلم الجديد سحابياً بنجاح!' : 'تم الحفظ محلياً.');
-      } else {
+      if (!name || !pin) {
         alert('يرجى التأكد من إدخال اسم المعلم والرمز السري.');
+        return;
       }
+
+      // فحص عدم تكرار الرقم السري عند الإضافة من لوحة التحكم
+      const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
+      if (pin === adminDecoded || db.teachers.some(t => t.pin === pin) || db.customUsers.some(u => u.pin === pin)) {
+        alert('الرمز السري مستخدم مسبقاً، يرجى اختيار رمز مختلف.');
+        return;
+      }
+
+      db.teachers.push({ name, pin });
+      const success = await saveSystemDataToCloud();
+      renderTeachersList();
+      document.getElementById('newTeacherName').value = '';
+      document.getElementById('newTeacherPin').value = '';
+      alert(success ? 'تم حفظ المعلم الجديد سحابياً بنجاح!' : 'تم الحفظ محلياً.');
     }
 
     async function editTeacherPin(idx) {
       const teacher = db.teachers[idx];
       const newPin = prompt(`أدخل الرمز السري الجديد للمعلم (${teacher.name}):`, teacher.pin);
       if (newPin !== null && newPin.trim() !== '') {
-        teacher.pin = newPin.trim();
+        const pinTrim = newPin.trim();
+        const adminDecoded = db.adminPin ? (db.adminPin.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin)) : "1234";
+        
+        if (pinTrim === adminDecoded || db.teachers.some((t, i) => i !== idx && t.pin === pinTrim) || db.customUsers.some(u => u.pin === pinTrim)) {
+          alert('الرمز السري مستخدم مسبقاً من قبل مستخدم أو معلم آخر، يرجى اختيار رقم آخر.');
+          return;
+        }
+
+        teacher.pin = pinTrim;
         const success = await saveSystemDataToCloud();
         renderTeachersList();
         alert(success ? 'تم تحديث الرمز السري وحفظه سحابياً بنجاح!' : 'تم التحديث محلياً.');
@@ -1519,11 +1507,6 @@
     }
 
     let advShowAllState = { absent: false, escape: false, outside: false, late: false };
-
-    function toggleAdvShowAll(category) {
-      advShowAllState[category] = !advShowAllState[category];
-      renderAdvancedStats();
-    }
 
     function calculateAdvancedStats() {
       const classFilter = document.getElementById('advClassFilter').value;
