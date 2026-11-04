@@ -927,9 +927,8 @@
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
     let selectedBehaviorClass = null, currentBehaviorRecord = {};
     
-    // Variables for pending period selection flow
     let pendingTargetClass = null;
-    let pendingMode = 'attendance'; // 'attendance' or 'behavior'
+    let pendingMode = 'attendance';
 
     window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode();
@@ -1143,7 +1142,6 @@
       });
     }
 
-    // --- New Period Selection Flow Functions ---
     const periodNamesMap = { 1: 'الحصة الأولى', 2: 'الحصة الثانية', 3: 'الحصة الثالثة', 4: 'الحصة الرابعة', 5: 'الحصة الخامسة', 6: 'الحصة السادسة', 7: 'الحصة السابعة', 8: 'الحصة الثامنة' };
 
     function openClassAttendance(className) {
@@ -1206,7 +1204,6 @@
       document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-teal-600"></i> تغيير الحصة لرصد سلوكيات صف ${selectedBehaviorClass}`;
       document.getElementById('selectPeriodModal').classList.remove('hidden');
     }
-    // ---------------------------------------------
 
     function backToClasses() {
       selectedClass = null;
@@ -1297,7 +1294,6 @@
       loadSessionAttendance();
     }
 
-    // BEHAVIORS & MISCONDUCTS
     function renderBehaviorClassesGrid() {
       const container = document.getElementById('behaviorClassesGrid');
       if(!container) return; container.innerHTML = '';
@@ -1452,7 +1448,6 @@
       loadSessionBehavior();
     }
 
-    // SWITCH SUB-TABS WITHIN STATISTICS
     function switchStatsSubTab(subTab) {
       const absenceSec = document.getElementById('statsSubSec-absence');
       const behaviorSec = document.getElementById('statsSubSec-behaviors');
@@ -1474,7 +1469,6 @@
       }
     }
 
-    // FETCH BEHAVIOR SESSIONS FOR STATISTICS
     function getFilteredBehaviorRecords() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const todayStr = getOmanLocalDate();
@@ -2322,32 +2316,74 @@
       });
     }
 
+    // --- UPDATED PRINT HORIZONTAL REPORT FUNCTION TO MATCH UI DESIGN 100% ---
     function printHorizontalReport() {
       const targetDate = document.getElementById('reportDatePicker').value, classFilter = document.getElementById('reportClassFilter').value;
       let classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
+
       let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الغياب الأفقي (${targetDate})</title><style>
-        @page { size: A4 landscape; margin: 6mm; } body { font-family: 'Tajawal', sans-serif; direction: rtl; font-size: 10px; }
-        .class-row-card { page-break-inside: avoid; border: 2px solid #111; border-radius: 8px; margin-bottom: 12px; background: #fff; width: 100%; }
-        .class-header-bar { padding: 6px 12px; background: #f1f5f9; border-bottom: 2px solid #111; display: flex; justify-content: space-between; font-weight: bold; }
-        .periods-horizontal-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 6px; }
-        .period-cell { border: 1.5px solid #333; border-radius: 6px; padding: 4px; min-height: 120px; }
-      </style></head><body><h2>تقرير تفريغ الغياب والحصص أفقياً (${targetDate})</h2>`;
+        @page { size: A4 landscape; margin: 8mm; }
+        body { font-family: 'Tajawal', sans-serif; direction: rtl; font-size: 10px; background: #fff; color: #1e293b; margin: 0; padding: 5px; }
+        .report-title-box { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #065f46; padding-bottom: 8px; }
+        .report-title-box h2 { margin: 0; font-size: 16px; color: #065f46; font-weight: 900; }
+        .report-title-box p { margin: 4px 0 0 0; font-size: 11px; color: #475569; font-weight: bold; }
+        .class-row-card { page-break-inside: avoid; border: 2px solid #cbd5e1; border-radius: 12px; margin-bottom: 15px; background: #ffffff; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .class-header-bar { padding: 8px 14px; background: #f8fafc; border-bottom: 2px solid #e2e8f0; display: flex; justify-content: space-between; font-weight: 900; font-size: 12px; color: #0f172a; }
+        .periods-horizontal-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; padding: 8px; }
+        .period-cell { border: 1.5px solid #e2e8f0; border-radius: 8px; padding: 6px; min-height: 130px; background: #f8fafc; display: flex; flex-direction: column; }
+        .period-header { text-align: center; border-bottom: 1px solid #e2e8f0; padding-bottom: 4px; margin-bottom: 6px; background: #f1f5f9; border-radius: 6px; padding-top: 4px; }
+        .period-name { font-size: 11px; font-weight: 900; color: #0f172a; }
+        .period-teacher { font-size: 8.5px; color: #64748b; font-weight: 600; margin-top: 1px; }
+        .no-violations { text-align: center; color: #94a3b8; font-size: 9px; margin-top: 25px; font-weight: 600; }
+        .badge-absent { display: block; padding: 3px 6px; text-align: center; border: 2px solid #fbbf24; border-radius: 9999px; background: #000000; color: #ffffff; font-size: 9px; font-weight: 900; margin-bottom: 4px; }
+        .badge-other { font-size: 9px; font-weight: 700; padding: 2px 4px; margin-bottom: 3px; border-radius: 4px; }
+        .badge-escape { color: #dc2626; background: #fef2f2; border: 1px solid #fca5a5; }
+        .badge-late { color: #2563eb; background: #eff6ff; border: 1px solid #bfdbfe; }
+        .badge-outside { color: #9333ea; background: #faf5ff; border: 1px solid #e9d5ff; }
+      </style></head><body>
+      <div class="report-title-box">
+        <h2>مدرسة أبو دجانة الأنصاري - تقرير تفريغ غياب الطلاب أفقياً</h2>
+        <p>تاريخ الرصد: ${targetDate}</p>
+      </div>`;
 
       classesToPrint.forEach(className => {
-        printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: ${className}</span><span>التاريخ: ${targetDate}</span></div><div class="periods-horizontal-grid">`;
+        printHTML += `<div class="class-row-card">
+          <div class="class-header-bar">
+            <span>الصف الدراسي: ${className}</span>
+            <span>تاريخ الرصد: ${targetDate}</span>
+          </div>
+          <div class="periods-horizontal-grid">`;
+        
         for (let p = 1; p <= 8; p++) {
-          let sData = db.attendance[`${targetDate}_${className}_p${p}`], teacher = sData ? sData.teacher : '(غير مسجل)', records = sData ? sData.records : {};
-          printHTML += `<div class="period-cell"><div style="text-align:center;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:4px;"><b>الحصة ${p}</b><br><small>${teacher}</small></div>`;
-          Object.entries(records).forEach(([name, status]) => {
-            if (status !== 'present') {
-              let label = status === 'absent' ? 'غائب' : (status === 'escape' ? 'متسرب' : (status === 'late' ? 'متأخر' : 'خارج'));
-              printHTML += `<div style="font-size:8.5px;font-weight:bold;">• ${name} (${label})</div>`;
-            }
-          });
+          let sData = db.attendance[`${targetDate}_${className}_p${p}`];
+          let teacher = sData && sData.teacher ? sData.teacher : 'غير مسجل';
+          let records = sData ? sData.records : {};
+          
+          printHTML += `<div class="period-cell">
+            <div class="period-header">
+              <div class="period-name">الحصة ${p}</div>
+              <div class="period-teacher">(${teacher})</div>
+            </div>`;
+          
+          let issues = Object.entries(records).filter(([name, status]) => status !== 'present');
+          if (issues.length === 0) {
+            printHTML += `<div class="no-violations">لا يوجد مخالفات</div>`;
+          } else {
+            issues.forEach(([name, status]) => {
+              if (status === 'absent') {
+                printHTML += `<div class="badge-absent">• ${name} (غائب)</div>`;
+              } else {
+                let label = status === 'escape' ? 'متسرب' : (status === 'late' ? 'متأخر' : 'خارج');
+                let cssCls = status === 'escape' ? 'badge-escape' : (status === 'late' ? 'badge-late' : 'badge-outside');
+                printHTML += `<div class="badge-other ${cssCls}">• ${name} (${label})</div>`;
+              }
+            });
+          }
           printHTML += `</div>`;
         }
         printHTML += `</div></div>`;
       });
+
       printHTML += `</body></html>`;
       const win = window.open('', '_blank');
       win.document.write(printHTML); win.document.close(); win.focus(); setTimeout(() => win.print(), 500);
