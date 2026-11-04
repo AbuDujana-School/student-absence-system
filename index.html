@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>نظام متابعة الغياب الذكي - مدرسة أبو دجانة الأنصاري</title>
+  <title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -25,7 +25,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-xl font-extrabold tracking-wide">مدرسة أبو دجانة الأنصاري</h1>
-          <p class="text-xs text-emerald-300">نظام حصر ومتابعة الغياب اليومي والحصص الذكي (توقيت عمان)</p>
+          <p class="text-xs text-emerald-300">نظام حصر ومتابعة الغياب والسلوك الذكي (توقيت عمان)</p>
         </div>
       </div>
       <div class="flex items-center space-x-2 space-x-reverse">
@@ -54,7 +54,7 @@
           <i class="fa-solid fa-user-lock"></i>
         </div>
         <h2 class="text-xl font-extrabold text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
-        <p class="text-xs text-slate-400 mt-1">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب</p>
+        <p class="text-xs text-slate-400 mt-1">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات</p>
       </div>
       <form onsubmit="handleUserLogin(event)" class="space-y-4">
         <div>
@@ -68,8 +68,8 @@
       </form>
     </div>
 
-    <!-- Step 2: Classes View -->
-    <div id="classesView" class="hidden space-y-6">
+    <!-- Step 2: Main Dashboard Selection View (Two Sections: Attendance & Behaviors) -->
+    <div id="dashboardSelectionView" class="hidden space-y-6">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center font-bold text-lg border border-emerald-100 dark:border-emerald-800">
@@ -95,10 +95,52 @@
           </button>
         </div>
       </div>
+
+      <!-- Selection Cards for Sections -->
+      <div class="text-center py-6">
+        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-2">اختر القسم المطلوب للمتابعة:</h3>
+        <p class="text-xs text-slate-400">يمكنك الانتقال بين قسم الغياب وقسم السلوكيات بكل سهولة</p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
+        <!-- Section 1 Card: Attendance -->
+        <div onclick="goToAttendanceSection()" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border-2 border-emerald-100 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
+          <div class="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center text-3xl group-hover:scale-110 transition shadow-inner border border-emerald-200">
+            <i class="fa-solid fa-clipboard-user"></i>
+          </div>
+          <div>
+            <h4 class="text-lg font-extrabold text-slate-800 dark:text-white group-hover:text-emerald-700">القسم الأول: الغياب والحصص</h4>
+            <p class="text-xs text-slate-400 mt-1">حصر ومتابعة الغياب اليومي، والتأخير، والتسرب، والخروج للحصص الدراسية</p>
+          </div>
+          <span class="bg-emerald-700 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow mt-2">دخول قسم الغياب ←</span>
+        </div>
+
+        <!-- Section 2 Card: Behaviors -->
+        <div onclick="goToBehaviorSection()" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border-2 border-teal-100 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
+          <div class="w-20 h-20 bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 rounded-3xl flex items-center justify-center text-3xl group-hover:scale-110 transition shadow-inner border border-teal-200">
+            <i class="fa-solid fa-scale-balanced"></i>
+          </div>
+          <div>
+            <h4 class="text-lg font-extrabold text-slate-800 dark:text-white group-hover:text-teal-700">القسم الثاني: السلوكيات والمخالفات</h4>
+            <p class="text-xs text-slate-400 mt-1">رصد سلوكيات الطلاب (أكل، نوم، كلام جانبي، أو أخرى بوصف دقيق)</p>
+          </div>
+          <span class="bg-teal-700 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow mt-2">دخول قسم السلوكيات ←</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Classes View (Attendance) -->
+    <div id="classesView" class="hidden space-y-6">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center">
+        <button onclick="backToDashboardSelection()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 border border-emerald-200 cursor-pointer">
+          <i class="fa-solid fa-arrow-right"></i> العودة لاختيار الأقسام
+        </button>
+        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">قسم الغياب والحصص</span>
+      </div>
       <div>
         <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
           <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
-            <i class="fa-solid fa-th text-emerald-600"></i> اختر الصف الدراسي لرصد الغياب والحصص:
+            <i class="fa-solid fa-th text-emerald-600"></i> اختر الصف الدراسي لرصد الغياب:
           </h3>
           <div class="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 font-bold">
             <i class="fa-solid fa-calendar-days"></i> تاريخ الرصد: <span id="activeSessionDateLabel"></span>
@@ -108,7 +150,7 @@
       </div>
     </div>
 
-    <!-- Step 3: Class Attendance Session View -->
+    <!-- Step 4: Class Attendance Session View -->
     <div id="attendanceView" class="hidden space-y-6">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
@@ -129,7 +171,7 @@
         </div>
       </div>
 
-      <!-- Students List Card -->
+      <!-- Students List Card (Attendance) -->
       <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
         <div class="p-5 bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
           <div class="flex items-center gap-3">
@@ -151,6 +193,68 @@
           </div>
           <button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
             <i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 5: Behavior Classes View (New Section) -->
+    <div id="behaviorClassesView" class="hidden space-y-6">
+      <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center">
+        <button onclick="backToDashboardSelection()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 border border-teal-200 cursor-pointer">
+          <i class="fa-solid fa-arrow-right"></i> العودة لاختيار الأقسام
+        </button>
+        <span class="text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200">قسم السلوكيات والمخالفات</span>
+      </div>
+      <div>
+        <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+          <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
+            <i class="fa-solid fa-th text-teal-600"></i> اختر الصف الدراسي لرصد السلوكيات:
+          </h3>
+          <div class="text-xs bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-300 px-3 py-1.5 rounded-xl border border-teal-200 dark:border-teal-800 font-bold">
+            <i class="fa-solid fa-calendar-days"></i> تاريخ الرصد: <span id="activeBehaviorDateLabel"></span>
+          </div>
+        </div>
+        <div id="behaviorClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
+      </div>
+    </div>
+
+    <!-- Step 6: Class Behavior Session View (New Section) -->
+    <div id="behaviorSessionView" class="hidden space-y-6">
+      <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+          <button onclick="backToBehaviorClasses()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-teal-200 dark:border-teal-800 shadow-sm cursor-pointer">
+            <i class="fa-solid fa-arrow-right text-teal-600"></i> العودة للصفوف
+          </button>
+          <div>
+            <h2 id="selectedBehaviorClassTitle" class="text-lg font-extrabold text-teal-900 dark:text-teal-300"></h2>
+            <p id="behaviorSessionDateStatus" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5"></p>
+          </div>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">الحصة الدراسية:</label>
+          <select id="behaviorPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer shadow-sm">
+            <option value="1">الحصة الأولى</option><option value="2">الحصة الثانية</option><option value="3">الحصة الثالثة</option><option value="4">الحصة الرابعة</option>
+            <option value="5">الحصة الخامسة</option><option value="6">الحصة السادسة</option><option value="7">الحصة السابعة</option><option value="8">الحصة الثامنة</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Students List Card (Behaviors) -->
+      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
+        <div class="p-5 bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+          <div class="flex items-center gap-3">
+            <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب ورصد السلوكيات والمخالفات</span>
+            <span id="behaviorStudentsCount" class="text-xs font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 rounded-xl"></span>
+          </div>
+        </div>
+        <div id="behaviorStudentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3"></div>
+        <div class="p-4 sm:p-5 bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+          <div class="text-xs text-teal-700 dark:text-teal-400 font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check"></i> <span id="unsavedBehaviorStatusIndicator">تعديلات السلوكيات جاهزة للحفظ</span>
+          </div>
+          <button id="saveBehaviorSessionBtn" onclick="saveBehaviorSession()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+            <i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>
           </button>
         </div>
       </div>
@@ -184,7 +288,7 @@
     </div>
   </div>
 
-  <!-- General Dynamic Popup Modal for Student Lists / Details -->
+  <!-- General Dynamic Popup Modal -->
   <div id="generalModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
@@ -241,7 +345,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (All 8 Items) -->
+        <!-- Admin Tabs -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إحصائيات الطلاب</button>
           <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأشخاص</button>
@@ -258,7 +362,7 @@
           <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-md flex flex-wrap justify-between items-center gap-4">
             <div>
               <h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة تحكم إحصائيات الطلاب الإدارية</h4>
-              <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية للغياب، والتأخير، والتسرب، والخروج اليومي والحصص (بحسب أيام الحدوث الفريدة)</p>
+              <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية للغياب، والتأخير، والتسرب، والخروج اليومي والحصص</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
               <div>
@@ -283,7 +387,6 @@
             </div>
           </div>
 
-          <!-- 4 Cards -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div onclick="openStatusListModal('absent')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group">
               <div>
@@ -345,7 +448,7 @@
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
             <div class="flex flex-wrap justify-between items-center border-b pb-3 dark:border-slate-700 gap-2">
               <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات المخالفات حسب الصفوف الدراسية (بعدد الأيام/المرات)
+                <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات المخالفات حسب الصفوف الدراسية
               </h5>
               <div class="flex items-center gap-2 text-xs">
                 <label class="font-bold text-slate-600 dark:text-slate-300">ترتيب الصفوف:</label>
@@ -361,9 +464,8 @@
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
             <div class="border-b pb-3 dark:border-slate-700">
               <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة تسجيل الحصص (الحصص المسجلة مقابل غير المسجلة)
+                <i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة تسجيل الحصص
               </h5>
-              <p class="text-xs text-slate-500 mt-0.5">ملاحظة: الحصة غير المسجلة لا تُحسب كحصة خالية من الغياب حتى يتم رصدها من المعلم.</p>
             </div>
             <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
           </div>
@@ -371,12 +473,11 @@
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
             <div class="border-b pb-3 dark:border-slate-700">
               <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> إحصائيات المعلمين ونشاط الرصد (مرتبة تنازلياً)
+                <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> إحصائيات المعلمين ونشاط الرصد
               </h5>
             </div>
             <div id="teacherActivityStatsContainer" class="overflow-x-auto"></div>
           </div>
-
         </div>
 
         <!-- Section 2: Custom Users -->
@@ -387,8 +488,6 @@
               <input type="text" id="newCustomUserName" placeholder="اسم المستخدم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none">
               <input type="password" id="newCustomUserPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
             </div>
-            
-            <!-- Checklist for All 8 Features -->
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600" checked> إحصائيات الطلاب</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_users" class="accent-emerald-600"> إدارة الأشخاص</label>
@@ -451,12 +550,12 @@
           </div>
         </div>
 
-        <!-- Section 6: Reports & Printing Section -->
+        <!-- Section 6: Reports & Printing -->
         <div id="sec-reports" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div>
               <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير وتفريغ الغياب الشامل (التنسيق الأفقي)</h4>
-              <p class="text-xs text-emerald-200 mt-1">عرض وتفريغ كافة الحصص الثماني أفقياً بجانب بعضها لكل صف دراسي على حدة</p>
+              <p class="text-xs text-emerald-200 mt-1">عرض وتفريغ كافة الحصص الثماني أفقياً بجانب بعضها لكل صف دراسي</p>
             </div>
             <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
@@ -535,8 +634,9 @@
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DEFAULT_TEACHERS = [{ name: "أ. سالم الوهيبي", pin: "1111" }, { name: "أ. محمد العبري", pin: "2222" }, { name: "أ. سعيد المقبالي", pin: "3333" }];
 
-    let db = { version: 14, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
+    let db = { version: 15, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {} };
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
+    let selectedBehaviorClass = null, currentBehaviorRecord = {};
 
     window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode();
@@ -559,6 +659,7 @@
       document.getElementById('currentDateDisplay').textContent = 'تاريخ اليوم (عمان): ' + today;
       document.getElementById('reportDatePicker').value = today;
       document.getElementById('activeSessionDateLabel').textContent = today;
+      document.getElementById('activeBehaviorDateLabel').textContent = today;
       document.getElementById('statsStartDate').value = today;
       document.getElementById('statsEndDate').value = today;
     }
@@ -572,6 +673,7 @@
           if (resData.record && resData.record.classes?.length > 0) {
             db = resData.record;
             if(!db.customUsers) db.customUsers = [];
+            if(!db.behaviors) db.behaviors = {};
             localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
             updateSyncStatus(true, "متزامن سحابياً");
             return true;
@@ -580,7 +682,7 @@
         throw new Error();
       } catch (e) {
         const saved = localStorage.getItem('abuDujana_db_v21');
-        if (saved) { db = JSON.parse(saved); updateSyncStatus(false, "وضع محلي"); return true; }
+        if (saved) { db = JSON.parse(saved); if(!db.behaviors) db.behaviors = {}; updateSyncStatus(false, "وضع محلي"); return true; }
         initDefaults();
         updateSyncStatus(false, "فشل الاتصال");
         return false;
@@ -617,7 +719,7 @@
     }
 
     function initDefaults() {
-      db = { version: 14, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
+      db = { version: 15, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {}, behaviors: {} };
       db.classes.forEach(c => { db.students[c] = []; });
       localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
     }
@@ -628,7 +730,6 @@
         try {
           activeUser = JSON.parse(savedUser);
           finalizeLoginState();
-          if (savedClass && db.classes.includes(savedClass)) openClassAttendance(savedClass);
         } catch(e) { logoutUser(); }
       }
     }
@@ -662,20 +763,22 @@
       localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser));
       document.getElementById('loginError').classList.add('hidden');
       document.getElementById('loginView').classList.add('hidden');
-      document.getElementById('classesView').classList.remove('hidden');
+      document.getElementById('dashboardSelectionView').classList.remove('hidden');
       document.getElementById('activeUserName').textContent = activeUser.name;
       document.getElementById('activeUserRoleBadge').textContent = activeUser.type === 'admin' ? 'مدير النظام' : (activeUser.type === 'custom' ? 'مستخدم مخصص' : 'معلم');
       document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
       document.getElementById('openControlPanelFromDashboardBtn').classList.toggle('hidden', !(activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPermission(activeUser))));
-      renderClassesGrid();
     }
 
     function logoutUser() {
-      activeUser = null; selectedClass = null;
+      activeUser = null; selectedClass = null; selectedBehaviorClass = null;
       localStorage.removeItem('abuDujana_activeUser'); localStorage.removeItem('abuDujana_selectedClass');
       document.getElementById('userPinInput').value = '';
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('classesView').classList.add('hidden');
+      document.getElementById('behaviorClassesView').classList.add('hidden');
+      document.getElementById('behaviorSessionView').classList.add('hidden');
+      document.getElementById('dashboardSelectionView').classList.add('hidden');
       document.getElementById('loginView').classList.remove('hidden');
       document.getElementById('openControlPanelFromDashboardBtn').classList.add('hidden');
       document.getElementById('changeTeacherPinBtn').classList.add('hidden');
@@ -701,6 +804,28 @@
       alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم التغيير محلياً.');
     }
 
+    // Navigation between sections
+    function goToAttendanceSection() {
+      document.getElementById('dashboardSelectionView').classList.add('hidden');
+      document.getElementById('classesView').classList.remove('hidden');
+      renderClassesGrid();
+    }
+
+    function goToBehaviorSection() {
+      document.getElementById('dashboardSelectionView').classList.add('hidden');
+      document.getElementById('behaviorClassesView').classList.remove('hidden');
+      renderBehaviorClassesGrid();
+    }
+
+    function backToDashboardSelection() {
+      document.getElementById('classesView').classList.add('hidden');
+      document.getElementById('attendanceView').classList.add('hidden');
+      document.getElementById('behaviorClassesView').classList.add('hidden');
+      document.getElementById('behaviorSessionView').classList.add('hidden');
+      document.getElementById('dashboardSelectionView').classList.remove('hidden');
+    }
+
+    // Attendance Grid & Session
     function renderClassesGrid() {
       const container = document.getElementById('classesGrid');
       if(!container) return; container.innerHTML = '';
@@ -722,14 +847,14 @@
     }
 
     function openClassAttendance(className) {
-      selectedClass = className; localStorage.setItem('abuDujana_selectedClass', className);
+      selectedClass = className;
       document.getElementById('classesView').classList.add('hidden');
       document.getElementById('attendanceView').classList.remove('hidden');
       document.getElementById('selectedClassTitle').textContent = `رصد حضور وغياب صف ${className}`;
       loadSessionAttendance();
     }
     function backToClasses() {
-      selectedClass = null; localStorage.removeItem('abuDujana_selectedClass');
+      selectedClass = null;
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('classesView').classList.remove('hidden');
       renderClassesGrid();
@@ -810,12 +935,164 @@
         const success = await saveSystemDataToCloud();
         document.getElementById('unsavedStatusIndicator').textContent = success ? "تم الحفظ سحابياً بنجاح" : "حفظت محلياً فقط";
         alert(success ? "تم الحفظ سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.");
-        if (success) renderClassesGrid();
       } catch (error) { alert('حدث خطأ أثناء الحفظ.'); }
       finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`; }
       loadSessionAttendance();
     }
 
+    // ==========================================
+    // NEW SECTION: BEHAVIORS & MISCONDUCTS (السلوكيات)
+    // ==========================================
+    function renderBehaviorClassesGrid() {
+      const container = document.getElementById('behaviorClassesGrid');
+      if(!container) return; container.innerHTML = '';
+      const today = getOmanLocalDate();
+      db.classes.forEach(c => {
+        let recordedCount = 0;
+        for(let p=1; p<=8; p++) if(db.behaviors && db.behaviors[`${today}_${c}_p${p}`]) recordedCount++;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'group relative bg-gradient-to-br from-white via-slate-50 to-teal-50/50 dark:from-slate-800 dark:to-slate-800/90 hover:from-teal-600 hover:to-emerald-700 hover:text-white text-slate-800 dark:text-teal-100 font-bold py-5 px-3 rounded-3xl border border-teal-100 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 text-center text-sm flex flex-col items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-1';
+        btn.onclick = () => openClassBehavior(c);
+        btn.innerHTML = `
+          <div class="w-10 h-10 rounded-2xl bg-teal-100 dark:bg-teal-950/60 group-hover:bg-white/20 text-teal-700 dark:text-teal-300 group-hover:text-white flex items-center justify-center transition-colors shadow-sm"><i class="fa-solid fa-users text-sm"></i></div>
+          <span class="text-base font-extrabold tracking-wide">صف ${c}</span>
+          <span class="text-[10px] bg-teal-100/80 dark:bg-teal-950/80 group-hover:bg-white/25 text-teal-800 dark:text-teal-200 group-hover:text-white px-3 py-1 rounded-full font-bold">${recordedCount}/8 حصص سلوكية</span>
+        `;
+        container.appendChild(btn);
+      });
+    }
+
+    function openClassBehavior(className) {
+      selectedBehaviorClass = className;
+      document.getElementById('behaviorClassesView').classList.add('hidden');
+      document.getElementById('behaviorSessionView').classList.remove('hidden');
+      document.getElementById('selectedBehaviorClassTitle').textContent = `رصد سلوكيات صف ${className}`;
+      loadSessionBehavior();
+    }
+
+    function backToBehaviorClasses() {
+      selectedBehaviorClass = null;
+      document.getElementById('behaviorSessionView').classList.add('hidden');
+      document.getElementById('behaviorClassesView').classList.remove('hidden');
+      renderBehaviorClassesGrid();
+    }
+
+    function loadSessionBehavior() {
+      const period = document.getElementById('behaviorPeriodSelect').value, today = getOmanLocalDate(), key = `${today}_${selectedBehaviorClass}_p${period}`;
+      if(!db.behaviors) db.behaviors = {};
+      const sessionData = db.behaviors[key] || { teacher: activeUser?.name || 'معلم', records: {} };
+      currentBehaviorRecord = sessionData.records || {};
+
+      document.getElementById('behaviorSessionDateStatus').innerHTML = sessionData.timestamp ? `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${sessionData.teacher}</span>` : `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم رصد السلوكيات بعد</span>`;
+
+      const studentsList = db.students[selectedBehaviorClass] || [], container = document.getElementById('behaviorStudentsListContainer');
+      container.innerHTML = ''; document.getElementById('behaviorStudentsCount').textContent = `إجمالي الطلاب: ${studentsList.length}`;
+
+      if (studentsList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلين في هذا الصف.</div>`; return; }
+
+      studentsList.forEach(student => {
+        const studentData = currentBehaviorRecord[student] || { type: 'normal', note: '' };
+        const row = document.createElement('div');
+        row.className = 'flex flex-col p-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-3 border-b border-slate-100 dark:border-slate-700/50';
+        
+        let topDiv = document.createElement('div');
+        topDiv.className = 'flex flex-wrap items-center justify-between gap-2';
+        topDiv.innerHTML = `<span class="font-extrabold text-slate-800 dark:text-slate-200 text-sm">${student}</span>`;
+
+        let actionsDiv = document.createElement('div');
+        actionsDiv.className = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
+
+        [ { key: 'normal', label: 'طبيعي / هادئ 🟢', cls: 'bg-emerald-600 text-white border-emerald-600' },
+          { key: 'eating', label: 'أكل 🍔', cls: 'bg-amber-500 text-white border-amber-500' },
+          { key: 'sleeping', label: 'نوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600' },
+          { key: 'talking', label: 'كلام جانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500' },
+          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-red-600 text-white border-red-600' }
+        ].forEach(beh => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          const isActive = studentData.type === beh.key;
+          btn.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? beh.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+          btn.textContent = beh.label;
+          btn.onclick = () => setStudentBehaviorType(student, beh.key, btn, row);
+          actionsDiv.appendChild(btn);
+        });
+
+        topDiv.appendChild(actionsDiv);
+        row.appendChild(topDiv);
+
+        // Note Input Container for "other" or custom notes
+        const noteContainer = document.createElement('div');
+        noteContainer.id = `noteContainer_${student.replace(/\s+/g, '_')}`;
+        noteContainer.className = studentData.type === 'other' ? 'mt-2 block' : 'hidden mt-2';
+        noteContainer.innerHTML = `
+          <input type="text" placeholder="اكتب وصف المشكلة أو السلوك بالتفصيل هنا..." value="${studentData.note || ''}" oninput="updateBehaviorNote('${student}', this.value)" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white outline-none font-bold focus:ring-2 focus:ring-teal-500">
+        `;
+        row.appendChild(noteContainer);
+
+        container.appendChild(row);
+      });
+    }
+
+    document.getElementById('behaviorPeriodSelect').addEventListener('change', loadSessionBehavior);
+
+    function setStudentBehaviorType(student, type, btnElement, rowElement) {
+      if (!currentBehaviorRecord[student]) currentBehaviorRecord[student] = { type: 'normal', note: '' };
+      currentBehaviorRecord[student].type = type;
+
+      // Update button styles in group
+      const btnGroup = btnElement.parentElement;
+      Array.from(btnGroup.children).forEach(btn => {
+        btn.className = 'status-btn px-3 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+      });
+
+      const colorMap = { normal: 'bg-emerald-600 text-white border-emerald-600', eating: 'bg-amber-500 text-white border-amber-500', sleeping: 'bg-indigo-600 text-white border-indigo-600', talking: 'bg-orange-500 text-white border-orange-500', other: 'bg-red-600 text-white border-red-600' };
+      btnElement.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${colorMap[type]}`;
+
+      // Show/hide note input if 'other' is selected
+      const noteContainer = rowElement.querySelector(`[id^="noteContainer_"]`);
+      if (noteContainer) {
+        if (type === 'other') {
+          noteContainer.classList.remove('hidden');
+          noteContainer.querySelector('input').focus();
+        } else {
+          noteContainer.classList.add('hidden');
+          currentBehaviorRecord[student].note = '';
+        }
+      }
+
+      document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ توجد تغييرات سلوكية غير محفوظة";
+    }
+
+    function updateBehaviorNote(student, noteText) {
+      if (!currentBehaviorRecord[student]) currentBehaviorRecord[student] = { type: 'other', note: '' };
+      currentBehaviorRecord[student].note = noteText;
+      document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ توجد تغييرات سلوكية غير محفوظة";
+    }
+
+    async function saveBehaviorSession() {
+      if (!selectedBehaviorClass || !activeUser) return;
+      const saveBtn = document.getElementById('saveBehaviorSessionBtn');
+      if (saveBtn.disabled) return;
+      saveBtn.disabled = true; saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
+
+      try {
+        const period = document.getElementById('behaviorPeriodSelect').value, today = getOmanLocalDate(), key = `${today}_${selectedBehaviorClass}_p${period}`;
+        if(!db.behaviors) db.behaviors = {};
+        db.behaviors[key] = { teacher: activeUser.name, className: selectedBehaviorClass, period: parseInt(period), records: { ...currentBehaviorRecord }, timestamp: new Date().toISOString() };
+        
+        const success = await saveSystemDataToCloud();
+        document.getElementById('unsavedBehaviorStatusIndicator').textContent = success ? "تم حفظ السلوكيات سحابياً بنجاح" : "حفظت محلياً فقط";
+        alert(success ? "تم حفظ السلوكيات سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.");
+        if (success) renderBehaviorClassesGrid();
+      } catch (error) { alert('حدث خطأ أثناء حفظ السلوكيات.'); }
+      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>`; }
+      loadSessionBehavior();
+    }
+
+    // ==========================================
+    // ADMIN PANEL & OTHER EXISTING FUNCTIONS
+    // ==========================================
     function openAdminModal() {
       if (activeUser?.type === 'admin' || (activeUser?.type === 'custom' && hasAnyPermission(activeUser))) {
         openControlPanelDirectly();
@@ -867,9 +1144,7 @@
           if (isAllowed && !firstAllowedTab) firstAllowedTab = id;
         });
 
-        if (firstAllowedTab) {
-          switchAdminTab(firstAllowedTab);
-        }
+        if (firstAllowedTab) { switchAdminTab(firstAllowedTab); }
       }
       initAdminDashboard();
     }
@@ -900,11 +1175,8 @@
       const todayStr = getOmanLocalDate();
       const todayDate = new Date(todayStr);
 
-      if(periodType === 'custom') {
-        document.getElementById('customDateRangeContainer').classList.remove('hidden');
-      } else {
-        document.getElementById('customDateRangeContainer').classList.add('hidden');
-      }
+      if(periodType === 'custom') { document.getElementById('customDateRangeContainer').classList.remove('hidden'); } 
+      else { document.getElementById('customDateRangeContainer').classList.add('hidden'); }
 
       let filteredSessions = [];
       Object.entries(db.attendance).forEach(([key, session]) => {
@@ -916,15 +1188,12 @@
         const sessDate = new Date(sessDateStr);
 
         let include = false;
-        if (periodType === 'today') {
-          include = (sessDateStr === todayStr);
-        } else if (periodType === 'yesterday') {
-          const yest = new Date(todayDate);
-          yest.setDate(yest.getDate() - 1);
+        if (periodType === 'today') { include = (sessDateStr === todayStr); } 
+        else if (periodType === 'yesterday') {
+          const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1);
           include = (sessDateStr === yest.toISOString().split('T')[0]);
         } else if (periodType === 'week') {
-          const weekAgo = new Date(todayDate);
-          weekAgo.setDate(weekAgo.getDate() - 7);
+          const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7);
           include = (sessDate >= weekAgo && sessDate <= todayDate);
         } else if (periodType === 'month') {
           include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
@@ -945,7 +1214,6 @@
 
     function renderStudentStatsDashboard() {
       const sessions = getFilteredAttendanceRecords();
-      
       let studentRawLogs = {}; 
 
       sessions.forEach(sess => {
@@ -953,9 +1221,7 @@
         Object.entries(records).forEach(([studentName, status]) => {
           if (status !== 'present') {
             const studKey = `${className}::${studentName}`;
-            if (!studentRawLogs[studKey]) {
-              studentRawLogs[studKey] = { name: studentName, className, history: [] };
-            }
+            if (!studentRawLogs[studKey]) { studentRawLogs[studKey] = { name: studentName, className, history: [] }; }
             studentRawLogs[studKey].history.push({ date, period, status, teacher, className });
           }
         });
@@ -965,13 +1231,10 @@
       let studentViolations = {}; 
       let classStats = {}; 
 
-      db.classes.forEach(c => {
-        classStats[c] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
-      });
+      db.classes.forEach(c => { classStats[c] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 }; });
 
       Object.entries(studentRawLogs).forEach(([studKey, data]) => {
         const { name, className, history } = data;
-        
         let dateMap = {}; 
         history.forEach(h => {
           if (!dateMap[h.date]) dateMap[h.date] = new Set();
@@ -988,16 +1251,7 @@
 
         const totalViolationDays = absentDays + escapeDays + lateDays + outsideDays;
         if (totalViolationDays > 0) {
-          studentViolations[studKey] = {
-            name,
-            className,
-            absent: absentDays,
-            escape: escapeDays,
-            late: lateDays,
-            outside: outsideDays,
-            total: totalViolationDays,
-            history
-          };
+          studentViolations[studKey] = { name, className, absent: absentDays, escape: escapeDays, late: lateDays, outside: outsideDays, total: totalViolationDays, history };
         }
       });
 
@@ -1012,7 +1266,7 @@
       const attContainer = document.getElementById('needsAttentionContainer');
       
       if (needsAttentionList.length === 0) {
-        attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة (الحد الأدنى للتكرار: ${threshold} أيام مخالفات).</div>`;
+        attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة.</div>`;
       } else {
         let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">نوع المخالفات الأكثر تكراراً</th><th class="p-3 text-center">عدد أيام التكرار</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y">`;
         needsAttentionList.forEach(st => {
@@ -1027,7 +1281,7 @@
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="openStudentProfileModal('${st.className}', '${st.name}')">${st.name}</td>
             <td class="p-3 text-center font-semibold text-emerald-700">${st.className}</td>
             <td class="p-3 text-center font-bold text-amber-700">${mainViolation} (غياب: ${st.absent}، تأخير: ${st.late}، تسرب: ${st.escape}، خروج: ${st.outside})</td>
-            <td class="p-3 text-center"><span class="bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
+            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-950 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
             <td class="p-3 text-center"><button onclick="openStudentProfileModal('${st.className}', '${st.name}')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer">ملف الطالب</button></td>
           </tr>`;
         });
@@ -1036,11 +1290,8 @@
 
       const sortOrder = document.getElementById('classSortOrder').value;
       let classEntries = Object.entries(classStats);
-      if (sortOrder === 'violationsDesc') {
-        classEntries.sort((a,b) => b[1].total - a[1].total);
-      } else {
-        classEntries.sort((a,b) => a[0].localeCompare(b[0]));
-      }
+      if (sortOrder === 'violationsDesc') { classEntries.sort((a,b) => b[1].total - a[1].total); } 
+      else { classEntries.sort((a,b) => a[0].localeCompare(b[0])); }
 
       const classTableContainer = document.getElementById('classStatsTableContainer');
       let classHtml = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b"><th class="p-3">الصف الدراسي</th><th class="p-3 text-center">غائب</th><th class="p-3 text-center">متأخر</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">عرض التفاصيل</th></tr></thead><tbody class="divide-y">`;
@@ -1065,9 +1316,7 @@
     function openStatusListModal(statusKey) {
       const sessions = getFilteredAttendanceRecords();
       const statusLabels = { absent: 'الغياب', escape: 'التسرب', late: 'التأخير', outside: 'الخروج من الصف' };
-
-      let studentDayMap = {}; 
-      let list = [];
+      let studentDayMap = {}, list = [];
 
       sessions.forEach(sess => {
         Object.entries(sess.records).forEach(([studentName, st]) => {
@@ -1081,7 +1330,7 @@
         });
       });
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة طلاب (${statusLabels[statusKey]}) - عدد المرات/الأيام: ${list.length}`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة طلاب (${statusLabels[statusKey]}) - عدد المرات: ${list.length}`;
       const body = document.getElementById('generalModalBody');
       
       if (list.length === 0) {
@@ -1103,8 +1352,7 @@
 
     function openClassDetailModal(className) {
       const sessions = getFilteredAttendanceRecords().filter(s => s.className === className);
-      let studentDayMap = {};
-      let list = [];
+      let studentDayMap = {}, list = [];
 
       sessions.forEach(sess => {
         Object.entries(sess.records).forEach(([studentName, status]) => {
@@ -1118,7 +1366,7 @@
         });
       });
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات طلاب صف ${className} (${list.length} حالة فريدة)`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات طلاب صف ${className} (${list.length} حالة)`;
       const body = document.getElementById('generalModalBody');
 
       if (list.length === 0) {
@@ -1140,33 +1388,16 @@
       document.getElementById('generalModal').classList.remove('hidden');
     }
 
-    function closeGeneralModal() {
-      document.getElementById('generalModal').classList.add('hidden');
-    }
+    function closeGeneralModal() { document.getElementById('generalModal').classList.add('hidden'); }
 
     function openStudentProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
         for (const [cName, sList] of Object.entries(db.students || {})) {
-          if (Array.isArray(sList) && sList.includes(studentName)) {
-            realClassName = cName;
-            break;
-          }
+          if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
         }
       }
-      if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
-        for (const [key, session] of Object.entries(db.attendance || {})) {
-          const parsed = parseAttendanceKey(key);
-          const sessClass = session.className || parsed.className;
-          if (session && session.records && session.records[studentName]) {
-            realClassName = sessClass;
-            break;
-          }
-        }
-      }
-      if (!realClassName || realClassName === 'undefined') {
-        realClassName = 'غير محدد';
-      }
+      if (!realClassName || realClassName === 'undefined') realClassName = 'غير محدد';
 
       document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب: ${studentName}`;
       document.getElementById('modalStudentSubtitle').textContent = `الصف الدراسي: ${realClassName}`;
@@ -1181,13 +1412,7 @@
         if (session && session.records && session.records[studentName]) {
           const status = session.records[studentName];
           if (status && status !== 'present') {
-            historyLogs.push({ 
-              date: sessDate, 
-              period: sessPeriod, 
-              status: status, 
-              teacher: session.teacher || 'معلم',
-              className: sessClassName
-            });
+            historyLogs.push({ date: sessDate, period: sessPeriod, status: status, teacher: session.teacher || 'معلم', className: sessClassName });
           }
         }
       });
@@ -1215,9 +1440,8 @@
           <div class="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-2xl border border-orange-200"><span class="text-xs text-orange-600 block">أيام التأخير</span><span class="text-xl font-extrabold text-orange-700">${lateDays}</span></div>
           <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-200"><span class="text-xs text-purple-600 block">أيام الخروج</span><span class="text-xl font-extrabold text-purple-700">${outsideDays}</span></div>
         </div>
-
         <div class="space-y-2 pt-3">
-          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> تفاصيل الحصص الكاملة المسجلة (من الأحدث للأقدم):</h5>
+          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> تفاصيل الحصص الكاملة المسجلة:</h5>
       `;
 
       if (historyLogs.length === 0) {
@@ -1238,65 +1462,45 @@
         });
       }
       bodyHTML += `</div>`;
-
       document.getElementById('modalStudentBody').innerHTML = bodyHTML;
       document.getElementById('studentDetailModal').classList.remove('hidden');
     }
 
-    function closeStudentDetailModal() {
-      document.getElementById('studentDetailModal').classList.add('hidden');
-    }
+    function closeStudentDetailModal() { document.getElementById('studentDetailModal').classList.add('hidden'); }
 
     function renderSessionRegistrationStats(sessions) {
       const container = document.getElementById('sessionRegistrationStatsContainer');
       const todayStr = getOmanLocalDate();
-      
-      const totalClassesCount = db.classes.length;
-      const totalExpected = totalClassesCount * 8;
-      
-      let recordedTodayCount = 0;
-      let recordedTeachers = new Set();
-      let unrecordedClassesList = [];
+      const totalClassesCount = db.classes.length, totalExpected = totalClassesCount * 8;
+      let recordedTodayCount = 0, recordedTeachers = new Set();
 
       db.classes.forEach(cName => {
-        let classRecorded = 0;
         for (let p = 1; p <= 8; p++) {
           const k = `${todayStr}_${cName}_p${p}`;
-          if (db.attendance[k]) {
-            recordedTodayCount++;
-            classRecorded++;
-            if(db.attendance[k].teacher) recordedTeachers.add(db.attendance[k].teacher);
-          }
-        }
-        if (classRecorded < 8) {
-          unrecordedClassesList.push(`صف ${cName} (${8 - classRecorded} حصص غير مسجلة)`);
+          if (db.attendance[k]) { recordedTodayCount++; if(db.attendance[k].teacher) recordedTeachers.add(db.attendance[k].teacher); }
         }
       });
 
       const unrecordedToday = Math.max(0, totalExpected - recordedTodayCount);
-      const allTeachersNames = db.teachers.map(t => t.name);
-      const missingTeachers = allTeachersNames.filter(t => !recordedTeachers.has(t));
+      const allTeachersNames = db.teachers.map(t => t.name), missingTeachers = allTeachersNames.filter(t => !recordedTeachers.has(t));
 
       container.innerHTML = `
         <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <span class="text-xs text-slate-400 font-bold block">إجمالي حصص اليوم (توقع ${totalClassesCount} صفوف × 8 حصص)</span>
+          <span class="text-xs text-slate-400 font-bold block">إجمالي حصص اليوم (${totalClassesCount} صفوف × 8 حصص)</span>
           <div class="text-2xl font-extrabold text-slate-800 dark:text-white">${recordedTodayCount} <span class="text-xs font-normal text-slate-500">من ${totalExpected} حصة</span></div>
           <div class="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
             <div class="bg-emerald-600 h-full rounded-full" style="width: ${(recordedTodayCount / totalExpected) * 100}%"></div>
           </div>
         </div>
-
         <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
           <span class="text-xs text-slate-400 font-bold block">حالة التسجيل اليوم</span>
           <div class="flex gap-4 text-xs font-bold pt-1">
             <span class="text-emerald-600">✔ مسجلة: ${recordedTodayCount}</span>
             <span class="text-red-600">✖ غير مسجلة: ${unrecordedToday}</span>
           </div>
-          <p class="text-[11px] text-slate-500 mt-1">ملاحظة: الحصص غير المسجلة لا تُحسب تلقائياً كـ (حضور كامل) حتى يقوم المعلم باعتماد الرصد.</p>
         </div>
-
         <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <span class="text-xs text-slate-400 font-bold block">المعلمون الذين أكملوا/لم يكملوا التسجيل اليوم</span>
+          <span class="text-xs text-slate-400 font-bold block">المعلمون وأنشطة الرصد</span>
           <div class="text-xs font-bold text-slate-700 dark:text-slate-200 space-y-1">
             <div>أكملوا الرصد: <span class="text-emerald-600">${Array.from(recordedTeachers).join(', ') || 'لا أحد بعد'}</span></div>
             <div>لم يكملوا: <span class="text-red-600">${missingTeachers.join(', ') || 'الجميع أكمل'}</span></div>
@@ -1308,27 +1512,20 @@
     function renderTeacherActivityStats() {
       const container = document.getElementById('teacherActivityStatsContainer');
       let teacherStatsMap = {};
-
-      db.teachers.forEach(t => {
-        teacherStatsMap[t.name] = { name: t.name, recordedPeriods: 0, totalAbsencesRecorded: 0 };
-      });
+      db.teachers.forEach(t => { teacherStatsMap[t.name] = { name: t.name, recordedPeriods: 0, totalAbsencesRecorded: 0 }; });
       teacherStatsMap['أخرى'] = { name: 'أخرى', recordedPeriods: 0, totalAbsencesRecorded: 0 };
 
       Object.values(db.attendance).forEach(session => {
         const tName = session.teacher || 'أخرى';
         if (!teacherStatsMap[tName]) teacherStatsMap[tName] = { name: tName, recordedPeriods: 0, totalAbsencesRecorded: 0 };
         teacherStatsMap[tName].recordedPeriods++;
-
         if (session.records) {
-          Object.values(session.records).forEach(st => {
-            if (st !== 'present') teacherStatsMap[tName].totalAbsencesRecorded++;
-          });
+          Object.values(session.records).forEach(st => { if (st !== 'present') teacherStatsMap[tName].totalAbsencesRecorded++; });
         }
       });
 
       const list = Object.values(teacherStatsMap).sort((a,b) => b.recordedPeriods - a.recordedPeriods);
-
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b"><th class="p-3">اسم المعلم</th><th class="p-3 text-center">الحصص المسجلة فعلياً</th><th class="p-3 text-center">إجمالي المخالفات المسجلة من خلاله</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b"><th class="p-3">اسم المعلم</th><th class="p-3 text-center">الحصص المسجلة</th><th class="p-3 text-center">المخالفات المسجلة</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y">`;
       list.forEach(t => {
         html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
           <td class="p-3 font-bold text-slate-800 dark:text-white">${t.name}</td>
@@ -1341,15 +1538,9 @@
     }
 
     function openDailyAdminReportModal() {
-      const todayStr = getOmanLocalDate();
-      const sessions = getFilteredAttendanceRecords();
-
+      const todayStr = getOmanLocalDate(), sessions = getFilteredAttendanceRecords();
       let totals = { absent: 0, escape: 0, late: 0, outside: 0 };
-      sessions.forEach(sess => {
-        Object.values(sess.records).forEach(st => {
-          if(st !== 'present') totals[st]++;
-        });
-      });
+      sessions.forEach(sess => { Object.values(sess.records).forEach(st => { if(st !== 'present') totals[st]++; }); });
 
       let reportHTML = `
         <div id="printableDailyReport" class="space-y-4 text-slate-800 dark:text-slate-100 p-2">
@@ -1362,9 +1553,6 @@
             <div class="p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200"><span class="text-xs block text-red-600">التسرب</span><strong class="text-lg text-red-700">${totals.escape}</strong></div>
             <div class="p-3 bg-orange-50 dark:bg-orange-950/40 rounded-2xl border border-orange-200"><span class="text-xs block text-orange-600">التأخير</span><strong class="text-lg text-orange-700">${totals.late}</strong></div>
             <div class="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200"><span class="text-xs block text-purple-600">الخروج</span><strong class="text-lg text-purple-700">${totals.outside}</strong></div>
-          </div>
-          <div class="pt-2 text-xs font-bold text-slate-700 dark:text-slate-300">
-            تم إنشاء التقرير سحابياً بناءً على السجلات الفعلية للنظام ودون استخدام أي بيانات تجريبية.
           </div>
         </div>
       `;
@@ -1381,161 +1569,92 @@
     function printDailyReportPDF() {
       const content = document.getElementById('printableDailyReport').innerHTML;
       const win = window.open('', '_blank');
-      win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>التقرير اليومي - مدرسة أبو دجانة الأنصاري</title><style>
-        @page { size: A4 portrait; margin: 15mm; }
-        body { font-family: 'Tajawal', sans-serif; color: #000; background: #fff; direction: rtl; padding: 20px; font-size: 12px; }
-      </style></head><body>${content}</body></html>`);
-      win.document.close();
-      win.focus();
-      setTimeout(() => win.print(), 500);
+      win.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>التقرير اليومي</title><style>@page { size: A4 portrait; margin: 15mm; } body { font-family: 'Tajawal', sans-serif; direction: rtl; padding: 20px; font-size: 12px; }</style></head><body>${content}</body></html>`);
+      win.document.close(); win.focus(); setTimeout(() => win.print(), 500);
     }
 
     function renderReportsSection() {
-      const classFilter = document.getElementById('reportClassFilter').value;
-      const targetDate = document.getElementById('reportDatePicker').value;
+      const classFilter = document.getElementById('reportClassFilter').value, targetDate = document.getElementById('reportDatePicker').value;
       const container = document.getElementById('reportClassesContainer');
-      if (!container) return;
-      container.innerHTML = '';
-
+      if (!container) return; container.innerHTML = '';
       let classesToDisplay = classFilter === 'all' ? db.classes : [classFilter];
 
       classesToDisplay.forEach(className => {
         let classBlock = document.createElement('div');
         classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-300 dark:border-slate-700 overflow-hidden mb-6 p-4 min-w-[980px]';
-        
-        let blockHeader = document.createElement('div');
-        blockHeader.className = 'pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center';
-        blockHeader.innerHTML = `
-          <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف الدراسي: ${className}</span>
-          <span class="font-extrabold text-sm text-slate-700 dark:text-white">تاريخ الرصد: ${targetDate}</span>
+        classBlock.innerHTML = `
+          <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
+            <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف الدراسي: ${className}</span>
+            <span class="font-extrabold text-sm text-slate-700 dark:text-white">تاريخ الرصد: ${targetDate}</span>
+          </div>
+          <div class="grid grid-cols-8 gap-2" id="reportGrid_${className}"></div>
         `;
-        
-        let blockBody = document.createElement('div');
-        blockBody.className = 'grid grid-cols-8 gap-2';
+        container.appendChild(classBlock);
 
-        let periodsHtml = '';
+        let gridDiv = document.getElementById(`reportGrid_${className}`);
         for (let p = 1; p <= 8; p++) {
-          let sessionKey = `${targetDate}_${className}_p${p}`;
-          let sessionData = db.attendance[sessionKey];
-          let records = sessionData ? sessionData.records : {};
-          let teacherName = sessionData ? sessionData.teacher : '(غير مسجل)';
-
-          let issuesList = Object.entries(records).filter(([st, stVal]) => stVal !== 'present');
-          issuesList.sort((a, b) => {
-            if (a[1] === 'absent' && b[1] !== 'absent') return -1;
-            if (a[1] !== 'absent' && b[1] === 'absent') return 1;
-            return 0;
-          });
-
-          periodsHtml += `
-            <div class="border border-slate-300 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 flex flex-col min-h-[150px]">
-              <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/40 rounded-lg p-1">
-                <div class="text-[11px] font-extrabold text-slate-800 dark:text-emerald-300">الحصة ${p}</div>
-                <div class="text-[9px] text-slate-500 font-semibold truncate">(${teacherName})</div>
-              </div>
-              <div class="flex-grow space-y-1.5 pt-1">
+          let sessionKey = `${targetDate}_${className}_p${p}`, sessionData = db.attendance[sessionKey];
+          let records = sessionData ? sessionData.records : {}, teacherName = sessionData ? sessionData.teacher : '(غير مسجل)';
+          let issuesList = Object.entries(records).filter(([st, val]) => val !== 'present');
+          
+          let pCell = document.createElement('div');
+          pCell.className = 'border border-slate-300 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 flex flex-col min-h-[150px]';
+          pCell.innerHTML = `
+            <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/40 rounded-lg p-1">
+              <div class="text-[11px] font-extrabold text-slate-800 dark:text-emerald-300">الحصة ${p}</div>
+              <div class="text-[9px] text-slate-500 font-semibold truncate">(${teacherName})</div>
+            </div>
+            <div class="flex-grow space-y-1.5 pt-1" id="pCellContent_${className}_${p}"></div>
           `;
+          gridDiv.appendChild(pCell);
 
+          let contentDiv = document.getElementById(`pCellContent_${className}_${p}`);
           if (issuesList.length === 0) {
-            periodsHtml += `<div class="text-[10px] text-slate-400 py-3 text-center font-medium">لا يوجد مخالفات</div>`;
+            contentDiv.innerHTML = `<div class="text-[10px] text-slate-400 py-3 text-center font-medium">لا يوجد مخالفات</div>`;
           } else {
             issuesList.forEach(([studentName, status]) => {
               if (status === 'absent') {
-                periodsHtml += `<div class="p-1 px-1.5 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[9.5px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
+                contentDiv.innerHTML += `<div class="p-1 px-1.5 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[9.5px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
               } else {
-                let textClass = '';
-                let statusLabel = '';
-                if (status === 'escape') { textClass = 'text-red-600 font-bold'; statusLabel = 'متسرب'; }
-                else if (status === 'late') { textClass = 'text-blue-600 font-bold'; statusLabel = 'متأخر'; }
-                else if (status === 'outside') { textClass = 'text-purple-600 font-bold'; statusLabel = 'خارج'; }
-                periodsHtml += `<div class="text-[9.5px] ${textClass} px-1">• ${studentName} (${statusLabel})</div>`;
+                let statusLabel = status === 'escape' ? 'متسرب' : (status === 'late' ? 'متأخر' : 'خارج');
+                let textCls = status === 'escape' ? 'text-red-600 font-bold' : (status === 'late' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold');
+                contentDiv.innerHTML += `<div class="text-[9.5px] ${textCls} px-1">• ${studentName} (${statusLabel})</div>`;
               }
             });
           }
-          periodsHtml += `</div></div>`;
         }
-
-        blockBody.innerHTML = periodsHtml;
-        classBlock.appendChild(blockHeader);
-        classBlock.appendChild(blockBody);
-        container.appendChild(classBlock);
       });
     }
 
     function printHorizontalReport() {
-      const targetDate = document.getElementById('reportDatePicker').value;
-      const classFilter = document.getElementById('reportClassFilter').value;
+      const targetDate = document.getElementById('reportDatePicker').value, classFilter = document.getElementById('reportClassFilter').value;
       let classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
-
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير تفريغ الحصص اليومي - مدرسة أبو دجانة الأنصاري (${targetDate})</title><style>
-        @page { size: A4 landscape; margin: 6mm; }
-        * { box-sizing: border-box; }
-        body { font-family: 'Tajawal', sans-serif; color: #000; background: #fff; margin: 0; padding: 0; font-size: 10px; }
-        h2 { text-align: center; margin-bottom: 10px; font-size: 14px; color: #065f46; font-weight: 800; }
-        .class-row-card { page-break-inside: avoid; border: 2px solid #111; border-radius: 8px; margin-bottom: 12px; overflow: hidden; background: #fff; width: 100%; }
-        .class-header-bar { padding: 6px 12px; background-color: #f1f5f9; border-bottom: 2px solid #111; display: flex; justify-content: space-between; align-items: center; font-weight: bold; font-size: 11px; }
-        .periods-horizontal-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 6px; width: 100%; }
-        .period-cell { border: 1.5px solid #333; border-radius: 6px; padding: 4px; background-color: #fff; display: flex; flex-direction: column; min-height: 120px; }
-        .period-top { text-align: center; margin-bottom: 4px; padding-bottom: 3px; border-bottom: 1px solid #ccc; background: #fafafa; }
-        .period-num { font-weight: 800; color: #000; font-size: 10px; }
-        .teacher-name { color: #444; font-size: 8.5px; font-weight: 600; }
-        .period-content { flex-grow: 1; }
-        .no-records { text-align: center; color: #888; font-size: 8.5px; padding-top: 15px; }
-        .absent-pill-box { background-color: #000 !important; color: #fff !important; border: 2px solid #f59e0b !important; border-radius: 9999px; padding: 3px 2px; margin-bottom: 3px; display: block; text-align: center; font-weight: 800; font-size: 8.5px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-        .other-status { font-size: 8.5px; margin-bottom: 2px; font-weight: 700; padding-right: 2px; }
-        .status-late { color: #2563eb; }
-        .status-escape { color: #dc2626; }
-        .status-outside { color: #7c3aed; }
-      </style></head><body>`;
-      
-      printHTML += `<h2>تقرير تفريغ الغياب والحصص أفقياً - مدرسة أبو دجانة الأنصاري (${targetDate})</h2>`;
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الغياب الأفقي (${targetDate})</title><style>
+        @page { size: A4 landscape; margin: 6mm; } body { font-family: 'Tajawal', sans-serif; direction: rtl; font-size: 10px; }
+        .class-row-card { page-break-inside: avoid; border: 2px solid #111; border-radius: 8px; margin-bottom: 12px; background: #fff; width: 100%; }
+        .class-header-bar { padding: 6px 12px; background: #f1f5f9; border-bottom: 2px solid #111; display: flex; justify-content: space-between; font-weight: bold; }
+        .periods-horizontal-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 6px; }
+        .period-cell { border: 1.5px solid #333; border-radius: 6px; padding: 4px; min-height: 120px; }
+      </style></head><body><h2>تقرير تفريغ الغياب والحصص أفقياً (${targetDate})</h2>`;
 
       classesToPrint.forEach(className => {
-        printHTML += `<div class="class-row-card">`;
-        printHTML += `<div class="class-header-bar"><span>الصف الدراسي: ${className}</span><span>تاريخ الرصد: ${targetDate}</span></div>`;
-        printHTML += `<div class="periods-horizontal-grid">`;
-        
+        printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: ${className}</span><span>التاريخ: ${targetDate}</span></div><div class="periods-horizontal-grid">`;
         for (let p = 1; p <= 8; p++) {
-          let sessionKey = `${targetDate}_${className}_p${p}`;
-          let sData = db.attendance[sessionKey];
-          let teacher = sData ? sData.teacher : '(غير مسجل)';
-          let records = sData ? sData.records : {};
-          let issuesList = Object.entries(records).filter(([st, val]) => val !== 'present');
-
-          issuesList.sort((a, b) => {
-            if (a[1] === 'absent' && b[1] !== 'absent') return -1;
-            if (a[1] !== 'absent' && b[1] === 'absent') return 1;
-            return 0;
+          let sData = db.attendance[`${targetDate}_${className}_p${p}`], teacher = sData ? sData.teacher : '(غير مسجل)', records = sData ? sData.records : {};
+          printHTML += `<div class="period-cell"><div style="text-align:center;border-bottom:1px solid #ccc;padding-bottom:3px;margin-bottom:4px;"><b>الحصة ${p}</b><br><small>${teacher}</small></div>`;
+          Object.entries(records).forEach(([name, status]) => {
+            if (status !== 'present') {
+              let label = status === 'absent' ? 'غائب' : (status === 'escape' ? 'متسرب' : (status === 'late' ? 'متأخر' : 'خارج'));
+              printHTML += `<div style="font-size:8.5px;font-weight:bold;">• ${name} (${label})</div>`;
+            }
           });
-
-          printHTML += `<div class="period-cell"><div class="period-top"><div class="period-num">الحصة ${p}</div><div class="teacher-name">${teacher}</div></div><div class="period-content">`;
-
-          if (issuesList.length === 0) {
-            printHTML += `<div class="no-records">لا يوجد مخالفات</div>`;
-          } else {
-            issuesList.forEach(([studentName, status]) => {
-              if (status === 'absent') {
-                printHTML += `<div class="absent-pill-box">• ${studentName} (غائب)</div>`;
-              } else {
-                let textCls = '', label = '';
-                if (status === 'escape') { textCls = 'status-escape'; label = 'متسرب'; }
-                else if (status === 'late') { textCls = 'status-late'; label = 'متأخر'; }
-                else if (status === 'outside') { textCls = 'status-outside'; label = 'خارج'; }
-                printHTML += `<div class="other-status ${textCls}">• ${studentName} (${label})</div>`;
-              }
-            });
-          }
-          printHTML += `</div></div>`;
+          printHTML += `</div>`;
         }
         printHTML += `</div></div>`;
       });
-
       printHTML += `</body></html>`;
       const win = window.open('', '_blank');
-      win.document.write(printHTML);
-      win.document.close();
-      win.focus();
-      setTimeout(() => win.print(), 500);
+      win.document.write(printHTML); win.document.close(); win.focus(); setTimeout(() => win.print(), 500);
     }
 
     function exportAttendanceExcel() {
@@ -1543,8 +1662,7 @@
       let csv = "\uFEFFالصف,الحصة,المعلم,اسم الطالب,الحالة\n";
       db.classes.forEach(className => {
         for (let p = 1; p <= 8; p++) {
-          let sessionKey = `${targetDate}_${className}_p${p}`;
-          let sData = db.attendance[sessionKey];
+          let sData = db.attendance[`${targetDate}_${className}_p${p}`];
           if (sData && sData.records) {
             Object.entries(sData.records).forEach(([name, status]) => {
               if (status !== 'present') {
@@ -1556,10 +1674,8 @@
         }
       });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = `تفريغ_الغياب_أفقي_${targetDate}.csv`;
-      a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+      a.download = `تفريغ_الغياب_${targetDate}.csv`; a.click();
     }
 
     function populateAdminClassSelect() {
@@ -1605,8 +1721,7 @@
         const lines = evt.target.result.split(/\r?\n/).map(s => s.trim()).filter(Boolean), sel = document.getElementById('adminClassSelect').value;
         if (lines.length > 0) {
           db.students[sel] = [...new Set([...(db.students[sel] || []), ...lines])];
-          await saveSystemDataToCloud();
-          loadAdminStudentsList();
+          await saveSystemDataToCloud(); loadAdminStudentsList();
           alert(`تم استيراد ${lines.length} طالباً بنجاح!`);
         }
       };
@@ -1644,8 +1759,7 @@
       const name = document.getElementById('newTeacherName').value.trim(), pin = document.getElementById('newTeacherPin').value.trim();
       if (!name || !pin) { alert('أدخل الاسم والرمز.'); return; }
       db.teachers.push({ name, pin });
-      renderTeachersList();
-      const success = await saveSystemDataToCloud();
+      renderTeachersList(); const success = await saveSystemDataToCloud();
       renderTeachersList();
       document.getElementById('newTeacherName').value = ''; document.getElementById('newTeacherPin').value = '';
       alert(success ? 'تم الحفظ سحابياً!' : 'تم الحفظ محلياً.');
@@ -1657,18 +1771,15 @@
     async function deleteTeacher(idx) {
       if (confirm('حذف هذا المعلم؟')) {
         db.teachers.splice(idx, 1);
-        renderTeachersList();
-        localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
-        await saveSystemDataToCloud();
-        renderTeachersList();
+        renderTeachersList(); localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
+        await saveSystemDataToCloud(); renderTeachersList();
       }
     }
     function generateSmartAlerts() {
       const container = document.getElementById('smartAlertsContainer'); let issues = {};
       Object.entries(db.attendance).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
-        const sClass = session?.className || parsed.className;
-        const sDate = session?.date || parsed.date;
+        const sClass = session?.className || parsed.className, sDate = session?.date || parsed.date;
         if (session?.records && sClass) {
           Object.entries(session.records).forEach(([student, status]) => {
             if (status !== 'present') {
@@ -1684,13 +1795,7 @@
         }
       });
       const filtered = Object.values(issues).map(d => ({
-        studentName: d.studentName,
-        className: d.className,
-        absent: d.absentDates.size,
-        late: d.lateDates.size,
-        escape: d.escapeDates.size,
-        outside: d.outsideDates.size,
-        total: d.totalDays.size
+        studentName: d.studentName, className: d.className, absent: d.absentDates.size, late: d.lateDates.size, escape: d.escapeDates.size, outside: d.outsideDates.size, total: d.totalDays.size
       })).filter(d => d.total >= 1).sort((a,b) => b.total - a.total);
 
       if (filtered.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs font-bold">لا توجد مخالفات مسجلة.</div>`; return; }
@@ -1735,8 +1840,7 @@
     async function deleteCustomUser(idx) {
       if (confirm('حذف هذا المستخدم؟')) {
         db.customUsers.splice(idx, 1);
-        await saveSystemDataToCloud();
-        renderCustomUsersList();
+        await saveSystemDataToCloud(); renderCustomUsersList();
       }
     }
     async function saveNewAdminPin() {
