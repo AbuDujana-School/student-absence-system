@@ -243,12 +243,18 @@
             <p id="classSessionDateStatus" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5"></p>
           </div>
         </div>
-        <div class="flex items-center gap-2.5">
-          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">الحصة الدراسية:</label>
-          <select id="sessionPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer shadow-sm transition-all">
-            <option value="1">الحصة الأولى</option><option value="2">الحصة الثانية</option><option value="3">الحصة الثالثة</option><option value="4">الحصة الرابعة</option>
-            <option value="5">الحصة الخامسة</option><option value="6">الحصة السادسة</option><option value="7">الحصة السابعة</option><option value="8">الحصة الثامنة</option>
+        <div class="flex items-center gap-3">
+          <!-- Hidden select for background code compatibility -->
+          <select id="sessionPeriodSelect" class="hidden">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
           </select>
+          <div id="activePeriodDisplayBadge" class="bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-emerald-300 dark:border-emerald-700 shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-clock text-emerald-600"></i> <span id="activePeriodText">الحصة الأولى</span>
+          </div>
+          <button onclick="reselectAttendancePeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-2xl text-xs font-bold transition cursor-pointer">
+            تغيير الحصة
+          </button>
         </div>
       </div>
 
@@ -311,12 +317,18 @@
             <p id="behaviorSessionDateStatus" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5"></p>
           </div>
         </div>
-        <div class="flex items-center gap-2.5">
-          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">الحصة الدراسية:</label>
-          <select id="behaviorPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer shadow-sm transition-all">
-            <option value="1">الحصة الأولى</option><option value="2">الحصة الثانية</option><option value="3">الحصة الثالثة</option><option value="4">الحصة الرابعة</option>
-            <option value="5">الحصة الخامسة</option><option value="6">الحصة السادسة</option><option value="7">الحصة السابعة</option><option value="8">الحصة الثامنة</option>
+        <div class="flex items-center gap-3">
+          <!-- Hidden select for background code compatibility -->
+          <select id="behaviorPeriodSelect" class="hidden">
+            <option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option>
+            <option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option>
           </select>
+          <div id="activeBehaviorPeriodDisplayBadge" class="bg-teal-100 dark:bg-teal-950 text-teal-900 dark:text-teal-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-teal-300 dark:border-teal-700 shadow-sm flex items-center gap-2">
+            <i class="fa-solid fa-clock text-teal-600"></i> <span id="activeBehaviorPeriodText">الحصة الأولى</span>
+          </div>
+          <button onclick="reselectBehaviorPeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-2xl text-xs font-bold transition cursor-pointer">
+            تغيير الحصة
+          </button>
         </div>
       </div>
 
@@ -339,6 +351,61 @@
       </div>
     </div>
   </main>
+
+  <!-- Period Selection Modal (New Feature) -->
+  <div id="selectPeriodModal" class="fixed inset-0 bg-slate-900/70 z-[999999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
+    <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] max-w-xl w-full p-7 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+      <div class="flex justify-between items-center border-b pb-4 dark:border-slate-700">
+        <div>
+          <h3 id="selectPeriodModalTitle" class="font-extrabold text-lg text-slate-800 dark:text-white flex items-center gap-2.5">
+            <i class="fa-solid fa-clock text-emerald-600"></i> اختر الحصة الدراسية المطلوبة
+          </h3>
+          <p id="selectPeriodModalSubtitle" class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-medium">الرجاء تحديد الحصة بدقة قبل البدء برصد الطلاب</p>
+        </div>
+        <button onclick="closeSelectPeriodModal()" class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center text-lg cursor-pointer transition-colors"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+
+      <!-- Period Buttons Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+        <button type="button" onclick="confirmPeriodSelection(1)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">1</span>
+          <span>الحصة الأولى</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(2)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">2</span>
+          <span>الحصة الثانية</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(3)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">3</span>
+          <span>الحصة الثالثة</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(4)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">4</span>
+          <span>الحصة الرابعة</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(5)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">5</span>
+          <span>الحصة الخامسة</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(6)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">6</span>
+          <span>الحصة السادسة</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(7)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">7</span>
+          <span>الحصة السابعة</span>
+        </button>
+        <button type="button" onclick="confirmPeriodSelection(8)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm transition-all duration-200 flex flex-col items-center justify-center gap-2 shadow-sm cursor-pointer active:scale-95 group">
+          <span class="w-8 h-8 rounded-xl bg-emerald-600 group-hover:bg-white text-white group-hover:text-emerald-700 flex items-center justify-center text-xs font-black shadow-inner">8</span>
+          <span>الحصة الثامنة</span>
+        </button>
+      </div>
+
+      <div class="flex justify-end pt-2">
+        <button onclick="closeSelectPeriodModal()" class="px-6 py-3 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold cursor-pointer hover:bg-slate-300 transition-colors">إلغاء</button>
+      </div>
+    </div>
+  </div>
 
   <!-- Modals -->
   <div id="changePinModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
@@ -859,6 +926,10 @@
     let db = { version: 15, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {} };
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
     let selectedBehaviorClass = null, currentBehaviorRecord = {};
+    
+    // Variables for pending period selection flow
+    let pendingTargetClass = null;
+    let pendingMode = 'attendance'; // 'attendance' or 'behavior'
 
     window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode();
@@ -1072,13 +1143,71 @@
       });
     }
 
+    // --- New Period Selection Flow Functions ---
+    const periodNamesMap = { 1: 'الحصة الأولى', 2: 'الحصة الثانية', 3: 'الحصة الثالثة', 4: 'الحصة الرابعة', 5: 'الحصة الخامسة', 6: 'الحصة السادسة', 7: 'الحصة السابعة', 8: 'الحصة الثامنة' };
+
     function openClassAttendance(className) {
-      selectedClass = className;
-      document.getElementById('classesView').classList.add('hidden');
-      document.getElementById('attendanceView').classList.remove('hidden');
-      document.getElementById('selectedClassTitle').textContent = `رصد حضور وغياب صف ${className}`;
-      loadSessionAttendance();
+      pendingTargetClass = className;
+      pendingMode = 'attendance';
+      document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-emerald-600"></i> اختر الحصة لرصد حضور صف ${className}`;
+      document.getElementById('selectPeriodModal').classList.remove('hidden');
     }
+
+    function openClassBehavior(className) {
+      pendingTargetClass = className;
+      pendingMode = 'behavior';
+      document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-teal-600"></i> اختر الحصة لرصد سلوكيات صف ${className}`;
+      document.getElementById('selectPeriodModal').classList.remove('hidden');
+    }
+
+    function closeSelectPeriodModal() {
+      document.getElementById('selectPeriodModal').classList.add('hidden');
+      pendingTargetClass = null;
+    }
+
+    function confirmPeriodSelection(periodNum) {
+      document.getElementById('selectPeriodModal').classList.add('hidden');
+      if (!pendingTargetClass) return;
+
+      const pText = periodNamesMap[periodNum] || `الحصة ${periodNum}`;
+
+      if (pendingMode === 'attendance') {
+        selectedClass = pendingTargetClass;
+        document.getElementById('sessionPeriodSelect').value = periodNum;
+        document.getElementById('activePeriodText').textContent = pText;
+        document.getElementById('classesView').classList.add('hidden');
+        document.getElementById('attendanceView').classList.remove('hidden');
+        document.getElementById('selectedClassTitle').textContent = `رصد حضور وغياب صف ${selectedClass}`;
+        loadSessionAttendance();
+      } else if (pendingMode === 'behavior') {
+        selectedBehaviorClass = pendingTargetClass;
+        document.getElementById('behaviorPeriodSelect').value = periodNum;
+        document.getElementById('activeBehaviorPeriodText').textContent = pText;
+        document.getElementById('behaviorClassesView').classList.add('hidden');
+        document.getElementById('behaviorSessionView').classList.remove('hidden');
+        document.getElementById('selectedBehaviorClassTitle').textContent = `رصد سلوكيات صف ${selectedBehaviorClass}`;
+        loadSessionBehavior();
+      }
+      pendingTargetClass = null;
+    }
+
+    function reselectAttendancePeriod() {
+      if (!selectedClass) return;
+      pendingTargetClass = selectedClass;
+      pendingMode = 'attendance';
+      document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-emerald-600"></i> تغيير الحصة لرصد حضور صف ${selectedClass}`;
+      document.getElementById('selectPeriodModal').classList.remove('hidden');
+    }
+
+    function reselectBehaviorPeriod() {
+      if (!selectedBehaviorClass) return;
+      pendingTargetClass = selectedBehaviorClass;
+      pendingMode = 'behavior';
+      document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-teal-600"></i> تغيير الحصة لرصد سلوكيات صف ${selectedBehaviorClass}`;
+      document.getElementById('selectPeriodModal').classList.remove('hidden');
+    }
+    // ---------------------------------------------
+
     function backToClasses() {
       selectedClass = null;
       document.getElementById('attendanceView').classList.add('hidden');
@@ -1187,14 +1316,6 @@
         `;
         container.appendChild(btn);
       });
-    }
-
-    function openClassBehavior(className) {
-      selectedBehaviorClass = className;
-      document.getElementById('behaviorClassesView').classList.add('hidden');
-      document.getElementById('behaviorSessionView').classList.remove('hidden');
-      document.getElementById('selectedBehaviorClassTitle').textContent = `رصد سلوكيات صف ${className}`;
-      loadSessionBehavior();
     }
 
     function backToBehaviorClasses() {
@@ -1327,7 +1448,7 @@
       } catch (error) { 
         showToast('حدث خطأ أثناء حفظ السلوكيات.', 'error'); 
       }
-      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>`; }
+      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`; }
       loadSessionBehavior();
     }
 
