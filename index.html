@@ -74,7 +74,7 @@
       </form>
     </div>
 
-    <!-- Step 2: Main Dashboard Selection View (تم إعادة تصميم هذا الجزء بالكامل بصورة ممتازة وشديدة الجمال) -->
+    <!-- Step 2: Main Dashboard Selection View -->
     <div id="dashboardSelectionView" class="hidden space-y-8">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
@@ -107,12 +107,11 @@
         <p class="text-xs text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
       </div>
 
-      <!-- Hero Section Cards (الصندوقين الرائعين المعدلين للغياب والسلوكيات) -->
+      <!-- Hero Section Cards (Modified per user request: removed top badges & descriptions) -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
         
         <!-- Attendance Card -->
         <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[220px]">
-          <!-- Background Deco Glow -->
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
 
@@ -120,14 +119,10 @@
             <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-emerald-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner group-hover:rotate-6 group-hover:scale-110 transition-all duration-300">
               <i class="fa-solid fa-clipboard-user"></i>
             </div>
-            <span class="bg-white/20 backdrop-blur-md text-white text-[11px] font-extrabold px-3.5 py-1.5 rounded-full border border-white/30 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span> رصد حصص الغياب
-            </span>
           </div>
 
           <div class="relative z-10 mt-6">
-            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">قسم الغياب</h4>
-            <p class="text-xs text-emerald-100/90 font-medium leading-relaxed">رصد الحضور، التأخير، الغياب، التسرب والخروج اليومي بالحصص مع إمكانية استخراج الملف الإحصائي.</p>
+            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">الغياب</h4>
           </div>
 
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-emerald-200 group-hover:text-white">
@@ -140,7 +135,6 @@
 
         <!-- Behavior Card -->
         <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-600 via-cyan-700 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[220px]">
-          <!-- Background Deco Glow -->
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
 
@@ -148,14 +142,10 @@
             <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-cyan-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner group-hover:-rotate-6 group-hover:scale-110 transition-all duration-300">
               <i class="fa-solid fa-scale-balanced"></i>
             </div>
-            <span class="bg-white/20 backdrop-blur-md text-white text-[11px] font-extrabold px-3.5 py-1.5 rounded-full border border-white/30 flex items-center gap-1.5">
-              <span class="w-2 h-2 rounded-full bg-cyan-300 animate-pulse"></span> متابعة المخالفات
-            </span>
           </div>
 
           <div class="relative z-10 mt-6">
-            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">قسم السلوكيات</h4>
-            <p class="text-xs text-cyan-100/90 font-medium leading-relaxed">رصد المخالفات السلوكية وحصص الطلاب الانضباطية، تسجيل الملاحظات وتفريغ التقرير الأفقي السلوكي.</p>
+            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">السلوكيات</h4>
           </div>
 
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200 group-hover:text-white">
@@ -381,7 +371,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (تم إضافة أيقونات جليلة وأنيقة تعبر عن كل قسم بالكامل) -->
+        <!-- Admin Tabs -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100 dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">
             <i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات الطلاب</span>
@@ -711,13 +701,37 @@
         </div>
 
         <!-- Section 9: Security -->
-        <div id="sec-security" class="hidden space-y-4">
+        <div id="sec-security" class="hidden space-y-6">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> تغيير رمز مدير النظام العام</h5>
             <div class="max-w-xs">
               <input type="text" id="settingAdminPin" maxlength="10" class="p-2.5 bg-white dark:bg-slate-800 border rounded-xl text-xs w-full font-bold">
             </div>
             <button onclick="saveNewAdminPin()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">حفظ الرمز الجديد</button>
+          </div>
+
+          <!-- New Reset Attendance & Behaviors Section (Admin Only, Double PIN confirmation) -->
+          <div class="bg-red-50 dark:bg-red-950/30 p-5 rounded-3xl border border-red-200 dark:border-red-900/50 space-y-4">
+            <h5 class="font-extrabold text-xs text-red-800 dark:text-red-300 flex items-center gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-red-600"></i> تصفير وحذف سجلات الغياب والسلوكيات التجريبية بالكامل
+            </h5>
+            <p class="text-xs text-slate-600 dark:text-slate-400">
+              هذا الإجراء سيقوم بحذف كافة السجلات التجريبية القديمة للغياب والسلوكيات لكي لا تظهر في الإحصائيات. يتطلب إدخال الرقم السري لمدير النظام مرتين للتأكيد.
+            </p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">الرقم السري (المرة الأولى):</label>
+                <input type="password" id="resetPin1" placeholder="أدخل الرقم السري" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold tracking-widest outline-none">
+              </div>
+              <div>
+                <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">تأكيد الرقم السري (المرة الثانية):</label>
+                <input type="password" id="resetPin2" placeholder="أعد إدخال الرقم السري للتأكيد" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold tracking-widest outline-none">
+              </div>
+            </div>
+            <div id="resetErrorMsg" class="text-red-600 dark:text-red-400 text-xs font-bold hidden"></div>
+            <button onclick="executeFullReset()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow cursor-pointer flex items-center gap-2">
+              <i class="fa-solid fa-trash-can"></i> <span>تصفير كافة السجلات الآن</span>
+            </button>
           </div>
         </div>
 
@@ -1353,7 +1367,6 @@
       }
     }
 
-    // STUDENT BEHAVIOR PROFILE MODAL
     function openStudentBehaviorProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
@@ -1435,7 +1448,6 @@
       document.getElementById('studentDetailModal').classList.remove('hidden');
     }
 
-    // ADMIN PANEL & OTHER EXISTING FUNCTIONS
     function openAdminModal() {
       if (activeUser?.type === 'admin' || (activeUser?.type === 'custom' && hasAnyPermission(activeUser))) {
         openControlPanelDirectly();
@@ -1514,7 +1526,6 @@
       renderStudentStatsDashboard(); populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); renderCustomUsersList(); populateAdminClassSelect(); loadAdminStudentsList(); renderTeachersList(); populateReportClassSelect();
     }
 
-    // BEHAVIOR PDF REPORTS & PRINT
     function populateBehaviorReportClassSelect() {
       const sel = document.getElementById('behaviorReportClassFilter');
       if(!sel) return; const cur = sel.value;
@@ -2312,6 +2323,50 @@
       const newPin = document.getElementById('settingAdminPin').value.trim();
       if (newPin) { db.adminPin = btoa(newPin); const success = await saveSystemDataToCloud(); alert(success ? 'تم حفظ الرمز الجديد سحابياً!' : 'تم الحفظ محلياً.'); } 
       else { alert('أدخل الرمز الجديد.'); }
+    }
+
+    // Function for Full Reset of Attendance and Behaviors with Double PIN verification
+    async function executeFullReset() {
+      const pin1 = document.getElementById('resetPin1').value.trim();
+      const pin2 = document.getElementById('resetPin2').value.trim();
+      const errorEl = document.getElementById('resetErrorMsg');
+      errorEl.classList.add('hidden');
+
+      if (!pin1 || !pin2) {
+        errorEl.textContent = 'يرجى إدخال الرقم السري في الحقلين للتأكيد.';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (pin1 !== pin2) {
+        errorEl.textContent = 'الرقم السري غير متطابق في الحقلين!';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      const adminDecoded = db.adminPin?.length === 4 || !isBase64(db.adminPin) ? db.adminPin : atob(db.adminPin || "MTIzNA==");
+      const isValid = (pin1 === adminDecoded || btoa(pin1) === db.adminPin);
+
+      if (!isValid) {
+        errorEl.textContent = 'الرقم السري غير صحيح لمدير النظام!';
+        errorEl.classList.remove('hidden');
+        return;
+      }
+
+      if (!confirm('هل أنت متأكد تماماً من رغبتك في تصفير وحذف جميع سجلات الغياب والسلوكيات التجريبية القديمة؟ لا يمكن التراجع عن هذا الإجراء.')) {
+        return;
+      }
+
+      // Clear attendance and behaviors records completely
+      db.attendance = {};
+      db.behaviors = {};
+      
+      const success = await saveSystemDataToCloud();
+      document.getElementById('resetPin1').value = '';
+      document.getElementById('resetPin2').value = '';
+      
+      alert(success ? 'تم تصفير كافة سجلات الغياب والسلوكيات وحفظ التحديثات سحابياً بنجاح!' : 'تم التصفير محلياً بنجاح.');
+      initAdminDashboard();
     }
   </script>
 </body>
