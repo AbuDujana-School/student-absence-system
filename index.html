@@ -512,7 +512,7 @@
     const GITHUB_OWNER = "abudujana-school";
     const GITHUB_REPO = "abudujana-school.github.io";
     const GITHUB_FILE_PATH = "db.json";
-    const GITHUB_TOKEN = "github_pat_11BL45D7A04fT1fPqndwQf_F7p6R1n4xZq1Hn91wA20L19kP7m94jK82mZl";
+    const GITHUB_TOKEN = "ghp_tFwdkYXXX5b6BnJsZYKB29WEYJQMLS0znv54"; // التوكن الخاص بك
 
     const API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
 
@@ -989,9 +989,8 @@
         classStats[c] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
       });
 
-      // تتبع الحالات حسب (اليوم + الصف + الطالب + الحالة) لعدم احتساب الحصص المتعددة في نفس اليوم إلا مرة واحدة
       let seenStudentDayStatus = new Set();
-      let classStudentDayStatus = {}; // لتتبع اجمالي مخالفات الصفوف بناء على الطالب في اليوم
+      let classStudentDayStatus = {};
 
       sessions.forEach(sess => {
         const cName = sess.className;
@@ -1004,10 +1003,8 @@
               studentViolations[studKey] = { name: studentName, className: cName, absent: 0, escape: 0, late: 0, outside: 0, total: 0, history: [] };
             }
 
-            // تسجيل السجل في التاريخ الكامل للطالب (لكل حصة على حدة)
             studentViolations[studKey].history.push({ date: sess.date, period: sess.period, status, teacher: sess.teacher });
 
-            // حساب المرات على مستوى اليوم الواحد للطالب (مرة واحدة في اليوم لكل حالة)
             const dayStatusKey = `${sess.date}_${cName}_${studentName}_${status}`;
             if (!seenStudentDayStatus.has(dayStatusKey)) {
               seenStudentDayStatus.add(dayStatusKey);
@@ -1015,7 +1012,6 @@
               if(studentViolations[studKey][status] !== undefined) studentViolations[studKey][status]++;
             }
 
-            // حساب إجمالي مخالفات الصف بناء على الطالب في اليوم
             const classDayStatusKey = `${sess.date}_${cName}_${studentName}_${status}`;
             if(!classStudentDayStatus[classDayStatusKey]) {
               classStudentDayStatus[classDayStatusKey] = true;
@@ -1092,7 +1088,6 @@
       const sessions = getFilteredAttendanceRecords();
       const statusLabels = { absent: 'الغياب', escape: 'التسرب', late: 'التأخير', outside: 'الخروج من الصف' };
 
-      // تجميع السجلات بحيث يظهر الطالب مرة واحدة لكل يوم سجلت فيه المخالفة في الكشف العام
       let studentDayMap = {};
       sessions.forEach(sess => {
         Object.entries(sess.records).forEach(([studentName, st]) => {
@@ -1206,7 +1201,6 @@
       let counts = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
       let historyLogs = [];
 
-      // تجميع إحصائيات الأيام الفريدة للطالب
       let seenStudentDays = { absent: new Set(), escape: new Set(), late: new Set(), outside: new Set() };
 
       Object.entries(db.attendance || {}).forEach(([key, session]) => {
@@ -1348,7 +1342,6 @@
         if (!teacherStatsMap[tName]) teacherStatsMap[tName] = { name: tName, recordedPeriods: 0, totalAbsencesRecorded: 0 };
         teacherStatsMap[tName].recordedPeriods++;
 
-        // احتساب الحالات المسجلة للتقرير
         if (session.records) {
           Object.values(session.records).forEach(st => {
             if (st !== 'present') teacherStatsMap[tName].totalAbsencesRecorded++;
