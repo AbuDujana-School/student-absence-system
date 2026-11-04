@@ -258,7 +258,7 @@
           <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-md flex flex-wrap justify-between items-center gap-4">
             <div>
               <h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة تحكم إحصائيات الطلاب الإدارية</h4>
-              <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية للغياب، والتأخير، والتسرب، والخروج اليومي والحصص</p>
+              <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية للغياب، والتأخير، والتسرب، والخروج اليومي والحصص (بحسب أيام الحدوث الفريدة)</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
               <div>
@@ -287,9 +287,9 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div onclick="openStatusListModal('absent')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group">
               <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">الغياب</span>
+                <span class="text-xs font-bold text-slate-400 block mb-1">الغياب (أيام الحدوث)</span>
                 <h3 id="cardCountAbsent" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</h3>
-                <span class="text-[10px] text-slate-500 mt-1 block">إجمالي حالات الغياب</span>
+                <span class="text-[10px] text-slate-500 mt-1 block">إجمالي أيام غياب الطلاب</span>
               </div>
               <div class="w-14 h-14 rounded-2xl bg-black text-white border-2 border-amber-400 flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
                 <i class="fa-solid fa-user-slash"></i>
@@ -298,7 +298,7 @@
 
             <div onclick="openStatusListModal('escape')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-red-500 transition cursor-pointer flex items-center justify-between group">
               <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">التسرب</span>
+                <span class="text-xs font-bold text-slate-400 block mb-1">التسرب (أيام الحدوث)</span>
                 <h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3>
                 <span class="text-[10px] text-slate-500 mt-1 block">حالات التسرب المسجلة</span>
               </div>
@@ -309,7 +309,7 @@
 
             <div onclick="openStatusListModal('late')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-orange-500 transition cursor-pointer flex items-center justify-between group">
               <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">التأخير</span>
+                <span class="text-xs font-bold text-slate-400 block mb-1">التأخير (أيام الحدوث)</span>
                 <h3 id="cardCountLate" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400">0</h3>
                 <span class="text-[10px] text-slate-500 mt-1 block">حالات التأخير الصباحي/الحصص</span>
               </div>
@@ -320,7 +320,7 @@
 
             <div onclick="openStatusListModal('outside')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-purple-500 transition cursor-pointer flex items-center justify-between group">
               <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">الخروج من الصف</span>
+                <span class="text-xs font-bold text-slate-400 block mb-1">الخروج (أيام الحدوث)</span>
                 <h3 id="cardCountOutside" class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">0</h3>
                 <span class="text-[10px] text-slate-500 mt-1 block">حالات الخروج والاستئذان</span>
               </div>
@@ -345,7 +345,7 @@
           <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
             <div class="flex flex-wrap justify-between items-center border-b pb-3 dark:border-slate-700 gap-2">
               <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات المخالفات حسب الصفوف الدراسية
+                <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات المخالفات حسب الصفوف الدراسية (بعدد الأيام/المرات)
               </h5>
               <div class="flex items-center gap-2 text-xs">
                 <label class="font-bold text-slate-600 dark:text-slate-300">ترتيب الصفوف:</label>
@@ -379,7 +379,7 @@
 
         </div>
 
-        <!-- Section 2: Custom Users (Updated Checklist items to match all 8 tabs) -->
+        <!-- Section 2: Custom Users -->
         <div id="sec-users" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة مستخدم مخصص جديد</h5>
@@ -842,7 +842,6 @@
     }
     function isBase64(str) { try { return btoa(atob(str)) === str; } catch(err) { return false; } }
 
-    // Enhanced Role Permission Setup mapping all 8 Tabs
     function setupRolePermissions() {
       const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
       const tabsConfig = ['studstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'];
@@ -944,9 +943,25 @@
       return filteredSessions;
     }
 
+    // UPDATED STATISTICS LOGIC: AGGREGATE PER STUDENT PER DAY (UNIQUE INSTANCES/DAYS)
     function renderStudentStatsDashboard() {
       const sessions = getFilteredAttendanceRecords();
       
+      let studentRawLogs = {}; // studKey -> { name, className, history: [] }
+
+      sessions.forEach(sess => {
+        const { date, className, period, teacher, records } = sess;
+        Object.entries(records).forEach(([studentName, status]) => {
+          if (status !== 'present') {
+            const studKey = `${className}::${studentName}`;
+            if (!studentRawLogs[studKey]) {
+              studentRawLogs[studKey] = { name: studentName, className, history: [] };
+            }
+            studentRawLogs[studKey].history.push({ date, period, status, teacher, className });
+          }
+        });
+      });
+
       let counts = { absent: 0, escape: 0, late: 0, outside: 0 };
       let studentViolations = {}; 
       let classStats = {}; 
@@ -955,25 +970,37 @@
         classStats[c] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
       });
 
-      sessions.forEach(sess => {
-        const cName = sess.className;
-        if(!classStats[cName]) classStats[cName] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
-
-        Object.entries(sess.records).forEach(([studentName, status]) => {
-          if (status !== 'present') {
-            counts[status] = (counts[status] || 0) + 1;
-            classStats[cName][status]++;
-            classStats[cName].total++;
-
-            const studKey = `${cName}::${studentName}`;
-            if (!studentViolations[studKey]) {
-              studentViolations[studKey] = { name: studentName, className: cName, absent: 0, escape: 0, late: 0, outside: 0, total: 0, history: [] };
-            }
-            if(studentViolations[studKey][status] !== undefined) studentViolations[studKey][status]++;
-            studentViolations[studKey].total++;
-            studentViolations[studKey].history.push({ date: sess.date, period: sess.period, status, teacher: sess.teacher });
-          }
+      Object.entries(studentRawLogs).forEach(([studKey, data]) => {
+        const { name, className, history } = data;
+        
+        // Group history by date to calculate unique days/instances per violation type
+        let dateMap = {}; // date -> Set of statuses for that date
+        history.forEach(h => {
+          if (!dateMap[h.date]) dateMap[h.date] = new Set();
+          dateMap[h.date].add(h.status);
         });
+
+        let absentDays = 0, escapeDays = 0, lateDays = 0, outsideDays = 0;
+        Object.values(dateMap).forEach(statuses => {
+          if (statuses.has('absent')) { absentDays++; counts.absent++; classStats[className].absent++; classStats[className].total++; }
+          if (statuses.has('escape')) { escapeDays++; counts.escape++; classStats[className].escape++; classStats[className].total++; }
+          if (statuses.has('late')) { lateDays++; counts.late++; classStats[className].late++; classStats[className].total++; }
+          if (statuses.has('outside')) { outsideDays++; counts.outside++; classStats[className].outside++; classStats[className].total++; }
+        });
+
+        const totalViolationDays = absentDays + escapeDays + lateDays + outsideDays;
+        if (totalViolationDays > 0) {
+          studentViolations[studKey] = {
+            name,
+            className,
+            absent: absentDays,
+            escape: escapeDays,
+            late: lateDays,
+            outside: outsideDays,
+            total: totalViolationDays,
+            history
+          };
+        }
       });
 
       document.getElementById('cardCountAbsent').textContent = counts.absent;
@@ -987,9 +1014,9 @@
       const attContainer = document.getElementById('needsAttentionContainer');
       
       if (needsAttentionList.length === 0) {
-        attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة (الحد الأدنى للتكرار: ${threshold} مخالفات).</div>`;
+        attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة (الحد الأدنى للتكرار: ${threshold} أيام مخالفات).</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">نوع المخالفات الأكثر تكراراً</th><th class="p-3 text-center">عدد التكرار</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">نوع المخالفات الأكثر تكراراً</th><th class="p-3 text-center">عدد أيام التكرار</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y">`;
         needsAttentionList.forEach(st => {
           let mainViolation = 'متنوع';
           let maxV = Math.max(st.absent, st.escape, st.late, st.outside);
@@ -1041,29 +1068,35 @@
       const sessions = getFilteredAttendanceRecords();
       const statusLabels = { absent: 'الغياب', escape: 'التسرب', late: 'التأخير', outside: 'الخروج من الصف' };
 
+      // Aggregate student instances per date for this status
+      let studentDayMap = {}; // `${className}::${studentName}::${date}` -> true
       let list = [];
+
       sessions.forEach(sess => {
         Object.entries(sess.records).forEach(([studentName, st]) => {
           if (st === statusKey) {
-            list.push({ studentName, className: sess.className, date: sess.date, period: sess.period, teacher: sess.teacher });
+            const uniqueKey = `${sess.className}::${studentName}::${sess.date}`;
+            if (!studentDayMap[uniqueKey]) {
+              studentDayMap[uniqueKey] = true;
+              list.push({ studentName, className: sess.className, date: sess.date });
+            }
           }
         });
       });
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة طلاب (${statusLabels[statusKey]}) - العدد: ${list.length}`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة طلاب (${statusLabels[statusKey]}) - عدد المرات/الأيام: ${list.length}`;
       const body = document.getElementById('generalModalBody');
       
       if (list.length === 0) {
         body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد حالات مسجلة لهذه الفئة في الفترة المحددة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">الحصة</th><th class="p-3 text-center">المعلم المسؤول</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">إجراء الملف</th></tr></thead><tbody class="divide-y">`;
         list.forEach(item => {
           html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="closeGeneralModal(); openStudentProfileModal('${item.className}', '${item.studentName}')">${item.studentName}</td>
             <td class="p-3 text-center font-semibold text-emerald-700">${item.className}</td>
             <td class="p-3 text-center">${item.date}</td>
-            <td class="p-3 text-center font-bold">الحصة ${item.period}</td>
-            <td class="p-3 text-center text-slate-500">${item.teacher}</td>
+            <td class="p-3 text-center"><button onclick="closeGeneralModal(); openStudentProfileModal('${item.className}', '${item.studentName}')" class="bg-emerald-700 text-white px-3 py-1 rounded-lg font-bold">عرض تفاصيل الحصص</button></td>
           </tr>`;
         });
         body.innerHTML = html + `</tbody></table>`;
@@ -1073,22 +1106,28 @@
 
     function openClassDetailModal(className) {
       const sessions = getFilteredAttendanceRecords().filter(s => s.className === className);
+      let studentDayMap = {};
       let list = [];
+
       sessions.forEach(sess => {
         Object.entries(sess.records).forEach(([studentName, status]) => {
           if (status !== 'present') {
-            list.push({ studentName, status, date: sess.date, period: sess.period, teacher: sess.teacher });
+            const uniqueKey = `${studentName}::${sess.date}::${status}`;
+            if (!studentDayMap[uniqueKey]) {
+              studentDayMap[uniqueKey] = true;
+              list.push({ studentName, status, date: sess.date });
+            }
           }
         });
       });
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات طلاب صف ${className} (${list.length} حالة)`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات طلاب صف ${className} (${list.length} حالة فريدة)`;
       const body = document.getElementById('generalModalBody');
 
       if (list.length === 0) {
         body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد مخالفات مسجلة لصف ${className} في هذه الفترة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">الحصة</th><th class="p-3 text-center">المعلم</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">عرض كامل الحصص</th></tr></thead><tbody class="divide-y">`;
         list.forEach(item => {
           let stLabel = item.status === 'absent' ? 'غائب' : (item.status === 'escape' ? 'متسرب' : (item.status === 'late' ? 'متأخر' : 'خارج'));
           let badgeColor = item.status === 'absent' ? 'bg-black text-white border border-amber-400' : (item.status === 'escape' ? 'bg-red-100 text-red-700' : (item.status === 'late' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'));
@@ -1096,8 +1135,7 @@
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="closeGeneralModal(); openStudentProfileModal('${className}', '${item.studentName}')">${item.studentName}</td>
             <td class="p-3 text-center"><span class="px-2.5 py-0.5 rounded-full font-bold ${badgeColor}">${stLabel}</span></td>
             <td class="p-3 text-center">${item.date}</td>
-            <td class="p-3 text-center font-bold">الحصة ${item.period}</td>
-            <td class="p-3 text-center text-slate-500">${item.teacher}</td>
+            <td class="p-3 text-center"><button onclick="closeGeneralModal(); openStudentProfileModal('${className}', '${item.studentName}')" class="bg-emerald-700 text-white px-3 py-1 rounded-lg font-bold">عرض جميع الحصص</button></td>
           </tr>`;
         });
         body.innerHTML = html + `</tbody></table>`;
@@ -1109,6 +1147,7 @@
       document.getElementById('generalModal').classList.add('hidden');
     }
 
+    // STUDENT PROFILE MODAL: SHOWS FULL PERIOD BREAKDOWN WHEN CLICKED
     function openStudentProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
@@ -1136,9 +1175,7 @@
       document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب: ${studentName}`;
       document.getElementById('modalStudentSubtitle').textContent = `الصف الدراسي: ${realClassName}`;
 
-      let counts = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
       let historyLogs = [];
-
       Object.entries(db.attendance || {}).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
         const sessClassName = session.className || parsed.className;
@@ -1148,43 +1185,56 @@
         if (session && session.records && session.records[studentName]) {
           const status = session.records[studentName];
           if (status && status !== 'present') {
-            counts[status] = (counts[status] || 0) + 1;
-            counts.total++;
             historyLogs.push({ 
               date: sessDate, 
               period: sessPeriod, 
               status: status, 
-              teacher: session.teacher || 'معلم',
+50              teacher: session.teacher || 'معلم',
               className: sessClassName
             });
           }
         }
       });
 
-      historyLogs.sort((a,b) => new Date(b.date) - new Date(a.date));
+      historyLogs.sort((a,b) => new Date(b.date) - new Date(a.date) || b.period - a.period);
+
+      // Calculate unique days/instances for summary cards
+      let dateMap = {};
+      historyLogs.forEach(h => {
+        if (!dateMap[h.date]) dateMap[h.date] = new Set();
+        dateMap[h.date].add(h.status);
+      });
+
+      let absentDays = 0, escapeDays = 0, lateDays = 0, outsideDays = 0;
+      Object.values(dateMap).forEach(statuses => {
+        if (statuses.has('absent')) absentDays++;
+        if (statuses.has('escape')) escapeDays++;
+        if (statuses.has('late')) lateDays++;
+        if (statuses.has('outside')) outsideDays++;
+      });
 
       let bodyHTML = `
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border"><span class="text-xs text-slate-400 block">غياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${counts.absent}</span></div>
-          <div class="bg-red-50 dark:bg-red-950/40 p-3 rounded-2xl border border-red-200"><span class="text-xs text-red-600 block">تسرب</span><span class="text-xl font-extrabold text-red-700">${counts.escape}</span></div>
-          <div class="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-2xl border border-orange-200"><span class="text-xs text-orange-600 block">تأخير</span><span class="text-xl font-extrabold text-orange-700">${counts.late}</span></div>
-          <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-200"><span class="text-xs text-purple-600 block">خارج</span><span class="text-xl font-extrabold text-purple-700">${counts.outside}</span></div>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border"><span class="text-xs text-slate-400 block">أيام الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${absentDays}</span></div>
+          <div class="bg-red-50 dark:bg-red-950/40 p-3 rounded-2xl border border-red-200"><span class="text-xs text-red-600 block">أيام التسرب</span><span class="text-xl font-extrabold text-red-700">${escapeDays}</span></div>
+          <div class="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-2xl border border-orange-200"><span class="text-xs text-orange-600 block">أيام التأخير</span><span class="text-xl font-extrabold text-orange-700">${lateDays}</span></div>
+          <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-200"><span class="text-xs text-purple-600 block">أيام الخروج</span><span class="text-xl font-extrabold text-purple-700">${outsideDays}</span></div>
         </div>
 
         <div class="space-y-2 pt-3">
-          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> سجل المخالفات والغياب (من الأحدث للأقدم):</h5>
+          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> تفاصيل الحصص الكاملة المسجلة (من الأحدث للأقدم):</h5>
       `;
 
       if (historyLogs.length === 0) {
         bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات مسجلة لهذا الطالب حتى الآن.</div>`;
       } else {
         historyLogs.forEach(log => {
-          let stLabel = log.status === 'absent' ? 'غياب كامل/حصة' : (log.status === 'escape' ? 'متسرب' : (log.status === 'late' ? 'متأخر' : 'خارج الصف'));
+          let stLabel = log.status === 'absent' ? 'غياب' : (log.status === 'escape' ? 'متسرب' : (log.status === 'late' ? 'متأخر' : 'خارج الصف'));
           let badgeBg = log.status === 'absent' ? 'bg-black text-white border border-amber-400' : (log.status === 'escape' ? 'bg-red-100 text-red-700' : (log.status === 'late' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'));
           bodyHTML += `
             <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-2">
               <div>
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${badgeBg}">${stLabel}</span>
+                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeBg}">${stLabel}</span>
                 <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">الحصة ${log.period} | صف ${log.className} | المعلم: ${log.teacher}</div>
               </div>
               <div class="text-left font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">${log.date}</div>
@@ -1623,27 +1673,39 @@
       Object.entries(db.attendance).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
         const sClass = session?.className || parsed.className;
+        const sDate = session?.date || parsed.date;
         if (session?.records && sClass) {
           Object.entries(session.records).forEach(([student, status]) => {
             if (status !== 'present') {
               const k = `${sClass}::${student}`;
-              if (!issues[k]) issues[k] = { studentName: student, className: sClass, absent: 0, late: 0, escape: 0, outside: 0, total: 0 };
-              if(issues[k][status] !== undefined) issues[k][status]++;
-              issues[k].total++;
+              if (!issues[k]) issues[k] = { studentName: student, className: sClass, absentDates: new Set(), lateDates: new Set(), escapeDates: new Set(), outsideDates: new Set(), totalDays: new Set() };
+              issues[k].totalDays.add(sDate);
+              if (status === 'absent') issues[k].absentDates.add(sDate);
+              if (status === 'late') issues[k].lateDates.add(sDate);
+              if (status === 'escape') issues[k].escapeDates.add(sDate);
+              if (status === 'outside') issues[k].outsideDates.add(sDate);
             }
           });
         }
       });
-      const filtered = Object.values(issues).filter(d => d.total >= 1).sort((a,b) => b.total - a.total);
+      const filtered = Object.values(issues).map(d => ({
+        studentName: d.studentName,
+        className: d.className,
+        absent: d.absentDates.size,
+        late: d.lateDates.size,
+        escape: d.escapeDates.size,
+        outside: d.outsideDates.size,
+        total: d.totalDays.size
+      })).filter(d => d.total >= 1).sort((a,b) => b.total - a.total);
+
       if (filtered.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs font-bold">لا توجد مخالفات مسجلة.</div>`; return; }
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 text-red-900 border-b"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">المجموع</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 text-red-900 border-b"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أيام غياب</th><th class="p-3 text-center">أيام تأخير</th><th class="p-3 text-center">أيام تسرب</th><th class="p-3 text-center">أيام خارج</th><th class="p-3 text-center">إجمالي الأيام</th></tr></thead><tbody class="divide-y">`;
       filtered.forEach(d => {
         html += `<tr><td class="p-3 font-bold text-emerald-700">${d.studentName}</td><td class="p-3 text-center font-semibold">${d.className}</td><td class="p-3 text-center">${d.absent}</td><td class="p-3 text-center">${d.late}</td><td class="p-3 text-center">${d.escape}</td><td class="p-3 text-center">${d.outside}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${d.total}</span></td></tr>`;
       });
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    // Adding Custom User (Updated Permissions Object)
     async function addCustomUser() {
       const name = document.getElementById('newCustomUserName').value.trim(), pin = document.getElementById('newCustomUserPin').value.trim();
       if (!name || !pin) { alert('أدخل الاسم والرمز.'); return; }
