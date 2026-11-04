@@ -6,11 +6,17 @@
   <title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Tajawal', sans-serif; }
     .status-btn { transition: all 0.2s ease; }
     .status-btn:hover { transform: translateY(-2px); }
+    .hero-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .hero-card:hover {
+      transform: translateY(-6px) scale(1.01);
+    }
   </style>
   <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
@@ -68,8 +74,8 @@
       </form>
     </div>
 
-    <!-- Step 2: Main Dashboard Selection View -->
-    <div id="dashboardSelectionView" class="hidden space-y-6">
+    <!-- Step 2: Main Dashboard Selection View (تم إعادة تصميم هذا الجزء بالكامل بصورة ممتازة وشديدة الجمال) -->
+    <div id="dashboardSelectionView" class="hidden space-y-8">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center font-bold text-lg border border-emerald-100 dark:border-emerald-800">
@@ -79,7 +85,7 @@
             <span class="text-slate-400 text-xs block">مرحباً بك:</span>
             <div class="flex items-center gap-2 flex-wrap">
               <span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
-              <span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-md font-bold"></span>
+              <span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold shadow-sm"></span>
               <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
                 <i class="fa-solid fa-key text-[10px]"></i> تغيير الرمز
               </button>
@@ -96,25 +102,70 @@
         </div>
       </div>
 
-      <div class="text-center py-4">
-        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-1">لوحة التحكم الرئيسية</h3>
-        <p class="text-xs text-slate-400">اختر القسم المطلوب للانتقال الفوري</p>
+      <div class="text-center py-2">
+        <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-wide">لوحة التحكم الرئيسية</h3>
+        <p class="text-xs text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
-        <div onclick="goToAttendanceSection()" class="bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-800 dark:to-slate-800/90 p-8 rounded-3xl shadow-xl border-2 border-emerald-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
-          <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition shadow-inner">
-            <i class="fa-solid fa-clipboard-user"></i>
+      <!-- Hero Section Cards (الصندوقين الرائعين المعدلين للغياب والسلوكيات) -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+        
+        <!-- Attendance Card -->
+        <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[220px]">
+          <!-- Background Deco Glow -->
+          <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
+          <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+
+          <div class="relative z-10 flex justify-between items-start">
+            <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-emerald-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner group-hover:rotate-6 group-hover:scale-110 transition-all duration-300">
+              <i class="fa-solid fa-clipboard-user"></i>
+            </div>
+            <span class="bg-white/20 backdrop-blur-md text-white text-[11px] font-extrabold px-3.5 py-1.5 rounded-full border border-white/30 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></span> رصد حصص الغياب
+            </span>
           </div>
-          <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white group-hover:text-emerald-700 tracking-wide">غياب</h4>
+
+          <div class="relative z-10 mt-6">
+            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">قسم الغياب</h4>
+            <p class="text-xs text-emerald-100/90 font-medium leading-relaxed">رصد الحضور، التأخير، الغياب، التسرب والخروج اليومي بالحصص مع إمكانية استخراج الملف الإحصائي.</p>
+          </div>
+
+          <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-emerald-200 group-hover:text-white">
+            <span>انقر للبدء في الرصد</span>
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-[-6px] transition-transform duration-300">
+              <i class="fa-solid fa-arrow-left text-sm"></i>
+            </div>
+          </div>
         </div>
 
-        <div onclick="goToBehaviorSection()" class="bg-gradient-to-br from-white to-teal-50/40 dark:from-slate-800 dark:to-slate-800/90 p-8 rounded-3xl shadow-xl border-2 border-teal-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
-          <div class="w-16 h-16 bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition shadow-inner">
-            <i class="fa-solid fa-scale-balanced"></i>
+        <!-- Behavior Card -->
+        <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-600 via-cyan-700 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[220px]">
+          <!-- Background Deco Glow -->
+          <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
+          <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+
+          <div class="relative z-10 flex justify-between items-start">
+            <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-cyan-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner group-hover:-rotate-6 group-hover:scale-110 transition-all duration-300">
+              <i class="fa-solid fa-scale-balanced"></i>
+            </div>
+            <span class="bg-white/20 backdrop-blur-md text-white text-[11px] font-extrabold px-3.5 py-1.5 rounded-full border border-white/30 flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-cyan-300 animate-pulse"></span> متابعة المخالفات
+            </span>
           </div>
-          <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white group-hover:text-teal-700 tracking-wide">السلوكيات</h4>
+
+          <div class="relative z-10 mt-6">
+            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">قسم السلوكيات</h4>
+            <p class="text-xs text-cyan-100/90 font-medium leading-relaxed">رصد المخالفات السلوكية وحصص الطلاب الانضباطية، تسجيل الملاحظات وتفريغ التقرير الأفقي السلوكي.</p>
+          </div>
+
+          <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200 group-hover:text-white">
+            <span>انقر للبدء في الرصد</span>
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-[-6px] transition-transform duration-300">
+              <i class="fa-solid fa-arrow-left text-sm"></i>
+            </div>
+          </div>
         </div>
+
       </div>
     </div>
 
@@ -330,20 +381,38 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (إحصائيات الطلاب والبيانات الأخرى) -->
-        <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
-          <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إحصائيات الطلاب</button>
-          <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer flex items-center justify-center gap-1.5"><i class="fa-solid fa-scale-balanced text-teal-600"></i> تفريغ السلوكيات PDF</button>
-          <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأشخاص</button>
-          <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الطلاب</button>
-          <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المعلمين</button>
-          <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التنبيهات</button>
-          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">التقارير والطباعة</button>
-          <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المزامنة</button>
-          <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأمان</button>
+        <!-- Admin Tabs (تم إضافة أيقونات جليلة وأنيقة تعبر عن كل قسم بالكامل) -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100 dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+          <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">
+            <i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات الطلاب</span>
+          </button>
+          <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-scale-balanced text-teal-600"></i> <span>سلوكيات الطلاب</span>
+          </button>
+          <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-user-gear text-blue-600"></i> <span>الأشخاص</span>
+          </button>
+          <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-graduation-cap text-indigo-600"></i> <span>الطلاب</span>
+          </button>
+          <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-chalkboard-user text-amber-600"></i> <span>المعلمين</span>
+          </button>
+          <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-bell text-red-500"></i> <span>التنبيهات</span>
+          </button>
+          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-print text-purple-600"></i> <span>التقارير والطباعة</span>
+          </button>
+          <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-cloud-arrow-up text-cyan-600"></i> <span>المزامنة</span>
+          </button>
+          <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+            <i class="fa-solid fa-shield-halved text-emerald-600"></i> <span>الأمان</span>
+          </button>
         </div>
 
-        <!-- Section 1: Student Stats Dashboard (قسم إحصائيات الطلاب المقسم إلى تبويبتين: الغياب والسلوكيات) -->
+        <!-- Section 1: Student Stats Dashboard -->
         <div id="sec-studstats" class="space-y-6">
           <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-md flex flex-wrap justify-between items-center gap-4">
             <div>
@@ -373,7 +442,7 @@
             </div>
           </div>
 
-          <!-- Sub-Tabs Switcher for Statistics (قائمتان منفصلتان: الغياب والسلوكيات) -->
+          <!-- Sub-Tabs Switcher for Statistics -->
           <div class="flex gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
             <button onclick="switchStatsSubTab('absence')" id="statsTab-absence" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2">
               <i class="fa-solid fa-user-slash"></i> قائمة الغياب والحضور
@@ -383,7 +452,7 @@
             </button>
           </div>
 
-          <!-- SUB-SECTION A: ABSENCE STATS (قائمة الغياب بكل تفاصيلها السابقة) -->
+          <!-- SUB-SECTION A: ABSENCE STATS -->
           <div id="statsSubSec-absence" class="space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div onclick="openStatusListModal('absent')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group">
@@ -478,7 +547,7 @@
             </div>
           </div>
 
-          <!-- SUB-SECTION B: BEHAVIORS STATS (قائمة السلوكيات المستحدثة والجديدة كلياً) -->
+          <!-- SUB-SECTION B: BEHAVIORS STATS -->
           <div id="statsSubSec-behaviors" class="hidden space-y-6">
             <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
               <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
@@ -987,7 +1056,7 @@
       loadSessionAttendance();
     }
 
-    // BEHAVIORS & MISCONDUCTS (السلوكيات)
+    // BEHAVIORS & MISCONDUCTS
     function renderBehaviorClassesGrid() {
       const container = document.getElementById('behaviorClassesGrid');
       if(!container) return; container.innerHTML = '';
@@ -1148,7 +1217,7 @@
       loadSessionBehavior();
     }
 
-    // SWITCH SUB-TABS WITHIN STATISTICS (التبديل بين قائمتي الغياب والسلوكيات داخل إحصائيات الطلاب)
+    // SWITCH SUB-TABS WITHIN STATISTICS
     function switchStatsSubTab(subTab) {
       const absenceSec = document.getElementById('statsSubSec-absence');
       const behaviorSec = document.getElementById('statsSubSec-behaviors');
@@ -1284,7 +1353,7 @@
       }
     }
 
-    // STUDENT BEHAVIOR PROFILE MODAL (نافذة تفاصيل السلوكيات للطالب عند النقر على اسمه - نفس طريقة الغياب)
+    // STUDENT BEHAVIOR PROFILE MODAL
     function openStudentBehaviorProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
@@ -1402,7 +1471,7 @@
         badge.textContent = "مدير النظام";
         tabsConfig.forEach(id => {
           const el = document.getElementById(`tab-${id}`);
-          if (el) el.style.display = 'block';
+          if (el) el.style.display = 'flex';
         });
         switchAdminTab('studstats');
       } else if (activeUser?.type === 'custom') {
@@ -1414,7 +1483,7 @@
         tabsConfig.forEach(id => {
           const el = document.getElementById(`tab-${id}`);
           const isAllowed = !!perms[id];
-          if (el) el.style.display = isAllowed ? 'block' : 'none';
+          if (el) el.style.display = isAllowed ? 'flex' : 'none';
           if (isAllowed && !firstAllowedTab) firstAllowedTab = id;
         });
 
@@ -1427,11 +1496,11 @@
       ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
         document.getElementById(`sec-${t}`)?.classList.add('hidden');
         const tabBtn = document.getElementById(`tab-${t}`);
-        if(tabBtn) tabBtn.className = 'admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer';
+        if(tabBtn) tabBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer';
       });
       document.getElementById(`sec-${tab}`)?.classList.remove('hidden');
       const activeBtn = document.getElementById(`tab-${tab}`);
-      if(activeBtn) activeBtn.className = 'admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer';
+      if(activeBtn) activeBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer';
 
       if(tab === 'studstats') { switchStatsSubTab('absence'); }
       if(tab === 'behaviorstats') renderBehaviorReportsSection();
@@ -1467,14 +1536,8 @@
       let classesToDisplay = classFilter === 'all' ? db.classes : [classFilter];
 
       const behLabels = {
-        normal: 'منضبط',
-        eating: 'الأكل 🍔',
-        talking: 'كلام جانبي 🗣️',
-        tools: 'عدم إحضار الأدوات 🎒',
-        chaos: 'إثارة الفوضى ⚡',
-        sleeping: 'النوم 💤',
-        homework: 'عدم حل الواجب 📚',
-        other: 'أخرى ⚠️'
+        normal: 'منضبط', eating: 'الأكل 🍔', talking: 'كلام جانبي 🗣️', tools: 'عدم إحضار الأدوات 🎒',
+        chaos: 'إثارة الفوضى ⚡', sleeping: 'النوم 💤', homework: 'عدم حل الواجب 📚', other: 'أخرى ⚠️'
       };
 
       classesToDisplay.forEach(className => {
@@ -1682,7 +1745,7 @@
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="openStudentProfileModal('${st.className}', '${st.name}')">${st.name}</td>
             <td class="p-3 text-center font-semibold text-emerald-700">${st.className}</td>
             <td class="p-3 text-center font-bold text-amber-700">${mainViolation} (غياب: ${st.absent}، تأخير: ${st.late}، تسرب: ${st.escape}، خروج: ${st.outside})</td>
-            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-950 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
+            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
             <td class="p-3 text-center"><button onclick="openStudentProfileModal('${st.className}', '${st.name}')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer">ملف الطالب</button></td>
           </tr>`;
         });
