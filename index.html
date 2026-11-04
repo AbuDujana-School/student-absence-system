@@ -330,10 +330,10 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (تم إضافة تبويب سلوكيات الطلاب في الأعلى بجانب إحصائيات الطلاب) -->
+        <!-- Admin Tabs (إحصائيات الطلاب والبيانات الأخرى) -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إحصائيات الطلاب</button>
-          <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer flex items-center justify-center gap-1.5"><i class="fa-solid fa-scale-balanced text-teal-600"></i> سلوكيات الطلاب</button>
+          <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer flex items-center justify-center gap-1.5"><i class="fa-solid fa-scale-balanced text-teal-600"></i> تفريغ السلوكيات PDF</button>
           <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأشخاص</button>
           <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الطلاب</button>
           <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">المعلمين</button>
@@ -343,12 +343,12 @@
           <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأمان</button>
         </div>
 
-        <!-- Section 1: Student Attendance Stats Dashboard -->
+        <!-- Section 1: Student Stats Dashboard (قسم إحصائيات الطلاب المقسم إلى تبويبتين: الغياب والسلوكيات) -->
         <div id="sec-studstats" class="space-y-6">
           <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-md flex flex-wrap justify-between items-center gap-4">
             <div>
-              <h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة تحكم إحصائيات الطلاب الإدارية (الغياب)</h4>
-              <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية للغياب، والتأخير، والتسرب، والخروج اليومي والحصص</p>
+              <h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة تحكم إحصائيات الطلاب الإدارية</h4>
+              <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية ومتقدمة لإحصائيات الغياب والسلوكيات المخالفة</p>
             </div>
             <div class="flex flex-wrap items-center gap-3">
               <div>
@@ -373,100 +373,128 @@
             </div>
           </div>
 
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div onclick="openStatusListModal('absent')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group">
-              <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">الغياب (أيام الحدوث)</span>
-                <h3 id="cardCountAbsent" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</h3>
-                <span class="text-[10px] text-slate-500 mt-1 block">إجمالي أيام غياب الطلاب</span>
+          <!-- Sub-Tabs Switcher for Statistics (قائمتان منفصلتان: الغياب والسلوكيات) -->
+          <div class="flex gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <button onclick="switchStatsSubTab('absence')" id="statsTab-absence" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2">
+              <i class="fa-solid fa-user-slash"></i> قائمة الغياب والحضور
+            </button>
+            <button onclick="switchStatsSubTab('behaviors')" id="statsTab-behaviors" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2">
+              <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة سلوكيات الطلاب المخالفة
+            </button>
+          </div>
+
+          <!-- SUB-SECTION A: ABSENCE STATS (قائمة الغياب بكل تفاصيلها السابقة) -->
+          <div id="statsSubSec-absence" class="space-y-6">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div onclick="openStatusListModal('absent')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group">
+                <div>
+                  <span class="text-xs font-bold text-slate-400 block mb-1">الغياب (أيام الحدوث)</span>
+                  <h3 id="cardCountAbsent" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</h3>
+                  <span class="text-[10px] text-slate-500 mt-1 block">إجمالي أيام غياب الطلاب</span>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-black text-white border-2 border-amber-400 flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                  <i class="fa-solid fa-user-slash"></i>
+                </div>
               </div>
-              <div class="w-14 h-14 rounded-2xl bg-black text-white border-2 border-amber-400 flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
-                <i class="fa-solid fa-user-slash"></i>
+
+              <div onclick="openStatusListModal('escape')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-red-500 transition cursor-pointer flex items-center justify-between group">
+                <div>
+                  <span class="text-xs font-bold text-slate-400 block mb-1">التسرب (أيام الحدوث)</span>
+                  <h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3>
+                  <span class="text-[10px] text-slate-500 mt-1 block">حالات التسرب المسجلة</span>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                  <i class="fa-solid fa-person-running"></i>
+                </div>
+              </div>
+
+              <div onclick="openStatusListModal('late')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-orange-500 transition cursor-pointer flex items-center justify-between group">
+                <div>
+                  <span class="text-xs font-bold text-slate-400 block mb-1">التأخير (أيام الحدوث)</span>
+                  <h3 id="cardCountLate" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400">0</h3>
+                  <span class="text-[10px] text-slate-500 mt-1 block">حالات التأخير الصباحي/الحصص</span>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                  <i class="fa-solid fa-clock"></i>
+                </div>
+              </div>
+
+              <div onclick="openStatusListModal('outside')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-purple-500 transition cursor-pointer flex items-center justify-between group">
+                <div>
+                  <span class="text-xs font-bold text-slate-400 block mb-1">الخروج (أيام الحدوث)</span>
+                  <h3 id="cardCountOutside" class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">0</h3>
+                  <span class="text-[10px] text-slate-500 mt-1 block">حالات الخروج والاستئذان</span>
+                </div>
+                <div class="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                  <i class="fa-solid fa-door-open"></i>
+                </div>
               </div>
             </div>
 
-            <div onclick="openStatusListModal('escape')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-red-500 transition cursor-pointer flex items-center justify-between group">
-              <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">التسرب (أيام الحدوث)</span>
-                <h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3>
-                <span class="text-[10px] text-slate-500 mt-1 block">حالات التسرب المسجلة</span>
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+              <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
+                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> تحتاج متابعة اليوم (الطلاب ذوو المخالفات المتكررة للغياب)
+                </h5>
+                <span id="needsAttentionCountBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">0 طلاب</span>
               </div>
-              <div class="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
-                <i class="fa-solid fa-person-running"></i>
-              </div>
-            </div>
-
-            <div onclick="openStatusListModal('late')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-orange-500 transition cursor-pointer flex items-center justify-between group">
-              <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">التأخير (أيام الحدوث)</span>
-                <h3 id="cardCountLate" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400">0</h3>
-                <span class="text-[10px] text-slate-500 mt-1 block">حالات التأخير الصباحي/الحصص</span>
-              </div>
-              <div class="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
-                <i class="fa-solid fa-clock"></i>
+              <div id="needsAttentionContainer" class="overflow-x-auto">
+                <div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة في هذه الفترة.</div>
               </div>
             </div>
 
-            <div onclick="openStatusListModal('outside')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-purple-500 transition cursor-pointer flex items-center justify-between group">
-              <div>
-                <span class="text-xs font-bold text-slate-400 block mb-1">الخروج (أيام الحدوث)</span>
-                <h3 id="cardCountOutside" class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">0</h3>
-                <span class="text-[10px] text-slate-500 mt-1 block">حالات الخروج والاستئذان</span>
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+              <div class="flex flex-wrap justify-between items-center border-b pb-3 dark:border-slate-700 gap-2">
+                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات الغياب حسب الصفوف الدراسية
+                </h5>
+                <div class="flex items-center gap-2 text-xs">
+                  <label class="font-bold text-slate-600 dark:text-slate-300">ترتيب الصفوف:</label>
+                  <select id="classSortOrder" onchange="renderStudentStatsDashboard()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none cursor-pointer">
+                    <option value="violationsDesc">الأكثر مخالفات (تنازلي)</option>
+                    <option value="nameAsc">حسب اسم الصف</option>
+                  </select>
+                </div>
               </div>
-              <div class="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
-                <i class="fa-solid fa-door-open"></i>
+              <div id="classStatsTableContainer" class="overflow-x-auto"></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+              <div class="border-b pb-3 dark:border-slate-700">
+                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة تسجيل الحصص
+                </h5>
               </div>
+              <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
+            </div>
+
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+              <div class="border-b pb-3 dark:border-slate-700">
+                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> إحصائيات المعلمين ونشاط الرصد
+                </h5>
+              </div>
+              <div id="teacherActivityStatsContainer" class="overflow-x-auto"></div>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
-            <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
-              <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> تحتاج متابعة اليوم (الطلاب ذوو المخالفات المتكررة)
-              </h5>
-              <span id="needsAttentionCountBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">0 طلاب</span>
-            </div>
-            <div id="needsAttentionContainer" class="overflow-x-auto">
-              <div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة في هذه الفترة.</div>
-            </div>
-          </div>
-
-          <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
-            <div class="flex flex-wrap justify-between items-center border-b pb-3 dark:border-slate-700 gap-2">
-              <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات المخالفات حسب الصفوف الدراسية
-              </h5>
-              <div class="flex items-center gap-2 text-xs">
-                <label class="font-bold text-slate-600 dark:text-slate-300">ترتيب الصفوف:</label>
-                <select id="classSortOrder" onchange="renderStudentStatsDashboard()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none cursor-pointer">
-                  <option value="violationsDesc">الأكثر مخالفات (تنازلي)</option>
-                  <option value="nameAsc">حسب اسم الصف</option>
-                </select>
+          <!-- SUB-SECTION B: BEHAVIORS STATS (قائمة السلوكيات المستحدثة والجديدة كلياً) -->
+          <div id="statsSubSec-behaviors" class="hidden space-y-6">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+              <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
+                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+                  <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة الطلاب الأكثر ارتكاباً للسلوكيات والمخالفات (من الأعلى إلى الأقل)
+                </h5>
+                <span id="behaviorTopCountBadge" class="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-full">0 طلاب مخالفين</span>
+              </div>
+              <div id="behaviorTopStudentsContainer" class="overflow-x-auto">
+                <div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات سلوكية مخالفة في هذه الفترة.</div>
               </div>
             </div>
-            <div id="classStatsTableContainer" class="overflow-x-auto"></div>
-          </div>
-
-          <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
-            <div class="border-b pb-3 dark:border-slate-700">
-              <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة تسجيل الحصص
-              </h5>
-            </div>
-            <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
-          </div>
-
-          <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
-            <div class="border-b pb-3 dark:border-slate-700">
-              <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> إحصائيات المعلمين ونشاط الرصد
-              </h5>
-            </div>
-            <div id="teacherActivityStatsContainer" class="overflow-x-auto"></div>
           </div>
         </div>
 
-        <!-- NEW SECTION: BEHAVIOR STATS & PDF EXPORT TAB (قسم تفريغ وطباعة سلوكيات الطلاب أفقياً) -->
+        <!-- Section 2: Behavior Reports PDF Section -->
         <div id="sec-behaviorstats" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-teal-900 to-emerald-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-4">
@@ -499,7 +527,7 @@
           <div class="space-y-6 overflow-x-auto" id="behaviorReportClassesContainer"></div>
         </div>
 
-        <!-- Section 2: Custom Users -->
+        <!-- Section 3: Custom Users -->
         <div id="sec-users" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة مستخدم مخصص جديد</h5>
@@ -509,7 +537,7 @@
             </div>
             <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600" checked> إحصائيات الطلاب</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_behaviorstats" class="accent-teal-600" checked> سلوكيات الطلاب</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_behaviorstats" class="accent-teal-600" checked> تفريغ السلوكيات PDF</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_users" class="accent-emerald-600"> إدارة الأشخاص</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_students" class="accent-emerald-600"> الطلاب والصفوف</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_teachers" class="accent-emerald-600"> إدارة المعلمين</label>
@@ -523,7 +551,7 @@
           <div id="customUsersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
         </div>
 
-        <!-- Section 3: Students & Classes -->
+        <!-- Section 4: Students & Classes -->
         <div id="sec-students" class="hidden space-y-4">
           <div class="flex flex-wrap gap-3 items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
             <div class="flex items-center gap-2.5">
@@ -549,7 +577,7 @@
           <div id="adminStudentsDisplay" class="max-h-36 overflow-y-auto space-y-1.5 text-xs bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700"></div>
         </div>
 
-        <!-- Section 4: Teachers -->
+        <!-- Section 5: Teachers -->
         <div id="sec-teachers" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة معلم جديد للنظام</h5>
@@ -562,7 +590,7 @@
           <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
         </div>
 
-        <!-- Section 5: Alerts -->
+        <!-- Section 6: Alerts -->
         <div id="sec-alerts" class="hidden space-y-4">
           <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">فحص سجلات الطلاب الآن</button>
           <div id="smartAlertsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 p-3">
@@ -570,7 +598,7 @@
           </div>
         </div>
 
-        <!-- Section 6: Reports & Printing -->
+        <!-- Section 7: Reports & Printing -->
         <div id="sec-reports" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div>
@@ -605,7 +633,7 @@
           <div class="space-y-6 overflow-x-auto" id="reportClassesContainer"></div>
         </div>
 
-        <!-- Section 7: Sync -->
+        <!-- Section 8: Sync -->
         <div id="sec-sync" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-slate-800 dark:text-white text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> المزامنة السحابية</h5>
@@ -613,7 +641,7 @@
           </div>
         </div>
 
-        <!-- Section 8: Security -->
+        <!-- Section 9: Security -->
         <div id="sec-security" class="hidden space-y-4">
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> تغيير رمز مدير النظام العام</h5>
@@ -1116,8 +1144,226 @@
         alert(success ? "تم حفظ السلوكيات سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.");
         if (success) renderBehaviorClassesGrid();
       } catch (error) { alert('حدث خطأ أثناء حفظ السلوكيات.'); }
-      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>`; }
+      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`; }
       loadSessionBehavior();
+    }
+
+    // SWITCH SUB-TABS WITHIN STATISTICS (التبديل بين قائمتي الغياب والسلوكيات داخل إحصائيات الطلاب)
+    function switchStatsSubTab(subTab) {
+      const absenceSec = document.getElementById('statsSubSec-absence');
+      const behaviorSec = document.getElementById('statsSubSec-behaviors');
+      const absenceBtn = document.getElementById('statsTab-absence');
+      const behaviorBtn = document.getElementById('statsTab-behaviors');
+
+      if (subTab === 'absence') {
+        absenceSec.classList.remove('hidden');
+        behaviorSec.classList.add('hidden');
+        absenceBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2";
+        behaviorBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2";
+        renderStudentStatsDashboard();
+      } else {
+        absenceSec.classList.add('hidden');
+        behaviorSec.classList.remove('hidden');
+        behaviorBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-teal-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2";
+        absenceBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2";
+        renderBehaviorStatsDashboard();
+      }
+    }
+
+    // FETCH BEHAVIOR SESSIONS FOR STATISTICS
+    function getFilteredBehaviorRecords() {
+      const periodType = document.getElementById('statsPeriodFilter').value;
+      const todayStr = getOmanLocalDate();
+      const todayDate = new Date(todayStr);
+
+      let filteredSessions = [];
+      if (!db.behaviors) return filteredSessions;
+
+      Object.entries(db.behaviors).forEach(([key, session]) => {
+        const lastUnderscore = key.lastIndexOf('_');
+        const periodPart = key.substring(lastUnderscore + 1);
+        const period = parseInt(periodPart.replace('p', '')) || 1;
+        const prefix = key.substring(0, lastUnderscore);
+        const firstUnderscore = prefix.indexOf('_');
+        const sessDateStr = prefix.substring(0, firstUnderscore);
+        const sessClassName = prefix.substring(firstUnderscore + 1);
+        const sessTeacher = session.teacher || 'معلم';
+        const sessDate = new Date(sessDateStr);
+
+        let include = false;
+        if (periodType === 'today') { include = (sessDateStr === todayStr); } 
+        else if (periodType === 'yesterday') {
+          const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1);
+          include = (sessDateStr === yest.toISOString().split('T')[0]);
+        } else if (periodType === 'week') {
+          const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7);
+          include = (sessDate >= weekAgo && sessDate <= todayDate);
+        } else if (periodType === 'month') {
+          include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
+        } else if (periodType === 'semester') {
+          include = true;
+        } else if (periodType === 'custom') {
+          const start = document.getElementById('statsStartDate').value;
+          const end = document.getElementById('statsEndDate').value;
+          include = (!start || sessDateStr >= start) && (!end || sessDateStr <= end);
+        }
+
+        if (include && session && session.records) {
+          filteredSessions.push({ key, date: sessDateStr, className: sessClassName, period, teacher: sessTeacher, records: session.records });
+        }
+      });
+      return filteredSessions;
+    }
+
+    function renderBehaviorStatsDashboard() {
+      const sessions = getFilteredBehaviorRecords();
+      let studentBehaviorMap = {};
+
+      const behLabels = {
+        eating: 'الأكل 🍔',
+        talking: 'كلام جانبي 🗣️',
+        tools: 'عدم إحضار الأدوات 🎒',
+        chaos: 'إثارة الفوضى ⚡',
+        sleeping: 'النوم 💤',
+        homework: 'عدم حل الواجب 📚',
+        other: 'أخرى ⚠️'
+      };
+
+      sessions.forEach(sess => {
+        const { date, className, period, teacher, records } = sess;
+        Object.entries(records).forEach(([studentName, behObj]) => {
+          if (behObj && behObj.type && behObj.type !== 'normal') {
+            const studKey = `${className}::${studentName}`;
+            if (!studentBehaviorMap[studKey]) {
+              studentBehaviorMap[studKey] = {
+                name: studentName,
+                className: className,
+                totalViolations: 0,
+                typesCount: {},
+                teachersSet: new Set(),
+                history: []
+              };
+            }
+            studentBehaviorMap[studKey].totalViolations++;
+            studentBehaviorMap[studKey].teachersSet.add(teacher);
+            
+            const tLabel = behLabels[behObj.type] || behObj.type;
+            studentBehaviorMap[studKey].typesCount[tLabel] = (studentBehaviorMap[studKey].typesCount[tLabel] || 0) + 1;
+            
+            studentBehaviorMap[studKey].history.push({
+              date, period, teacher, type: tLabel, note: behObj.note || ''
+            });
+          }
+        });
+      });
+
+      let topStudents = Object.values(studentBehaviorMap).sort((a,b) => b.totalViolations - a.totalViolations);
+      document.getElementById('behaviorTopCountBadge').textContent = `${topStudents.length} طلاب مخالفين`;
+      const container = document.getElementById('behaviorTopStudentsContainer');
+
+      if (topStudents.length === 0) {
+        container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات سلوكية مخالفة في هذه الفترة.</div>`;
+      } else {
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أنواع السلوكيات المخالفة</th><th class="p-3 text-center">عدد المعلمين المشاركين</th><th class="p-3 text-center">أسماء المعلمين</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">الملف السلوكي</th></tr></thead><tbody class="divide-y">`;
+        
+        topStudents.forEach(st => {
+          let typesFormatted = Object.entries(st.typesCount).map(([t, count]) => `${t} (${count})`).join('، ');
+          let teachersListStr = Array.from(st.teachersSet).join(', ');
+
+          html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
+            <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-teal-600" onclick="openStudentBehaviorProfileModal('${st.className}', '${st.name}')">${st.name}</td>
+            <td class="p-3 text-center font-semibold text-teal-700">${st.className}</td>
+            <td class="p-3 text-center font-bold text-slate-700 dark:text-slate-300">${typesFormatted}</td>
+            <td class="p-3 text-center font-extrabold text-teal-800 dark:text-teal-300">${st.teachersSet.size} معلمين</td>
+            <td class="p-3 text-center text-slate-600 dark:text-slate-400 font-semibold">${teachersListStr}</td>
+            <td class="p-3 text-center"><span class="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2.5 py-1 rounded-full font-extrabold">${st.totalViolations} مرات</span></td>
+            <td class="p-3 text-center"><button onclick="openStudentBehaviorProfileModal('${st.className}', '${st.name}')" class="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer">عرض التفاصيل</button></td>
+          </tr>`;
+        });
+        container.innerHTML = html + `</tbody></table>`;
+      }
+    }
+
+    // STUDENT BEHAVIOR PROFILE MODAL (نافذة تفاصيل السلوكيات للطالب عند النقر على اسمه - نفس طريقة الغياب)
+    function openStudentBehaviorProfileModal(className, studentName) {
+      let realClassName = className;
+      if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
+        for (const [cName, sList] of Object.entries(db.students || {})) {
+          if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
+        }
+      }
+      if (!realClassName || realClassName === 'undefined') realClassName = 'غير محدد';
+
+      document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-scale-balanced text-teal-400"></i> الملف السلوكي للطالب: ${studentName}`;
+      document.getElementById('modalStudentSubtitle').textContent = `الصف الدراسي: ${realClassName}`;
+
+      let historyLogs = [];
+      if (db.behaviors) {
+        Object.entries(db.behaviors).forEach(([key, session]) => {
+          const lastUnderscore = key.lastIndexOf('_');
+          const periodPart = key.substring(lastUnderscore + 1);
+          const period = parseInt(periodPart.replace('p', '')) || 1;
+          const prefix = key.substring(0, lastUnderscore);
+          const firstUnderscore = prefix.indexOf('_');
+          const sessDate = prefix.substring(0, firstUnderscore);
+          const sessClassName = prefix.substring(firstUnderscore + 1);
+
+          if (session && session.records && session.records[studentName]) {
+            const behObj = session.records[studentName];
+            if (behObj && behObj.type && behObj.type !== 'normal') {
+              historyLogs.push({
+                date: sessDate,
+                period: period,
+                type: behObj.type,
+                note: behObj.note || '',
+                teacher: session.teacher || 'معلم',
+                className: sessClassName
+              });
+            }
+          }
+        });
+      }
+
+      historyLogs.sort((a,b) => new Date(b.date) - new Date(a.date) || b.period - a.period);
+
+      const behLabels = {
+        eating: 'الأكل 🍔',
+        talking: 'كلام جانبي 🗣️',
+        tools: 'عدم إحضار الأدوات 🎒',
+        chaos: 'إثارة الفوضى ⚡',
+        sleeping: 'النوم 💤',
+        homework: 'عدم حل الواجب 📚',
+        other: 'أخرى ⚠️'
+      };
+
+      let bodyHTML = `
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3">
+          <div class="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-2xl border border-teal-200"><span class="text-xs text-teal-700 dark:text-teal-300 block font-bold">إجمالي المخالفات السلوكية</span><span class="text-xl font-extrabold text-teal-900 dark:text-teal-200">${historyLogs.length}</span></div>
+        </div>
+        <div class="space-y-2 pt-2">
+          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-teal-600"></i> سجل الحصص والملاحظات السلوكية التفصيلي:</h5>
+      `;
+
+      if (historyLogs.length === 0) {
+        bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات سلوكية مسجلة لهذا الطالب.</div>`;
+      } else {
+        historyLogs.forEach(log => {
+          let label = behLabels[log.type] || log.type;
+          let noteText = log.note ? ` - ${log.note}` : '';
+          bodyHTML += `
+            <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-2">
+              <div>
+                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">${label}${noteText}</span>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">الحصة ${log.period} | صف ${log.className} | المعلم الراصد: ${log.teacher}</div>
+              </div>
+              <div class="text-left font-mono text-xs text-teal-700 dark:text-teal-400 font-bold">${log.date}</div>
+            </div>
+          `;
+        });
+      }
+      bodyHTML += `</div>`;
+      document.getElementById('modalStudentBody').innerHTML = bodyHTML;
+      document.getElementById('studentDetailModal').classList.remove('hidden');
     }
 
     // ADMIN PANEL & OTHER EXISTING FUNCTIONS
@@ -1187,7 +1433,7 @@
       const activeBtn = document.getElementById(`tab-${tab}`);
       if(activeBtn) activeBtn.className = 'admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer';
 
-      if(tab === 'studstats') renderStudentStatsDashboard();
+      if(tab === 'studstats') { switchStatsSubTab('absence'); }
       if(tab === 'behaviorstats') renderBehaviorReportsSection();
       if(tab === 'users') renderCustomUsersList();
       if(tab === 'teachers') renderTeachersList();
@@ -1199,7 +1445,7 @@
       renderStudentStatsDashboard(); populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); renderCustomUsersList(); populateAdminClassSelect(); loadAdminStudentsList(); renderTeachersList(); populateReportClassSelect();
     }
 
-    // FUNC: RENDER BEHAVIOR REPORTS TAB & HORIZONTAL PDF PRINT (دوال تفريغ وطباعة سلوكيات الطلاب أفقياً)
+    // BEHAVIOR PDF REPORTS & PRINT
     function populateBehaviorReportClassSelect() {
       const sel = document.getElementById('behaviorReportClassFilter');
       if(!sel) return; const cur = sel.value;
