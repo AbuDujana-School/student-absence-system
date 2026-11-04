@@ -3,113 +3,203 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام أبو دجانة الأنصاري</title>
+<title>نظام أبو دجانة الأنصاري — الغياب والسلوك</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@700;900&display=swap" rel="stylesheet">
-<style>body{font-family:'Tajawal',sans-serif}::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-thumb{background:#0d9488;border-radius:10px}</style>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+<style>
+body{font-family:'Tajawal',sans-serif}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:rgba(241,245,249,.5);border-radius:10px}
+.dark ::-webkit-scrollbar-track{background:rgba(15,23,42,.5)}
+::-webkit-scrollbar-thumb{background:#0d9488;border-radius:10px}
+.hero-card{transition:all .4s cubic-bezier(.4,0,.2,1)}
+.hero-card:hover{transform:translateY(-8px) scale(1.015)}
+.status-btn{transition:all .2s}
+.status-btn:active{transform:scale(.95)}
+@keyframes tin{from{transform:translateY(-20px);opacity:0}to{transform:translateY(0);opacity:1}}
+.toast-in{animation:tin .35s ease forwards}
+</style>
 <script>tailwind.config={darkMode:'class'}</script>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100">
-<div id="toast" class="fixed top-5 right-5 z-[999] flex flex-col gap-2 max-w-sm"></div>
+<body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors">
 
-<header class="bg-emerald-900 text-white p-3 shadow-lg sticky top-0 z-40">
-<div class="max-w-7xl mx-auto flex justify-between items-center flex-wrap gap-2">
-<div class="flex items-center gap-2">
-<div class="w-10 h-10 bg-emerald-800 rounded-xl flex items-center justify-center text-xl"><i class="fa-solid fa-school"></i></div>
-<div><h1 class="font-black text-lg">مدرسة أبو دجانة الأنصاري</h1><p class="text-[10px] text-emerald-300">نظام الغياب والسلوك الذكي</p></div>
+<div id="toastContainer" class="fixed top-5 right-5 z-[999999] flex flex-col gap-3 pointer-events-none w-[calc(100%-2.5rem)] max-w-sm"></div>
+
+<header class="sticky top-0 z-40 bg-emerald-900/95 dark:bg-emerald-950/95 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60">
+<div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center flex-wrap gap-2">
+<div class="flex items-center gap-3">
+<div class="w-11 h-11 bg-emerald-800/80 rounded-2xl flex items-center justify-center text-emerald-200 text-2xl border border-emerald-700/50"><i class="fa-solid fa-school"></i></div>
+<div>
+<h1 class="text-base sm:text-xl font-extrabold">مدرسة أبو دجانة الأنصاري</h1>
+<p class="text-[11px] text-emerald-300">نظام حصر الغياب والسلوك (توقيت عمان)</p>
+</div>
 </div>
 <div class="flex items-center gap-2 flex-wrap">
-<span id="syncInd" class="text-xs bg-emerald-800 px-3 py-1.5 rounded-xl"><i class="fa-solid fa-cloud"></i> <span id="syncTxt">تحميل...</span></span>
-<button onclick="openAdminModal()" class="bg-emerald-800 hover:bg-emerald-700 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-gear"></i> الإعدادات</button>
+<button onclick="toggleDarkMode()" class="bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 p-2.5 rounded-2xl text-xs border border-emerald-700/60" title="الوضع الليلي"><i id="darkModeIcon" class="fa-solid fa-moon text-sm"></i></button>
+<span id="syncIndicator" class="bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60">
+<span class="relative flex h-2 w-2"><span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span><span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span></span>
+<i class="fa-solid fa-cloud-arrow-up"></i><span id="syncText">اتصال...</span>
+</span>
+<span id="currentDateDisplay" class="hidden md:inline-block bg-emerald-800/60 text-emerald-100 px-3.5 py-1.5 rounded-2xl text-xs font-semibold border border-emerald-700/50"></span>
+<button onclick="openAdminModal()" class="bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 border border-emerald-700/80"><i class="fa-solid fa-gear text-emerald-300"></i><span>الإعدادات</span></button>
 </div>
 </div>
 </header>
 
-<main class="flex-grow max-w-7xl mx-auto w-full p-4">
+<main class="flex-grow max-w-7xl w-full mx-auto px-4 py-6">
 
-<div id="vLogin" class="max-w-md mx-auto my-12 bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl">
-<h2 class="text-xl font-black text-center mb-4">تسجيل الدخول</h2>
-<form onsubmit="login(event)" class="space-y-3">
-<input type="password" id="pinIn" required placeholder="••••" class="w-full text-center text-2xl px-4 py-3 border rounded-2xl font-black tracking-widest dark:bg-slate-900 dark:border-slate-700">
-<div id="loginErr" class="text-red-600 text-xs text-center font-bold hidden bg-red-50 p-2 rounded-xl">الرمز غير صحيح</div>
-<button type="submit" id="loginBtn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white py-3 rounded-2xl font-bold disabled:opacity-60" disabled><i class="fa-solid fa-spinner fa-spin"></i> جاري التحميل...</button>
+<!-- LOGIN -->
+<div id="loginView" class="max-w-md mx-auto my-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80">
+<div class="text-center mb-6">
+<div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center mx-auto mb-3 text-2xl border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-user-lock"></i></div>
+<h2 class="text-xl font-extrabold">تسجيل الدخول للنظام</h2>
+<p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">أدخل الرقم السري الخاص بك</p>
+</div>
+<form onsubmit="handleLogin(event)" class="space-y-4">
+<div>
+<label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">الرقم السري</label>
+<input type="password" id="userPinInput" required placeholder="••••" class="w-full text-center text-2xl tracking-widest px-4 py-3.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none font-bold">
+</div>
+<div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-3 rounded-2xl border border-red-200 dark:border-red-900/50">الرمز السري غير صحيح</div>
+<button type="submit" id="loginBtn" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl shadow-lg text-sm flex items-center justify-center gap-2 cursor-pointer disabled:opacity-60">
+<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري التحميل...</span>
+</button>
 </form>
 </div>
 
-<div id="vDash" class="hidden space-y-6">
-<div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow flex justify-between items-center flex-wrap gap-2">
-<div><span class="text-xs text-slate-400">مرحباً</span> <span id="uName" class="font-black text-emerald-800 dark:text-emerald-300 text-lg"></span> <span id="uRole" class="text-xs bg-emerald-100 dark:bg-emerald-950 px-2 py-1 rounded"></span></div>
-<div class="flex gap-2 flex-wrap">
-<button id="adminBtn" onclick="openAdminModal()" class="hidden text-xs bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-sliders"></i> لوحة التحكم</button>
-<button onclick="logout()" class="text-xs bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-bold"><i class="fa-solid fa-sign-out"></i> خروج</button>
-</div>
-</div>
-<div class="grid md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-<div onclick="showAtt()" class="cursor-pointer bg-gradient-to-br from-emerald-600 to-emerald-900 p-8 rounded-3xl text-white shadow-xl hover:scale-105 transition">
-<div class="text-4xl mb-3"><i class="fa-solid fa-clipboard-user"></i></div>
-<h3 class="text-3xl font-black">الغياب</h3>
-<p class="text-sm text-emerald-200 mt-2">رصد الحضور والغياب</p>
-</div>
-<div onclick="showBeh()" class="cursor-pointer bg-gradient-to-br from-teal-600 to-indigo-900 p-8 rounded-3xl text-white shadow-xl hover:scale-105 transition">
-<div class="text-4xl mb-3"><i class="fa-solid fa-scale-balanced"></i></div>
-<h3 class="text-3xl font-black">السلوكيات</h3>
-<p class="text-sm text-teal-200 mt-2">رصد السلوكيات والمخالفات</p>
+<!-- DASHBOARD -->
+<div id="dashboardSelectionView" class="hidden space-y-8">
+<div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
+<div class="flex items-center gap-3.5">
+<div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center text-lg border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-chalkboard-user"></i></div>
+<div>
+<span class="text-slate-400 text-xs block font-medium">مرحباً بك:</span>
+<div class="flex items-center gap-2 flex-wrap">
+<span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
+<span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 px-3 py-1 rounded-xl font-bold border border-emerald-200 dark:border-emerald-800"></span>
+<button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-[11px] text-emerald-700 dark:text-emerald-300 font-bold flex items-center gap-1 bg-emerald-50 dark:bg-emerald-950/70 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-key text-[10px]"></i> تغيير الرمز</button>
 </div>
 </div>
 </div>
-
-<div id="vAttClasses" class="hidden space-y-4">
-<button onclick="showDash()" class="bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-arrow-right"></i> عودة</button>
-<h3 class="font-black">اختر الصف لرصد الغياب <span id="attDateLbl" class="text-xs text-emerald-600"></span></h3>
-<div id="attGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+<div class="flex flex-wrap items-center gap-2.5">
+<button id="openControlPanelFromDashboardBtn" onclick="openAdminModal()" class="hidden text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl font-bold flex items-center gap-2 border border-emerald-700"><i class="fa-solid fa-sliders"></i> لوحة التحكم</button>
+<button onclick="logoutUser()" class="text-xs bg-gradient-to-r from-red-500 to-rose-600 text-white px-5 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-md border border-red-400/30"><i class="fa-solid fa-right-from-bracket"></i><span>تسجيل خروج</span></button>
 </div>
-
-<div id="vAttSession" class="hidden space-y-3">
-<button onclick="backToAttClasses()" class="bg-emerald-50 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-arrow-right"></i> عودة للصفوف</button>
-<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow">
-<div class="flex justify-between items-center flex-wrap gap-2 mb-2">
-<div><h2 id="attTitle" class="font-black text-lg"></h2><p id="attStatus" class="text-xs text-slate-500"></p></div>
-<button onclick="reselectPeriod()" class="bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-xl text-xs font-bold">تغيير الحصة</button>
 </div>
-<div class="flex flex-wrap gap-1.5 text-xs mb-3 font-bold">
-<span class="bg-emerald-100 dark:bg-emerald-950 px-2 py-1 rounded">حاضر: <b id="sP">0</b></span>
-<span class="bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">غائب: <b id="sA">0</b></span>
-<span class="bg-orange-100 dark:bg-orange-950 px-2 py-1 rounded">متأخر: <b id="sL">0</b></span>
-<span class="bg-red-100 dark:bg-red-950 px-2 py-1 rounded">متسرب: <b id="sE">0</b></span>
-<span class="bg-purple-100 dark:bg-purple-950 px-2 py-1 rounded">خارج: <b id="sO">0</b></span>
+<div class="text-center py-2">
+<h3 class="text-2xl font-black mb-1.5">لوحة التحكم الرئيسية</h3>
+<p class="text-xs text-slate-400 font-medium">اختر القسم المطلوب</p>
 </div>
-<div id="attList" class="max-h-[60vh] overflow-y-auto space-y-1"></div>
-<div class="flex justify-between items-center mt-3 flex-wrap gap-2">
-<div id="attUnsaved" class="text-xs text-emerald-700 dark:text-emerald-400 font-bold"></div>
-<div class="flex gap-2">
-<button onclick="markAllP()" class="bg-emerald-50 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-check-double"></i> الجميع حاضر</button>
-<button onclick="saveAtt()" id="saveAttBtn" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-save"></i> حفظ سحابياً</button>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+<div role="button" tabindex="0" onclick="goToAttendanceSection()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToAttendanceSection();}" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[230px]">
+<div class="w-16 h-16 bg-white/15 backdrop-blur-md text-emerald-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20"><i class="fa-solid fa-clipboard-user"></i></div>
+<div class="mt-6"><h4 class="text-3xl font-black">الغياب</h4></div>
+<div class="mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-emerald-200"><span>انقر للبدء في الرصد</span><div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div></div>
 </div>
+<div role="button" tabindex="0" onclick="goToBehaviorSection()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();goToBehaviorSection();}" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-600 via-cyan-700 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[230px]">
+<div class="w-16 h-16 bg-white/15 backdrop-blur-md text-cyan-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20"><i class="fa-solid fa-scale-balanced"></i></div>
+<div class="mt-6"><h4 class="text-3xl font-black">السلوكيات</h4></div>
+<div class="mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200"><span>انقر للبدء في الرصد</span><div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div></div>
 </div>
 </div>
 </div>
 
-<div id="vBehClasses" class="hidden space-y-4">
-<button onclick="showDash()" class="bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-arrow-right"></i> عودة</button>
-<h3 class="font-black">اختر الصف لرصد السلوكيات</h3>
-<div id="behGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+<!-- ATTENDANCE CLASSES -->
+<div id="classesView" class="hidden space-y-6">
+<div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+<button onclick="backToDashboardSelection()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+<span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-1.5 rounded-2xl border border-emerald-200 dark:border-emerald-800">قسم الغياب</span>
+</div>
+<div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+<h3 class="text-base font-bold flex items-center gap-2"><i class="fa-solid fa-th text-emerald-600"></i> اختر الصف لرصد الغياب:</h3>
+<div class="text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-3.5 py-1.5 rounded-2xl border border-emerald-200 dark:border-emerald-800 font-bold"><i class="fa-solid fa-calendar-days"></i> تاريخ الرصد: <span id="activeSessionDateLabel"></span></div>
+</div>
+<div id="classesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
 </div>
 
-<div id="vBehSession" class="hidden space-y-3">
-<button onclick="backToBehClasses()" class="bg-teal-50 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-arrow-right"></i> عودة للصفوف</button>
-<div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow">
-<div class="flex justify-between items-center flex-wrap gap-2 mb-2">
-<div><h2 id="behTitle" class="font-black text-lg"></h2><p id="behStatus" class="text-xs text-slate-500"></p></div>
-<button onclick="reselectBehPeriod()" class="bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-xl text-xs font-bold">تغيير الحصة</button>
+<!-- ATTENDANCE SESSION -->
+<div id="attendanceView" class="hidden space-y-6">
+<div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
+<div class="flex items-center gap-3">
+<button onclick="backToClasses()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-arrow-right text-emerald-600"></i> العودة للصفوف</button>
+<div>
+<h2 id="selectedClassTitle" class="text-lg font-extrabold text-emerald-900 dark:text-emerald-300"></h2>
+<p id="classSessionDateStatus" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5"></p>
 </div>
-<div id="behList" class="max-h-[60vh] overflow-y-auto space-y-2"></div>
-<div class="flex justify-between items-center mt-3 flex-wrap gap-2">
-<div id="behUnsaved" class="text-xs text-teal-700 dark:text-teal-400 font-bold"></div>
-<div class="flex gap-2">
-<button onclick="markAllN()" class="bg-teal-50 dark:bg-teal-950 text-teal-700 dark:text-teal-300 px-4 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-check-double"></i> الجميع منضبط</button>
-<button onclick="saveBeh()" id="saveBehBtn" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-2 rounded-xl text-xs font-bold"><i class="fa-solid fa-save"></i> حفظ سحابياً</button>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-emerald-300 dark:border-emerald-700 flex items-center gap-2"><i class="fa-solid fa-clock text-emerald-600"></i> <span id="activePeriodText">الحصة الأولى</span></div>
+<button onclick="reselectAttendancePeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-2xl text-xs font-bold">تغيير الحصة</button>
+</div>
+</div>
+<div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+<div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
+<div class="flex items-center gap-3">
+<span class="font-extrabold text-sm">قائمة الطلاب</span>
+<span id="studentsCount" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-2xl border border-emerald-200 dark:border-emerald-800"></span>
+</div>
+<div class="flex flex-wrap gap-1.5 text-xs font-bold">
+<span class="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-xl border border-emerald-200/60">حاضر: <span id="statPresent">0</span></span>
+<span class="bg-slate-100 dark:bg-slate-900 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700">غائب: <span id="statAbsent">0</span></span>
+<span class="bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-2.5 py-1 rounded-xl border border-orange-200/60">متأخر: <span id="statLate">0</span></span>
+<span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-xl border border-red-200/60">متسرب: <span id="statEscape">0</span></span>
+<span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-xl border border-purple-200/60">خارج: <span id="statOutside">0</span></span>
+</div>
+</div>
+<div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3"></div>
+<div class="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
+<div class="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> <span id="unsavedStatusIndicator">تعديلات جاهزة للحفظ</span></div>
+<div class="flex flex-wrap gap-2">
+<button onclick="markAllPresent()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-700 dark:text-emerald-300 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-check-double"></i> الجميع حاضر</button>
+<button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-floppy-disk"></i> حفظ سحابياً</button>
+</div>
+</div>
+</div>
+</div>
+
+<!-- BEHAVIOR CLASSES -->
+<div id="behaviorClassesView" class="hidden space-y-6">
+<div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+<button onclick="backToDashboardSelection()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 border border-teal-200 dark:border-teal-800"><i class="fa-solid fa-arrow-right"></i> العودة للرئيسية</button>
+<span class="text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-3.5 py-1.5 rounded-2xl border border-teal-200 dark:border-teal-800">قسم السلوكيات</span>
+</div>
+<div class="flex flex-wrap justify-between items-center mb-4 gap-2">
+<h3 class="text-base font-bold flex items-center gap-2"><i class="fa-solid fa-th text-teal-600"></i> اختر الصف لرصد السلوكيات:</h3>
+<div class="text-xs bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 px-3.5 py-1.5 rounded-2xl border border-teal-200 dark:border-teal-800 font-bold"><i class="fa-solid fa-calendar-days"></i> تاريخ الرصد: <span id="activeBehaviorDateLabel"></span></div>
+</div>
+<div id="behaviorClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-4"></div>
+</div>
+
+<!-- BEHAVIOR SESSION -->
+<div id="behaviorSessionView" class="hidden space-y-6">
+<div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
+<div class="flex items-center gap-3">
+<button onclick="backToBehaviorClasses()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 border border-teal-200 dark:border-teal-800"><i class="fa-solid fa-arrow-right text-teal-600"></i> العودة للصفوف</button>
+<div>
+<h2 id="selectedBehaviorClassTitle" class="text-lg font-extrabold text-teal-900 dark:text-teal-300"></h2>
+<p id="behaviorSessionDateStatus" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5"></p>
+</div>
+</div>
+<div class="flex items-center gap-3 flex-wrap">
+<div class="bg-teal-100 dark:bg-teal-950 text-teal-900 dark:text-teal-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-teal-300 dark:border-teal-700 flex items-center gap-2"><i class="fa-solid fa-clock text-teal-600"></i> <span id="activeBehaviorPeriodText">الحصة الأولى</span></div>
+<button onclick="reselectBehaviorPeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-2xl text-xs font-bold">تغيير الحصة</button>
+</div>
+</div>
+<div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+<div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
+<div class="flex items-center gap-3">
+<span class="font-extrabold text-sm">قائمة الطلاب (الافتراضي: منضبط)</span>
+<span id="behaviorStudentsCount" class="text-xs font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 rounded-2xl border border-teal-200 dark:border-teal-800"></span>
+</div>
+</div>
+<div id="behaviorStudentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3"></div>
+<div class="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
+<div class="text-xs text-teal-700 dark:text-teal-400 font-bold flex items-center gap-1.5"><i class="fa-solid fa-circle-check"></i> <span id="unsavedBehaviorStatusIndicator">جاهز للحفظ</span></div>
+<div class="flex flex-wrap gap-2">
+<button onclick="markAllNormal()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-700 dark:text-teal-300 px-4 py-3 rounded-2xl text-xs font-bold flex items-center gap-2 border border-teal-200 dark:border-teal-800"><i class="fa-solid fa-check-double"></i> الجميع منضبط</button>
+<button id="saveBehaviorSessionBtn" onclick="saveBehaviorSession()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-floppy-disk"></i> حفظ سحابياً</button>
 </div>
 </div>
 </div>
@@ -117,244 +207,1483 @@
 
 </main>
 
-<div id="periodModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-[100]">
-<div class="bg-white dark:bg-slate-800 p-6 rounded-3xl max-w-md w-full">
-<h3 id="periodTitle" class="font-black mb-4"></h3>
-<div class="grid grid-cols-4 gap-2">
-<button onclick="pickPeriod(1)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">1</button>
-<button onclick="pickPeriod(2)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">2</button>
-<button onclick="pickPeriod(3)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">3</button>
-<button onclick="pickPeriod(4)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">4</button>
-<button onclick="pickPeriod(5)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">5</button>
-<button onclick="pickPeriod(6)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">6</button>
-<button onclick="pickPeriod(7)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">7</button>
-<button onclick="pickPeriod(8)" class="p-3 bg-emerald-100 hover:bg-emerald-600 hover:text-white rounded-xl font-bold">8</button>
+<!-- PERIOD MODAL -->
+<div id="selectPeriodModal" class="fixed inset-0 bg-slate-900/70 z-[999999] flex items-center justify-center hidden p-4 backdrop-blur-md">
+<div class="bg-white dark:bg-slate-800 rounded-[2.5rem] max-w-xl w-full p-7 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6">
+<div class="flex justify-between items-center border-b pb-4 dark:border-slate-700">
+<h3 id="selectPeriodModalTitle" class="font-extrabold text-lg flex items-center gap-2.5"><i class="fa-solid fa-clock text-emerald-600"></i> اختر الحصة</h3>
+<button onclick="closeSelectPeriodModal()" class="w-10 h-10 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-400 flex items-center justify-center"><i class="fa-solid fa-xmark"></i></button>
 </div>
-<button onclick="closePeriod()" class="mt-4 w-full bg-slate-200 dark:bg-slate-700 py-2 rounded-xl text-xs font-bold">إلغاء</button>
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+<button onclick="confirmPeriodSelection(1)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">1</span><span>الحصة الأولى</span></button>
+<button onclick="confirmPeriodSelection(2)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">2</span><span>الحصة الثانية</span></button>
+<button onclick="confirmPeriodSelection(3)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">3</span><span>الحصة الثالثة</span></button>
+<button onclick="confirmPeriodSelection(4)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">4</span><span>الحصة الرابعة</span></button>
+<button onclick="confirmPeriodSelection(5)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">5</span><span>الحصة الخامسة</span></button>
+<button onclick="confirmPeriodSelection(6)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">6</span><span>الحصة السادسة</span></button>
+<button onclick="confirmPeriodSelection(7)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">7</span><span>الحصة السابعة</span></button>
+<button onclick="confirmPeriodSelection(8)" class="p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center gap-2"><span class="w-8 h-8 rounded-xl bg-emerald-600 text-white flex items-center justify-center font-black">8</span><span>الحصة الثامنة</span></button>
 </div>
-</div>
-
-<div id="genModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-[100]">
-<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-4xl w-full max-h-[85vh] flex flex-col">
-<div class="bg-emerald-900 text-white p-4 rounded-t-3xl flex justify-between"><h3 id="genTitle" class="font-black"></h3><button onclick="closeGen()"><i class="fa-solid fa-xmark"></i></button></div>
-<div id="genBody" class="overflow-auto flex-grow p-4"></div>
-<div class="p-3 border-t text-center"><button onclick="closeGen()" class="bg-emerald-700 text-white px-6 py-2 rounded-xl text-xs font-bold">إغلاق</button></div>
+<div class="flex justify-end"><button onclick="closeSelectPeriodModal()" class="px-6 py-3 bg-slate-200 dark:bg-slate-700 rounded-2xl text-xs font-bold">إلغاء</button></div>
 </div>
 </div>
 
-<div id="adminModal" class="fixed inset-0 bg-black/60 hidden items-center justify-center p-4 z-[100]">
-<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col">
-<div class="bg-emerald-900 text-white p-4 rounded-t-3xl flex justify-between"><h3 class="font-black">لوحة التحكم</h3><button onclick="closeAdminModal()"><i class="fa-solid fa-xmark text-xl"></i></button></div>
-<div id="adminAuth" class="p-8 text-center space-y-3">
-<p class="font-bold">أدخل رمز المدير</p>
-<input type="password" id="adminPinIn" class="p-3 border rounded-xl text-center max-w-xs w-full font-bold dark:bg-slate-900 dark:border-slate-700" placeholder="••••">
-<div id="adminErr" class="text-red-600 text-xs font-bold hidden">الرمز غير صحيح</div>
-<button onclick="verifyAdmin()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2 rounded-xl font-bold">دخول</button>
+<!-- CHANGE PIN -->
+<div id="changePinModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md">
+<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+<div class="flex justify-between items-center border-b pb-3 dark:border-slate-700"><h3 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري</h3><button onclick="closeChangePinModal()" class="text-slate-400"><i class="fa-solid fa-xmark"></i></button></div>
+<input type="password" id="currentPinCheck" placeholder="الرمز الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none">
+<input type="password" id="newPinInput" placeholder="الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none">
+<div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200 dark:border-red-900/50"></div>
+<div class="flex justify-end gap-2"><button onclick="closeChangePinModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 rounded-2xl text-xs font-bold">إلغاء</button><button onclick="submitNewTeacherPin()" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold">حفظ</button></div>
 </div>
-<div id="adminContent" class="hidden overflow-auto p-4">
-<div class="flex flex-wrap gap-2 mb-3 text-xs font-bold">
-<button onclick="setTab('stats')" data-tab="stats" class="tabBtn bg-emerald-700 text-white px-3 py-2 rounded-lg">📊 إحصائيات</button>
-<button onclick="setTab('users')" data-tab="users" class="tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg">👥 مستخدمون</button>
-<button onclick="setTab('students')" data-tab="students" class="tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg">🎓 طلاب</button>
-<button onclick="setTab('teachers')" data-tab="teachers" class="tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg">👨‍🏫 معلمون</button>
-<button onclick="setTab('alerts')" data-tab="alerts" class="tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg">🔔 تنبيهات</button>
-<button onclick="setTab('reports')" data-tab="reports" class="tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg">🖨️ تقارير</button>
-<button onclick="setTab('security')" data-tab="security" class="tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg">🔐 أمان</button>
 </div>
-<div id="tabContent" class="text-sm"></div>
+
+<!-- GENERAL MODAL -->
+<div id="generalModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md">
+<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+<div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center"><h3 id="generalModalTitle" class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-list text-emerald-400"></i> تفاصيل</h3><button onclick="closeGeneralModal()" class="text-emerald-200 w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="p-6 overflow-y-auto flex-grow" id="generalModalBody"></div>
+<div class="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 text-center"><button onclick="closeGeneralModal()" class="bg-emerald-700 text-white px-6 py-2.5 rounded-2xl text-xs font-bold">إغلاق</button></div>
+</div>
+</div>
+
+<!-- STUDENT DETAIL -->
+<div id="studentDetailModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md">
+<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+<div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center"><div><h3 id="modalStudentTitle" class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-user-graduate text-emerald-400"></i> ملف الطالب</h3><p id="modalStudentSubtitle" class="text-xs text-emerald-200 mt-0.5"></p></div><button onclick="closeStudentDetailModal()" class="text-emerald-200 w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800"><i class="fa-solid fa-xmark"></i></button></div>
+<div class="p-6 overflow-y-auto flex-grow" id="modalStudentBody"></div>
+<div class="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 text-center"><button onclick="closeStudentDetailModal()" class="bg-emerald-700 text-white px-6 py-2.5 rounded-2xl text-xs font-bold">إغلاق</button></div>
+</div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div id="adminModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-md">
+<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-700">
+<div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center"><h3 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-sliders text-emerald-400"></i> لوحة التحكم</h3><button onclick="closeAdminModal()" class="text-emerald-200 w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800"><i class="fa-solid fa-xmark"></i></button></div>
+<div id="adminAuthSection" class="p-12 text-center space-y-4 my-auto">
+<div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center mx-auto text-2xl border border-emerald-200 dark:border-emerald-800"><i class="fa-solid fa-user-shield"></i></div>
+<h4 class="font-extrabold text-base">أدخل رمز مدير النظام</h4>
+<div class="max-w-xs mx-auto space-y-3">
+<input type="password" id="adminPinInput" placeholder="••••" class="w-full text-center text-lg p-3.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold">
+<div id="adminAuthError" class="text-red-500 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200 dark:border-red-900/50">الرمز غير صحيح</div>
+<button onclick="verifyAdminPin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl text-xs">دخول</button>
+</div>
+</div>
+<div id="adminContentSection" class="hidden flex-grow overflow-y-auto p-5 space-y-5">
+<div id="roleNoticeBanner" class="bg-emerald-100/80 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-bold flex justify-between items-center border border-emerald-200 dark:border-emerald-800/60">
+<span id="roleNoticeText">صلاحية: مدير النظام</span>
+<span id="roleBadge" class="bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px]">تحكم كامل</span>
+</div>
+<div class="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+<button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm"><i class="fa-solid fa-chart-pie text-emerald-600"></i><span>إحصائيات</span></button>
+<button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-scale-balanced text-teal-600"></i><span>سلوكيات</span></button>
+<button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-user-gear text-blue-600"></i><span>أشخاص</span></button>
+<button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-graduation-cap text-indigo-600"></i><span>طلاب</span></button>
+<button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-chalkboard-user text-amber-600"></i><span>معلمين</span></button>
+<button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-bell text-red-500"></i><span>تنبيهات</span></button>
+<button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-print text-purple-600"></i><span>تقارير</span></button>
+<button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-cloud-arrow-up text-cyan-600"></i><span>مزامنة</span></button>
+<button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-shield-halved text-emerald-600"></i><span>أمان</span></button>
+</div>
+<div id="sec-studstats" class="space-y-6"></div>
+<div id="sec-behaviorstats" class="hidden space-y-6"></div>
+<div id="sec-users" class="hidden space-y-4"></div>
+<div id="sec-students" class="hidden space-y-4"></div>
+<div id="sec-teachers" class="hidden space-y-4"></div>
+<div id="sec-alerts" class="hidden space-y-4"></div>
+<div id="sec-reports" class="hidden space-y-6"></div>
+<div id="sec-sync" class="hidden space-y-4"></div>
+<div id="sec-security" class="hidden space-y-6"></div>
 </div>
 </div>
 </div>
 
 <script>
-// ========= CONFIG =========
-const SB_URL="https://ylsocrvwqibptuwfzbke.supabase.co";
-const SB_KEY="sb_publishable_xHm5_31UUMAQwp7t9R9X81Q_Z84B79J5";
-const sb=window.supabase.createClient(SB_URL,SB_KEY);
+/* ========= CONFIG ========= */
+const SB_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
+const SB_KEY = "sb_publishable_xHm5_31UUMAQwp7t9R9X81Q_Z84B79J5";
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
 
-// ========= SEED =========
-const SEED_T=[{"n":"مجيد العجمي","p":"1993"},{"n":"خالد الصالحي","p":"1326"},{"n":"أحمد عباس","p":"2244"},{"n":"كاظم العجمي","p":"2312"},{"n":"الدكتور ناصر السناني","p":"2323"},{"n":"نوح السعدي","p":"4365"},{"n":"بدر الصالحي","p":"9515"},{"n":"أحمد الرديني","p":"1234"},{"n":"أحمد السالمي","p":"3939"},{"n":"فيصل مشيري","p":"6758"},{"n":"سيد جمعة","p":"9845"},{"n":"محمد أحمد هارون","p":"6934"},{"n":"عبدالستار يوسف","p":"5823"},{"n":"هشام أحمد","p":"3412"},{"n":"عاطف محمد","p":"9826"},{"n":"يوسف محمد","p":"5959"},{"n":"تامر احمد","p":"3303"},{"n":"مرتضى العجمي","p":"5625"},{"n":"منذر الكندي","p":"9949"},{"n":"محمد السعدي","p":"7111"},{"n":"قيس الخميسي","p":"9934"},{"n":"سلطان النعماني","p":"9771"},{"n":"ماجد الشبيبي","p":"2948"},{"n":"حمد السناني","p":"1930"},{"n":"سعيد النوفلي","p":"1933"},{"n":"أسامة الخميسي","p":"9321"},{"n":"جمال السيد","p":"9918"},{"n":"محمد العبيد","p":"9761"},{"n":"محمد البشير","p":"7601"},{"n":"هلال المخمري","p":"8992"},{"n":"أحمد الذيابي","p":"1394"},{"n":"علاء السهي","p":"6719"},{"n":"إسلام أحمد","p":"9181"},{"n":"أسامة فتيان","p":"8829"},{"n":"إبراهيم منسي","p":"7003"},{"n":"محمد حسن","p":"8028"},{"n":"محمود رمضان","p":"7101"},{"n":"أسامة الجديدي","p":"5001"},{"n":"محمود المنعي","p":"4001"},{"n":"عبدالهادي البلوشي","p":"1086"},{"n":"معاذ الضباري","p":"8001"},{"n":"علي المعمري","p":"9118"},{"n":"أسعد السعيدي","p":"6011"},{"n":"راشد السعدي","p":"9616"},{"n":"عادل الحوسني","p":"8891"},{"n":"سيف الكيومي","p":"1992"},{"n":"خالد العامري","p":"9179"},{"n":"ممدوح عبدالله","p":"7399"},{"n":"محمد نورالدين","p":"7119"},{"n":"خليفة الحلاوي","p":"9937"},{"n":"يعقوب السعيدي","p":"9441"},{"n":"حسان الجابري","p":"1004"},{"n":"شريف جلال","p":"1921"},{"n":"معاذ النوفلي","p":"5951"},{"n":"حمد الجابري","p":"1502"},{"n":"أحمد البلوشي","p":"5629"},{"n":"سيف الدين السكراني","p":"1627"},{"n":"بدر الحارثي","p":"9898"}];
-const SEED_C=["9/1","9/2","9/3","9/4","9/5","9/6","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","12/1","12/2","12/3","12/4","12/5","12/6","12/7"];
-const SEED_S={
-"9/1":["أحمد بن محفوظ بن مبارك نافع","أمجد بن تعيب بن محمد عبدالله الصالحي","احمد محمد احمد عزت محمد عنايت","الأيهم بن محمود بن محمد زايد البلوشي","الخليل بن ابراهيم بن خميس سيف القويطعي","المثنى بن ابراهيم بن جميل علي البلوشي","المجد بن ماجد بن مصبح مبارك الشيادي","المعتز بن سالم بن ناصر خميس البدري","الوليد بن يوسف بن جميل راشد الجلبوبي","حمد بن منير بن محمد خلفان الشيادي","حـمد بن يونس بن خليفه محمد البلوشي","راكان بن سعيد بن عبيد سلطان الجحافي","سلطان بن خليفه بن سعيد خليفه الصولي","صالح بن يوسف بن سيف هاشل العوادي","عبدالرحمن بن عبيد بن سويد عيسى الشيادي","عبدالرحمن بن ناصر بن علي ناصر الحمحمي","عبدالعزيز بن فهد بن سالم راشد المقبالي","عبدالله بن يونس بن عبدالله مبارك الظبي","عبدالملك بن عبدالله بن هاشل عبيد الحارثي","علي بن خليفه بن علي سعيد الغافري","عمر بن ناصر بن سالم عبدالله الخالدي","عمر شريف جلا ل محمد حسان","عيسى بن سالم بن الشين شنان السعدي","فيصل بن اسماعيل بن بدر محمد المعمري","ليث بن سعيد بن بدر غيث اليحيائي","ليث بن عادل بن عبدالله مبروك البوسعيدي","محمد بن خميس بن عبدالله خميس البلوشي","محمد بن عثمان بن حمود سيف الدهماني","محمد بن هشام بن هديب خصيف العوادي","محمد بن وليد بن بخيت سالم الحوماني","محمد عادل محمد ابراهيم الشناوي","محمود بن زايد بن غابش فرج السعدي","نبراس بن فتحي بن محمد خلفان الشيادي","وسام بن محمد بن عبدالله علي الهنداسي","يامن بن سالم بن خميس خصيب السعدي","يوسف بن خالد بن ادم مبارك الميمني"],
-"9/2":["إبراهيم بن محمود بن حمد سليمان الغساني","آدم بن أحمد بن سيف حمود الكيومي","أنس بن عبدالله بن سليمان محمد الفارسي","الأيهم بن خالد بن خميس سالم الغافري","المعتصم بن سلطان بن حميد راشد الغافري","الوليد بن خالد بن علي ناصر الحمحمي","اليزن بن خالد بن خليفه سالم السالمي","باسل بن محمود بن حامد عامر الخروصي","جاسم بن محمد بن خميس مبارك الشيادي","حمد بن أحمد بن نافع طالب المنوري","خميس بن جميل بن خميس فرج البلوشي","راضي بن عبدالله بن مبارك ناصر الصالحي","زكريا بن ابراهيم بن سعيد مبارك الجديدي","سعيد بن خالد بن سعيد صالح الزدجالي","سليمان بن سالم بن سليمان علي الصالحي","سيف بن محمد بن ناصر محمد المبيحسي","طارق بن محسن بن راشد صالح القرني","عبدالرحمن بن خميس بن مبارك سعيد الشقصي","عبدالعزيز بن فهد بن سعيد صالح القرني","عبدالله بن منير بن خليفه راشد الشيادي","علي بن احمد بن حميد صالح العجمي","علي بن محمد بن علي محمد الجحافي","عماد بن طالب بن عبدالله سعيد الحلاوي","عيسى وليد أحمد سعود","قصى بن عمر بن محمد على البلوشى","كرم بن أحمد بن عبدالله مبروك السعدي","مبارك بن سرور بن مبارك سرور السعدي","محمد بن أحمد بن ذياب ناصر اللمكي","محمد بن حمد بن الغفيق غديـّر الوهيبي","محمد بن سالم بن تعيب فريش الغساني","محمود بن محفوظ بن محمد سليمان الغساني","نصر بن حسن بن مبارك عابد السعدي","نوح بن عبدالله بن ناصر سالم الغداني","يامن بن أحمد بن خميس العبد الجديدي","يوسف بن محمد بن سعيد ناصر القنوبي"],
-"9/3":["أحمد بن بدر بن عبيد بيدار السعدي","أسامة بن أحمد بن خميس محمد الهنائي","أمجد بن ثاني بن هاشل طناف السعدي","الخطاب بن عمر بن حميد علي الكيومي","الياس بن قحطان بن هلال ناصر القويطعي","خالد بن عادل بن درويش خميس القرطوبي","راشد بن عبدالله بن خليفه فاضل الغداني","راكان بن خالد بن سالم راشد الجديدي","سالم بن سعيد بن سالم حمد البدري","سعيد بن عبدالله بن حميد سالم الجحافي","سيف بن سلطان بن سيف حمد الكيومي","صالح بن طلال بن صالح سعيد الزدجالي","عبدالرحمن بن نصيب بن مرزوق مرهون الفورا","عبدالرحمن عبدالمحمود محمد الرضي","عبدالعزيز بن عبدالله بن علي حمد العجمي","عبدالعزيز بن علي بن سليمان شنون الكندي","عبدالله بن درويش بن عبدالله علي الشيدي","عبدالله بن فهد بن مبارك جمعه الفضيلي","عبدالله بن ناصر بن خميس سليمان المغيزوي","علي بن حسن بن جمعه محمد الشيدي","عماد بن فيصل بن عيسى محمد الصالحي","عمر بن عادل بن مرزوق مرهون الفورا","عمران بن محمد بن سبيل جميل البلوشي","عيسى بن اسماعيل بن سبيل جميل البلوشي","فراس بن باسم بن سمير أيوب البلوشي","مبارك بن سعد بن مبارك خاطر الرشيدي","محمد بن جاسم بن محمد علي البلوشي","محمد بن داود بن سليمان جلال الزدجالي","محمد بن راشد بن محمد سالم اليحمدي","محمد نزمول","معاذ بن محمد بن سباع خميس الغافري","ناصر بن عبدالله بن طالب علي الصولي","هود بن طناف بن عبدالله علي البلوشي","يزن بن محمد بن راشد سعيد الشيدي","يوسف بن جمعه بن خصيف جميل الفجري"]
-};
+/* ========= STATE ========= */
+let db = { adminPin: null, teachers: [], customUsers: [], classes: [], students: {}, attendance: {}, behaviors: {} };
+let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
+let selectedBehaviorClass = null, currentBehaviorRecord = {};
+let pendingTargetClass = null, pendingMode = 'attendance', currentPeriod = 1;
+let statsPeriod = 'today', statsSubTab = 'absence', statsSortOrder = 'violationsDesc';
+let behaviorReportClass = 'all', behaviorReportDate = '', reportClass = 'all', reportDate = '';
 
-// ========= STATE =========
-let db={adminPin:null,teachers:[],customUsers:[],classes:[],students:{},attendance:{},behaviors:{}};
-let activeUser=null,selCls=null,curAtt={},selBehCls=null,curBeh={},pendTarget=null,pendMode='attendance',currentPeriod=1;
+/* ========= HELPERS ========= */
+const esc = s => s == null ? '' : String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+const periodNames = { 1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة', 7: 'السابعة', 8: 'الثامنة' };
+const behaviorLabels = { normal: 'منضبط', eating: 'الأكل 🍔', talking: 'كلام جانبي 🗣️', tools: 'عدم إحضار الأدوات 🎒', chaos: 'إثارة الفوضى ⚡', sleeping: 'النوم 💤', homework: 'عدم حل الواجب 📚', other: 'أخرى ⚠️' };
+const attendanceLabels = { present: 'حاضر', absent: 'غائب', late: 'متأخر', escape: 'متسرب', outside: 'خارج' };
 
-// ========= HELPERS =========
-const esc=s=>s==null?'':String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const today=()=>new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Muscat',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date());
-const parseKey=k=>{if(!k)return{d:today(),c:'',p:1};const lu=k.lastIndexOf('_');if(lu<0)return{d:today(),c:'',p:1};const p=parseInt(k.substring(lu+1).replace('p',''))||1;const pre=k.substring(0,lu);const fu=pre.indexOf('_');if(fu<0)return{d:pre,c:'',p};return{d:pre.substring(0,fu),c:pre.substring(fu+1),p};};
+function parseKey(k) {
+  if (!k) return { date: today(), className: '', period: 1 };
+  const lu = k.lastIndexOf('_');
+  if (lu < 0) return { date: today(), className: '', period: 1 };
+  const period = parseInt(k.substring(lu + 1).replace('p', '')) || 1;
+  const pre = k.substring(0, lu), fu = pre.indexOf('_');
+  if (fu < 0) return { date: pre, className: '', period };
+  return { date: pre.substring(0, fu), className: pre.substring(fu + 1), period };
+}
 
-function toast(msg,type='success'){const c=document.getElementById('toast');const t=document.createElement('div');const cls={success:'bg-emerald-900 border-emerald-500 text-white',error:'bg-red-900 border-red-500 text-white',info:'bg-slate-900 border-teal-500 text-white'};t.className=`p-3 rounded-xl border text-xs font-bold shadow-xl ${cls[type]||cls.success} pointer-events-auto`;t.textContent=msg;c.appendChild(t);setTimeout(()=>t.remove(),4000);}
-function setSync(ok,txt){document.getElementById('syncTxt').textContent=txt;document.getElementById('syncInd').className=ok?'text-xs bg-emerald-800 px-3 py-1.5 rounded-xl':'text-xs bg-red-800 px-3 py-1.5 rounded-xl';}
+function toast(msg, type = 'success') {
+  const c = document.getElementById('toastContainer');
+  const t = document.createElement('div');
+  const cls = { success: 'bg-emerald-900/95 border-emerald-500 text-emerald-100', error: 'bg-red-900/95 border-red-500 text-red-100', info: 'bg-slate-900/95 border-teal-500 text-slate-100' };
+  const ic = { success: 'fa-circle-check text-emerald-400', error: 'fa-circle-xmark text-red-400', info: 'fa-circle-info text-teal-400' };
+  t.className = `toast-in flex items-center gap-3 p-4 rounded-2xl border backdrop-blur-md shadow-2xl text-xs font-bold pointer-events-auto ${cls[type] || cls.success}`;
+  t.innerHTML = `<i class="fa-solid ${ic[type] || ic.success} text-base"></i><span class="flex-grow">${esc(msg)}</span><button class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>`;
+  t.querySelector('button').onclick = () => t.remove();
+  c.appendChild(t);
+  setTimeout(() => { if (t.parentElement) t.remove(); }, 4000);
+}
 
-// ========= INIT =========
-window.addEventListener('DOMContentLoaded',async()=>{
-  await loadAll();
-  const btn=document.getElementById('loginBtn');
-  btn.disabled=false;btn.innerHTML='<span>دخول</span> <i class="fa-solid fa-arrow-left"></i>';
-  const saved=localStorage.getItem('activeUser');
-  if(saved){try{activeUser=JSON.parse(saved);showDashView();}catch(e){}}
+function setSync(ok, txt) {
+  const ind = document.getElementById('syncIndicator'), t = document.getElementById('syncText');
+  if (!ind) return;
+  t.textContent = txt;
+  ind.className = ok
+    ? 'bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60'
+    : 'bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60';
+}
+
+function initDarkMode() {
+  if (localStorage.getItem('abuDujana_darkMode') === 'true') {
+    document.documentElement.classList.add('dark');
+    const i = document.getElementById('darkModeIcon');
+    if (i) i.className = 'fa-solid fa-sun text-sm';
+  }
+}
+function toggleDarkMode() {
+  const d = document.documentElement.classList.toggle('dark');
+  localStorage.setItem('abuDujana_darkMode', d);
+  const i = document.getElementById('darkModeIcon');
+  if (i) i.className = d ? 'fa-solid fa-sun text-sm' : 'fa-solid fa-moon text-sm';
+}
+function setCurrentDate() {
+  const t = today();
+  document.getElementById('currentDateDisplay').textContent = 'تاريخ اليوم: ' + t;
+  document.getElementById('activeSessionDateLabel').textContent = t;
+  document.getElementById('activeBehaviorDateLabel').textContent = t;
+  behaviorReportDate = t;
+  reportDate = t;
+}
+
+/* ========= UNSAVED WARNINGS ========= */
+function isUnsaved() {
+  const a = document.getElementById('unsavedStatusIndicator')?.textContent?.includes('⚠️');
+  const b = document.getElementById('unsavedBehaviorStatusIndicator')?.textContent?.includes('⚠️');
+  return a || b;
+}
+function confirmNav() { return isUnsaved() ? confirm('لديك تغييرات غير محفوظة. هل تريد المغادرة؟') : true; }
+window.addEventListener('beforeunload', e => { if (isUnsaved()) { e.preventDefault(); e.returnValue = ''; return ''; } });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['selectPeriodModal', 'changePinModal', 'generalModal', 'studentDetailModal', 'adminModal'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el && !el.classList.contains('hidden')) el.classList.add('hidden');
+    });
+  }
 });
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){['periodModal','genModal','adminModal'].forEach(id=>document.getElementById(id)?.classList.add('hidden'));}});
 
-// ========= LOAD =========
-async function loadAll(){
-  setSync(false,'تحميل...');
-  try{
-    const [cR,sR,tR,aR,bR,setR]=await Promise.all([
-      sb.from('classes').select('*'),sb.from('students').select('*'),
-      sb.from('teachers').select('*'),sb.from('attendance').select('*'),
-      sb.from('behaviors').select('*'),sb.from('school_settings').select('*')
+/* ========= LOAD ========= */
+async function loadAll() {
+  setSync(false, 'تحميل...');
+  try {
+    const [cR, sR, tR, aR, bR, setR] = await Promise.all([
+      sb.from('classes').select('name'),
+      sb.from('students').select('class_name, student_name'),
+      sb.from('teachers').select('*'),
+      sb.from('attendance').select('*'),
+      sb.from('behaviors').select('*'),
+      sb.from('school_settings').select('*')
     ]);
-    [cR,sR,tR,aR,bR,setR].forEach(r=>{if(r.error)console.error(r.error);});
-    const sR_data=sR.data||[],tR_data=tR.data||[];
-    if((cR.data||[]).length===0&&sR_data.length===0&&tR_data.length===0){await seedDB();return await loadAll();}
-    db.classes=(cR.data||[]).map(r=>r.name);if(!db.classes.length)db.classes=[...SEED_C];
-    db.students={};sR_data.forEach(r=>{if(!db.students[r.class_name])db.students[r.class_name]=[];db.students[r.class_name].push(r.student_name);});
-    db.classes.forEach(c=>{if(!db.students[c])db.students[c]=[];});
-    db.teachers=tR_data.filter(t=>t.role==='teacher');
-    db.customUsers=tR_data.filter(t=>t.role==='custom');
-    db.adminPin=(setR.data||[]).find(r=>r.key==='admin_pin')?.value?.pin||null;
-    db.attendance={};(aR.data||[]).forEach(r=>{db.attendance[r.record_key]={teacher:r.teacher_name,records:r.records};});
-    db.behaviors={};(bR.data||[]).forEach(r=>{db.behaviors[r.record_key]={teacher:r.teacher_name,records:r.records};});
-    setSync(true,'متزامن');return true;
-  }catch(e){console.error(e);setSync(false,'خطأ');if(!db.classes.length){db.classes=[...SEED_C];db.students={...SEED_S};db.teachers=SEED_T.map(t=>({...t,role:'teacher'}));}return false;}
+    [cR, sR, tR, aR, bR, setR].forEach(r => { if (r.error) console.error(r.error); });
+    
+    const classData = cR.data || [], studData = sR.data || [], tchData = tR.data || [];
+    if (!classData.length && !studData.length && !tchData.length) {
+      setSync(false, 'لا توجد بيانات');
+      showEmptyDBMessage();
+      return false;
+    }
+    
+    db.classes = classData.map(r => r.name);
+    if (!db.classes.length) db.classes = [...new Set(studData.map(r => r.class_name))];
+    
+    db.students = {};
+    studData.forEach(r => { if (!db.students[r.class_name]) db.students[r.class_name] = []; db.students[r.class_name].push(r.student_name); });
+    db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
+    
+    db.teachers = tchData.filter(t => t.role === 'teacher');
+    db.customUsers = tchData.filter(t => t.role === 'custom');
+    db.adminPin = (setR.data || []).find(r => r.key === 'admin_pin')?.value?.pin || null;
+    
+    db.attendance = {};
+    (aR.data || []).forEach(r => { db.attendance[r.record_key] = { teacher: r.teacher_name, records: r.records || {}, timestamp: r.updated_at }; });
+    
+    db.behaviors = {};
+    (bR.data || []).forEach(r => { db.behaviors[r.record_key] = { teacher: r.teacher_name, records: r.records || {}, timestamp: r.updated_at }; });
+    
+    setSync(true, 'متزامن');
+    return true;
+  } catch (e) {
+    console.error('loadAll:', e);
+    setSync(false, 'خطأ اتصال');
+    return false;
+  }
 }
-async function seedDB(){
-  try{
-    await sb.from('classes').upsert(SEED_C.map(n=>({name:n})),{onConflict:'name'});
-    await sb.from('teachers').upsert(SEED_T.map(t=>({name:t.n,pin:t.p,role:'teacher'})),{onConflict:'name'});
-    let rows=[];for(const[c,list]of Object.entries(SEED_S))list.forEach(n=>rows.push({class_name:c,student_name:n}));
-    for(let i=0;i<rows.length;i+=100)await sb.from('students').upsert(rows.slice(i,i+100),{onConflict:'class_name,student_name'});
-    await sb.from('school_settings').upsert({key:'admin_pin',value:{pin:'Maj313'}},{onConflict:'key'});
-    toast('تم الزرع الأولي');return true;
-  }catch(e){console.error(e);return false;}
+
+function showEmptyDBMessage() {
+  document.getElementById('loginView').innerHTML = `
+    <div class="text-center p-6">
+      <div class="w-16 h-16 bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 rounded-3xl flex items-center justify-center mx-auto mb-3 text-2xl border border-amber-200 dark:border-amber-800"><i class="fa-solid fa-database"></i></div>
+      <h2 class="text-xl font-extrabold mb-2">قاعدة البيانات فارغة</h2>
+      <p class="text-sm text-slate-600 dark:text-slate-400 mb-4">لم يتم تحميل البيانات بعد. الرجاء:</p>
+      <ol class="text-right text-xs space-y-2 bg-slate-50 dark:bg-slate-900/60 p-4 rounded-2xl border border-slate-200 dark:border-slate-700">
+        <li>1. فتح أداة الهجرة في JSFiddle</li>
+        <li>2. تشغيل سكربت الهجرة</li>
+        <li>3. إعادة تحميل هذه الصفحة</li>
+      </ol>
+      <button onclick="location.reload()" class="mt-4 bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-sm font-bold">إعادة التحميل</button>
+    </div>`;
+  const b = document.getElementById('loginBtn');
+  if (b) b.style.display = 'none';
 }
 
-// ========= AUTH =========
-function validAdmin(pin){if(!db.adminPin||!pin)return false;if(String(pin)===String(db.adminPin))return true;try{if(atob(db.adminPin)===pin)return true;if(btoa(pin)===db.adminPin)return true;}catch(e){}return false;}
-function login(e){e.preventDefault();const pin=document.getElementById('pinIn').value.trim();if(!pin)return;document.getElementById('loginErr').classList.add('hidden');
-  if(validAdmin(pin)){activeUser={name:'مدير النظام',pin,type:'admin'};}
-  else{const cu=db.customUsers.find(u=>u.pin===pin);if(cu)activeUser={name:cu.name,pin,type:'custom',permissions:cu.permissions||{}};
-    else{const t=db.teachers.find(t=>t.pin===pin);if(t)activeUser={name:t.name,pin,type:'teacher'};}}
-  if(activeUser){localStorage.setItem('activeUser',JSON.stringify(activeUser));showDashView();toast('أهلاً '+activeUser.name);document.getElementById('pinIn').value='';}
-  else{document.getElementById('loginErr').classList.remove('hidden');}
+/* ========= AUTH ========= */
+function validAdmin(pin) {
+  if (!db.adminPin || !pin) return false;
+  if (String(pin) === String(db.adminPin)) return true;
+  try {
+    if (atob(db.adminPin) === pin) return true;
+    if (btoa(pin) === db.adminPin) return true;
+  } catch (e) { }
+  return false;
 }
-function showDashView(){document.getElementById('vLogin').classList.add('hidden');document.getElementById('vDash').classList.remove('hidden');
-  document.getElementById('uName').textContent=activeUser.name;
-  document.getElementById('uRole').textContent=activeUser.type==='admin'?'مدير':activeUser.type==='custom'?'مخصص':'معلم';
-  document.getElementById('adminBtn').classList.toggle('hidden',activeUser.type==='teacher');
+function hasAnyPerm(u) { return u?.permissions ? Object.values(u.permissions).some(Boolean) : false; }
+
+function checkExistingSession() {
+  const s = localStorage.getItem('abuDujana_activeUser');
+  if (!s) return;
+  try {
+    activeUser = JSON.parse(s);
+    if (activeUser.type === 'teacher' && !db.teachers.some(t => t.name === activeUser.name)) { logoutUser(true); return; }
+    if (activeUser.type === 'custom' && !db.customUsers.some(u => u.name === activeUser.name)) { logoutUser(true); return; }
+    if (activeUser.type === 'admin' && !db.adminPin) { logoutUser(true); return; }
+    finalizeLoginState();
+  } catch (e) { logoutUser(true); }
 }
-function logout(){if(!confirm('تسجيل الخروج؟'))return;activeUser=null;localStorage.removeItem('activeUser');['vDash','vAttClasses','vAttSession','vBehClasses','vBehSession'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById('vLogin').classList.remove('hidden');}
-function showDash(){['vAttClasses','vAttSession','vBehClasses','vBehSession'].forEach(id=>document.getElementById(id).classList.add('hidden'));document.getElementById('vDash').classList.remove('hidden');}
-function showAtt(){document.getElementById('vDash').classList.add('hidden');document.getElementById('vAttClasses').classList.remove('hidden');document.getElementById('attDateLbl').textContent=today();renderAttGrid();}
-function showBeh(){document.getElementById('vDash').classList.add('hidden');document.getElementById('vBehClasses').classList.remove('hidden');renderBehGrid();}
 
-// ========= ATTENDANCE =========
-function renderAttGrid(){const g=document.getElementById('attGrid');g.innerHTML='';const t=today();db.classes.forEach(c=>{let r=0;for(let p=1;p<=8;p++)if(db.attendance[`${t}_${c}_p${p}`])r++;const b=document.createElement('button');b.className='bg-white dark:bg-slate-800 hover:bg-emerald-600 hover:text-white p-4 rounded-2xl shadow font-bold flex flex-col items-center gap-1 transition';b.innerHTML=`<i class="fa-solid fa-users text-emerald-600"></i><span>${esc(c)}</span><span class="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 px-2 py-0.5 rounded">${r}/8</span>`;b.onclick=()=>openClassAtt(c);g.appendChild(b);});}
-function openClassAtt(c){pendTarget=c;pendMode='attendance';document.getElementById('periodTitle').textContent=`اختر الحصة لصف ${c}`;document.getElementById('periodModal').classList.remove('hidden');document.getElementById('periodModal').classList.add('flex');}
-function closePeriod(){document.getElementById('periodModal').classList.add('hidden');document.getElementById('periodModal').classList.remove('flex');}
-function pickPeriod(p){closePeriod();if(!pendTarget)return;currentPeriod=p;const names=['','الأولى','الثانية','الثالثة','الرابعة','الخامسة','السادسة','السابعة','الثامنة'];
-if(pendMode==='attendance'){selCls=pendTarget;document.getElementById('vAttClasses').classList.add('hidden');document.getElementById('vAttSession').classList.remove('hidden');document.getElementById('attTitle').textContent=`رصد حضور صف ${selCls} - الحصة ${names[p]}`;loadAttSession();}
-else{selBehCls=pendTarget;document.getElementById('vBehClasses').classList.add('hidden');document.getElementById('vBehSession').classList.remove('hidden');document.getElementById('behTitle').textContent=`رصد سلوكيات صف ${selBehCls} - الحصة ${names[p]}`;loadBehSession();}
-pendTarget=null;}
-function reselectPeriod(){if(!selCls)return;pendTarget=selCls;pendMode='attendance';document.getElementById('periodTitle').textContent=`تغيير الحصة لصف ${selCls}`;document.getElementById('periodModal').classList.remove('hidden');document.getElementById('periodModal').classList.add('flex');}
-function backToAttClasses(){if(!confirm('العودة؟'))return;selCls=null;document.getElementById('vAttSession').classList.add('hidden');document.getElementById('vAttClasses').classList.remove('hidden');renderAttGrid();}
-function loadAttSession(){const t=today(),k=`${t}_${selCls}_p${currentPeriod}`;const s=db.attendance[k]||{teacher:activeUser?.name||'معلم',records:{}};curAtt={...(s.records||{})};document.getElementById('attStatus').textContent=`${t} | بواسطة: ${s.teacher||'-'}`;renderAttList();document.getElementById('attUnsaved').textContent=s.timestamp?'لا تغييرات':'جاهز للحفظ';}
-function renderAttList(){const list=db.students[selCls]||[],c=document.getElementById('attList');c.innerHTML='';updateAttStats();if(!list.length){c.innerHTML='<div class="text-center py-8 text-slate-400 text-xs">لا يوجد طلاب</div>';return;}
-list.forEach(st=>{const cur=curAtt[st]||'present';const r=document.createElement('div');r.className='flex items-center justify-between p-2 hover:bg-slate-50 dark:hover:bg-slate-900 rounded-xl gap-2 flex-wrap';const n=document.createElement('span');n.className='font-bold text-xs';n.textContent=st;r.appendChild(n);const a=document.createElement('div');a.className='flex gap-1 flex-wrap';
-[{k:'present',l:'حاضر',cls:'bg-emerald-600 text-white'},{k:'absent',l:'غائب',cls:'bg-black text-white border-2 border-amber-400'},{k:'late',l:'متأخر',cls:'bg-orange-500 text-white'},{k:'escape',l:'متسرب',cls:'bg-red-600 text-white'},{k:'outside',l:'خارج',cls:'bg-purple-600 text-white'}].forEach(stt=>{const b=document.createElement('button');b.className=`px-2 py-1 rounded text-xs font-bold border ${cur===stt.k?stt.cls:'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`;b.textContent=stt.l;b.onclick=()=>{curAtt[st]=stt.k;renderAttList();document.getElementById('attUnsaved').textContent='⚠️ تغييرات غير محفوظة';};a.appendChild(b);});
-r.appendChild(a);c.appendChild(r);});}
-function updateAttStats(){let p=0,a=0,l=0,e=0,o=0;(db.students[selCls]||[]).forEach(st=>{const v=curAtt[st]||'present';if(v==='present')p++;else if(v==='absent')a++;else if(v==='late')l++;else if(v==='escape')e++;else if(v==='outside')o++;});['sP','sA','sL','sE','sO'].forEach((id,i)=>document.getElementById(id).textContent=[p,a,l,e,o][i]);}
-function markAllP(){if(!selCls)return;(db.students[selCls]||[]).forEach(st=>curAtt[st]='present');renderAttList();document.getElementById('attUnsaved').textContent='⚠️ تغييرات غير محفوظة';}
-async function saveAtt(){if(!selCls||!activeUser)return;const btn=document.getElementById('saveAttBtn');if(btn.disabled)return;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> حفظ...';try{const t=today(),k=`${t}_${selCls}_p${currentPeriod}`;const{error}=await sb.from('attendance').upsert({record_key:k,date_str:t,class_name:selCls,period:currentPeriod,teacher_name:activeUser.name,records:curAtt,updated_at:new Date().toISOString()},{onConflict:'record_key'});if(error){toast('فشل: '+error.message,'error');}else{db.attendance[k]={teacher:activeUser.name,records:{...curAtt},timestamp:new Date().toISOString()};toast('تم الحفظ');document.getElementById('attUnsaved').textContent='تم الحفظ ✓';}}catch(e){console.error(e);toast('خطأ','error');}finally{btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-save"></i> حفظ سحابياً';}}
+function handleLogin(e) {
+  e.preventDefault();
+  if (!db.classes.length) { toast('النظام لا يزال يحمل البيانات، انتظر قليلاً', 'info'); return; }
+  const pin = document.getElementById('userPinInput').value.trim();
+  if (!pin) return;
 
-// ========= BEHAVIOR =========
-function renderBehGrid(){const g=document.getElementById('behGrid');g.innerHTML='';const t=today();db.classes.forEach(c=>{let r=0;for(let p=1;p<=8;p++)if(db.behaviors[`${t}_${c}_p${p}`])r++;const b=document.createElement('button');b.className='bg-white dark:bg-slate-800 hover:bg-teal-600 hover:text-white p-4 rounded-2xl shadow font-bold flex flex-col items-center gap-1 transition';b.innerHTML=`<i class="fa-solid fa-users text-teal-600"></i><span>${esc(c)}</span><span class="text-[10px] bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-200 px-2 py-0.5 rounded">${r}/8</span>`;b.onclick=()=>openClassBeh(c);g.appendChild(b);});}
-function openClassBeh(c){pendTarget=c;pendMode='behavior';document.getElementById('periodTitle').textContent=`اختر الحصة لصف ${c}`;document.getElementById('periodModal').classList.remove('hidden');document.getElementById('periodModal').classList.add('flex');}
-function reselectBehPeriod(){if(!selBehCls)return;pendTarget=selBehCls;pendMode='behavior';document.getElementById('periodTitle').textContent=`تغيير الحصة لصف ${selBehCls}`;document.getElementById('periodModal').classList.remove('hidden');document.getElementById('periodModal').classList.add('flex');}
-function backToBehClasses(){if(!confirm('العودة؟'))return;selBehCls=null;document.getElementById('vBehSession').classList.add('hidden');document.getElementById('vBehClasses').classList.remove('hidden');renderBehGrid();}
-function loadBehSession(){const t=today(),k=`${t}_${selBehCls}_p${currentPeriod}`;const s=db.behaviors[k]||{teacher:activeUser?.name||'معلم',records:{}};curBeh={};Object.entries(s.records||{}).forEach(([kk,v])=>{curBeh[kk]={...v};});document.getElementById('behStatus').textContent=`${t} | بواسطة: ${s.teacher||'-'}`;renderBehList();document.getElementById('behUnsaved').textContent=s.timestamp?'لا تغييرات':'جاهز للحفظ';}
-function renderBehList(){const list=db.students[selBehCls]||[],c=document.getElementById('behList');c.innerHTML='';if(!list.length){c.innerHTML='<div class="text-center py-8 text-slate-400 text-xs">لا يوجد طلاب</div>';return;}
-list.forEach(st=>{if(!curBeh[st])curBeh[st]={type:'normal',note:''};const d=curBeh[st];const r=document.createElement('div');r.className='p-2 border rounded-xl';const top=document.createElement('div');top.className='flex flex-wrap items-center justify-between gap-2 mb-1';const n=document.createElement('span');n.className='font-bold text-xs';n.textContent=st;top.appendChild(n);const a=document.createElement('div');a.className='flex flex-wrap gap-1';
-[{k:'normal',l:'منضبط',cls:'bg-emerald-600 text-white'},{k:'eating',l:'أكل',cls:'bg-amber-500 text-white'},{k:'talking',l:'كلام جانبي',cls:'bg-orange-500 text-white'},{k:'tools',l:'بدون أدوات',cls:'bg-yellow-600 text-white'},{k:'chaos',l:'فوضى',cls:'bg-red-500 text-white'},{k:'sleeping',l:'نوم',cls:'bg-indigo-600 text-white'},{k:'homework',l:'بدون واجب',cls:'bg-blue-600 text-white'},{k:'other',l:'أخرى',cls:'bg-rose-700 text-white'}].forEach(bt=>{const b=document.createElement('button');b.className=`px-2 py-1 rounded text-xs font-bold border ${d.type===bt.k?bt.cls:'bg-slate-100 dark:bg-slate-700 border-slate-300 dark:border-slate-600'}`;b.textContent=bt.l;b.onclick=()=>{curBeh[st].type=bt.k;if(bt.k!=='other')curBeh[st].note='';renderBehList();document.getElementById('behUnsaved').textContent='⚠️ تغييرات غير محفوظة';};a.appendChild(b);});
-top.appendChild(a);r.appendChild(top);
-if(d.type==='other'){const inp=document.createElement('input');inp.type='text';inp.placeholder='وصف السلوك...';inp.value=d.note||'';inp.className='w-full text-xs p-2 border rounded-lg mt-1 dark:bg-slate-900 dark:border-slate-700';inp.oninput=e=>{curBeh[st].note=e.target.value;document.getElementById('behUnsaved').textContent='⚠️ تغييرات';};r.appendChild(inp);}
-c.appendChild(r);});}
-function markAllN(){if(!selBehCls)return;(db.students[selBehCls]||[]).forEach(st=>curBeh[st]={type:'normal',note:''});renderBehList();document.getElementById('behUnsaved').textContent='⚠️ تغييرات غير محفوظة';}
-async function saveBeh(){if(!selBehCls||!activeUser)return;const btn=document.getElementById('saveBehBtn');if(btn.disabled)return;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> حفظ...';try{const t=today(),k=`${t}_${selBehCls}_p${currentPeriod}`;const{error}=await sb.from('behaviors').upsert({record_key:k,date_str:t,class_name:selBehCls,period:currentPeriod,teacher_name:activeUser.name,records:curBeh,updated_at:new Date().toISOString()},{onConflict:'record_key'});if(error){toast('فشل: '+error.message,'error');}else{db.behaviors[k]={teacher:activeUser.name,records:{...curBeh},timestamp:new Date().toISOString()};toast('تم الحفظ');document.getElementById('behUnsaved').textContent='تم الحفظ ✓';}}catch(e){console.error(e);toast('خطأ','error');}finally{btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-save"></i> حفظ سحابياً';}}
+  if (validAdmin(pin)) {
+    activeUser = { name: 'مدير النظام العام', pin, type: 'admin', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, alerts: true, reports: true, sync: true, security: true } };
+  } else {
+    const cu = db.customUsers.find(u => u.pin === pin);
+    if (cu) activeUser = { name: cu.name, pin: cu.pin, type: 'custom', permissions: cu.permissions || {} };
+    else {
+      const t = db.teachers.find(t => t.pin === pin);
+      if (t) activeUser = { name: t.name, pin: t.pin, type: 'teacher', permissions: {} };
+    }
+  }
 
-// ========= ADMIN =========
-function openAdminModal(){if(activeUser?.type==='admin'){document.getElementById('adminModal').classList.remove('hidden');document.getElementById('adminModal').classList.add('flex');document.getElementById('adminAuth').classList.add('hidden');document.getElementById('adminContent').classList.remove('hidden');initAdmin();}else{document.getElementById('adminModal').classList.remove('hidden');document.getElementById('adminModal').classList.add('flex');document.getElementById('adminAuth').classList.remove('hidden');document.getElementById('adminContent').classList.add('hidden');}}
-function closeAdminModal(){document.getElementById('adminModal').classList.add('hidden');document.getElementById('adminModal').classList.remove('flex');}
-function verifyAdmin(){const p=document.getElementById('adminPinIn').value.trim();if(validAdmin(p)){document.getElementById('adminAuth').classList.add('hidden');document.getElementById('adminContent').classList.remove('hidden');document.getElementById('adminErr').classList.add('hidden');initAdmin();}else{document.getElementById('adminErr').classList.remove('hidden');}}
-function initAdmin(){setTab('stats');}
-function setTab(name){document.querySelectorAll('.tabBtn').forEach(b=>{b.className='tabBtn bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg';});document.querySelector(`[data-tab="${name}"]`).className='tabBtn bg-emerald-700 text-white px-3 py-2 rounded-lg';const c=document.getElementById('tabContent');c.innerHTML='';
-if(name==='stats')renderStats(c);
-else if(name==='users')renderUsers(c);
-else if(name==='students')renderStudents(c);
-else if(name==='teachers')renderTeachers(c);
-else if(name==='alerts')renderAlerts(c);
-else if(name==='reports')renderReports(c);
-else if(name==='security')renderSecurity(c);}
-
-function renderStats(c){
-const periods={today:'اليوم',yesterday:'أمس',week:'الأسبوع',month:'الشهر',semester:'الفصل',custom:'مخصص'};
-c.innerHTML=`<div class="flex gap-2 mb-3 flex-wrap items-center"><label class="text-xs font-bold">الفترة:</label><select id="stPer" onchange="refreshStats()" class="p-2 border rounded-lg text-xs dark:bg-slate-900 dark:border-slate-700">${Object.entries(periods).map(([k,v])=>`<option value="${k}">${v}</option>`).join('')}</select><div id="customRange" class="hidden flex gap-1"><input type="date" id="stS" class="p-2 border rounded-lg text-xs"><input type="date" id="stE" class="p-2 border rounded-lg text-xs"></div></div><div id="statsBody"></div>`;
-setTimeout(refreshStats,50);}
-function refreshStats(){
-const per=document.getElementById('stPer').value;const cr=document.getElementById('customRange');cr.classList.toggle('hidden',per!=='custom');
-const t=today(),td=new Date(t);
-const filter=s=>{const sd=new Date(s.date);if(per==='today')return s.date===t;if(per==='yesterday'){const y=new Date(td);y.setDate(y.getDate()-1);return s.date===y.toISOString().split('T')[0];}if(per==='week'){const w=new Date(td);w.setDate(w.getDate()-7);return sd>=w&&sd<=td;}if(per==='month')return sd.getMonth()===td.getMonth()&&sd.getFullYear()===td.getFullYear();if(per==='semester')return true;if(per==='custom'){const s1=document.getElementById('stS').value,e1=document.getElementById('stE').value;return(!s1||s.date>=s1)&&(!e1||s.date<=e1);}return true;};
-const attSessions=Object.entries(db.attendance).map(([k,v])=>{const p=parseKey(k);return{...p,teacher:v.teacher,records:v.records||{}};}).filter(filter);
-const behSessions=Object.entries(db.behaviors).map(([k,v])=>{const p=parseKey(k);return{...p,teacher:v.teacher,records:v.records||{}};}).filter(filter);
-let counts={absent:0,escape:0,late:0,outside:0};
-const valid=new Set();Object.entries(db.students).forEach(([c,l])=>l.forEach(s=>valid.add(`${c}::${s}`)));
-attSessions.forEach(s=>{Object.entries(s.records).forEach(([n,st])=>{if(!valid.has(`${s.c}::${n}`))return;if(st!=='present')counts[st]=(counts[st]||0)+1;});});
-const body=document.getElementById('statsBody');
-body.innerHTML=`<div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-4"><div class="bg-black text-white p-3 rounded-xl"><div class="text-xs">غياب</div><div class="text-2xl font-black">${counts.absent}</div></div><div class="bg-red-600 text-white p-3 rounded-xl"><div class="text-xs">تسرب</div><div class="text-2xl font-black">${counts.escape}</div></div><div class="bg-orange-500 text-white p-3 rounded-xl"><div class="text-xs">تأخير</div><div class="text-2xl font-black">${counts.late}</div></div><div class="bg-purple-600 text-white p-3 rounded-xl"><div class="text-xs">خروج</div><div class="text-2xl font-black">${counts.outside}</div></div></div>`;
-body.innerHTML+=`<div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl mb-3"><h4 class="font-bold mb-2">أكثر الطلاب مخالفة سلوكية:</h4>${topBehaviors(behSessions,valid)}</div>`;
-body.innerHTML+=`<div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl"><h4 class="font-bold mb-2">إحصائيات الحصص المسجلة (${attSessions.length} حصة):</h4>${teacherStats(attSessions)}</div>`;
+  if (activeUser) {
+    localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser));
+    finalizeLoginState();
+    toast(`أهلاً: ${activeUser.name}`, 'success');
+    document.getElementById('userPinInput').value = '';
+  } else {
+    document.getElementById('loginError').classList.remove('hidden');
+  }
 }
-function topBehaviors(sessions,valid){const map={};sessions.forEach(s=>{Object.entries(s.records).forEach(([n,b])=>{if(!valid.has(`${s.c}::${n}`))return;if(b.type&&b.type!=='normal'){const k=`${s.c}::${n}`;if(!map[k])map[k]={n,c:s.c,count:0,types:{}};map[k].count++;map[k].types[b.type]=(map[k].types[b.type]||0)+1;}});});const arr=Object.values(map).sort((a,b)=>b.count-a.count).slice(0,10);if(!arr.length)return'<p class="text-xs text-slate-400">لا يوجد</p>';return`<table class="w-full text-xs"><thead><tr class="bg-teal-100 dark:bg-teal-950"><th class="p-2">الطالب</th><th class="p-2">الصف</th><th class="p-2">المخالفات</th><th class="p-2">الأنواع</th></tr></thead><tbody>${arr.map(a=>`<tr class="border-t"><td class="p-2 font-bold">${esc(a.n)}</td><td class="p-2">${esc(a.c)}</td><td class="p-2 text-center font-bold text-red-600">${a.count}</td><td class="p-2 text-[10px]">${Object.entries(a.types).map(([k,v])=>`${esc(k)}: ${v}`).join('، ')}</td></tr>`).join('')}</tbody></table>`;}
-function teacherStats(sessions){const map={};sessions.forEach(s=>{const t=s.teacher||'؟';if(!map[t])map[t]={n:t,c:0,v:0};map[t].c++;Object.values(s.records||{}).forEach(st=>{if(st!=='present')map[t].v++;});});const arr=Object.values(map).sort((a,b)=>b.c-a.c);if(!arr.length)return'<p class="text-xs text-slate-400">لا يوجد</p>';return`<table class="w-full text-xs"><thead><tr class="bg-emerald-100 dark:bg-emerald-950"><th class="p-2">المعلم</th><th class="p-2">الحصص</th><th class="p-2">المخالفات</th></tr></thead><tbody>${arr.map(a=>`<tr class="border-t"><td class="p-2 font-bold">${esc(a.n)}</td><td class="p-2 text-center">${a.c}</td><td class="p-2 text-center">${a.v}</td></tr>`).join('')}</tbody></table>`;}
 
-function renderUsers(c){c.innerHTML=`<div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl mb-3 space-y-2"><h4 class="font-bold text-xs">إضافة مستخدم</h4><input id="cuName" placeholder="الاسم" class="w-full p-2 border rounded-lg text-xs dark:bg-slate-800 dark:border-slate-700"><input id="cuPin" type="password" placeholder="الرمز" class="w-full p-2 border rounded-lg text-xs dark:bg-slate-800 dark:border-slate-700"><div class="grid grid-cols-3 gap-1 text-xs">${['studstats','users','students','teachers','alerts','reports','sync','security'].map(p=>`<label class="flex items-center gap-1"><input type="checkbox" id="p_${p}" class="accent-emerald-600"> ${p}</label>`).join('')}</div><button onclick="addUser()" class="bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold">حفظ</button></div><div id="usersList"></div>`;renderUsersList();}
-function renderUsersList(){const el=document.getElementById('usersList');if(!el)return;el.innerHTML=db.customUsers.length?db.customUsers.map((u,i)=>`<div class="flex justify-between p-2 border-b text-xs"><span class="font-bold">${esc(u.name)} (${u.pin})</span><button onclick="delUser(${i})" class="text-red-600">حذف</button></div>`).join(''):'<p class="text-xs text-slate-400">لا يوجد</p>';}
-async function addUser(){const n=document.getElementById('cuName').value.trim(),p=document.getElementById('cuPin').value.trim();if(!n||!p)return toast('املأ الحقول','error');if(db.customUsers.some(u=>u.pin===p))return toast('PIN مستخدم','error');const perms={};['studstats','users','students','teachers','alerts','reports','sync','security'].forEach(k=>perms[k]=document.getElementById('p_'+k).checked);const{error}=await sb.from('teachers').insert({name:n,pin:p,role:'custom',permissions:perms});if(error)return toast('فشل','error');db.customUsers.push({name:n,pin:p,permissions:perms});toast('تم');renderUsersList();}
-async function delUser(i){if(!confirm('حذف؟'))return;await sb.from('teachers').delete().eq('name',db.customUsers[i].name).eq('role','custom');db.customUsers.splice(i,1);renderUsersList();}
+function finalizeLoginState() {
+  document.getElementById('loginError')?.classList.add('hidden');
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('dashboardSelectionView').classList.remove('hidden');
+  document.getElementById('activeUserName').textContent = activeUser.name;
+  document.getElementById('activeUserRoleBadge').textContent = activeUser.type === 'admin' ? 'مدير النظام' : activeUser.type === 'custom' ? 'مستخدم مخصص' : 'معلم';
+  document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
+  document.getElementById('openControlPanelFromDashboardBtn').classList.toggle('hidden', !(activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPerm(activeUser))));
+}
 
-function renderStudents(c){c.innerHTML=`<div class="mb-3 flex gap-2 flex-wrap"><select id="sSel" onchange="loadSList()" class="p-2 border rounded-lg text-xs dark:bg-slate-900 dark:border-slate-700">${db.classes.map(c=>`<option>${esc(c)}</option>`).join('')}</select><button onclick="addCls()" class="bg-emerald-700 text-white px-3 py-2 rounded-lg text-xs font-bold">+ صف</button><button onclick="delCls()" class="bg-red-700 text-white px-3 py-2 rounded-lg text-xs font-bold">حذف الصف</button></div><div class="grid md:grid-cols-2 gap-2"><div><h5 class="font-bold text-xs mb-1">القائمة:</h5><textarea id="sTxt" rows="8" class="w-full p-2 border rounded-lg text-xs dark:bg-slate-900 dark:border-slate-700"></textarea><button onclick="saveS()" class="bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold mt-1">حفظ</button></div><div><h5 class="font-bold text-xs mb-1">رفع ملف:</h5><input type="file" id="sFile" accept=".txt,.csv" onchange="importS(event)" class="text-xs w-full"></div></div>`;setTimeout(loadSList,50);}
-function loadSList(){const c=document.getElementById('sSel')?.value;if(!c)return;document.getElementById('sTxt').value=(db.students[c]||[]).join('\n');}
-async function saveS(){const c=document.getElementById('sSel').value;const list=[...new Set(document.getElementById('sTxt').value.split('\n').map(s=>s.trim()).filter(Boolean))];await sb.from('students').delete().eq('class_name',c);if(list.length){const r=await sb.from('students').insert(list.map(n=>({class_name:c,student_name:n})));if(r.error)return toast('فشل','error');}db.students[c]=list;toast('تم الحفظ');}
-function importS(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>{const lines=ev.target.result.split(/\r?\n/).map(s=>s.trim().replace(/^"|"$/g,'').split(',')[0].trim()).filter(Boolean);const c=document.getElementById('sSel').value;const existing=new Set(db.students[c]||[]);lines.forEach(l=>existing.add(l));document.getElementById('sTxt').value=[...existing].join('\n');toast('جاهز - اضغط حفظ');};r.readAsText(f);}
-async function addCls(){const n=prompt('اسم الصف:');if(!n)return;if(db.classes.includes(n))return toast('موجود','error');await sb.from('classes').insert({name:n});db.classes.push(n);db.students[n]=[];toast('تم');renderStudents(document.getElementById('tabContent'));}
-async function delCls(){const c=document.getElementById('sSel').value;if(!confirm(`حذف صف ${c}؟`))return;await sb.from('classes').delete().eq('name',c);await sb.from('students').delete().eq('class_name',c);await sb.from('attendance').delete().eq('class_name',c);await sb.from('behaviors').delete().eq('class_name',c);db.classes=db.classes.filter(x=>x!==c);delete db.students[c];toast('تم');renderStudents(document.getElementById('tabContent'));}
+function logoutUser(silent = false) {
+  if (!silent && !confirmNav()) return;
+  activeUser = null; selectedClass = null; selectedBehaviorClass = null;
+  localStorage.removeItem('abuDujana_activeUser');
+  ['attendanceView', 'classesView', 'behaviorClassesView', 'behaviorSessionView', 'dashboardSelectionView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById('loginView').classList.remove('hidden');
+  document.getElementById('openControlPanelFromDashboardBtn').classList.add('hidden');
+  document.getElementById('changeTeacherPinBtn').classList.add('hidden');
+  if (!silent) toast('تم تسجيل الخروج', 'info');
+}
 
-function renderTeachers(c){c.innerHTML=`<div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl mb-3 space-y-2"><h4 class="font-bold text-xs">إضافة معلم</h4><input id="tName" placeholder="الاسم" class="w-full p-2 border rounded-lg text-xs dark:bg-slate-800 dark:border-slate-700"><input id="tPin" type="password" placeholder="الرمز" class="w-full p-2 border rounded-lg text-xs dark:bg-slate-800 dark:border-slate-700"><button onclick="addT()" class="bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold">حفظ</button></div><div id="tList"></div>`;renderTList();}
-function renderTList(){const el=document.getElementById('tList');if(!el)return;el.innerHTML=db.teachers.map((t,i)=>`<div class="flex justify-between p-2 border-b text-xs"><span class="font-bold">${esc(t.name)} (${t.pin})</span><div class="flex gap-2"><button onclick="editT(${i})" class="text-blue-600">تعديل</button><button onclick="delT(${i})" class="text-red-600">حذف</button></div></div>`).join('');}
-async function addT(){const n=document.getElementById('tName').value.trim(),p=document.getElementById('tPin').value.trim();if(!n||!p)return toast('املأ','error');if(db.teachers.some(t=>t.pin===p))return toast('PIN مستخدم','error');const{error}=await sb.from('teachers').insert({name:n,pin:p,role:'teacher'});if(error)return toast('فشل','error');db.teachers.push({name:n,pin:p,role:'teacher'});toast('تم');renderTList();}
-async function editT(i){const t=db.teachers[i];const p=prompt(`PIN جديد لـ ${t.name}:`,t.pin);if(!p||!p.trim())return;await sb.from('teachers').update({pin:p.trim()}).eq('name',t.name);t.pin=p.trim();toast('تم');renderTList();}
-async function delT(i){if(!confirm('حذف؟'))return;await sb.from('teachers').delete().eq('name',db.teachers[i].name).eq('role','teacher');db.teachers.splice(i,1);renderTList();}
+/* ========= TEACHER PIN CHANGE ========= */
+function openChangePinModal() {
+  document.getElementById('currentPinCheck').value = '';
+  document.getElementById('newPinInput').value = '';
+  document.getElementById('changePinError').classList.add('hidden');
+  document.getElementById('changePinModal').classList.remove('hidden');
+}
+function closeChangePinModal() { document.getElementById('changePinModal').classList.add('hidden'); }
 
-function renderAlerts(c){let issues={};Object.entries(db.attendance).forEach(([k,s])=>{const p=parseKey(k);if(!s.records)return;Object.entries(s.records).forEach(([n,st])=>{if(st!=='present'){const key=`${p.c}::${n}`;if(!issues[key])issues[key]={n,c:p.c,a:0,l:0,e:0,o:0,total:new Set()};issues[key].total.add(p.d);if(st==='absent')issues[key].a++;else if(st==='late')issues[key].l++;else if(st==='escape')issues[key].e++;else if(st==='outside')issues[key].o++;}});});const arr=Object.values(issues).sort((a,b)=>b.total.size-a.total.size);if(!arr.length){c.innerHTML='<p class="text-xs text-slate-400">لا يوجد</p>';return;}c.innerHTML=`<table class="w-full text-xs"><thead><tr class="bg-red-100 dark:bg-red-950"><th class="p-2">الطالب</th><th class="p-2">الصف</th><th class="p-2">غياب</th><th class="p-2">تأخير</th><th class="p-2">تسرب</th><th class="p-2">خروج</th><th class="p-2">أيام</th></tr></thead><tbody>${arr.map(a=>`<tr class="border-t"><td class="p-2 font-bold">${esc(a.n)}</td><td class="p-2">${esc(a.c)}</td><td class="p-2 text-center">${a.a}</td><td class="p-2 text-center">${a.l}</td><td class="p-2 text-center">${a.e}</td><td class="p-2 text-center">${a.o}</td><td class="p-2 text-center font-bold">${a.total.size}</td></tr>`).join('')}</tbody></table>`;}
+async function submitNewTeacherPin() {
+  const cur = document.getElementById('currentPinCheck').value.trim();
+  const nw = document.getElementById('newPinInput').value.trim();
+  const err = document.getElementById('changePinError');
+  err.classList.add('hidden');
+  if (cur !== activeUser.pin) { err.textContent = 'الرمز الحالي غير صحيح'; err.classList.remove('hidden'); return; }
+  if (!nw || nw.length < 2) { err.textContent = 'الرمز الجديد قصير (حرفان على الأقل)'; err.classList.remove('hidden'); return; }
+  if (db.teachers.some(t => t.pin === nw && t.name !== activeUser.name)) { err.textContent = 'الرمز مستخدم من معلم آخر'; err.classList.remove('hidden'); return; }
+  if (db.customUsers.some(u => u.pin === nw)) { err.textContent = 'الرمز مستخدم من مستخدم مخصص'; err.classList.remove('hidden'); return; }
+  if (validAdmin(nw)) { err.textContent = 'الرمز مستخدم من المدير'; err.classList.remove('hidden'); return; }
+  const { error } = await sb.from('teachers').update({ pin: nw }).eq('name', activeUser.name);
+  if (error) { toast('فشل الحفظ: ' + error.message, 'error'); return; }
+  const t = db.teachers.find(t => t.name === activeUser.name);
+  if (t) t.pin = nw;
+  activeUser.pin = nw;
+  localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser));
+  closeChangePinModal();
+  toast('تم تغيير الرمز بنجاح', 'success');
+}
 
-function renderReports(c){const t=today();c.innerHTML=`<div class="flex gap-2 mb-3 flex-wrap items-center"><select id="repCls" class="p-2 border rounded-lg text-xs dark:bg-slate-900 dark:border-slate-700"><option value="all">جميع الصفوف</option>${db.classes.map(x=>`<option>${esc(x)}</option>`).join('')}</select><input type="date" id="repDate" value="${t}" class="p-2 border rounded-lg text-xs dark:bg-slate-900 dark:border-slate-700"><button onclick="printRep()" class="bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold">🖨️ طباعة أفقي</button><button onclick="expExcel()" class="bg-blue-700 text-white px-4 py-2 rounded-lg text-xs font-bold">📊 Excel</button></div>`;}
-function printRep(){const cls=document.getElementById('repCls').value,d=document.getElementById('repDate').value;const classes=cls==='all'?db.classes:[cls];let h=`<!DOCTYPE html><html dir="rtl"><head><meta charset="UTF-8"><style>@page{size:A4 landscape;margin:6mm}body{font-family:'Tajawal',sans-serif;font-size:10px}table{width:100%;border-collapse:collapse;margin-bottom:8px}th,td{border:1px solid #333;padding:4px;text-align:center;font-size:9px}th{background:#0f766e;color:#fff}h3{margin:4px 0;text-align:center;color:#065f46}.absent{background:#000;color:#fff;font-weight:bold}.badge{padding:1px 4px;border-radius:3px;font-size:8px}</style></head><body><h3>مدرسة أبو دجانة الأنصاري - ${d}</h3>`;classes.forEach(cl=>{h+=`<h4 style="background:#f0fdf4;padding:4px;margin-top:8px">صف ${cl}</h4><table><tr><th>الحصة</th><th>المعلم</th><th>المخالفات</th></tr>`;for(let p=1;p<=8;p++){const s=db.attendance[`${d}_${cl}_p${p}`];const issues=s?Object.entries(s.records||{}).filter(([n,st])=>st!=='present'):[];const teach=s?.teacher||'-';const issuesHtml=issues.length?issues.map(([n,st])=>{const label={absent:'غائب',late:'متأخر',escape:'متسرب',outside:'خارج'}[st]||st;return`<div class="${st==='absent'?'absent':''}">${n} (${label})</div>`;}).join(''):'لا يوجد';h+=`<tr><td>${p}</td><td>${teach}</td><td style="text-align:right">${issuesHtml}</td></tr>`;}h+='</table>';});h+='</body></html>';const w=window.open('','_blank');if(!w)return toast('اسمح بالنوافذ','error');w.document.write(h);w.document.close();setTimeout(()=>w.print(),500);}
-function expExcel(){const d=document.getElementById('repDate').value;let csv='\uFEFFالصف,الحصة,المعلم,الطالب,الحالة\n';db.classes.forEach(c=>{for(let p=1;p<=8;p++){const s=db.attendance[`${d}_${c}_p${p}`];if(!s?.records)continue;Object.entries(s.records).forEach(([n,st])=>{if(st!=='present'){const label={absent:'غائب',late:'متأخر',escape:'متسرب',outside:'خارج'}[st]||st;csv+=`"${c}","${p}","${s.teacher||''}","${n}","${label}"\n`;}});}});const blob=new Blob([csv],{type:'text/csv;charset=utf-8;'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`attendance_${d}.csv`;a.click();toast('تم');}
+/* ========= NAVIGATION ========= */
+function goToAttendanceSection() { if (!confirmNav()) return; document.getElementById('dashboardSelectionView').classList.add('hidden'); document.getElementById('classesView').classList.remove('hidden'); renderClassesGrid(); }
+function goToBehaviorSection() { if (!confirmNav()) return; document.getElementById('dashboardSelectionView').classList.add('hidden'); document.getElementById('behaviorClassesView').classList.remove('hidden'); renderBehaviorClassesGrid(); }
+function backToDashboardSelection() {
+  if (!confirmNav()) return;
+  ['classesView', 'attendanceView', 'behaviorClassesView', 'behaviorSessionView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById('dashboardSelectionView').classList.remove('hidden');
+}
 
-function renderSecurity(c){c.innerHTML=`<div class="space-y-3"><div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-xl"><h4 class="font-bold text-xs mb-2">تغيير رمز المدير</h4><input id="newAdminPin" class="p-2 border rounded-lg text-xs w-full max-w-xs dark:bg-slate-800 dark:border-slate-700" placeholder="رمز جديد"><button onclick="saveAdminPin()" class="bg-emerald-700 text-white px-4 py-2 rounded-lg text-xs font-bold mt-2">حفظ</button></div><div class="bg-red-50 dark:bg-red-950/30 p-3 rounded-xl border border-red-200"><h4 class="font-bold text-xs text-red-800 dark:text-red-300 mb-2">تصفير كل السجلات</h4><input id="rp1" type="password" class="p-2 border rounded-lg text-xs w-full max-w-xs mb-1 dark:bg-slate-800 dark:border-slate-700" placeholder="الرمز"><input id="rp2" type="password" class="p-2 border rounded-lg text-xs w-full max-w-xs mb-1 dark:bg-slate-800 dark:border-slate-700" placeholder="تأكيد"><button onclick="resetAll()" class="bg-red-700 text-white px-4 py-2 rounded-lg text-xs font-bold">تصفير</button></div></div>`;}
-async function saveAdminPin(){const p=document.getElementById('newAdminPin').value.trim();if(!p)return;await sb.from('school_settings').upsert({key:'admin_pin',value:{pin:p}},{onConflict:'key'});db.adminPin=p;toast('تم');}
-async function resetAll(){const a=document.getElementById('rp1').value.trim(),b=document.getElementById('rp2').value.trim();if(a!==b)return toast('غير متطابق','error');if(!validAdmin(a))return toast('رمز خطأ','error');if(!confirm('حذف كل السجلات نهائياً؟'))return;await sb.from('attendance').delete().neq('record_key','');await sb.from('behaviors').delete().neq('record_key','');db.attendance={};db.behaviors={};toast('تم التصفير');}
+/* ========= ATTENDANCE GRID ========= */
+function renderClassesGrid() {
+  const c = document.getElementById('classesGrid');
+  if (!c) return;
+  c.innerHTML = '';
+  const t = today();
+  db.classes.forEach(cl => {
+    let rec = 0;
+    for (let p = 1; p <= 8; p++) if (db.attendance[`${t}_${cl}_p${p}`]) rec++;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'group bg-white dark:bg-slate-800 hover:bg-emerald-600 hover:text-white text-slate-800 dark:text-emerald-100 font-bold py-5 px-3 rounded-3xl border border-emerald-100 dark:border-slate-700/80 shadow-sm hover:shadow-xl transition text-center text-sm flex flex-col items-center gap-2 cursor-pointer';
+    b.onclick = () => openClassAttendance(cl);
+    b.innerHTML = `<div class="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 group-hover:bg-white/20 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-users text-sm"></i></div><span class="text-base font-extrabold">صف ${esc(cl)}</span><span class="text-[10px] bg-emerald-100/80 dark:bg-emerald-950/80 group-hover:bg-white/25 text-emerald-800 dark:text-emerald-200 px-3 py-1 rounded-full">${rec}/8</span>`;
+    c.appendChild(b);
+  });
+}
 
-// ========= INIT =========
-(async()=>{await loadAll();const b=document.getElementById('loginBtn');b.disabled=false;b.innerHTML='<span>دخول</span> <i class="fa-solid fa-arrow-left"></i>';const s=localStorage.getItem('activeUser');if(s){try{activeUser=JSON.parse(s);showDashView();}catch(e){}}})();
+function openClassAttendance(cl) {
+  pendingTargetClass = cl; pendingMode = 'attendance';
+  document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-emerald-600"></i> اختر الحصة لصف ${esc(cl)}`;
+  document.getElementById('selectPeriodModal').classList.remove('hidden');
+}
+
+function openClassBehavior(cl) {
+  pendingTargetClass = cl; pendingMode = 'behavior';
+  document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-teal-600"></i> اختر الحصة لصف ${esc(cl)}`;
+  document.getElementById('selectPeriodModal').classList.remove('hidden');
+}
+
+function closeSelectPeriodModal() { document.getElementById('selectPeriodModal').classList.add('hidden'); pendingTargetClass = null; }
+
+function confirmPeriodSelection(period) {
+  document.getElementById('selectPeriodModal').classList.add('hidden');
+  if (!pendingTargetClass) return;
+  currentPeriod = period;
+  if (pendingMode === 'attendance') {
+    selectedClass = pendingTargetClass;
+    document.getElementById('activePeriodText').textContent = `الحصة ${periodNames[period]}`;
+    document.getElementById('classesView').classList.add('hidden');
+    document.getElementById('attendanceView').classList.remove('hidden');
+    document.getElementById('selectedClassTitle').textContent = `رصد حضور صف ${selectedClass}`;
+    loadSessionAttendance();
+  } else if (pendingMode === 'behavior') {
+    selectedBehaviorClass = pendingTargetClass;
+    document.getElementById('activeBehaviorPeriodText').textContent = `الحصة ${periodNames[period]}`;
+    document.getElementById('behaviorClassesView').classList.add('hidden');
+    document.getElementById('behaviorSessionView').classList.remove('hidden');
+    document.getElementById('selectedBehaviorClassTitle').textContent = `رصد سلوكيات صف ${selectedBehaviorClass}`;
+    loadSessionBehavior();
+  }
+  pendingTargetClass = null;
+}
+
+function reselectAttendancePeriod() {
+  if (!selectedClass) return;
+  pendingTargetClass = selectedClass; pendingMode = 'attendance';
+  document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-emerald-600"></i> تغيير الحصة`;
+  document.getElementById('selectPeriodModal').classList.remove('hidden');
+}
+
+function reselectBehaviorPeriod() {
+  if (!selectedBehaviorClass) return;
+  pendingTargetClass = selectedBehaviorClass; pendingMode = 'behavior';
+  document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-teal-600"></i> تغيير الحصة`;
+  document.getElementById('selectPeriodModal').classList.remove('hidden');
+}
+
+function backToClasses() {
+  if (!confirmNav()) return;
+  selectedClass = null;
+  document.getElementById('attendanceView').classList.add('hidden');
+  document.getElementById('classesView').classList.remove('hidden');
+  renderClassesGrid();
+}
+
+/* ========= ATTENDANCE SESSION ========= */
+function loadSessionAttendance() {
+  const t = today(), k = `${t}_${selectedClass}_p${currentPeriod}`;
+  const s = db.attendance[k] || { teacher: activeUser?.name || 'معلم', records: {} };
+  currentAttendanceRecord = { ...(s.records || {}) };
+  document.getElementById('classSessionDateStatus').innerHTML = s.timestamp
+    ? `التاريخ: <b class="text-emerald-700 dark:text-emerald-400">${esc(t)}</b> | الحصة ${currentPeriod} | بواسطة: <b>${esc(s.teacher || '')}</b>`
+    : `التاريخ: <b class="text-emerald-700 dark:text-emerald-400">${esc(t)}</b> | الحصة ${currentPeriod} | <span class="text-amber-600">لم يُرصد بعد</span>`;
+  renderAttendanceList();
+  document.getElementById('unsavedStatusIndicator').textContent = s.timestamp ? 'لا تغييرات' : 'تعديلات جاهزة للحفظ';
+}
+
+function renderAttendanceList() {
+  const list = db.students[selectedClass] || [];
+  const c = document.getElementById('studentsListContainer');
+  c.innerHTML = '';
+  document.getElementById('studentsCount').textContent = `إجمالي: ${list.length}`;
+  updateLiveStats();
+  if (!list.length) {
+    c.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلون في هذا الصف.</div>`;
+    return;
+  }
+  const statuses = [{ k: 'present', l: 'حاضر', cls: 'bg-emerald-600 text-white border-emerald-600' }, { k: 'absent', l: 'غائب', cls: 'bg-black text-white border-black' }, { k: 'late', l: 'متأخر', cls: 'bg-orange-500 text-white border-orange-500' }, { k: 'escape', l: 'متسرب', cls: 'bg-red-600 text-white border-red-600' }, { k: 'outside', l: 'خارج', cls: 'bg-purple-600 text-white border-purple-600' }];
+  list.forEach(st => {
+    const cur = currentAttendanceRecord[st] || 'present';
+    const row = document.createElement('div');
+    row.className = 'flex flex-wrap items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl gap-2 border-b border-slate-100 dark:border-slate-700/50';
+    const nm = document.createElement('span');
+    nm.className = 'font-extrabold text-xs sm:text-sm';
+    nm.textContent = st;
+    row.appendChild(nm);
+    const ad = document.createElement('div');
+    ad.className = 'flex items-center gap-1.5 flex-wrap';
+    statuses.forEach(stt => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${cur === stt.k ? stt.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+      b.textContent = stt.l;
+      b.onclick = () => {
+        currentAttendanceRecord[st] = stt.k;
+        Array.from(ad.children).forEach(x => x.className = 'status-btn px-3 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700');
+        b.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${stt.cls}`;
+        updateLiveStats();
+        document.getElementById('unsavedStatusIndicator').textContent = '⚠️ تغييرات غير محفوظة';
+      };
+      ad.appendChild(b);
+    });
+    row.appendChild(ad);
+    c.appendChild(row);
+  });
+}
+
+function updateLiveStats() {
+  let p = 0, a = 0, l = 0, e = 0, o = 0;
+  (db.students[selectedClass] || []).forEach(st => {
+    const v = currentAttendanceRecord[st] || 'present';
+    if (v === 'present') p++; else if (v === 'absent') a++; else if (v === 'late') l++; else if (v === 'escape') e++; else if (v === 'outside') o++;
+  });
+  document.getElementById('statPresent').textContent = p;
+  document.getElementById('statAbsent').textContent = a;
+  document.getElementById('statLate').textContent = l;
+  document.getElementById('statEscape').textContent = e;
+  document.getElementById('statOutside').textContent = o;
+}
+
+function markAllPresent() {
+  if (!selectedClass) return;
+  (db.students[selectedClass] || []).forEach(st => { currentAttendanceRecord[st] = 'present'; });
+  renderAttendanceList();
+  document.getElementById('unsavedStatusIndicator').textContent = '⚠️ تغييرات غير محفوظة';
+}
+
+async function saveAttendanceSession() {
+  if (!selectedClass || !activeUser) return;
+  const btn = document.getElementById('saveSessionBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+  try {
+    const t = today(), k = `${t}_${selectedClass}_p${currentPeriod}`;
+    const { error } = await sb.from('attendance').upsert({
+      record_key: k, date_str: t, class_name: selectedClass, period: currentPeriod,
+      teacher_name: activeUser.name, records: currentAttendanceRecord, updated_at: new Date().toISOString()
+    }, { onConflict: 'record_key' });
+    if (error) { toast('فشل الحفظ: ' + error.message, 'error'); return; }
+    db.attendance[k] = { teacher: activeUser.name, records: { ...currentAttendanceRecord }, timestamp: new Date().toISOString() };
+    document.getElementById('unsavedStatusIndicator').textContent = 'تم الحفظ سحابياً ✓';
+    toast('تم حفظ الحصة بنجاح', 'success');
+    loadSessionAttendance();
+  } catch (e) { console.error(e); toast('خطأ غير متوقع', 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ سحابياً'; }
+}
+
+/* ========= BEHAVIOR GRID ========= */
+function renderBehaviorClassesGrid() {
+  const c = document.getElementById('behaviorClassesGrid');
+  if (!c) return;
+  c.innerHTML = '';
+  const t = today();
+  db.classes.forEach(cl => {
+    let rec = 0;
+    for (let p = 1; p <= 8; p++) if (db.behaviors[`${t}_${cl}_p${p}`]) rec++;
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'group bg-white dark:bg-slate-800 hover:bg-teal-600 hover:text-white text-slate-800 dark:text-teal-100 font-bold py-5 px-3 rounded-3xl border border-teal-100 dark:border-slate-700/80 shadow-sm hover:shadow-xl transition text-center text-sm flex flex-col items-center gap-2 cursor-pointer';
+    b.onclick = () => openClassBehavior(cl);
+    b.innerHTML = `<div class="w-10 h-10 rounded-2xl bg-teal-100 dark:bg-teal-950/60 group-hover:bg-white/20 text-teal-700 flex items-center justify-center"><i class="fa-solid fa-users text-sm"></i></div><span class="text-base font-extrabold">صف ${esc(cl)}</span><span class="text-[10px] bg-teal-100/80 dark:bg-teal-950/80 group-hover:bg-white/25 text-teal-800 dark:text-teal-200 px-3 py-1 rounded-full">${rec}/8</span>`;
+    c.appendChild(b);
+  });
+}
+
+function backToBehaviorClasses() {
+  if (!confirmNav()) return;
+  selectedBehaviorClass = null;
+  document.getElementById('behaviorSessionView').classList.add('hidden');
+  document.getElementById('behaviorClassesView').classList.remove('hidden');
+  renderBehaviorClassesGrid();
+}
+
+function loadSessionBehavior() {
+  const t = today(), k = `${t}_${selectedBehaviorClass}_p${currentPeriod}`;
+  const s = db.behaviors[k] || { teacher: activeUser?.name || 'معلم', records: {} };
+  currentBehaviorRecord = {};
+  Object.entries(s.records || {}).forEach(([kk, v]) => { currentBehaviorRecord[kk] = { ...v }; });
+  document.getElementById('behaviorSessionDateStatus').innerHTML = s.timestamp
+    ? `التاريخ: <b class="text-teal-700 dark:text-teal-400">${esc(t)}</b> | الحصة ${currentPeriod} | بواسطة: <b>${esc(s.teacher || '')}</b>`
+    : `التاريخ: <b class="text-teal-700 dark:text-teal-400">${esc(t)}</b> | الحصة ${currentPeriod} | <span class="text-amber-600">لم يُرصد (الافتراضي: منضبط)</span>`;
+  renderBehaviorList();
+  document.getElementById('unsavedBehaviorStatusIndicator').textContent = s.timestamp ? 'لا تغييرات' : 'جاهز للحفظ';
+}
+
+function renderBehaviorList() {
+  const list = db.students[selectedBehaviorClass] || [];
+  const c = document.getElementById('behaviorStudentsListContainer');
+  c.innerHTML = '';
+  document.getElementById('behaviorStudentsCount').textContent = `إجمالي: ${list.length}`;
+  if (!list.length) {
+    c.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلون.</div>`;
+    return;
+  }
+  const types = [{ k: 'normal', l: 'منضبط', cls: 'bg-emerald-600 text-white' }, { k: 'eating', l: 'الأكل', cls: 'bg-amber-500 text-white' }, { k: 'talking', l: 'كلام جانبي', cls: 'bg-orange-500 text-white' }, { k: 'tools', l: 'بدون أدوات', cls: 'bg-yellow-600 text-white' }, { k: 'chaos', l: 'إثارة فوضى', cls: 'bg-red-500 text-white' }, { k: 'sleeping', l: 'النوم', cls: 'bg-indigo-600 text-white' }, { k: 'homework', l: 'بدون واجب', cls: 'bg-blue-600 text-white' }, { k: 'other', l: 'أخرى', cls: 'bg-rose-700 text-white' }];
+  list.forEach(st => {
+    if (!currentBehaviorRecord[st]) currentBehaviorRecord[st] = { type: 'normal', note: '' };
+    const d = currentBehaviorRecord[st];
+    const row = document.createElement('div');
+    row.className = 'flex flex-col p-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl gap-3 border-b border-slate-100 dark:border-slate-700/50';
+    const top = document.createElement('div');
+    top.className = 'flex flex-wrap items-center justify-between gap-2';
+    const nm = document.createElement('span');
+    nm.className = 'font-extrabold text-xs sm:text-sm';
+    nm.textContent = st;
+    top.appendChild(nm);
+    const ad = document.createElement('div');
+    ad.className = 'flex flex-wrap items-center gap-1.5';
+    types.forEach(bt => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${d.type === bt.k ? bt.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+      b.textContent = bt.l;
+      b.onclick = () => {
+        currentBehaviorRecord[st].type = bt.k;
+        if (bt.k !== 'other') currentBehaviorRecord[st].note = '';
+        Array.from(ad.children).forEach(x => x.className = 'status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700');
+        b.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${bt.cls}`;
+        const nc = row.querySelector('.behavior-note-container');
+        if (nc) {
+          if (bt.k === 'other') { nc.classList.remove('hidden'); nc.querySelector('input')?.focus(); }
+          else { nc.classList.add('hidden'); const inp = nc.querySelector('input'); if (inp) inp.value = ''; }
+        }
+        document.getElementById('unsavedBehaviorStatusIndicator').textContent = '⚠️ تغييرات غير محفوظة';
+      };
+      ad.appendChild(b);
+    });
+    top.appendChild(ad);
+    row.appendChild(top);
+    const nc = document.createElement('div');
+    nc.className = (d.type === 'other' ? 'block' : 'hidden') + ' behavior-note-container mt-2';
+    const inp = document.createElement('input');
+    inp.type = 'text';
+    inp.placeholder = 'وصف السلوك بالتفصيل...';
+    inp.value = d.note || '';
+    inp.className = 'w-full text-xs p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold focus:ring-2 focus:ring-teal-500';
+    inp.oninput = e => { currentBehaviorRecord[st].note = e.target.value; document.getElementById('unsavedBehaviorStatusIndicator').textContent = '⚠️ تغييرات غير محفوظة'; };
+    nc.appendChild(inp);
+    row.appendChild(nc);
+    c.appendChild(row);
+  });
+}
+
+function markAllNormal() {
+  if (!selectedBehaviorClass) return;
+  (db.students[selectedBehaviorClass] || []).forEach(st => { currentBehaviorRecord[st] = { type: 'normal', note: '' }; });
+  renderBehaviorList();
+  document.getElementById('unsavedBehaviorStatusIndicator').textContent = '⚠️ تغييرات غير محفوظة';
+}
+
+async function saveBehaviorSession() {
+  if (!selectedBehaviorClass || !activeUser) return;
+  const btn = document.getElementById('saveBehaviorSessionBtn');
+  if (btn.disabled) return;
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+  try {
+    const t = today(), k = `${t}_${selectedBehaviorClass}_p${currentPeriod}`;
+    const { error } = await sb.from('behaviors').upsert({
+      record_key: k, date_str: t, class_name: selectedBehaviorClass, period: currentPeriod,
+      teacher_name: activeUser.name, records: currentBehaviorRecord, updated_at: new Date().toISOString()
+    }, { onConflict: 'record_key' });
+    if (error) { toast('فشل الحفظ: ' + error.message, 'error'); return; }
+    db.behaviors[k] = { teacher: activeUser.name, records: { ...currentBehaviorRecord }, timestamp: new Date().toISOString() };
+    document.getElementById('unsavedBehaviorStatusIndicator').textContent = 'تم الحفظ سحابياً ✓';
+    toast('تم حفظ السلوكيات', 'success');
+    loadSessionBehavior();
+  } catch (e) { console.error(e); toast('خطأ غير متوقع', 'error'); }
+  finally { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ سحابياً'; }
+}
+
+/* ========= ADMIN PANEL ========= */
+function openAdminModal() {
+  document.getElementById('adminModal').classList.remove('hidden');
+  if (activeUser?.type === 'admin') {
+    document.getElementById('adminAuthSection').classList.add('hidden');
+    document.getElementById('adminContentSection').classList.remove('hidden');
+    setupAdminRole();
+    switchAdminTab('studstats');
+  } else if (activeUser?.type === 'custom' && hasAnyPerm(activeUser)) {
+    document.getElementById('adminAuthSection').classList.add('hidden');
+    document.getElementById('adminContentSection').classList.remove('hidden');
+    setupAdminRole();
+    const first = ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].find(k => activeUser.permissions?.[k]);
+    switchAdminTab(first || 'studstats');
+  } else {
+    document.getElementById('adminAuthSection').classList.remove('hidden');
+    document.getElementById('adminContentSection').classList.add('hidden');
+    document.getElementById('adminPinInput').value = '';
+    document.getElementById('adminAuthError').classList.add('hidden');
+  }
+}
+function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+function verifyAdminPin() {
+  const pin = document.getElementById('adminPinInput').value.trim();
+  if (validAdmin(pin)) {
+    document.getElementById('adminAuthSection').classList.add('hidden');
+    document.getElementById('adminContentSection').classList.remove('hidden');
+    document.getElementById('adminAuthError').classList.add('hidden');
+    setupAdminRole();
+    switchAdminTab('studstats');
+  } else {
+    document.getElementById('adminAuthError').classList.remove('hidden');
+  }
+}
+
+function setupAdminRole() {
+  const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
+  const allTabs = ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'];
+  if (activeUser?.type === 'admin') {
+    text.textContent = 'صلاحية: مدير النظام (تحكم كامل)';
+    badge.textContent = 'مدير النظام';
+    badge.className = 'bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px]';
+    allTabs.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
+  } else if (activeUser?.type === 'custom') {
+    text.textContent = `صلاحية: ${activeUser.name}`;
+    badge.textContent = 'مستخدم مخصص';
+    badge.className = 'bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px]';
+    allTabs.forEach(id => { const el = document.getElementById(`tab-${id}`); const ok = !!activeUser.permissions?.[id]; if (el) el.style.display = ok ? 'flex' : 'none'; });
+  }
+}
+
+function switchAdminTab(tab) {
+  ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
+    document.getElementById(`sec-${t}`)?.classList.add('hidden');
+    const btn = document.getElementById(`tab-${t}`);
+    if (btn) btn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl text-slate-600 dark:text-slate-400';
+  });
+  document.getElementById(`sec-${tab}`)?.classList.remove('hidden');
+  const btn = document.getElementById(`tab-${tab}`);
+  if (btn) btn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm';
+  if (tab === 'studstats') renderStatsTab();
+  if (tab === 'behaviorstats') renderBehaviorReportsTab();
+  if (tab === 'users') renderUsersTab();
+  if (tab === 'students') renderStudentsTab();
+  if (tab === 'teachers') renderTeachersTab();
+  if (tab === 'alerts') renderAlertsTab();
+  if (tab === 'reports') renderReportsTab();
+  if (tab === 'sync') renderSyncTab();
+  if (tab === 'security') renderSecurityTab();
+}
+
+/* ========= STATS TAB ========= */
+function getFilteredSessions(source, dateField = 'date') {
+  const t = today(), td = new Date(t);
+  let filtered = [];
+  Object.entries(source).forEach(([k, s]) => {
+    const p = parseKey(k);
+    const sessDate = s.date || p.date;
+    const d = new Date(sessDate);
+    let include = false;
+    if (statsPeriod === 'today') include = sessDate === t;
+    else if (statsPeriod === 'yesterday') { const y = new Date(td); y.setDate(y.getDate() - 1); include = sessDate === y.toISOString().split('T')[0]; }
+    else if (statsPeriod === 'week') { const w = new Date(td); w.setDate(w.getDate() - 7); include = d >= w && d <= td; }
+    else if (statsPeriod === 'month') include = d.getMonth() === td.getMonth() && d.getFullYear() === td.getFullYear();
+    else if (statsPeriod === 'semester') include = true;
+    else if (statsPeriod === 'custom') {
+      const s1 = document.getElementById('statsStartDate')?.value, e1 = document.getElementById('statsEndDate')?.value;
+      include = (!s1 || sessDate >= s1) && (!e1 || sessDate <= e1);
+    }
+    if (include) filtered.push({ date: sessDate, className: p.className, period: p.period, teacher: s.teacher, records: s.records || {} });
+  });
+  return filtered;
+}
+
+function renderStatsTab() {
+  const container = document.getElementById('sec-studstats');
+  container.innerHTML = `
+    <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4 border border-emerald-700/50">
+      <div><h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> إحصائيات الغياب والسلوك</h4><p class="text-xs text-emerald-200 mt-0.5">متابعة شاملة للفترة</p></div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <select id="statsPeriodFilter" onchange="statsPeriod=this.value;renderStatsTab();" class="bg-slate-900/90 text-white text-xs font-bold px-3 py-2 rounded-2xl border border-emerald-500/40">
+          <option value="today"${statsPeriod === 'today' ? ' selected' : ''}>اليوم</option>
+          <option value="yesterday"${statsPeriod === 'yesterday' ? ' selected' : ''}>أمس</option>
+          <option value="week"${statsPeriod === 'week' ? ' selected' : ''}>هذا الأسبوع</option>
+          <option value="month"${statsPeriod === 'month' ? ' selected' : ''}>هذا الشهر</option>
+          <option value="semester"${statsPeriod === 'semester' ? ' selected' : ''}>الفصل الدراسي</option>
+          <option value="custom"${statsPeriod === 'custom' ? ' selected' : ''}>فترة مخصصة</option>
+        </select>
+        ${statsPeriod === 'custom' ? `<input type="date" id="statsStartDate" onchange="renderStatsTab()" class="bg-slate-900/90 text-white text-xs p-2 rounded-2xl border border-emerald-500/40"><span class="text-xs text-emerald-200">إلى</span><input type="date" id="statsEndDate" onchange="renderStatsTab()" class="bg-slate-900/90 text-white text-xs p-2 rounded-2xl border border-emerald-500/40">` : ''}
+      </div>
+    </div>
+    <div class="flex gap-2 bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+      <button onclick="statsSubTab='absence';renderStatsTab();" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs ${statsSubTab === 'absence' ? 'bg-emerald-700 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'}"><i class="fa-solid fa-user-slash"></i> الغياب</button>
+      <button onclick="statsSubTab='behaviors';renderStatsTab();" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs ${statsSubTab === 'behaviors' ? 'bg-teal-700 text-white shadow-md' : 'text-slate-600 dark:text-slate-300'}"><i class="fa-solid fa-scale-balanced"></i> السلوكيات</button>
+    </div>
+    <div id="statsBody"></div>`;
+  if (statsSubTab === 'absence') renderAbsenceStats();
+  else renderBehaviorStats();
+}
+
+function renderAbsenceStats() {
+  const sessions = getFilteredSessions(db.attendance);
+  const valid = new Set();
+  Object.entries(db.students).forEach(([c, l]) => l.forEach(s => valid.add(`${c}::${s}`)));
+  let counts = { absent: 0, escape: 0, late: 0, outside: 0 };
+  let studentMap = {}, classStats = {};
+  db.classes.forEach(c => { classStats[c] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 }; });
+
+  sessions.forEach(s => {
+    Object.entries(s.records).forEach(([n, st]) => {
+      if (st === 'present' || !valid.has(`${s.className}::${n}`)) return;
+      counts[st] = (counts[st] || 0) + 1;
+      if (classStats[s.className]) classStats[s.className][st]++;
+      const key = `${s.className}::${n}`;
+      if (!studentMap[key]) studentMap[key] = { name: n, className: s.className, absent: 0, escape: 0, late: 0, outside: 0, total: 0, dates: new Set() };
+      studentMap[key][st]++;
+      studentMap[key].total++;
+      studentMap[key].dates.add(s.date);
+    });
+  });
+
+  const needsAttention = Object.values(studentMap).filter(s => s.total >= 2).sort((a, b) => b.total - a.total);
+  const body = document.getElementById('statsBody');
+
+  let html = `<div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+    <div class="bg-black text-white p-4 rounded-2xl"><div class="text-xs">الغياب</div><div class="text-2xl font-black">${counts.absent}</div></div>
+    <div class="bg-red-600 text-white p-4 rounded-2xl"><div class="text-xs">التسرب</div><div class="text-2xl font-black">${counts.escape}</div></div>
+    <div class="bg-orange-500 text-white p-4 rounded-2xl"><div class="text-xs">التأخير</div><div class="text-2xl font-black">${counts.late}</div></div>
+    <div class="bg-purple-600 text-white p-4 rounded-2xl"><div class="text-xs">الخروج</div><div class="text-2xl font-black">${counts.outside}</div></div>
+  </div>`;
+
+  html += `<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 p-5 space-y-3">
+    <div class="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-700">
+      <h5 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-amber-500"></i> تحتاج متابعة (مخالفات متكررة)</h5>
+      <span class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-2xl">${needsAttention.length} طالب</span>
+    </div>`;
+
+  if (needsAttention.length === 0) {
+    html += `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار</div>`;
+  } else {
+    html += `<div class="overflow-x-auto"><table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40"><th class="p-2">الطالب</th><th class="p-2 text-center">الصف</th><th class="p-2 text-center">غياب</th><th class="p-2 text-center">تأخير</th><th class="p-2 text-center">تسرب</th><th class="p-2 text-center">خروج</th><th class="p-2 text-center">المجموع</th><th class="p-2 text-center">الملف</th></tr></thead><tbody>`;
+    needsAttention.forEach(s => {
+      html += `<tr class="border-t border-slate-100 dark:border-slate-700/50 hover:bg-slate-50 dark:hover:bg-slate-900/40">
+        <td class="p-2 font-bold">${esc(s.name)}</td><td class="p-2 text-center">${esc(s.className)}</td>
+        <td class="p-2 text-center">${s.absent}</td><td class="p-2 text-center">${s.late}</td><td class="p-2 text-center">${s.escape}</td><td class="p-2 text-center">${s.outside}</td>
+        <td class="p-2 text-center"><b>${s.total}</b></td>
+        <td class="p-2 text-center"><button onclick="openStudentProfile('${esc(s.className)}','${esc(s.name)}')" class="bg-emerald-700 text-white px-2 py-1 rounded-lg text-[10px] font-bold">عرض</button></td>
+      </tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  html += `</div>`;
+
+  let entries = Object.entries(classStats);
+  if (statsSortOrder === 'violationsDesc') entries.sort((a, b) => b[1].total - a[1].total);
+  else entries.sort((a, b) => a[0].localeCompare(b[0]));
+
+  html += `<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 p-5 space-y-3">
+    <div class="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-700">
+      <h5 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات الصفوف</h5>
+      <select onchange="statsSortOrder=this.value;renderAbsenceStats()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+        <option value="violationsDesc"${statsSortOrder === 'violationsDesc' ? ' selected' : ''}>الأكثر مخالفات</option>
+        <option value="nameAsc"${statsSortOrder === 'nameAsc' ? ' selected' : ''}>حسب الاسم</option>
+      </select>
+    </div>
+    <div class="overflow-x-auto"><table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40"><th class="p-2">الصف</th><th class="p-2 text-center">غياب</th><th class="p-2 text-center">تأخير</th><th class="p-2 text-center">تسرب</th><th class="p-2 text-center">خروج</th><th class="p-2 text-center">المجموع</th></tr></thead><tbody>`;
+  entries.forEach(([c, s]) => {
+    html += `<tr class="border-t border-slate-100 dark:border-slate-700/50"><td class="p-2 font-bold">صف ${esc(c)}</td><td class="p-2 text-center">${s.absent}</td><td class="p-2 text-center">${s.late}</td><td class="p-2 text-center">${s.escape}</td><td class="p-2 text-center">${s.outside}</td><td class="p-2 text-center"><b>${s.total}</b></td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  const teacherMap = {};
+  sessions.forEach(s => {
+    const t = s.teacher || 'غير محدد';
+    if (!teacherMap[t]) teacherMap[t] = { count: 0, violations: 0 };
+    teacherMap[t].count++;
+    Object.values(s.records).forEach(st => { if (st !== 'present') teacherMap[t].violations++; });
+  });
+  html += `<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 p-5 space-y-3">
+    <h5 class="font-extrabold text-sm border-b pb-3 border-slate-200 dark:border-slate-700"><i class="fa-solid fa-chalkboard-user text-emerald-600"></i> نشاط المعلمين</h5>
+    <div class="overflow-x-auto"><table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40"><th class="p-2">المعلم</th><th class="p-2 text-center">الحصص</th><th class="p-2 text-center">المخالفات</th></tr></thead><tbody>`;
+  Object.entries(teacherMap).sort((a, b) => b[1].count - a[1].count).forEach(([t, s]) => {
+    html += `<tr class="border-t border-slate-100 dark:border-slate-700/50"><td class="p-2 font-bold">${esc(t)}</td><td class="p-2 text-center">${s.count}</td><td class="p-2 text-center">${s.violations}</td></tr>`;
+  });
+  html += `</tbody></table></div></div>`;
+
+  body.innerHTML = html;
+}
+
+function renderBehaviorStats() {
+  const sessions = getFilteredSessions(db.behaviors);
+  const valid = new Set();
+  Object.entries(db.students).forEach(([c, l]) => l.forEach(s => valid.add(`${c}::${s}`)));
+  let map = {};
+  sessions.forEach(s => {
+    Object.entries(s.records).forEach(([n, obj]) => {
+      if (!obj || obj.type === 'normal' || !valid.has(`${s.className}::${n}`)) return;
+      const k = `${s.className}::${n}`;
+      if (!map[k]) map[k] = { name: n, className: s.className, total: 0, types: {}, teachers: new Set() };
+      map[k].total++;
+      map[k].types[obj.type] = (map[k].types[obj.type] || 0) + 1;
+      map[k].teachers.add(s.teacher);
+    });
+  });
+  const arr = Object.values(map).sort((a, b) => b.total - a.total);
+  const body = document.getElementById('statsBody');
+  let html = `<div class="bg-white dark:bg-slate-800 rounded-3xl shadow-lg border border-slate-200 dark:border-slate-700 p-5 space-y-3">
+    <div class="flex justify-between items-center border-b pb-3 border-slate-200 dark:border-slate-700">
+      <h5 class="font-extrabold text-sm"><i class="fa-solid fa-scale-balanced text-teal-600"></i> الطلاب الأكثر مخالفة</h5>
+      <span class="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-2xl">${arr.length} طالب</span>
+    </div>`;
+  if (!arr.length) { html += `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات سلوكية</div>`; }
+  else {
+    html += `<div class="overflow-x-auto"><table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-teal-50 dark:bg-teal-950/40"><th class="p-2">الطالب</th><th class="p-2 text-center">الصف</th><th class="p-2">الأنواع</th><th class="p-2 text-center">المعلمون</th><th class="p-2 text-center">المخالفات</th></tr></thead><tbody>`;
+    arr.forEach(s => {
+      html += `<tr class="border-t border-slate-100 dark:border-slate-700/50"><td class="p-2 font-bold">${esc(s.name)}</td><td class="p-2 text-center">${esc(s.className)}</td><td class="p-2 text-[10px]">${Object.entries(s.types).map(([t, c]) => `${esc(behaviorLabels[t] || t)}: ${c}`).join('، ')}</td><td class="p-2 text-center">${s.teachers.size}</td><td class="p-2 text-center"><b class="text-red-600">${s.total}</b></td></tr>`;
+    });
+    html += `</tbody></table></div>`;
+  }
+  html += `</div>`;
+  body.innerHTML = html;
+}
+
+/* ========= BEHAVIOR REPORTS TAB ========= */
+function renderBehaviorReportsTab() {
+  const sec = document.getElementById('sec-behaviorstats');
+  sec.innerHTML = `
+    <div class="bg-gradient-to-r from-teal-900 to-emerald-900 text-white p-5 rounded-3xl shadow-lg space-y-3 border border-teal-700/50">
+      <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-300"></i> تقرير سلوكيات الطلاب (PDF أفقي)</h4>
+      <p class="text-xs text-teal-200">تفريغ كافة الحصص الثماني أفقياً لكل صف</p>
+      <div class="bg-white/10 p-3 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+        <select onchange="behaviorReportClass=this.value;renderBehaviorReportsTab()" class="p-2 bg-slate-900/80 text-white border border-teal-500/30 rounded-xl text-xs font-bold">
+          <option value="all"${behaviorReportClass === 'all' ? ' selected' : ''}>جميع الصفوف</option>
+          ${db.classes.map(c => `<option value="${esc(c)}"${behaviorReportClass === c ? ' selected' : ''}>صف ${esc(c)}</option>`).join('')}
+        </select>
+        <input type="date" value="${esc(behaviorReportDate)}" onchange="behaviorReportDate=this.value;renderBehaviorReportsTab()" class="p-2 bg-slate-900/80 text-white border border-teal-500/30 rounded-xl text-xs font-bold">
+        <button onclick="behaviorReportDate='${today()}';renderBehaviorReportsTab()" class="bg-slate-800 text-teal-200 p-2 rounded-xl text-xs font-bold">اليوم</button>
+      </div>
+      <button onclick="printBehaviorPDF()" class="bg-teal-700 hover:bg-teal-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2"><i class="fa-solid fa-file-pdf"></i> طباعة / PDF</button>
+    </div>
+    <div id="behaviorReportsContent" class="space-y-4 overflow-x-auto"></div>`;
+  renderBehaviorReportsContent();
+}
+
+function renderBehaviorReportsContent() {
+  const container = document.getElementById('behaviorReportsContent');
+  if (!container) return;
+  const classes = behaviorReportClass === 'all' ? db.classes : [behaviorReportClass];
+  let html = '';
+  classes.forEach(c => {
+    html += `<div class="bg-white dark:bg-slate-800 rounded-2xl shadow border p-3 min-w-[900px]">
+      <div class="flex justify-between border-b pb-2 mb-2 border-slate-200 dark:border-slate-700">
+        <span class="font-extrabold text-sm text-teal-900 dark:text-teal-300">صف ${esc(c)}</span>
+        <span class="font-bold text-xs text-slate-600 dark:text-slate-400">${esc(behaviorReportDate)}</span>
+      </div>
+      <div class="grid grid-cols-8 gap-1">`;
+    for (let p = 1; p <= 8; p++) {
+      const k = `${behaviorReportDate}_${c}_p${p}`;
+      const s = db.behaviors[k];
+      const teacher = s?.teacher || '—';
+      const issues = s?.records ? Object.entries(s.records).filter(([n, o]) => o && o.type && o.type !== 'normal') : [];
+      html += `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 bg-slate-50 dark:bg-slate-900/50 min-h-[120px]">
+        <div class="text-center bg-teal-50 dark:bg-teal-950/40 rounded p-1 mb-1"><div class="text-[10px] font-extrabold">ح ${p}</div><div class="text-[8px] text-slate-500 truncate">${esc(teacher)}</div></div>`;
+      if (!issues.length) html += `<div class="text-[9px] text-slate-400 text-center py-2">منضبطون</div>`;
+      else issues.forEach(([n, o]) => {
+        html += `<div class="text-[9px] font-bold text-red-600 bg-red-50 dark:bg-red-950/30 p-1 rounded mb-0.5 border border-red-200/50">• ${esc(n)}<br><span class="text-[8px] text-slate-600 dark:text-slate-400 font-normal">[${esc(behaviorLabels[o.type] || o.type)}${o.note ? ': ' + esc(o.note) : ''}]</span></div>`;
+      });
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  });
+  container.innerHTML = html || '<div class="text-center py-8 text-slate-400 text-sm">لا يوجد</div>';
+}
+
+function printBehaviorPDF() {
+  const classes = behaviorReportClass === 'all' ? db.classes : [behaviorReportClass];
+  let h = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>سلوكيات</title><style>@page{size:A4 landscape;margin:6mm}body{font-family:'Tajawal',sans-serif;padding:5px;font-size:10px}.head{text-align:center;border-bottom:2px solid #0d9488;padding-bottom:6px;margin-bottom:10px}.head h2{margin:0;color:#0f766e;font-size:15px}.head p{margin:3px 0 0;color:#555;font-size:10px}.class-block{page-break-inside:avoid;border:2px solid #0d9488;border-radius:8px;margin-bottom:12px;overflow:hidden}.class-bar{background:#0f766e;color:#fff;padding:5px 10px;display:flex;justify-content:space-between;font-weight:bold;font-size:11px}.grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:5px}.cell{border:1px solid #ccc;border-radius:4px;padding:3px;min-height:110px;background:#fafafa}.cell-h{text-align:center;border-bottom:1px solid #ddd;padding-bottom:2px;margin-bottom:2px;background:#e6fffa;font-weight:bold;font-size:9px}.item{font-size:8px;font-weight:bold;color:#b91c1c;margin-bottom:2px;padding:1px;border-bottom:1px dashed #fca5a5}.none{text-align:center;color:#999;font-size:8px;padding:10px 0}</style></head><body>
+    <div class="head"><h2>مدرسة أبو دجانة الأنصاري — تقرير السلوكيات بالحصص</h2><p>التاريخ: ${esc(behaviorReportDate)}</p></div>`;
+  classes.forEach(c => {
+    h += `<div class="class-block"><div class="class-bar"><span>صف ${esc(c)}</span><span>${esc(behaviorReportDate)}</span></div><div class="grid">`;
+    for (let p = 1; p <= 8; p++) {
+      const s = db.behaviors[`${behaviorReportDate}_${c}_p${p}`];
+      const teacher = s?.teacher || '(غير مسجل)';
+      const issues = s?.records ? Object.entries(s.records).filter(([n, o]) => o && o.type && o.type !== 'normal') : [];
+      h += `<div class="cell"><div class="cell-h">الحصة ${p}<br><small style="font-weight:normal;color:#555">${esc(teacher)}</small></div>`;
+      if (!issues.length) h += `<div class="none">منضبطون</div>`;
+      else issues.forEach(([n, o]) => { h += `<div class="item">• ${esc(n)}<br><span style="color:#333;font-weight:normal">[${esc(behaviorLabels[o.type] || o.type)}${o.note ? ': ' + esc(o.note) : ''}]</span></div>`; });
+      h += `</div>`;
+    }
+    h += `</div></div>`;
+  });
+  h += `</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { toast('اسمح بالنوافذ المنبثقة للطباعة', 'error'); return; }
+  w.document.write(h); w.document.close();
+  setTimeout(() => w.print(), 400);
+}
+
+/* ========= USERS TAB ========= */
+function renderUsersTab() {
+  const sec = document.getElementById('sec-users');
+  sec.innerHTML = `
+    <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-3">
+      <h5 class="font-bold text-xs">إضافة مستخدم مخصص</h5>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input type="text" id="cuName" placeholder="الاسم" class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none">
+        <input type="password" id="cuPin" maxlength="10" placeholder="الرمز" class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none font-bold">
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+        ${['studstats:إحصائيات', 'behaviorstats:سلوكيات', 'users:أشخاص', 'students:طلاب', 'teachers:معلمين', 'alerts:تنبيهات', 'reports:تقارير', 'sync:مزامنة', 'security:أمان'].map(p => { const [k, l] = p.split(':'); return `<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="p_${k}" class="accent-emerald-600 rounded-md"> ${l}</label>`; }).join('')}
+      </div>
+      <button onclick="addCustomUser()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl">حفظ المستخدم</button>
+    </div>
+    <div id="customUsersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>`;
+  renderCustomUsersList();
+}
+
+function renderCustomUsersList() {
+  const c = document.getElementById('customUsersList');
+  if (!c) return;
+  if (!db.customUsers.length) { c.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد مستخدمون مخصصون</div>`; return; }
+  c.innerHTML = db.customUsers.map((u, i) => `<div class="p-3 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50"><div><div class="font-extrabold text-xs">${esc(u.name)} <span class="text-slate-400">(${esc(u.pin)})</span></div></div><button onclick="deleteCustomUser(${i})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl">حذف</button></div>`).join('');
+}
+
+async function addCustomUser() {
+  const name = document.getElementById('cuName').value.trim();
+  const pin = document.getElementById('cuPin').value.trim();
+  if (!name || !pin) { toast('أدخل الاسم والرمز', 'error'); return; }
+  if (db.customUsers.some(u => u.pin === pin)) { toast('الرمز مستخدم مسبقاً', 'error'); return; }
+  if (db.teachers.some(t => t.pin === pin)) { toast('الرمز مستخدم من معلم', 'error'); return; }
+  if (validAdmin(pin)) { toast('الرمز مستخدم من المدير', 'error'); return; }
+  const permissions = {};
+  ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].forEach(k => { permissions[k] = document.getElementById('p_' + k).checked; });
+  const { error } = await sb.from('teachers').insert({ name, pin, role: 'custom', permissions });
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  db.customUsers.push({ name, pin, role: 'custom', permissions });
+  toast('تم الحفظ', 'success');
+  renderUsersTab();
+}
+
+async function deleteCustomUser(i) {
+  const u = db.customUsers[i];
+  if (!confirm('حذف هذا المستخدم؟')) return;
+  const { error } = await sb.from('teachers').delete().eq('name', u.name).eq('role', 'custom');
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  db.customUsers.splice(i, 1);
+  renderUsersTab();
+}
+
+/* ========= STUDENTS TAB ========= */
+function renderStudentsTab() {
+  const sec = document.getElementById('sec-students');
+  const currentClass = sec.querySelector('#adminClassSelect')?.value || db.classes[0] || '';
+  sec.innerHTML = `
+    <div class="flex flex-wrap gap-3 items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-700">
+      <div class="flex items-center gap-2"><label class="text-xs font-bold">الصف:</label>
+        <select id="adminClassSelect" onchange="loadAdminStudentsList()" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-3 py-2 text-xs bg-white dark:bg-slate-800 font-bold">
+          ${db.classes.map(c => `<option value="${esc(c)}"${c === currentClass ? ' selected' : ''}>${esc(c)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="flex gap-2">
+        <button onclick="addNewClass()" class="text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-3 py-2 rounded-2xl font-bold">+ صف جديد</button>
+        <button onclick="deleteCurrentClass()" class="text-xs bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 border border-red-200 dark:border-red-900/60 px-3 py-2 rounded-2xl font-bold">حذف الصف</button>
+      </div>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-2">
+        <label class="block text-xs font-bold">أسماء الطلاب (سطر لكل اسم):</label>
+        <textarea id="bulkStudentsInput" rows="6" class="w-full p-3 text-xs bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none"></textarea>
+        <button onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-2xl">حفظ القائمة</button>
+      </div>
+      <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-2">
+        <label class="block text-xs font-bold"><i class="fa-solid fa-file-arrow-up"></i> رفع ملف (TXT/CSV):</label>
+        <input type="file" id="studentFileImport" accept=".txt,.csv" onchange="handleStudentFileImport(event)" class="w-full text-xs border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 bg-white dark:bg-slate-800">
+        <p class="text-[10px] text-slate-500">الصف الأول من CSV يُعتبر اسم طالب (تجاهل الأعمدة الأخرى)</p>
+      </div>
+    </div>
+    <div id="adminStudentsDisplay" class="max-h-64 overflow-y-auto space-y-1.5 text-xs bg-slate-50 dark:bg-slate-900/50 p-3 rounded-3xl border border-slate-200 dark:border-slate-700"></div>`;
+  setTimeout(loadAdminStudentsList, 30);
+}
+
+function loadAdminStudentsList() {
+  const cls = document.getElementById('adminClassSelect')?.value;
+  if (!cls) return;
+  const list = db.students[cls] || [];
+  const c = document.getElementById('adminStudentsDisplay');
+  const bulk = document.getElementById('bulkStudentsInput');
+  if (bulk && document.activeElement !== bulk) bulk.value = list.join('\n');
+  if (!c) return;
+  c.innerHTML = list.length === 0 ? '<div class="text-center py-2 text-slate-400 font-bold">لا يوجد طلاب</div>'
+    : list.map((st, i) => `<div class="flex justify-between items-center p-2 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700/80"><span class="font-bold">${esc(st)}</span><button onclick="removeStudent('${esc(cls)}', ${i})" class="text-red-600 text-xs font-bold px-3 py-1 bg-red-50 dark:bg-red-950/60 rounded-xl">حذف</button></div>`).join('');
+}
+
+async function saveBulkStudents() {
+  const cls = document.getElementById('adminClassSelect').value;
+  const names = [...new Set(document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean))];
+  const old = new Set(db.students[cls] || []);
+  const newS = new Set(names);
+  const removed = [...old].filter(n => !newS.has(n));
+  if (removed.length > 0 && confirm(`سيتم حذف ${removed.length} طالب/طالبة. متابعة؟`)) {
+    await sb.from('students').delete().eq('class_name', cls).in('student_name', removed);
+  }
+  await sb.from('students').delete().eq('class_name', cls);
+  if (names.length) {
+    const rows = names.map(n => ({ class_name: cls, student_name: n }));
+    for (let i = 0; i < rows.length; i += 100) {
+      const { error } = await sb.from('students').insert(rows.slice(i, i + 100));
+      if (error) { toast('فشل: ' + error.message, 'error'); return; }
+    }
+  }
+  db.students[cls] = names;
+  loadAdminStudentsList();
+  toast('تم حفظ القائمة', 'success');
+}
+
+function handleStudentFileImport(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    const lines = ev.target.result.split(/\r?\n/).map(l => l.trim().replace(/^"|"$/g, '').split(',')[0].trim()).filter(Boolean);
+    const cls = document.getElementById('adminClassSelect').value;
+    const existing = new Set(db.students[cls] || []);
+    lines.forEach(l => existing.add(l));
+    document.getElementById('bulkStudentsInput').value = [...existing].join('\n');
+    toast(`تم تحميل ${lines.length} سطر — اضغط "حفظ القائمة"`, 'info');
+  };
+  r.readAsText(f);
+  e.target.value = '';
+}
+
+async function removeStudent(cls, i) {
+  const st = db.students[cls][i];
+  if (!confirm(`حذف "${st}"؟ سيتم حذف سجلاته أيضاً.`)) return;
+  db.students[cls].splice(i, 1);
+  await sb.from('students').delete().eq('class_name', cls).eq('student_name', st);
+  loadAdminStudentsList();
+  toast('تم الحذف', 'info');
+}
+
+async function addNewClass() {
+  const n = prompt('اسم الصف الجديد (مثال: 9/9):');
+  if (!n || !n.trim()) return;
+  if (db.classes.includes(n.trim())) { toast('الصف موجود', 'error'); return; }
+  const { error } = await sb.from('classes').insert({ name: n.trim() });
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  db.classes.push(n.trim());
+  db.students[n.trim()] = [];
+  renderStudentsTab();
+  toast('تم', 'success');
+}
+
+async function deleteCurrentClass() {
+  const cls = document.getElementById('adminClassSelect').value;
+  if (!confirm(`حذف صف ${cls} بالكامل (الطلاب والسجلات)؟`)) return;
+  await sb.from('classes').delete().eq('name', cls);
+  await sb.from('students').delete().eq('class_name', cls);
+  await sb.from('attendance').delete().eq('class_name', cls);
+  await sb.from('behaviors').delete().eq('class_name', cls);
+  db.classes = db.classes.filter(c => c !== cls);
+  delete db.students[cls];
+  renderStudentsTab();
+  toast('تم الحذف', 'info');
+}
+
+/* ========= TEACHERS TAB ========= */
+function renderTeachersTab() {
+  const sec = document.getElementById('sec-teachers');
+  sec.innerHTML = `
+    <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-3">
+      <h5 class="font-bold text-xs">إضافة معلم</h5>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <input type="text" id="tName" placeholder="الاسم" class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none">
+        <input type="password" id="tPin" maxlength="10" placeholder="الرمز" class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none font-bold">
+      </div>
+      <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl">حفظ المعلم</button>
+    </div>
+    <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>`;
+  renderTeachersList();
+}
+
+function renderTeachersList() {
+  const c = document.getElementById('teachersList');
+  if (!c) return;
+  if (!db.teachers.length) { c.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد معلمون</div>`; return; }
+  c.innerHTML = db.teachers.map((t, i) => `<div class="p-3 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50"><div><span class="font-extrabold text-xs">${esc(t.name)}</span> <span class="text-xs text-emerald-600 ms-2 font-mono font-bold">${esc(t.pin)}</span></div><div class="flex gap-2"><button onclick="editTeacherPin(${i})" class="text-blue-600 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 rounded-xl">تعديل</button><button onclick="deleteTeacher(${i})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/60 rounded-xl">حذف</button></div></div>`).join('');
+}
+
+async function addNewTeacher() {
+  const n = document.getElementById('tName').value.trim();
+  const p = document.getElementById('tPin').value.trim();
+  if (!n || !p) { toast('أدخل الاسم والرمز', 'error'); return; }
+  if (db.teachers.some(t => t.pin === p) || db.customUsers.some(u => u.pin === p)) { toast('الرمز مستخدم', 'error'); return; }
+  if (validAdmin(p)) { toast('الرمز مستخدم من المدير', 'error'); return; }
+  const { error } = await sb.from('teachers').insert({ name: n, pin: p, role: 'teacher' });
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  db.teachers.push({ name: n, pin: p, role: 'teacher' });
+  document.getElementById('tName').value = ''; document.getElementById('tPin').value = '';
+  renderTeachersList();
+  toast('تم', 'success');
+}
+
+async function editTeacherPin(i) {
+  const t = db.teachers[i];
+  const p = prompt(`الرمز الجديد لـ ${t.name}:`, t.pin);
+  if (!p || !p.trim()) return;
+  if (db.teachers.some((tt, j) => j !== i && tt.pin === p.trim())) { toast('الرمز مستخدم', 'error'); return; }
+  if (validAdmin(p.trim())) { toast('الرمز مستخدم من المدير', 'error'); return; }
+  const { error } = await sb.from('teachers').update({ pin: p.trim() }).eq('name', t.name);
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  t.pin = p.trim();
+  renderTeachersList();
+  toast('تم', 'success');
+}
+
+async function deleteTeacher(i) {
+  if (!confirm('حذف هذا المعلم؟')) return;
+  const t = db.teachers[i];
+  const { error } = await sb.from('teachers').delete().eq('name', t.name).eq('role', 'teacher');
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  db.teachers.splice(i, 1);
+  renderTeachersList();
+  toast('تم', 'info');
+}
+
+/* ========= ALERTS TAB ========= */
+function renderAlertsTab() {
+  const sec = document.getElementById('sec-alerts');
+  let issues = {};
+  Object.entries(db.attendance).forEach(([k, s]) => {
+    const p = parseKey(k);
+    Object.entries(s.records || {}).forEach(([n, st]) => {
+      if (st !== 'present') {
+        const key = `${p.className}::${n}`;
+        if (!issues[key]) issues[key] = { n, c: p.className, a: 0, l: 0, e: 0, o: 0, days: new Set() };
+        issues[key].days.add(p.date);
+        if (st === 'absent') issues[key].a++;
+        else if (st === 'late') issues[key].l++;
+        else if (st === 'escape') issues[key].e++;
+        else if (st === 'outside') issues[key].o++;
+      }
+    });
+  });
+  const arr = Object.values(issues).sort((a, b) => b.days.size - a.days.size);
+  let html = `<div class="border border-slate-200 dark:border-slate-700 rounded-3xl bg-white dark:bg-slate-800 p-4 overflow-x-auto">`;
+  if (!arr.length) html += `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد مخالفات</div>`;
+  else {
+    html += `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40"><th class="p-2">الطالب</th><th class="p-2 text-center">الصف</th><th class="p-2 text-center">غياب</th><th class="p-2 text-center">تأخير</th><th class="p-2 text-center">تسرب</th><th class="p-2 text-center">خروج</th><th class="p-2 text-center">أيام</th></tr></thead><tbody>`;
+    arr.forEach(i => {
+      html += `<tr class="border-t border-slate-100 dark:border-slate-700/50"><td class="p-2 font-bold">${esc(i.n)}</td><td class="p-2 text-center">${esc(i.c)}</td><td class="p-2 text-center">${i.a}</td><td class="p-2 text-center">${i.l}</td><td class="p-2 text-center">${i.e}</td><td class="p-2 text-center">${i.o}</td><td class="p-2 text-center"><b class="text-red-600">${i.days.size}</b></td></tr>`;
+    });
+    html += `</tbody></table>`;
+  }
+  html += `</div>`;
+  sec.innerHTML = html;
+}
+
+/* ========= REPORTS TAB ========= */
+function renderReportsTab() {
+  const sec = document.getElementById('sec-reports');
+  sec.innerHTML = `
+    <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-5 rounded-3xl shadow-lg space-y-3 border border-emerald-700/50">
+      <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير الغياب الأفقي</h4>
+      <p class="text-xs text-emerald-200">تفريغ الحصص الثماني أفقياً لكل صف</p>
+      <div class="bg-white/10 p-3 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-2 items-end">
+        <select onchange="reportClass=this.value;renderReportsTab()" class="p-2 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold">
+          <option value="all"${reportClass === 'all' ? ' selected' : ''}>جميع الصفوف</option>
+          ${db.classes.map(c => `<option value="${esc(c)}"${reportClass === c ? ' selected' : ''}>صف ${esc(c)}</option>`).join('')}
+        </select>
+        <input type="date" value="${esc(reportDate)}" onchange="reportDate=this.value;renderReportsTab()" class="p-2 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold">
+        <button onclick="reportDate='${today()}';renderReportsTab()" class="bg-slate-800 text-emerald-200 p-2 rounded-xl text-xs font-bold">اليوم</button>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button onclick="printAttendancePDF()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-2"><i class="fa-solid fa-print"></i> طباعة / PDF</button>
+        <button onclick="exportExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-2xl text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
+      </div>
+    </div>
+    <div id="reportContent" class="space-y-4 overflow-x-auto"></div>`;
+  renderReportsContent();
+}
+
+function renderReportsContent() {
+  const container = document.getElementById('reportContent');
+  if (!container) return;
+  const classes = reportClass === 'all' ? db.classes : [reportClass];
+  let html = '';
+  classes.forEach(c => {
+    html += `<div class="bg-white dark:bg-slate-800 rounded-2xl shadow border p-3 min-w-[900px]">
+      <div class="flex justify-between border-b pb-2 mb-2 border-slate-200 dark:border-slate-700">
+        <span class="font-extrabold text-sm">صف ${esc(c)}</span>
+        <span class="font-bold text-xs">${esc(reportDate)}</span>
+      </div>
+      <div class="grid grid-cols-8 gap-1">`;
+    for (let p = 1; p <= 8; p++) {
+      const s = db.attendance[`${reportDate}_${c}_p${p}`];
+      const teacher = s?.teacher || '—';
+      const issues = s?.records ? Object.entries(s.records).filter(([n, st]) => st !== 'present') : [];
+      html += `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-1.5 bg-slate-50 dark:bg-slate-900/50 min-h-[120px]">
+        <div class="text-center bg-slate-100 dark:bg-slate-900/80 rounded p-1 mb-1"><div class="text-[10px] font-extrabold">ح ${p}</div><div class="text-[8px] text-slate-500 truncate">${esc(teacher)}</div></div>`;
+      if (!issues.length) html += `<div class="text-[9px] text-slate-400 text-center py-2">لا مخالفات</div>`;
+      else issues.forEach(([n, st]) => {
+        if (st === 'absent') html += `<div class="text-[9px] font-extrabold bg-black text-white rounded-full text-center p-0.5 mb-0.5 border-2 border-amber-400">${esc(n)} (غائب)</div>`;
+        else {
+          const cls = st === 'escape' ? 'text-red-600' : st === 'late' ? 'text-orange-600' : 'text-purple-600';
+          html += `<div class="text-[9px] ${cls} font-bold p-0.5">${esc(n)} (${attendanceLabels[st] || st})</div>`;
+        }
+      });
+      html += `</div>`;
+    }
+    html += `</div></div>`;
+  });
+  container.innerHTML = html || '<div class="text-center py-8 text-slate-400 text-sm">لا يوجد</div>';
+}
+
+function printAttendancePDF() {
+  const classes = reportClass === 'all' ? db.classes : [reportClass];
+  let h = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>غياب</title><style>@page{size:A4 landscape;margin:6mm}body{font-family:'Tajawal',sans-serif;padding:5px;font-size:10px}.head{text-align:center;border-bottom:2px solid #065f46;padding-bottom:6px;margin-bottom:10px}.head h2{margin:0;color:#065f46;font-size:15px}.head p{margin:3px 0 0;color:#555;font-size:10px}.class-block{page-break-inside:avoid;border:2px solid #cbd5e1;border-radius:8px;margin-bottom:12px;overflow:hidden}.class-bar{background:#f8fafc;border-bottom:2px solid #e2e8f0;padding:5px 10px;display:flex;justify-content:space-between;font-weight:bold;font-size:11px}.grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px;padding:5px}.cell{border:1px solid #ccc;border-radius:4px;padding:3px;min-height:110px;background:#fafafa}.cell-h{text-align:center;border-bottom:1px solid #ddd;padding-bottom:2px;margin-bottom:2px;background:#f1f5f9;border-radius:3px;font-weight:bold;font-size:9px}.absent{display:block;padding:2px 4px;text-align:center;border:2px solid #fbbf24;border-radius:9999px;background:#000;color:#fff;font-size:8px;font-weight:900;margin-bottom:2px}.other{font-size:8px;font-weight:700;padding:1px 3px;margin-bottom:2px;border-radius:3px}.esc{color:#dc2626;background:#fef2f2;border:1px solid #fca5a5}.late{color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe}.out{color:#9333ea;background:#faf5ff;border:1px solid #e9d5ff}.none{text-align:center;color:#999;font-size:8px;padding:10px 0}</style></head><body>
+    <div class="head"><h2>مدرسة أبو دجانة الأنصاري — تقرير الغياب</h2><p>التاريخ: ${esc(reportDate)}</p></div>`;
+  classes.forEach(c => {
+    h += `<div class="class-block"><div class="class-bar"><span>صف ${esc(c)}</span><span>${esc(reportDate)}</span></div><div class="grid">`;
+    for (let p = 1; p <= 8; p++) {
+      const s = db.attendance[`${reportDate}_${c}_p${p}`];
+      const teacher = s?.teacher || '(غير مسجل)';
+      const issues = s?.records ? Object.entries(s.records).filter(([n, st]) => st !== 'present') : [];
+      h += `<div class="cell"><div class="cell-h">الحصة ${p}<br><small style="font-weight:normal;color:#555">${esc(teacher)}</small></div>`;
+      if (!issues.length) h += `<div class="none">لا مخالفات</div>`;
+      else issues.forEach(([n, st]) => {
+        if (st === 'absent') h += `<div class="absent">• ${esc(n)} (غائب)</div>`;
+        else {
+          const cls = st === 'escape' ? 'esc' : st === 'late' ? 'late' : 'out';
+          h += `<div class="other ${cls}">• ${esc(n)} (${attendanceLabels[st] || st})</div>`;
+        }
+      });
+      h += `</div>`;
+    }
+    h += `</div></div>`;
+  });
+  h += `</body></html>`;
+  const w = window.open('', '_blank');
+  if (!w) { toast('اسمح بالنوافذ المنبثقة للطباعة', 'error'); return; }
+  w.document.write(h); w.document.close();
+  setTimeout(() => w.print(), 400);
+}
+
+function exportExcel() {
+  let csv = '\uFEFFالصف,الحصة,المعلم,الطالب,الحالة\n';
+  db.classes.forEach(c => {
+    for (let p = 1; p <= 8; p++) {
+      const s = db.attendance[`${reportDate}_${c}_p${p}`];
+      if (!s?.records) continue;
+      Object.entries(s.records).forEach(([n, st]) => {
+        if (st !== 'present') {
+          const safe = v => String(v).replace(/"/g, '""');
+          csv += `"${safe(c)}","${p}","${safe(s.teacher || '')}","${safe(n)}","${attendanceLabels[st] || st}"\n`;
+        }
+      });
+    }
+  });
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `attendance_${reportDate}.csv`;
+  a.click();
+  toast('تم التحميل', 'info');
+}
+
+/* ========= SYNC TAB ========= */
+function renderSyncTab() {
+  const sec = document.getElementById('sec-sync');
+  sec.innerHTML = `<div class="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
+    <h5 class="font-extrabold text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> المزامنة</h5>
+    <button onclick="forceSync()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold flex items-center gap-2"><i class="fa-solid fa-rotate"></i> جلب البيانات من السحابة</button>
+    <p class="text-xs text-amber-600 font-bold"><i class="fa-solid fa-triangle-exclamation"></i> يستبدل البيانات المحلية</p>
+    <div class="text-xs text-slate-600 dark:text-slate-400 space-y-1 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+      <div>آخر تحميل: ${new Date().toLocaleTimeString('ar-OM')}</div>
+      <div>الصفوف: ${db.classes.length} | الطلاب: ${Object.values(db.students).reduce((a, l) => a + l.length, 0)} | المعلمون: ${db.teachers.length}</div>
+      <div>حصص الغياب: ${Object.keys(db.attendance).length} | حصص السلوكيات: ${Object.keys(db.behaviors).length}</div>
+    </div>
+  </div>`;
+}
+
+async function forceSync() {
+  if (!confirm('سيتم استبدال البيانات المحلية. متابعة؟')) return;
+  const ok = await loadAll();
+  toast(ok ? 'تم التحديث' : 'فشل التحديث', ok ? 'success' : 'error');
+  switchAdminTab('sync');
+}
+
+/* ========= SECURITY TAB ========= */
+function renderSecurityTab() {
+  const sec = document.getElementById('sec-security');
+  sec.innerHTML = `
+    <div class="bg-slate-50 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
+      <h5 class="font-extrabold text-xs"><i class="fa-solid fa-key"></i> تغيير رمز مدير النظام</h5>
+      <input type="text" id="newAdminPin" maxlength="20" placeholder="الرمز الجديد" class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs w-full font-bold max-w-xs">
+      <button onclick="saveNewAdminPin()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl">حفظ</button>
+    </div>
+    <div class="bg-amber-50 dark:bg-amber-950/30 p-6 rounded-3xl border border-amber-200 dark:border-amber-800 space-y-3">
+      <h5 class="font-extrabold text-xs text-amber-800 dark:text-amber-300 flex items-center gap-2"><i class="fa-solid fa-shield-halved"></i> ملاحظة أمنية</h5>
+      <p class="text-xs text-slate-700 dark:text-slate-300 leading-relaxed">مفتاح Supabase العام (anon) مصمم ليكون مرئياً. الحماية الحقيقية تأتي من سياسات RLS. لكن لأن نظام الدخول داخل التطبيق، أي شخص لديه المفتاح يمكنه الوصول. للإنتاج الكامل: انقل المصادقة إلى Supabase Auth.</p>
+    </div>
+    <div class="bg-red-50 dark:bg-red-950/30 p-6 rounded-3xl border border-red-200 dark:border-red-900/50 space-y-4">
+      <h5 class="font-extrabold text-xs text-red-800 dark:text-red-300 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> تصفير السجلات</h5>
+      <p class="text-xs text-slate-600 dark:text-slate-400">يحذف كافة سجلات الغياب والسلوكيات نهائياً.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
+        <input type="password" id="resetPin1" placeholder="الرمز (1)" class="p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs font-bold">
+        <input type="password" id="resetPin2" placeholder="الرمز (2)" class="p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs font-bold">
+      </div>
+      <div id="resetErrorMsg" class="text-red-600 dark:text-red-400 text-xs font-bold hidden"></div>
+      <button onclick="executeFullReset()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-6 py-3 rounded-2xl flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> تصفير</button>
+    </div>`;
+}
+
+async function saveNewAdminPin() {
+  const p = document.getElementById('newAdminPin').value.trim();
+  if (!p) { toast('أدخل الرمز', 'error'); return; }
+  if (db.teachers.some(t => t.pin === p) || db.customUsers.some(u => u.pin === p)) { toast('الرمز مستخدم', 'error'); return; }
+  const { error } = await sb.from('school_settings').upsert({ key: 'admin_pin', value: { pin: p } }, { onConflict: 'key' });
+  if (error) { toast('فشل: ' + error.message, 'error'); return; }
+  db.adminPin = p;
+  document.getElementById('newAdminPin').value = '';
+  toast('تم حفظ الرمز', 'success');
+}
+
+async function executeFullReset() {
+  const p1 = document.getElementById('resetPin1').value.trim();
+  const p2 = document.getElementById('resetPin2').value.trim();
+  const err = document.getElementById('resetErrorMsg');
+  err.classList.add('hidden');
+  if (!p1 || !p2) { err.textContent = 'أدخل الرمز في الحقلين'; err.classList.remove('hidden'); return; }
+  if (p1 !== p2) { err.textContent = 'الرمزان غير متطابقين'; err.classList.remove('hidden'); return; }
+  if (!validAdmin(p1)) { err.textContent = 'الرمز غير صحيح'; err.classList.remove('hidden'); return; }
+  if (!confirm('تأكيد نهائي: حذف كل السجلات؟')) return;
+  const r1 = await sb.from('attendance').delete().neq('record_key', '');
+  const r2 = await sb.from('behaviors').delete().neq('record_key', '');
+  if (r1.error || r2.error) { toast('فشل الحذف', 'error'); return; }
+  db.attendance = {};
+  db.behaviors = {};
+  document.getElementById('resetPin1').value = '';
+  document.getElementById('resetPin2').value = '';
+  toast('تم التصفير', 'success');
+}
+
+/* ========= STUDENT PROFILE ========= */
+function openStudentProfile(className, studentName) {
+  let realClass = className;
+  if (!realClass || realClass === 'undefined' || realClass === 'غير محدد') {
+    for (const [c, l] of Object.entries(db.students)) if (l.includes(studentName)) { realClass = c; break; }
+  }
+  document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> ${esc(studentName)}`;
+  document.getElementById('modalStudentSubtitle').textContent = `صف ${realClass}`;
+  
+  const attLogs = [], behLogs = [];
+  Object.entries(db.attendance).forEach(([k, s]) => {
+    const p = parseKey(k);
+    if (s.records?.[studentName] && s.records[studentName] !== 'present' && p.className === realClass) {
+      attLogs.push({ date: p.date, period: p.period, status: s.records[studentName], teacher: s.teacher });
+    }
+  });
+  Object.entries(db.behaviors).forEach(([k, s]) => {
+    const p = parseKey(k);
+    const b = s.records?.[studentName];
+    if (b && b.type && b.type !== 'normal' && p.className === realClass) {
+      behLogs.push({ date: p.date, period: p.period, type: b.type, note: b.note || '', teacher: s.teacher });
+    }
+  });
+  attLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+  behLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+  let body = `<div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4 text-center">
+    <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border"><div class="text-[10px] text-slate-500 font-bold">غياب</div><div class="text-2xl font-black">${attLogs.filter(l => l.status === 'absent').length}</div></div>
+    <div class="bg-red-50 dark:bg-red-950/40 p-3 rounded-xl border border-red-200"><div class="text-[10px] text-red-600 font-bold">تسرب</div><div class="text-2xl font-black text-red-700">${attLogs.filter(l => l.status === 'escape').length}</div></div>
+    <div class="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-xl border border-orange-200"><div class="text-[10px] text-orange-600 font-bold">تأخير</div><div class="text-2xl font-black text-orange-700">${attLogs.filter(l => l.status === 'late').length}</div></div>
+    <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-xl border border-purple-200"><div class="text-[10px] text-purple-600 font-bold">خروج</div><div class="text-2xl font-black text-purple-700">${attLogs.filter(l => l.status === 'outside').length}</div></div>
+  </div>`;
+
+  body += `<h5 class="font-extrabold text-xs mb-2 mt-4"><i class="fa-solid fa-clipboard-list text-emerald-600"></i> سجل الغياب (${attLogs.length})</h5>`;
+  if (!attLogs.length) body += `<div class="text-center py-4 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/50 rounded-xl">لا يوجد</div>`;
+  else body += attLogs.slice(0, 30).map(l => `<div class="p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border mb-1 text-xs flex justify-between"><span><b>${attendanceLabels[l.status]}</b> — ح${l.period} (${esc(l.teacher)})</span><span class="text-slate-500 font-mono text-[10px]">${esc(l.date)}</span></div>`).join('');
+
+  body += `<h5 class="font-extrabold text-xs mb-2 mt-4"><i class="fa-solid fa-scale-balanced text-teal-600"></i> سجل السلوك (${behLogs.length})</h5>`;
+  if (!behLogs.length) body += `<div class="text-center py-4 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/50 rounded-xl">لا يوجد</div>`;
+  else body += behLogs.slice(0, 30).map(l => `<div class="p-2 bg-slate-50 dark:bg-slate-900/50 rounded-xl border mb-1 text-xs flex justify-between"><span><b>${esc(behaviorLabels[l.type] || l.type)}</b>${l.note ? ' — ' + esc(l.note) : ''} (${esc(l.teacher)})</span><span class="text-slate-500 font-mono text-[10px]">${esc(l.date)}</span></div>`).join('');
+
+  document.getElementById('modalStudentBody').innerHTML = body;
+  document.getElementById('studentDetailModal').classList.remove('hidden');
+}
+
+function closeStudentDetailModal() { document.getElementById('studentDetailModal').classList.add('hidden'); }
+
+/* ========= MODAL HELPERS ========= */
+function closeGeneralModal() { document.getElementById('generalModal').classList.add('hidden'); }
+
+/* ========= INIT ========= */
+(async function init() {
+  initDarkMode();
+  setCurrentDate();
+  const ok = await loadAll();
+  const btn = document.getElementById('loginBtn');
+  if (btn && ok) {
+    btn.disabled = false;
+    btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>';
+    if (db.adminPin || db.teachers.length || db.customUsers.length) {
+      checkExistingSession();
+    }
+  }
+})();
 </script>
 </body>
 </html>
