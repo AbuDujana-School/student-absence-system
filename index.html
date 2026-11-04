@@ -330,7 +330,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (تم إضافة تبويب السلوكيات هنا في الأعلى بنفس الخانة) -->
+        <!-- Admin Tabs (تم إضافة تبويب سلوكيات الطلاب في الأعلى بجانب إحصائيات الطلاب) -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إحصائيات الطلاب</button>
           <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer flex items-center justify-center gap-1.5"><i class="fa-solid fa-scale-balanced text-teal-600"></i> سلوكيات الطلاب</button>
@@ -466,12 +466,12 @@
           </div>
         </div>
 
-        <!-- NEW SECTION: BEHAVIOR STATS & PDF EXPORT TAB (قسم سلوكيات الطلاب وتفريغ PDF) -->
+        <!-- NEW SECTION: BEHAVIOR STATS & PDF EXPORT TAB (قسم تفريغ وطباعة سلوكيات الطلاب أفقياً) -->
         <div id="sec-behaviorstats" class="hidden space-y-6">
           <div class="bg-gradient-to-r from-teal-900 to-emerald-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
             <div class="flex flex-wrap justify-between items-center gap-4">
               <div>
-                <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-300"></i> تفريغ وإحصائيات سلوكيات الطلاب (تنسيق PDF)</h4>
+                <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-300"></i> تفريغ وإحصائيات سلوكيات الطلاب (تنسيق PDF أفقي)</h4>
                 <p class="text-xs text-teal-200 mt-1">تفريغ كافة الحصص الثماني للسلوكيات أفقياً لكل صف ومتابعة المخالفات المسجلة من المعلمين</p>
               </div>
               <div class="flex flex-wrap gap-2">
@@ -1199,7 +1199,7 @@
       renderStudentStatsDashboard(); populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); renderCustomUsersList(); populateAdminClassSelect(); loadAdminStudentsList(); renderTeachersList(); populateReportClassSelect();
     }
 
-    // FUNC: RENDER BEHAVIOR REPORTS TAB & HORIZONTAL PDF PRINT (دوال تفريغ وطباعة سلوكيات الطلاب)
+    // FUNC: RENDER BEHAVIOR REPORTS TAB & HORIZONTAL PDF PRINT (دوال تفريغ وطباعة سلوكيات الطلاب أفقياً)
     function populateBehaviorReportClassSelect() {
       const sel = document.getElementById('behaviorReportClassFilter');
       if(!sel) return; const cur = sel.value;
@@ -1288,14 +1288,14 @@
         body { font-family: 'Tajawal', sans-serif; direction: rtl; font-size: 10px; padding: 10px; }
         .header-title { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0d9488; padding-bottom: 6px; }
         .class-row-card { page-break-inside: avoid; border: 2px solid #0d9488; border-radius: 8px; margin-bottom: 12px; background: #fff; width: 100%; }
-        .class-header-bar { padding: 6px 12px; bg-teal-800; background: #0f766e; color: #fff; display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; }
+        .class-header-bar { padding: 6px 12px; background: #0f766e; color: #fff; display: flex; justify-content: space-between; font-weight: bold; font-size: 11px; }
         .periods-horizontal-grid { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; padding: 6px; }
         .period-cell { border: 1.5px solid #ccc; border-radius: 6px; padding: 4px; min-height: 120px; background: #fafafa; }
         .period-title { text-align: center; border-bottom: 1px solid #ddd; padding-bottom: 3px; margin-bottom: 4px; background: #e6fffa; font-weight: bold; }
         .item-violation { font-size: 8.5px; font-weight: bold; color: #b91c1c; margin-bottom: 3px; padding: 2px; border-bottom: 1px dashed #fca5a5; }
       </style></head><body>
       <div class="header-title">
-        <h2 style="margin:0; font-size: 16px; color: #0f766e;">مدرسة أبو دجانة الأنصاري - تقرير تفريغ سلوكيات الطلاب بالحضص</h2>
+        <h2 style="margin:0; font-size: 16px; color: #0f766e;">مدرسة أبو دجانة الأنصاري - تقرير تفريغ سلوكيات الطلاب بالحصص</h2>
         <p style="margin:2px 0 0 0; font-size: 11px; color: #555;">تاريخ التفريغ: ${targetDate}</p>
       </div>`;
 
