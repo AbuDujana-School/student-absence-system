@@ -9,40 +9,91 @@
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
   <style>
     body { font-family: 'Tajawal', sans-serif; }
-    .status-btn { transition: all 0.2s ease; }
-    .status-btn:hover { transform: translateY(-2px); }
+    
+    /* Custom Scrollbar for Horizontal Tables & Container */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(241, 245, 249, 0.5);
+      border-radius: 10px;
+    }
+    .dark .custom-scrollbar::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.5);
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #0d9488;
+      border-radius: 10px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #0f766e;
+    }
+
+    /* Status Buttons Styling & Micro-interactions */
+    .status-btn { 
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .status-btn:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .status-btn:active {
+      transform: scale(0.95);
+    }
+
+    /* Hero Cards Animation */
     .hero-card {
       transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     }
     .hero-card:hover {
-      transform: translateY(-6px) scale(1.01);
+      transform: translateY(-8px) scale(1.015);
     }
+
+    /* Toast Animation */
+    @keyframes toastIn {
+      from { transform: translateY(-20px) scale(0.9); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    @keyframes toastOut {
+      from { transform: translateY(0) scale(1); opacity: 1; }
+      to { transform: translateY(-20px) scale(0.9); opacity: 0; }
+    }
+    .toast-enter { animation: toastIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    .toast-exit { animation: toastOut 0.25s ease forwards; }
   </style>
   <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
-<body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300">
+<body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
+
+  <!-- Toast Notification Container -->
+  <div id="toastContainer" class="fixed top-5 left-5 z-[999999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4"></div>
 
   <!-- Header -->
-  <header class="bg-emerald-900 dark:bg-emerald-950 text-white shadow-lg border-b border-emerald-800">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+  <header class="sticky top-0 z-40 bg-emerald-900/90 dark:bg-emerald-950/90 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60 transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
       <div class="flex items-center space-x-3 space-x-reverse">
-        <div class="w-12 h-12 bg-emerald-800 rounded-2xl flex items-center justify-center text-emerald-200 text-2xl shadow-inner border border-emerald-700">
+        <div class="w-11 h-11 bg-emerald-800/80 rounded-2xl flex items-center justify-center text-emerald-200 text-2xl shadow-inner border border-emerald-700/50 transform hover:rotate-6 transition-transform duration-300">
           <i class="fa-solid fa-school"></i>
         </div>
         <div>
-          <h1 class="text-base sm:text-xl font-extrabold tracking-wide">مدرسة أبو دجانة الأنصاري</h1>
-          <p class="text-xs text-emerald-300">نظام حصر ومتابعة الغياب والسلوك الذكي (توقيت عمان)</p>
+          <h1 class="text-base sm:text-xl font-extrabold tracking-wide text-white drop-shadow-sm">مدرسة أبو دجانة الأنصاري</h1>
+          <p class="text-[11px] text-emerald-300 font-medium">نظام حصر ومتابعة الغياب والسلوك الذكي (توقيت عمان)</p>
         </div>
       </div>
       <div class="flex items-center space-x-2 space-x-reverse">
-        <button onclick="toggleDarkMode()" type="button" class="bg-emerald-800 hover:bg-emerald-700 text-emerald-200 p-2.5 rounded-xl text-xs transition flex items-center justify-center cursor-pointer border border-emerald-700" title="تبديل الوضع الليلي">
+        <button onclick="toggleDarkMode()" type="button" class="bg-emerald-800/80 hover:bg-emerald-700 text-emerald-200 p-2.5 rounded-2xl text-xs transition-all duration-200 flex items-center justify-center cursor-pointer border border-emerald-700/60 active:scale-95 shadow-sm" title="تبديل الوضع الليلي">
           <i id="darkModeIcon" class="fa-solid fa-moon text-sm"></i>
         </button>
-        <span id="syncIndicator" class="bg-emerald-800 text-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-700">
-          <i class="fa-solid fa-cloud-arrow-up text-emerald-400"></i> <span id="syncText">جاري الاتصال...</span>
+        <span id="syncIndicator" class="bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60 shadow-sm backdrop-blur-sm">
+          <span class="relative flex h-2 w-2">
+            <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+            <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-400"></span>
+          </span>
+          <i class="fa-solid fa-cloud-arrow-up text-emerald-300"></i> <span id="syncText">جاري الاتصال...</span>
         </span>
-        <span id="currentDateDisplay" class="hidden md:inline-block bg-emerald-800/80 text-emerald-100 px-3 py-1.5 rounded-xl text-xs font-semibold border border-emerald-700"></span>
-        <button onclick="openAdminModal()" type="button" class="bg-emerald-800 hover:bg-emerald-700 text-white px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition flex items-center gap-2 shadow cursor-pointer border border-emerald-700">
+        <span id="currentDateDisplay" class="hidden md:inline-block bg-emerald-800/60 text-emerald-100 px-3.5 py-1.5 rounded-2xl text-xs font-semibold border border-emerald-700/50 shadow-sm backdrop-blur-sm"></span>
+        <button onclick="openAdminModal()" type="button" class="bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold transition-all duration-200 flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer border border-emerald-700/80 active:scale-95">
           <i class="fa-solid fa-gear text-emerald-300"></i>
           <span>الإعدادات</span>
         </button>
@@ -54,21 +105,21 @@
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
     
     <!-- Step 1: Login View -->
-    <div id="loginView" class="max-w-md mx-auto my-12 bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-700">
+    <div id="loginView" class="max-w-md mx-auto my-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 transition-all duration-300">
       <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center mx-auto mb-3 text-2xl border border-emerald-100 dark:border-emerald-800 shadow-sm">
+        <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center mx-auto mb-3 text-2xl border border-emerald-200 dark:border-emerald-800 shadow-inner transform hover:scale-105 transition-transform duration-300">
           <i class="fa-solid fa-user-lock"></i>
         </div>
         <h2 class="text-xl font-extrabold text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
-        <p class="text-xs text-slate-400 mt-1">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات</p>
       </div>
       <form onsubmit="handleUserLogin(event)" class="space-y-4">
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">الرقم السري</label>
-          <input type="password" id="userPinInput" required placeholder="••••" class="w-full text-center text-2xl tracking-widest px-4 py-3.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none transition font-bold">
+          <input type="password" id="userPinInput" required placeholder="••••" class="w-full text-center text-2xl tracking-widest px-4 py-3.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 dark:text-white outline-none transition-all font-bold shadow-inner">
         </div>
-        <div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-xl border border-red-100 dark:border-red-900">الرمز السري غير صحيح، يرجى المحاولة مجدداً</div>
-        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl shadow-lg transition duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer">
+        <div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-3 rounded-2xl border border-red-200 dark:border-red-900/50 shadow-sm">الرمز السري غير صحيح، يرجى المحاولة مجدداً</div>
+        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95">
           <span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>
         </button>
       </form>
@@ -76,42 +127,42 @@
 
     <!-- Step 2: Main Dashboard Selection View -->
     <div id="dashboardSelectionView" class="hidden space-y-8">
-      <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center font-bold text-lg border border-emerald-100 dark:border-emerald-800">
+      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4 transition-all duration-300">
+        <div class="flex items-center gap-3.5">
+          <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center font-bold text-lg border border-emerald-200 dark:border-emerald-800 shadow-sm">
             <i class="fa-solid fa-chalkboard-user"></i>
           </div>
           <div>
-            <span class="text-slate-400 text-xs block">مرحباً بك:</span>
+            <span class="text-slate-400 text-xs block font-medium">مرحباً بك:</span>
             <div class="flex items-center gap-2 flex-wrap">
               <span id="activeUserName" class="font-extrabold text-emerald-900 dark:text-emerald-300 text-lg"></span>
-              <span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 text-emerald-800 px-2.5 py-1 rounded-lg font-bold shadow-sm"></span>
-              <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 dark:bg-emerald-950/60 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800">
+              <span id="activeUserRoleBadge" class="text-[10px] bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-200 px-3 py-1 rounded-xl font-bold shadow-sm border border-emerald-200 dark:border-emerald-800"></span>
+              <button id="changeTeacherPinBtn" onclick="openChangePinModal()" class="hidden text-[11px] text-emerald-700 dark:text-emerald-300 hover:underline font-bold flex items-center gap-1 cursor-pointer bg-emerald-50 dark:bg-emerald-950/70 px-2.5 py-1 rounded-xl border border-emerald-200 dark:border-emerald-800 transition-all hover:scale-105">
                 <i class="fa-solid fa-key text-[10px]"></i> تغيير الرمز
               </button>
             </div>
           </div>
         </div>
-        <div class="flex flex-wrap items-center gap-2">
-          <button id="openControlPanelFromDashboardBtn" onclick="openAdminModalFromDashboard()" class="hidden text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl transition font-bold flex items-center gap-2 shadow cursor-pointer">
+        <div class="flex flex-wrap items-center gap-2.5">
+          <button id="openControlPanelFromDashboardBtn" onclick="openAdminModalFromDashboard()" class="hidden text-xs bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-3 rounded-2xl transition-all duration-200 font-bold flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer active:scale-95 border border-emerald-700">
             <i class="fa-solid fa-sliders"></i> لوحة التحكم
           </button>
-          <button onclick="logoutUser()" class="text-xs bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-5 py-3 rounded-2xl transition-all duration-200 font-bold flex items-center gap-2 shadow-md cursor-pointer border border-red-400/30">
+          <button onclick="logoutUser()" class="text-xs bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white px-5 py-3 rounded-2xl transition-all duration-200 font-bold flex items-center gap-2 shadow-md hover:shadow-lg cursor-pointer border border-red-400/30 active:scale-95">
             <i class="fa-solid fa-right-from-bracket text-sm"></i> <span>تسجيل خروج</span>
           </button>
         </div>
       </div>
 
       <div class="text-center py-2">
-        <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-1 tracking-wide">لوحة التحكم الرئيسية</h3>
-        <p class="text-xs text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
+        <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-1.5 tracking-wide">لوحة التحكم الرئيسية</h3>
+        <p class="text-xs text-slate-400 dark:text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
       </div>
 
-      <!-- Hero Section Cards (Modified per user request: removed top badges & descriptions) -->
+      <!-- Hero Section Cards -->
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
         
         <!-- Attendance Card -->
-        <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[220px]">
+        <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[230px]">
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
 
@@ -127,14 +178,14 @@
 
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-emerald-200 group-hover:text-white">
             <span>انقر للبدء في الرصد</span>
-            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-[-6px] transition-transform duration-300">
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
               <i class="fa-solid fa-arrow-left text-sm"></i>
             </div>
           </div>
         </div>
 
         <!-- Behavior Card -->
-        <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-600 via-cyan-700 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[220px]">
+        <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-600 via-cyan-700 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[230px]">
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
 
@@ -150,7 +201,7 @@
 
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200 group-hover:text-white">
             <span>انقر للبدء في الرصد</span>
-            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:translate-x-[-6px] transition-transform duration-300">
+            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
               <i class="fa-solid fa-arrow-left text-sm"></i>
             </div>
           </div>
@@ -161,18 +212,18 @@
 
     <!-- Step 3: Classes View (Attendance) -->
     <div id="classesView" class="hidden space-y-6">
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center">
-        <button onclick="backToDashboardSelection()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 border border-emerald-200 cursor-pointer">
+      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+        <button onclick="backToDashboardSelection()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-emerald-200 dark:border-emerald-800 cursor-pointer active:scale-95">
           <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
         </button>
-        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">قسم الغياب والحصص</span>
+        <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 dark:bg-emerald-950/60 px-3.5 py-1.5 rounded-2xl border border-emerald-200 dark:border-emerald-800/60">قسم الغياب والحصص</span>
       </div>
       <div>
         <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
           <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <i class="fa-solid fa-th text-emerald-600"></i> اختر الصف الدراسي لرصد الغياب:
           </h3>
-          <div class="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-200 dark:border-emerald-800 font-bold">
+          <div class="text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 px-3.5 py-1.5 rounded-2xl border border-emerald-200 dark:border-emerald-800 font-bold shadow-sm">
             <i class="fa-solid fa-calendar-days"></i> تاريخ الرصد: <span id="activeSessionDateLabel"></span>
           </div>
         </div>
@@ -182,9 +233,9 @@
 
     <!-- Step 4: Class Attendance Session View -->
     <div id="attendanceView" class="hidden space-y-6">
-      <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
+      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-          <button onclick="backToClasses()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-emerald-200 dark:border-emerald-800 shadow-sm cursor-pointer">
+          <button onclick="backToClasses()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-emerald-200 dark:border-emerald-800 shadow-sm cursor-pointer active:scale-95">
             <i class="fa-solid fa-arrow-right text-emerald-600"></i> العودة للصفوف
           </button>
           <div>
@@ -194,33 +245,33 @@
         </div>
         <div class="flex items-center gap-2.5">
           <label class="text-xs font-bold text-slate-600 dark:text-slate-300">الحصة الدراسية:</label>
-          <select id="sessionPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer shadow-sm">
+          <select id="sessionPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-emerald-500 outline-none cursor-pointer shadow-sm transition-all">
             <option value="1">الحصة الأولى</option><option value="2">الحصة الثانية</option><option value="3">الحصة الثالثة</option><option value="4">الحصة الرابعة</option>
             <option value="5">الحصة الخامسة</option><option value="6">الحصة السادسة</option><option value="7">الحصة السابعة</option><option value="8">الحصة الثامنة</option>
           </select>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div class="p-5 bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+      <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+        <div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="flex items-center gap-3">
             <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب وحالات الحضور والغياب</span>
-            <span id="studentsCount" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-xl"></span>
+            <span id="studentsCount" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-2xl border border-emerald-200 dark:border-emerald-800"></span>
           </div>
           <div id="liveStatsBar" class="flex flex-wrap gap-1.5 text-xs font-bold">
-            <span class="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2 py-1 rounded-lg border border-emerald-200">حاضر: <span id="statPresent">0</span></span>
-            <span class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-2 py-1 rounded-lg border border-slate-300">غائب: <span id="statAbsent">0</span></span>
-            <span class="bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-2 py-1 rounded-lg border border-orange-200">متأخر: <span id="statLate">0</span></span>
-            <span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2 py-1 rounded-lg border border-red-200">متسرب: <span id="statEscape">0</span></span>
-            <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2 py-1 rounded-lg border border-purple-200">خارج: <span id="statOutside">0</span></span>
+            <span class="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-xl border border-emerald-200/60">حاضر: <span id="statPresent">0</span></span>
+            <span class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700">غائب: <span id="statAbsent">0</span></span>
+            <span class="bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-2.5 py-1 rounded-xl border border-orange-200/60">متأخر: <span id="statLate">0</span></span>
+            <span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-xl border border-red-200/60">متسرب: <span id="statEscape">0</span></span>
+            <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-xl border border-purple-200/60">خارج: <span id="statOutside">0</span></span>
           </div>
         </div>
-        <div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3"></div>
-        <div class="p-4 sm:p-5 bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+        <div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3 custom-scrollbar"></div>
+        <div class="p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-check"></i> <span id="unsavedStatusIndicator">تعديلات محلية جاهزة للحفظ</span>
+            <i class="fa-solid fa-circle-check text-sm"></i> <span id="unsavedStatusIndicator">تعديلات محلية جاهزة للحفظ</span>
           </div>
-          <button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+          <button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
             <i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>
           </button>
         </div>
@@ -229,18 +280,18 @@
 
     <!-- Step 5: Behavior Classes View -->
     <div id="behaviorClassesView" class="hidden space-y-6">
-      <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center">
-        <button onclick="backToDashboardSelection()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 border border-teal-200 cursor-pointer">
+      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+        <button onclick="backToDashboardSelection()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-teal-200 dark:border-teal-800 cursor-pointer active:scale-95">
           <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
         </button>
-        <span class="text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200">قسم السلوكيات والمخالفات</span>
+        <span class="text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50 dark:bg-teal-950/60 px-3 py-1.5 rounded-2xl border border-teal-200 dark:border-teal-800/60">قسم السلوكيات والمخالفات</span>
       </div>
       <div>
         <div class="flex flex-wrap justify-between items-center mb-4 gap-2">
           <h3 class="text-base font-bold text-slate-800 dark:text-white flex items-center gap-2">
             <i class="fa-solid fa-th text-teal-600"></i> اختر الصف الدراسي لرصد السلوكيات:
           </h3>
-          <div class="text-xs bg-teal-50 dark:bg-teal-950/50 text-teal-800 dark:text-teal-300 px-3 py-1.5 rounded-xl border border-teal-200 dark:border-teal-800 font-bold">
+          <div class="text-xs bg-teal-50 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 px-3.5 py-1.5 rounded-2xl border border-teal-200 dark:border-teal-800 font-bold shadow-sm">
             <i class="fa-solid fa-calendar-days"></i> تاريخ الرصد: <span id="activeBehaviorDateLabel"></span>
           </div>
         </div>
@@ -250,9 +301,9 @@
 
     <!-- Step 6: Class Behavior Session View -->
     <div id="behaviorSessionView" class="hidden space-y-6">
-      <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
+      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
-          <button onclick="backToBehaviorClasses()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-teal-200 dark:border-teal-800 shadow-sm cursor-pointer">
+          <button onclick="backToBehaviorClasses()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-teal-200 dark:border-teal-800 shadow-sm cursor-pointer active:scale-95">
             <i class="fa-solid fa-arrow-right text-teal-600"></i> العودة للصفوف
           </button>
           <div>
@@ -262,26 +313,26 @@
         </div>
         <div class="flex items-center gap-2.5">
           <label class="text-xs font-bold text-slate-600 dark:text-slate-300">الحصة الدراسية:</label>
-          <select id="behaviorPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer shadow-sm">
+          <select id="behaviorPeriodSelect" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-4 py-2.5 text-xs font-bold bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white focus:ring-2 focus:ring-teal-500 outline-none cursor-pointer shadow-sm transition-all">
             <option value="1">الحصة الأولى</option><option value="2">الحصة الثانية</option><option value="3">الحصة الثالثة</option><option value="4">الحصة الرابعة</option>
             <option value="5">الحصة الخامسة</option><option value="6">الحصة السادسة</option><option value="7">الحصة السابعة</option><option value="8">الحصة الثامنة</option>
           </select>
         </div>
       </div>
 
-      <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
-        <div class="p-5 bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+      <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+        <div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="flex items-center gap-3">
             <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب ورصد السلوكيات (الافتراضي: منضبط)</span>
-            <span id="behaviorStudentsCount" class="text-xs font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 rounded-xl"></span>
+            <span id="behaviorStudentsCount" class="text-xs font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 rounded-2xl border border-teal-200 dark:border-teal-800"></span>
           </div>
         </div>
-        <div id="behaviorStudentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3"></div>
-        <div class="p-4 sm:p-5 bg-slate-50/70 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
+        <div id="behaviorStudentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3 custom-scrollbar"></div>
+        <div class="p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="text-xs text-teal-700 dark:text-teal-400 font-bold flex items-center gap-1.5">
-            <i class="fa-solid fa-circle-check"></i> <span id="unsavedBehaviorStatusIndicator">تعديلات السلوكيات جاهزة للحفظ</span>
+            <i class="fa-solid fa-circle-check text-sm"></i> <span id="unsavedBehaviorStatusIndicator">تعديلات السلوكيات جاهزة للحفظ</span>
           </div>
-          <button id="saveBehaviorSessionBtn" onclick="saveBehaviorSession()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer">
+          <button id="saveBehaviorSessionBtn" onclick="saveBehaviorSession()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
             <i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>
           </button>
         </div>
@@ -290,121 +341,121 @@
   </main>
 
   <!-- Modals -->
-  <div id="changePinModal" class="fixed inset-0 bg-black/70 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-4">
+  <div id="changePinModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
+    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
       <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
         <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
           <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
         </h3>
-        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 text-base cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeChangePinModal()" class="text-slate-400 hover:text-slate-600 dark:hover:text-white text-base cursor-pointer transition-colors"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز الحالي:</label>
-          <input type="password" id="currentPinCheck" placeholder="أدخل رمزك الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+          <input type="password" id="currentPinCheck" placeholder="أدخل رمزك الحالي" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold outline-none border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500">
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز الجديد:</label>
-          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-xl text-xs font-bold outline-none">
+          <input type="password" id="newPinInput" placeholder="أدخل الرمز الجديد" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold outline-none border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500">
         </div>
-        <div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 p-2.5 rounded-xl border border-red-200"></div>
+        <div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200 dark:border-red-900/50"></div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeChangePinModal()" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold cursor-pointer">إلغاء</button>
-        <button onclick="submitNewTeacherPin()" class="px-5 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-bold shadow cursor-pointer">حفظ الرمز</button>
+        <button onclick="closeChangePinModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold cursor-pointer hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors">إلغاء</button>
+        <button onclick="submitNewTeacherPin()" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md cursor-pointer transition-all active:scale-95">حفظ الرمز</button>
       </div>
     </div>
   </div>
 
-  <div id="generalModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
-      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
+  <div id="generalModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
+    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
+      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
         <h3 id="generalModalTitle" class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-list text-emerald-400"></i> تفاصيل القائمة</h3>
-        <button onclick="closeGeneralModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeGeneralModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="p-6 overflow-y-auto space-y-3 flex-grow" id="generalModalBody"></div>
-      <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
-        <button onclick="closeGeneralModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">إغلاق النافذة</button>
+      <div class="p-6 overflow-y-auto space-y-3 flex-grow custom-scrollbar" id="generalModalBody"></div>
+      <div class="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
+        <button onclick="closeGeneralModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-2xl text-xs font-bold shadow transition cursor-pointer active:scale-95">إغلاق النافذة</button>
       </div>
     </div>
   </div>
 
-  <div id="studentDetailModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
-      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
+  <div id="studentDetailModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
+    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
+      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
         <div>
           <h3 id="modalStudentTitle" class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب</h3>
-          <p id="modalStudentSubtitle" class="text-xs text-emerald-200 mt-0.5"></p>
+          <p id="modalStudentSubtitle" class="text-xs text-emerald-200 mt-0.5 font-medium"></p>
         </div>
-        <button onclick="closeStudentDetailModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeStudentDetailModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="p-6 overflow-y-auto space-y-4 flex-grow" id="modalStudentBody"></div>
-      <div class="p-4 bg-slate-50 dark:bg-slate-900/50 border-t border-slate-100 dark:border-slate-700 text-center">
-        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer">إغلاق النافذة</button>
+      <div class="p-6 overflow-y-auto space-y-4 flex-grow custom-scrollbar" id="modalStudentBody"></div>
+      <div class="p-4 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 text-center">
+        <button onclick="closeStudentDetailModal()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-2.5 rounded-2xl text-xs font-bold shadow transition cursor-pointer active:scale-95">إغلاق النافذة</button>
       </div>
     </div>
   </div>
 
   <!-- Admin / Control Panel Modal -->
-  <div id="adminModal" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-sm">
-    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
-      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
+  <div id="adminModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
+    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
+      <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
         <h3 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-sliders text-emerald-400"></i> لوحة التحكم وصلاحيات النظام</h3>
-        <button onclick="closeAdminModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+        <button onclick="closeAdminModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
       </div>
 
       <div id="adminAuthSection" class="p-12 text-center space-y-4 my-auto">
-        <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center mx-auto text-2xl border border-emerald-100 dark:border-emerald-800 shadow-sm">
+        <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center mx-auto text-2xl border border-emerald-200 dark:border-emerald-800 shadow-inner">
           <i class="fa-solid fa-user-shield"></i>
         </div>
         <h4 class="font-extrabold text-slate-800 dark:text-white text-base">يتطلب الدخول إدخال رمز مدير النظام العام</h4>
         <div class="max-w-xs mx-auto space-y-3">
-          <input type="password" id="adminPinInput" placeholder="أدخل الرمز السري" class="w-full text-center text-lg p-3.5 bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold tracking-widest">
-          <div id="adminAuthError" class="text-red-500 dark:text-red-400 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-xl border border-red-100 dark:border-red-900">الرمز السري غير صحيح</div>
-          <button onclick="verifyAdminPin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl shadow transition text-xs cursor-pointer">دخول للوحة التحكم</button>
+          <input type="password" id="adminPinInput" placeholder="أدخل الرمز السري" class="w-full text-center text-lg p-3.5 bg-slate-50 dark:bg-slate-900/80 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 font-bold tracking-widest shadow-inner">
+          <div id="adminAuthError" class="text-red-500 dark:text-red-400 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200 dark:border-red-900/50">الرمز السري غير صحيح</div>
+          <button onclick="verifyAdminPin()" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3 rounded-2xl shadow-md hover:shadow-lg transition text-xs cursor-pointer active:scale-95">دخول للوحة التحكم</button>
         </div>
       </div>
 
-      <div id="adminContentSection" class="hidden flex-grow overflow-y-auto p-5 sm:p-6 space-y-5">
-        <div id="roleNoticeBanner" class="bg-emerald-100 dark:bg-emerald-950/60 text-emerald-900 dark:text-emerald-200 px-4 py-2 rounded-xl text-xs font-bold flex justify-between items-center">
+      <div id="adminContentSection" class="hidden flex-grow overflow-y-auto p-5 sm:p-6 space-y-5 custom-scrollbar">
+        <div id="roleNoticeBanner" class="bg-emerald-100/80 dark:bg-emerald-950/70 text-emerald-900 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-bold flex justify-between items-center border border-emerald-200 dark:border-emerald-800/60 shadow-sm">
           <span id="roleNoticeText">صلاحية الدخول: مدير النظام العام</span>
-          <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
+          <span id="roleBadge" class="bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm">تحكم كامل</span>
         </div>
 
         <!-- Admin Tabs -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100 dark:bg-slate-900 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
-          <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+          <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات الطلاب</span>
           </button>
-          <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-scale-balanced text-teal-600"></i> <span>سلوكيات الطلاب</span>
           </button>
-          <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-user-gear text-blue-600"></i> <span>الأشخاص</span>
           </button>
-          <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('students')" id="tab-students" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-graduation-cap text-indigo-600"></i> <span>الطلاب</span>
           </button>
-          <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('teachers')" id="tab-teachers" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-chalkboard-user text-amber-600"></i> <span>المعلمين</span>
           </button>
-          <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('alerts')" id="tab-alerts" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-bell text-red-500"></i> <span>التنبيهات</span>
           </button>
-          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-print text-purple-600"></i> <span>التقارير والطباعة</span>
           </button>
-          <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-cloud-arrow-up text-cyan-600"></i> <span>المزامنة</span>
           </button>
-          <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer">
+          <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-shield-halved text-emerald-600"></i> <span>الأمان</span>
           </button>
         </div>
 
         <!-- Section 1: Student Stats Dashboard -->
         <div id="sec-studstats" class="space-y-6">
-          <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-md flex flex-wrap justify-between items-center gap-4">
+          <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4 border border-emerald-700/50">
             <div>
               <h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> لوحة تحكم إحصائيات الطلاب الإدارية</h4>
               <p class="text-xs text-emerald-200 mt-0.5">متابعة فورية ومتقدمة لإحصائيات الغياب والسلوكيات المخالفة</p>
@@ -412,7 +463,7 @@
             <div class="flex flex-wrap items-center gap-3">
               <div>
                 <label class="block text-[10px] text-emerald-200 font-bold mb-1">فترة المتابعة:</label>
-                <select id="statsPeriodFilter" onchange="renderStudentStatsDashboard()" class="bg-slate-900 text-white text-xs font-bold px-3 py-2 rounded-xl border border-emerald-500/40 outline-none cursor-pointer">
+                <select id="statsPeriodFilter" onchange="renderStudentStatsDashboard()" class="bg-slate-900/90 text-white text-xs font-bold px-3.5 py-2 rounded-2xl border border-emerald-500/40 outline-none cursor-pointer focus:ring-2 focus:ring-emerald-400">
                   <option value="today">اليوم الحالي</option>
                   <option value="yesterday">أمس</option>
                   <option value="week">هذا الأسبوع</option>
@@ -422,22 +473,22 @@
                 </select>
               </div>
               <div id="customDateRangeContainer" class="hidden flex items-center gap-2">
-                <input type="date" id="statsStartDate" onchange="renderStudentStatsDashboard()" class="bg-slate-900 text-white text-xs p-2 rounded-xl border border-emerald-500/40">
+                <input type="date" id="statsStartDate" onchange="renderStudentStatsDashboard()" class="bg-slate-900/90 text-white text-xs p-2 rounded-2xl border border-emerald-500/40">
                 <span class="text-xs text-emerald-200">إلى</span>
-                <input type="date" id="statsEndDate" onchange="renderStudentStatsDashboard()" class="bg-slate-900 text-white text-xs p-2 rounded-xl border border-emerald-500/40">
+                <input type="date" id="statsEndDate" onchange="renderStudentStatsDashboard()" class="bg-slate-900/90 text-white text-xs p-2 rounded-2xl border border-emerald-500/40">
               </div>
-              <button onclick="openDailyAdminReportModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition flex items-center gap-2 cursor-pointer border border-emerald-500/50">
+              <button onclick="openDailyAdminReportModal()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer border border-emerald-500/50 active:scale-95">
                 <i class="fa-solid fa-file-lines"></i> <span>التقرير اليومي</span>
               </button>
             </div>
           </div>
 
           <!-- Sub-Tabs Switcher for Statistics -->
-          <div class="flex gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
-            <button onclick="switchStatsSubTab('absence')" id="statsTab-absence" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2">
+          <div class="flex gap-2 bg-slate-100/80 dark:bg-slate-900/60 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-700">
+            <button onclick="switchStatsSubTab('absence')" id="statsTab-absence" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all duration-200 bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2">
               <i class="fa-solid fa-user-slash"></i> قائمة الغياب والحضور
             </button>
-            <button onclick="switchStatsSubTab('behaviors')" id="statsTab-behaviors" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2">
+            <button onclick="switchStatsSubTab('behaviors')" id="statsTab-behaviors" class="flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all duration-200 bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2">
               <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة سلوكيات الطلاب المخالفة
             </button>
           </div>
@@ -445,80 +496,80 @@
           <!-- SUB-SECTION A: ABSENCE STATS -->
           <div id="statsSubSec-absence" class="space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div onclick="openStatusListModal('absent')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-emerald-500 transition cursor-pointer flex items-center justify-between group">
+              <div onclick="openStatusListModal('absent')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">الغياب (أيام الحدوث)</span>
                   <h3 id="cardCountAbsent" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</h3>
                   <span class="text-[10px] text-slate-500 mt-1 block">إجمالي أيام غياب الطلاب</span>
                 </div>
-                <div class="w-14 h-14 rounded-2xl bg-black text-white border-2 border-amber-400 flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                <div class="w-14 h-14 rounded-2xl bg-black text-white border-2 border-amber-400 flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
                   <i class="fa-solid fa-user-slash"></i>
                 </div>
               </div>
 
-              <div onclick="openStatusListModal('escape')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-red-500 transition cursor-pointer flex items-center justify-between group">
+              <div onclick="openStatusListModal('escape')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-red-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">التسرب (أيام الحدوث)</span>
                   <h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3>
                   <span class="text-[10px] text-slate-500 mt-1 block">حالات التسرب المسجلة</span>
                 </div>
-                <div class="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                <div class="w-14 h-14 rounded-2xl bg-red-600 text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
                   <i class="fa-solid fa-person-running"></i>
                 </div>
               </div>
 
-              <div onclick="openStatusListModal('late')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-orange-500 transition cursor-pointer flex items-center justify-between group">
+              <div onclick="openStatusListModal('late')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-orange-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">التأخير (أيام الحدوث)</span>
                   <h3 id="cardCountLate" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400">0</h3>
                   <span class="text-[10px] text-slate-500 mt-1 block">حالات التأخير الصباحي/الحصص</span>
                 </div>
-                <div class="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                <div class="w-14 h-14 rounded-2xl bg-orange-500 text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
                   <i class="fa-solid fa-clock"></i>
                 </div>
               </div>
 
-              <div onclick="openStatusListModal('outside')" class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 hover:border-purple-500 transition cursor-pointer flex items-center justify-between group">
+              <div onclick="openStatusListModal('outside')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">الخروج (أيام الحدوث)</span>
                   <h3 id="cardCountOutside" class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">0</h3>
                   <span class="text-[10px] text-slate-500 mt-1 block">حالات الخروج والاستئذان</span>
                 </div>
-                <div class="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl shadow group-hover:scale-105 transition">
+                <div class="w-14 h-14 rounded-2xl bg-purple-600 text-white flex items-center justify-center text-xl shadow-md group-hover:scale-110 transition-transform">
                   <i class="fa-solid fa-door-open"></i>
                 </div>
               </div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> تحتاج متابعة اليوم (الطلاب ذوو المخالفات المتكررة للغياب)
                 </h5>
-                <span id="needsAttentionCountBadge" class="bg-amber-100 text-amber-800 text-xs font-bold px-3 py-1 rounded-full">0 طلاب</span>
+                <span id="needsAttentionCountBadge" class="bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 text-xs font-bold px-3 py-1 rounded-2xl border border-amber-200 dark:border-amber-800">0 طلاب</span>
               </div>
-              <div id="needsAttentionContainer" class="overflow-x-auto">
+              <div id="needsAttentionContainer" class="overflow-x-auto custom-scrollbar">
                 <div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة في هذه الفترة.</div>
               </div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex flex-wrap justify-between items-center border-b pb-3 dark:border-slate-700 gap-2">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات الغياب حسب الصفوف الدراسية
                 </h5>
                 <div class="flex items-center gap-2 text-xs">
                   <label class="font-bold text-slate-600 dark:text-slate-300">ترتيب الصفوف:</label>
-                  <select id="classSortOrder" onchange="renderStudentStatsDashboard()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-1.5 rounded-xl border border-slate-200 dark:border-slate-700 font-bold outline-none cursor-pointer">
+                  <select id="classSortOrder" onchange="renderStudentStatsDashboard()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3.5 py-1.5 rounded-2xl border border-slate-200 dark:border-slate-700 font-bold outline-none cursor-pointer">
                     <option value="violationsDesc">الأكثر مخالفات (تنازلي)</option>
                     <option value="nameAsc">حسب اسم الصف</option>
                   </select>
                 </div>
               </div>
-              <div id="classStatsTableContainer" class="overflow-x-auto"></div>
+              <div id="classStatsTableContainer" class="overflow-x-auto custom-scrollbar"></div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة تسجيل الحصص
@@ -527,26 +578,26 @@
               <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
             </div>
 
-            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> إحصائيات المعلمين ونشاط الرصد
                 </h5>
               </div>
-              <div id="teacherActivityStatsContainer" class="overflow-x-auto"></div>
+              <div id="teacherActivityStatsContainer" class="overflow-x-auto custom-scrollbar"></div>
             </div>
           </div>
 
           <!-- SUB-SECTION B: BEHAVIORS STATS -->
           <div id="statsSubSec-behaviors" class="hidden space-y-6">
-            <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-200 dark:border-slate-700 p-5 space-y-4">
+            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة الطلاب الأكثر ارتكاباً للسلوكيات والمخالفات (من الأعلى إلى الأقل)
                 </h5>
-                <span id="behaviorTopCountBadge" class="bg-teal-100 text-teal-800 text-xs font-bold px-3 py-1 rounded-full">0 طلاب مخالفين</span>
+                <span id="behaviorTopCountBadge" class="bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 text-xs font-bold px-3 py-1 rounded-2xl border border-teal-200 dark:border-teal-800">0 طلاب مخالفين</span>
               </div>
-              <div id="behaviorTopStudentsContainer" class="overflow-x-auto">
+              <div id="behaviorTopStudentsContainer" class="overflow-x-auto custom-scrollbar">
                 <div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات سلوكية مخالفة في هذه الفترة.</div>
               </div>
             </div>
@@ -555,14 +606,14 @@
 
         <!-- Section 2: Behavior Reports PDF Section -->
         <div id="sec-behaviorstats" class="hidden space-y-6">
-          <div class="bg-gradient-to-r from-teal-900 to-emerald-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
+          <div class="bg-gradient-to-r from-teal-900 to-emerald-900 text-white p-6 rounded-3xl shadow-lg space-y-4 border border-teal-700/50">
             <div class="flex flex-wrap justify-between items-center gap-4">
               <div>
                 <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-300"></i> تفريغ وإحصائيات سلوكيات الطلاب (تنسيق PDF أفقي)</h4>
                 <p class="text-xs text-teal-200 mt-1">تفريغ كافة الحصص الثماني للسلوكيات أفقياً لكل صف ومتابعة المخالفات المسجلة من المعلمين</p>
               </div>
               <div class="flex flex-wrap gap-2">
-                <button onclick="printHorizontalBehaviorReport()" class="bg-teal-700 hover:bg-teal-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer border border-teal-500/40">
+                <button onclick="printHorizontalBehaviorReport()" class="bg-teal-700 hover:bg-teal-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer border border-teal-500/40 active:scale-95">
                   <i class="fa-solid fa-file-pdf text-sm"></i> <span>طباعة / تصدير PDF السلوكيات</span>
                 </button>
               </div>
@@ -571,95 +622,95 @@
             <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
                 <label class="block text-[11px] font-bold text-teal-200 mb-1">الصف الدراسي:</label>
-                <select id="behaviorReportClassFilter" onchange="renderBehaviorReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-teal-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                <select id="behaviorReportClassFilter" onchange="renderBehaviorReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-teal-500/30 rounded-2xl text-xs font-bold outline-none cursor-pointer focus:ring-2 focus:ring-teal-400">
                   <option value="all">جميع الصفوف الدراسية</option>
                 </select>
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-teal-200 mb-1">تاريخ رصد السلوكيات:</label>
-                <input type="date" id="behaviorReportDatePicker" onchange="renderBehaviorReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-teal-500/30 rounded-xl text-xs font-bold outline-none">
+                <input type="date" id="behaviorReportDatePicker" onchange="renderBehaviorReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-teal-500/30 rounded-2xl text-xs font-bold outline-none">
               </div>
-              <button onclick="resetBehaviorReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-200 p-2.5 rounded-xl text-xs font-bold transition cursor-pointer">اليوم الحالي</button>
+              <button onclick="resetBehaviorReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-teal-200 p-2.5 rounded-2xl text-xs font-bold transition-all cursor-pointer">اليوم الحالي</button>
             </div>
           </div>
 
-          <div class="space-y-6 overflow-x-auto" id="behaviorReportClassesContainer"></div>
+          <div class="space-y-6 overflow-x-auto custom-scrollbar" id="behaviorReportClassesContainer"></div>
         </div>
 
         <!-- Section 3: Custom Users -->
         <div id="sec-users" class="hidden space-y-4">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة مستخدم مخصص جديد</h5>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input type="text" id="newCustomUserName" placeholder="اسم المستخدم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none">
-              <input type="password" id="newCustomUserPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
+              <input type="text" id="newCustomUserName" placeholder="اسم المستخدم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+              <input type="password" id="newCustomUserPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none font-bold tracking-widest focus:ring-2 focus:ring-emerald-500">
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600" checked> إحصائيات الطلاب</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_behaviorstats" class="accent-teal-600" checked> تفريغ السلوكيات PDF</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_users" class="accent-emerald-600"> إدارة الأشخاص</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_students" class="accent-emerald-600"> الطلاب والصفوف</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_teachers" class="accent-emerald-600"> إدارة المعلمين</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_alerts" class="accent-emerald-600"> التنبيهات الذكية</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_reports" class="accent-emerald-600" checked> التقارير والطباعة</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_sync" class="accent-emerald-600"> المزامنة السحابية</label>
-              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_security" class="accent-emerald-600"> الأمان والرمز السري</label>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600 rounded-md" checked> إحصائيات الطلاب</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_behaviorstats" class="accent-teal-600 rounded-md" checked> تفريغ السلوكيات PDF</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_users" class="accent-emerald-600 rounded-md"> إدارة الأشخاص</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_students" class="accent-emerald-600 rounded-md"> الطلاب والصفوف</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_teachers" class="accent-emerald-600 rounded-md"> إدارة المعلمين</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_alerts" class="accent-emerald-600 rounded-md"> التنبيهات الذكية</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_reports" class="accent-emerald-600 rounded-md" checked> التقارير والطباعة</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_sync" class="accent-emerald-600 rounded-md"> المزامنة السحابية</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_security" class="accent-emerald-600 rounded-md"> الأمان والرمز السري</label>
             </div>
-            <button onclick="addCustomUser()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl shadow-sm transition cursor-pointer">حفظ المستخدم سحابياً</button>
+            <button onclick="addCustomUser()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition cursor-pointer active:scale-95">حفظ المستخدم سحابياً</button>
           </div>
-          <div id="customUsersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
+          <div id="customUsersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>
         </div>
 
         <!-- Section 4: Students & Classes -->
         <div id="sec-students" class="hidden space-y-4">
-          <div class="flex flex-wrap gap-3 items-center justify-between bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div class="flex flex-wrap gap-3 items-center justify-between bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-200/80 dark:border-slate-700/80">
             <div class="flex items-center gap-2.5">
               <label class="text-xs font-bold text-slate-700 dark:text-slate-300">اختر الصف:</label>
-              <select id="adminClassSelect" onchange="loadAdminStudentsList()" class="border border-slate-200 dark:border-slate-700 rounded-xl px-3.5 py-2 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold outline-none cursor-pointer"></select>
+              <select id="adminClassSelect" onchange="loadAdminStudentsList()" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold outline-none cursor-pointer focus:ring-2 focus:ring-emerald-500"></select>
             </div>
             <div class="flex gap-2">
-              <button onclick="addNewClassPrompt()" class="text-xs bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-3.5 py-2 rounded-xl font-bold transition cursor-pointer">+ صف جديد</button>
-              <button onclick="deleteCurrentClass()" class="text-xs bg-red-50 dark:bg-red-950/50 text-red-600 dark:text-red-400 hover:bg-red-100 border border-red-200 dark:border-red-900 px-3.5 py-2 rounded-xl font-bold transition cursor-pointer">حذف الصف</button>
+              <button onclick="addNewClassPrompt()" class="text-xs bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border border-emerald-200 dark:border-emerald-800 px-3.5 py-2 rounded-2xl font-bold transition cursor-pointer">+ صف جديد</button>
+              <button onclick="deleteCurrentClass()" class="text-xs bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 hover:bg-red-100 border border-red-200 dark:border-red-900/60 px-3.5 py-2 rounded-2xl font-bold transition cursor-pointer">حذف الصف</button>
             </div>
           </div>
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
+            <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300">أسماء الطلاب (دفعة واحدة):</label>
-              <textarea id="bulkStudentsInput" rows="4" placeholder="أحمد محمد&#10;خالد عبدالله" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl outline-none"></textarea>
-              <button onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2 rounded-xl transition cursor-pointer">حفظ القائمة سحابياً</button>
+              <textarea id="bulkStudentsInput" rows="4" placeholder="أحمد محمد&#10;خالد عبدالله" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl outline-none custom-scrollbar focus:ring-2 focus:ring-emerald-500"></textarea>
+              <button onclick="saveBulkStudents()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-4 py-2.5 rounded-2xl transition cursor-pointer active:scale-95 shadow-sm">حفظ القائمة سحابياً</button>
             </div>
-            <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-2">
+            <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-2">
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-300"><i class="fa-solid fa-file-arrow-up"></i> رفع ملف أسماء الطلاب (TXT أو CSV):</label>
-              <input type="file" id="studentFileImport" accept=".txt,.csv" onchange="handleStudentFileImport(event)" class="w-full text-xs text-slate-500 border border-slate-200 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 cursor-pointer">
+              <input type="file" id="studentFileImport" accept=".txt,.csv" onchange="handleStudentFileImport(event)" class="w-full text-xs text-slate-500 border border-slate-200 dark:border-slate-700 rounded-2xl p-2.5 bg-white dark:bg-slate-800 cursor-pointer">
             </div>
           </div>
-          <div id="adminStudentsDisplay" class="max-h-36 overflow-y-auto space-y-1.5 text-xs bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-2xl border border-slate-100 dark:border-slate-700"></div>
+          <div id="adminStudentsDisplay" class="max-h-36 overflow-y-auto space-y-1.5 text-xs bg-slate-50/80 dark:bg-slate-900/50 p-3 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 custom-scrollbar"></div>
         </div>
 
         <!-- Section 5: Teachers -->
         <div id="sec-teachers" class="hidden space-y-4">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-3">
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة معلم جديد للنظام</h5>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <input type="text" id="newTeacherName" placeholder="اسم المعلم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none">
-              <input type="password" id="newTeacherPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-xl text-xs outline-none font-bold tracking-widest">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <input type="text" id="newTeacherName" placeholder="اسم المعلم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-emerald-500">
+              <input type="password" id="newTeacherPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none font-bold tracking-widest focus:ring-2 focus:ring-emerald-500">
             </div>
-            <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">حفظ المعلم سحابياً</button>
+            <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl transition cursor-pointer active:scale-95 shadow-md">حفظ المعلم سحابياً</button>
           </div>
-          <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden bg-white dark:bg-slate-800"></div>
+          <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>
         </div>
 
         <!-- Section 6: Alerts -->
         <div id="sec-alerts" class="hidden space-y-4">
-          <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition cursor-pointer">فحص سجلات الطلاب الآن</button>
-          <div id="smartAlertsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-2xl bg-white dark:bg-slate-800 p-3">
+          <button onclick="generateSmartAlerts()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition cursor-pointer active:scale-95">فحص سجلات الطلاب الآن</button>
+          <div id="smartAlertsContainer" class="overflow-x-auto border border-slate-200 dark:border-slate-700 rounded-3xl bg-white dark:bg-slate-800 p-4 custom-scrollbar">
             <div class="text-center text-slate-400 py-6 text-xs font-bold">انقر فوق زر الفحص أعلاه.</div>
           </div>
         </div>
 
         <!-- Section 7: Reports & Printing -->
         <div id="sec-reports" class="hidden space-y-6">
-          <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
+          <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4 border border-emerald-700/50">
             <div>
               <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير وتفريغ الغياب الشامل (التنسيق الأفقي)</h4>
               <p class="text-xs text-emerald-200 mt-1">عرض وتفريغ كافة الحصص الثماني أفقياً بجانب بعضها لكل صف دراسي</p>
@@ -667,51 +718,51 @@
             <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الصف الدراسي:</label>
-                <select id="reportClassFilter" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                <select id="reportClassFilter" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-2xl text-xs font-bold outline-none cursor-pointer focus:ring-2 focus:ring-emerald-400">
                   <option value="all">جميع الصفوف الدراسية</option>
                 </select>
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">تاريخ الرصد والتفريغ:</label>
-                <input type="date" id="reportDatePicker" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none">
+                <input type="date" id="reportDatePicker" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-2xl text-xs font-bold outline-none">
               </div>
-              <button onclick="resetReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition cursor-pointer">ضبط التواريخ</button>
+              <button onclick="resetReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-2xl text-xs font-bold transition cursor-pointer">ضبط التواريخ</button>
             </div>
           </div>
 
-          <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-5 rounded-3xl flex flex-wrap gap-3 items-center justify-between">
+          <div class="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 p-5 rounded-3xl flex flex-wrap gap-3 items-center justify-between">
             <div class="text-xs font-bold text-emerald-900 dark:text-emerald-300">
               <i class="fa-solid fa-print"></i> التقرير العرضي الأفقي للغياب جاهز للتصدير والتفريغ:
             </div>
             <div class="flex flex-wrap gap-2">
-              <button onclick="printHorizontalReport()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-2"><i class="fa-solid fa-print"></i> طباعة / تصدير PDF أفقي</button>
-              <button onclick="exportAttendanceExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow transition cursor-pointer flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
+              <button onclick="printHorizontalReport()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition cursor-pointer active:scale-95 flex items-center gap-2"><i class="fa-solid fa-print"></i> طباعة / تصدير PDF أفقي</button>
+              <button onclick="exportAttendanceExcel()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-2xl text-xs font-bold shadow-md transition cursor-pointer active:scale-95 flex items-center gap-1.5"><i class="fa-solid fa-file-excel"></i> تصدير Excel</button>
             </div>
           </div>
 
-          <div class="space-y-6 overflow-x-auto" id="reportClassesContainer"></div>
+          <div class="space-y-6 overflow-x-auto custom-scrollbar" id="reportClassesContainer"></div>
         </div>
 
         <!-- Section 8: Sync -->
         <div id="sec-sync" class="hidden space-y-4">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-slate-800 dark:text-white text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> المزامنة السحابية</h5>
-            <button onclick="forceSyncWithCloud()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer"><i class="fa-solid fa-rotate"></i> تحديث وجلب البيانات الآن</button>
+            <button onclick="forceSyncWithCloud()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-md transition cursor-pointer active:scale-95"><i class="fa-solid fa-rotate"></i> تحديث وجلب البيانات الآن</button>
           </div>
         </div>
 
         <!-- Section 9: Security -->
         <div id="sec-security" class="hidden space-y-6">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 dark:border-slate-700 space-y-4">
             <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> تغيير رمز مدير النظام العام</h5>
             <div class="max-w-xs">
-              <input type="text" id="settingAdminPin" maxlength="10" class="p-2.5 bg-white dark:bg-slate-800 border rounded-xl text-xs w-full font-bold">
+              <input type="text" id="settingAdminPin" maxlength="10" class="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs w-full font-bold focus:ring-2 focus:ring-emerald-500">
             </div>
-            <button onclick="saveNewAdminPin()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition cursor-pointer">حفظ الرمز الجديد</button>
+            <button onclick="saveNewAdminPin()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition cursor-pointer active:scale-95">حفظ الرمز الجديد</button>
           </div>
 
-          <!-- New Reset Attendance & Behaviors Section (Admin Only, Double PIN confirmation) -->
-          <div class="bg-red-50 dark:bg-red-950/30 p-5 rounded-3xl border border-red-200 dark:border-red-900/50 space-y-4">
+          <!-- Reset Attendance & Behaviors Section -->
+          <div class="bg-red-50/80 dark:bg-red-950/30 p-6 rounded-3xl border border-red-200 dark:border-red-900/50 space-y-4">
             <h5 class="font-extrabold text-xs text-red-800 dark:text-red-300 flex items-center gap-2">
               <i class="fa-solid fa-triangle-exclamation text-red-600"></i> تصفير وحذف سجلات الغياب والسلوكيات التجريبية بالكامل
             </h5>
@@ -721,15 +772,15 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
               <div>
                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">الرقم السري (المرة الأولى):</label>
-                <input type="password" id="resetPin1" placeholder="أدخل الرقم السري" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold tracking-widest outline-none">
+                <input type="password" id="resetPin1" placeholder="أدخل الرقم السري" class="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs font-bold tracking-widest outline-none focus:ring-2 focus:ring-red-500">
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-slate-700 dark:text-slate-300 mb-1">تأكيد الرقم السري (المرة الثانية):</label>
-                <input type="password" id="resetPin2" placeholder="أعد إدخال الرقم السري للتأكيد" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-xl text-xs font-bold tracking-widest outline-none">
+                <input type="password" id="resetPin2" placeholder="أعد إدخال الرقم السري للتأكيد" class="w-full p-3 bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded-2xl text-xs font-bold tracking-widest outline-none focus:ring-2 focus:ring-red-500">
               </div>
             </div>
             <div id="resetErrorMsg" class="text-red-600 dark:text-red-400 text-xs font-bold hidden"></div>
-            <button onclick="executeFullReset()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition shadow cursor-pointer flex items-center gap-2">
+            <button onclick="executeFullReset()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-6 py-3 rounded-2xl transition shadow-md cursor-pointer flex items-center gap-2 active:scale-95">
               <i class="fa-solid fa-trash-can"></i> <span>تصفير كافة السجلات الآن</span>
             </button>
           </div>
@@ -743,6 +794,46 @@
     const BIN_ID = "6ae95cf6ac6210605a679163";
     const API_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}`;
     const API_KEY = "$2a$10$rQH64McrG/5GJRp80l0Yy.ADS.NEm8yal8LLTmShDOwyYHgS2chO6";
+
+    /* --- Toast Notification System --- */
+    function showToast(message, type = 'success') {
+      const container = document.getElementById('toastContainer');
+      if (!container) return;
+
+      const toast = document.createElement('div');
+      const bgColors = {
+        success: 'bg-emerald-900/90 border-emerald-500 text-emerald-100',
+        error: 'bg-red-900/90 border-red-500 text-red-100',
+        info: 'bg-slate-900/90 border-teal-500 text-slate-100'
+      };
+      const icons = {
+        success: 'fa-circle-check text-emerald-400',
+        error: 'fa-circle-xmark text-red-400',
+        info: 'fa-circle-info text-teal-400'
+      };
+
+      toast.className = `toast-enter flex items-center gap-3 p-4 rounded-2xl border backdrop-blur-md shadow-2xl text-xs font-bold pointer-events-auto ${bgColors[type] || bgColors.success}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${icons[type] || icons.success} text-base"></i>
+        <span class="flex-grow">${message}</span>
+        <button onclick="dismissToast(this.parentElement)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        dismissToast(toast);
+      }, 4000);
+    }
+
+    function dismissToast(toast) {
+      if (!toast || toast.classList.contains('toast-exit')) return;
+      toast.classList.remove('toast-enter');
+      toast.classList.add('toast-exit');
+      setTimeout(() => {
+        if (toast.parentElement) toast.parentElement.removeChild(toast);
+      }, 250);
+    }
 
     function getOmanLocalDate() {
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
@@ -838,7 +929,7 @@
 
     function forceSyncWithCloud() {
       loadSystemDataFromCloud().then((success) => {
-        alert(success ? 'تم تحديث البيانات من السحاب بنجاح!' : 'تعذر جلب البيانات.');
+        showToast(success ? 'تم تحديث البيانات من السحاب بنجاح!' : 'تعذر جلب البيانات.', success ? 'success' : 'error');
         renderTeachersList(); renderCustomUsersList();
       });
     }
@@ -847,7 +938,7 @@
       const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
       if(!ind || !txt) return;
       txt.textContent = text || (isSynced ? "متزامن سحابياً" : "محلي");
-      ind.className = isSynced ? "bg-emerald-800 text-emerald-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-emerald-700" : "bg-red-900 text-red-200 px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 border border-red-700";
+      ind.className = isSynced ? "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60 shadow-sm backdrop-blur-sm" : "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 shadow-sm backdrop-blur-sm";
     }
 
     function initDefaults() {
@@ -887,8 +978,12 @@
         }
       }
 
-      if (activeUser) { finalizeLoginState(); } 
-      else { document.getElementById('loginError').classList.remove('hidden'); }
+      if (activeUser) { 
+        finalizeLoginState(); 
+        showToast(`أهلاً بك: ${activeUser.name}`, 'success');
+      } else { 
+        document.getElementById('loginError').classList.remove('hidden'); 
+      }
     }
 
     function finalizeLoginState() {
@@ -914,6 +1009,7 @@
       document.getElementById('loginView').classList.remove('hidden');
       document.getElementById('openControlPanelFromDashboardBtn').classList.add('hidden');
       document.getElementById('changeTeacherPinBtn').classList.add('hidden');
+      showToast('تم تسجيل الخروج بنجاح', 'info');
     }
 
     function openChangePinModal() {
@@ -933,7 +1029,7 @@
       localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser));
       const success = await saveSystemDataToCloud();
       closeChangePinModal();
-      alert(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم التغيير محلياً.');
+      showToast(success ? 'تم تغيير الرمز السري وحفظه سحابياً بنجاح!' : 'تم التغيير محلياً.', success ? 'success' : 'info');
     }
 
     function goToAttendanceSection() {
@@ -965,7 +1061,7 @@
         for(let p=1; p<=8; p++) if(db.attendance[`${today}_${c}_p${p}`]) recordedCount++;
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'group relative bg-gradient-to-br from-white via-slate-50 to-emerald-50/50 dark:from-slate-800 dark:to-slate-800/90 hover:from-emerald-600 hover:to-teal-700 hover:text-white text-slate-800 dark:text-emerald-100 font-bold py-5 px-3 rounded-3xl border border-emerald-100 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 text-center text-sm flex flex-col items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-1';
+        btn.className = 'group relative bg-gradient-to-br from-white via-slate-50 to-emerald-50/50 dark:from-slate-800 dark:to-slate-800/90 hover:from-emerald-600 hover:to-teal-700 hover:text-white text-slate-800 dark:text-emerald-100 font-bold py-5 px-3 rounded-3xl border border-emerald-100 dark:border-slate-700/80 shadow-sm hover:shadow-xl transition-all duration-300 text-center text-sm flex flex-col items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-1 active:scale-95';
         btn.onclick = () => openClassAttendance(c);
         btn.innerHTML = `
           <div class="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 group-hover:bg-white/20 text-emerald-700 dark:text-emerald-300 group-hover:text-white flex items-center justify-center transition-colors shadow-sm"><i class="fa-solid fa-users text-sm"></i></div>
@@ -1006,16 +1102,16 @@
       studentsList.forEach(student => {
         const currentStatus = currentAttendanceRecord[student] || 'present';
         const row = document.createElement('div');
-        row.className = 'flex flex-wrap items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-2 border-b border-slate-50 dark:border-slate-700/50';
+        row.className = 'flex flex-wrap items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-2 border-b border-slate-100 dark:border-slate-700/50';
         row.innerHTML = `<span class="font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">${student}</span>`;
         
         const actionsDiv = document.createElement('div');
         actionsDiv.className = 'flex items-center gap-1.5 sm:gap-2';
-        [ { key: 'present', label: 'حاضر 🟩', cls: 'bg-emerald-600 text-white border-emerald-600' },
-          { key: 'absent', label: 'غائب ⬛', cls: 'bg-black text-white border-black' },
-          { key: 'late', label: 'متأخر 🟧', cls: 'bg-orange-500 text-white border-orange-500' },
-          { key: 'escape', label: 'متسرب 🟥', cls: 'bg-red-600 text-white border-red-600' },
-          { key: 'outside', label: 'خارج 🟪', cls: 'bg-purple-600 text-white border-purple-600' }
+        [ { key: 'present', label: 'حاضر 🟩', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
+          { key: 'absent', label: 'غائب ⬛', cls: 'bg-black text-white border-black shadow-sm' },
+          { key: 'late', label: 'متأخر 🟧', cls: 'bg-orange-500 text-white border-orange-500 shadow-sm' },
+          { key: 'escape', label: 'متسرب 🟥', cls: 'bg-red-600 text-white border-red-600 shadow-sm' },
+          { key: 'outside', label: 'خارج 🟪', cls: 'bg-purple-600 text-white border-purple-600 shadow-sm' }
         ].forEach(st => {
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -1037,7 +1133,7 @@
       Array.from(btnElement.parentElement.children).forEach(btn => {
         btn.className = 'status-btn px-3 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
       });
-      const colorMap = { present: 'bg-emerald-600 text-white border-emerald-600', absent: 'bg-black text-white border-black', late: 'bg-orange-500 text-white border-orange-500', escape: 'bg-red-600 text-white border-red-600', outside: 'bg-purple-600 text-white border-purple-600' };
+      const colorMap = { present: 'bg-emerald-600 text-white border-emerald-600 shadow-sm', absent: 'bg-black text-white border-black shadow-sm', late: 'bg-orange-500 text-white border-orange-500 shadow-sm', escape: 'bg-red-600 text-white border-red-600 shadow-sm', outside: 'bg-purple-600 text-white border-purple-600 shadow-sm' };
       btnElement.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${colorMap[status]}`;
       updateLiveStats();
       document.getElementById('unsavedStatusIndicator').textContent = "⚠️ توجد تغييرات محلية غير محفوظة";
@@ -1064,8 +1160,10 @@
         db.attendance[key] = { teacher: activeUser.name, className: selectedClass, period: parseInt(period), records: { ...currentAttendanceRecord }, timestamp: new Date().toISOString() };
         const success = await saveSystemDataToCloud();
         document.getElementById('unsavedStatusIndicator').textContent = success ? "تم الحفظ سحابياً بنجاح" : "حفظت محلياً فقط";
-        alert(success ? "تم الحفظ سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.");
-      } catch (error) { alert('حدث خطأ أثناء الحفظ.'); }
+        showToast(success ? "تم حفظ الحصة سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.", success ? 'success' : 'info');
+      } catch (error) { 
+        showToast('حدث خطأ أثناء الحفظ.', 'error'); 
+      }
       finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`; }
       loadSessionAttendance();
     }
@@ -1080,7 +1178,7 @@
         for(let p=1; p<=8; p++) if(db.behaviors && db.behaviors[`${today}_${c}_p${p}`]) recordedCount++;
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'group relative bg-gradient-to-br from-white via-slate-50 to-teal-50/50 dark:from-slate-800 dark:to-slate-800/90 hover:from-teal-600 hover:to-emerald-700 hover:text-white text-slate-800 dark:text-teal-100 font-bold py-5 px-3 rounded-3xl border border-teal-100 dark:border-slate-700 shadow-md hover:shadow-xl transition-all duration-300 text-center text-sm flex flex-col items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-1';
+        btn.className = 'group relative bg-gradient-to-br from-white via-slate-50 to-teal-50/50 dark:from-slate-800 dark:to-slate-800/90 hover:from-teal-600 hover:to-emerald-700 hover:text-white text-slate-800 dark:text-teal-100 font-bold py-5 px-3 rounded-3xl border border-teal-100 dark:border-slate-700/80 shadow-sm hover:shadow-xl transition-all duration-300 text-center text-sm flex flex-col items-center justify-center gap-2 cursor-pointer transform hover:-translate-y-1 active:scale-95';
         btn.onclick = () => openClassBehavior(c);
         btn.innerHTML = `
           <div class="w-10 h-10 rounded-2xl bg-teal-100 dark:bg-teal-950/60 group-hover:bg-white/20 text-teal-700 dark:text-teal-300 group-hover:text-white flex items-center justify-center transition-colors shadow-sm"><i class="fa-solid fa-users text-sm"></i></div>
@@ -1135,14 +1233,14 @@
         let actionsDiv = document.createElement('div');
         actionsDiv.className = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
 
-        [ { key: 'normal', label: 'منضبط 🟢', cls: 'bg-emerald-600 text-white border-emerald-600' },
-          { key: 'eating', label: 'الأكل 🍔', cls: 'bg-amber-500 text-white border-amber-500' },
-          { key: 'talking', label: 'الكلام الجانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500' },
-          { key: 'tools', label: 'عدم إحضار الأدوات 🎒', cls: 'bg-yellow-600 text-white border-yellow-600' },
-          { key: 'chaos', label: 'إثارة الفوضى ⚡', cls: 'bg-red-500 text-white border-red-500' },
-          { key: 'sleeping', label: 'النوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600' },
-          { key: 'homework', label: 'عدم حل الواجب 📚', cls: 'bg-blue-600 text-white border-blue-600' },
-          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-rose-700 text-white border-rose-700' }
+        [ { key: 'normal', label: 'منضبط 🟢', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
+          { key: 'eating', label: 'الأكل 🍔', cls: 'bg-amber-500 text-white border-amber-500 shadow-sm' },
+          { key: 'talking', label: 'الكلام الجانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500 shadow-sm' },
+          { key: 'tools', label: 'عدم إحضار الأدوات 🎒', cls: 'bg-yellow-600 text-white border-yellow-600 shadow-sm' },
+          { key: 'chaos', label: 'إثارة الفوضى ⚡', cls: 'bg-red-500 text-white border-red-500 shadow-sm' },
+          { key: 'sleeping', label: 'النوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600 shadow-sm' },
+          { key: 'homework', label: 'عدم حل الواجب 📚', cls: 'bg-blue-600 text-white border-blue-600 shadow-sm' },
+          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-rose-700 text-white border-rose-700 shadow-sm' }
         ].forEach(beh => {
           const btn = document.createElement('button');
           btn.type = 'button';
@@ -1160,7 +1258,7 @@
         noteContainer.id = `noteContainer_${student.replace(/\s+/g, '_')}`;
         noteContainer.className = studentData.type === 'other' ? 'mt-2 block' : 'hidden mt-2';
         noteContainer.innerHTML = `
-          <input type="text" placeholder="اكتب وصف المشكلة أو السلوك بالتفصيل هنا..." value="${studentData.note || ''}" oninput="updateBehaviorNote('${student}', this.value)" class="w-full text-xs p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-800 dark:text-white outline-none font-bold focus:ring-2 focus:ring-teal-500">
+          <input type="text" placeholder="اكتب وصف المشكلة أو السلوك بالتفصيل هنا..." value="${studentData.note || ''}" oninput="updateBehaviorNote('${student}', this.value)" class="w-full text-xs p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-800 dark:text-white outline-none font-bold focus:ring-2 focus:ring-teal-500">
         `;
         row.appendChild(noteContainer);
 
@@ -1180,14 +1278,14 @@
       });
 
       const colorMap = { 
-        normal: 'bg-emerald-600 text-white border-emerald-600', 
-        eating: 'bg-amber-500 text-white border-amber-500', 
-        talking: 'bg-orange-500 text-white border-orange-500', 
-        tools: 'bg-yellow-600 text-white border-yellow-600',
-        chaos: 'bg-red-500 text-white border-red-500',
-        sleeping: 'bg-indigo-600 text-white border-indigo-600', 
-        homework: 'bg-blue-600 text-white border-blue-600',
-        other: 'bg-rose-700 text-white border-rose-700' 
+        normal: 'bg-emerald-600 text-white border-emerald-600 shadow-sm', 
+        eating: 'bg-amber-500 text-white border-amber-500 shadow-sm', 
+        talking: 'bg-orange-500 text-white border-orange-500 shadow-sm', 
+        tools: 'bg-yellow-600 text-white border-yellow-600 shadow-sm',
+        chaos: 'bg-red-500 text-white border-red-500 shadow-sm',
+        sleeping: 'bg-indigo-600 text-white border-indigo-600 shadow-sm', 
+        homework: 'bg-blue-600 text-white border-blue-600 shadow-sm',
+        other: 'bg-rose-700 text-white border-rose-700 shadow-sm' 
       };
       btnElement.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${colorMap[type]}`;
 
@@ -1224,10 +1322,12 @@
         
         const success = await saveSystemDataToCloud();
         document.getElementById('unsavedBehaviorStatusIndicator').textContent = success ? "تم حفظ السلوكيات سحابياً بنجاح" : "حفظت محلياً فقط";
-        alert(success ? "تم حفظ السلوكيات سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.");
+        showToast(success ? "تم حفظ السلوكيات سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.", success ? 'success' : 'info');
         if (success) renderBehaviorClassesGrid();
-      } catch (error) { alert('حدث خطأ أثناء حفظ السلوكيات.'); }
-      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`; }
+      } catch (error) { 
+        showToast('حدث خطأ أثناء حفظ السلوكيات.', 'error'); 
+      }
+      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>`; }
       loadSessionBehavior();
     }
 
@@ -1241,14 +1341,14 @@
       if (subTab === 'absence') {
         absenceSec.classList.remove('hidden');
         behaviorSec.classList.add('hidden');
-        absenceBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2";
-        behaviorBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2";
+        absenceBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all duration-200 bg-emerald-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2";
+        behaviorBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all duration-200 bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2";
         renderStudentStatsDashboard();
       } else {
         absenceSec.classList.add('hidden');
         behaviorSec.classList.remove('hidden');
-        behaviorBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-teal-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2";
-        absenceBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2";
+        behaviorBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all duration-200 bg-teal-700 text-white shadow-md cursor-pointer flex items-center justify-center gap-2";
+        absenceBtn.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all duration-200 bg-transparent text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-800 cursor-pointer flex items-center justify-center gap-2";
         renderBehaviorStatsDashboard();
       }
     }
@@ -1347,7 +1447,7 @@
       if (topStudents.length === 0) {
         container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات سلوكية مخالفة في هذه الفترة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أنواع السلوكيات المخالفة</th><th class="p-3 text-center">عدد المعلمين المشاركين</th><th class="p-3 text-center">أسماء المعلمين</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">الملف السلوكي</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أنواع السلوكيات المخالفة</th><th class="p-3 text-center">عدد المعلمين المشاركين</th><th class="p-3 text-center">أسماء المعلمين</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">الملف السلوكي</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         
         topStudents.forEach(st => {
           let typesFormatted = Object.entries(st.typesCount).map(([t, count]) => `${t} (${count})`).join('، ');
@@ -1355,12 +1455,12 @@
 
           html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-teal-600" onclick="openStudentBehaviorProfileModal('${st.className}', '${st.name}')">${st.name}</td>
-            <td class="p-3 text-center font-semibold text-teal-700">${st.className}</td>
+            <td class="p-3 text-center font-semibold text-teal-700 dark:text-teal-400">${st.className}</td>
             <td class="p-3 text-center font-bold text-slate-700 dark:text-slate-300">${typesFormatted}</td>
             <td class="p-3 text-center font-extrabold text-teal-800 dark:text-teal-300">${st.teachersSet.size} معلمين</td>
             <td class="p-3 text-center text-slate-600 dark:text-slate-400 font-semibold">${teachersListStr}</td>
             <td class="p-3 text-center"><span class="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2.5 py-1 rounded-full font-extrabold">${st.totalViolations} مرات</span></td>
-            <td class="p-3 text-center"><button onclick="openStudentBehaviorProfileModal('${st.className}', '${st.name}')" class="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer">عرض التفاصيل</button></td>
+            <td class="p-3 text-center"><button onclick="openStudentBehaviorProfileModal('${st.className}', '${st.name}')" class="bg-teal-700 hover:bg-teal-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer transition active:scale-95">عرض التفاصيل</button></td>
           </tr>`;
         });
         container.innerHTML = html + `</tbody></table>`;
@@ -1420,7 +1520,7 @@
 
       let bodyHTML = `
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3">
-          <div class="bg-teal-50 dark:bg-teal-950/40 p-3 rounded-2xl border border-teal-200"><span class="text-xs text-teal-700 dark:text-teal-300 block font-bold">إجمالي المخالفات السلوكية</span><span class="text-xl font-extrabold text-teal-900 dark:text-teal-200">${historyLogs.length}</span></div>
+          <div class="bg-teal-50 dark:bg-teal-950/40 p-3.5 rounded-2xl border border-teal-200 dark:border-teal-800"><span class="text-xs text-teal-700 dark:text-teal-300 block font-bold">إجمالي المخالفات السلوكية</span><span class="text-xl font-extrabold text-teal-900 dark:text-teal-200">${historyLogs.length}</span></div>
         </div>
         <div class="space-y-2 pt-2">
           <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-teal-600"></i> سجل الحصص والملاحظات السلوكية التفصيلي:</h5>
@@ -1433,10 +1533,10 @@
           let label = behLabels[log.type] || log.type;
           let noteText = log.note ? ` - ${log.note}` : '';
           bodyHTML += `
-            <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-2">
+            <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center gap-2">
               <div>
-                <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300">${label}${noteText}</span>
-                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">الحصة ${log.period} | صف ${log.className} | المعلم الراصد: ${log.teacher}</div>
+                <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border border-teal-200 dark:border-teal-800">${label}${noteText}</span>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1.5">الحصة ${log.period} | صف ${log.className} | المعلم الراصد: ${log.teacher}</div>
               </div>
               <div class="text-left font-mono text-xs text-teal-700 dark:text-teal-400 font-bold">${log.date}</div>
             </div>
@@ -1488,7 +1588,7 @@
         switchAdminTab('studstats');
       } else if (activeUser?.type === 'custom') {
         text.textContent = `صلاحية الدخول: ${activeUser.name}`;
-        badge.textContent = "مستخدم مخصص"; badge.className = "bg-blue-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]";
+        badge.textContent = "مستخدم مخصص"; badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
         const perms = activeUser.permissions || {};
         
         let firstAllowedTab = null;
@@ -1508,11 +1608,11 @@
       ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
         document.getElementById(`sec-${t}`)?.classList.add('hidden');
         const tabBtn = document.getElementById(`tab-${t}`);
-        if(tabBtn) tabBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition cursor-pointer';
+        if(tabBtn) tabBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer';
       });
       document.getElementById(`sec-${tab}`)?.classList.remove('hidden');
       const activeBtn = document.getElementById(`tab-${tab}`);
-      if(activeBtn) activeBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer';
+      if(activeBtn) activeBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition-all duration-200 cursor-pointer';
 
       if(tab === 'studstats') { switchStatsSubTab('absence'); }
       if(tab === 'behaviorstats') renderBehaviorReportsSection();
@@ -1553,7 +1653,7 @@
 
       classesToDisplay.forEach(className => {
         let classBlock = document.createElement('div');
-        classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-300 dark:border-slate-700 overflow-hidden mb-6 p-4 min-w-[980px]';
+        classBlock.className = 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
         classBlock.innerHTML = `
           <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <span class="font-extrabold text-sm text-teal-900 dark:text-teal-300">سلوكيات الصف الدراسي: ${className}</span>
@@ -1570,9 +1670,9 @@
           let issuesList = Object.entries(records).filter(([st, obj]) => obj && obj.type && obj.type !== 'normal');
           
           let pCell = document.createElement('div');
-          pCell.className = 'border border-slate-300 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 flex flex-col min-h-[150px]';
+          pCell.className = 'border border-slate-200 dark:border-slate-700 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col min-h-[150px]';
           pCell.innerHTML = `
-            <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-teal-50 dark:bg-teal-950/40 rounded-lg p-1">
+            <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-teal-50 dark:bg-teal-950/40 rounded-xl p-1">
               <div class="text-[11px] font-extrabold text-teal-900 dark:text-teal-300">الحصة ${p}</div>
               <div class="text-[9px] text-slate-500 font-semibold truncate">(${teacherName})</div>
             </div>
@@ -1587,7 +1687,7 @@
             issuesList.forEach(([studentName, behObj]) => {
               let typeLabel = behLabels[behObj.type] || behObj.type;
               let noteText = behObj.note ? ` (${behObj.note})` : '';
-              contentDiv.innerHTML += `<div class="text-[9.5px] font-bold text-red-600 bg-red-50 dark:bg-red-950/40 p-1 rounded-lg border border-red-200/50">• ${studentName}<br><span class="text-[8.5px] text-slate-700 dark:text-slate-300 font-normal">[${typeLabel}${noteText}]</span></div>`;
+              contentDiv.innerHTML += `<div class="text-[9.5px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-1.5 rounded-xl border border-red-200/50 dark:border-red-900/50">• ${studentName}<br><span class="text-[8.5px] text-slate-700 dark:text-slate-300 font-normal">[${typeLabel}${noteText}]</span></div>`;
             });
           }
         }
@@ -1743,7 +1843,7 @@
       if (needsAttentionList.length === 0) {
         attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">نوع المخالفات الأكثر تكراراً</th><th class="p-3 text-center">عدد أيام التكرار</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">نوع المخالفات الأكثر تكراراً</th><th class="p-3 text-center">عدد أيام التكرار</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         needsAttentionList.forEach(st => {
           let mainViolation = 'متنوع';
           let maxV = Math.max(st.absent, st.escape, st.late, st.outside);
@@ -1754,10 +1854,10 @@
 
           html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="openStudentProfileModal('${st.className}', '${st.name}')">${st.name}</td>
-            <td class="p-3 text-center font-semibold text-emerald-700">${st.className}</td>
-            <td class="p-3 text-center font-bold text-amber-700">${mainViolation} (غياب: ${st.absent}، تأخير: ${st.late}، تسرب: ${st.escape}، خروج: ${st.outside})</td>
-            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
-            <td class="p-3 text-center"><button onclick="openStudentProfileModal('${st.className}', '${st.name}')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer">ملف الطالب</button></td>
+            <td class="p-3 text-center font-semibold text-emerald-700 dark:text-emerald-400">${st.className}</td>
+            <td class="p-3 text-center font-bold text-amber-700 dark:text-amber-400">${mainViolation} (غياب: ${st.absent}، تأخير: ${st.late}، تسرب: ${st.escape}، خروج: ${st.outside})</td>
+            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
+            <td class="p-3 text-center"><button onclick="openStudentProfileModal('${st.className}', '${st.name}')" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer transition active:scale-95">ملف الطالب</button></td>
           </tr>`;
         });
         attContainer.innerHTML = html + `</tbody></table>`;
@@ -1769,17 +1869,17 @@
       else { classEntries.sort((a,b) => a[0].localeCompare(b[0])); }
 
       const classTableContainer = document.getElementById('classStatsTableContainer');
-      let classHtml = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b"><th class="p-3">الصف الدراسي</th><th class="p-3 text-center">غائب</th><th class="p-3 text-center">متأخر</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">عرض التفاصيل</th></tr></thead><tbody class="divide-y">`;
+      let classHtml = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الصف الدراسي</th><th class="p-3 text-center">غائب</th><th class="p-3 text-center">متأخر</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">عرض التفاصيل</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
       
       classEntries.forEach(([cName, stats]) => {
         classHtml += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
           <td class="p-3 font-extrabold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="openClassDetailModal('${cName}')">صف ${cName}</td>
           <td class="p-3 text-center font-bold">${stats.absent}</td>
-          <td class="p-3 text-center font-bold text-orange-600">${stats.late}</td>
-          <td class="p-3 text-center font-bold text-red-600">${stats.escape}</td>
-          <td class="p-3 text-center font-bold text-purple-600">${stats.outside}</td>
+          <td class="p-3 text-center font-bold text-orange-600 dark:text-orange-400">${stats.late}</td>
+          <td class="p-3 text-center font-bold text-red-600 dark:text-red-400">${stats.escape}</td>
+          <td class="p-3 text-center font-bold text-purple-600 dark:text-purple-400">${stats.outside}</td>
           <td class="p-3 text-center"><span class="bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-full font-extrabold">${stats.total}</span></td>
-          <td class="p-3 text-center"><button onclick="openClassDetailModal('${cName}')" class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-emerald-100">عرض الطلاب</button></td>
+          <td class="p-3 text-center"><button onclick="openClassDetailModal('${cName}')" class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-emerald-100 transition active:scale-95">عرض الطلاب</button></td>
         </tr>`;
       });
       classTableContainer.innerHTML = classHtml + `</tbody></table>`;
@@ -1811,13 +1911,13 @@
       if (list.length === 0) {
         body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد حالات مسجلة لهذه الفئة في الفترة المحددة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">إجراء الملف</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">إجراء الملف</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         list.forEach(item => {
-          html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+          html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="closeGeneralModal(); openStudentProfileModal('${item.className}', '${item.studentName}')">${item.studentName}</td>
-            <td class="p-3 text-center font-semibold text-emerald-700">${item.className}</td>
+            <td class="p-3 text-center font-semibold text-emerald-700 dark:text-emerald-400">${item.className}</td>
             <td class="p-3 text-center">${item.date}</td>
-            <td class="p-3 text-center"><button onclick="closeGeneralModal(); openStudentProfileModal('${item.className}', '${item.studentName}')" class="bg-emerald-700 text-white px-3 py-1 rounded-lg font-bold">عرض تفاصيل الحصص</button></td>
+            <td class="p-3 text-center"><button onclick="closeGeneralModal(); openStudentProfileModal('${item.className}', '${item.studentName}')" class="bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold shadow-sm transition active:scale-95">عرض تفاصيل الحصص</button></td>
           </tr>`;
         });
         body.innerHTML = html + `</tbody></table>`;
@@ -1847,15 +1947,15 @@
       if (list.length === 0) {
         body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد مخالفات مسجلة لصف ${className} في هذه الفترة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">عرض كامل الحصص</th></tr></thead><tbody class="divide-y">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">عرض كامل الحصص</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         list.forEach(item => {
           let stLabel = item.status === 'absent' ? 'غائب' : (item.status === 'escape' ? 'متسرب' : (item.status === 'late' ? 'متأخر' : 'خارج'));
-          let badgeColor = item.status === 'absent' ? 'bg-black text-white border border-amber-400' : (item.status === 'escape' ? 'bg-red-100 text-red-700' : (item.status === 'late' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'));
-          html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40">
+          let badgeColor = item.status === 'absent' ? 'bg-black text-white border border-amber-400' : (item.status === 'escape' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300' : (item.status === 'late' ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300' : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'));
+          html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" onclick="closeGeneralModal(); openStudentProfileModal('${className}', '${item.studentName}')">${item.studentName}</td>
-            <td class="p-3 text-center"><span class="px-2.5 py-0.5 rounded-full font-bold ${badgeColor}">${stLabel}</span></td>
+            <td class="p-3 text-center"><span class="px-3 py-1 rounded-full font-bold ${badgeColor}">${stLabel}</span></td>
             <td class="p-3 text-center">${item.date}</td>
-            <td class="p-3 text-center"><button onclick="closeGeneralModal(); openStudentProfileModal('${className}', '${item.studentName}')" class="bg-emerald-700 text-white px-3 py-1 rounded-lg font-bold">عرض جميع الحصص</button></td>
+            <td class="p-3 text-center"><button onclick="closeGeneralModal(); openStudentProfileModal('${className}', '${item.studentName}')" class="bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold shadow-sm transition active:scale-95">عرض جميع الحصص</button></td>
           </tr>`;
         });
         body.innerHTML = html + `</tbody></table>`;
@@ -1910,10 +2010,10 @@
 
       let bodyHTML = `
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-2xl border"><span class="text-xs text-slate-400 block">أيام الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${absentDays}</span></div>
-          <div class="bg-red-50 dark:bg-red-950/40 p-3 rounded-2xl border border-red-200"><span class="text-xs text-red-600 block">أيام التسرب</span><span class="text-xl font-extrabold text-red-700">${escapeDays}</span></div>
-          <div class="bg-orange-50 dark:bg-orange-950/40 p-3 rounded-2xl border border-orange-200"><span class="text-xs text-orange-600 block">أيام التأخير</span><span class="text-xl font-extrabold text-orange-700">${lateDays}</span></div>
-          <div class="bg-purple-50 dark:bg-purple-950/40 p-3 rounded-2xl border border-purple-200"><span class="text-xs text-purple-600 block">أيام الخروج</span><span class="text-xl font-extrabold text-purple-700">${outsideDays}</span></div>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700"><span class="text-xs text-slate-400 block font-bold">أيام الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${absentDays}</span></div>
+          <div class="bg-red-50 dark:bg-red-950/40 p-3.5 rounded-2xl border border-red-200 dark:border-red-800"><span class="text-xs text-red-600 dark:text-red-400 block font-bold">أيام التسرب</span><span class="text-xl font-extrabold text-red-700 dark:text-red-300">${escapeDays}</span></div>
+          <div class="bg-orange-50 dark:bg-orange-950/40 p-3.5 rounded-2xl border border-orange-200 dark:border-orange-800"><span class="text-xs text-orange-600 dark:text-orange-400 block font-bold">أيام التأخير</span><span class="text-xl font-extrabold text-orange-700 dark:text-orange-300">${lateDays}</span></div>
+          <div class="bg-purple-50 dark:bg-purple-950/40 p-3.5 rounded-2xl border border-purple-200 dark:border-purple-800"><span class="text-xs text-purple-600 dark:text-purple-400 block font-bold">أيام الخروج</span><span class="text-xl font-extrabold text-purple-700 dark:text-purple-300">${outsideDays}</span></div>
         </div>
         <div class="space-y-2 pt-3">
           <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> تفاصيل الحصص الكاملة المسجلة:</h5>
@@ -1924,12 +2024,12 @@
       } else {
         historyLogs.forEach(log => {
           let stLabel = log.status === 'absent' ? 'غياب' : (log.status === 'escape' ? 'متسرب' : (log.status === 'late' ? 'متأخر' : 'خارج الصف'));
-          let badgeBg = log.status === 'absent' ? 'bg-black text-white border border-amber-400' : (log.status === 'escape' ? 'bg-red-100 text-red-700' : (log.status === 'late' ? 'bg-orange-100 text-orange-700' : 'bg-purple-100 text-purple-700'));
+          let badgeBg = log.status === 'absent' ? 'bg-black text-white border border-amber-400' : (log.status === 'escape' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300' : (log.status === 'late' ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300' : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'));
           bodyHTML += `
-            <div class="p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center gap-2">
+            <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center gap-2">
               <div>
-                <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold ${badgeBg}">${stLabel}</span>
-                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1">الحصة ${log.period} | صف ${log.className} | المعلم: ${log.teacher}</div>
+                <span class="px-3 py-1 rounded-full text-[10px] font-bold ${badgeBg}">${stLabel}</span>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1.5">الحصة ${log.period} | صف ${log.className} | المعلم: ${log.teacher}</div>
               </div>
               <div class="text-left font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">${log.date}</div>
             </div>
@@ -1960,21 +2060,21 @@
       const allTeachersNames = db.teachers.map(t => t.name), missingTeachers = allTeachersNames.filter(t => !recordedTeachers.has(t));
 
       container.innerHTML = `
-        <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+        <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
           <span class="text-xs text-slate-400 font-bold block">إجمالي حصص اليوم (${totalClassesCount} صفوف × 8 حصص)</span>
           <div class="text-2xl font-extrabold text-slate-800 dark:text-white">${recordedTodayCount} <span class="text-xs font-normal text-slate-500">من ${totalExpected} حصة</span></div>
           <div class="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
-            <div class="bg-emerald-600 h-full rounded-full" style="width: ${(recordedTodayCount / totalExpected) * 100}%"></div>
+            <div class="bg-emerald-600 h-full rounded-full transition-all duration-500" style="width: ${(recordedTodayCount / totalExpected) * 100}%"></div>
           </div>
         </div>
-        <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+        <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
           <span class="text-xs text-slate-400 font-bold block">حالة التسجيل اليوم</span>
           <div class="flex gap-4 text-xs font-bold pt-1">
             <span class="text-emerald-600">✔ مسجلة: ${recordedTodayCount}</span>
             <span class="text-red-600">✖ غير مسجلة: ${unrecordedToday}</span>
           </div>
         </div>
-        <div class="bg-slate-50 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
+        <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
           <span class="text-xs text-slate-400 font-bold block">المعلمون وأنشطة الرصد</span>
           <div class="text-xs font-bold text-slate-700 dark:text-slate-200 space-y-1">
             <div>أكملوا الرصد: <span class="text-emerald-600">${Array.from(recordedTeachers).join(', ') || 'لا أحد بعد'}</span></div>
@@ -2000,13 +2100,13 @@
       });
 
       const list = Object.values(teacherStatsMap).sort((a,b) => b.recordedPeriods - a.recordedPeriods);
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b"><th class="p-3">اسم المعلم</th><th class="p-3 text-center">الحصص المسجلة</th><th class="p-3 text-center">المخالفات المسجلة</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم المعلم</th><th class="p-3 text-center">الحصص المسجلة</th><th class="p-3 text-center">المخالفات المسجلة</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
       list.forEach(t => {
         html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
           <td class="p-3 font-bold text-slate-800 dark:text-white">${t.name}</td>
-          <td class="p-3 text-center font-extrabold text-emerald-700">${t.recordedPeriods} حصة</td>
+          <td class="p-3 text-center font-extrabold text-emerald-700 dark:text-emerald-400">${t.recordedPeriods} حصة</td>
           <td class="p-3 text-center font-bold">${t.totalAbsencesRecorded} مخالفة</td>
-          <td class="p-3 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${t.recordedPeriods > 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${t.recordedPeriods > 0 ? 'نشط' : 'لم يسجل'}</span></td>
+          <td class="p-3 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${t.recordedPeriods > 0 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">${t.recordedPeriods > 0 ? 'نشط' : 'لم يسجل'}</span></td>
         </tr>`;
       });
       container.innerHTML = html + `</tbody></table>`;
@@ -2019,15 +2119,15 @@
 
       let reportHTML = `
         <div id="printableDailyReport" class="space-y-4 text-slate-800 dark:text-slate-100 p-2">
-          <div class="text-center border-b pb-3">
+          <div class="text-center border-b pb-3 border-slate-200 dark:border-slate-700">
             <h3 class="font-extrabold text-base text-emerald-900 dark:text-emerald-300">التقرير اليومي الشامل لإدارة المدرسة</h3>
             <p class="text-xs text-slate-500">مدرسة أبو دجانة الأنصاري | تاريخ التقرير: ${todayStr}</p>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div class="p-3 bg-slate-50 dark:bg-slate-900 rounded-2xl border"><span class="text-xs block text-slate-400">الغياب</span><strong class="text-lg">${totals.absent}</strong></div>
-            <div class="p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200"><span class="text-xs block text-red-600">التسرب</span><strong class="text-lg text-red-700">${totals.escape}</strong></div>
-            <div class="p-3 bg-orange-50 dark:bg-orange-950/40 rounded-2xl border border-orange-200"><span class="text-xs block text-orange-600">التأخير</span><strong class="text-lg text-orange-700">${totals.late}</strong></div>
-            <div class="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200"><span class="text-xs block text-purple-600">الخروج</span><strong class="text-lg text-purple-700">${totals.outside}</strong></div>
+            <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><span class="text-xs block text-slate-400 font-bold">الغياب</span><strong class="text-lg">${totals.absent}</strong></div>
+            <div class="p-3.5 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200 dark:border-red-800"><span class="text-xs block text-red-600 dark:text-red-400 font-bold">التسرب</span><strong class="text-lg text-red-700 dark:text-red-300">${totals.escape}</strong></div>
+            <div class="p-3.5 bg-orange-50 dark:bg-orange-950/40 rounded-2xl border border-orange-200 dark:border-orange-800"><span class="text-xs block text-orange-600 dark:text-orange-400 font-bold">التأخير</span><strong class="text-lg text-orange-700 dark:text-orange-300">${totals.late}</strong></div>
+            <div class="p-3.5 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800"><span class="text-xs block text-purple-600 dark:text-purple-400 font-bold">الخروج</span><strong class="text-lg text-purple-700 dark:text-purple-300">${totals.outside}</strong></div>
           </div>
         </div>
       `;
@@ -2035,7 +2135,7 @@
       document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-file-lines text-emerald-400"></i> التقرير اليومي للإدارة`;
       document.getElementById('generalModalBody').innerHTML = reportHTML + `
         <div class="text-center pt-3">
-          <button onclick="printDailyReportPDF()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-xs font-bold shadow cursor-pointer"><i class="fa-solid fa-print"></i> طباعة التقرير / PDF</button>
+          <button onclick="printDailyReportPDF()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition cursor-pointer active:scale-95"><i class="fa-solid fa-print"></i> طباعة التقرير / PDF</button>
         </div>
       `;
       document.getElementById('generalModal').classList.remove('hidden');
@@ -2056,7 +2156,7 @@
 
       classesToDisplay.forEach(className => {
         let classBlock = document.createElement('div');
-        classBlock.className = 'bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-300 dark:border-slate-700 overflow-hidden mb-6 p-4 min-w-[980px]';
+        classBlock.className = 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
         classBlock.innerHTML = `
           <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف الدراسي: ${className}</span>
@@ -2073,9 +2173,9 @@
           let issuesList = Object.entries(records).filter(([st, val]) => val !== 'present');
           
           let pCell = document.createElement('div');
-          pCell.className = 'border border-slate-300 dark:border-slate-700 rounded-xl p-2 bg-white dark:bg-slate-800 flex flex-col min-h-[150px]';
+          pCell.className = 'border border-slate-200 dark:border-slate-700 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col min-h-[150px]';
           pCell.innerHTML = `
-            <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-50 dark:bg-slate-900/40 rounded-lg p-1">
+            <div class="mb-2 pb-1 border-b border-slate-200 dark:border-slate-700 text-center bg-slate-100 dark:bg-slate-900/80 rounded-xl p-1">
               <div class="text-[11px] font-extrabold text-slate-800 dark:text-emerald-300">الحصة ${p}</div>
               <div class="text-[9px] text-slate-500 font-semibold truncate">(${teacherName})</div>
             </div>
@@ -2092,7 +2192,7 @@
                 contentDiv.innerHTML += `<div class="p-1 px-1.5 text-center border-2 border-amber-400 rounded-full bg-black text-white text-[9.5px] font-extrabold shadow-sm">• ${studentName} (غائب)</div>`;
               } else {
                 let statusLabel = status === 'escape' ? 'متسرب' : (status === 'late' ? 'متأخر' : 'خارج');
-                let textCls = status === 'escape' ? 'text-red-600 font-bold' : (status === 'late' ? 'text-blue-600 font-bold' : 'text-purple-600 font-bold');
+                let textCls = status === 'escape' ? 'text-red-600 dark:text-red-400 font-bold' : (status === 'late' ? 'text-blue-600 dark:text-blue-400 font-bold' : 'text-purple-600 dark:text-purple-400 font-bold');
                 contentDiv.innerHTML += `<div class="text-[9.5px] ${textCls} px-1">• ${studentName} (${statusLabel})</div>`;
               }
             });
@@ -2151,6 +2251,7 @@
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
       a.download = `تفريغ_الغياب_${targetDate}.csv`; a.click();
+      showToast('تم البدء في تحميل ملف Excel التفاعلي', 'info');
     }
 
     function populateAdminClassSelect() {
@@ -2177,8 +2278,8 @@
       container.innerHTML = list.length === 0 ? `<div class="text-slate-400 text-center py-2 font-bold">لا يوجد طلاب.</div>` : '';
       list.forEach((st, idx) => {
         const div = document.createElement('div');
-        div.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700';
-        div.innerHTML = `<span class="font-bold text-slate-700 dark:text-slate-200">${st}</span><button onclick="removeStudent('${sel}', ${idx})" class="text-red-500 text-xs font-bold px-2.5 py-1 bg-red-50 rounded-lg cursor-pointer">حذف</button>`;
+        div.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80 dark:border-slate-700/80';
+        div.innerHTML = `<span class="font-bold text-slate-700 dark:text-slate-200">${st}</span><button onclick="removeStudent('${sel}', ${idx})" class="text-red-500 text-xs font-bold px-3 py-1 bg-red-50 dark:bg-red-950/60 rounded-xl cursor-pointer hover:bg-red-100 transition">حذف</button>`;
         container.appendChild(div);
       });
     }
@@ -2187,7 +2288,7 @@
       db.students[sel] = document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean);
       const success = await saveSystemDataToCloud();
       loadAdminStudentsList();
-      alert(success ? 'تم التحديث سحابياً!' : 'تم التحديث محلياً.');
+      showToast(success ? 'تم تحديث قائمة الطلاب سحابياً!' : 'تم التحديث محلياً.', success ? 'success' : 'info');
     }
     function handleStudentFileImport(e) {
       const file = e.target.files[0]; if (!file) return;
@@ -2197,7 +2298,7 @@
         if (lines.length > 0) {
           db.students[sel] = [...new Set([...(db.students[sel] || []), ...lines])];
           await saveSystemDataToCloud(); loadAdminStudentsList();
-          alert(`تم استيراد ${lines.length} طالباً بنجاح!`);
+          showToast(`تم استيراد ${lines.length} طالباً بنجاح!`, 'success');
         }
       };
       reader.readAsText(file, 'UTF-8');
@@ -2209,6 +2310,7 @@
         db.classes.push(name); db.students[name] = [];
         await saveSystemDataToCloud();
         populateAdminClassSelect(); populateReportClassSelect(); populateBehaviorReportClassSelect(); renderClassesGrid();
+        showToast(`تم إضافة الصف ${name} بنجاح`, 'success');
       }
     }
     async function deleteCurrentClass() {
@@ -2217,6 +2319,7 @@
         db.classes = db.classes.filter(c => c !== sel); delete db.students[sel];
         await saveSystemDataToCloud();
         populateAdminClassSelect(); populateReportClassSelect(); populateBehaviorReportClassSelect(); loadAdminStudentsList(); renderClassesGrid();
+        showToast(`تم حذف صف ${sel} بالكامل`, 'info');
       }
     }
     function renderTeachersList() {
@@ -2226,28 +2329,29 @@
       db.teachers.forEach((t, idx) => {
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50';
-        div.innerHTML = `<div><span class="font-extrabold text-xs sm:text-sm">${t.name}</span> <span class="text-xs text-emerald-600 ms-3 font-mono font-bold">الرمز: ${t.pin}</span></div><div class="flex gap-2"><button onclick="editTeacherPin(${idx})" class="text-blue-600 text-xs font-bold px-3 py-1.5 bg-blue-50 rounded-xl cursor-pointer">تعديل الرمز</button><button onclick="deleteTeacher(${idx})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 rounded-xl cursor-pointer">حذف</button></div>`;
+        div.innerHTML = `<div><span class="font-extrabold text-xs sm:text-sm">${t.name}</span> <span class="text-xs text-emerald-600 dark:text-emerald-400 ms-3 font-mono font-bold">الرمز: ${t.pin}</span></div><div class="flex gap-2"><button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 rounded-xl cursor-pointer hover:bg-blue-100 transition">تعديل الرمز</button><button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/60 rounded-xl cursor-pointer hover:bg-red-100 transition">حذف</button></div>`;
         container.appendChild(div);
       });
     }
     async function addNewTeacher() {
       const name = document.getElementById('newTeacherName').value.trim(), pin = document.getElementById('newTeacherPin').value.trim();
-      if (!name || !pin) { alert('أدخل الاسم والرمز.'); return; }
+      if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       db.teachers.push({ name, pin });
       renderTeachersList(); const success = await saveSystemDataToCloud();
       renderTeachersList();
       document.getElementById('newTeacherName').value = ''; document.getElementById('newTeacherPin').value = '';
-      alert(success ? 'تم الحفظ سحابياً!' : 'تم الحفظ محلياً.');
+      showToast(success ? 'تم حفظ المعلم سحابياً!' : 'تم الحفظ محلياً.', success ? 'success' : 'info');
     }
     async function editTeacherPin(idx) {
       const t = db.teachers[idx], newPin = prompt(`الرمز الجديد لـ (${t.name}):`, t.pin);
-      if (newPin?.trim()) { t.pin = newPin.trim(); renderTeachersList(); await saveSystemDataToCloud(); renderTeachersList(); }
+      if (newPin?.trim()) { t.pin = newPin.trim(); renderTeachersList(); await saveSystemDataToCloud(); renderTeachersList(); showToast('تم تحديث الرمز بنجاح', 'success'); }
     }
     async function deleteTeacher(idx) {
       if (confirm('حذف هذا المعلم؟')) {
         db.teachers.splice(idx, 1);
         renderTeachersList(); localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
         await saveSystemDataToCloud(); renderTeachersList();
+        showToast('تم حذف المعلم بنجاح', 'info');
       }
     }
     function generateSmartAlerts() {
@@ -2274,16 +2378,16 @@
       })).filter(d => d.total >= 1).sort((a,b) => b.total - a.total);
 
       if (filtered.length === 0) { container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs font-bold">لا توجد مخالفات مسجلة.</div>`; return; }
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 text-red-900 border-b"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أيام غياب</th><th class="p-3 text-center">أيام تأخير</th><th class="p-3 text-center">أيام تسرب</th><th class="p-3 text-center">أيام خارج</th><th class="p-3 text-center">إجمالي الأيام</th></tr></thead><tbody class="divide-y">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أيام غياب</th><th class="p-3 text-center">أيام تأخير</th><th class="p-3 text-center">أيام تسرب</th><th class="p-3 text-center">أيام خارج</th><th class="p-3 text-center">إجمالي الأيام</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
       filtered.forEach(d => {
-        html += `<tr><td class="p-3 font-bold text-emerald-700">${d.studentName}</td><td class="p-3 text-center font-semibold">${d.className}</td><td class="p-3 text-center">${d.absent}</td><td class="p-3 text-center">${d.late}</td><td class="p-3 text-center">${d.escape}</td><td class="p-3 text-center">${d.outside}</td><td class="p-3 text-center"><span class="bg-red-100 text-red-700 px-2 py-0.5 rounded-full font-bold">${d.total}</span></td></tr>`;
+        html += `<tr><td class="p-3 font-bold text-emerald-700 dark:text-emerald-400">${d.studentName}</td><td class="p-3 text-center font-semibold">${d.className}</td><td class="p-3 text-center">${d.absent}</td><td class="p-3 text-center">${d.late}</td><td class="p-3 text-center">${d.escape}</td><td class="p-3 text-center">${d.outside}</td><td class="p-3 text-center"><span class="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-full font-bold">${d.total}</span></td></tr>`;
       });
       container.innerHTML = html + `</tbody></table>`;
     }
 
     async function addCustomUser() {
       const name = document.getElementById('newCustomUserName').value.trim(), pin = document.getElementById('newCustomUserPin').value.trim();
-      if (!name || !pin) { alert('أدخل الاسم والرمز.'); return; }
+      if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       const permissions = { 
         studstats: document.getElementById('perm_studstats').checked,
         behaviorstats: document.getElementById('perm_behaviorstats').checked, 
@@ -2300,7 +2404,7 @@
       const success = await saveSystemDataToCloud();
       renderCustomUsersList();
       document.getElementById('newCustomUserName').value = ''; document.getElementById('newCustomUserPin').value = '';
-      alert(success ? 'تم الحفظ سحابياً!' : 'تم الحفظ محلياً.');
+      showToast(success ? 'تم حفظ المستخدم سحابياً!' : 'تم الحفظ محلياً.', success ? 'success' : 'info');
     }
     function renderCustomUsersList() {
       const container = document.getElementById('customUsersList');
@@ -2309,7 +2413,7 @@
       db.customUsers.forEach((user, idx) => {
         const item = document.createElement('div');
         item.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50';
-        item.innerHTML = `<div><div class="font-extrabold text-xs sm:text-sm">${user.name} <span class="text-slate-400">(الرمز: ${user.pin})</span></div></div><button onclick="deleteCustomUser(${idx})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer">حذف</button>`;
+        item.innerHTML = `<div><div class="font-extrabold text-xs sm:text-sm">${user.name} <span class="text-slate-400">(الرمز: ${user.pin})</span></div></div><button onclick="deleteCustomUser(${idx})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer hover:bg-red-100 transition">حذف</button>`;
         container.appendChild(item);
       });
     }
@@ -2317,15 +2421,15 @@
       if (confirm('حذف هذا المستخدم؟')) {
         db.customUsers.splice(idx, 1);
         await saveSystemDataToCloud(); renderCustomUsersList();
+        showToast('تم حذف المستخدم المخصص', 'info');
       }
     }
     async function saveNewAdminPin() {
       const newPin = document.getElementById('settingAdminPin').value.trim();
-      if (newPin) { db.adminPin = btoa(newPin); const success = await saveSystemDataToCloud(); alert(success ? 'تم حفظ الرمز الجديد سحابياً!' : 'تم الحفظ محلياً.'); } 
-      else { alert('أدخل الرمز الجديد.'); }
+      if (newPin) { db.adminPin = btoa(newPin); const success = await saveSystemDataToCloud(); showToast(success ? 'تم حفظ الرمز الجديد سحابياً!' : 'تم الحفظ محلياً.', success ? 'success' : 'info'); } 
+      else { showToast('أدخل الرمز الجديد.', 'error'); }
     }
 
-    // Function for Full Reset of Attendance and Behaviors with Double PIN verification
     async function executeFullReset() {
       const pin1 = document.getElementById('resetPin1').value.trim();
       const pin2 = document.getElementById('resetPin2').value.trim();
@@ -2357,7 +2461,6 @@
         return;
       }
 
-      // Clear attendance and behaviors records completely
       db.attendance = {};
       db.behaviors = {};
       
@@ -2365,7 +2468,7 @@
       document.getElementById('resetPin1').value = '';
       document.getElementById('resetPin2').value = '';
       
-      alert(success ? 'تم تصفير كافة سجلات الغياب والسلوكيات وحفظ التحديثات سحابياً بنجاح!' : 'تم التصفير محلياً بنجاح.');
+      showToast(success ? 'تم تصفير كافة سجلات الغياب والسلوكيات وحفظ التحديثات سحابياً بنجاح!' : 'تم التصفير محلياً بنجاح.', success ? 'success' : 'info');
       initAdminDashboard();
     }
   </script>
