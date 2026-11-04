@@ -943,11 +943,10 @@
       return filteredSessions;
     }
 
-    // UPDATED STATISTICS LOGIC: AGGREGATE PER STUDENT PER DAY (UNIQUE INSTANCES/DAYS)
     function renderStudentStatsDashboard() {
       const sessions = getFilteredAttendanceRecords();
       
-      let studentRawLogs = {}; // studKey -> { name, className, history: [] }
+      let studentRawLogs = {}; 
 
       sessions.forEach(sess => {
         const { date, className, period, teacher, records } = sess;
@@ -973,8 +972,7 @@
       Object.entries(studentRawLogs).forEach(([studKey, data]) => {
         const { name, className, history } = data;
         
-        // Group history by date to calculate unique days/instances per violation type
-        let dateMap = {}; // date -> Set of statuses for that date
+        let dateMap = {}; 
         history.forEach(h => {
           if (!dateMap[h.date]) dateMap[h.date] = new Set();
           dateMap[h.date].add(h.status);
@@ -1068,8 +1066,7 @@
       const sessions = getFilteredAttendanceRecords();
       const statusLabels = { absent: 'الغياب', escape: 'التسرب', late: 'التأخير', outside: 'الخروج من الصف' };
 
-      // Aggregate student instances per date for this status
-      let studentDayMap = {}; // `${className}::${studentName}::${date}` -> true
+      let studentDayMap = {}; 
       let list = [];
 
       sessions.forEach(sess => {
@@ -1147,7 +1144,6 @@
       document.getElementById('generalModal').classList.add('hidden');
     }
 
-    // STUDENT PROFILE MODAL: SHOWS FULL PERIOD BREAKDOWN WHEN CLICKED
     function openStudentProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
@@ -1189,7 +1185,7 @@
               date: sessDate, 
               period: sessPeriod, 
               status: status, 
-50              teacher: session.teacher || 'معلم',
+              teacher: session.teacher || 'معلم',
               className: sessClassName
             });
           }
@@ -1198,7 +1194,6 @@
 
       historyLogs.sort((a,b) => new Date(b.date) - new Date(a.date) || b.period - a.period);
 
-      // Calculate unique days/instances for summary cards
       let dateMap = {};
       historyLogs.forEach(h => {
         if (!dateMap[h.date]) dateMap[h.date] = new Set();
