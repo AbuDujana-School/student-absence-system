@@ -68,7 +68,7 @@
       </form>
     </div>
 
-    <!-- Step 2: Main Dashboard Selection View (Two Sections: Attendance & Behaviors) -->
+    <!-- Step 2: Main Dashboard Selection View (Horizontal Layout: Attendance & Behaviors) -->
     <div id="dashboardSelectionView" class="hidden space-y-6">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
@@ -96,35 +96,28 @@
         </div>
       </div>
 
-      <!-- Selection Cards for Sections -->
-      <div class="text-center py-6">
-        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-2">اختر القسم المطلوب للمتابعة:</h3>
-        <p class="text-xs text-slate-400">يمكنك الانتقال بين قسم الغياب وقسم السلوكيات بكل سهولة</p>
+      <!-- Selection Header -->
+      <div class="text-center py-4">
+        <h3 class="text-xl font-extrabold text-slate-800 dark:text-white mb-1">لوحة التحكم الرئيسية</h3>
+        <p class="text-xs text-slate-400">اختر القسم المطلوب للانتقال الفوري</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
-        <!-- Section 1 Card: Attendance -->
-        <div onclick="goToAttendanceSection()" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border-2 border-emerald-100 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
-          <div class="w-20 h-20 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center text-3xl group-hover:scale-110 transition shadow-inner border border-emerald-200">
+      <!-- Horizontal Cards Layout -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <!-- Box 1: Attendance (غياب) -->
+        <div onclick="goToAttendanceSection()" class="bg-gradient-to-br from-white to-emerald-50/40 dark:from-slate-800 dark:to-slate-800/90 p-8 rounded-3xl shadow-xl border-2 border-emerald-200 dark:border-slate-700 hover:border-emerald-500 dark:hover:border-emerald-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
+          <div class="w-16 h-16 bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition shadow-inner">
             <i class="fa-solid fa-clipboard-user"></i>
           </div>
-          <div>
-            <h4 class="text-lg font-extrabold text-slate-800 dark:text-white group-hover:text-emerald-700">القسم الأول: الغياب والحصص</h4>
-            <p class="text-xs text-slate-400 mt-1">حصر ومتابعة الغياب اليومي، والتأخير، والتسرب، والخروج للحصص الدراسية</p>
-          </div>
-          <span class="bg-emerald-700 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow mt-2">دخول قسم الغياب ←</span>
+          <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white group-hover:text-emerald-700 tracking-wide">غياب</h4>
         </div>
 
-        <!-- Section 2 Card: Behaviors -->
-        <div onclick="goToBehaviorSection()" class="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-xl border-2 border-teal-100 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
-          <div class="w-20 h-20 bg-teal-50 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 rounded-3xl flex items-center justify-center text-3xl group-hover:scale-110 transition shadow-inner border border-teal-200">
+        <!-- Box 2: Behaviors (السلوكيات) -->
+        <div onclick="goToBehaviorSection()" class="bg-gradient-to-br from-white to-teal-50/40 dark:from-slate-800 dark:to-slate-800/90 p-8 rounded-3xl shadow-xl border-2 border-teal-200 dark:border-slate-700 hover:border-teal-500 dark:hover:border-teal-500 transition-all duration-300 cursor-pointer text-center group flex flex-col items-center justify-center gap-4">
+          <div class="w-16 h-16 bg-teal-100 dark:bg-teal-950/60 text-teal-700 dark:text-teal-300 rounded-2xl flex items-center justify-center text-2xl group-hover:scale-110 transition shadow-inner">
             <i class="fa-solid fa-scale-balanced"></i>
           </div>
-          <div>
-            <h4 class="text-lg font-extrabold text-slate-800 dark:text-white group-hover:text-teal-700">القسم الثاني: السلوكيات والمخالفات</h4>
-            <p class="text-xs text-slate-400 mt-1">رصد سلوكيات الطلاب (أكل، نوم، كلام جانبي، أو أخرى بوصف دقيق)</p>
-          </div>
-          <span class="bg-teal-700 text-white text-xs font-bold px-6 py-2.5 rounded-2xl shadow mt-2">دخول قسم السلوكيات ←</span>
+          <h4 class="text-2xl font-extrabold text-slate-800 dark:text-white group-hover:text-teal-700 tracking-wide">السلوكيات</h4>
         </div>
       </div>
     </div>
@@ -133,7 +126,7 @@
     <div id="classesView" class="hidden space-y-6">
       <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center">
         <button onclick="backToDashboardSelection()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 border border-emerald-200 cursor-pointer">
-          <i class="fa-solid fa-arrow-right"></i> العودة لاختيار الأقسام
+          <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
         </button>
         <span class="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">قسم الغياب والحصص</span>
       </div>
@@ -198,11 +191,11 @@
       </div>
     </div>
 
-    <!-- Step 5: Behavior Classes View (New Section) -->
+    <!-- Step 5: Behavior Classes View -->
     <div id="behaviorClassesView" class="hidden space-y-6">
       <div class="bg-white dark:bg-slate-800 p-4 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex justify-between items-center">
         <button onclick="backToDashboardSelection()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition flex items-center gap-2 border border-teal-200 cursor-pointer">
-          <i class="fa-solid fa-arrow-right"></i> العودة لاختيار الأقسام
+          <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
         </button>
         <span class="text-xs font-bold text-teal-800 dark:text-teal-300 bg-teal-50 px-3 py-1.5 rounded-xl border border-teal-200">قسم السلوكيات والمخالفات</span>
       </div>
@@ -219,7 +212,7 @@
       </div>
     </div>
 
-    <!-- Step 6: Class Behavior Session View (New Section) -->
+    <!-- Step 6: Class Behavior Session View -->
     <div id="behaviorSessionView" class="hidden space-y-6">
       <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
@@ -244,7 +237,7 @@
       <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
         <div class="p-5 bg-slate-50/70 dark:bg-slate-900/50 border-b border-slate-100 dark:border-slate-700 flex flex-wrap justify-between items-center gap-3">
           <div class="flex items-center gap-3">
-            <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب ورصد السلوكيات والمخالفات</span>
+            <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب ورصد السلوكيات (الافتراضي: منضبط)</span>
             <span id="behaviorStudentsCount" class="text-xs font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 rounded-xl"></span>
           </div>
         </div>
@@ -725,7 +718,7 @@
     }
 
     function checkExistingSession() {
-      const savedUser = localStorage.getItem('abuDujana_activeUser'), savedClass = localStorage.getItem('abuDujana_selectedClass');
+      const savedUser = localStorage.getItem('abuDujana_activeUser');
       if (savedUser) {
         try {
           activeUser = JSON.parse(savedUser);
@@ -772,7 +765,7 @@
 
     function logoutUser() {
       activeUser = null; selectedClass = null; selectedBehaviorClass = null;
-      localStorage.removeItem('abuDujana_activeUser'); localStorage.removeItem('abuDujana_selectedClass');
+      localStorage.removeItem('abuDujana_activeUser');
       document.getElementById('userPinInput').value = '';
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('classesView').classList.add('hidden');
@@ -941,7 +934,7 @@
     }
 
     // ==========================================
-    // NEW SECTION: BEHAVIORS & MISCONDUCTS (السلوكيات)
+    // BEHAVIORS & MISCONDUCTS (السلوكيات)
     // ==========================================
     function renderBehaviorClassesGrid() {
       const container = document.getElementById('behaviorClassesGrid');
@@ -984,7 +977,7 @@
       const sessionData = db.behaviors[key] || { teacher: activeUser?.name || 'معلم', records: {} };
       currentBehaviorRecord = sessionData.records || {};
 
-      document.getElementById('behaviorSessionDateStatus').innerHTML = sessionData.timestamp ? `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${sessionData.teacher}</span>` : `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم رصد السلوكيات بعد</span>`;
+      document.getElementById('behaviorSessionDateStatus').innerHTML = sessionData.timestamp ? `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${sessionData.teacher}</span>` : `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم رصد السلوكيات بعد (الافتراضي: منضبط)</span>`;
 
       const studentsList = db.students[selectedBehaviorClass] || [], container = document.getElementById('behaviorStudentsListContainer');
       container.innerHTML = ''; document.getElementById('behaviorStudentsCount').textContent = `إجمالي الطلاب: ${studentsList.length}`;
@@ -992,7 +985,12 @@
       if (studentsList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلين في هذا الصف.</div>`; return; }
 
       studentsList.forEach(student => {
-        const studentData = currentBehaviorRecord[student] || { type: 'normal', note: '' };
+        // Default to 'normal' (منضبط) if not recorded
+        if(!currentBehaviorRecord[student]) {
+          currentBehaviorRecord[student] = { type: 'normal', note: '' };
+        }
+        const studentData = currentBehaviorRecord[student];
+
         const row = document.createElement('div');
         row.className = 'flex flex-col p-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-3 border-b border-slate-100 dark:border-slate-700/50';
         
@@ -1003,16 +1001,19 @@
         let actionsDiv = document.createElement('div');
         actionsDiv.className = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
 
-        [ { key: 'normal', label: 'طبيعي / هادئ 🟢', cls: 'bg-emerald-600 text-white border-emerald-600' },
-          { key: 'eating', label: 'أكل 🍔', cls: 'bg-amber-500 text-white border-amber-500' },
-          { key: 'sleeping', label: 'نوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600' },
-          { key: 'talking', label: 'كلام جانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500' },
-          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-red-600 text-white border-red-600' }
+        [ { key: 'normal', label: 'منضبط 🟢', cls: 'bg-emerald-600 text-white border-emerald-600' },
+          { key: 'eating', label: 'الأكل 🍔', cls: 'bg-amber-500 text-white border-amber-500' },
+          { key: 'talking', label: 'الكلام الجانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500' },
+          { key: 'tools', label: 'عدم إحضار الأدوات 🎒', cls: 'bg-yellow-600 text-white border-yellow-600' },
+          { key: 'chaos', label: 'إثارة الفوضى ⚡', cls: 'bg-red-500 text-white border-red-500' },
+          { key: 'sleeping', label: 'النوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600' },
+          { key: 'homework', label: 'عدم حل الواجب 📚', cls: 'bg-blue-600 text-white border-blue-600' },
+          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-rose-700 text-white border-rose-700' }
         ].forEach(beh => {
           const btn = document.createElement('button');
           btn.type = 'button';
           const isActive = studentData.type === beh.key;
-          btn.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? beh.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+          btn.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${isActive ? beh.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
           btn.textContent = beh.label;
           btn.onclick = () => setStudentBehaviorType(student, beh.key, btn, row);
           actionsDiv.appendChild(btn);
@@ -1043,11 +1044,20 @@
       // Update button styles in group
       const btnGroup = btnElement.parentElement;
       Array.from(btnGroup.children).forEach(btn => {
-        btn.className = 'status-btn px-3 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+        btn.className = 'status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
       });
 
-      const colorMap = { normal: 'bg-emerald-600 text-white border-emerald-600', eating: 'bg-amber-500 text-white border-amber-500', sleeping: 'bg-indigo-600 text-white border-indigo-600', talking: 'bg-orange-500 text-white border-orange-500', other: 'bg-red-600 text-white border-red-600' };
-      btnElement.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${colorMap[type]}`;
+      const colorMap = { 
+        normal: 'bg-emerald-600 text-white border-emerald-600', 
+        eating: 'bg-amber-500 text-white border-amber-500', 
+        talking: 'bg-orange-500 text-white border-orange-500', 
+        tools: 'bg-yellow-600 text-white border-yellow-600',
+        chaos: 'bg-red-500 text-white border-red-500',
+        sleeping: 'bg-indigo-600 text-white border-indigo-600', 
+        homework: 'bg-blue-600 text-white border-blue-600',
+        other: 'bg-rose-700 text-white border-rose-700' 
+      };
+      btnElement.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${colorMap[type]}`;
 
       // Show/hide note input if 'other' is selected
       const noteContainer = rowElement.querySelector(`[id^="noteContainer_"]`);
