@@ -508,10 +508,10 @@
   </main>
 
   <script>
-    const GITHUB_OWNER = "abudujana-school";
-    const GITHUB_REPO = "abudujana-school.github.io";
+    const GITHUB_OWNER = "AbuDujana-School";
+    const GITHUB_REPO = "student-absence-system";
     const GITHUB_FILE_PATH = "db.json";
-    const GITHUB_TOKEN = "ghp_tFwdkYXXX5b6BnJsZYKB29WEYJQMLS0znv54";
+    const GITHUB_TOKEN = "ghp_tfwdkYXXX5b6BnJsZYKB29WEYJQMLS0znv54";
 
     const API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
 
@@ -536,7 +536,7 @@
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DEFAULT_TEACHERS = [{ name: "أ. سالم الوهيبي", pin: "1111" }, { name: "أ. محمد العبري", pin: "2222" }, { name: "أ. سعيد المقبالي", pin: "3333" }];
 
-    let db = { version: 16, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
+    let db = { version: 17, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
     let currentSha = null;
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 
@@ -568,7 +568,7 @@
     async function loadSystemDataFromCloud() {
       updateSyncStatus(false, "جارِ الاتصال السحابي...");
       try {
-        const response = await fetch(API_URL, {
+        const response = await fetch(API_URL + "?t=" + new Date().getTime(), {
           headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Accept": "application/vnd.github.v3+json" },
           cache: "no-store"
         });
@@ -602,18 +602,18 @@
             }
           }
         }
-        throw new Error("فشل الجلب السحابي أو الملف فارغ");
+        throw new Error("فشل الجلب السحابي");
       } catch (e) {
         const saved = localStorage.getItem('abuDujana_db_v21');
         if (saved) {
           try {
             db = JSON.parse(saved);
-            updateSyncStatus(false, "وضع محلي (أُعيد تحميل النسخة المحلية)");
+            updateSyncStatus(false, "وضع محلي");
             return true;
           } catch(err) {}
         }
         initDefaults();
-        updateSyncStatus(false, "فشل الاتصال بـ GitHub");
+        updateSyncStatus(false, "فشل الاتصال");
         return false;
       }
     }
@@ -624,9 +624,8 @@
         db.version = (db.version || 1) + 1;
         localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
 
-        // التأكد من جلب أحدث SHA قبل الحفظ لتجنب تعارض النسخ
         try {
-          const checkRes = await fetch(API_URL, {
+          const checkRes = await fetch(API_URL + "?t=" + new Date().getTime(), {
             headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Accept": "application/vnd.github.v3+json" },
             cache: "no-store"
           });
@@ -668,13 +667,10 @@
           }
           updateSyncStatus(true, "متزامن مع GitHub");
           return true;
-        } else {
-          const errBody = await putResponse.text();
-          console.error("GitHub Save Error:", errBody);
         }
         throw new Error();
       } catch (error) {
-        updateSyncStatus(false, "تعذر الحفظ سحابياً (محلي فقط)");
+        updateSyncStatus(false, "تعذر الحفظ سحابياً");
         return false;
       }
     }
@@ -1795,14 +1791,6 @@
       const container = document.getElementById('customUsersList');
       if(!container) return; container.innerHTML = '';
       if (!db.customUsers || db.customUsers.length === 0) { container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد مستخدمون مخصصون.</div>`; return; }
-      db.customUsers.forEach((user, idx) => {
-        const item = document.createElement('div');
-        item.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50';
-        item.innerHTML = `<div><div class="font-extrabold text-xs sm:text-sm">${user.name} <span class="text-slate-400">(الرمز: ${user.pin})</span></div></div><button onclick="deleteCustomUser(${idx})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer">حذف</button>`;
-        item.appendChild(item); // handled correctly in modern iteration below
-      });
-      // Corrected rendering loop for custom users list
-      container.innerHTML = '';
       db.customUsers.forEach((user, idx) => {
         const item = document.createElement('div');
         item.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50';
