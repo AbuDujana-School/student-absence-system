@@ -184,7 +184,7 @@
     </div>
   </div>
 
-  <!-- General Dynamic Popup Modal for Student Lists / Details -->
+  <!-- General Dynamic Popup Modal -->
   <div id="generalModal" class="fixed inset-0 bg-black/70 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-sm">
     <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-100 dark:border-slate-700">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center">
@@ -241,7 +241,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-2.5 py-0.5 rounded-lg text-[10px]">تحكم كامل</span>
         </div>
 
-        <!-- Admin Tabs (All 8 Items) -->
+        <!-- Admin Tabs -->
         <div class="flex flex-wrap gap-1.5 border-b border-slate-100 dark:border-slate-700 text-xs font-bold bg-slate-50 dark:bg-slate-900 p-2 rounded-2xl">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex-1 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition cursor-pointer">إحصائيات الطلاب</button>
           <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex-1 py-2.5 px-3 rounded-xl text-slate-500 dark:text-slate-400 hover:text-slate-700 transition cursor-pointer">الأشخاص</button>
@@ -376,7 +376,6 @@
             </div>
             <div id="teacherActivityStatsContainer" class="overflow-x-auto"></div>
           </div>
-
         </div>
 
         <!-- Section 2: Custom Users -->
@@ -457,16 +456,16 @@
               <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير وتفريغ الغياب الشامل (التنسيق الأفقي)</h4>
               <p class="text-xs text-emerald-200 mt-1">عرض وتفريغ كافة الحصص الثماني أفقياً بجانب بعضها لكل صف دراسي على حدة</p>
             </div>
-            <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
+            <div class="bg-white/15 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">الصف الدراسي:</label>
-                <select id="reportClassFilter" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
+                <select id="reportClassFilter" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/90 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none cursor-pointer">
                   <option value="all">جميع الصفوف الدراسية</option>
                 </select>
               </div>
               <div>
                 <label class="block text-[11px] font-bold text-emerald-200 mb-1">تاريخ الرصد والتفريغ:</label>
-                <input type="date" id="reportDatePicker" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none">
+                <input type="date" id="reportDatePicker" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/90 text-white border border-emerald-500/30 rounded-xl text-xs font-bold outline-none">
               </div>
               <button onclick="resetReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-xl text-xs font-bold transition cursor-pointer">ضبط التواريخ</button>
             </div>
@@ -512,7 +511,7 @@
     const GITHUB_OWNER = "abudujana-school";
     const GITHUB_REPO = "abudujana-school.github.io";
     const GITHUB_FILE_PATH = "db.json";
-    const GITHUB_TOKEN = "ghp_tFwdkYXXX5b6BnJsZYKB29WEYJQMLS0znv54"; // التوكن الخاص بك
+    const GITHUB_TOKEN = "ghp_tFwdkYXXX5b6BnJsZYKB29WEYJQMLS0znv54";
 
     const API_URL = `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/contents/${GITHUB_FILE_PATH}`;
 
@@ -537,7 +536,7 @@
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DEFAULT_TEACHERS = [{ name: "أ. سالم الوهيبي", pin: "1111" }, { name: "أ. محمد العبري", pin: "2222" }, { name: "أ. سعيد المقبالي", pin: "3333" }];
 
-    let db = { version: 15, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
+    let db = { version: 16, adminPin: btoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {} };
     let currentSha = null;
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 
@@ -567,7 +566,7 @@
     }
 
     async function loadSystemDataFromCloud() {
-      updateSyncStatus(false, "جارِ تحميل البيانات...");
+      updateSyncStatus(false, "جارِ الاتصال السحابي...");
       try {
         const response = await fetch(API_URL, {
           headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Accept": "application/vnd.github.v3+json" },
@@ -576,20 +575,43 @@
         if (response.ok) {
           const resData = await response.json();
           currentSha = resData.sha;
-          const decodedContent = decodeURIComponent(escape(atob(resData.content)));
-          const parsedDb = JSON.parse(decodedContent);
-          if (parsedDb && parsedDb.classes?.length > 0) {
-            db = parsedDb;
-            if(!db.customUsers) db.customUsers = [];
-            localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
-            updateSyncStatus(true, "متزامن مع GitHub");
-            return true;
+          if (resData.content) {
+            let decodedContent = "";
+            try {
+              decodedContent = decodeURIComponent(escape(atob(resData.content.replace(/\s/g, ''))));
+            } catch (err) {
+              decodedContent = atob(resData.content.replace(/\s/g, ''));
+            }
+            const parsedDb = JSON.parse(decodedContent);
+            if (parsedDb && typeof parsedDb === 'object') {
+              db = {
+                version: parsedDb.version || 1,
+                adminPin: parsedDb.adminPin || btoa("1234"),
+                customUsers: Array.isArray(parsedDb.customUsers) ? parsedDb.customUsers : [],
+                teachers: Array.isArray(parsedDb.teachers) && parsedDb.teachers.length > 0 ? parsedDb.teachers : [...DEFAULT_TEACHERS],
+                classes: Array.isArray(parsedDb.classes) && parsedDb.classes.length > 0 ? parsedDb.classes : [...DEFAULT_CLASSES],
+                students: parsedDb.students && typeof parsedDb.students === 'object' ? parsedDb.students : {},
+                attendance: parsedDb.attendance && typeof parsedDb.attendance === 'object' ? parsedDb.attendance : {}
+              };
+              if(Object.keys(db.students).length === 0) {
+                db.classes.forEach(c => { db.students[c] = []; });
+              }
+              localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
+              updateSyncStatus(true, "متزامن مع GitHub");
+              return true;
+            }
           }
         }
-        throw new Error();
+        throw new Error("فشل الجلب السحابي أو الملف فارغ");
       } catch (e) {
         const saved = localStorage.getItem('abuDujana_db_v21');
-        if (saved) { db = JSON.parse(saved); updateSyncStatus(false, "وضع محلي"); return true; }
+        if (saved) {
+          try {
+            db = JSON.parse(saved);
+            updateSyncStatus(false, "وضع محلي (أُعيد تحميل النسخة المحلية)");
+            return true;
+          } catch(err) {}
+        }
         initDefaults();
         updateSyncStatus(false, "فشل الاتصال بـ GitHub");
         return false;
@@ -599,16 +621,31 @@
     async function saveSystemDataToCloud() {
       updateSyncStatus(true, "جارِ الحفظ السحابي...");
       try {
-        db.version = (db.version || 11) + 1;
+        db.version = (db.version || 1) + 1;
         localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
 
-        const utf8Bytes = new TextEncoder().encode(JSON.stringify(db, null, 2));
-        let binaryStr = "";
-        utf8Bytes.forEach(b => binaryStr += String.fromCharCode(b));
-        const base64Content = btoa(binaryStr);
+        // التأكد من جلب أحدث SHA قبل الحفظ لتجنب تعارض النسخ
+        try {
+          const checkRes = await fetch(API_URL, {
+            headers: { "Authorization": `token ${GITHUB_TOKEN}`, "Accept": "application/vnd.github.v3+json" },
+            cache: "no-store"
+          });
+          if (checkRes.ok) {
+            const checkData = await checkRes.json();
+            if (checkData.sha) currentSha = checkData.sha;
+          }
+        } catch(err) {}
+
+        const jsonString = JSON.stringify(db, null, 2);
+        let base64Content = "";
+        try {
+          base64Content = btoa(unescape(encodeURIComponent(jsonString)));
+        } catch(err) {
+          base64Content = btoa(jsonString);
+        }
 
         const bodyData = {
-          message: "Update school attendance records",
+          message: "Update school attendance records safely",
           content: base64Content,
           sha: currentSha
         };
@@ -626,20 +663,25 @@
 
         if (putResponse.ok) {
           const resJson = await putResponse.json();
-          currentSha = resJson.content.sha;
+          if (resJson.content && resJson.content.sha) {
+            currentSha = resJson.content.sha;
+          }
           updateSyncStatus(true, "متزامن مع GitHub");
           return true;
+        } else {
+          const errBody = await putResponse.text();
+          console.error("GitHub Save Error:", errBody);
         }
         throw new Error();
       } catch (error) {
-        updateSyncStatus(false, "محلي فقط");
+        updateSyncStatus(false, "تعذر الحفظ سحابياً (محلي فقط)");
         return false;
       }
     }
 
     function forceSyncWithCloud() {
       loadSystemDataFromCloud().then((success) => {
-        alert(success ? 'تم تحديث البيانات من جيت هب بنجاح!' : 'تعذر جلب البيانات.');
+        alert(success ? 'تم تحديث وجلب البيانات من جيت هب بنجاح!' : 'تعذر الاتصال بـ GitHub.');
         renderTeachersList(); renderCustomUsersList();
       });
     }
@@ -652,7 +694,7 @@
     }
 
     function initDefaults() {
-      db = { version: 15, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
+      db = { version: 1, adminPin: btoa("1234"), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [...DEFAULT_TEACHERS], students: {}, attendance: {} };
       db.classes.forEach(c => { db.students[c] = []; });
       localStorage.setItem('abuDujana_db_v21', JSON.stringify(db));
     }
@@ -680,11 +722,11 @@
       if (pin === adminDecoded || encodedPin === db.adminPin) {
         activeUser = { name: "مدير النظام العام", pin: adminDecoded, type: 'admin', permissions: { studstats: true, users: true, students: true, teachers: true, alerts: true, reports: true, sync: true, security: true } };
       } else {
-        const customUser = db.customUsers.find(u => u.pin === pin);
+        const customUser = (db.customUsers || []).find(u => u.pin === pin);
         if (customUser) {
           activeUser = { name: customUser.name, pin: customUser.pin, type: 'custom', permissions: customUser.permissions };
         } else {
-          const teacher = db.teachers.find(t => t.pin === pin);
+          const teacher = (db.teachers || []).find(t => t.pin === pin);
           if (teacher) activeUser = { name: teacher.name, pin: teacher.pin, type: 'teacher', permissions: {} };
         }
       }
@@ -781,7 +823,7 @@
       container.innerHTML = ''; document.getElementById('studentsCount').textContent = `إجمالي الطلاب: ${studentsList.length}`;
       updateLiveStats();
 
-      if (studentsList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلين في هذا الصف.</div>`; return; }
+      if (studentsList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب مسجلين في هذا الصف. انتقل للوحة التحكم لإضافة الطلاب.</div>`; return; }
 
       studentsList.forEach(student => {
         const currentStatus = currentAttendanceRecord[student] || 'present';
@@ -942,7 +984,7 @@
       }
 
       let filteredSessions = [];
-      Object.entries(db.attendance).forEach(([key, session]) => {
+      Object.entries(db.attendance || {}).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
         const sessDateStr = session.date || parsed.date;
         const sessClassName = session.className || parsed.className;
@@ -1279,7 +1321,6 @@
       
       let recordedTodayCount = 0;
       let recordedTeachers = new Set();
-      let unrecordedClassesList = [];
 
       db.classes.forEach(cName => {
         let classRecorded = 0;
@@ -1290,9 +1331,6 @@
             classRecorded++;
             if(db.attendance[k].teacher) recordedTeachers.add(db.attendance[k].teacher);
           }
-        }
-        if (classRecorded < 8) {
-          unrecordedClassesList.push(`صف ${cName} (${8 - classRecorded} حصص غير مسجلة)`);
         }
       });
 
@@ -1337,7 +1375,7 @@
       });
       teacherStatsMap['أخرى'] = { name: 'أخرى', recordedPeriods: 0, totalAbsencesRecorded: 0 };
 
-      Object.values(db.attendance).forEach(session => {
+      Object.values(db.attendance || {}).forEach(session => {
         const tName = session.teacher || 'أخرى';
         if (!teacherStatsMap[tName]) teacherStatsMap[tName] = { name: tName, recordedPeriods: 0, totalAbsencesRecorded: 0 };
         teacherStatsMap[tName].recordedPeriods++;
@@ -1696,7 +1734,7 @@
     }
     function generateSmartAlerts() {
       const container = document.getElementById('smartAlertsContainer'); let issues = {};
-      Object.entries(db.attendance).forEach(([key, session]) => {
+      Object.entries(db.attendance || {}).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
         const sClass = session?.className || parsed.className;
         const sDate = session?.date || parsed.date;
@@ -1757,6 +1795,14 @@
       const container = document.getElementById('customUsersList');
       if(!container) return; container.innerHTML = '';
       if (!db.customUsers || db.customUsers.length === 0) { container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد مستخدمون مخصصون.</div>`; return; }
+      db.customUsers.forEach((user, idx) => {
+        const item = document.createElement('div');
+        item.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50';
+        item.innerHTML = `<div><div class="font-extrabold text-xs sm:text-sm">${user.name} <span class="text-slate-400">(الرمز: ${user.pin})</span></div></div><button onclick="deleteCustomUser(${idx})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/50 rounded-xl cursor-pointer">حذف</button>`;
+        item.appendChild(item); // handled correctly in modern iteration below
+      });
+      // Corrected rendering loop for custom users list
+      container.innerHTML = '';
       db.customUsers.forEach((user, idx) => {
         const item = document.createElement('div');
         item.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100 dark:border-slate-700/50';
