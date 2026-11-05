@@ -789,7 +789,7 @@
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /* ============================================================
-       أدوات مساعدة عامة (بدون تغيير في التصميم)
+       أدوات مساعدة عامة
        ============================================================ */
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -799,6 +799,20 @@
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
+    }
+
+    // ترتيب أبجدي عربي صحيح
+    function arabicSort(list) {
+      if (!Array.isArray(list)) return [];
+      return [...list].sort((a, b) => String(a).localeCompare(String(b), 'ar'));
+    }
+
+    // تنسيق تاريخ محلي YYYY-MM-DD (بدون انزياح UTC)
+    function formatDateLocal(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const day = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${day}`;
     }
 
     function safeBtoa(str) {
@@ -817,9 +831,9 @@
       try { return btoa(atob(str)) === str; } catch (err) { return false; }
     }
 
+    // إصلاح أمني: لم يعد يقبل تمرير النص المُشفّر بـ Base64 نفسه كرمز صحيح.
     function verifyAdminPinInput(inputPin) {
       if (!inputPin || !db.adminPin) return false;
-      if (inputPin === db.adminPin) return true;
       try { if (safeBtoa(inputPin) === db.adminPin) return true; } catch (e) {}
       try { if (btoa(inputPin) === db.adminPin) return true; } catch (e) {}
       if (isBase64(db.adminPin)) {
@@ -939,6 +953,28 @@
     }
 
     /* ============================================================
+       Upsert موثوق (مع بديل عند غياب قيد Unique)
+       ============================================================ */
+    async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
+      if (!rows || rows.length === 0) return;
+      const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
+      for (let i = 0; i < rows.length; i += chunkSize) {
+        const chunk = rows.slice(i, i + chunkSize);
+        const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
+        if (!error) continue;
+        // بديل: حذف الصفوف المطابقة ثم إدراجها
+        for (const row of chunk) {
+          let q = sb.from(table).delete();
+          for (const c of cols) q = q.eq(c, row[c]);
+          const { error: delErr } = await q;
+          if (delErr) throw new Error(`${table} delete: ${delErr.message}`);
+          const { error: insErr } = await sb.from(table).insert(row);
+          if (insErr) throw new Error(`${table} insert: ${insErr.message}`);
+        }
+      }
+    }
+
+    /* ============================================================
        الإقلاع
        ============================================================ */
     window.addEventListener('DOMContentLoaded', async () => {
@@ -1010,7 +1046,12 @@
               db = JSON.parse(saved);
               if (!db.customUsers) db.customUsers = [];
               if (!db.behaviors) db.behaviors = {};
-              updateSyncStatus(false, "وضع محلي (السحابة فارغة)");
+              // ترتيب الطلاب أبجدياً عربياً
+              Object.keys(db.students || {}).forEach(k => {
+                db.students[k] = arabicSort(db.students[k]);
+              });
+              updateSyncStatus(false, "جارِ رفع البيانات المحلية...");
+              await saveSystemDataToCloud();
               return true;
             } catch (e) { console.error(e); }
           }
@@ -1026,6 +1067,10 @@
           db.students[r.class_name].push(r.student_name);
         });
         db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
+        // ترتيب الطلاب أبجدياً عربياً
+        Object.keys(db.students).forEach(k => {
+          db.students[k] = arabicSort(db.students[k]);
+        });
 
         db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => ({ name: t.name, pin: t.pin }));
         db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({ name: t.name, pin: t.pin, permissions: t.permissions || {} }));
@@ -1060,6 +1105,9 @@
             db = JSON.parse(saved);
             if (!db.customUsers) db.customUsers = [];
             if (!db.behaviors) db.behaviors = {};
+            Object.keys(db.students || {}).forEach(k => {
+              db.students[k] = arabicSort(db.students[k]);
+            });
             updateSyncStatus(false, "وضع محلي - انقر لإعادة المحاولة");
             return true;
           } catch (pe) { console.error(pe); }
@@ -1071,7 +1119,7 @@
     }
 
     /* ============================================================
-       حفظ في السحابة — بدون أي حذف تلقائي
+       حفظ في السحابة
        ============================================================ */
     async function saveSystemDataToCloud() {
       updateSyncStatus(true, "جارِ الحفظ...");
@@ -1079,8 +1127,7 @@
         try { localStorage.setItem('abuDujana_db_v21', JSON.stringify(db)); } catch (e) {}
 
         if (db.classes.length > 0) {
-          const { error } = await sb.from('classes').upsert(db.classes.map(n => ({ name: n })), { onConflict: 'name' });
-          if (error) throw new Error('classes: ' + error.message);
+          await robustUpsert('classes', db.classes.map(n => ({ name: n })), 'name', 200);
         }
 
         const allLocal = [
@@ -1088,8 +1135,7 @@
           ...(db.customUsers || []).map(u => ({ name: u.name, pin: u.pin, role: 'custom', permissions: u.permissions || {} }))
         ];
         if (allLocal.length > 0) {
-          const { error } = await sb.from('teachers').upsert(allLocal, { onConflict: 'name' });
-          if (error) throw new Error('teachers: ' + error.message);
+          await robustUpsert('teachers', allLocal, 'name', 100);
         }
 
         const studentRows = [];
@@ -1097,11 +1143,7 @@
           (list || []).forEach(n => studentRows.push({ class_name: c, student_name: n }));
         }
         if (studentRows.length > 0) {
-          for (let i = 0; i < studentRows.length; i += 200) {
-            const chunk = studentRows.slice(i, i + 200);
-            const { error } = await sb.from('students').upsert(chunk, { onConflict: 'class_name,student_name' });
-            if (error) throw new Error('students: ' + error.message);
-          }
+          await robustUpsert('students', studentRows, 'class_name,student_name', 500);
         }
 
         const attRows = Object.entries(db.attendance).map(([key, v]) => {
@@ -1117,11 +1159,7 @@
           };
         });
         if (attRows.length > 0) {
-          for (let i = 0; i < attRows.length; i += 50) {
-            const chunk = attRows.slice(i, i + 50);
-            const { error } = await sb.from('attendance').upsert(chunk, { onConflict: 'record_key' });
-            if (error) throw new Error('attendance: ' + error.message);
-          }
+          await robustUpsert('attendance', attRows, 'record_key', 100);
         }
 
         const behRows = Object.entries(db.behaviors).map(([key, v]) => {
@@ -1137,11 +1175,7 @@
           };
         });
         if (behRows.length > 0) {
-          for (let i = 0; i < behRows.length; i += 50) {
-            const chunk = behRows.slice(i, i + 50);
-            const { error } = await sb.from('behaviors').upsert(chunk, { onConflict: 'record_key' });
-            if (error) throw new Error('behaviors: ' + error.message);
-          }
+          await robustUpsert('behaviors', behRows, 'record_key', 100);
         }
 
         if (db.adminPin) {
@@ -1161,6 +1195,9 @@
     }
 
     function forceSyncWithCloud() {
+      if (attendanceDirty || behaviorDirty) {
+        if (!confirm('لديك تغييرات غير محفوظة. المزامنة قد تستبدلها. هل تريد المتابعة؟')) return;
+      }
       loadSystemDataFromCloud().then((success) => {
         showToast(success ? 'تم تحديث البيانات من السحاب بنجاح!' : 'تعذر جلب البيانات.', success ? 'success' : 'error');
         if (success && activeUser) {
@@ -1301,6 +1338,14 @@
       if (!newPin || newPin.length < 2) {
         errorEl.textContent = 'أدخل رمزاً جديداً صحيحاً (حرفان على الأقل)!'; errorEl.classList.remove('hidden'); return;
       }
+      // منع تكرار الرمز السري
+      const collision = db.teachers.some(t => t.name !== activeUser.name && t.pin === newPin)
+        || (db.customUsers || []).some(u => u.pin === newPin)
+        || verifyAdminPinInput(newPin);
+      if (collision) {
+        errorEl.textContent = 'هذا الرمز مستخدم من قبل. اختر رمزاً آخر.'; errorEl.classList.remove('hidden'); return;
+      }
+
       const teacherObj = db.teachers.find(t => t.name === activeUser.name);
       if (!teacherObj) {
         errorEl.textContent = 'لم يتم العثور على حسابك كمعلم. تواصل مع الإدارة.'; errorEl.classList.remove('hidden'); return;
@@ -1477,7 +1522,8 @@
         ? `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${teacherLabel}</span>`
         : `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم الرصد بعد</span>`;
 
-      const studentsList = db.students[selectedClass] || [];
+      // ترتيب أبجدي عربي
+      const studentsList = arabicSort(db.students[selectedClass] || []);
       const container = document.getElementById('studentsListContainer');
       container.innerHTML = '';
       document.getElementById('studentsCount').textContent = `إجمالي الطلاب: ${studentsList.length}`;
@@ -1564,18 +1610,21 @@
           records: { ...currentAttendanceRecord }, timestamp: new Date().toISOString()
         };
         const success = await saveSystemDataToCloud();
-        if (success) { attendanceDirty = false; }
-        document.getElementById('unsavedStatusIndicator').textContent = success ? "تم الحفظ سحابياً بنجاح" : "فشل الحفظ السحابي، حُفظ محلياً فقط";
-        showToast(success ? "تم حفظ الحصة سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً. انقر مؤشر المزامنة لإعادة المحاولة.", success ? 'success' : 'info');
+        if (success) {
+          attendanceDirty = false;
+          document.getElementById('unsavedStatusIndicator').textContent = "تم الحفظ سحابياً بنجاح";
+          showToast("تم حفظ الحصة سحابياً بنجاح!", 'success');
+          loadSessionAttendance();
+        } else {
+          document.getElementById('unsavedStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً فقط";
+          showToast("تعذر الاتصال، حُفظت محلياً. انقر مؤشر المزامنة لإعادة المحاولة.", 'info');
+        }
       } catch (error) {
         showToast('حدث خطأ أثناء الحفظ.', 'error');
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`;
       }
-      const keepDirty = attendanceDirty;
-      loadSessionAttendance();
-      attendanceDirty = keepDirty;
     }
 
     /* ============================================================
@@ -1615,7 +1664,8 @@
         ? `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${teacherLabel}</span>`
         : `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم رصد السلوكيات بعد (الافتراضي: منضبط)</span>`;
 
-      const studentsList = db.students[selectedBehaviorClass] || [];
+      // ترتيب أبجدي عربي
+      const studentsList = arabicSort(db.students[selectedBehaviorClass] || []);
       const container = document.getElementById('behaviorStudentsListContainer');
       container.innerHTML = '';
       document.getElementById('behaviorStudentsCount').textContent = `إجمالي الطلاب: ${studentsList.length}`;
@@ -1662,7 +1712,7 @@
         row.appendChild(topDiv);
 
         const noteContainer = document.createElement('div');
-        noteContainer.className = studentData.type === 'other' ? 'mt-2 block' : 'hidden mt-2';
+        noteContainer.className = 'behavior-note-wrapper mt-2' + (studentData.type === 'other' ? '' : ' hidden');
         noteContainer.innerHTML = `
           <input type="text" placeholder="اكتب وصف المشكلة أو السلوك بالتفصيل هنا..." value="${escapeHtml(studentData.note || '')}" data-student="${escapeHtml(student)}" oninput="updateBehaviorNoteFromInput(this)" class="w-full text-xs p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-800 dark:text-white outline-none font-bold focus:ring-2 focus:ring-teal-500">
         `;
@@ -1691,17 +1741,16 @@
       };
       btnElement.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${colorMap[type]}`;
 
-      const noteContainer = rowElement.querySelector('[id^="noteContainer_"], .mt-2.block, .mt-2.hidden');
-      // fallback: find the div that contains our input
-      const noteInput = rowElement.querySelector('input[data-student]');
-      const noteWrapper = noteInput ? noteInput.parentElement : null;
+      // إصلاح: استخدام كلاس موثوق بدلاً من querySelector الهش
+      const noteWrapper = rowElement.querySelector('.behavior-note-wrapper');
       if (noteWrapper) {
         if (type === 'other') {
           noteWrapper.classList.remove('hidden');
-          noteInput.focus();
+          const noteInput = noteWrapper.querySelector('input[data-student]');
+          if (noteInput) noteInput.focus();
         } else {
           noteWrapper.classList.add('hidden');
-          currentBehaviorRecord[student].note = '';
+          // لا نمسح الملاحظة من البيانات حتى لا تضيع عند العودة إلى "أخرى"
         }
       }
 
@@ -1740,19 +1789,22 @@
           records: { ...currentBehaviorRecord }, timestamp: new Date().toISOString()
         };
         const success = await saveSystemDataToCloud();
-        if (success) { behaviorDirty = false; }
-        document.getElementById('unsavedBehaviorStatusIndicator').textContent = success ? "تم حفظ السلوكيات سحابياً بنجاح" : "فشل الحفظ السحابي، حُفظت محلياً فقط";
-        showToast(success ? "تم حفظ السلوكيات سحابياً بنجاح!" : "تعذر الاتصال، حُفظت محلياً.", success ? 'success' : 'info');
-        if (success) renderBehaviorClassesGrid();
+        if (success) {
+          behaviorDirty = false;
+          document.getElementById('unsavedBehaviorStatusIndicator').textContent = "تم حفظ السلوكيات سحابياً بنجاح";
+          showToast("تم حفظ السلوكيات سحابياً بنجاح!", 'success');
+          renderBehaviorClassesGrid();
+          loadSessionBehavior();
+        } else {
+          document.getElementById('unsavedBehaviorStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظت محلياً فقط";
+          showToast("تعذر الاتصال، حُفظت محلياً.", 'info');
+        }
       } catch (error) {
         showToast('حدث خطأ أثناء حفظ السلوكيات.', 'error');
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>`;
       }
-      const keepDirty = behaviorDirty;
-      loadSessionBehavior();
-      behaviorDirty = keepDirty;
     }
 
     /* ============================================================
@@ -1807,7 +1859,7 @@
     function getFilteredBehaviorRecords() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const todayStr = getOmanLocalDate();
-      const todayDate = new Date(todayStr);
+      const todayDate = new Date(todayStr + 'T00:00:00');
       let filteredSessions = [];
       if (!db.behaviors) return filteredSessions;
 
@@ -1817,13 +1869,13 @@
         const sessClassName = session.className || parsed.className;
         const sessPeriod = session.period || parsed.period;
         const sessTeacher = session.teacher || 'معلم';
-        const sessDate = new Date(sessDateStr);
+        const sessDate = new Date(sessDateStr + 'T00:00:00');
 
         let include = false;
         if (periodType === 'today') include = (sessDateStr === todayStr);
         else if (periodType === 'yesterday') {
           const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1);
-          include = (sessDateStr === yest.toISOString().split('T')[0]);
+          include = (sessDateStr === formatDateLocal(yest));
         } else if (periodType === 'week') {
           const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7);
           include = (sessDate >= weekAgo && sessDate <= todayDate);
@@ -1954,7 +2006,7 @@
       } else {
         historyLogs.forEach(log => {
           const label = behLabels[log.type] || log.type;
-          const noteText = log.note ? ` - ${log.note}` : '';
+          const noteText = (log.type === 'other' && log.note) ? ` - ${log.note}` : '';
           bodyHTML += `
             <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center gap-2">
               <div>
@@ -2118,7 +2170,9 @@
           const sessionData = db.behaviors ? db.behaviors[sessionKey] : null;
           const records = sessionData?.records || {};
           const teacherName = sessionData?.teacher || '(غير مسجل)';
-          const issuesList = Object.entries(records).filter(([st, obj]) => obj && obj.type && obj.type !== 'normal');
+          const issuesList = Object.entries(records)
+            .filter(([st, obj]) => obj && obj.type && obj.type !== 'normal')
+            .sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
 
           const pCell = document.createElement('div');
           pCell.className = 'border border-slate-200 dark:border-slate-700 rounded-2xl p-2 bg-slate-50/50 dark:bg-slate-900/50 flex flex-col min-h-[150px]';
@@ -2135,7 +2189,7 @@
           } else {
             issuesList.forEach(([studentName, behObj]) => {
               const typeLabel = behLabels[behObj.type] || behObj.type;
-              const noteText = behObj.note ? ` (${behObj.note})` : '';
+              const noteText = (behObj.type === 'other' && behObj.note) ? ` (${behObj.note})` : '';
               contentDiv.innerHTML += `<div class="text-[9.5px] font-bold text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950/40 p-1.5 rounded-xl border border-red-200/50 dark:border-red-900/50">• ${escapeHtml(studentName)}<br><span class="text-[8.5px] text-slate-700 dark:text-slate-300 font-normal">[${escapeHtml(typeLabel + noteText)}]</span></div>`;
             });
           }
@@ -2176,13 +2230,15 @@
           const teacher = sData?.teacher || '(غير مسجل)';
           const records = sData?.records || {};
           printHTML += `<div class="period-cell"><div class="period-title">الحصة ${p}<br><small style="font-weight:normal; color:#444;">(${escapeHtml(teacher)})</small></div>`;
-          const issues = Object.entries(records).filter(([st, obj]) => obj && obj.type && obj.type !== 'normal');
+          const issues = Object.entries(records)
+            .filter(([st, obj]) => obj && obj.type && obj.type !== 'normal')
+            .sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
           if (issues.length === 0) {
             printHTML += `<div style="text-align:center; color:#888; font-size:8px; margin-top:15px;">منضبطون 🟢</div>`;
           } else {
             issues.forEach(([name, obj]) => {
               const label = behLabels[obj.type] || obj.type;
-              const note = obj.note ? ` - ${obj.note}` : '';
+              const note = (obj.type === 'other' && obj.note) ? ` - ${obj.note}` : '';
               printHTML += `<div class="item-violation">• ${escapeHtml(name)}<br><span style="color:#333; font-weight:normal;">[${escapeHtml(label + note)}]</span></div>`;
             });
           }
@@ -2206,7 +2262,7 @@
     function getFilteredAttendanceRecords() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const todayStr = getOmanLocalDate();
-      const todayDate = new Date(todayStr);
+      const todayDate = new Date(todayStr + 'T00:00:00');
       let filteredSessions = [];
 
       Object.entries(db.attendance).forEach(([key, session]) => {
@@ -2215,13 +2271,13 @@
         const sessClassName = session.className || parsed.className;
         const sessPeriod = session.period || parsed.period;
         const sessTeacher = session.teacher || 'معلم';
-        const sessDate = new Date(sessDateStr);
+        const sessDate = new Date(sessDateStr + 'T00:00:00');
 
         let include = false;
         if (periodType === 'today') include = (sessDateStr === todayStr);
         else if (periodType === 'yesterday') {
           const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1);
-          include = (sessDateStr === yest.toISOString().split('T')[0]);
+          include = (sessDateStr === formatDateLocal(yest));
         } else if (periodType === 'week') {
           const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7);
           include = (sessDate >= weekAgo && sessDate <= todayDate);
@@ -2268,6 +2324,8 @@
 
       Object.entries(studentRawLogs).forEach(([studKey, data]) => {
         const { name, className, history } = data;
+        // إصلاح: حماية من الانهيار عند وجود صف محذوف
+        if (!classStats[className]) classStats[className] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
         const dateMap = {};
         history.forEach(h => {
           if (!dateMap[h.date]) dateMap[h.date] = new Set();
@@ -2292,7 +2350,9 @@
       document.getElementById('cardCountOutside').textContent = counts.outside;
 
       const threshold = 2;
-      const needsAttentionList = Object.values(studentViolations).filter(s => s.total >= threshold).sort((a, b) => b.total - a.total);
+      const needsAttentionList = Object.values(studentViolations)
+        .filter(s => db.classes.includes(s.className) && s.total >= threshold)
+        .sort((a, b) => b.total - a.total);
       document.getElementById('needsAttentionCountBadge').textContent = `${needsAttentionList.length} طلاب`;
       const attContainer = document.getElementById('needsAttentionContainer');
 
@@ -2320,7 +2380,8 @@
       }
 
       const sortOrder = document.getElementById('classSortOrder').value;
-      const classEntries = Object.entries(classStats);
+      // إصلاح: استبعاد الصفوف المحذوفة من الجدول
+      const classEntries = Object.entries(classStats).filter(([c]) => db.classes.includes(c));
       if (sortOrder === 'violationsDesc') classEntries.sort((a, b) => b[1].total - a[1].total);
       else classEntries.sort((a, b) => a[0].localeCompare(b[0]));
 
@@ -2371,6 +2432,8 @@
         });
       });
 
+      list.sort((a, b) => String(a.studentName).localeCompare(String(b.studentName), 'ar'));
+
       document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة طلاب (${statusLabels[statusKey]}) - عدد المرات: ${list.length}`;
       const body = document.getElementById('generalModalBody');
 
@@ -2406,6 +2469,8 @@
           }
         });
       });
+
+      list.sort((a, b) => String(a.studentName).localeCompare(String(b.studentName), 'ar'));
 
       document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات طلاب صف ${escapeHtml(className)} (${list.length} حالة)`;
       const body = document.getElementById('generalModalBody');
@@ -2632,11 +2697,15 @@
     }
 
     /* ============================================================
-       تقارير الحضور — ترتيب: غائب ثم متسرب ثم متأخر ثم خارج
+       تقارير الحضور
        ============================================================ */
     const STATUS_ORDER = { absent: 0, escape: 1, late: 2, outside: 3 };
     function sortAttendanceIssues(issues) {
-      return issues.sort((a, b) => (STATUS_ORDER[a[1]] ?? 4) - (STATUS_ORDER[b[1]] ?? 4));
+      return [...issues].sort((a, b) => {
+        const s = (STATUS_ORDER[a[1]] ?? 4) - (STATUS_ORDER[b[1]] ?? 4);
+        if (s !== 0) return s;
+        return String(a[0]).localeCompare(String(b[0]), 'ar');
+      });
     }
 
     function renderReportsSection() {
@@ -2819,7 +2888,8 @@
 
     function loadAdminStudentsList() {
       const sel = document.getElementById('adminClassSelect')?.value;
-      const list = (sel && db.students[sel]) || [];
+      // ترتيب أبجدي عربي
+      const list = arabicSort((sel && db.students[sel]) || []);
       const container = document.getElementById('adminStudentsDisplay');
       const bulkInput = document.getElementById('bulkStudentsInput');
       if (bulkInput && document.activeElement !== bulkInput) bulkInput.value = list.join('\n');
@@ -2838,7 +2908,8 @@
 
     async function saveBulkStudents() {
       const sel = document.getElementById('adminClassSelect').value;
-      db.students[sel] = document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean);
+      // ترتيب أبجدي عربي
+      db.students[sel] = arabicSort(document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean));
       const success = await saveSystemDataToCloud();
       loadAdminStudentsList();
       showToast(success ? 'تم تحديث قائمة الطلاب سحابياً!' : 'تم التحديث محلياً.', success ? 'success' : 'info');
@@ -2853,7 +2924,8 @@
         const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
         const sel = document.getElementById('adminClassSelect').value;
         if (lines.length > 0) {
-          db.students[sel] = [...new Set([...(db.students[sel] || []), ...lines])];
+          // ترتيب أبجدي عربي بعد الدمج
+          db.students[sel] = arabicSort([...new Set([...(db.students[sel] || []), ...lines])]);
           await saveSystemDataToCloud();
           loadAdminStudentsList();
           showToast(`تم استيراد ${lines.length} طالباً بنجاح!`, 'success');
@@ -2869,12 +2941,10 @@
       if (!confirm(`حذف الطالب (${studentName}) من صف ${className}؟`)) return;
       list.splice(idx, 1);
 
-      const affectedAttKeys = [];
       Object.entries(db.attendance).forEach(([k, sess]) => {
         const p = parseAttendanceKey(k);
         if (p.className === className && sess.records && sess.records[studentName] !== undefined) {
           delete sess.records[studentName];
-          affectedAttKeys.push(k);
         }
       });
       Object.entries(db.behaviors).forEach(([k, sess]) => {
@@ -2963,6 +3033,11 @@
       const pin = document.getElementById('newTeacherPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       if (db.teachers.some(t => t.name === name)) { showToast('اسم المعلم مستخدم مسبقاً.', 'error'); return; }
+      // منع تكرار الرمز السري
+      const collision = db.teachers.some(t => t.pin === pin)
+        || (db.customUsers || []).some(u => u.pin === pin)
+        || verifyAdminPinInput(pin);
+      if (collision) { showToast('هذا الرمز مستخدم من قبل. اختر رمزاً آخر.', 'error'); return; }
       db.teachers.push({ name, pin });
       const success = await saveSystemDataToCloud();
       renderTeachersList();
@@ -2976,7 +3051,12 @@
       if (!t) return;
       const newPin = prompt(`الرمز الجديد لـ (${t.name}):`, t.pin);
       if (newPin?.trim()) {
-        t.pin = newPin.trim();
+        const trimmed = newPin.trim();
+        const collision = db.teachers.some((tt, i) => i !== idx && tt.pin === trimmed)
+          || (db.customUsers || []).some(u => u.pin === trimmed)
+          || verifyAdminPinInput(trimmed);
+        if (collision) { showToast('هذا الرمز مستخدم من قبل. اختر رمزاً آخر.', 'error'); return; }
+        t.pin = trimmed;
         const success = await saveSystemDataToCloud();
         renderTeachersList();
         showToast(success ? 'تم تحديث الرمز بنجاح' : 'تم التحديث محلياً فقط.', success ? 'success' : 'info');
@@ -2992,6 +3072,11 @@
       await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
       renderTeachersList();
       showToast('تم حذف المعلم بنجاح', 'info');
+      // إبطال جلسة المعلم إذا كان هو المستخدم الحالي
+      if (activeUser && activeUser.type === 'teacher' && activeUser.name === t.name) {
+        showToast('تم حذف حسابك. سيتم تسجيل الخروج.', 'error');
+        setTimeout(() => _performLogout(), 800);
+      }
     }
 
     function generateSmartAlerts() {
@@ -3036,6 +3121,11 @@
       const pin = document.getElementById('newCustomUserPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       if (db.customUsers.some(u => u.name === name)) { showToast('اسم المستخدم مستخدم مسبقاً.', 'error'); return; }
+      // منع تكرار الرمز السري
+      const collision = db.teachers.some(t => t.pin === pin)
+        || db.customUsers.some(u => u.pin === pin)
+        || verifyAdminPinInput(pin);
+      if (collision) { showToast('هذا الرمز مستخدم من قبل. اختر رمزاً آخر.', 'error'); return; }
       const permissions = {
         studstats: document.getElementById('perm_studstats').checked,
         behaviorstats: document.getElementById('perm_behaviorstats').checked,
@@ -3079,6 +3169,11 @@
       await queueCloudDelete('teachers', { name: u.name, role: 'custom' });
       renderCustomUsersList();
       showToast('تم حذف المستخدم المخصص', 'info');
+      // إبطال جلسة المستخدم إذا كان هو المستخدم الحالي
+      if (activeUser && activeUser.type === 'custom' && activeUser.name === u.name) {
+        showToast('تم حذف حسابك. سيتم تسجيل الخروج.', 'error');
+        setTimeout(() => _performLogout(), 800);
+      }
     }
 
     async function saveNewAdminPin() {
