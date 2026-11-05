@@ -15,35 +15,19 @@
     .dark .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 10px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0f766e; }
-    
-    /* أزرار الحالات البارزة والتفاعلية */
-    .status-btn { 
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
-      cursor: pointer;
-    }
-    .status-btn:hover { 
-      transform: translateY(-2px); 
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); 
-    }
-    .status-btn:active { 
-      transform: scale(0.94); 
-    }
-    
-    /* بطاقات التحكم الرئيسية الحديثة */
-    .hero-card { 
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
-    }
-    .hero-card:hover { 
-      transform: translateY(-8px) scale(1.02); 
-      box-shadow: 0 20px 35px -10px rgba(13, 148, 136, 0.3);
-    }
-    
+
+    .status-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
+    .status-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
+    .status-btn:active { transform: scale(0.94); }
+
+    .hero-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+    .hero-card:hover { transform: translateY(-8px) scale(1.02); box-shadow: 0 20px 35px -10px rgba(13, 148, 136, 0.3); }
+
     @keyframes toastIn { from { transform: translateY(-20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
     @keyframes toastOut { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(-20px) scale(0.9); opacity: 0; } }
     .toast-enter { animation: toastIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     .toast-exit { animation: toastOut 0.25s ease forwards; }
 
-    /* خلفية زجاجية عصرية ناعمة */
     .glass-card {
       background: rgba(255, 255, 255, 0.85);
       backdrop-filter: blur(16px);
@@ -69,7 +53,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-xl font-extrabold tracking-wide text-white drop-shadow-sm">مدرسة أبو دجانة الأنصاري</h1>
-          <p class="text-[11px] text-emerald-300 font-medium">نظام حصر ومتابعة الغياب والسلوك الذكي (توقيت عمان)</p>
+          <p class="text-[11px] text-emerald-300 font-medium">نظام حصر ومتابعة الغياب والسلوك والمناوبة الذكي (توقيت عمان)</p>
         </div>
       </div>
       <div class="flex items-center space-x-2 space-x-reverse">
@@ -94,14 +78,14 @@
 
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <!-- شاشة تسجيل الدخول المطورة جمالياً -->
+    <!-- شاشة تسجيل الدخول -->
     <div id="loginView" class="max-w-md mx-auto my-12 glass-card p-8 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/80 transition-all duration-300">
       <div class="text-center mb-6">
         <div class="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg border border-emerald-400/30 transform hover:scale-105 transition-transform duration-300">
           <i class="fa-solid fa-user-lock"></i>
         </div>
         <h2 class="text-2xl font-black text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات والمناوبة</p>
       </div>
       <form onsubmit="handleUserLogin(event)" class="space-y-5">
         <div>
@@ -115,7 +99,7 @@
       </form>
     </div>
 
-    <!-- لوحة الاختيار الرئيسية بالبطاقات المطورة -->
+    <!-- لوحة الاختيار الرئيسية -->
     <div id="dashboardSelectionView" class="hidden space-y-8">
       <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4 transition-all duration-300">
         <div class="flex items-center gap-3.5">
@@ -148,7 +132,8 @@
         <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+        <!-- بطاقة الغياب -->
         <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
@@ -168,6 +153,7 @@
           </div>
         </div>
 
+        <!-- بطاقة السلوكيات -->
         <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-700 via-cyan-800 to-indigo-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
@@ -181,6 +167,30 @@
           </div>
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200 group-hover:text-white">
             <span>انقر للبدء في الرصد</span>
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
+              <i class="fa-solid fa-arrow-left text-sm"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- بطاقة المناوبة (تظهر للمصرح لهم فقط) -->
+        <div id="dutyHeroCard" onclick="goToDutySection()" class="hero-card hidden relative overflow-hidden bg-gradient-to-br from-amber-700 via-orange-800 to-rose-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-amber-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
+          <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-amber-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
+          <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+          <div class="relative z-10 flex justify-between items-start">
+            <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-amber-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner group-hover:rotate-6 group-hover:scale-110 transition-all duration-300">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <span class="bg-white/20 backdrop-blur-sm text-[10px] font-bold px-3 py-1 rounded-full border border-white/20">
+              <i class="fa-solid fa-bolt"></i> نظام ذكي
+            </span>
+          </div>
+          <div class="relative z-10 mt-6">
+            <h4 class="text-3xl font-black tracking-wide text-white mb-2 group-hover:translate-x-1 transition-transform duration-300">المناوبة</h4>
+            <p class="text-xs text-amber-200 font-semibold">رصد الصفوف الشاغرة ومشاركة التقرير</p>
+          </div>
+          <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-amber-200 group-hover:text-white">
+            <span>انقر للبدء في المناوبة</span>
             <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
               <i class="fa-solid fa-arrow-left text-sm"></i>
             </div>
@@ -210,7 +220,7 @@
       </div>
     </div>
 
-    <!-- شاشة رصد الحضور بنفس المعرفات والمكونات البرمجية الدقيقة -->
+    <!-- شاشة رصد الحضور -->
     <div id="attendanceView" class="hidden space-y-6">
       <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
@@ -327,9 +337,78 @@
         </div>
       </div>
     </div>
+
+    <!-- عرض اختيار حصة المناوبة -->
+    <div id="dutyPeriodsView" class="hidden space-y-6">
+      <div class="glass-card p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+        <button onclick="backToDashboardSelection()" class="bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-800 dark:text-amber-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-amber-200 dark:border-amber-800 cursor-pointer active:scale-95">
+          <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
+        </button>
+        <span class="text-xs font-bold text-amber-800 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/60 px-3 py-1.5 rounded-2xl border border-amber-200 dark:border-amber-800/60">
+          <i class="fa-solid fa-user-shield"></i> نظام المناوبة الذكي
+        </span>
+      </div>
+
+      <div class="bg-gradient-to-r from-amber-800 to-orange-900 text-white p-6 rounded-3xl shadow-lg border border-amber-600/50">
+        <div class="flex flex-wrap justify-between items-center gap-4">
+          <div>
+            <h3 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-clock text-amber-300"></i> مناوبتك اليوم</h3>
+            <p class="text-xs text-amber-200 mt-1">اختر الحصة الدراسية لبدء رصد الصفوف الشاغرة</p>
+            <p id="dutyTodayInfo" class="text-xs text-amber-100 mt-2 font-bold"></p>
+          </div>
+          <div class="bg-white/15 backdrop-blur-md px-4 py-2.5 rounded-2xl border border-white/20 text-center">
+            <span class="text-[10px] text-amber-200 block font-bold">الوقت الحالي (عمان)</span>
+            <span id="dutyCurrentTimeLabel" class="text-xl font-extrabold"></span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" id="dutyPeriodsGrid"></div>
+    </div>
+
+    <!-- جلسة رصد المناوبة -->
+    <div id="dutySessionView" class="hidden space-y-6">
+      <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-3">
+          <button onclick="backToDutyPeriods()" class="bg-amber-50 dark:bg-amber-950/60 hover:bg-amber-100 text-amber-800 dark:text-amber-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-amber-200 dark:border-amber-800 shadow-sm cursor-pointer active:scale-95">
+            <i class="fa-solid fa-arrow-right text-amber-600"></i> العودة للحصص
+          </button>
+          <div>
+            <h2 id="dutySelectedPeriodTitle" class="text-lg font-extrabold text-amber-900 dark:text-amber-300"></h2>
+            <p id="dutyPeriodTimeStatus" class="text-xs text-slate-500 dark:text-slate-400 font-semibold mt-0.5"></p>
+          </div>
+        </div>
+        <div id="activeDutyTeacherBadge" class="bg-amber-100 dark:bg-amber-950 text-amber-900 dark:text-amber-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-amber-300 dark:border-amber-700 shadow-sm flex items-center gap-2">
+          <i class="fa-solid fa-user-check text-amber-600"></i> <span id="activeDutyTeacherText"></span>
+        </div>
+      </div>
+
+      <div class="glass-card rounded-3xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+        <div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
+          <div class="flex items-center gap-3">
+            <span class="font-extrabold text-slate-800 dark:text-white text-sm">اختر الصفوف الشاغرة التي بدون معلم</span>
+            <span id="dutyVacantCountBadge" class="text-xs font-bold bg-amber-100 dark:bg-amber-950 text-amber-800 dark:text-amber-300 px-3 py-1 rounded-2xl border border-amber-200 dark:border-amber-800">0 صف شاغر</span>
+          </div>
+        </div>
+        <div id="dutyClassesGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-4 max-h-[55vh] overflow-y-auto custom-scrollbar"></div>
+        <div class="p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
+          <div class="text-xs text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1.5">
+            <i class="fa-solid fa-circle-check text-sm"></i> <span id="dutyUnsavedIndicator">جاهز للرصد</span>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button id="shareDutyWhatsappBtn" onclick="shareDutyViaWhatsApp()" class="hidden bg-green-600 hover:bg-green-700 text-white px-5 py-3.5 rounded-2xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95 border border-green-500/40">
+              <i class="fa-brands fa-whatsapp text-base"></i> <span>مشاركة التقرير عبر واتساب</span>
+            </button>
+            <button id="saveDutySessionBtn" onclick="saveDutySession()" class="bg-amber-700 hover:bg-amber-800 text-white px-6 py-3.5 rounded-2xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> <span>حفظ تقرير المناوبة</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </main>
 
-  <!-- نافذة اختيار الحصة الدراسية -->
+  <!-- نافذة اختيار الحصة -->
   <div id="selectPeriodModal" class="fixed inset-0 bg-slate-900/70 z-[999999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
     <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] max-w-xl w-full p-7 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6">
       <div class="flex justify-between items-center border-b pb-4 dark:border-slate-700">
@@ -383,6 +462,34 @@
     </div>
   </div>
 
+  <!-- نافذة تأكيد الصف الشاغر -->
+  <div id="dutyClassConfirmModal" class="fixed inset-0 bg-slate-900/70 z-[999999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
+        <h3 id="dutyConfirmModalTitle" class="font-extrabold text-base text-slate-800 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-triangle-exclamation text-amber-600"></i> تأكيد الصف الشاغر
+        </h3>
+        <button onclick="closeDutyClassConfirmModal()" class="w-9 h-9 rounded-2xl bg-slate-100 dark:bg-slate-700 text-slate-400 hover:text-slate-600 dark:hover:text-white flex items-center justify-center cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">اسم المعلم المتغيب:</label>
+          <input type="text" id="dutyAbsentTeacherInput" placeholder="أدخل اسم المعلم المتغيب" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">تخصص المعلم المتغيب:</label>
+          <input type="text" id="dutySubjectInput" placeholder="مثال: رياضيات" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl text-xs font-bold outline-none focus:ring-2 focus:ring-amber-500">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeDutyClassConfirmModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold cursor-pointer hover:bg-slate-300 transition">إلغاء</button>
+        <button onclick="confirmDutyClass()" class="px-5 py-2.5 bg-amber-700 hover:bg-amber-800 text-white rounded-2xl text-xs font-bold shadow-md cursor-pointer transition active:scale-95">
+          <i class="fa-solid fa-check"></i> تأكيد الصف الشاغر
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- تغيير الرمز للمعلم -->
   <div id="changePinModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
     <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
@@ -424,7 +531,7 @@
     </div>
   </div>
 
-  <!-- ملف الطالب تفصيلياً -->
+  <!-- ملف الطالب -->
   <div id="studentDetailModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
     <div class="glass-card rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
@@ -441,7 +548,7 @@
     </div>
   </div>
 
-  <!-- لوحة التحكم الإدارية (بدون تغيير في التبويبات أو القوائم) -->
+  <!-- لوحة التحكم الإدارية -->
   <div id="adminModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
     <div class="glass-card rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
@@ -467,8 +574,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm">تحكم كامل</span>
         </div>
 
-        <!-- التبويبات البارزة بالنقر المباشر فقط -->
-        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات الطلاب</span>
           </button>
@@ -488,13 +594,16 @@
             <i class="fa-solid fa-bell text-red-500"></i> <span>التنبيهات</span>
           </button>
           <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
-            <i class="fa-solid fa-print text-purple-600"></i> <span>التقارير والطباعة</span>
+            <i class="fa-solid fa-print text-purple-600"></i> <span>التقارير</span>
           </button>
           <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-cloud-arrow-up text-cyan-600"></i> <span>المزامنة</span>
           </button>
           <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-shield-halved text-emerald-600"></i> <span>الأمان</span>
+          </button>
+          <button onclick="switchAdminTab('duty')" id="tab-duty" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer">
+            <i class="fa-solid fa-user-shield text-amber-600"></i> <span>المناوبة</span>
           </button>
         </div>
 
@@ -634,7 +743,7 @@
             <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
-                  <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة الطلاب الأكثر ارتكاباً للسلوكيات والمخالفات (من الأعلى إلى الأقل)
+                  <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة الطلاب الأكثر ارتكاباً للسلوكيات والمخالفات
                 </h5>
                 <span id="behaviorTopCountBadge" class="bg-teal-100 dark:bg-teal-950/60 text-teal-800 dark:text-teal-300 text-xs font-bold px-3 py-1 rounded-2xl border border-teal-200 dark:border-teal-800">0 طلاب مخالفين</span>
               </div>
@@ -650,7 +759,7 @@
             <div class="flex flex-wrap justify-between items-center gap-4">
               <div>
                 <h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-scale-balanced text-teal-300"></i> تفريغ وإحصائيات سلوكيات الطلاب (تنسيق PDF أفقي)</h4>
-                <p class="text-xs text-teal-200 mt-1">تفريغ كافة الحصص الثماني للسلوكيات أفقياً لكل صف ومتابعة المخالفات المسجلة من المعلمين</p>
+                <p class="text-xs text-teal-200 mt-1">تفريغ كافة الحصص الثماني للسلوكيات أفقياً لكل صف ومتابعة المخالفات المسجلة</p>
               </div>
               <div class="flex flex-wrap gap-2">
                 <button onclick="printHorizontalBehaviorReport()" class="bg-teal-700 hover:bg-teal-600 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition-all duration-200 flex items-center gap-2 cursor-pointer border border-teal-500/40 active:scale-95">
@@ -674,7 +783,6 @@
             </div>
           </div>
 
-          <!-- الجداول الأفقية المرتبة للشاشة -->
           <div class="space-y-6 overflow-x-auto custom-scrollbar" id="behaviorReportClassesContainer"></div>
         </div>
 
@@ -685,7 +793,7 @@
               <input type="text" id="newCustomUserName" placeholder="اسم المستخدم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-emerald-500">
               <input type="password" id="newCustomUserPin" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 dark:border-slate-700 rounded-2xl text-xs outline-none font-bold tracking-widest focus:ring-2 focus:ring-emerald-500">
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs font-bold">
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600 rounded-md" checked> إحصائيات الطلاب</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_behaviorstats" class="accent-teal-600 rounded-md" checked> تفريغ السلوكيات PDF</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_users" class="accent-emerald-600 rounded-md"> إدارة الأشخاص</label>
@@ -695,6 +803,7 @@
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_reports" class="accent-emerald-600 rounded-md" checked> التقارير والطباعة</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_sync" class="accent-emerald-600 rounded-md"> المزامنة السحابية</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_security" class="accent-emerald-600 rounded-md"> الأمان والرمز السري</label>
+              <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_duty" class="accent-amber-600 rounded-md"> جدول المناوبة</label>
             </div>
             <button onclick="addCustomUser()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition cursor-pointer active:scale-95">حفظ المستخدم سحابياً</button>
           </div>
@@ -776,7 +885,6 @@
             </div>
           </div>
 
-          <!-- عرض أفقية الحصص أفقياً بأسلوب أنيق جداً داخل الشاشة -->
           <div class="space-y-6 overflow-x-auto custom-scrollbar" id="reportClassesContainer"></div>
         </div>
 
@@ -801,7 +909,7 @@
               <i class="fa-solid fa-triangle-exclamation text-red-600"></i> تصفير وحذف سجلات الغياب والسلوكيات التجريبية بالكامل
             </h5>
             <p class="text-xs text-slate-600 dark:text-slate-400">
-              هذا الإجراء سيقوم بحذف كافة السجلات التجريبية القديمة للغياب والسلوكيات لكي لا تظهر في الإحصائيات. يتطلب إدخال الرقم السري لمدير النظام مرتين للتأكيد.
+              هذا الإجراء سيقوم بحذف كافة السجلات التجريبية القديمة للغياب والسلوكيات لكي لا تظهر في الإحصائيات.
             </p>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg">
               <div>
@@ -820,29 +928,63 @@
           </div>
         </div>
 
+        <!-- قسم المناوبة -->
+        <div id="sec-duty" class="hidden space-y-6">
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-calendar-week text-amber-600"></i> جدول المناوبة الأسبوعي
+            </h5>
+            <p class="text-xs text-slate-500 dark:text-slate-400">حدد المعلمين المناوبين لكل يوم من أيام الأسبوع</p>
+            <div id="dutyScheduleEditor" class="space-y-3"></div>
+          </div>
+
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-clock text-emerald-600"></i> توقيت بداية الحصص الدراسية
+            </h5>
+            <p class="text-xs text-slate-500 dark:text-slate-400">يُستخدم للتحقق من قيد الـ 5 دقائق في نظام المناوبة</p>
+            <div id="periodTimingsEditor" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3"></div>
+            <button onclick="savePeriodTimings()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition cursor-pointer active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> حفظ التوقيت
+            </button>
+          </div>
+
+          <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 dark:border-slate-700/80 space-y-3">
+            <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+              <i class="fa-solid fa-table text-teal-600"></i> الجدول المدرسي (تعديل يدوي)
+            </h5>
+            <p class="text-xs text-slate-500 dark:text-slate-400">حدد المعلم والتخصص لكل حصة. (سيتم استيراده لاحقاً من PDF)</p>
+            <div class="flex items-center gap-3">
+              <label class="text-xs font-bold">اختر الصف:</label>
+              <select id="timetableClassSelect" onchange="renderTimetableEditor()" class="border border-slate-200 dark:border-slate-700 rounded-2xl px-3.5 py-2 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white font-bold outline-none cursor-pointer"></select>
+            </div>
+            <div id="timetableEditor" class="space-y-2"></div>
+            <button onclick="saveTimetableClass()" class="bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md transition cursor-pointer active:scale-95">
+              <i class="fa-solid fa-floppy-disk"></i> حفظ جدول هذا الصف
+            </button>
+          </div>
+        </div>
+
       </div>
     </div>
   </main>
 
   <script>
     /* ============================================================
-       إعدادات الاتصال بـ Supabase الكلية الكاملة دون أي مساس
+       إعدادات الاتصال بـ Supabase
        ============================================================ */
     const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     /* ============================================================
-       أدوات مساعدة عامة
+       أدوات مساعدة
        ============================================================ */
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
 
     function arabicSort(list) {
@@ -948,12 +1090,31 @@
 
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DEFAULT_TEACHERS = [{ name: "أ. سالم الوهيبي", pin: "1111" }, { name: "أ. محمد العبري", pin: "2222" }, { name: "أ. سعيد المقبالي", pin: "3333" }];
+    const DEFAULT_TIMINGS = { 1: "07:30", 2: "08:15", 3: "09:20", 4: "10:05", 5: "10:50", 6: "11:35", 7: "12:20", 8: "13:05" };
+    const DEFAULT_DUTY_SCHEDULE = { "الأحد": [], "الاثنين": [], "الثلاثاء": [], "الأربعاء": [], "الخميس": [], "الجمعة": [], "السبت": [] };
 
-    let db = { version: 15, adminPin: safeBtoa("1234"), customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {} };
+    let db = {
+      version: 16,
+      adminPin: safeBtoa("1234"),
+      customUsers: [],
+      teachers: [],
+      classes: [],
+      students: {},
+      attendance: {},
+      behaviors: {},
+      dutySchedule: JSON.parse(JSON.stringify(DEFAULT_DUTY_SCHEDULE)),
+      periodTimings: { ...DEFAULT_TIMINGS },
+      timetable: {},
+      dutyReports: {}
+    };
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
     let selectedBehaviorClass = null, currentBehaviorRecord = {};
     let attendanceDirty = false, behaviorDirty = false;
     let pendingTargetClass = null, pendingMode = 'attendance';
+    let selectedDutyPeriod = null;
+    let currentDutyRecord = {};
+    let dutyDirty = false;
+    let pendingDutyClass = null;
 
     /* ============================================================
        الحذف السحابي (طابور)
@@ -1028,7 +1189,7 @@
       });
 
       window.addEventListener('beforeunload', (e) => {
-        if (attendanceDirty || behaviorDirty) {
+        if (attendanceDirty || behaviorDirty || dutyDirty) {
           e.preventDefault();
           e.returnValue = '';
         }
@@ -1064,13 +1225,14 @@
       updateSyncStatus(false, "جارِ تحميل البيانات...");
       try {
         await flushPendingDeletes();
-        const [classesRes, studentsRes, teachersRes, attendanceRes, behaviorsRes, settingsRes] = await Promise.all([
+        const [classesRes, studentsRes, teachersRes, attendanceRes, behaviorsRes, settingsRes, dutyReportsRes] = await Promise.all([
           sb.from('classes').select('name'),
           sb.from('students').select('class_name, student_name'),
           sb.from('teachers').select('*'),
           sb.from('attendance').select('*'),
           sb.from('behaviors').select('*'),
-          sb.from('school_settings').select('*')
+          sb.from('school_settings').select('*'),
+          sb.from('duty_reports').select('*').then(r => r).catch(() => ({ data: [], error: null }))
         ]);
         const firstErr = [classesRes, studentsRes, teachersRes, attendanceRes, behaviorsRes, settingsRes].find(r => r.error);
         if (firstErr) throw new Error(firstErr.error.message);
@@ -1086,9 +1248,11 @@
               db = JSON.parse(saved);
               if (!db.customUsers) db.customUsers = [];
               if (!db.behaviors) db.behaviors = {};
-              Object.keys(db.students || {}).forEach(k => {
-                db.students[k] = arabicSort(db.students[k]);
-              });
+              if (!db.dutySchedule) db.dutySchedule = JSON.parse(JSON.stringify(DEFAULT_DUTY_SCHEDULE));
+              if (!db.periodTimings) db.periodTimings = { ...DEFAULT_TIMINGS };
+              if (!db.timetable) db.timetable = {};
+              if (!db.dutyReports) db.dutyReports = {};
+              Object.keys(db.students || {}).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
               updateSyncStatus(false, "جارِ رفع البيانات المحلية...");
               await saveSystemDataToCloud();
               return true;
@@ -1106,15 +1270,22 @@
           db.students[r.class_name].push(r.student_name);
         });
         db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
-        Object.keys(db.students).forEach(k => {
-          db.students[k] = arabicSort(db.students[k]);
-        });
+        Object.keys(db.students).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
 
         db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => ({ name: t.name, pin: t.pin }));
         db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({ name: t.name, pin: t.pin, permissions: t.permissions || {} }));
 
-        const adminRow = (settingsRes.data || []).find(r => r.key === 'admin_pin');
+        const allSettings = settingsRes.data || [];
+        const adminRow = allSettings.find(r => r.key === 'admin_pin');
         if (adminRow?.value?.pin) db.adminPin = adminRow.value.pin;
+        const dutySchedRow = allSettings.find(r => r.key === 'duty_schedule');
+        if (dutySchedRow?.value) db.dutySchedule = dutySchedRow.value;
+        else db.dutySchedule = JSON.parse(JSON.stringify(DEFAULT_DUTY_SCHEDULE));
+        const periodTimRow = allSettings.find(r => r.key === 'period_timings');
+        if (periodTimRow?.value) db.periodTimings = periodTimRow.value;
+        else db.periodTimings = { ...DEFAULT_TIMINGS };
+        const timetableRow = allSettings.find(r => r.key === 'timetable');
+        db.timetable = timetableRow?.value || {};
 
         db.attendance = {};
         (attendanceRes.data || []).forEach(r => {
@@ -1132,6 +1303,15 @@
           };
         });
 
+        db.dutyReports = {};
+        (dutyReportsRes.data || []).forEach(r => {
+          db.dutyReports[r.record_key] = {
+            date: r.date_str, period: r.period, className: r.class_name,
+            absentTeacher: r.absent_teacher, subject: r.subject,
+            dutyTeacher: r.duty_teacher, timestamp: r.updated_at
+          };
+        });
+
         try { localStorage.setItem('abuDujana_db_v21', JSON.stringify(db)); } catch (e) {}
         updateSyncStatus(true, "متزامن سحابياً");
         return true;
@@ -1143,9 +1323,11 @@
             db = JSON.parse(saved);
             if (!db.customUsers) db.customUsers = [];
             if (!db.behaviors) db.behaviors = {};
-            Object.keys(db.students || {}).forEach(k => {
-              db.students[k] = arabicSort(db.students[k]);
-            });
+            if (!db.dutySchedule) db.dutySchedule = JSON.parse(JSON.stringify(DEFAULT_DUTY_SCHEDULE));
+            if (!db.periodTimings) db.periodTimings = { ...DEFAULT_TIMINGS };
+            if (!db.timetable) db.timetable = {};
+            if (!db.dutyReports) db.dutyReports = {};
+            Object.keys(db.students || {}).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
             updateSyncStatus(false, "وضع محلي - انقر لإعادة المحاولة");
             return true;
           } catch (pe) { console.error(pe); }
@@ -1187,13 +1369,9 @@
         const attRows = Object.entries(db.attendance).map(([key, v]) => {
           const p = parseAttendanceKey(key);
           return {
-            record_key: key,
-            date_str: v.date || p.date,
-            class_name: v.className || p.className,
-            period: v.period || p.period,
-            teacher_name: v.teacher || 'معلم',
-            records: v.records || {},
-            updated_at: new Date().toISOString()
+            record_key: key, date_str: v.date || p.date, class_name: v.className || p.className,
+            period: v.period || p.period, teacher_name: v.teacher || 'معلم',
+            records: v.records || {}, updated_at: new Date().toISOString()
           };
         });
         if (attRows.length > 0) {
@@ -1203,17 +1381,31 @@
         const behRows = Object.entries(db.behaviors).map(([key, v]) => {
           const p = parseAttendanceKey(key);
           return {
-            record_key: key,
-            date_str: v.date || p.date,
-            class_name: v.className || p.className,
-            period: v.period || p.period,
-            teacher_name: v.teacher || 'معلم',
-            records: v.records || {},
-            updated_at: new Date().toISOString()
+            record_key: key, date_str: v.date || p.date, class_name: v.className || p.className,
+            period: v.period || p.period, teacher_name: v.teacher || 'معلم',
+            records: v.records || {}, updated_at: new Date().toISOString()
           };
         });
         if (behRows.length > 0) {
           await robustUpsert('behaviors', behRows, 'record_key', 100);
+        }
+
+        // حفظ إعدادات المناوبة
+        try {
+          if (db.dutySchedule) await sb.from('school_settings').upsert({ key: 'duty_schedule', value: db.dutySchedule }, { onConflict: 'key' });
+          if (db.periodTimings) await sb.from('school_settings').upsert({ key: 'period_timings', value: db.periodTimings }, { onConflict: 'key' });
+          if (db.timetable) await sb.from('school_settings').upsert({ key: 'timetable', value: db.timetable }, { onConflict: 'key' });
+        } catch (e) { console.warn('Duty settings save warning:', e); }
+
+        // حفظ تقارير المناوبة
+        const dutyRows = Object.entries(db.dutyReports || {}).map(([key, v]) => ({
+          record_key: key, date_str: v.date, period: v.period, class_name: v.className,
+          absent_teacher: v.absentTeacher || '', subject: v.subject || '',
+          duty_teacher: v.dutyTeacher || '', updated_at: new Date().toISOString()
+        }));
+        if (dutyRows.length > 0) {
+          try { await robustUpsert('duty_reports', dutyRows, 'record_key', 100); }
+          catch (e) { console.warn('duty_reports upsert warning:', e); }
         }
 
         if (db.adminPin) {
@@ -1233,7 +1425,7 @@
     }
 
     function forceSyncWithCloud() {
-      if (attendanceDirty || behaviorDirty) {
+      if (attendanceDirty || behaviorDirty || dutyDirty) {
         if (!confirm('لديك تغييرات غير محفوظة. المزامنة قد تستبدلها. هل تريد المتابعة؟')) return;
       }
       loadSystemDataFromCloud().then((success) => {
@@ -1255,8 +1447,7 @@
       txt.textContent = text || (isSynced ? "متزامن سحابياً" : "محلي");
       if (isSynced) {
         ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60 shadow-sm backdrop-blur-sm";
-        ind.onclick = null;
-        ind.removeAttribute('title');
+        ind.onclick = null; ind.removeAttribute('title');
       } else {
         ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 shadow-sm backdrop-blur-sm cursor-pointer";
         ind.onclick = () => forceSyncWithCloud();
@@ -1266,10 +1457,13 @@
 
     function initDefaults() {
       db = {
-        version: 15, adminPin: safeBtoa("1234"), customUsers: [],
+        version: 16, adminPin: safeBtoa("1234"), customUsers: [],
         classes: [...DEFAULT_CLASSES],
         teachers: DEFAULT_TEACHERS.map(t => ({ name: t.name, pin: t.pin })),
-        students: {}, attendance: {}, behaviors: {}
+        students: {}, attendance: {}, behaviors: {},
+        dutySchedule: JSON.parse(JSON.stringify(DEFAULT_DUTY_SCHEDULE)),
+        periodTimings: { ...DEFAULT_TIMINGS },
+        timetable: {}, dutyReports: {}
       };
       db.classes.forEach(c => { db.students[c] = []; });
       try { localStorage.setItem('abuDujana_db_v21', JSON.stringify(db)); } catch (e) {}
@@ -1301,7 +1495,7 @@
       activeUser = null;
 
       if (verifyAdminPinInput(pin)) {
-        activeUser = { name: "مدير النظام العام", pin: pin, type: 'admin', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, alerts: true, reports: true, sync: true, security: true } };
+        activeUser = { name: "مدير النظام العام", pin: pin, type: 'admin', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, alerts: true, reports: true, sync: true, security: true, duty: true } };
       } else {
         const customUser = db.customUsers.find(u => u.pin === pin);
         if (customUser) {
@@ -1329,10 +1523,13 @@
       document.getElementById('activeUserRoleBadge').textContent = activeUser.type === 'admin' ? 'مدير النظام' : (activeUser.type === 'custom' ? 'مستخدم مخصص' : 'معلم');
       document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
       document.getElementById('openControlPanelFromDashboardBtn').classList.toggle('hidden', !(activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPermission(activeUser))));
+      // إظهار بطاقة المناوبة للمصرح لهم فقط
+      const dutyCard = document.getElementById('dutyHeroCard');
+      if (dutyCard) dutyCard.classList.toggle('hidden', !canAccessDuty());
     }
 
     function logoutUser() {
-      if (attendanceDirty || behaviorDirty) {
+      if (attendanceDirty || behaviorDirty || dutyDirty) {
         if (!confirm('لديك تغييرات غير محفوظة. هل تريد تسجيل الخروج؟')) return;
       }
       _performLogout();
@@ -1340,17 +1537,21 @@
 
     function _performLogout() {
       activeUser = null; selectedClass = null; selectedBehaviorClass = null;
-      attendanceDirty = false; behaviorDirty = false;
+      selectedDutyPeriod = null; currentDutyRecord = {};
+      attendanceDirty = false; behaviorDirty = false; dutyDirty = false;
       try { localStorage.removeItem('abuDujana_activeUser'); } catch (e) {}
       document.getElementById('userPinInput').value = '';
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('classesView').classList.add('hidden');
       document.getElementById('behaviorClassesView').classList.add('hidden');
       document.getElementById('behaviorSessionView').classList.add('hidden');
+      document.getElementById('dutyPeriodsView').classList.add('hidden');
+      document.getElementById('dutySessionView').classList.add('hidden');
       document.getElementById('dashboardSelectionView').classList.add('hidden');
       document.getElementById('loginView').classList.remove('hidden');
       document.getElementById('openControlPanelFromDashboardBtn').classList.add('hidden');
       document.getElementById('changeTeacherPinBtn').classList.add('hidden');
+      const dc = document.getElementById('dutyHeroCard'); if (dc) dc.classList.add('hidden');
     }
 
     /* ============================================================
@@ -1370,23 +1571,15 @@
       const errorEl = document.getElementById('changePinError');
       errorEl.classList.add('hidden');
 
-      if (currentPin !== activeUser.pin) {
-        errorEl.textContent = 'الرمز الحالي غير صحيح!'; errorEl.classList.remove('hidden'); return;
-      }
-      if (!newPin || newPin.length < 2) {
-        errorEl.textContent = 'أدخل رمزاً جديداً صحيحاً (حرفان على الأقل)!'; errorEl.classList.remove('hidden'); return;
-      }
+      if (currentPin !== activeUser.pin) { errorEl.textContent = 'الرمز الحالي غير صحيح!'; errorEl.classList.remove('hidden'); return; }
+      if (!newPin || newPin.length < 2) { errorEl.textContent = 'أدخل رمزاً جديداً صحيحاً (حرفان على الأقل)!'; errorEl.classList.remove('hidden'); return; }
       const collision = db.teachers.some(t => t.name !== activeUser.name && t.pin === newPin)
         || (db.customUsers || []).some(u => u.pin === newPin)
         || verifyAdminPinInput(newPin);
-      if (collision) {
-        errorEl.textContent = 'هذا الرمز مستخدم من قبل. اختر رمزاً آخر.'; errorEl.classList.remove('hidden'); return;
-      }
+      if (collision) { errorEl.textContent = 'هذا الرمز مستخدم من قبل. اختر رمزاً آخر.'; errorEl.classList.remove('hidden'); return; }
 
       const teacherObj = db.teachers.find(t => t.name === activeUser.name);
-      if (!teacherObj) {
-        errorEl.textContent = 'لم يتم العثور على حسابك كمعلم. تواصل مع الإدارة.'; errorEl.classList.remove('hidden'); return;
-      }
+      if (!teacherObj) { errorEl.textContent = 'لم يتم العثور على حسابك كمعلم. تواصل مع الإدارة.'; errorEl.classList.remove('hidden'); return; }
       teacherObj.pin = newPin;
       activeUser.pin = newPin;
       try { localStorage.setItem('abuDujana_activeUser', JSON.stringify(activeUser)); } catch (e) {}
@@ -1409,18 +1602,15 @@
       renderBehaviorClassesGrid();
     }
     function backToDashboardSelection() {
-      if (attendanceDirty) {
-        if (!confirm('لديك تغييرات غير محفوظة في رصد الحضور. هل تريد المغادرة؟')) return;
-        attendanceDirty = false;
-      }
-      if (behaviorDirty) {
-        if (!confirm('لديك تغييرات غير محفوظة في رصد السلوكيات. هل تريد المغادرة؟')) return;
-        behaviorDirty = false;
-      }
+      if (attendanceDirty) { if (!confirm('لديك تغييرات غير محفوظة في رصد الحضور. هل تريد المغادرة؟')) return; attendanceDirty = false; }
+      if (behaviorDirty) { if (!confirm('لديك تغييرات غير محفوظة في رصد السلوكيات. هل تريد المغادرة؟')) return; behaviorDirty = false; }
+      if (dutyDirty) { if (!confirm('لديك تغييرات غير محفوظة في المناوبة. هل تريد المغادرة؟')) return; dutyDirty = false; }
       document.getElementById('classesView').classList.add('hidden');
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('behaviorClassesView').classList.add('hidden');
       document.getElementById('behaviorSessionView').classList.add('hidden');
+      document.getElementById('dutyPeriodsView').classList.add('hidden');
+      document.getElementById('dutySessionView').classList.add('hidden');
       document.getElementById('dashboardSelectionView').classList.remove('hidden');
     }
 
@@ -1472,10 +1662,7 @@
       const pText = periodNamesMap[periodNum] || `الحصة ${periodNum}`;
 
       if (pendingMode === 'attendance') {
-        if (attendanceDirty) {
-          if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) { pendingTargetClass = null; return; }
-          attendanceDirty = false;
-        }
+        if (attendanceDirty) { if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) { pendingTargetClass = null; return; } attendanceDirty = false; }
         selectedClass = pendingTargetClass;
         document.getElementById('sessionPeriodSelect').value = periodNum;
         document.getElementById('activePeriodText').textContent = pText;
@@ -1484,10 +1671,7 @@
         document.getElementById('selectedClassTitle').textContent = `رصد حضور وغياب صف ${selectedClass}`;
         loadSessionAttendance();
       } else if (pendingMode === 'behavior') {
-        if (behaviorDirty) {
-          if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) { pendingTargetClass = null; return; }
-          behaviorDirty = false;
-        }
+        if (behaviorDirty) { if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) { pendingTargetClass = null; return; } behaviorDirty = false; }
         selectedBehaviorClass = pendingTargetClass;
         document.getElementById('behaviorPeriodSelect').value = periodNum;
         document.getElementById('activeBehaviorPeriodText').textContent = pText;
@@ -1501,10 +1685,7 @@
 
     function reselectAttendancePeriod() {
       if (!selectedClass) return;
-      if (attendanceDirty) {
-        if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) return;
-        attendanceDirty = false;
-      }
+      if (attendanceDirty) { if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) return; attendanceDirty = false; }
       pendingTargetClass = selectedClass;
       pendingMode = 'attendance';
       document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-emerald-600"></i> تغيير الحصة لرصد حضور صف ${escapeHtml(selectedClass)}`;
@@ -1512,10 +1693,7 @@
     }
     function reselectBehaviorPeriod() {
       if (!selectedBehaviorClass) return;
-      if (behaviorDirty) {
-        if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) return;
-        behaviorDirty = false;
-      }
+      if (behaviorDirty) { if (!confirm('لديك تغييرات غير محفوظة. هل تريد تغيير الحصة؟')) return; behaviorDirty = false; }
       pendingTargetClass = selectedBehaviorClass;
       pendingMode = 'behavior';
       document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-teal-600"></i> تغيير الحصة لرصد سلوكيات صف ${escapeHtml(selectedBehaviorClass)}`;
@@ -1523,20 +1701,14 @@
     }
 
     function backToClasses() {
-      if (attendanceDirty) {
-        if (!confirm('لديك تغييرات غير محفوظة. هل تريد المغادرة؟')) return;
-        attendanceDirty = false;
-      }
+      if (attendanceDirty) { if (!confirm('لديك تغييرات غير محفوظة. هل تريد المغادرة؟')) return; attendanceDirty = false; }
       selectedClass = null;
       document.getElementById('attendanceView').classList.add('hidden');
       document.getElementById('classesView').classList.remove('hidden');
       renderClassesGrid();
     }
     function backToBehaviorClasses() {
-      if (behaviorDirty) {
-        if (!confirm('لديك تغييرات غير محفوظة. هل تريد المغادرة؟')) return;
-        behaviorDirty = false;
-      }
+      if (behaviorDirty) { if (!confirm('لديك تغييرات غير محفوظة. هل تريد المغادرة؟')) return; behaviorDirty = false; }
       selectedBehaviorClass = null;
       document.getElementById('behaviorSessionView').classList.add('hidden');
       document.getElementById('behaviorClassesView').classList.remove('hidden');
@@ -1544,7 +1716,7 @@
     }
 
     /* ============================================================
-       جلسة الحضور الأنيقة البارزة
+       جلسة الحضور
        ============================================================ */
     function loadSessionAttendance() {
       const period = document.getElementById('sessionPeriodSelect').value;
@@ -1628,10 +1800,7 @@
     async function saveAttendanceSession() {
       if (!selectedClass || !activeUser) return;
       const studentsList = db.students[selectedClass] || [];
-      if (studentsList.length === 0) {
-        showToast('لا يوجد طلاب في هذا الصف. أضف الطلاب أولاً.', 'error');
-        return;
-      }
+      if (studentsList.length === 0) { showToast('لا يوجد طلاب في هذا الصف. أضف الطلاب أولاً.', 'error'); return; }
       const saveBtn = document.getElementById('saveSessionBtn');
       if (saveBtn.disabled) return;
       saveBtn.disabled = true;
@@ -1655,9 +1824,8 @@
           document.getElementById('unsavedStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً فقط";
           showToast("تعذر الاتصال، حُفظت محلياً. انقر مؤشر المزامنة لإعادة المحاولة.", 'info');
         }
-      } catch (error) {
-        showToast('حدث خطأ أثناء الحفظ.', 'error');
-      } finally {
+      } catch (error) { showToast('حدث خطأ أثناء الحفظ.', 'error'); }
+      finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>`;
       }
@@ -1752,7 +1920,6 @@
           <input type="text" placeholder="اكتب وصف المشكلة أو السلوك بالتفصيل هنا..." value="${escapeHtml(studentData.note || '')}" data-student="${escapeHtml(student)}" oninput="updateBehaviorNoteFromInput(this)" class="w-full text-xs p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-slate-800 dark:text-white outline-none font-bold focus:ring-2 focus:ring-teal-500">
         `;
         row.appendChild(noteContainer);
-
         container.appendChild(row);
       });
     }
@@ -1782,9 +1949,7 @@
           noteWrapper.classList.remove('hidden');
           const noteInput = noteWrapper.querySelector('input[data-student]');
           if (noteInput) noteInput.focus();
-        } else {
-          noteWrapper.classList.add('hidden');
-        }
+        } else { noteWrapper.classList.add('hidden'); }
       }
 
       behaviorDirty = true;
@@ -1803,10 +1968,7 @@
     async function saveBehaviorSession() {
       if (!selectedBehaviorClass || !activeUser) return;
       const studentsList = db.students[selectedBehaviorClass] || [];
-      if (studentsList.length === 0) {
-        showToast('لا يوجد طلاب في هذا الصف. أضف الطلاب أولاً.', 'error');
-        return;
-      }
+      if (studentsList.length === 0) { showToast('لا يوجد طلاب في هذا الصف. أضف الطلاب أولاً.', 'error'); return; }
       const saveBtn = document.getElementById('saveBehaviorSessionBtn');
       if (saveBtn.disabled) return;
       saveBtn.disabled = true;
@@ -1832,12 +1994,457 @@
           document.getElementById('unsavedBehaviorStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظت محلياً فقط";
           showToast("تعذر الاتصال، حُفظت محلياً.", 'info');
         }
-      } catch (error) {
-        showToast('حدث خطأ أثناء حفظ السلوكيات.', 'error');
-      } finally {
+      } catch (error) { showToast('حدث خطأ أثناء حفظ السلوكيات.', 'error'); }
+      finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>`;
       }
+    }
+
+    /* ============================================================
+       نظام المناوبة الذكي - دوال مساعدة
+       ============================================================ */
+    const ARABIC_DAYS = ['الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+
+    function getArabicDayName(dateObj) {
+      return ARABIC_DAYS[dateObj.getDay()] || 'غير محدد';
+    }
+
+    function getOmanNowParts() {
+      const fmt = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Muscat', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false
+      });
+      const parts = fmt.formatToParts(new Date());
+      const get = (t) => parts.find(p => p.type === t)?.value || '00';
+      return { h: parseInt(get('hour')), m: parseInt(get('minute')), s: parseInt(get('second')) };
+    }
+
+    function getOmanTimeLabel() {
+      const p = getOmanNowParts();
+      return `${String(p.h).padStart(2,'0')}:${String(p.m).padStart(2,'0')}`;
+    }
+
+    function checkTimeGate(periodNum) {
+      const timing = (db.periodTimings || {})[periodNum];
+      if (!timing || !/^\d{1,2}:\d{2}$/.test(timing)) {
+        return { allowed: true, remainingMin: 0, startTime: '--:--', reason: 'لم يتم ضبط توقيت هذه الحصة' };
+      }
+      const [h, m] = timing.split(':').map(Number);
+      const now = getOmanNowParts();
+      const nowMin = now.h * 60 + now.m;
+      const startMin = h * 60 + m;
+      const diff = nowMin - startMin;
+      if (diff < 5) {
+        return { allowed: false, remainingMin: 5 - diff, startTime: timing, reason: `يُفتح الرصد بعد 5 دقائق من بداية الحصة (${timing}). متبقي ${5 - diff} دقيقة.` };
+      }
+      return { allowed: true, remainingMin: 0, startTime: timing, reason: 'متاح الآن' };
+    }
+
+    function isTeacherOnDutyToday() {
+      if (!activeUser || activeUser.type !== 'teacher') return false;
+      const dayName = getArabicDayName(new Date());
+      const list = (db.dutySchedule && db.dutySchedule[dayName]) || [];
+      return list.includes(activeUser.name);
+    }
+
+    function canAccessDuty() {
+      if (!activeUser) return false;
+      if (activeUser.type === 'admin') return true;
+      if (activeUser.type === 'custom' && activeUser.permissions?.duty) return true;
+      if (activeUser.type === 'teacher' && isTeacherOnDutyToday()) return true;
+      return false;
+    }
+
+    function getDutyRecordsForPeriod(dateStr, periodNum, teacherName) {
+      const result = {};
+      Object.entries(db.dutyReports || {}).forEach(([k, r]) => {
+        if (r.date === dateStr && r.period === periodNum && r.dutyTeacher === teacherName) {
+          result[r.className] = r;
+        }
+      });
+      return result;
+    }
+
+    function countDutyRecordsForPeriod(dateStr, periodNum, teacherName) {
+      return Object.values(getDutyRecordsForPeriod(dateStr, periodNum, teacherName)).length;
+    }
+
+    function goToDutySection() {
+      if (!canAccessDuty()) { showToast('لا تملك صلاحية الوصول لنظام المناوبة اليوم', 'error'); return; }
+      document.getElementById('dashboardSelectionView').classList.add('hidden');
+      document.getElementById('dutyPeriodsView').classList.remove('hidden');
+      renderDutyPeriodsView();
+    }
+
+    function backToDutyPeriods() {
+      if (dutyDirty) { if (!confirm('لديك تغييرات غير محفوظة في المناوبة. هل تريد المغادرة؟')) return; dutyDirty = false; }
+      selectedDutyPeriod = null;
+      currentDutyRecord = {};
+      document.getElementById('dutySessionView').classList.add('hidden');
+      document.getElementById('dutyPeriodsView').classList.remove('hidden');
+      renderDutyPeriodsView();
+    }
+
+    function renderDutyPeriodsView() {
+      const grid = document.getElementById('dutyPeriodsGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      const today = getOmanLocalDate();
+      const todayDayName = getArabicDayName(new Date());
+      const teacherName = activeUser?.name || '';
+
+      document.getElementById('dutyTodayInfo').textContent = `اليوم: ${todayDayName} - التاريخ: ${today}`;
+      document.getElementById('dutyCurrentTimeLabel').textContent = getOmanTimeLabel();
+
+      const periodNames = { 1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة', 7: 'السابعة', 8: 'الثامنة' };
+
+      for (let p = 1; p <= 8; p++) {
+        const gate = checkTimeGate(p);
+        const recordedCount = countDutyRecordsForPeriod(today, p, teacherName);
+        const card = document.createElement('div');
+        let stateClass, stateLabel, stateIcon, stateColor;
+
+        if (recordedCount > 0) {
+          stateClass = 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-300 dark:border-emerald-700 hover:border-emerald-500';
+          stateIcon = 'fa-circle-check';
+          stateColor = 'text-emerald-600 dark:text-emerald-400';
+          stateLabel = `✓ تم الرصد (${recordedCount} صف شاغر)`;
+        } else if (gate.allowed) {
+          stateClass = 'bg-amber-50 dark:bg-amber-950/60 border-amber-300 dark:border-amber-700 hover:border-amber-500';
+          stateIcon = 'fa-unlock';
+          stateColor = 'text-amber-600 dark:text-amber-400';
+          stateLabel = 'متاح - ابدأ الرصد';
+        } else {
+          stateClass = 'bg-slate-100 dark:bg-slate-800/60 border-slate-300 dark:border-slate-700 opacity-70 cursor-not-allowed';
+          stateIcon = 'fa-lock';
+          stateColor = 'text-slate-400 dark:text-slate-500';
+          stateLabel = `مغلق - يفتح بعد ${gate.remainingMin} د`;
+        }
+
+        card.className = `relative ${stateClass} border-2 rounded-3xl p-4 transition-all duration-300 ${gate.allowed || recordedCount > 0 ? 'cursor-pointer hover:-translate-y-1 hover:shadow-lg' : ''}`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-2">
+            <div class="text-2xl font-black ${stateColor}">${p}</div>
+            <i class="fa-solid ${stateIcon} ${stateColor} text-lg"></i>
+          </div>
+          <div class="text-sm font-extrabold text-slate-800 dark:text-white">الحصة ${periodNames[p]}</div>
+          <div class="text-[10px] text-slate-500 dark:text-slate-400 font-bold mt-1">⏰ ${gate.startTime}</div>
+          <div class="text-[10px] font-bold mt-2 ${stateColor}">${stateLabel}</div>
+        `;
+
+        if (gate.allowed || recordedCount > 0) card.onclick = () => openDutyPeriod(p);
+        grid.appendChild(card);
+      }
+    }
+
+    function openDutyPeriod(periodNum) {
+      const gate = checkTimeGate(periodNum);
+      if (!gate.allowed) { showToast(gate.reason, 'error'); return; }
+      selectedDutyPeriod = periodNum;
+      const today = getOmanLocalDate();
+      const existing = getDutyRecordsForPeriod(today, periodNum, activeUser.name);
+      currentDutyRecord = {};
+      Object.entries(existing).forEach(([cName, rec]) => {
+        currentDutyRecord[cName] = { absentTeacher: rec.absentTeacher, subject: rec.subject };
+      });
+      dutyDirty = false;
+
+      const periodNames = { 1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة', 7: 'السابعة', 8: 'الثامنة' };
+      document.getElementById('dutySelectedPeriodTitle').textContent = `مناوبة الحصة ${periodNames[periodNum]}`;
+      document.getElementById('dutyPeriodTimeStatus').innerHTML = `التاريخ: <span class="text-amber-700 dark:text-amber-400 font-bold">${today}</span> | بداية الحصة: ${gate.startTime} | بعد 5 دقائق من البداية ✓`;
+      document.getElementById('activeDutyTeacherText').textContent = activeUser.name;
+
+      document.getElementById('dutyPeriodsView').classList.add('hidden');
+      document.getElementById('dutySessionView').classList.remove('hidden');
+      renderDutyClassesGrid();
+      updateDutyIndicators();
+    }
+
+    function renderDutyClassesGrid() {
+      const grid = document.getElementById('dutyClassesGrid');
+      if (!grid) return;
+      grid.innerHTML = '';
+      const period = selectedDutyPeriod;
+
+      db.classes.forEach(className => {
+        const isVacant = !!currentDutyRecord[className];
+        const timetableInfo = (db.timetable && db.timetable[className] && db.timetable[className][String(period)]) || null;
+        const card = document.createElement('div');
+        card.className = `relative ${isVacant ? 'bg-gradient-to-br from-red-600 to-rose-700 text-white border-red-400 shadow-md' : 'bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border-slate-200 dark:border-slate-700 hover:border-amber-400'} border-2 rounded-2xl p-3 transition-all duration-200 cursor-pointer hover:-translate-y-0.5 active:scale-95`;
+        card.innerHTML = `
+          <div class="flex items-center justify-between mb-1">
+            <span class="text-sm font-extrabold">صف ${escapeHtml(className)}</span>
+            <i class="fa-solid ${isVacant ? 'fa-circle-exclamation' : 'fa-plus-circle'} text-xs ${isVacant ? 'text-white' : 'text-slate-400'}"></i>
+          </div>
+          ${timetableInfo && timetableInfo.teacher ? `<div class="text-[10px] ${isVacant ? 'text-red-100' : 'text-slate-500 dark:text-slate-400'} font-bold truncate">${escapeHtml(timetableInfo.teacher)}</div>` : ''}
+          ${isVacant ? `<div class="text-[10px] text-red-100 font-bold mt-1 truncate">${escapeHtml(currentDutyRecord[className].absentTeacher || 'معلم متغيب')}</div>` : ''}
+        `;
+        card.onclick = () => openDutyClassConfirmModal(className);
+        grid.appendChild(card);
+      });
+    }
+
+    function updateDutyIndicators() {
+      const count = Object.keys(currentDutyRecord).length;
+      document.getElementById('dutyVacantCountBadge').textContent = `${count} صف شاغر`;
+      const saveBtn = document.getElementById('saveDutySessionBtn');
+      const shareBtn = document.getElementById('shareDutyWhatsappBtn');
+      const today = getOmanLocalDate();
+      const hasSavedRecords = selectedDutyPeriod && countDutyRecordsForPeriod(today, selectedDutyPeriod, activeUser.name) > 0;
+
+      if (shareBtn) shareBtn.classList.toggle('hidden', !hasSavedRecords);
+      if (saveBtn) {
+        if (count === 0 && !hasSavedRecords) {
+          document.getElementById('dutyUnsavedIndicator').textContent = 'لم يتم تحديد أي صف شاغر بعد';
+        } else if (dutyDirty) {
+          document.getElementById('dutyUnsavedIndicator').textContent = '⚠️ توجد تغييرات غير محفوظة';
+        } else {
+          document.getElementById('dutyUnsavedIndicator').textContent = `✓ جاهز للحفظ (${count} صف)`;
+        }
+      }
+    }
+
+    function openDutyClassConfirmModal(className) {
+      pendingDutyClass = className;
+      const existing = currentDutyRecord[className];
+      const timetableInfo = (db.timetable && db.timetable[className] && db.timetable[className][String(selectedDutyPeriod)]) || {};
+      document.getElementById('dutyConfirmModalTitle').innerHTML = `<i class="fa-solid fa-triangle-exclamation text-amber-600"></i> تأكيد صف ${escapeHtml(className)} شاغر`;
+      document.getElementById('dutyAbsentTeacherInput').value = existing?.absentTeacher || timetableInfo.teacher || '';
+      document.getElementById('dutySubjectInput').value = existing?.subject || timetableInfo.subject || '';
+      document.getElementById('dutyClassConfirmModal').classList.remove('hidden');
+      setTimeout(() => document.getElementById('dutyAbsentTeacherInput').focus(), 100);
+    }
+
+    function closeDutyClassConfirmModal() {
+      document.getElementById('dutyClassConfirmModal').classList.add('hidden');
+      pendingDutyClass = null;
+    }
+
+    function confirmDutyClass() {
+      if (!pendingDutyClass) return;
+      const absentTeacher = document.getElementById('dutyAbsentTeacherInput').value.trim();
+      const subject = document.getElementById('dutySubjectInput').value.trim();
+      if (!absentTeacher) { showToast('يرجى إدخال اسم المعلم المتغيب', 'error'); return; }
+      currentDutyRecord[pendingDutyClass] = { absentTeacher, subject };
+      dutyDirty = true;
+      closeDutyClassConfirmModal();
+      renderDutyClassesGrid();
+      updateDutyIndicators();
+    }
+
+    async function saveDutySession() {
+      if (!selectedDutyPeriod || !activeUser) return;
+      const saveBtn = document.getElementById('saveDutySessionBtn');
+      if (saveBtn.disabled) return;
+      const count = Object.keys(currentDutyRecord).length;
+      if (count === 0) { showToast('لم تحدد أي صف شاغر. اضغط على الصفوف التي بدون معلم أولاً.', 'error'); return; }
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...`;
+
+      try {
+        const today = getOmanLocalDate();
+        Object.keys(db.dutyReports).forEach(k => {
+          const r = db.dutyReports[k];
+          if (r.date === today && r.period === selectedDutyPeriod && r.dutyTeacher === activeUser.name) delete db.dutyReports[k];
+        });
+        Object.entries(currentDutyRecord).forEach(([className, rec]) => {
+          const key = `${today}_${className}_p${selectedDutyPeriod}`;
+          db.dutyReports[key] = {
+            date: today, period: selectedDutyPeriod, className,
+            absentTeacher: rec.absentTeacher, subject: rec.subject,
+            dutyTeacher: activeUser.name, timestamp: new Date().toISOString()
+          };
+        });
+        const success = await saveSystemDataToCloud();
+        dutyDirty = false;
+        showToast(success ? `تم حفظ تقرير المناوبة (${count} صف شاغر) سحابياً!` : 'تم الحفظ محلياً فقط.', success ? 'success' : 'info');
+        updateDutyIndicators();
+      } catch (e) { console.error(e); showToast('حدث خطأ أثناء حفظ المناوبة', 'error'); }
+      finally {
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>حفظ تقرير المناوبة</span>`;
+      }
+    }
+
+    function generateDutyWhatsAppMessage() {
+      const today = getOmanLocalDate();
+      const dayName = getArabicDayName(new Date());
+      const period = selectedDutyPeriod;
+      const periodNames = { 1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة', 7: 'السابعة', 8: 'الثامنة' };
+      const timing = (db.periodTimings || {})[period] || '--:--';
+      const records = getDutyRecordsForPeriod(today, period, activeUser.name);
+      const list = Object.entries(records).sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
+
+      let msg = `🔔 *تقرير المناوبة اليومي*\n`;
+      msg += `━━━━━━━━━━━━━━━━━━\n`;
+      msg += `🏫 *مدرسة أبو دجانة الأنصاري*\n`;
+      msg += `📅 مناوبة يوم: *${dayName}* - ${today}\n`;
+      msg += `⏰ *الحصة ${periodNames[period]}* (الساعة ${timing})\n`;
+      msg += `👤 معلم المناوبة: *${activeUser.name}*\n`;
+      msg += `━━━━━━━━━━━━━━━━━━\n\n`;
+
+      if (list.length === 0) {
+        msg += `✅ لا توجد صفوف شاغرة في هذه الحصة\n`;
+      } else {
+        msg += `📋 *الصفوف التي ليس لها معلم (${list.length}):*\n\n`;
+        list.forEach(([className, rec], i) => {
+          msg += `${i + 1}️⃣ *صف ${className}*\n`;
+          msg += `   👨‍🏫 المعلم المتغيب: ${rec.absentTeacher || '—'}\n`;
+          if (rec.subject) msg += `   📚 التخصص: ${rec.subject}\n`;
+          msg += `\n`;
+        });
+      }
+      msg += `━━━━━━━━━━━━━━━━━━\n`;
+      msg += `✍️ تم الرصد بواسطة نظام المناوبة الذكي`;
+      return msg;
+    }
+
+    function shareDutyViaWhatsApp() {
+      const today = getOmanLocalDate();
+      if (!selectedDutyPeriod) return;
+      const hasSaved = countDutyRecordsForPeriod(today, selectedDutyPeriod, activeUser.name) > 0;
+      if (!hasSaved) { showToast('يرجى حفظ التقرير أولاً قبل المشاركة', 'error'); return; }
+      const msg = generateDutyWhatsAppMessage();
+      const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+      window.open(url, '_blank');
+    }
+
+    /* ============================================================
+       محرر جدول المناوبة
+       ============================================================ */
+    function renderDutyScheduleEditor() {
+      const container = document.getElementById('dutyScheduleEditor');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!db.dutySchedule) db.dutySchedule = JSON.parse(JSON.stringify(DEFAULT_DUTY_SCHEDULE));
+      ARABIC_DAYS.forEach(day => {
+        if (!db.dutySchedule[day]) db.dutySchedule[day] = [];
+        const teachers = db.dutySchedule[day];
+        const row = document.createElement('div');
+        row.className = 'bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2';
+        const chipsHTML = teachers.length === 0
+          ? '<span class="text-[10px] text-slate-400 font-bold">لا يوجد معلمون مناوبون</span>'
+          : teachers.map((t, i) => `<span class="inline-flex items-center gap-1 bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2.5 py-1 rounded-xl text-[11px] font-bold border border-amber-200 dark:border-amber-800">${escapeHtml(t)} <button onclick="removeDutyTeacher('${escapeHtml(day)}', ${i})" class="text-amber-700 hover:text-red-600 cursor-pointer"><i class="fa-solid fa-xmark text-[9px]"></i></button></span>`).join(' ');
+        const options = db.teachers.map(t => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('');
+        row.innerHTML = `
+          <div class="flex items-center justify-between">
+            <span class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-calendar-day text-amber-600"></i> ${escapeHtml(day)}</span>
+            <span class="text-[10px] text-slate-500 font-bold">${teachers.length} معلم</span>
+          </div>
+          <div class="flex flex-wrap gap-1.5">${chipsHTML}</div>
+          <div class="flex gap-2">
+            <select onchange="addDutyTeacher('${escapeHtml(day)}', this.value); this.value=''" class="flex-1 border border-slate-200 dark:border-slate-700 rounded-xl px-2 py-1.5 text-[11px] bg-slate-50 dark:bg-slate-900 font-bold outline-none cursor-pointer">
+              <option value="">+ إضافة معلم...</option>
+              ${options}
+            </select>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    async function addDutyTeacher(day, teacherName) {
+      if (!teacherName) return;
+      if (!db.dutySchedule[day]) db.dutySchedule[day] = [];
+      if (db.dutySchedule[day].includes(teacherName)) { showToast('هذا المعلم مضاف مسبقاً', 'info'); return; }
+      db.dutySchedule[day].push(teacherName);
+      const ok = await saveSystemDataToCloud();
+      renderDutyScheduleEditor();
+      showToast(ok ? 'تم تحديث جدول المناوبة' : 'تم التحديث محلياً', ok ? 'success' : 'info');
+    }
+
+    async function removeDutyTeacher(day, idx) {
+      if (!db.dutySchedule[day] || !db.dutySchedule[day][idx]) return;
+      db.dutySchedule[day].splice(idx, 1);
+      const ok = await saveSystemDataToCloud();
+      renderDutyScheduleEditor();
+      showToast(ok ? 'تم الحذف' : 'تم محلياً', ok ? 'success' : 'info');
+    }
+
+    /* ============================================================
+       محرر توقيت الحصص
+       ============================================================ */
+    function renderPeriodTimingsEditor() {
+      const container = document.getElementById('periodTimingsEditor');
+      if (!container) return;
+      container.innerHTML = '';
+      if (!db.periodTimings) db.periodTimings = { ...DEFAULT_TIMINGS };
+      const periodNames = { 1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة', 7: 'السابعة', 8: 'الثامنة' };
+      for (let p = 1; p <= 8; p++) {
+        const val = db.periodTimings[p] || '';
+        const div = document.createElement('div');
+        div.className = 'bg-white dark:bg-slate-800 p-2.5 rounded-2xl border border-slate-200 dark:border-slate-700';
+        div.innerHTML = `
+          <label class="block text-[10px] font-bold text-slate-600 dark:text-slate-300 mb-1">الحصة ${periodNames[p]}</label>
+          <input type="time" id="periodTime_${p}" value="${val}" class="w-full p-2 text-xs font-bold bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl outline-none focus:ring-2 focus:ring-emerald-500">
+        `;
+        container.appendChild(div);
+      }
+    }
+
+    async function savePeriodTimings() {
+      const newTimings = {};
+      for (let p = 1; p <= 8; p++) {
+        const inp = document.getElementById(`periodTime_${p}`);
+        if (inp && inp.value) newTimings[p] = inp.value;
+      }
+      db.periodTimings = newTimings;
+      const ok = await saveSystemDataToCloud();
+      showToast(ok ? 'تم حفظ توقيت الحصص سحابياً!' : 'تم الحفظ محلياً فقط', ok ? 'success' : 'info');
+    }
+
+    /* ============================================================
+       محرر الجدول المدرسي
+       ============================================================ */
+    function populateTimetableClassSelect() {
+      const sel = document.getElementById('timetableClassSelect');
+      if (!sel) return;
+      const cur = sel.value;
+      sel.innerHTML = '';
+      db.classes.forEach(c => sel.innerHTML += `<option value="${escapeHtml(c)}">صف ${escapeHtml(c)}</option>`);
+      sel.value = db.classes.includes(cur) ? cur : (db.classes[0] || '');
+    }
+
+    function renderTimetableEditor() {
+      const sel = document.getElementById('timetableClassSelect');
+      const container = document.getElementById('timetableEditor');
+      if (!sel || !container) return;
+      const className = sel.value;
+      if (!className) { container.innerHTML = ''; return; }
+      if (!db.timetable) db.timetable = {};
+      if (!db.timetable[className]) db.timetable[className] = {};
+
+      const periodNames = { 1: 'الأولى', 2: 'الثانية', 3: 'الثالثة', 4: 'الرابعة', 5: 'الخامسة', 6: 'السادسة', 7: 'السابعة', 8: 'الثامنة' };
+      const teacherOptions = '<option value="">— اختر المعلم —</option>' + db.teachers.map(t => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('');
+
+      let html = '';
+      for (let p = 1; p <= 8; p++) {
+        const cell = db.timetable[className][String(p)] || { teacher: '', subject: '' };
+        const selOptions = teacherOptions.replace(`value="${escapeHtml(cell.teacher)}"`, `value="${escapeHtml(cell.teacher)}" selected`);
+        html += `
+          <div class="grid grid-cols-[80px_1fr_1fr] gap-2 items-center bg-white dark:bg-slate-800 p-2 rounded-xl border border-slate-200 dark:border-slate-700">
+            <span class="text-[11px] font-extrabold text-slate-700 dark:text-slate-300">الحصة ${periodNames[p]}</span>
+            <select id="tt_${p}_teacher" class="p-1.5 text-[11px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold outline-none">${selOptions}</select>
+            <input type="text" id="tt_${p}_subject" placeholder="التخصص" value="${escapeHtml(cell.subject || '')}" class="p-1.5 text-[11px] bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg font-bold outline-none">
+          </div>
+        `;
+      }
+      container.innerHTML = html;
+    }
+
+    async function saveTimetableClass() {
+      const sel = document.getElementById('timetableClassSelect');
+      if (!sel) return;
+      const className = sel.value;
+      if (!db.timetable[className]) db.timetable[className] = {};
+      for (let p = 1; p <= 8; p++) {
+        const teacher = document.getElementById(`tt_${p}_teacher`)?.value || '';
+        const subject = document.getElementById(`tt_${p}_subject`)?.value || '';
+        if (teacher || subject) db.timetable[className][String(p)] = { teacher, subject };
+        else delete db.timetable[className][String(p)];
+      }
+      const ok = await saveSystemDataToCloud();
+      showToast(ok ? `تم حفظ جدول صف ${className} سحابياً!` : 'تم الحفظ محلياً فقط', ok ? 'success' : 'info');
     }
 
     /* ============================================================
@@ -1845,24 +2452,16 @@
        ============================================================ */
     function onStatsFilterChanged() {
       updateCustomRangeVisibility();
-      if (!document.getElementById('statsSubSec-absence').classList.contains('hidden')) {
-        renderStudentStatsDashboard();
-      } else if (!document.getElementById('statsSubSec-behaviors').classList.contains('hidden')) {
-        renderBehaviorStatsDashboard();
-      }
+      if (!document.getElementById('statsSubSec-absence').classList.contains('hidden')) renderStudentStatsDashboard();
+      else if (!document.getElementById('statsSubSec-behaviors').classList.contains('hidden')) renderBehaviorStatsDashboard();
     }
 
     function updateCustomRangeVisibility() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const el = document.getElementById('customDateRangeContainer');
       if (!el) return;
-      if (periodType === 'custom') {
-        el.classList.remove('hidden');
-        el.classList.add('flex');
-      } else {
-        el.classList.add('hidden');
-        el.classList.remove('flex');
-      }
+      if (periodType === 'custom') { el.classList.remove('hidden'); el.classList.add('flex'); }
+      else { el.classList.add('hidden'); el.classList.remove('flex'); }
     }
 
     function switchStatsSubTab(subTab) {
@@ -1906,17 +2505,11 @@
 
         let include = false;
         if (periodType === 'today') include = (sessDateStr === todayStr);
-        else if (periodType === 'yesterday') {
-          const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1);
-          include = (sessDateStr === formatDateLocal(yest));
-        } else if (periodType === 'week') {
-          const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7);
-          include = (sessDate >= weekAgo && sessDate <= todayDate);
-        } else if (periodType === 'month') {
-          include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
-        } else if (periodType === 'semester') {
-          include = true;
-        } else if (periodType === 'custom') {
+        else if (periodType === 'yesterday') { const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1); include = (sessDateStr === formatDateLocal(yest)); }
+        else if (periodType === 'week') { const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7); include = (sessDate >= weekAgo && sessDate <= todayDate); }
+        else if (periodType === 'month') include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
+        else if (periodType === 'semester') include = true;
+        else if (periodType === 'custom') {
           const start = document.getElementById('statsStartDate').value;
           const end = document.getElementById('statsEndDate').value;
           include = (!start || sessDateStr >= start) && (!end || sessDateStr <= end);
@@ -1966,8 +2559,7 @@
       if (topStudents.length === 0) {
         container.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات سلوكية مخالفة في هذه الفترة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أنواع السلوكيات المخالفة</th><th class="p-3 text-center">عدد المعلمين المشاركين</th><th class="p-3 text-center">أسماء المعلمين</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">الملف السلوكي</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
-
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-teal-50 dark:bg-teal-950/40 text-teal-900 dark:text-teal-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أنواع السلوكيات</th><th class="p-3 text-center">عدد المعلمين</th><th class="p-3 text-center">أسماء المعلمين</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">الملف</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         topStudents.forEach(st => {
           const typesFormatted = Object.entries(st.typesCount).map(([t, count]) => `${t} (${count})`).join('، ');
           const teachersListStr = Array.from(st.teachersSet).join(', ');
@@ -1992,7 +2584,7 @@
     function openStudentBehaviorProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
-        for (const [cName, sList] of Object.entries(db.students || {})) {
+        for (const [cName, sList] of Object.entries(db.students || [])) {
           if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
         }
       }
@@ -2008,9 +2600,7 @@
           const sessClassName = session.className || parsed.className;
           const sessDate = session.date || parsed.date;
           const sessPeriod = session.period || parsed.period;
-
           if (sessClassName !== realClassName) return;
-
           if (session && session.records && session.records[studentName]) {
             const behObj = session.records[studentName];
             if (behObj && behObj.type && behObj.type !== 'normal') {
@@ -2021,21 +2611,18 @@
       }
       historyLogs.sort((a, b) => new Date(b.date) - new Date(a.date) || b.period - a.period);
 
-      const behLabels = {
-        eating: 'الأكل 🍔', talking: 'كلام جانبي 🗣️', tools: 'عدم إحضار الأدوات 🎒',
-        chaos: 'إثارة الفوضى ⚡', sleeping: 'النوم 💤', homework: 'عدم حل الواجب 📚', other: 'أخرى ⚠️'
-      };
+      const behLabels = { eating: 'الأكل 🍔', talking: 'كلام جانبي 🗣️', tools: 'عدم إحضار الأدوات 🎒', chaos: 'إثارة الفوضى ⚡', sleeping: 'النوم 💤', homework: 'عدم حل الواجب 📚', other: 'أخرى ⚠️' };
 
       let bodyHTML = `
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3">
-          <div class="bg-teal-50 dark:bg-teal-950/40 p-3.5 rounded-2xl border border-teal-200 dark:border-teal-800"><span class="text-xs text-teal-700 dark:text-teal-300 block font-bold">إجمالي المخالفات السلوكية</span><span class="text-xl font-extrabold text-teal-900 dark:text-teal-200">${historyLogs.length}</span></div>
+          <div class="bg-teal-50 dark:bg-teal-950/40 p-3.5 rounded-2xl border border-teal-200 dark:border-teal-800"><span class="text-xs text-teal-700 dark:text-teal-300 block font-bold">إجمالي المخالفات</span><span class="text-xl font-extrabold text-teal-900 dark:text-teal-200">${historyLogs.length}</span></div>
         </div>
         <div class="space-y-2 pt-2">
-          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-teal-600"></i> سجل الحصص والملاحظات السلوكية التفصيلي:</h5>
+          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-teal-600"></i> سجل الحصص والملاحظات:</h5>
       `;
 
       if (historyLogs.length === 0) {
-        bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات سلوكية مسجلة لهذا الطالب.</div>`;
+        bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات مسجلة.</div>`;
       } else {
         historyLogs.forEach(log => {
           const label = behLabels[log.type] || log.type;
@@ -2044,7 +2631,7 @@
             <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center gap-2">
               <div>
                 <span class="px-3 py-1 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 border border-teal-200 dark:border-teal-800">${escapeHtml(label + noteText)}</span>
-                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1.5">الحصة ${log.period} | صف ${escapeHtml(log.className)} | المعلم الراصد: ${escapeHtml(log.teacher)}</div>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1.5">الحصة ${log.period} | صف ${escapeHtml(log.className)} | المعلم: ${escapeHtml(log.teacher)}</div>
               </div>
               <div class="text-left font-mono text-xs text-teal-700 dark:text-teal-400 font-bold">${escapeHtml(log.date)}</div>
             </div>
@@ -2057,7 +2644,7 @@
     }
 
     /* ============================================================
-       لوحة الإدارة — الدخول
+       لوحة الإدارة
        ============================================================ */
     function openAdminModal() {
       if (activeUser?.type === 'admin' || (activeUser?.type === 'custom' && hasAnyPermission(activeUser))) {
@@ -2091,7 +2678,7 @@
 
     function setupRolePermissions() {
       const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
-      const tabsConfig = ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'];
+      const tabsConfig = ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security', 'duty'];
 
       if (activeUser?.type === 'admin') {
         text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
@@ -2129,6 +2716,7 @@
         if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
         if (has('teachers')) renderTeachersList();
         if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
+        if (has('duty')) { renderDutyScheduleEditor(); renderPeriodTimingsEditor(); populateTimetableClassSelect(); renderTimetableEditor(); }
       } catch (e) { console.error('initAdminDashboard error:', e); }
     }
 
@@ -2137,7 +2725,7 @@
       const has = (k) => isAdmin || !!(activeUser?.permissions?.[k]);
       if (!has(tab)) return;
 
-      ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security'].forEach(t => {
+      ['studstats', 'behaviorstats', 'users', 'students', 'teachers', 'alerts', 'reports', 'sync', 'security', 'duty'].forEach(t => {
         document.getElementById(`sec-${t}`)?.classList.add('hidden');
         const tabBtn = document.getElementById(`tab-${t}`);
         if (tabBtn) tabBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all duration-200 cursor-pointer';
@@ -2152,10 +2740,11 @@
       if (tab === 'teachers') renderTeachersList();
       if (tab === 'alerts') generateSmartAlerts();
       if (tab === 'reports') renderReportsSection();
+      if (tab === 'duty') { renderDutyScheduleEditor(); renderPeriodTimingsEditor(); populateTimetableClassSelect(); renderTimetableEditor(); }
     }
 
     /* ============================================================
-       تقارير السلوك أفقية مرتبة على الشاشة
+       تقارير السلوك أفقية
        ============================================================ */
     function populateBehaviorReportClassSelect() {
       const sel = document.getElementById('behaviorReportClassFilter');
@@ -2189,8 +2778,8 @@
         classBlock.className = 'glass-card rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
         classBlock.innerHTML = `
           <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
-            <span class="font-extrabold text-sm text-teal-900 dark:text-teal-300">سلوكيات الصف الدراسي: ${escapeHtml(className)}</span>
-            <span class="font-extrabold text-sm text-slate-700 dark:text-white">تاريخ الرصد: ${escapeHtml(targetDate)}</span>
+            <span class="font-extrabold text-sm text-teal-900 dark:text-teal-300">سلوكيات الصف: ${escapeHtml(className)}</span>
+            <span class="font-extrabold text-sm text-slate-700 dark:text-white">التاريخ: ${escapeHtml(targetDate)}</span>
           </div>
           <div class="grid grid-cols-8 gap-2" id="behaviorReportGrid_${escapeHtml(className).replace(/[^a-zA-Z0-9_-]/g, '_')}"></div>
         `;
@@ -2231,17 +2820,13 @@
       });
     }
 
-    /* كود طباعة PDF السلوك دون أي مساس به إطلاقاً */
     function printHorizontalBehaviorReport() {
       const targetDate = document.getElementById('behaviorReportDatePicker').value;
       const classFilter = document.getElementById('behaviorReportClassFilter').value;
       const classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
-      const behLabels = {
-        normal: 'منضبط', eating: 'الأكل', talking: 'كلام جانبي', tools: 'عدم إحضار الأدوات',
-        chaos: 'إثارة الفوضى', sleeping: 'النوم', homework: 'عدم حل الواجب', other: 'أخرى'
-      };
+      const behLabels = { normal: 'منضبط', eating: 'الأكل', talking: 'كلام جانبي', tools: 'عدم إحضار الأدوات', chaos: 'إثارة الفوضى', sleeping: 'النوم', homework: 'عدم حل الواجب', other: 'أخرى' };
 
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير تفريغ سلوكيات الطلاب (${escapeHtml(targetDate)})</title><style>
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير سلوكيات (${escapeHtml(targetDate)})</title><style>
         @page { size: A4 landscape; margin: 6mm; }
         body { font-family: 'Tajawal', sans-serif; direction: rtl; font-size: 10px; padding: 10px; }
         .header-title { text-align: center; margin-bottom: 12px; border-bottom: 2px solid #0d9488; padding-bottom: 6px; }
@@ -2253,20 +2838,18 @@
         .item-violation { font-size: 8.5px; font-weight: bold; color: #b91c1c; margin-bottom: 3px; padding: 2px; border-bottom: 1px dashed #fca5a5; }
       </style></head><body>
       <div class="header-title">
-        <h2 style="margin:0; font-size: 16px; color: #0f766e;">مدرسة أبو دجانة الأنصاري - تقرير تفريغ سلوكيات الطلاب بالحصص</h2>
+        <h2 style="margin:0; font-size: 16px; color: #0f766e;">مدرسة أبو دجانة الأنصاري - تقرير سلوكيات الطلاب</h2>
         <p style="margin:2px 0 0 0; font-size: 11px; color: #555;">تاريخ التفريغ: ${escapeHtml(targetDate)}</p>
       </div>`;
 
       classesToPrint.forEach(className => {
-        printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف الدراسي: ${escapeHtml(className)}</span><span>التاريخ: ${escapeHtml(targetDate)}</span></div><div class="periods-horizontal-grid">`;
+        printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: ${escapeHtml(className)}</span><span>التاريخ: ${escapeHtml(targetDate)}</span></div><div class="periods-horizontal-grid">`;
         for (let p = 1; p <= 8; p++) {
           const sData = db.behaviors ? db.behaviors[`${targetDate}_${className}_p${p}`] : null;
           const teacher = sData?.teacher || '(غير مسجل)';
           const records = sData?.records || {};
           printHTML += `<div class="period-cell"><div class="period-title">الحصة ${p}<br><small style="font-weight:normal; color:#444;">(${escapeHtml(teacher)})</small></div>`;
-          const issues = Object.entries(records)
-            .filter(([st, obj]) => obj && obj.type && obj.type !== 'normal')
-            .sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
+          const issues = Object.entries(records).filter(([st, obj]) => obj && obj.type && obj.type !== 'normal').sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
           if (issues.length === 0) {
             printHTML += `<div style="text-align:center; color:#888; font-size:8px; margin-top:15px;">منضبطون 🟢</div>`;
           } else {
@@ -2309,17 +2892,11 @@
 
         let include = false;
         if (periodType === 'today') include = (sessDateStr === todayStr);
-        else if (periodType === 'yesterday') {
-          const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1);
-          include = (sessDateStr === formatDateLocal(yest));
-        } else if (periodType === 'week') {
-          const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7);
-          include = (sessDate >= weekAgo && sessDate <= todayDate);
-        } else if (periodType === 'month') {
-          include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
-        } else if (periodType === 'semester') {
-          include = true;
-        } else if (periodType === 'custom') {
+        else if (periodType === 'yesterday') { const yest = new Date(todayDate); yest.setDate(yest.getDate() - 1); include = (sessDateStr === formatDateLocal(yest)); }
+        else if (periodType === 'week') { const weekAgo = new Date(todayDate); weekAgo.setDate(weekAgo.getDate() - 7); include = (sessDate >= weekAgo && sessDate <= todayDate); }
+        else if (periodType === 'month') include = (sessDate.getFullYear() === todayDate.getFullYear() && sessDate.getMonth() === todayDate.getMonth());
+        else if (periodType === 'semester') include = true;
+        else if (periodType === 'custom') {
           const start = document.getElementById('statsStartDate').value;
           const end = document.getElementById('statsEndDate').value;
           include = (!start || sessDateStr >= start) && (!end || sessDateStr <= end);
@@ -2390,9 +2967,9 @@
       const attContainer = document.getElementById('needsAttentionContainer');
 
       if (needsAttentionList.length === 0) {
-        attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تكرار مخالفات تستدعي المتابعة.</div>`;
+        attContainer.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد حالات تستدعي المتابعة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">نوع المخالفات الأكثر تكراراً</th><th class="p-3 text-center">عدد أيام التكرار</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أكثر المخالفات</th><th class="p-3 text-center">المرات</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         needsAttentionList.forEach(st => {
           let mainViolation = 'متنوع';
           const maxV = Math.max(st.absent, st.escape, st.late, st.outside);
@@ -2404,9 +2981,9 @@
           html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" data-class="${escapeHtml(st.className)}" data-name="${escapeHtml(st.name)}" onclick="openStudentProfileFromBtn(this)">${escapeHtml(st.name)}</td>
             <td class="p-3 text-center font-semibold text-emerald-700 dark:text-emerald-400">${escapeHtml(st.className)}</td>
-            <td class="p-3 text-center font-bold text-amber-700 dark:text-amber-400">${escapeHtml(mainViolation)} (غياب: ${st.absent}، تأخير: ${st.late}، تسرب: ${st.escape}، خروج: ${st.outside})</td>
-            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total} مرات</span></td>
-            <td class="p-3 text-center"><button data-class="${escapeHtml(st.className)}" data-name="${escapeHtml(st.name)}" onclick="openStudentProfileFromBtn(this)" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer transition active:scale-95">ملف الطالب</button></td>
+            <td class="p-3 text-center font-bold text-amber-700 dark:text-amber-400">${escapeHtml(mainViolation)} (غ:${st.absent} تأ:${st.late} تس:${st.escape} خر:${st.outside})</td>
+            <td class="p-3 text-center"><span class="bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2.5 py-1 rounded-full font-extrabold">${st.total}</span></td>
+            <td class="p-3 text-center"><button data-class="${escapeHtml(st.className)}" data-name="${escapeHtml(st.name)}" onclick="openStudentProfileFromBtn(this)" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-xl text-[11px] font-bold shadow-sm cursor-pointer transition active:scale-95">ملف</button></td>
           </tr>`;
         });
         attContainer.innerHTML = html + `</tbody></table>`;
@@ -2418,7 +2995,7 @@
       else classEntries.sort((a, b) => a[0].localeCompare(b[0]));
 
       const classTableContainer = document.getElementById('classStatsTableContainer');
-      let classHtml = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الصف الدراسي</th><th class="p-3 text-center">غائب</th><th class="p-3 text-center">متأخر</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">إجمالي المخالفات</th><th class="p-3 text-center">عرض التفاصيل</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
+      let classHtml = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الصف</th><th class="p-3 text-center">غائب</th><th class="p-3 text-center">متأخر</th><th class="p-3 text-center">متسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">الإجمالي</th><th class="p-3 text-center">التفاصيل</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
       classEntries.forEach(([cName, stats]) => {
         classHtml += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
           <td class="p-3 font-extrabold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" data-class="${escapeHtml(cName)}" onclick="openClassDetailFromBtn(this)">صف ${escapeHtml(cName)}</td>
@@ -2427,7 +3004,7 @@
           <td class="p-3 text-center font-bold text-red-600 dark:text-red-400">${stats.escape}</td>
           <td class="p-3 text-center font-bold text-purple-600 dark:text-purple-400">${stats.outside}</td>
           <td class="p-3 text-center"><span class="bg-slate-200 dark:bg-slate-700 px-2.5 py-1 rounded-full font-extrabold">${stats.total}</span></td>
-          <td class="p-3 text-center"><button data-class="${escapeHtml(cName)}" onclick="openClassDetailFromBtn(this)" class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-emerald-100 transition active:scale-95">عرض الطلاب</button></td>
+          <td class="p-3 text-center"><button data-class="${escapeHtml(cName)}" onclick="openClassDetailFromBtn(this)" class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 px-3 py-1.5 rounded-xl font-bold cursor-pointer hover:bg-emerald-100 transition active:scale-95">عرض</button></td>
         </tr>`;
       });
       classTableContainer.innerHTML = classHtml + `</tbody></table>`;
@@ -2436,16 +3013,9 @@
       renderTeacherActivityStats(sessions);
     }
 
-    function openStudentProfileFromBtn(btn) {
-      openStudentProfileModal(btn.dataset.class, btn.dataset.name);
-    }
-    function openClassDetailFromBtn(btn) {
-      openClassDetailModal(btn.dataset.class);
-    }
-    function closeGeneralAndOpenProfileFromBtn(btn) {
-      closeGeneralModal();
-      openStudentProfileModal(btn.dataset.class, btn.dataset.name);
-    }
+    function openStudentProfileFromBtn(btn) { openStudentProfileModal(btn.dataset.class, btn.dataset.name); }
+    function openClassDetailFromBtn(btn) { openClassDetailModal(btn.dataset.class); }
+    function closeGeneralAndOpenProfileFromBtn(btn) { closeGeneralModal(); openStudentProfileModal(btn.dataset.class, btn.dataset.name); }
 
     function openStatusListModal(statusKey) {
       const sessions = getFilteredAttendanceRecords();
@@ -2466,19 +3036,19 @@
 
       list.sort((a, b) => String(a.studentName).localeCompare(String(b.studentName), 'ar'));
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة طلاب (${statusLabels[statusKey]}) - عدد المرات: ${list.length}`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-users text-emerald-400"></i> قائمة (${statusLabels[statusKey]}) - ${list.length}`;
       const body = document.getElementById('generalModalBody');
 
       if (list.length === 0) {
-        body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد حالات مسجلة لهذه الفئة في الفترة المحددة.</div>`;
+        body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد حالات مسجلة.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">إجراء الملف</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">الإجراء</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         list.forEach(item => {
           html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" data-class="${escapeHtml(item.className)}" data-name="${escapeHtml(item.studentName)}" onclick="closeGeneralAndOpenProfileFromBtn(this)">${escapeHtml(item.studentName)}</td>
             <td class="p-3 text-center font-semibold text-emerald-700 dark:text-emerald-400">${escapeHtml(item.className)}</td>
             <td class="p-3 text-center">${escapeHtml(item.date)}</td>
-            <td class="p-3 text-center"><button data-class="${escapeHtml(item.className)}" data-name="${escapeHtml(item.studentName)}" onclick="closeGeneralAndOpenProfileFromBtn(this)" class="bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold shadow-sm transition active:scale-95">عرض تفاصيل الحصص</button></td>
+            <td class="p-3 text-center"><button data-class="${escapeHtml(item.className)}" data-name="${escapeHtml(item.studentName)}" onclick="closeGeneralAndOpenProfileFromBtn(this)" class="bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold shadow-sm transition active:scale-95">عرض</button></td>
           </tr>`;
         });
         body.innerHTML = html + `</tbody></table>`;
@@ -2504,13 +3074,13 @@
 
       list.sort((a, b) => String(a.studentName).localeCompare(String(b.studentName), 'ar'));
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات طلاب صف ${escapeHtml(className)} (${list.length} حالة)`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-building-columns text-emerald-400"></i> مخالفات صف ${escapeHtml(className)} (${list.length})`;
       const body = document.getElementById('generalModalBody');
 
       if (list.length === 0) {
-        body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد مخالفات مسجلة لصف ${escapeHtml(className)} في هذه الفترة.</div>`;
+        body.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد مخالفات.</div>`;
       } else {
-        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">عرض كامل الحصص</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
+        let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-slate-100 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الطالب</th><th class="p-3 text-center">الحالة</th><th class="p-3 text-center">التاريخ</th><th class="p-3 text-center">التفاصيل</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
         list.forEach(item => {
           const stLabel = item.status === 'absent' ? 'غائب' : (item.status === 'escape' ? 'متسرب' : (item.status === 'late' ? 'متأخر' : 'خارج'));
           const badgeColor = item.status === 'absent' ? 'bg-black text-white border border-amber-400' : (item.status === 'escape' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300' : (item.status === 'late' ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300' : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'));
@@ -2518,7 +3088,7 @@
             <td class="p-3 font-bold text-slate-800 dark:text-white cursor-pointer hover:text-emerald-600" data-class="${escapeHtml(className)}" data-name="${escapeHtml(item.studentName)}" onclick="closeGeneralAndOpenProfileFromBtn(this)">${escapeHtml(item.studentName)}</td>
             <td class="p-3 text-center"><span class="px-3 py-1 rounded-full font-bold ${badgeColor}">${stLabel}</span></td>
             <td class="p-3 text-center">${escapeHtml(item.date)}</td>
-            <td class="p-3 text-center"><button data-class="${escapeHtml(className)}" data-name="${escapeHtml(item.studentName)}" onclick="closeGeneralAndOpenProfileFromBtn(this)" class="bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold shadow-sm transition active:scale-95">عرض جميع الحصص</button></td>
+            <td class="p-3 text-center"><button data-class="${escapeHtml(className)}" data-name="${escapeHtml(item.studentName)}" onclick="closeGeneralAndOpenProfileFromBtn(this)" class="bg-emerald-700 text-white px-3 py-1 rounded-xl font-bold shadow-sm transition active:scale-95">عرض</button></td>
           </tr>`;
         });
         body.innerHTML = html + `</tbody></table>`;
@@ -2531,14 +3101,14 @@
     function openStudentProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
-        for (const [cName, sList] of Object.entries(db.students || {})) {
+        for (const [cName, sList] of Object.entries(db.students || [])) {
           if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
         }
       }
       if (!realClassName || realClassName === 'undefined') realClassName = 'غير محدد';
 
-      document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب: ${escapeHtml(studentName)}`;
-      document.getElementById('modalStudentSubtitle').textContent = `الصف الدراسي: ${realClassName}`;
+      document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> ملف الطالب: ${escapeHtml(studentName)}`;
+      document.getElementById('modalStudentSubtitle').textContent = `الصف: ${realClassName}`;
 
       const historyLogs = [];
       Object.entries(db.attendance || {}).forEach(([key, session]) => {
@@ -2546,9 +3116,7 @@
         const sessClassName = session.className || parsed.className;
         const sessDate = session.date || parsed.date;
         const sessPeriod = session.period || parsed.period;
-
         if (sessClassName !== realClassName) return;
-
         if (session && session.records && session.records[studentName]) {
           const status = session.records[studentName];
           if (status && status !== 'present') {
@@ -2573,25 +3141,25 @@
 
       let bodyHTML = `
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700"><span class="text-xs text-slate-400 block font-bold">أيام الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${absentDays}</span></div>
-          <div class="bg-red-50 dark:bg-red-950/40 p-3.5 rounded-2xl border border-red-200 dark:border-red-800"><span class="text-xs text-red-600 dark:text-red-400 block font-bold">أيام التسرب</span><span class="text-xl font-extrabold text-red-700 dark:text-red-300">${escapeDays}</span></div>
-          <div class="bg-orange-50 dark:bg-orange-950/40 p-3.5 rounded-2xl border border-orange-200 dark:border-orange-800"><span class="text-xs text-orange-600 dark:text-orange-400 block font-bold">أيام التأخير</span><span class="text-xl font-extrabold text-orange-700 dark:text-orange-300">${lateDays}</span></div>
-          <div class="bg-purple-50 dark:bg-purple-950/40 p-3.5 rounded-2xl border border-purple-200 dark:border-purple-800"><span class="text-xs text-purple-600 dark:text-purple-400 block font-bold">أيام الخروج</span><span class="text-xl font-extrabold text-purple-700 dark:text-purple-300">${outsideDays}</span></div>
+          <div class="bg-slate-50 dark:bg-slate-900/50 p-3.5 rounded-2xl border border-slate-200 dark:border-slate-700"><span class="text-xs text-slate-400 block font-bold">الغياب</span><span class="text-xl font-extrabold text-slate-800 dark:text-white">${absentDays}</span></div>
+          <div class="bg-red-50 dark:bg-red-950/40 p-3.5 rounded-2xl border border-red-200 dark:border-red-800"><span class="text-xs text-red-600 block font-bold">التسرب</span><span class="text-xl font-extrabold text-red-700 dark:text-red-300">${escapeDays}</span></div>
+          <div class="bg-orange-50 dark:bg-orange-950/40 p-3.5 rounded-2xl border border-orange-200 dark:border-orange-800"><span class="text-xs text-orange-600 block font-bold">التأخير</span><span class="text-xl font-extrabold text-orange-700 dark:text-orange-300">${lateDays}</span></div>
+          <div class="bg-purple-50 dark:bg-purple-950/40 p-3.5 rounded-2xl border border-purple-200 dark:border-purple-800"><span class="text-xs text-purple-600 block font-bold">الخروج</span><span class="text-xl font-extrabold text-purple-700 dark:text-purple-300">${outsideDays}</span></div>
         </div>
         <div class="space-y-2 pt-3">
-          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> تفاصيل الحصص الكاملة المسجلة:</h5>
+          <h5 class="font-extrabold text-xs text-slate-800 dark:text-white flex items-center gap-1.5"><i class="fa-solid fa-clock-rotate-left text-emerald-600"></i> تفاصيل الحصص:</h5>
       `;
       if (historyLogs.length === 0) {
-        bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات مسجلة لهذا الطالب حتى الآن.</div>`;
+        bodyHTML += `<div class="text-center py-6 text-slate-400 text-xs font-bold bg-slate-50 dark:bg-slate-900/40 rounded-2xl">لا توجد مخالفات.</div>`;
       } else {
         historyLogs.forEach(log => {
-          const stLabel = log.status === 'absent' ? 'غياب' : (log.status === 'escape' ? 'متسرب' : (log.status === 'late' ? 'متأخر' : 'خارج الصف'));
+          const stLabel = log.status === 'absent' ? 'غياب' : (log.status === 'escape' ? 'متسرب' : (log.status === 'late' ? 'متأخر' : 'خارج'));
           const badgeBg = log.status === 'absent' ? 'bg-black text-white border border-amber-400' : (log.status === 'escape' ? 'bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300' : (log.status === 'late' ? 'bg-orange-100 dark:bg-orange-950 text-orange-700 dark:text-orange-300' : 'bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300'));
           bodyHTML += `
             <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200/80 dark:border-slate-700/80 flex justify-between items-center gap-2">
               <div>
                 <span class="px-3 py-1 rounded-full text-[10px] font-bold ${badgeBg}">${stLabel}</span>
-                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1.5">الحصة ${log.period} | صف ${escapeHtml(log.className)} | المعلم: ${escapeHtml(log.teacher)}</div>
+                <div class="text-xs font-bold text-slate-700 dark:text-slate-300 mt-1.5">الحصة ${log.period} | صف ${escapeHtml(log.className)} | ${escapeHtml(log.teacher)}</div>
               </div>
               <div class="text-left font-mono text-xs text-emerald-700 dark:text-emerald-400 font-bold">${escapeHtml(log.date)}</div>
             </div>
@@ -2626,24 +3194,24 @@
 
       container.innerHTML = `
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <span class="text-xs text-slate-400 font-bold block">إجمالي حصص اليوم (${totalClassesCount} صفوف × 8 حصص)</span>
-          <div class="text-2xl font-extrabold text-slate-800 dark:text-white">${recordedTodayCount} <span class="text-xs font-normal text-slate-500">من ${totalExpected} حصة</span></div>
+          <span class="text-xs text-slate-400 font-bold block">إجمالي حصص اليوم (${totalClassesCount} صفوف × 8)</span>
+          <div class="text-2xl font-extrabold text-slate-800 dark:text-white">${recordedTodayCount} <span class="text-xs font-normal text-slate-500">من ${totalExpected}</span></div>
           <div class="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden">
             <div class="bg-emerald-600 h-full rounded-full transition-all duration-500" style="width: ${totalExpected ? (recordedTodayCount / totalExpected) * 100 : 0}%"></div>
           </div>
         </div>
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <span class="text-xs text-slate-400 font-bold block">حالة التسجيل اليوم</span>
+          <span class="text-xs text-slate-400 font-bold block">حالة التسجيل</span>
           <div class="flex gap-4 text-xs font-bold pt-1">
             <span class="text-emerald-600">✔ مسجلة: ${recordedTodayCount}</span>
             <span class="text-red-600">✖ غير مسجلة: ${unrecordedToday}</span>
           </div>
         </div>
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 space-y-2">
-          <span class="text-xs text-slate-400 font-bold block">المعلمون وأنشطة الرصد</span>
+          <span class="text-xs text-slate-400 font-bold block">المعلمون</span>
           <div class="text-xs font-bold text-slate-700 dark:text-slate-200 space-y-1">
-            <div>أكملوا الرصد: <span class="text-emerald-600">${escapeHtml(Array.from(recordedTeachers).join(', ') || 'لا أحد بعد')}</span></div>
-            <div>لم يكملوا: <span class="text-red-600">${escapeHtml(missingTeachers.join(', ') || 'الجميع أكمل')}</span></div>
+            <div>أكملوا: <span class="text-emerald-600">${escapeHtml(Array.from(recordedTeachers).join(', ') || 'لا أحد')}</span></div>
+            <div>لم يكملوا: <span class="text-red-600">${escapeHtml(missingTeachers.join(', ') || 'الجميع')}</span></div>
           </div>
         </div>
       `;
@@ -2665,13 +3233,13 @@
       });
 
       const list = Object.values(teacherStatsMap).sort((a, b) => b.recordedPeriods - a.recordedPeriods);
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b border-slate-200 dark:border-slate-700"><th class="p-3">اسم المعلم</th><th class="p-3 text-center">الحصص المسجلة</th><th class="p-3 text-center">المخالفات المسجلة</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300 border-b border-slate-200 dark:border-slate-700"><th class="p-3">المعلم</th><th class="p-3 text-center">الحصص</th><th class="p-3 text-center">المخالفات</th><th class="p-3 text-center">الحالة</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
       list.forEach(t => {
         html += `<tr class="hover:bg-slate-50 dark:hover:bg-slate-900/40 transition">
           <td class="p-3 font-bold text-slate-800 dark:text-white">${escapeHtml(t.name)}</td>
-          <td class="p-3 text-center font-extrabold text-emerald-700 dark:text-emerald-400">${t.recordedPeriods} حصة</td>
-          <td class="p-3 text-center font-bold">${t.totalAbsencesRecorded} مخالفة</td>
-          <td class="p-3 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${t.recordedPeriods > 0 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">${t.recordedPeriods > 0 ? 'نشط' : 'لم يسجل'}</span></td>
+          <td class="p-3 text-center font-extrabold text-emerald-700 dark:text-emerald-400">${t.recordedPeriods}</td>
+          <td class="p-3 text-center font-bold">${t.totalAbsencesRecorded}</td>
+          <td class="p-3 text-center"><span class="px-3 py-1 rounded-full text-[10px] font-bold ${t.recordedPeriods > 0 ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}">${t.recordedPeriods > 0 ? 'نشط' : 'لم يسجل'}</span></td>
         </tr>`;
       });
       container.innerHTML = html + `</tbody></table>`;
@@ -2679,8 +3247,8 @@
 
     function openDailyAdminReportModal() {
       const todayStr = getOmanLocalDate();
-      const dailyStudentMap = {};
       const totals = { absent: 0, escape: 0, late: 0, outside: 0 };
+      const dailyStudentMap = {};
 
       Object.entries(db.attendance).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
@@ -2699,22 +3267,22 @@
       const reportHTML = `
         <div id="printableDailyReport" class="space-y-4 text-slate-800 dark:text-slate-100 p-2">
           <div class="text-center border-b pb-3 border-slate-200 dark:border-slate-700">
-            <h3 class="font-extrabold text-base text-emerald-900 dark:text-emerald-300">التقرير اليومي الشامل لإدارة المدرسة</h3>
-            <p class="text-xs text-slate-500">مدرسة أبو دجانة الأنصاري | تاريخ التقرير: ${escapeHtml(todayStr)}</p>
+            <h3 class="font-extrabold text-base text-emerald-900 dark:text-emerald-300">التقرير اليومي الشامل</h3>
+            <p class="text-xs text-slate-500">مدرسة أبو دجانة الأنصاري | ${escapeHtml(todayStr)}</p>
           </div>
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-            <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><span class="text-xs block text-slate-400 font-bold">الغياب (أيام)</span><strong class="text-lg">${totals.absent}</strong></div>
-            <div class="p-3.5 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200 dark:border-red-800"><span class="text-xs block text-red-600 dark:text-red-400 font-bold">التسرب (أيام)</span><strong class="text-lg text-red-700 dark:text-red-300">${totals.escape}</strong></div>
-            <div class="p-3.5 bg-orange-50 dark:bg-orange-950/40 rounded-2xl border border-orange-200 dark:border-orange-800"><span class="text-xs block text-orange-600 dark:text-orange-400 font-bold">التأخير (أيام)</span><strong class="text-lg text-orange-700 dark:text-orange-300">${totals.late}</strong></div>
-            <div class="p-3.5 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800"><span class="text-xs block text-purple-600 dark:text-purple-400 font-bold">الخروج (أيام)</span><strong class="text-lg text-purple-700 dark:text-purple-300">${totals.outside}</strong></div>
+            <div class="p-3.5 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><span class="text-xs block text-slate-400 font-bold">الغياب</span><strong class="text-lg">${totals.absent}</strong></div>
+            <div class="p-3.5 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-200 dark:border-red-800"><span class="text-xs block text-red-600 font-bold">التسرب</span><strong class="text-lg text-red-700 dark:text-red-300">${totals.escape}</strong></div>
+            <div class="p-3.5 bg-orange-50 dark:bg-orange-950/40 rounded-2xl border border-orange-200 dark:border-orange-800"><span class="text-xs block text-orange-600 font-bold">التأخير</span><strong class="text-lg text-orange-700 dark:text-orange-300">${totals.late}</strong></div>
+            <div class="p-3.5 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border border-purple-200 dark:border-purple-800"><span class="text-xs block text-purple-600 font-bold">الخروج</span><strong class="text-lg text-purple-700 dark:text-purple-300">${totals.outside}</strong></div>
           </div>
         </div>
       `;
 
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-file-lines text-emerald-400"></i> التقرير اليومي للإدارة`;
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-file-lines text-emerald-400"></i> التقرير اليومي`;
       document.getElementById('generalModalBody').innerHTML = reportHTML + `
         <div class="text-center pt-3">
-          <button onclick="printDailyReportPDF()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition cursor-pointer active:scale-95"><i class="fa-solid fa-print"></i> طباعة التقرير / PDF</button>
+          <button onclick="printDailyReportPDF()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md transition cursor-pointer active:scale-95"><i class="fa-solid fa-print"></i> طباعة / PDF</button>
         </div>
       `;
       document.getElementById('generalModal').classList.remove('hidden');
@@ -2729,7 +3297,7 @@
     }
 
     /* ============================================================
-       تقارير الحضور أفقية مرتبة على الشاشة
+       تقارير الحضور أفقية
        ============================================================ */
     const STATUS_ORDER = { absent: 0, escape: 1, late: 2, outside: 3 };
     function sortAttendanceIssues(issues) {
@@ -2752,8 +3320,8 @@
         classBlock.className = 'glass-card rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
         classBlock.innerHTML = `
           <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
-            <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف الدراسي: ${escapeHtml(className)}</span>
-            <span class="font-extrabold text-sm text-slate-700 dark:text-white">تاريخ الرصد: ${escapeHtml(targetDate)}</span>
+            <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف: ${escapeHtml(className)}</span>
+            <span class="font-extrabold text-sm text-slate-700 dark:text-white">التاريخ: ${escapeHtml(targetDate)}</span>
           </div>
           <div class="grid grid-cols-8 gap-2" id="reportGrid_${escapeHtml(className).replace(/[^a-zA-Z0-9_-]/g, '_')}"></div>
         `;
@@ -2796,13 +3364,12 @@
       });
     }
 
-    /* كود طباعة PDF الحضور بدون أي مساس نهائياً */
     function printHorizontalReport() {
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
       const classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
 
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الغياب الأفقي (${escapeHtml(targetDate)})</title><style>
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>تقرير الغياب (${escapeHtml(targetDate)})</title><style>
         @page { size: A4 landscape; margin: 8mm; }
         body { font-family: 'Tajawal', sans-serif; direction: rtl; font-size: 10px; background: #fff; color: #1e293b; margin: 0; padding: 5px; }
         .report-title-box { text-align: center; margin-bottom: 15px; border-bottom: 2px solid #065f46; padding-bottom: 8px; }
@@ -2823,15 +3390,15 @@
         .badge-outside { color: #9333ea; background: #faf5ff; border: 1px solid #e9d5ff; }
       </style></head><body>
       <div class="report-title-box">
-        <h2>مدرسة أبو دجانة الأنصاري - تقرير تفريغ غياب الطلاب أفقياً</h2>
+        <h2>مدرسة أبو دجانة الأنصاري - تقرير الغياب الأفقي</h2>
         <p>تاريخ الرصد: ${escapeHtml(targetDate)}</p>
       </div>`;
 
       classesToPrint.forEach(className => {
         printHTML += `<div class="class-row-card">
           <div class="class-header-bar">
-            <span>الصف الدراسي: ${escapeHtml(className)}</span>
-            <span>تاريخ الرصد: ${escapeHtml(targetDate)}</span>
+            <span>الصف: ${escapeHtml(className)}</span>
+            <span>التاريخ: ${escapeHtml(targetDate)}</span>
           </div>
           <div class="periods-horizontal-grid">`;
 
@@ -2866,7 +3433,7 @@
 
       printHTML += `</body></html>`;
       const win = window.open('', '_blank');
-      if (!win) { showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.', 'error'); return; }
+      if (!win) { showToast('يرجى السماح بالنوافذ المنبثقة.', 'error'); return; }
       win.document.write(printHTML); win.document.close(); win.focus(); setTimeout(() => win.print(), 500);
     }
 
@@ -2890,14 +3457,14 @@
       a.href = URL.createObjectURL(blob);
       a.download = `تفريغ_الغياب_${targetDate}.csv`;
       a.click();
-      showToast('تم البدء في تحميل ملف Excel التفاعلي', 'info');
+      showToast('تم البدء في تحميل ملف Excel', 'info');
     }
 
     function populateReportClassSelect() {
       const sel = document.getElementById('reportClassFilter');
       if (!sel) return;
       const cur = sel.value;
-      sel.innerHTML = '<option value="all">جميع الصفوف الدراسية</option>';
+      sel.innerHTML = '<option value="all">جميع الصفوف</option>';
       db.classes.forEach(c => sel.innerHTML += `<option value="${escapeHtml(c)}">صف ${escapeHtml(c)}</option>`);
       sel.value = db.classes.includes(cur) ? cur : 'all';
     }
@@ -2934,9 +3501,7 @@
       });
     }
 
-    function removeStudentFromBtn(btn) {
-      removeStudent(btn.dataset.class, parseInt(btn.dataset.idx));
-    }
+    function removeStudentFromBtn(btn) { removeStudent(btn.dataset.class, parseInt(btn.dataset.idx)); }
 
     async function saveBulkStudents() {
       const sel = document.getElementById('adminClassSelect').value;
@@ -2970,24 +3535,18 @@
       const studentName = list[idx];
       if (!confirm(`حذف الطالب (${studentName}) من صف ${className}؟`)) return;
       list.splice(idx, 1);
-
       Object.entries(db.attendance).forEach(([k, sess]) => {
         const p = parseAttendanceKey(k);
-        if (p.className === className && sess.records && sess.records[studentName] !== undefined) {
-          delete sess.records[studentName];
-        }
+        if (p.className === className && sess.records && sess.records[studentName] !== undefined) delete sess.records[studentName];
       });
       Object.entries(db.behaviors).forEach(([k, sess]) => {
         const p = parseAttendanceKey(k);
-        if (p.className === className && sess.records && sess.records[studentName] !== undefined) {
-          delete sess.records[studentName];
-        }
+        if (p.className === className && sess.records && sess.records[studentName] !== undefined) delete sess.records[studentName];
       });
-
       await saveSystemDataToCloud();
       await queueCloudDelete('students', { class_name: className, student_name: studentName });
       loadAdminStudentsList();
-      showToast('تم حذف الطالب وكافة سجلاته', 'info');
+      showToast('تم حذف الطالب وسجلاته', 'info');
     }
 
     async function addNewClassPrompt() {
@@ -2995,14 +3554,8 @@
       if (!name) return;
       const trimmed = name.trim();
       if (!trimmed) return;
-      if (trimmed.includes('_')) {
-        showToast('لا يمكن استخدام الرمز "_" في اسم الصف (يستخدم فاصلاً داخلياً).', 'error');
-        return;
-      }
-      if (db.classes.includes(trimmed)) {
-        showToast('هذا الصف موجود مسبقاً.', 'error');
-        return;
-      }
+      if (trimmed.includes('_')) { showToast('لا يمكن استخدام "_" في اسم الصف.', 'error'); return; }
+      if (db.classes.includes(trimmed)) { showToast('هذا الصف موجود مسبقاً.', 'error'); return; }
       db.classes.push(trimmed);
       db.students[trimmed] = [];
       await saveSystemDataToCloud();
@@ -3010,34 +3563,30 @@
       populateReportClassSelect();
       populateBehaviorReportClassSelect();
       renderClassesGrid();
-      showToast(`تم إضافة الصف ${trimmed} بنجاح`, 'success');
+      showToast(`تم إضافة الصف ${trimmed}`, 'success');
     }
 
     async function deleteCurrentClass() {
       const sel = document.getElementById('adminClassSelect').value;
       if (!sel) return;
-      if (!confirm(`حذف صف ${sel} بالكامل (بما فيه سجلات الغياب والسلوكيات)؟`)) return;
-
+      if (!confirm(`حذف صف ${sel} بالكامل؟`)) return;
       db.classes = db.classes.filter(c => c !== sel);
       delete db.students[sel];
-
       const attKeys = Object.keys(db.attendance).filter(k => parseAttendanceKey(k).className === sel);
       attKeys.forEach(k => delete db.attendance[k]);
       const behKeys = Object.keys(db.behaviors).filter(k => parseAttendanceKey(k).className === sel);
       behKeys.forEach(k => delete db.behaviors[k]);
-
       await saveSystemDataToCloud();
       await queueCloudDelete('classes', { name: sel });
       await queueCloudDelete('students', { class_name: sel });
       for (const k of attKeys) await queueCloudDelete('attendance', { record_key: k });
       for (const k of behKeys) await queueCloudDelete('behaviors', { record_key: k });
-
       populateAdminClassSelect();
       populateReportClassSelect();
       populateBehaviorReportClassSelect();
       loadAdminStudentsList();
       renderClassesGrid();
-      showToast(`تم حذف صف ${sel} وكافة سجلاته`, 'info');
+      showToast(`تم حذف صف ${sel}`, 'info');
     }
 
     /* ============================================================
@@ -3053,7 +3602,7 @@
       db.teachers.forEach((t, idx) => {
         const div = document.createElement('div');
         div.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50';
-        div.innerHTML = `<div><span class="font-extrabold text-xs sm:text-sm">${escapeHtml(t.name)}</span> <span class="text-xs text-emerald-600 dark:text-emerald-400 ms-3 font-mono font-bold">الرمز: ${escapeHtml(t.pin)}</span></div><div class="flex gap-2"><button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 rounded-xl cursor-pointer hover:bg-blue-100 transition">تعديل الرمز</button><button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/60 rounded-xl cursor-pointer hover:bg-red-100 transition">حذف</button></div>`;
+        div.innerHTML = `<div><span class="font-extrabold text-xs sm:text-sm">${escapeHtml(t.name)}</span> <span class="text-xs text-emerald-600 dark:text-emerald-400 ms-3 font-mono font-bold">الرمز: ${escapeHtml(t.pin)}</span></div><div class="flex gap-2"><button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/60 rounded-xl cursor-pointer hover:bg-blue-100 transition">تعديل</button><button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/60 rounded-xl cursor-pointer hover:bg-red-100 transition">حذف</button></div>`;
         container.appendChild(div);
       });
     }
@@ -3063,16 +3612,14 @@
       const pin = document.getElementById('newTeacherPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       if (db.teachers.some(t => t.name === name)) { showToast('اسم المعلم مستخدم مسبقاً.', 'error'); return; }
-      const collision = db.teachers.some(t => t.pin === pin)
-        || (db.customUsers || []).some(u => u.pin === pin)
-        || verifyAdminPinInput(pin);
-      if (collision) { showToast('هذا الرمز مستخدم من قبل. اختر رمزاً آخر.', 'error'); return; }
+      const collision = db.teachers.some(t => t.pin === pin) || (db.customUsers || []).some(u => u.pin === pin) || verifyAdminPinInput(pin);
+      if (collision) { showToast('هذا الرمز مستخدم. اختر آخر.', 'error'); return; }
       db.teachers.push({ name, pin });
       const success = await saveSystemDataToCloud();
       renderTeachersList();
       document.getElementById('newTeacherName').value = '';
       document.getElementById('newTeacherPin').value = '';
-      showToast(success ? 'تم حفظ المعلم سحابياً!' : 'تم الحفظ محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم حفظ المعلم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
     async function editTeacherPin(idx) {
@@ -3081,14 +3628,12 @@
       const newPin = prompt(`الرمز الجديد لـ (${t.name}):`, t.pin);
       if (newPin?.trim()) {
         const trimmed = newPin.trim();
-        const collision = db.teachers.some((tt, i) => i !== idx && tt.pin === trimmed)
-          || (db.customUsers || []).some(u => u.pin === trimmed)
-          || verifyAdminPinInput(trimmed);
-        if (collision) { showToast('هذا الرمز مستخدم من قبل. اختر رمزاً آخر.', 'error'); return; }
+        const collision = db.teachers.some((tt, i) => i !== idx && tt.pin === trimmed) || (db.customUsers || []).some(u => u.pin === trimmed) || verifyAdminPinInput(trimmed);
+        if (collision) { showToast('الرمز مستخدم.', 'error'); return; }
         t.pin = trimmed;
         const success = await saveSystemDataToCloud();
         renderTeachersList();
-        showToast(success ? 'تم تحديث الرمز بنجاح' : 'تم التحديث محلياً فقط.', success ? 'success' : 'info');
+        showToast(success ? 'تم التحديث' : 'محلياً', success ? 'success' : 'info');
       }
     }
 
@@ -3100,7 +3645,7 @@
       await saveSystemDataToCloud();
       await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
       renderTeachersList();
-      showToast('تم حذف المعلم بنجاح', 'info');
+      showToast('تم الحذف', 'info');
       if (activeUser && activeUser.type === 'teacher' && activeUser.name === t.name) {
         showToast('تم حذف حسابك. سيتم تسجيل الخروج.', 'error');
         setTimeout(() => _performLogout(), 800);
@@ -3134,10 +3679,10 @@
       })).filter(d => d.total >= 1).sort((a, b) => b.total - a.total);
 
       if (filtered.length === 0) {
-        container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs font-bold">لا توجد مخالفات مسجلة.</div>`;
+        container.innerHTML = `<div class="text-center text-slate-400 py-6 text-xs font-bold">لا توجد مخالفات.</div>`;
         return;
       }
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">أيام غياب</th><th class="p-3 text-center">أيام تأخير</th><th class="p-3 text-center">أيام تسرب</th><th class="p-3 text-center">أيام خارج</th><th class="p-3 text-center">إجمالي الأيام</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
+      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-red-50 dark:bg-red-950/40 text-red-900 dark:text-red-200 border-b border-slate-200 dark:border-slate-700"><th class="p-3">الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">غياب</th><th class="p-3 text-center">تأخير</th><th class="p-3 text-center">تسرب</th><th class="p-3 text-center">خارج</th><th class="p-3 text-center">الإجمالي</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
       filtered.forEach(d => {
         html += `<tr><td class="p-3 font-bold text-emerald-700 dark:text-emerald-400">${escapeHtml(d.studentName)}</td><td class="p-3 text-center font-semibold">${escapeHtml(d.className)}</td><td class="p-3 text-center">${d.absent}</td><td class="p-3 text-center">${d.late}</td><td class="p-3 text-center">${d.escape}</td><td class="p-3 text-center">${d.outside}</td><td class="p-3 text-center"><span class="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-full font-bold">${d.total}</span></td></tr>`;
       });
@@ -3148,11 +3693,9 @@
       const name = document.getElementById('newCustomUserName').value.trim();
       const pin = document.getElementById('newCustomUserPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
-      if (db.customUsers.some(u => u.name === name)) { showToast('اسم المستخدم مستخدم مسبقاً.', 'error'); return; }
-      const collision = db.teachers.some(t => t.pin === pin)
-        || db.customUsers.some(u => u.pin === pin)
-        || verifyAdminPinInput(pin);
-      if (collision) { showToast('هذا الرمز مستخدم من قبل. اختر رمزاً آخر.', 'error'); return; }
+      if (db.customUsers.some(u => u.name === name)) { showToast('اسم المستخدم مستخدم.', 'error'); return; }
+      const collision = db.teachers.some(t => t.pin === pin) || db.customUsers.some(u => u.pin === pin) || verifyAdminPinInput(pin);
+      if (collision) { showToast('الرمز مستخدم. اختر آخر.', 'error'); return; }
       const permissions = {
         studstats: document.getElementById('perm_studstats').checked,
         behaviorstats: document.getElementById('perm_behaviorstats').checked,
@@ -3162,14 +3705,15 @@
         alerts: document.getElementById('perm_alerts').checked,
         reports: document.getElementById('perm_reports').checked,
         sync: document.getElementById('perm_sync').checked,
-        security: document.getElementById('perm_security').checked
+        security: document.getElementById('perm_security').checked,
+        duty: document.getElementById('perm_duty').checked
       };
       db.customUsers.push({ name, pin, permissions });
       const success = await saveSystemDataToCloud();
       renderCustomUsersList();
       document.getElementById('newCustomUserName').value = '';
       document.getElementById('newCustomUserPin').value = '';
-      showToast(success ? 'تم حفظ المستخدم سحابياً!' : 'تم الحفظ محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم حفظ المستخدم سحابياً!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
     function renderCustomUsersList() {
@@ -3195,7 +3739,7 @@
       await saveSystemDataToCloud();
       await queueCloudDelete('teachers', { name: u.name, role: 'custom' });
       renderCustomUsersList();
-      showToast('تم حذف المستخدم المخصص', 'info');
+      showToast('تم حذف المستخدم', 'info');
       if (activeUser && activeUser.type === 'custom' && activeUser.name === u.name) {
         showToast('تم حذف حسابك. سيتم تسجيل الخروج.', 'error');
         setTimeout(() => _performLogout(), 800);
@@ -3207,14 +3751,11 @@
       if (!newPin) { showToast('أدخل الرمز الجديد.', 'error'); return; }
       const currentPin = prompt('لأمان: أدخل رمز المدير الحالي للتأكيد:');
       if (currentPin === null) return;
-      if (!verifyAdminPinInput(currentPin.trim())) {
-        showToast('الرمز الحالي غير صحيح.', 'error');
-        return;
-      }
+      if (!verifyAdminPinInput(currentPin.trim())) { showToast('الرمز الحالي غير صحيح.', 'error'); return; }
       db.adminPin = safeBtoa(newPin);
       const success = await saveSystemDataToCloud();
       document.getElementById('settingAdminPin').value = '';
-      showToast(success ? 'تم حفظ الرمز الجديد سحابياً!' : 'تم الحفظ محلياً فقط.', success ? 'success' : 'info');
+      showToast(success ? 'تم الحفظ سحابياً!' : 'محلياً فقط.', success ? 'success' : 'info');
     }
 
     async function executeFullReset() {
@@ -3223,19 +3764,10 @@
       const errorEl = document.getElementById('resetErrorMsg');
       errorEl.classList.add('hidden');
 
-      if (!pin1 || !pin2) {
-        errorEl.textContent = 'يرجى إدخال الرقم السري في الحقلين للتأكيد.';
-        errorEl.classList.remove('hidden'); return;
-      }
-      if (pin1 !== pin2) {
-        errorEl.textContent = 'الرقم السري غير متطابق في الحقلين!';
-        errorEl.classList.remove('hidden'); return;
-      }
-      if (!verifyAdminPinInput(pin1)) {
-        errorEl.textContent = 'الرقم السري غير صحيح لمدير النظام!';
-        errorEl.classList.remove('hidden'); return;
-      }
-      if (!confirm('هل أنت متأكد تماماً من رغبتك في تصفير وحذف جميع سجلات الغياب والسلوكيات التجريبية القديمة؟ لا يمكن التراجع عن هذا الإجراء.')) return;
+      if (!pin1 || !pin2) { errorEl.textContent = 'يرجى إدخال الرقم السري في الحقلين.'; errorEl.classList.remove('hidden'); return; }
+      if (pin1 !== pin2) { errorEl.textContent = 'الرقم غير متطابق!'; errorEl.classList.remove('hidden'); return; }
+      if (!verifyAdminPinInput(pin1)) { errorEl.textContent = 'الرقم غير صحيح!'; errorEl.classList.remove('hidden'); return; }
+      if (!confirm('هل أنت متأكد من تصفير وحذف جميع سجلات الغياب والسلوكيات؟')) return;
 
       const attKeys = Object.keys(db.attendance);
       const behKeys = Object.keys(db.behaviors);
@@ -3248,7 +3780,7 @@
 
       document.getElementById('resetPin1').value = '';
       document.getElementById('resetPin2').value = '';
-      showToast('تم تصفير كافة سجلات الغياب والسلوكيات وحفظ التحديثات سحابياً بنجاح!', 'success');
+      showToast('تم تصفير كافة السجلات سحابياً!', 'success');
       initAdminDashboard();
     }
   </script>
