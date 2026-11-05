@@ -15,15 +15,45 @@
     .dark .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 10px; }
     .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0f766e; }
-    .status-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); }
-    .status-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08); }
-    .status-btn:active { transform: scale(0.95); }
-    .hero-card { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
-    .hero-card:hover { transform: translateY(-8px) scale(1.015); }
+    
+    /* أزرار الحالات البارزة والتفاعلية */
+    .status-btn { 
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); 
+      cursor: pointer;
+    }
+    .status-btn:hover { 
+      transform: translateY(-2px); 
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); 
+    }
+    .status-btn:active { 
+      transform: scale(0.94); 
+    }
+    
+    /* بطاقات التحكم الرئيسية الحديثة */
+    .hero-card { 
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); 
+    }
+    .hero-card:hover { 
+      transform: translateY(-8px) scale(1.02); 
+      box-shadow: 0 20px 35px -10px rgba(13, 148, 136, 0.3);
+    }
+    
     @keyframes toastIn { from { transform: translateY(-20px) scale(0.9); opacity: 0; } to { transform: translateY(0) scale(1); opacity: 1; } }
     @keyframes toastOut { from { transform: translateY(0) scale(1); opacity: 1; } to { transform: translateY(-20px) scale(0.9); opacity: 0; } }
     .toast-enter { animation: toastIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
     .toast-exit { animation: toastOut 0.25s ease forwards; }
+
+    /* خلفية زجاجية عصرية ناعمة */
+    .glass-card {
+      background: rgba(255, 255, 255, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
+    .dark .glass-card {
+      background: rgba(30, 41, 59, 0.85);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+    }
   </style>
   <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
@@ -31,10 +61,10 @@
 
   <div id="toastContainer" class="fixed top-5 left-5 z-[999999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4"></div>
 
-  <header class="sticky top-0 z-40 bg-emerald-900/90 dark:bg-emerald-950/90 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60 transition-all duration-300">
+  <header class="sticky top-0 z-40 bg-emerald-900/95 dark:bg-emerald-950/95 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60 transition-all duration-300">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
       <div class="flex items-center space-x-3 space-x-reverse">
-        <div class="w-11 h-11 bg-emerald-800/80 rounded-2xl flex items-center justify-center text-emerald-200 text-2xl shadow-inner border border-emerald-700/50 transform hover:rotate-6 transition-transform duration-300">
+        <div class="w-11 h-11 bg-emerald-800/90 rounded-2xl flex items-center justify-center text-emerald-200 text-2xl shadow-lg border border-emerald-700/60 transform hover:rotate-6 transition-transform duration-300">
           <i class="fa-solid fa-school"></i>
         </div>
         <div>
@@ -64,30 +94,32 @@
 
   <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
-    <div id="loginView" class="max-w-md mx-auto my-12 bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-8 rounded-3xl shadow-2xl border border-slate-200/80 dark:border-slate-700/80 transition-all duration-300">
+    <!-- شاشة تسجيل الدخول المطورة جمالياً -->
+    <div id="loginView" class="max-w-md mx-auto my-12 glass-card p-8 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/80 transition-all duration-300">
       <div class="text-center mb-6">
-        <div class="w-16 h-16 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-3xl flex items-center justify-center mx-auto mb-3 text-2xl border border-emerald-200 dark:border-emerald-800 shadow-inner transform hover:scale-105 transition-transform duration-300">
+        <div class="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg border border-emerald-400/30 transform hover:scale-105 transition-transform duration-300">
           <i class="fa-solid fa-user-lock"></i>
         </div>
-        <h2 class="text-xl font-extrabold text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
-        <p class="text-xs text-slate-500 dark:text-slate-400 mt-1.5">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات</p>
+        <h2 class="text-2xl font-black text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
+        <p class="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium">أدخل الرقم السري الخاص بك للمتابعة ورصد الغياب والسلوكيات</p>
       </div>
-      <form onsubmit="handleUserLogin(event)" class="space-y-4">
+      <form onsubmit="handleUserLogin(event)" class="space-y-5">
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1.5">الرقم السري</label>
-          <input type="password" id="userPinInput" required placeholder="••••" class="w-full text-center text-2xl tracking-widest px-4 py-3.5 bg-slate-50 dark:bg-slate-900/80 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 dark:text-white outline-none transition-all font-bold shadow-inner">
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">الرقم السري</label>
+          <input type="password" id="userPinInput" required placeholder="••••" class="w-full text-center text-3xl tracking-widest px-4 py-4 bg-slate-50/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500 text-slate-800 dark:text-white outline-none transition-all font-bold shadow-inner">
         </div>
         <div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-3 rounded-2xl border border-red-200 dark:border-red-900/50 shadow-sm">الرمز السري غير صحيح، يرجى المحاولة مجدداً</div>
-        <button type="submit" class="w-full bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95">
+        <button type="submit" class="w-full bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 text-white font-extrabold py-4 rounded-2xl shadow-xl hover:shadow-2xl transition-all duration-200 text-sm flex items-center justify-center gap-2 cursor-pointer active:scale-95">
           <span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>
         </button>
       </form>
     </div>
 
+    <!-- لوحة الاختيار الرئيسية بالبطاقات المطورة -->
     <div id="dashboardSelectionView" class="hidden space-y-8">
-      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4 transition-all duration-300">
+      <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4 transition-all duration-300">
         <div class="flex items-center gap-3.5">
-          <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center font-bold text-lg border border-emerald-200 dark:border-emerald-800 shadow-sm">
+          <div class="w-12 h-12 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 rounded-2xl flex items-center justify-center font-bold text-xl border border-emerald-200 dark:border-emerald-800 shadow-sm">
             <i class="fa-solid fa-chalkboard-user"></i>
           </div>
           <div>
@@ -113,11 +145,11 @@
 
       <div class="text-center py-2">
         <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-1.5 tracking-wide">لوحة التحكم الرئيسية</h3>
-        <p class="text-xs text-slate-400 dark:text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
+        <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">اختر القسم المطلوب للانتقال المباشر للعمليات والتحكم</p>
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-5xl mx-auto">
-        <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-600 via-teal-700 to-emerald-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[230px]">
+        <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-emerald-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           <div class="relative z-10 flex justify-between items-start">
@@ -130,13 +162,13 @@
           </div>
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-emerald-200 group-hover:text-white">
             <span>انقر للبدء في الرصد</span>
-            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
               <i class="fa-solid fa-arrow-left text-sm"></i>
             </div>
           </div>
         </div>
 
-        <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-600 via-cyan-700 to-indigo-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[230px]">
+        <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-700 via-cyan-800 to-indigo-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
           <div class="absolute -left-12 -bottom-12 w-48 h-48 bg-cyan-400/20 rounded-full blur-3xl group-hover:scale-150 transition-all duration-500"></div>
           <div class="absolute -right-8 -top-8 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
           <div class="relative z-10 flex justify-between items-start">
@@ -149,7 +181,7 @@
           </div>
           <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200 group-hover:text-white">
             <span>انقر للبدء في الرصد</span>
-            <div class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
+            <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center group-hover:-translate-x-2 transition-transform duration-300 shadow-sm">
               <i class="fa-solid fa-arrow-left text-sm"></i>
             </div>
           </div>
@@ -157,8 +189,9 @@
       </div>
     </div>
 
+    <!-- شبكة الصفوف للغياب -->
     <div id="classesView" class="hidden space-y-6">
-      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+      <div class="glass-card p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
         <button onclick="backToDashboardSelection()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-emerald-200 dark:border-emerald-800 cursor-pointer active:scale-95">
           <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
         </button>
@@ -177,8 +210,9 @@
       </div>
     </div>
 
+    <!-- شاشة رصد الحضور بنفس المعرفات والمكونات البرمجية الدقيقة -->
     <div id="attendanceView" class="hidden space-y-6">
-      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
+      <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
           <button onclick="backToClasses()" class="bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 text-emerald-800 dark:text-emerald-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-emerald-200 dark:border-emerald-800 shadow-sm cursor-pointer active:scale-95">
             <i class="fa-solid fa-arrow-right text-emerald-600"></i> العودة للصفوف
@@ -196,40 +230,41 @@
           <div id="activePeriodDisplayBadge" class="bg-emerald-100 dark:bg-emerald-950 text-emerald-900 dark:text-emerald-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-emerald-300 dark:border-emerald-700 shadow-sm flex items-center gap-2">
             <i class="fa-solid fa-clock text-emerald-600"></i> <span id="activePeriodText">الحصة الأولى</span>
           </div>
-          <button onclick="reselectAttendancePeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-2xl text-xs font-bold transition cursor-pointer">
+          <button onclick="reselectAttendancePeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-2xl text-xs font-bold transition cursor-pointer">
             تغيير الحصة
           </button>
         </div>
       </div>
 
-      <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+      <div class="glass-card rounded-3xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
         <div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="flex items-center gap-3">
             <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب وحالات الحضور والغياب</span>
             <span id="studentsCount" class="text-xs font-bold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300 px-3 py-1 rounded-2xl border border-emerald-200 dark:border-emerald-800"></span>
           </div>
-          <div id="liveStatsBar" class="flex flex-wrap gap-1.5 text-xs font-bold">
-            <span class="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-2.5 py-1 rounded-xl border border-emerald-200/60">حاضر: <span id="statPresent">0</span></span>
-            <span class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-2.5 py-1 rounded-xl border border-slate-300 dark:border-slate-700">غائب: <span id="statAbsent">0</span></span>
-            <span class="bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-2.5 py-1 rounded-xl border border-orange-200/60">متأخر: <span id="statLate">0</span></span>
-            <span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-xl border border-red-200/60">متسرب: <span id="statEscape">0</span></span>
-            <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-2.5 py-1 rounded-xl border border-purple-200/60">خارج: <span id="statOutside">0</span></span>
+          <div id="liveStatsBar" class="flex flex-wrap gap-2 text-xs font-bold">
+            <span class="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl border border-emerald-200/60 shadow-sm">حاضر: <span id="statPresent">0</span></span>
+            <span class="bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 px-3 py-1.5 rounded-xl border border-slate-300 dark:border-slate-700 shadow-sm">غائب: <span id="statAbsent">0</span></span>
+            <span class="bg-orange-50 dark:bg-orange-950/50 text-orange-700 dark:text-orange-300 px-3 py-1.5 rounded-xl border border-orange-200/60 shadow-sm">متأخر: <span id="statLate">0</span></span>
+            <span class="bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 px-3 py-1.5 rounded-xl border border-red-200/60 shadow-sm">متسرب: <span id="statEscape">0</span></span>
+            <span class="bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-xl border border-purple-200/60 shadow-sm">خارج: <span id="statOutside">0</span></span>
           </div>
         </div>
-        <div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3 custom-scrollbar"></div>
+        <div id="studentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[58vh] overflow-y-auto p-3 custom-scrollbar"></div>
         <div class="p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="text-xs text-emerald-700 dark:text-emerald-400 font-bold flex items-center gap-1.5">
             <i class="fa-solid fa-circle-check text-sm"></i> <span id="unsavedStatusIndicator">تعديلات محلية جاهزة للحفظ</span>
           </div>
-          <button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
+          <button id="saveSessionBtn" onclick="saveAttendanceSession()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-6 py-3.5 rounded-2xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
             <i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد الحصة سحابياً</span>
           </button>
         </div>
       </div>
     </div>
 
+    <!-- شبكة الصفوف للسلوكيات -->
     <div id="behaviorClassesView" class="hidden space-y-6">
-      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
+      <div class="glass-card p-4 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex justify-between items-center">
         <button onclick="backToDashboardSelection()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-teal-200 dark:border-teal-800 cursor-pointer active:scale-95">
           <i class="fa-solid fa-arrow-right"></i> العودة للرئيسية
         </button>
@@ -248,8 +283,9 @@
       </div>
     </div>
 
+    <!-- شاشة جلسة السلوكيات -->
     <div id="behaviorSessionView" class="hidden space-y-6">
-      <div class="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
+      <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
         <div class="flex items-center gap-3">
           <button onclick="backToBehaviorClasses()" class="bg-teal-50 dark:bg-teal-950/60 hover:bg-teal-100 text-teal-800 dark:text-teal-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold transition-all duration-200 flex items-center gap-2 border border-teal-200 dark:border-teal-800 shadow-sm cursor-pointer active:scale-95">
             <i class="fa-solid fa-arrow-right text-teal-600"></i> العودة للصفوف
@@ -267,25 +303,25 @@
           <div id="activeBehaviorPeriodDisplayBadge" class="bg-teal-100 dark:bg-teal-950 text-teal-900 dark:text-teal-200 px-4 py-2 rounded-2xl text-xs font-extrabold border border-teal-300 dark:border-teal-700 shadow-sm flex items-center gap-2">
             <i class="fa-solid fa-clock text-teal-600"></i> <span id="activeBehaviorPeriodText">الحصة الأولى</span>
           </div>
-          <button onclick="reselectBehaviorPeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3 py-2 rounded-2xl text-xs font-bold transition cursor-pointer">
+          <button onclick="reselectBehaviorPeriod()" class="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 px-3.5 py-2 rounded-2xl text-xs font-bold transition cursor-pointer">
             تغيير الحصة
           </button>
         </div>
       </div>
 
-      <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
+      <div class="glass-card rounded-3xl shadow-xl border border-slate-200/60 dark:border-slate-700/60 overflow-hidden">
         <div class="p-5 bg-slate-50/80 dark:bg-slate-900/60 border-b border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="flex items-center gap-3">
             <span class="font-extrabold text-slate-800 dark:text-white text-sm">قائمة الطلاب ورصد السلوكيات (الافتراضي: منضبط)</span>
             <span id="behaviorStudentsCount" class="text-xs font-bold bg-teal-100 dark:bg-teal-950 text-teal-800 dark:text-teal-300 px-3 py-1 rounded-2xl border border-teal-200 dark:border-teal-800"></span>
           </div>
         </div>
-        <div id="behaviorStudentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[55vh] overflow-y-auto p-3 custom-scrollbar"></div>
+        <div id="behaviorStudentsListContainer" class="divide-y divide-slate-100 dark:divide-slate-700 max-h-[58vh] overflow-y-auto p-3 custom-scrollbar"></div>
         <div class="p-4 sm:p-5 bg-slate-50/80 dark:bg-slate-900/60 border-t border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-3">
           <div class="text-xs text-teal-700 dark:text-teal-400 font-bold flex items-center gap-1.5">
             <i class="fa-solid fa-circle-check text-sm"></i> <span id="unsavedBehaviorStatusIndicator">تعديلات السلوكيات جاهزة للحفظ</span>
           </div>
-          <button id="saveBehaviorSessionBtn" onclick="saveBehaviorSession()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-3 rounded-2xl text-xs font-bold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
+          <button id="saveBehaviorSessionBtn" onclick="saveBehaviorSession()" class="bg-teal-700 hover:bg-teal-800 text-white px-6 py-3.5 rounded-2xl text-xs font-extrabold shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 cursor-pointer active:scale-95">
             <i class="fa-solid fa-floppy-disk"></i> <span>تأكيد وحفظ رصد السلوكيات سحابياً</span>
           </button>
         </div>
@@ -293,6 +329,7 @@
     </div>
   </main>
 
+  <!-- نافذة اختيار الحصة الدراسية -->
   <div id="selectPeriodModal" class="fixed inset-0 bg-slate-900/70 z-[999999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
     <div class="bg-white dark:bg-slate-800 rounded-[2.5rem] max-w-xl w-full p-7 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-6">
       <div class="flex justify-between items-center border-b pb-4 dark:border-slate-700">
@@ -346,8 +383,9 @@
     </div>
   </div>
 
+  <!-- تغيير الرمز للمعلم -->
   <div id="changePinModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
-    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
+    <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
       <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
         <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
           <i class="fa-solid fa-key text-emerald-600"></i> تغيير الرمز السري الخاص بك
@@ -372,8 +410,9 @@
     </div>
   </div>
 
+  <!-- النافذة العامة -->
   <div id="generalModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
-    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
+    <div class="glass-card rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
         <h3 id="generalModalTitle" class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-list text-emerald-400"></i> تفاصيل القائمة</h3>
         <button onclick="closeGeneralModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -385,8 +424,9 @@
     </div>
   </div>
 
+  <!-- ملف الطالب تفصيلياً -->
   <div id="studentDetailModal" class="fixed inset-0 bg-slate-900/60 z-[9999] flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
-    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
+    <div class="glass-card rounded-3xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
         <div>
           <h3 id="modalStudentTitle" class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف الإحصائي للطالب</h3>
@@ -401,8 +441,9 @@
     </div>
   </div>
 
+  <!-- لوحة التحكم الإدارية (بدون تغيير في التبويبات أو القوائم) -->
   <div id="adminModal" class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center hidden p-4 backdrop-blur-md transition-all duration-300">
-    <div class="bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
+    <div class="glass-card rounded-3xl max-w-6xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden border border-slate-200/80 dark:border-slate-700/80">
       <div class="bg-emerald-900 dark:bg-emerald-950 text-white p-5 flex justify-between items-center border-b border-emerald-800/50">
         <h3 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-sliders text-emerald-400"></i> لوحة التحكم وصلاحيات النظام</h3>
         <button onclick="closeAdminModal()" class="text-emerald-200 hover:text-white text-lg w-9 h-9 rounded-2xl flex items-center justify-center hover:bg-emerald-800 transition cursor-pointer"><i class="fa-solid fa-xmark"></i></button>
@@ -426,6 +467,7 @@
           <span id="roleBadge" class="bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm">تحكم كامل</span>
         </div>
 
+        <!-- التبويبات البارزة بالنقر المباشر فقط -->
         <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-9 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80 dark:border-slate-800">
           <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm transition-all duration-200 cursor-pointer">
             <i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات الطلاب</span>
@@ -496,7 +538,7 @@
 
           <div id="statsSubSec-absence" class="space-y-6">
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div onclick="openStatusListModal('absent')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
+              <div onclick="openStatusListModal('absent')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-emerald-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">الغياب (أيام الحدوث)</span>
                   <h3 id="cardCountAbsent" class="text-3xl font-extrabold text-slate-800 dark:text-white">0</h3>
@@ -507,7 +549,7 @@
                 </div>
               </div>
 
-              <div onclick="openStatusListModal('escape')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-red-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
+              <div onclick="openStatusListModal('escape')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-red-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">التسرب (أيام الحدوث)</span>
                   <h3 id="cardCountEscape" class="text-3xl font-extrabold text-red-600 dark:text-red-400">0</h3>
@@ -518,7 +560,7 @@
                 </div>
               </div>
 
-              <div onclick="openStatusListModal('late')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-orange-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
+              <div onclick="openStatusListModal('late')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-orange-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">التأخير (أيام الحدوث)</span>
                   <h3 id="cardCountLate" class="text-3xl font-extrabold text-orange-600 dark:text-orange-400">0</h3>
@@ -529,7 +571,7 @@
                 </div>
               </div>
 
-              <div onclick="openStatusListModal('outside')" class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
+              <div onclick="openStatusListModal('outside')" class="glass-card p-5 rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 hover:border-purple-500 transition-all duration-300 cursor-pointer flex items-center justify-between group hover:shadow-xl hover:-translate-y-1">
                 <div>
                   <span class="text-xs font-bold text-slate-400 block mb-1">الخروج (أيام الحدوث)</span>
                   <h3 id="cardCountOutside" class="text-3xl font-extrabold text-purple-600 dark:text-purple-400">0</h3>
@@ -541,7 +583,7 @@
               </div>
             </div>
 
-            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
+            <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-triangle-exclamation text-amber-500"></i> تحتاج متابعة اليوم (الطلاب ذوو المخالفات المتكررة للغياب)
@@ -553,7 +595,7 @@
               </div>
             </div>
 
-            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
+            <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex flex-wrap justify-between items-center border-b pb-3 dark:border-slate-700 gap-2">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-building-columns text-emerald-600"></i> إحصائيات الغياب حسب الصفوف الدراسية
@@ -569,7 +611,7 @@
               <div id="classStatsTableContainer" class="overflow-x-auto custom-scrollbar"></div>
             </div>
 
-            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
+            <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-clipboard-check text-teal-600"></i> متابعة تسجيل الحصص
@@ -578,7 +620,7 @@
               <div id="sessionRegistrationStatsContainer" class="grid grid-cols-1 md:grid-cols-3 gap-4"></div>
             </div>
 
-            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
+            <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-chalkboard-user text-emerald-600"></i> إحصائيات المعلمين ونشاط الرصد
@@ -589,7 +631,7 @@
           </div>
 
           <div id="statsSubSec-behaviors" class="hidden space-y-6">
-            <div class="bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
+            <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 dark:border-slate-700/80 p-5 space-y-4">
               <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
                 <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
                   <i class="fa-solid fa-scale-balanced text-teal-600"></i> قائمة الطلاب الأكثر ارتكاباً للسلوكيات والمخالفات (من الأعلى إلى الأقل)
@@ -632,6 +674,7 @@
             </div>
           </div>
 
+          <!-- الجداول الأفقية المرتبة للشاشة -->
           <div class="space-y-6 overflow-x-auto custom-scrollbar" id="behaviorReportClassesContainer"></div>
         </div>
 
@@ -733,6 +776,7 @@
             </div>
           </div>
 
+          <!-- عرض أفقية الحصص أفقياً بأسلوب أنيق جداً داخل الشاشة -->
           <div class="space-y-6 overflow-x-auto custom-scrollbar" id="reportClassesContainer"></div>
         </div>
 
@@ -782,7 +826,7 @@
 
   <script>
     /* ============================================================
-       إعدادات الاتصال بـ Supabase
+       إعدادات الاتصال بـ Supabase الكلية الكاملة دون أي مساس
        ============================================================ */
     const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
@@ -801,13 +845,11 @@
         .replace(/'/g, '&#39;');
     }
 
-    // ترتيب أبجدي عربي صحيح
     function arabicSort(list) {
       if (!Array.isArray(list)) return [];
       return [...list].sort((a, b) => String(a).localeCompare(String(b), 'ar'));
     }
 
-    // تنسيق تاريخ محلي YYYY-MM-DD (بدون انزياح UTC)
     function formatDateLocal(d) {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -831,7 +873,6 @@
       try { return btoa(atob(str)) === str; } catch (err) { return false; }
     }
 
-    // إصلاح أمني: لم يعد يقبل تمرير النص المُشفّر بـ Base64 نفسه كرمز صحيح.
     function verifyAdminPinInput(inputPin) {
       if (!inputPin || !db.adminPin) return false;
       try { if (safeBtoa(inputPin) === db.adminPin) return true; } catch (e) {}
@@ -953,7 +994,7 @@
     }
 
     /* ============================================================
-       Upsert موثوق (مع بديل عند غياب قيد Unique)
+       Upsert موثوق
        ============================================================ */
     async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       if (!rows || rows.length === 0) return;
@@ -962,7 +1003,6 @@
         const chunk = rows.slice(i, i + chunkSize);
         const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
         if (!error) continue;
-        // بديل: حذف الصفوف المطابقة ثم إدراجها
         for (const row of chunk) {
           let q = sb.from(table).delete();
           for (const c of cols) q = q.eq(c, row[c]);
@@ -1046,7 +1086,6 @@
               db = JSON.parse(saved);
               if (!db.customUsers) db.customUsers = [];
               if (!db.behaviors) db.behaviors = {};
-              // ترتيب الطلاب أبجدياً عربياً
               Object.keys(db.students || {}).forEach(k => {
                 db.students[k] = arabicSort(db.students[k]);
               });
@@ -1067,7 +1106,6 @@
           db.students[r.class_name].push(r.student_name);
         });
         db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
-        // ترتيب الطلاب أبجدياً عربياً
         Object.keys(db.students).forEach(k => {
           db.students[k] = arabicSort(db.students[k]);
         });
@@ -1338,7 +1376,6 @@
       if (!newPin || newPin.length < 2) {
         errorEl.textContent = 'أدخل رمزاً جديداً صحيحاً (حرفان على الأقل)!'; errorEl.classList.remove('hidden'); return;
       }
-      // منع تكرار الرمز السري
       const collision = db.teachers.some(t => t.name !== activeUser.name && t.pin === newPin)
         || (db.customUsers || []).some(u => u.pin === newPin)
         || verifyAdminPinInput(newPin);
@@ -1507,7 +1544,7 @@
     }
 
     /* ============================================================
-       جلسة الحضور
+       جلسة الحضور الأنيقة البارزة
        ============================================================ */
     function loadSessionAttendance() {
       const period = document.getElementById('sessionPeriodSelect').value;
@@ -1522,7 +1559,6 @@
         ? `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${teacherLabel}</span>`
         : `التاريخ: <span class="text-emerald-700 dark:text-emerald-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم الرصد بعد</span>`;
 
-      // ترتيب أبجدي عربي
       const studentsList = arabicSort(db.students[selectedClass] || []);
       const container = document.getElementById('studentsListContainer');
       container.innerHTML = '';
@@ -1537,22 +1573,22 @@
       studentsList.forEach(student => {
         const currentStatus = currentAttendanceRecord[student] || 'present';
         const row = document.createElement('div');
-        row.className = 'flex flex-wrap items-center justify-between p-3 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-2 border-b border-slate-100 dark:border-slate-700/50';
+        row.className = 'flex flex-wrap items-center justify-between p-3.5 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl transition gap-2 border-b border-slate-100 dark:border-slate-700/50';
         row.innerHTML = `<span class="font-extrabold text-slate-800 dark:text-slate-200 text-xs sm:text-sm">${escapeHtml(student)}</span>`;
 
         const actionsDiv = document.createElement('div');
-        actionsDiv.className = 'flex items-center gap-1.5 sm:gap-2';
+        actionsDiv.className = 'flex items-center gap-1.5 sm:gap-2 flex-wrap';
         [
-          { key: 'present', label: 'حاضر 🟩', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
-          { key: 'absent', label: 'غائب ⬛', cls: 'bg-black text-white border-black shadow-sm' },
-          { key: 'late', label: 'متأخر 🟧', cls: 'bg-orange-500 text-white border-orange-500 shadow-sm' },
-          { key: 'escape', label: 'متسرب 🟥', cls: 'bg-red-600 text-white border-red-600 shadow-sm' },
-          { key: 'outside', label: 'خارج 🟪', cls: 'bg-purple-600 text-white border-purple-600 shadow-sm' }
+          { key: 'present', label: 'حاضر 🟩', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-md font-bold' },
+          { key: 'absent', label: 'غائب ⬛', cls: 'bg-black text-white border-black shadow-md font-bold' },
+          { key: 'late', label: 'متأخر 🟧', cls: 'bg-orange-500 text-white border-orange-500 shadow-md font-bold' },
+          { key: 'escape', label: 'متسرب 🟥', cls: 'bg-red-600 text-white border-red-600 shadow-md font-bold' },
+          { key: 'outside', label: 'خارج 🟪', cls: 'bg-purple-600 text-white border-purple-600 shadow-md font-bold' }
         ].forEach(st => {
           const btn = document.createElement('button');
           btn.type = 'button';
           const isActive = currentStatus === st.key;
-          btn.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? st.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+          btn.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${isActive ? st.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`;
           btn.textContent = st.label;
           btn.onclick = () => setStudentStatus(student, st.key, btn);
           actionsDiv.appendChild(btn);
@@ -1565,9 +1601,9 @@
     function setStudentStatus(student, status, btnElement) {
       currentAttendanceRecord[student] = status;
       Array.from(btnElement.parentElement.children).forEach(btn => {
-        btn.className = 'status-btn px-3 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+        btn.className = 'status-btn px-3 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400';
       });
-      const colorMap = { present: 'bg-emerald-600 text-white border-emerald-600 shadow-sm', absent: 'bg-black text-white border-black shadow-sm', late: 'bg-orange-500 text-white border-orange-500 shadow-sm', escape: 'bg-red-600 text-white border-red-600 shadow-sm', outside: 'bg-purple-600 text-white border-purple-600 shadow-sm' };
+      const colorMap = { present: 'bg-emerald-600 text-white border-emerald-600 shadow-md font-bold', absent: 'bg-black text-white border-black shadow-md font-bold', late: 'bg-orange-500 text-white border-orange-500 shadow-md font-bold', escape: 'bg-red-600 text-white border-red-600 shadow-md font-bold', outside: 'bg-purple-600 text-white border-purple-600 shadow-md font-bold' };
       btnElement.className = `status-btn px-3 py-1.5 rounded-xl text-xs font-bold border ${colorMap[status]}`;
       attendanceDirty = true;
       updateLiveStats();
@@ -1664,7 +1700,6 @@
         ? `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | بواسطة: <span class="font-bold">${teacherLabel}</span>`
         : `التاريخ: <span class="text-teal-700 dark:text-teal-400 font-bold">${today}</span> | الحصة ${period} | <span class="text-amber-600">لم يتم رصد السلوكيات بعد (الافتراضي: منضبط)</span>`;
 
-      // ترتيب أبجدي عربي
       const studentsList = arabicSort(db.students[selectedBehaviorClass] || []);
       const container = document.getElementById('behaviorStudentsListContainer');
       container.innerHTML = '';
@@ -1690,19 +1725,19 @@
         actionsDiv.className = 'flex flex-wrap items-center gap-1.5 sm:gap-2';
 
         [
-          { key: 'normal', label: 'منضبط 🟢', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-sm' },
-          { key: 'eating', label: 'الأكل 🍔', cls: 'bg-amber-500 text-white border-amber-500 shadow-sm' },
-          { key: 'talking', label: 'الكلام الجانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500 shadow-sm' },
-          { key: 'tools', label: 'عدم إحضار الأدوات 🎒', cls: 'bg-yellow-600 text-white border-yellow-600 shadow-sm' },
-          { key: 'chaos', label: 'إثارة الفوضى ⚡', cls: 'bg-red-500 text-white border-red-500 shadow-sm' },
-          { key: 'sleeping', label: 'النوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600 shadow-sm' },
-          { key: 'homework', label: 'عدم حل الواجب 📚', cls: 'bg-blue-600 text-white border-blue-600 shadow-sm' },
-          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-rose-700 text-white border-rose-700 shadow-sm' }
+          { key: 'normal', label: 'منضبط 🟢', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-md font-bold' },
+          { key: 'eating', label: 'الأكل 🍔', cls: 'bg-amber-500 text-white border-amber-500 shadow-md font-bold' },
+          { key: 'talking', label: 'الكلام الجانبي 🗣️', cls: 'bg-orange-500 text-white border-orange-500 shadow-md font-bold' },
+          { key: 'tools', label: 'عدم إحضار الأدوات 🎒', cls: 'bg-yellow-600 text-white border-yellow-600 shadow-md font-bold' },
+          { key: 'chaos', label: 'إثارة الفوضى ⚡', cls: 'bg-red-500 text-white border-red-500 shadow-md font-bold' },
+          { key: 'sleeping', label: 'النوم 💤', cls: 'bg-indigo-600 text-white border-indigo-600 shadow-md font-bold' },
+          { key: 'homework', label: 'عدم حل الواجب 📚', cls: 'bg-blue-600 text-white border-blue-600 shadow-md font-bold' },
+          { key: 'other', label: 'أخرى ⚠️', cls: 'bg-rose-700 text-white border-rose-700 shadow-md font-bold' }
         ].forEach(beh => {
           const btn = document.createElement('button');
           btn.type = 'button';
           const isActive = studentData.type === beh.key;
-          btn.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${isActive ? beh.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'}`;
+          btn.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${isActive ? beh.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`;
           btn.textContent = beh.label;
           btn.onclick = () => setStudentBehaviorType(student, beh.key, btn, row);
           actionsDiv.appendChild(btn);
@@ -1727,21 +1762,20 @@
       currentBehaviorRecord[student].type = type;
 
       Array.from(btnElement.parentElement.children).forEach(btn => {
-        btn.className = 'status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700';
+        btn.className = 'status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400';
       });
       const colorMap = {
-        normal: 'bg-emerald-600 text-white border-emerald-600 shadow-sm',
-        eating: 'bg-amber-500 text-white border-amber-500 shadow-sm',
-        talking: 'bg-orange-500 text-white border-orange-500 shadow-sm',
-        tools: 'bg-yellow-600 text-white border-yellow-600 shadow-sm',
-        chaos: 'bg-red-500 text-white border-red-500 shadow-sm',
-        sleeping: 'bg-indigo-600 text-white border-indigo-600 shadow-sm',
-        homework: 'bg-blue-600 text-white border-blue-600 shadow-sm',
-        other: 'bg-rose-700 text-white border-rose-700 shadow-sm'
+        normal: 'bg-emerald-600 text-white border-emerald-600 shadow-md font-bold',
+        eating: 'bg-amber-500 text-white border-amber-500 shadow-md font-bold',
+        talking: 'bg-orange-500 text-white border-orange-500 shadow-md font-bold',
+        tools: 'bg-yellow-600 text-white border-yellow-600 shadow-md font-bold',
+        chaos: 'bg-red-500 text-white border-red-500 shadow-md font-bold',
+        sleeping: 'bg-indigo-600 text-white border-indigo-600 shadow-md font-bold',
+        homework: 'bg-blue-600 text-white border-blue-600 shadow-md font-bold',
+        other: 'bg-rose-700 text-white border-rose-700 shadow-md font-bold'
       };
       btnElement.className = `status-btn px-2.5 py-1.5 rounded-xl text-xs font-bold border ${colorMap[type]}`;
 
-      // إصلاح: استخدام كلاس موثوق بدلاً من querySelector الهش
       const noteWrapper = rowElement.querySelector('.behavior-note-wrapper');
       if (noteWrapper) {
         if (type === 'other') {
@@ -1750,7 +1784,6 @@
           if (noteInput) noteInput.focus();
         } else {
           noteWrapper.classList.add('hidden');
-          // لا نمسح الملاحظة من البيانات حتى لا تضيع عند العودة إلى "أخرى"
         }
       }
 
@@ -2122,7 +2155,7 @@
     }
 
     /* ============================================================
-       تقارير السلوك
+       تقارير السلوك أفقية مرتبة على الشاشة
        ============================================================ */
     function populateBehaviorReportClassSelect() {
       const sel = document.getElementById('behaviorReportClassFilter');
@@ -2153,7 +2186,7 @@
 
       classesToDisplay.forEach(className => {
         const classBlock = document.createElement('div');
-        classBlock.className = 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
+        classBlock.className = 'glass-card rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
         classBlock.innerHTML = `
           <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <span class="font-extrabold text-sm text-teal-900 dark:text-teal-300">سلوكيات الصف الدراسي: ${escapeHtml(className)}</span>
@@ -2198,6 +2231,7 @@
       });
     }
 
+    /* كود طباعة PDF السلوك دون أي مساس به إطلاقاً */
     function printHorizontalBehaviorReport() {
       const targetDate = document.getElementById('behaviorReportDatePicker').value;
       const classFilter = document.getElementById('behaviorReportClassFilter').value;
@@ -2324,7 +2358,6 @@
 
       Object.entries(studentRawLogs).forEach(([studKey, data]) => {
         const { name, className, history } = data;
-        // إصلاح: حماية من الانهيار عند وجود صف محذوف
         if (!classStats[className]) classStats[className] = { absent: 0, escape: 0, late: 0, outside: 0, total: 0 };
         const dateMap = {};
         history.forEach(h => {
@@ -2380,7 +2413,6 @@
       }
 
       const sortOrder = document.getElementById('classSortOrder').value;
-      // إصلاح: استبعاد الصفوف المحذوفة من الجدول
       const classEntries = Object.entries(classStats).filter(([c]) => db.classes.includes(c));
       if (sortOrder === 'violationsDesc') classEntries.sort((a, b) => b[1].total - a[1].total);
       else classEntries.sort((a, b) => a[0].localeCompare(b[0]));
@@ -2697,7 +2729,7 @@
     }
 
     /* ============================================================
-       تقارير الحضور
+       تقارير الحضور أفقية مرتبة على الشاشة
        ============================================================ */
     const STATUS_ORDER = { absent: 0, escape: 1, late: 2, outside: 3 };
     function sortAttendanceIssues(issues) {
@@ -2717,7 +2749,7 @@
 
       classesToDisplay.forEach(className => {
         const classBlock = document.createElement('div');
-        classBlock.className = 'bg-white/90 dark:bg-slate-800/90 backdrop-blur-md rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
+        classBlock.className = 'glass-card rounded-3xl shadow-md border border-slate-200/80 dark:border-slate-700/80 overflow-hidden mb-6 p-4 min-w-[980px]';
         classBlock.innerHTML = `
           <div class="pb-3 mb-4 border-b-2 border-slate-200 dark:border-slate-700 flex justify-between items-center">
             <span class="font-extrabold text-sm text-emerald-900 dark:text-emerald-300">الصف الدراسي: ${escapeHtml(className)}</span>
@@ -2764,6 +2796,7 @@
       });
     }
 
+    /* كود طباعة PDF الحضور بدون أي مساس نهائياً */
     function printHorizontalReport() {
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
@@ -2888,7 +2921,6 @@
 
     function loadAdminStudentsList() {
       const sel = document.getElementById('adminClassSelect')?.value;
-      // ترتيب أبجدي عربي
       const list = arabicSort((sel && db.students[sel]) || []);
       const container = document.getElementById('adminStudentsDisplay');
       const bulkInput = document.getElementById('bulkStudentsInput');
@@ -2908,7 +2940,6 @@
 
     async function saveBulkStudents() {
       const sel = document.getElementById('adminClassSelect').value;
-      // ترتيب أبجدي عربي
       db.students[sel] = arabicSort(document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean));
       const success = await saveSystemDataToCloud();
       loadAdminStudentsList();
@@ -2924,7 +2955,6 @@
         const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
         const sel = document.getElementById('adminClassSelect').value;
         if (lines.length > 0) {
-          // ترتيب أبجدي عربي بعد الدمج
           db.students[sel] = arabicSort([...new Set([...(db.students[sel] || []), ...lines])]);
           await saveSystemDataToCloud();
           loadAdminStudentsList();
@@ -3033,7 +3063,6 @@
       const pin = document.getElementById('newTeacherPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       if (db.teachers.some(t => t.name === name)) { showToast('اسم المعلم مستخدم مسبقاً.', 'error'); return; }
-      // منع تكرار الرمز السري
       const collision = db.teachers.some(t => t.pin === pin)
         || (db.customUsers || []).some(u => u.pin === pin)
         || verifyAdminPinInput(pin);
@@ -3072,7 +3101,6 @@
       await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
       renderTeachersList();
       showToast('تم حذف المعلم بنجاح', 'info');
-      // إبطال جلسة المعلم إذا كان هو المستخدم الحالي
       if (activeUser && activeUser.type === 'teacher' && activeUser.name === t.name) {
         showToast('تم حذف حسابك. سيتم تسجيل الخروج.', 'error');
         setTimeout(() => _performLogout(), 800);
@@ -3121,7 +3149,6 @@
       const pin = document.getElementById('newCustomUserPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
       if (db.customUsers.some(u => u.name === name)) { showToast('اسم المستخدم مستخدم مسبقاً.', 'error'); return; }
-      // منع تكرار الرمز السري
       const collision = db.teachers.some(t => t.pin === pin)
         || db.customUsers.some(u => u.pin === pin)
         || verifyAdminPinInput(pin);
@@ -3169,7 +3196,6 @@
       await queueCloudDelete('teachers', { name: u.name, role: 'custom' });
       renderCustomUsersList();
       showToast('تم حذف المستخدم المخصص', 'info');
-      // إبطال جلسة المستخدم إذا كان هو المستخدم الحالي
       if (activeUser && activeUser.type === 'custom' && activeUser.name === u.name) {
         showToast('تم حذف حسابك. سيتم تسجيل الخروج.', 'error');
         setTimeout(() => _performLogout(), 800);
