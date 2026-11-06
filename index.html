@@ -164,7 +164,7 @@
         <h3 id="dutySelectedPeriodTitle" class="font-extrabold text-slate-800 dark:text-white">الصفوف</h3>
         <div id="dutySelectionCount" class="text-[11px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl font-bold border border-emerald-200">0 صف بلا معلم</div>
       </div>
-      <p class="text-xs text-slate-500 dark:text-slate-400">اضغط على بطاقة الصف لتحويلها للون الأحمر (بلا معلم). اضغط مجدداً للتراجع. إن كانت جميع الصفوف بمعلمين، احفظ مباشرة.</p>
+      <p class="text-xs text-slate-500 dark:text-slate-400">اضغط على بطاقة الصف لتحويلها للون الأحمر (بلا معلم). اضغط مجدداً للتراجع.</p>
       <div id="dutyClassesList" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
       <div class="flex flex-wrap gap-2 pt-2 border-t">
         <button onclick="submitDutyReport()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-xl text-xs font-bold shadow-md active:scale-95 flex items-center gap-2">
@@ -590,19 +590,23 @@
                <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
                <p class="text-xs text-slate-500 mt-1">حدد يوم المناوبة لكل مادة/قسم. جميع منتسبيه سيكونون مناوبين تلقائياً في ذلك اليوم فقط.</p>
              </div>
-             <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm whitespace-nowrap"><i class="fa-solid fa-plus"></i> إضافة فئة جديدة</button>
           </div>
           <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
         </div>
+        
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
           <h5 class="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-plus text-emerald-600"></i> إضافة معلم واحد</h5>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <input type="text" id="newTeacherName" placeholder="الاسم (أول + آخر)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none">
-            <select id="newTeacherCategory" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs font-bold"></select>
+            <div class="flex gap-2">
+                <select id="newTeacherCategory" class="flex-grow p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs font-bold outline-none"></select>
+                <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
+            </div>
           </div>
           <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-key"></i> سيُولَّد رمز سري (4 أرقام) تلقائياً + إجبار التغيير.</div>
           <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md">حفظ المعلم</button>
         </div>
+        
         <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 p-5 rounded-3xl border-2 border-emerald-300 dark:border-emerald-800 space-y-3 shadow-md">
           <div class="flex items-center gap-2">
             <div class="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md"><i class="fa-solid fa-paste text-sm"></i></div>
@@ -610,7 +614,10 @@
           </div>
           <div>
             <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-tag"></i> الفئة / المادة:</label>
-            <select id="bulkTeacherCategory" class="w-full p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl text-xs font-bold outline-none"></select>
+            <div class="flex gap-2">
+                <select id="bulkTeacherCategory" class="flex-grow p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl text-xs font-bold outline-none"></select>
+                <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
+            </div>
           </div>
           <div>
             <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
@@ -818,7 +825,7 @@ function dutyDayForDate(dateStr) {
 function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 /* ============ DB ============ */
-let db = { version: 23, adminPin: null, customUsers: [], customCategories: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+let db = { version: 25, adminPin: null, customUsers: [], customCategories: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
 const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false, custom_categories: false };
 let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 let selectedBehaviorClass = null, currentBehaviorRecord = {};
@@ -926,8 +933,8 @@ function saveToLocalStorageSafe() {
     const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module, custom_categories: dirtySets.custom_categories };
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
-    localStorage.setItem('abuDujana_db_v27', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v27'); } catch(err) {} }
+    localStorage.setItem('abuDujana_db_v28', JSON.stringify(safeDb));
+  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v28'); } catch(err) {} }
 }
 function loadDirtySetsFromLocal() {
   try {
@@ -947,15 +954,20 @@ function loadDirtySetsFromLocal() {
 
 function populateCategoryDropdowns() {
   const all = getAllCategories();
-  const html = `<option value="">— اختر الفئة —</option>` + all.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
+  const html = `<option value="">— اختر الفئة —</option>` + 
+    all.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('') +
+    `<option value="ADD_NEW" class="text-emerald-600 font-bold bg-emerald-50">➕ إضافة مادة/قسم جديد...</option>`;
+  
   const s1 = document.getElementById('newTeacherCategory');
   const s2 = document.getElementById('bulkTeacherCategory');
-  if (s1) s1.innerHTML = html;
-  if (s2) s2.innerHTML = html;
+  
+  if (s1) { s1.innerHTML = html; s1.onchange = (e) => { if(e.target.value === 'ADD_NEW') { addNewCustomCategory(); s1.value = ''; } }; }
+  if (s2) { s2.innerHTML = html; s2.onchange = (e) => { if(e.target.value === 'ADD_NEW') { addNewCustomCategory(); s2.value = ''; } }; }
 }
 
 /* ============ Init ============ */
 window.addEventListener('DOMContentLoaded', async () => {
+  console.log("✅ Loaded System Version 25 - Fixed Sync & Custom Categories");
   initDarkMode(); setCurrentDate();
   await syncServerTime();
   await loadSystemDataFromCloud();
@@ -1007,9 +1019,9 @@ async function loadSystemDataFromCloud() {
     ]);
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
     if (empty) {
-      const saved = localStorage.getItem('abuDujana_db_v27');
+      const saved = localStorage.getItem('abuDujana_db_v28');
       if (saved) {
-        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 23 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
+        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 25 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
       }
       await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
     }
@@ -1022,18 +1034,17 @@ async function loadSystemDataFromCloud() {
 
     db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
       const p = t.permissions || {};
+      const mustChange = p.mustChangePin === true || t.must_change_pin === true;
+      // Clean out the forbidden column to avoid future errors
+      const cleanPerms = { ...p, mustChangePin: mustChange };
       return {
         name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, 
-        mustChangePin: (p.mustChangePin === true) || (t.must_change_pin === true),
-        permissions: {
-          category: p.category || '', attendance: p.attendance !== false, behavior: p.behavior !== false,
-          studstats: !!p.studstats, behaviorstats: !!p.behaviorstats, students: !!p.students,
-          teachers: !!p.teachers, users: !!p.users, duty: !!p.duty,
-          alerts: !!p.alerts, reports: !!p.reports, sync: !!p.sync, security: !!p.security, admin: !!p.admin
-        }
+        mustChangePin: mustChange,
+        permissions: cleanPerms
       };
     });
     db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({ name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, permissions: t.permissions || {} }));
+    
     const adminRow = (settingsData || []).find(r => r.key === 'admin_pin');
     if (adminRow?.value) { if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt }; else if (adminRow.value.pin) db.adminPin = adminRow.value.pin; }
     const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
@@ -1055,7 +1066,7 @@ async function loadSystemDataFromCloud() {
     saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
   } catch(e) {
     console.error('Cloud load failed:', e);
-    const saved = localStorage.getItem('abuDujana_db_v27');
+    const saved = localStorage.getItem('abuDujana_db_v28');
     if (saved) { try { const parsed = JSON.parse(saved); db = { ...db, ...parsed }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); loadDirtySetsFromLocal(); updateSyncStatus(false, "محلي - انقر للمزامنة"); return true; } catch(pe) {} }
     await initDefaults(); updateSyncStatus(false, "فشل الاتصال - انقر للمزامنة"); return false;
   }
@@ -1070,7 +1081,11 @@ async function saveSystemDataToCloud() {
       const rows = [];
       for (const name of dirtySets.teachers) {
         const t = db.teachers.find(x => x.name === name);
-        if (t) rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: { ...(t.permissions || {}), mustChangePin: !!t.mustChangePin } });
+        if (t) {
+            // ✅ Force clean payload: No must_change_pin column
+            const safePerms = { ...(t.permissions || {}), mustChangePin: !!t.mustChangePin };
+            rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: safePerms });
+        }
         const u = (db.customUsers || []).find(x => x.name === name);
         if (u) rows.push({ name: u.name, pin_hash: u.pin_hash, pin_salt: u.pin_salt, role: 'custom', permissions: u.permissions || {} });
       }
@@ -1135,7 +1150,7 @@ function updateSyncStatus(isSynced, text) {
 }
 
 async function initDefaults() {
-  db = { version: 23, adminPin: await createPinRecord('1234'), customUsers: [], customCategories: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+  db = { version: 25, adminPin: await createPinRecord('1234'), customUsers: [], customCategories: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
   db.classes.forEach(c => { db.students[c] = []; });
   db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
   saveToLocalStorageSafe(); await saveSystemDataToCloud();
