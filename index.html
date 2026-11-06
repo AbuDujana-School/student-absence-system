@@ -585,8 +585,13 @@
 
       <div id="sec-teachers" class="hidden space-y-4">
         <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-sm">
-          <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
-          <p class="text-xs text-slate-500">حدد يوم المناوبة لكل مادة/قسم. جميع منتسبيه سيكونون مناوبين تلقائياً في ذلك اليوم فقط.</p>
+          <div class="flex flex-wrap justify-between items-center gap-2">
+             <div>
+               <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
+               <p class="text-xs text-slate-500 mt-1">حدد يوم المناوبة لكل مادة/قسم. جميع منتسبيه سيكونون مناوبين تلقائياً في ذلك اليوم فقط.</p>
+             </div>
+             <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold shadow-sm whitespace-nowrap"><i class="fa-solid fa-plus"></i> إضافة فئة جديدة</button>
+          </div>
           <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
         </div>
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
@@ -761,7 +766,6 @@ function showConfirm(message, options = {}) {
     setTimeout(() => okBtn.focus(), 50);
   });
 }
-/* ✅ إضافة whitespace-pre-line + inputmode */
 function showPrompt(message, options = {}) {
   return new Promise((resolve) => {
     const modal = document.createElement('div'); modal.className = 'modal-shell';
@@ -783,15 +787,17 @@ const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأرب�
 const SCHOOL_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
 const SUBJECTS = ['اللغة العربية','اللغة الإنجليزية','التربية الإسلامية','الرياضيات','مواد العلوم','مواد المهارات الحياتية'];
 const DEPARTMENTS = ['قسم الأخصائيين','قسم الإدارة'];
-const ALL_CATEGORIES = [...SUBJECTS, ...DEPARTMENTS];
 const DEFAULT_SUBJECT_DAYS = { 'اللغة العربية':'الأحد','اللغة الإنجليزية':'الاثنين','التربية الإسلامية':'الثلاثاء','الرياضيات':'الأربعاء','مواد العلوم':'الخميس','مواد المهارات الحياتية':'','قسم الأخصائيين':'','قسم الإدارة':'' };
 const periodNamesMap = { 1:'الحصة الأولى',2:'الحصة الثانية',3:'الحصة الثالثة',4:'الحصة الرابعة',5:'الحصة الخامسة',6:'الحصة السادسة',7:'الحصة السابعة',8:'الحصة الثامنة' };
 const ADMIN_TAB_PERMISSIONS = ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'];
 
+function getAllCategories() {
+  return [...SUBJECTS, ...DEPARTMENTS, ...(db.customCategories || [])];
+}
 function normalizeCategory(subject) {
   const s = String(subject || '').trim();
   const map = { 'عربي':'اللغة العربية','اللغة العربية':'اللغة العربية','العربية':'اللغة العربية','إنجليزي':'اللغة الإنجليزية','الإنجليزية':'اللغة الإنجليزية','اللغة الإنجليزية':'اللغة الإنجليزية','تربية إسلامية':'التربية الإسلامية','التربية الإسلامية':'التربية الإسلامية','رياضيات':'الرياضيات','الرياضيات':'الرياضيات','علوم':'مواد العلوم','مواد العلوم':'مواد العلوم','مهارات حياتية':'مواد المهارات الحياتية','مواد المهارات الحياتية':'مواد المهارات الحياتية','أخصائيين':'قسم الأخصائيين','قسم الأخصائيين':'قسم الأخصائيين','إدارة':'قسم الإدارة','قسم الإدارة':'قسم الإدارة' };
-  return map[s] || (ALL_CATEGORIES.includes(s) ? s : '');
+  return map[s] || (getAllCategories().includes(s) ? s : '');
 }
 function parseAttendanceKey(key) {
   if (!key) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
@@ -812,8 +818,8 @@ function dutyDayForDate(dateStr) {
 function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 /* ============ DB ============ */
-let db = { version: 22, adminPin: null, customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
-const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false };
+let db = { version: 23, adminPin: null, customUsers: [], customCategories: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false, custom_categories: false };
 let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 let selectedBehaviorClass = null, currentBehaviorRecord = {};
 let attendanceDirty = false, behaviorDirty = false;
@@ -874,7 +880,14 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
         } else {
           const { error: ie } = await sb.from(table).insert(row); if (ie) throw ie;
         }
-      } catch(rowErr) { console.error(`robustUpsert failed ${table}:`, rowErr, row); failures.push({ table, row, error: rowErr?.message || String(rowErr) }); }
+      } catch(rowErr) { 
+          const msg = String(rowErr?.message || rowErr);
+          console.error(`robustUpsert failed ${table}:`, rowErr, row); 
+          if (/does not exist|invalid input syntax|violates foreign key|violates check constraint/i.test(msg)) {
+            throw new Error(`خطأ في جدول "${table}": ${msg}`);
+          }
+          failures.push({ table, row, error: msg }); 
+      }
     }
   }
   if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
@@ -910,11 +923,11 @@ function saveToLocalStorageSafe() {
     const safeDb = { ...db, attendance: {}, behaviors: {} };
     Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr) safeDb.attendance[k] = db.attendance[k]; });
     Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr) safeDb.behaviors[k] = db.behaviors[k]; });
-    const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module };
+    const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module, custom_categories: dirtySets.custom_categories };
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
-    localStorage.setItem('abuDujana_db_v26', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v26'); } catch(err) {} }
+    localStorage.setItem('abuDujana_db_v27', JSON.stringify(safeDb));
+  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v27'); } catch(err) {} }
 }
 function loadDirtySetsFromLocal() {
   try {
@@ -928,11 +941,13 @@ function loadDirtySetsFromLocal() {
     (obj.duty_reports || []).forEach(x => dirtySets.duty_reports.add(x));
     dirtySets.admin_pin = !!obj.admin_pin;
     dirtySets.duty_module = !!obj.duty_module;
+    dirtySets.custom_categories = !!obj.custom_categories;
   } catch(e) {}
 }
 
 function populateCategoryDropdowns() {
-  const html = `<option value="">— اختر الفئة —</option>` + SUBJECTS.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)} (مادة)</option>`).join('') + DEPARTMENTS.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
+  const all = getAllCategories();
+  const html = `<option value="">— اختر الفئة —</option>` + all.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join('');
   const s1 = document.getElementById('newTeacherCategory');
   const s2 = document.getElementById('bulkTeacherCategory');
   if (s1) s1.innerHTML = html;
@@ -992,9 +1007,9 @@ async function loadSystemDataFromCloud() {
     ]);
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
     if (empty) {
-      const saved = localStorage.getItem('abuDujana_db_v26');
+      const saved = localStorage.getItem('abuDujana_db_v27');
       if (saved) {
-        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 22 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
+        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 23 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
       }
       await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
     }
@@ -1008,7 +1023,8 @@ async function loadSystemDataFromCloud() {
     db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
       const p = t.permissions || {};
       return {
-        name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, mustChangePin: t.must_change_pin === true,
+        name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, 
+        mustChangePin: (p.mustChangePin === true) || (t.must_change_pin === true),
         permissions: {
           category: p.category || '', attendance: p.attendance !== false, behavior: p.behavior !== false,
           studstats: !!p.studstats, behaviorstats: !!p.behaviorstats, students: !!p.students,
@@ -1022,9 +1038,11 @@ async function loadSystemDataFromCloud() {
     if (adminRow?.value) { if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt }; else if (adminRow.value.pin) db.adminPin = adminRow.value.pin; }
     const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
     if (dutyRow?.value && typeof dutyRow.value === 'object') db.dutyModule = normalizeDutyModule(dutyRow.value);
+    const catRow = (settingsData || []).find(r => r.key === 'custom_categories');
+    if (catRow?.value && Array.isArray(catRow.value)) db.customCategories = catRow.value; else db.customCategories = [];
+    
     try {
       const drData = await fetchAllPaginated('duty_reports', '*');
-      // ✅ فلترة سجلات __CLEAN__ القديمة ومنع تحميلها
       db.dutyModule.records = drData
         .filter(r => r.class_name !== '__CLEAN__')
         .map(r => ({ id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: r.class_name, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at }));
@@ -1037,8 +1055,8 @@ async function loadSystemDataFromCloud() {
     saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
   } catch(e) {
     console.error('Cloud load failed:', e);
-    const saved = localStorage.getItem('abuDujana_db_v26');
-    if (saved) { try { const parsed = JSON.parse(saved); db = { ...db, ...parsed }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); loadDirtySetsFromLocal(); updateSyncStatus(false, "محلي - انقر للمزامنة"); return true; } catch(pe) {} }
+    const saved = localStorage.getItem('abuDujana_db_v27');
+    if (saved) { try { const parsed = JSON.parse(saved); db = { ...db, ...parsed }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); loadDirtySetsFromLocal(); updateSyncStatus(false, "محلي - انقر للمزامنة"); return true; } catch(pe) {} }
     await initDefaults(); updateSyncStatus(false, "فشل الاتصال - انقر للمزامنة"); return false;
   }
 }
@@ -1052,9 +1070,9 @@ async function saveSystemDataToCloud() {
       const rows = [];
       for (const name of dirtySets.teachers) {
         const t = db.teachers.find(x => x.name === name);
-        if (t) rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: { ...(t.permissions || {}) }, must_change_pin: !!t.mustChangePin });
+        if (t) rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: { ...(t.permissions || {}), mustChangePin: !!t.mustChangePin } });
         const u = (db.customUsers || []).find(x => x.name === name);
-        if (u) rows.push({ name: u.name, pin_hash: u.pin_hash, pin_salt: u.pin_salt, role: 'custom', permissions: u.permissions || {}, must_change_pin: false });
+        if (u) rows.push({ name: u.name, pin_hash: u.pin_hash, pin_salt: u.pin_salt, role: 'custom', permissions: u.permissions || {} });
       }
       if (rows.length > 0) await robustUpsert('teachers', rows, 'name', 100);
       dirtySets.teachers.clear();
@@ -1063,11 +1081,12 @@ async function saveSystemDataToCloud() {
     if (dirtySets.attendance.size > 0) { const rows = []; for (const key of dirtySets.attendance) { const v = db.attendance[key]; if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); } } if (rows.length > 0) await robustUpsert('attendance', rows, 'record_key', 100); dirtySets.attendance.clear(); }
     if (dirtySets.behaviors.size > 0) { const rows = []; for (const key of dirtySets.behaviors) { const v = db.behaviors[key]; if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); } } if (rows.length > 0) await robustUpsert('behaviors', rows, 'record_key', 100); dirtySets.behaviors.clear(); }
     if (dirtySets.admin_pin) { if (db.adminPin && db.adminPin.hash) { const { error } = await sb.from('school_settings').upsert({ key: 'admin_pin', value: { hash: db.adminPin.hash, salt: db.adminPin.salt } }, { onConflict: 'key' }); if (error) throw new Error('admin_pin: ' + error.message); } dirtySets.admin_pin = false; }
+    if (dirtySets.custom_categories) { const { error } = await sb.from('school_settings').upsert({ key: 'custom_categories', value: db.customCategories }, { onConflict: 'key' }); if (error) throw new Error('custom_categories: ' + error.message); dirtySets.custom_categories = false; }
     if (dirtySets.duty_reports.size > 0) {
       const rows = [];
       for (const id of dirtySets.duty_reports) {
         const r = (db.dutyModule.records || []).find(x => String(x.id) === String(id));
-        if (r && r.className !== '__CLEAN__') {  // ✅ منع إرسال __CLEAN__ لـ Supabase
+        if (r && r.className !== '__CLEAN__') {
           rows.push({ id: String(r.id), date_str: r.date, day_num: r.day, period: r.period, class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null, reported_by: r.reportedBy || null, status: r.status || 'pending', reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null, created_at: r.createdAt || getTrustedDate().toISOString() });
         }
       }
@@ -1080,7 +1099,6 @@ async function saveSystemDataToCloud() {
   } catch(error) {
     console.error('Cloud save failed:', error);
     updateSyncStatus(false, "محلي فقط - انقر للمزامنة");
-    // ✅ رسالة خطأ مفصلة من Supabase
     const errMsg = (error?.message || String(error)).substring(0, 200);
     showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
@@ -1088,7 +1106,7 @@ async function saveSystemDataToCloud() {
 }
 
 function forceSyncWithCloud() {
-  if (attendanceDirty || behaviorDirty || dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module) {
+  if (attendanceDirty || behaviorDirty || dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
     showConfirm('لديك تغييرات غير محفوظة قد تُستبدل. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
     return;
   }
@@ -1117,7 +1135,7 @@ function updateSyncStatus(isSynced, text) {
 }
 
 async function initDefaults() {
-  db = { version: 22, adminPin: await createPinRecord('1234'), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+  db = { version: 23, adminPin: await createPinRecord('1234'), customUsers: [], customCategories: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
   db.classes.forEach(c => { db.students[c] = []; });
   db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
   saveToLocalStorageSafe(); await saveSystemDataToCloud();
@@ -1152,7 +1170,7 @@ async function handleUserLogin(e) {
     if (found) {
       activeUser = found.user;
       loginAttempts = 0;
-      loginLockedUntil = 0;  // ✅ تصفير القفل بعد النجاح
+      loginLockedUntil = 0;
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       if (await isLegacyHash(pin, found.record)) {
@@ -1970,9 +1988,56 @@ async function deleteCurrentClass() {
 function renderSubjectDutyDays() {
   const c = document.getElementById('subjectDutyDaysContainer'); if (!c) return;
   const sd = dutyData().subjectDays || {};
-  c.innerHTML = ALL_CATEGORIES.map(cat => { const cd = sd[cat] || ''; return `<div class="border border-slate-200 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50"><div class="font-bold text-xs mb-2 text-emerald-700 dark:text-emerald-300">${escapeHtml(cat)}</div><select data-category="${escapeHtml(cat)}" class="subject-duty-select w-full p-2 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800 outline-none"><option value="">بدون مناوبة</option>${SCHOOL_DAYS.map(d => `<option value="${d}" ${cd === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>`; }).join('');
+  const all = getAllCategories();
+  c.innerHTML = all.map(cat => { 
+    const cd = sd[cat] || ''; 
+    const isCustom = db.customCategories.includes(cat);
+    const delBtn = isCustom ? `<button onclick="deleteCustomCategory('${escapeHtml(cat)}')" class="text-red-500 hover:text-red-700 px-1" title="حذف الفئة"><i class="fa-solid fa-trash-can text-xs"></i></button>` : '';
+    return `<div class="border border-slate-200 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+      <div class="flex justify-between items-center mb-2">
+        <div class="font-bold text-xs text-emerald-700 dark:text-emerald-300">${escapeHtml(cat)}</div>
+        ${delBtn}
+      </div>
+      <select data-category="${escapeHtml(cat)}" class="subject-duty-select w-full p-2 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800 outline-none"><option value="">بدون مناوبة</option>${SCHOOL_DAYS.map(d => `<option value="${d}" ${cd === d ? 'selected' : ''}>${d}</option>`).join('')}</select></div>`; 
+  }).join('');
   c.querySelectorAll('.subject-duty-select').forEach(el => el.addEventListener('change', () => setCategoryDutyDay(el.dataset.category, el.value)));
 }
+
+async function addNewCustomCategory() {
+  const name = await showPrompt('اسم المادة أو القسم الجديد:', { title: 'إضافة فئة جديدة' });
+  if (!name || !name.trim()) return;
+  const trimmed = name.trim();
+  if (getAllCategories().includes(trimmed)) { showToast('هذه الفئة موجودة مسبقاً.', 'error'); return; }
+  db.customCategories.push(trimmed);
+  dirtySets.custom_categories = true;
+  const ok = await saveSystemDataToCloud();
+  if (ok) {
+    showToast('تم إضافة الفئة بنجاح.', 'success');
+    populateCategoryDropdowns();
+    renderSubjectDutyDays();
+    renderTeachersList();
+  } else {
+    db.customCategories = db.customCategories.filter(c => c !== trimmed);
+    showToast('فشل الحفظ.', 'error');
+  }
+}
+
+async function deleteCustomCategory(cat) {
+  const teachersInCat = db.teachers.filter(t => t.permissions?.category === cat);
+  if (teachersInCat.length > 0) { showToast('لا يمكن حذف فئة بها معلمون.', 'error'); return; }
+  const ok = await showConfirm(`حذف فئة (${cat})؟`, { danger: true });
+  if (!ok) return;
+  db.customCategories = db.customCategories.filter(c => c !== cat);
+  delete db.dutyModule.subjectDays[cat];
+  dirtySets.custom_categories = true;
+  dirtySets.duty_module = true;
+  await saveSystemDataToCloud();
+  populateCategoryDropdowns();
+  renderSubjectDutyDays();
+  renderTeachersList();
+  showToast('تم الحذف.', 'info');
+}
+
 async function setCategoryDutyDay(category, day) {
   dutyData(); db.dutyModule.subjectDays[category] = day || ''; dirtySets.duty_module = true;
   const ok = await saveSystemDataToCloud(); renderTeachersList();
@@ -1984,7 +2049,8 @@ function renderTeachersList() {
   if (!db.teachers || db.teachers.length === 0) { c.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا معلمون.</div>`; return; }
   const grouped = {};
   db.teachers.forEach((t, idx) => { const cat = t.permissions?.category || ''; const key = cat || 'بدون تصنيف'; if (!grouped[key]) grouped[key] = []; grouped[key].push({ t, idx }); });
-  const sortedCats = [...ALL_CATEGORIES, 'بدون تصنيف'].filter(cat => grouped[cat]);
+  const allCats = [...getAllCategories(), 'بدون تصنيف'];
+  const sortedCats = allCats.filter(cat => grouped[cat]);
   sortedCats.forEach(cat => {
     const dd = dutyData().subjectDays?.[cat] || '';
     const hb = dd ? `<span class="text-[10px] bg-orange-100 text-orange-800 px-2 py-0.5 rounded-lg font-bold border border-orange-300">مناوبة: ${escapeHtml(dd)}</span>` : '';
@@ -2152,7 +2218,6 @@ async function editTeacherName(idx) {
 
   const success = await saveSystemDataToCloud();
 
-  // ✅ الإصلاح: لا تحذف القديم إلا بعد نجاح الحفظ، وامسح أي حفظ جزئي للجديد
   if (!success) {
     await queueCloudDelete('teachers', { name: trimmed, role: 'teacher' });
     t.name = oldName;
@@ -2374,7 +2439,13 @@ function openDutyView() {
   document.getElementById('dutyTodayLabel').textContent = getOmanLocalDate();
   renderDutyPeriods(); renderDutyTodayRecords();
 }
-function closeDutyView() { document.getElementById('dutyView').classList.add('hidden'); document.getElementById('dashboardSelectionView').classList.remove('hidden'); refreshDutyDashboardCard(); }
+function closeDutyView() {
+  selectedDutyPeriod = null; lastDutyMessage = '';
+  const panel = document.getElementById('dutyClassesPanel'); if (panel) panel.classList.add('hidden');
+  const list = document.getElementById('dutyClassesList'); if (list) list.innerHTML = '';
+  document.getElementById('dutyView').classList.add('hidden'); document.getElementById('dashboardSelectionView').classList.remove('hidden');
+  refreshDutyDashboardCard();
+}
 function renderDutyPeriods() {
   const w = document.getElementById('dutyPeriodsGrid'); if (!w) return;
   w.innerHTML = '';
@@ -2484,7 +2555,6 @@ function buildDutyWhatsAppMessage(classes, period) {
   msg += `🏫 _${SCHOOL_NAME}_`;
   return msg;
 }
-/* ✅ الإصلاح الجذري: إزالة __CLEAN__ نهائياً من الحفظ السحابي */
 async function submitDutyReport() {
   if (!selectedDutyPeriod || !activeUser) return;
   const selected = [...document.querySelectorAll('#dutyClassesList button[data-no-teacher="true"]')];
@@ -2506,9 +2576,7 @@ async function submitDutyReport() {
 
   const oldRecords = d.records.filter(r => r.date === date && Number(r.period) === selectedDutyPeriod && r.reportedBy === activeUser.name);
 
-  // ===== الحالة 1: لا يوجد صف بدون معلم — لا نحفظ في DB =====
   if (selectedClasses.length === 0) {
-    // احذف السجلات القديمة لهذه الحصة (إن وجدت) — لأن الحالة الآن "سليم"
     if (oldRecords.length > 0) {
       const oldIds = new Set(oldRecords.map(r => String(r.id)));
       d.records = d.records.filter(r => !oldIds.has(String(r.id)));
@@ -2523,7 +2591,6 @@ async function submitDutyReport() {
     return;
   }
 
-  // ===== الحالة 2: حفظ السجلات الجديدة ثم حذف القديمة =====
   const newRecords = selectedClasses.map(cn => ({
     id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
     date, day, period: selectedDutyPeriod, className: cn, teacherName: '',
