@@ -734,17 +734,7 @@ function safeBtoa(str) { try { return btoa(unescape(encodeURIComponent(String(st
 function safeAtob(str) { if (!str) return ''; try { return decodeURIComponent(escape(atob(str))); } catch(e) { return ''; } }
 function isBase64(str) { if (!str || typeof str !== 'string') return false; try { return btoa(atob(str)) === str; } catch(err) { return false; } }
 function escapeCsvField(v) { let s = String(v == null ? '' : v); if (/^[=+\-@\t\r]/.test(s)) s = "'" + s; return '"' + s.replace(/"/g,'""') + '"'; }
-
-/* ✅ Convert "9/1" → "تاسع 1" */
-function classToArabicName(className) {
-  const s = String(className || '').trim();
-  const m = s.match(/^(\d+)\s*[\/\-]\s*(\d+)$/);
-  if (!m) return s;
-  const grade = parseInt(m[1], 10);
-  const section = m[2];
-  const gradeMap = { 9: 'تاسع', 10: 'عاشر', 11: 'حادي عشر', 12: 'ثاني عشر' };
-  return `${gradeMap[grade] || grade} ${section}`;
-}
+function classToArabicName(className) { const s = String(className || '').trim(); const m = s.match(/^(\d+)\s*[\/\-]\s*(\d+)$/); if (!m) return s; const grade = parseInt(m[1], 10); const section = m[2]; const gradeMap = { 9: 'تاسع', 10: 'عاشر', 11: 'حادي عشر', 12: 'ثاني عشر' }; return `${gradeMap[grade] || grade} ${section}`; }
 
 /* ============ Toasts & Modals ============ */
 function showToast(message, type = 'success') {
@@ -754,9 +744,9 @@ function showToast(message, type = 'success') {
   const bg = { success: 'bg-emerald-900/90 border-emerald-500 text-emerald-100', error: 'bg-red-900/90 border-red-500 text-red-100', info: 'bg-slate-900/90 border-teal-500 text-slate-100' };
   const ic = { success: 'fa-circle-check text-emerald-400', error: 'fa-circle-xmark text-red-400', info: 'fa-circle-info text-teal-400' };
   toast.className = `toast-enter flex items-center gap-3 p-4 rounded-2xl border backdrop-blur-md shadow-2xl text-xs font-bold pointer-events-auto ${bg[type] || bg.success}`;
-  toast.innerHTML = `<i class="fa-solid ${ic[type] || ic.success} text-base"></i><span class="flex-grow">${escapeHtml(message)}</span><button onclick="dismissToast(this.parentElement)" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>`;
+  toast.innerHTML = `<i class="fa-solid ${ic[type] || ic.success} text-base flex-shrink-0"></i><span class="flex-grow">${escapeHtml(message)}</span><button onclick="dismissToast(this.parentElement)" class="text-slate-400 hover:text-white flex-shrink-0"><i class="fa-solid fa-xmark"></i></button>`;
   container.appendChild(toast);
-  setTimeout(() => dismissToast(toast), 4000);
+  setTimeout(() => dismissToast(toast), 5000);
 }
 function dismissToast(toast) { if (!toast || toast.classList.contains('toast-exit')) return; toast.classList.remove('toast-enter'); toast.classList.add('toast-exit'); setTimeout(() => { if (toast.parentElement) toast.parentElement.removeChild(toast); }, 250); }
 function showConfirm(message, options = {}) {
@@ -771,11 +761,11 @@ function showConfirm(message, options = {}) {
     setTimeout(() => okBtn.focus(), 50);
   });
 }
-/* ✅ الإصلاح #1: inputmode */
+/* ✅ إضافة whitespace-pre-line + inputmode */
 function showPrompt(message, options = {}) {
   return new Promise((resolve) => {
     const modal = document.createElement('div'); modal.className = 'modal-shell';
-    modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-3 text-slate-800 dark:text-white">${escapeHtml(options.title || 'إدخال')}</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-3">${escapeHtml(message)}</p><input type="${options.inputType || 'text'}" ${options.inputMode ? `inputmode="${options.inputMode}"` : ''} data-input class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none text-slate-800 dark:text-white" value="${escapeHtml(options.defaultValue || '')}"><div class="flex gap-2 justify-end mt-5"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">${escapeHtml(options.cancelText || 'إلغاء')}</button><button data-action="ok" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">${escapeHtml(options.okText || 'حفظ')}</button></div></div>`;
+    modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-3 text-slate-800 dark:text-white">${escapeHtml(options.title || 'إدخال')}</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-3 whitespace-pre-line">${escapeHtml(message)}</p><input type="${options.inputType || 'text'}" ${options.inputMode ? `inputmode="${options.inputMode}"` : ''} data-input class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none text-slate-800 dark:text-white" value="${escapeHtml(options.defaultValue || '')}"><div class="flex gap-2 justify-end mt-5"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">${escapeHtml(options.cancelText || 'إلغاء')}</button><button data-action="ok" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">${escapeHtml(options.okText || 'حفظ')}</button></div></div>`;
     document.body.appendChild(modal);
     const input = modal.querySelector('[data-input]');
     setTimeout(() => { input.focus(); input.select(); }, 50);
@@ -822,7 +812,7 @@ function dutyDayForDate(dateStr) {
 function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 /* ============ DB ============ */
-let db = { version: 21, adminPin: null, customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+let db = { version: 22, adminPin: null, customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
 const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false };
 let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 let selectedBehaviorClass = null, currentBehaviorRecord = {};
@@ -910,18 +900,7 @@ function normalizeDutyModule(value) {
 function dutyData() { db.dutyModule = normalizeDutyModule(db.dutyModule); return db.dutyModule; }
 function getTeacherCategory(name) { const t = (db.teachers || []).find(x => x.name === name); return t?.permissions?.category || ''; }
 function isTeacherOnDutyToday(name) { const cat = getTeacherCategory(name); if (!cat) return false; const dd = dutyData().subjectDays[cat]; if (!dd) return false; return dutyDayForDate(getOmanLocalDate()) === dd; }
-/* ✅ الإصلاح #6: إضافة clean */
-function dutyStatusLabel(s) {
-  return ({
-    pending: 'بانتظار المراجعة',
-    absence: 'غياب معتمد',
-    late: 'تأخر معتمد',
-    swap: 'تبديل مثبت',
-    excused: 'عذر مقبول',
-    dismissed: 'بلاغ غير مثبت',
-    clean: 'سليم (لا غياب)'
-  })[s] || s;
-}
+function dutyStatusLabel(s) { return ({ pending: 'بانتظار المراجعة', absence: 'غياب معتمد', late: 'تأخر معتمد', swap: 'تبديل مثبت', excused: 'عذر مقبول', dismissed: 'بلاغ غير مثبت', clean: 'سليم (لا غياب)' })[s] || s; }
 
 /* ============ LocalStorage ============ */
 function saveToLocalStorageSafe() {
@@ -934,8 +913,8 @@ function saveToLocalStorageSafe() {
     const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module };
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
-    localStorage.setItem('abuDujana_db_v25', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v25'); } catch(err) {} }
+    localStorage.setItem('abuDujana_db_v26', JSON.stringify(safeDb));
+  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v26'); } catch(err) {} }
 }
 function loadDirtySetsFromLocal() {
   try {
@@ -952,7 +931,6 @@ function loadDirtySetsFromLocal() {
   } catch(e) {}
 }
 
-/* ============ Category dropdowns ============ */
 function populateCategoryDropdowns() {
   const html = `<option value="">— اختر الفئة —</option>` + SUBJECTS.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)} (مادة)</option>`).join('') + DEPARTMENTS.map(d => `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`).join('');
   const s1 = document.getElementById('newTeacherCategory');
@@ -1014,9 +992,9 @@ async function loadSystemDataFromCloud() {
     ]);
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
     if (empty) {
-      const saved = localStorage.getItem('abuDujana_db_v25');
+      const saved = localStorage.getItem('abuDujana_db_v26');
       if (saved) {
-        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 21 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
+        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 22 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
       }
       await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
     }
@@ -1044,7 +1022,13 @@ async function loadSystemDataFromCloud() {
     if (adminRow?.value) { if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt }; else if (adminRow.value.pin) db.adminPin = adminRow.value.pin; }
     const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
     if (dutyRow?.value && typeof dutyRow.value === 'object') db.dutyModule = normalizeDutyModule(dutyRow.value);
-    try { const drData = await fetchAllPaginated('duty_reports', '*'); db.dutyModule.records = drData.map(r => ({ id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: r.class_name, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at })); } catch(e) {}
+    try {
+      const drData = await fetchAllPaginated('duty_reports', '*');
+      // ✅ فلترة سجلات __CLEAN__ القديمة ومنع تحميلها
+      db.dutyModule.records = drData
+        .filter(r => r.class_name !== '__CLEAN__')
+        .map(r => ({ id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: r.class_name, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at }));
+    } catch(e) {}
     db.attendance = {};
     attendanceData.forEach(r => db.attendance[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at });
     db.behaviors = {};
@@ -1053,7 +1037,7 @@ async function loadSystemDataFromCloud() {
     saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
   } catch(e) {
     console.error('Cloud load failed:', e);
-    const saved = localStorage.getItem('abuDujana_db_v25');
+    const saved = localStorage.getItem('abuDujana_db_v26');
     if (saved) { try { const parsed = JSON.parse(saved); db = { ...db, ...parsed }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); loadDirtySetsFromLocal(); updateSyncStatus(false, "محلي - انقر للمزامنة"); return true; } catch(pe) {} }
     await initDefaults(); updateSyncStatus(false, "فشل الاتصال - انقر للمزامنة"); return false;
   }
@@ -1079,14 +1063,26 @@ async function saveSystemDataToCloud() {
     if (dirtySets.attendance.size > 0) { const rows = []; for (const key of dirtySets.attendance) { const v = db.attendance[key]; if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); } } if (rows.length > 0) await robustUpsert('attendance', rows, 'record_key', 100); dirtySets.attendance.clear(); }
     if (dirtySets.behaviors.size > 0) { const rows = []; for (const key of dirtySets.behaviors) { const v = db.behaviors[key]; if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); } } if (rows.length > 0) await robustUpsert('behaviors', rows, 'record_key', 100); dirtySets.behaviors.clear(); }
     if (dirtySets.admin_pin) { if (db.adminPin && db.adminPin.hash) { const { error } = await sb.from('school_settings').upsert({ key: 'admin_pin', value: { hash: db.adminPin.hash, salt: db.adminPin.salt } }, { onConflict: 'key' }); if (error) throw new Error('admin_pin: ' + error.message); } dirtySets.admin_pin = false; }
-    if (dirtySets.duty_reports.size > 0) { const rows = []; for (const id of dirtySets.duty_reports) { const r = (db.dutyModule.records || []).find(x => String(x.id) === String(id)); if (r) rows.push({ id: String(r.id), date_str: r.date, day_num: r.day, period: r.period, class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null, reported_by: r.reportedBy || null, status: r.status || 'pending', reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null, created_at: r.createdAt || getTrustedDate().toISOString() }); } if (rows.length > 0) await robustUpsert('duty_reports', rows, 'id', 100); dirtySets.duty_reports.clear(); }
+    if (dirtySets.duty_reports.size > 0) {
+      const rows = [];
+      for (const id of dirtySets.duty_reports) {
+        const r = (db.dutyModule.records || []).find(x => String(x.id) === String(id));
+        if (r && r.className !== '__CLEAN__') {  // ✅ منع إرسال __CLEAN__ لـ Supabase
+          rows.push({ id: String(r.id), date_str: r.date, day_num: r.day, period: r.period, class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null, reported_by: r.reportedBy || null, status: r.status || 'pending', reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null, created_at: r.createdAt || getTrustedDate().toISOString() });
+        }
+      }
+      if (rows.length > 0) await robustUpsert('duty_reports', rows, 'id', 100);
+      dirtySets.duty_reports.clear();
+    }
     if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
     await flushPendingDeletes();
     saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
   } catch(error) {
     console.error('Cloud save failed:', error);
     updateSyncStatus(false, "محلي فقط - انقر للمزامنة");
-    showToast('فشل الحفظ السحابي. حُفظ محلياً.', 'error');
+    // ✅ رسالة خطأ مفصلة من Supabase
+    const errMsg = (error?.message || String(error)).substring(0, 200);
+    showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
   }
 }
@@ -1121,7 +1117,7 @@ function updateSyncStatus(isSynced, text) {
 }
 
 async function initDefaults() {
-  db = { version: 21, adminPin: await createPinRecord('1234'), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+  db = { version: 22, adminPin: await createPinRecord('1234'), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
   db.classes.forEach(c => { db.students[c] = []; });
   db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
   saveToLocalStorageSafe(); await saveSystemDataToCloud();
@@ -1138,7 +1134,7 @@ async function checkExistingSession() {
     else if (token.role === 'teacher') { const t = (db.teachers || []).find(x => x.name === token.userName); if (t) user = { type: 'teacher', name: t.name, permissions: t.permissions || {} }; }
     if (!user) { clearSession(); return; }
     activeUser = user;
-    await finalizeLoginState(false);
+    await finalizeLoginState();
   } catch(e) { clearSession(); }
 }
 
@@ -1156,12 +1152,13 @@ async function handleUserLogin(e) {
     if (found) {
       activeUser = found.user;
       loginAttempts = 0;
+      loginLockedUntil = 0;  // ✅ تصفير القفل بعد النجاح
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       if (await isLegacyHash(pin, found.record)) {
         try { const rec = await createPinRecord(pin); found.record.hash = rec.hash; found.record.salt = rec.salt; if (found.user.type === 'admin') dirtySets.admin_pin = true; else dirtySets.teachers.add(found.user.name); await saveSystemDataToCloud(); } catch(e) {}
       }
-      await finalizeLoginState(false);
+      await finalizeLoginState();
       showToast(`أهلاً بك: ${activeUser.name}`, 'success');
       document.getElementById('userPinInput').value = '';
     } else {
@@ -2131,7 +2128,6 @@ async function showTeacherPin(idx) {
     showToast(success ? 'تم إنشاء رمز جديد!' : 'حُفظ محلياً.', success ? 'success' : 'info');
   } catch(e) { showToast('تعذر التوليد.', 'error'); }
 }
-/* ✅ الإصلاح #2 + #7: تعديل اسم المعلم مع تراجع آمن وتجديد الجلسة */
 async function editTeacherName(idx) {
   const t = db.teachers[idx]; if (!t) return;
   const oldName = t.name;
@@ -2143,7 +2139,6 @@ async function editTeacherName(idx) {
     showToast('الاسم مستخدم.', 'error'); return;
   }
 
-  // تعديل جميع المراجع محلياً + تتبع dirty
   Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === oldName) { s.teacher = trimmed; dirtySets.attendance.add(k); } });
   Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === oldName) { s.teacher = trimmed; dirtySets.behaviors.add(k); } });
   db.dutyModule.records.forEach(r => {
@@ -2157,26 +2152,29 @@ async function editTeacherName(idx) {
 
   const success = await saveSystemDataToCloud();
 
-  // ✅ الإصلاح #1: لا تحذف القديم إلا إذا نجح حفظ الجديد
+  // ✅ الإصلاح: لا تحذف القديم إلا بعد نجاح الحفظ، وامسح أي حفظ جزئي للجديد
   if (!success) {
-    // تراجع كامل
+    await queueCloudDelete('teachers', { name: trimmed, role: 'teacher' });
     t.name = oldName;
     dirtySets.teachers.delete(trimmed);
     dirtySets.teachers.add(oldName);
-    Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === trimmed) s.teacher = oldName; });
-    Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === trimmed) s.teacher = oldName; });
-    db.dutyModule.records.forEach(r => { if (r.reportedBy === trimmed) r.reportedBy = oldName; if (r.reviewedBy === trimmed) r.reviewedBy = oldName; });
+    Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === trimmed) { s.teacher = oldName; dirtySets.attendance.delete(k); } });
+    Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === trimmed) { s.teacher = oldName; dirtySets.behaviors.delete(k); } });
+    db.dutyModule.records.forEach(r => {
+      let changed = false;
+      if (r.reportedBy === trimmed) { r.reportedBy = oldName; changed = true; }
+      if (r.reviewedBy === trimmed) { r.reviewedBy = oldName; changed = true; }
+      if (changed) dirtySets.duty_reports.delete(String(r.id));
+    });
     renderTeachersList();
     showToast('فشل التحديث. لم يتم تغيير الاسم.', 'error');
     return;
   }
 
-  // الآن احذف القديم من السحابة
   await queueCloudDelete('teachers', { name: oldName, role: 'teacher' });
   renderTeachersList();
   showToast('تم تحديث الاسم.', 'success');
 
-  // ✅ الإصلاح #7: إذا كان المستخدم الحالي هو من غيّر اسمه — جدّد الجلسة
   if (activeUser?.name === oldName) {
     activeUser.name = trimmed;
     document.getElementById('activeUserName').textContent = trimmed;
@@ -2451,7 +2449,6 @@ function updateDutySelectionCount() {
     el.className = cnt > 0 ? 'text-[11px] bg-red-600 text-white px-3 py-1.5 rounded-xl font-bold border border-red-400 shadow-sm' : 'text-[11px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl font-bold border border-emerald-200';
   }
 }
-/* ✅ الإصلاح #4: فرز آمن للشعب من رقمين */
 function buildDutyWhatsAppMessage(classes, period) {
   const date = getOmanLocalDate();
   const day = dutyDayForDate(date);
@@ -2487,7 +2484,7 @@ function buildDutyWhatsAppMessage(classes, period) {
   msg += `🏫 _${SCHOOL_NAME}_`;
   return msg;
 }
-/* ✅ الإصلاح #3 + #6: استبدال السجلات القديمة بأمان + سجل "سليم" */
+/* ✅ الإصلاح الجذري: إزالة __CLEAN__ نهائياً من الحفظ السحابي */
 async function submitDutyReport() {
   if (!selectedDutyPeriod || !activeUser) return;
   const selected = [...document.querySelectorAll('#dutyClassesList button[data-no-teacher="true"]')];
@@ -2509,17 +2506,29 @@ async function submitDutyReport() {
 
   const oldRecords = d.records.filter(r => r.date === date && Number(r.period) === selectedDutyPeriod && r.reportedBy === activeUser.name);
 
-  const newRecords = selectedClasses.length > 0
-    ? selectedClasses.map(cn => ({
-        id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
-        date, day, period: selectedDutyPeriod, className: cn, teacherName: '',
-        reportedBy: activeUser.name, status: 'pending', createdAt
-      }))
-    : [{
-        id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
-        date, day, period: selectedDutyPeriod, className: '__CLEAN__', teacherName: '',
-        reportedBy: activeUser.name, status: 'clean', createdAt
-      }];
+  // ===== الحالة 1: لا يوجد صف بدون معلم — لا نحفظ في DB =====
+  if (selectedClasses.length === 0) {
+    // احذف السجلات القديمة لهذه الحصة (إن وجدت) — لأن الحالة الآن "سليم"
+    if (oldRecords.length > 0) {
+      const oldIds = new Set(oldRecords.map(r => String(r.id)));
+      d.records = d.records.filter(r => !oldIds.has(String(r.id)));
+      for (const oldR of oldRecords) {
+        await queueCloudDelete('duty_reports', { id: String(oldR.id) });
+      }
+      renderDutyTodayRecords();
+    }
+    lastDutyMessage = buildDutyWhatsAppMessage([], selectedDutyPeriod);
+    showToast('✓ سليم — لا يوجد صف بدون معلم. تم إرسال التقرير.', 'success');
+    openWhatsAppSafely(lastDutyMessage);
+    return;
+  }
+
+  // ===== الحالة 2: حفظ السجلات الجديدة ثم حذف القديمة =====
+  const newRecords = selectedClasses.map(cn => ({
+    id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+    date, day, period: selectedDutyPeriod, className: cn, teacherName: '',
+    reportedBy: activeUser.name, status: 'pending', createdAt
+  }));
 
   d.records.push(...newRecords);
   for (const r of newRecords) dirtySets.duty_reports.add(r.id);
@@ -2533,15 +2542,17 @@ async function submitDutyReport() {
     return;
   }
 
-  const oldIds = new Set(oldRecords.map(r => String(r.id)));
-  d.records = d.records.filter(r => !oldIds.has(String(r.id)));
-  for (const oldR of oldRecords) {
-    await queueCloudDelete('duty_reports', { id: String(oldR.id) });
+  if (oldRecords.length > 0) {
+    const oldIds = new Set(oldRecords.map(r => String(r.id)));
+    d.records = d.records.filter(r => !oldIds.has(String(r.id)));
+    for (const oldR of oldRecords) {
+      await queueCloudDelete('duty_reports', { id: String(oldR.id) });
+    }
   }
 
   renderDutyTodayRecords();
   lastDutyMessage = buildDutyWhatsAppMessage(selectedClasses, selectedDutyPeriod);
-  showToast(selectedClasses.length > 0 ? `تم حفظ ${selectedClasses.length} صف.` : 'تم التسجيل: لا يوجد غياب.', 'success');
+  showToast(`تم حفظ ${selectedClasses.length} صف.`, 'success');
   openWhatsAppSafely(lastDutyMessage);
 }
 function openWhatsAppSafely(msg) {
@@ -2554,20 +2565,13 @@ async function copyLastDutyMessage() {
   try { await navigator.clipboard.writeText(lastDutyMessage); showToast('نُسخ.', 'success'); }
   catch(e) { const ta = document.createElement('textarea'); ta.value = lastDutyMessage; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showToast('نُسخ.', 'success'); } catch(e2) { showToast('تعذر.', 'error'); } document.body.removeChild(ta); }
 }
-/* ✅ الإصلاح #7: عرض "سليم" بشكل خاص */
 function renderDutyTodayRecords() {
   const el = document.getElementById('dutyTodayRecords'); if (!el) return;
   const today = getOmanLocalDate();
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const rows = dutyData().records.filter(r => r.date === today && (isA || r.reportedBy === activeUser?.name));
   if (!rows.length) { el.innerHTML = '<p class="text-slate-400 text-xs">لا بلاغات.</p>'; return; }
-
-  el.innerHTML = rows.map(r => {
-    if (r.className === '__CLEAN__') {
-      return `<div class="border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200"><strong>✓ سليم — لا يوجد صف بدون معلم</strong> · ح${r.period} · <span class="text-emerald-700 dark:text-emerald-300 font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`;
-    }
-    return `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period}${r.teacherName ? ' · ' + escapeHtml(r.teacherName) : ''} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`;
-  }).join('');
+  el.innerHTML = rows.map(r => `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period}${r.teacherName ? ' · ' + escapeHtml(r.teacherName) : ''} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`).join('');
 }
 function initDutyAdminPanel() {
   const d = dutyData();
@@ -2603,11 +2607,13 @@ function renderDutyAdminReview() {
   if (ts) { const names = Object.keys(byT).sort((a, b) => a.localeCompare(b, 'ar')); ts.innerHTML = names.length ? '<h5 class="font-bold text-xs mt-3">حسب المعلم</h5>' + names.map(n => `<div class="border rounded-xl p-3 text-xs flex justify-between gap-2"><strong>${escapeHtml(n)}</strong><span>غياب: ${byT[n].absence} · تأخر: ${byT[n].late}</span></div>`).join('') : '<p class="text-xs text-slate-400 mt-3">لا حالات.</p>'; }
   const rows = d.records.slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
   el.innerHTML = rows.length ? rows.map(r => {
-    const displayName = r.className === '__CLEAN__' ? '✓ سليم' : r.className;
-    return `<div class="border rounded-xl p-3 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-center bg-white dark:bg-slate-800"><div class="text-xs"><strong>${escapeHtml(r.date)} · ${escapeHtml(r.day)} · ${escapeHtml(displayName)} · ح${r.period}</strong><div class="text-slate-500 mt-1">المعلم: ${escapeHtml(r.teacherName || '—')} · المبلّغ: ${escapeHtml(r.reportedBy)}</div></div><span class="text-xs font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span><select data-id="${escapeHtml(String(r.id))}" onchange="updateDutyRecordStatus(this)" class="border rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><option value="pending" ${r.status === 'pending' ? 'selected' : ''}>بانتظار</option><option value="absence" ${r.status === 'absence' ? 'selected' : ''}>غياب</option><option value="late" ${r.status === 'late' ? 'selected' : ''}>تأخر</option><option value="swap" ${r.status === 'swap' ? 'selected' : ''}>تبديل</option><option value="excused" ${r.status === 'excused' ? 'selected' : ''}>عذر</option><option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>غير مثبت</option><option value="clean" ${r.status === 'clean' ? 'selected' : ''}>سليم</option></select></div>`;
+    const displayName = r.className === '__CLEAN__' ? '✓ سليم (قديم)' : r.className;
+    const controls = r.className === '__CLEAN__'
+      ? `<span class="text-xs font-bold text-slate-400 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700">🔒 مقفل</span>`
+      : `<select data-id="${escapeHtml(String(r.id))}" onchange="updateDutyRecordStatus(this)" class="border rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><option value="pending" ${r.status === 'pending' ? 'selected' : ''}>بانتظار</option><option value="absence" ${r.status === 'absence' ? 'selected' : ''}>غياب</option><option value="late" ${r.status === 'late' ? 'selected' : ''}>تأخر</option><option value="swap" ${r.status === 'swap' ? 'selected' : ''}>تبديل</option><option value="excused" ${r.status === 'excused' ? 'selected' : ''}>عذر</option><option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>غير مثبت</option></select>`;
+    return `<div class="border rounded-xl p-3 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-center bg-white dark:bg-slate-800"><div class="text-xs"><strong>${escapeHtml(r.date)} · ${escapeHtml(r.day)} · ${escapeHtml(displayName)} · ح${r.period}</strong><div class="text-slate-500 mt-1">المعلم: ${escapeHtml(r.teacherName || '—')} · المبلّغ: ${escapeHtml(r.reportedBy)}</div></div><span class="text-xs font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span>${controls}</div>`;
   }).join('') : '<p class="text-slate-400 text-xs">لا بلاغات.</p>';
 }
-/* ✅ الإصلاح #5: فحص الصلاحيات في المراجعة */
 async function updateDutyRecordStatus(sel) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin || activeUser?.permissions?.duty;
   if (!isA) {
@@ -2617,6 +2623,7 @@ async function updateDutyRecordStatus(sel) {
   }
   const id = sel.dataset.id;
   const r = dutyData().records.find(x => String(x.id) === id); if (!r) return;
+  if (r.className === '__CLEAN__') { showToast('سجل "سليم" لا يمكن تعديل حالته.', 'info'); renderDutyAdminReview(); return; }
   r.status = sel.value; r.reviewedBy = activeUser?.name || 'الإدارة'; r.reviewedAt = getTrustedDate().toISOString();
   dirtySets.duty_reports.add(id);
   const ok = await saveSystemDataToCloud();
