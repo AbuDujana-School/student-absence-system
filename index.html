@@ -774,8 +774,12 @@ function formatClassName(c) {
 function ltrHtml(str) {
   return `<span dir="ltr" class="inline-block font-bold">${escapeHtml(formatClassName(str))}</span>`;
 }
+function ltrIsolate(str) {
+  if (!str) return '';
+  return '\u2066' + String(str) + '\u2069';
+}
 function getOmanLocalTime() {
-  return new Intl.DateTimeFormat('ar-OM', { timeZone: 'Asia/Muscat', hour: '2-digit', minute: '2-digit', hour12: true }).format(getTrustedDate());
+  return new Intl.DateTimeFormat('ar-OM', { timeZone: 'Asia/Muscat', hour: '2-digit', minute: '2-digit', hour12: true, numberingSystem: 'latn' }).format(getTrustedDate());
 }
 
 async function sha256Hex(text) { const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join(''); }
@@ -1273,6 +1277,8 @@ async function finalizeLoginState() {
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
+  
+  // تم إزالة openControlPanelFromDashboardBtn لأنه لم يعد موجوداً في HTML
   document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
   const attCard = document.getElementById('attendanceDashboardCard'), behCard = document.getElementById('behaviorDashboardCard');
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
@@ -2064,7 +2070,6 @@ function openAdminModal() {
     document.getElementById('adminAuthError').classList.add('hidden');
   }
 }
-function openAdminModalFromDashboard() { openAdminModal(); } // لا يزال موجوداً للتوافق
 function openControlPanelDirectly() {
   document.getElementById('adminModal').classList.remove('hidden');
   document.getElementById('adminAuthSection').classList.add('hidden');
@@ -2789,7 +2794,7 @@ function buildDutyWhatsAppMessage(classes, period) {
   } else {
     msg += `🚨 *الصفوف بدون معلم:*\n`;
     sortedClasses.forEach((c, idx) => { 
-      msg += `${idx + 1}- صف *${formatClassName(c)}*\n`; 
+      msg += `${idx + 1}- صف *${ltrIsolate(formatClassName(c))}*\n`; 
     });
     msg += `\n`;
   }
