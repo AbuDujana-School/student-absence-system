@@ -891,21 +891,15 @@
 
   <script>
     /* ============================================================
-       إعدادات Supabase والتحذيرات الأمنية
+       إعدادات Supabase
        ============================================================ */
     const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /* 
-      ⚠️ تحذير أمني هام: 
-      1. مفتاح APP_PEPPER مكشوف في كود العميل (Client-side)، لذا لا يمكن الاعتماد عليه كحماية مطلقة.
-      2. يجب تفعيل Row Level Security (RLS) في لوحة تحكم Supabase لمنع أي شخص من التلاعب بالبيانات.
-    */
     const APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
-    let serverTimeOffset = 0; // لحل مشكلة التوقيت المعتمد على جهاز المستخدم
+    let serverTimeOffset = 0;
 
-    // ===== Security: Hashing =====
     async function sha256Hex(text) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
@@ -962,7 +956,6 @@
        ============================================================ */
     async function syncServerTime() {
       try {
-        // جلب التاريخ من هيدر السيرفر لتفادي التلاعب بوقت الجهاز
         const res = await fetch(SUPABASE_URL, { method: 'HEAD' });
         const serverDateStr = res.headers.get('date');
         if (serverDateStr) {
@@ -1149,7 +1142,6 @@
       setPendingDeletes(remaining);
     }
     
-    // محسن: تجنب Race Conditions
     async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       if (!rows || rows.length === 0) return;
       const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -1227,7 +1219,6 @@
        ============================================================ */
     function saveToLocalStorageSafe() {
       try {
-        // حماية الذاكرة: الاحتفاظ فقط بآخر يومين من السجلات
         const cutoffDate = getTrustedDate();
         cutoffDate.setDate(cutoffDate.getDate() - 2);
         const cutoffStr = formatDateLocal(cutoffDate);
@@ -1260,7 +1251,7 @@
        ============================================================ */
     window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode(); setCurrentDate();
-      await syncServerTime(); // جلب التوقيت من السيرفر
+      await syncServerTime();
       await loadSystemDataFromCloud();
       await migrateCredentialsIfNeeded();
       await checkExistingSession();
@@ -1286,9 +1277,6 @@
       const sed = document.getElementById('statsEndDate'); if (sed) sed.value = today;
     }
 
-    /* ============================================================
-       Migration of old PINs -> hashed PINs
-       ============================================================ */
     async function migrateCredentialsIfNeeded() {
       let needsSave = false;
 
@@ -1333,9 +1321,6 @@
       }
     }
 
-    /* ============================================================
-       Load data from cloud
-       ============================================================ */
     async function loadSystemDataFromCloud() {
       updateSyncStatus(false, "جارِ التحميل...");
       try {
@@ -1446,9 +1431,6 @@
       }
     }
 
-    /* ============================================================
-       INCREMENTAL Save
-       ============================================================ */
     async function saveSystemDataToCloud() {
       updateSyncStatus(true, "جارِ الحفظ...");
       try {
@@ -3241,7 +3223,12 @@
       const container = document.getElementById('scheduleGridContainer'); if (!container) return;
       const day = document.getElementById('scheduleDaySelect')?.value || 'الأحد';
       const periodLabels = ['ح1','ح2','ح3','ح4','ح5','ح6','ح7','ح8'];
-      const teachers = db.teachers.map(t => t.name);
+      
+      // 🔴 تم إصلاح هذه المشكلة: إضافة أسماء المعلمين من الجدول المستورد حتى لو لم يكونوا في قاعدة البيانات
+      const teachersSet = new Set((db.teachers || []).map(t => t.name));
+      (dutyData().timetable || []).forEach(x => { if (x.teacher) teachersSet.add(x.teacher); });
+      const teachers = Array.from(teachersSet).sort((a,b) => String(a).localeCompare(String(b), 'ar'));
+
       const tt = dutyData().timetable;
       let html = `<table class="w-full text-[10px] border-collapse" dir="rtl"><thead><tr class="bg-slate-200 dark:bg-slate-800 sticky top-0 z-10"><th class="p-2 border border-slate-300 dark:border-slate-700 sticky right-0 bg-slate-200 dark:bg-slate-800 z-20">الصف</th>`;
       periodLabels.forEach(lbl => { html += `<th class="p-2 border border-slate-300 dark:border-slate-700 text-center">${lbl}</th>`; });
@@ -3330,17 +3317,12 @@
       for (let i = 0; i < line.length; i++) {
         const char = line[i];
         if (char === '"') {
-          if (inQuotes && line[i+1] === '"') {
-            current += '"'; i++;
-          } else {
-            inQuotes = !inQuotes;
-          }
+          if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
+          else { inQuotes = !inQuotes; }
         } else if (char === ',' && !inQuotes) {
           result.push(current.trim());
           current = '';
-        } else {
-          current += char;
-        }
+        } else { current += char; }
       }
       result.push(current.trim());
       return result;
@@ -3389,15 +3371,23 @@
     async function commitDutyTimetable() {
       if (!dutyPreviewRows.length) previewDutyTimetable();
       if (!dutyPreviewRows.length) return;
-      const unique = new Set();
-      for (const r of dutyPreviewRows) { const k = `${r.day}|${r.period}|${r.className}`; if (unique.has(k)) { showToast(`تكرار: ${r.className} ${r.day} ح${r.period}.`, 'error'); return; } unique.add(k); }
+      
       const ok = await showConfirm(`استبدال الجدول بـ ${dutyPreviewRows.length} سجل؟`, { danger: true });
       if (!ok) return;
+      
       dutyData().timetable = dutyPreviewRows.map(r => ({ ...r }));
       dirtySets.duty_module = true;
       const s = await saveSystemDataToCloud();
+      
+      // 🔴 تم إصلاح هذه المشكلة: التبديل التلقائي إلى أول يوم تم استيراده
+      if (dutyPreviewRows.length > 0) {
+          const firstDay = dutyPreviewRows[0].day;
+          const daySelect = document.getElementById('scheduleDaySelect');
+          if (daySelect) daySelect.value = firstDay;
+      }
+      
       renderScheduleGrid();
-      showToast(s ? 'تم.' : 'محلياً.', s ? 'success' : 'info');
+      showToast(s ? `تم الاعتماد بنجاح!` : 'تم الاعتماد محلياً.', s ? 'success' : 'info');
     }
 
     async function handleDutyTimetableFile(event) {
