@@ -4,12 +4,10 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
-  
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
-  
   <style>
     body { font-family: 'Tajawal', sans-serif; }
     .hidden { display: none !important; }
@@ -118,7 +116,7 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
-        <div onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
+        <div id="attendanceDashboardCard" onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
           <div class="relative z-10 flex justify-between items-start">
             <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-emerald-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner">
               <i class="fa-solid fa-clipboard-user"></i>
@@ -131,7 +129,7 @@
           </div>
         </div>
 
-        <div onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-700 via-cyan-800 to-indigo-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
+        <div id="behaviorDashboardCard" onclick="goToBehaviorSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-teal-700 via-cyan-800 to-indigo-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-teal-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
           <div class="relative z-10 flex justify-between items-start">
             <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-cyan-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20">
               <i class="fa-solid fa-scale-balanced"></i>
@@ -174,13 +172,14 @@
       <div class="glass-card p-5 rounded-3xl space-y-4 border border-slate-200/60 dark:border-slate-700/60">
         <div>
           <h3 class="font-extrabold text-lg text-slate-800 dark:text-white">اختر الحصة</h3>
-          <p class="text-xs text-slate-500 mt-1">يُفتح التسجيل بعد 5 دقائق من بداية الحصة، ويُغلق عند نهايتها.</p>
+          <p class="text-xs text-slate-500 mt-1">يُفتح التسجيل بعد دقائق السماح من بداية الحصة، ويُغلق عند نهايتها.</p>
         </div>
         <div id="dutyPeriodsGrid" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
         <div id="dutyPeriodStatus" class="text-xs font-bold text-slate-600 dark:text-slate-300 bg-slate-50 dark:bg-slate-900/60 p-3 rounded-xl">اختر حصة.</div>
       </div>
       <div id="dutyClassesPanel" class="hidden glass-card p-5 rounded-3xl space-y-4 border border-slate-200/60 dark:border-slate-700/60">
         <h3 id="dutySelectedPeriodTitle" class="font-extrabold text-slate-800 dark:text-white">الصفوف</h3>
+        <p class="text-xs text-slate-500">حدد الصفوف التي لا يوجد بها معلم، ويمكنك كتابة اسم المعلم المتخلف إن عرفت.</p>
         <div id="dutyClassesList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
         <div class="flex flex-wrap gap-2 pt-2 border-t">
           <button onclick="submitDutyReport()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-xl text-xs font-bold shadow-md active:scale-95 flex items-center gap-2">
@@ -404,7 +403,6 @@
     </div>
   </div>
 
-  <!-- ✅ جديد: إجبار تغيير رمز المدير -->
   <div id="forceAdminPinModal" class="fixed inset-0 bg-slate-900/98 z-[9999999] hidden p-4 backdrop-blur-md" style="display:none;">
     <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-7 shadow-2xl border-4 border-red-500 mx-auto mt-20">
       <div class="text-center mb-5">
@@ -429,64 +427,72 @@
     </div>
   </div>
 
-  <div id="editDutyModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md">
-    <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
-      <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
-        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-clock text-orange-600"></i> بيانات المناوبة - <span id="editDutyTeacherName" class="text-orange-700 dark:text-orange-400"></span></h3>
-        <button onclick="closeEditDutyModal()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+  <div id="pinDisplayModal" class="fixed inset-0 bg-slate-900/70 z-[999999] flex items-center justify-center hidden p-4 backdrop-blur-md">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-7 shadow-2xl border-4 border-emerald-400 mx-auto">
+      <div class="text-center mb-5">
+        <div class="w-16 h-16 bg-gradient-to-tr from-emerald-500 to-teal-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-3 text-2xl shadow-lg"><i class="fa-solid fa-key"></i></div>
+        <h3 class="font-black text-lg text-slate-800 dark:text-white">تم إنشاء الحساب بنجاح</h3>
       </div>
-      <div class="space-y-3">
-        <!-- ✅ جديد: عنصر الخطأ المفقود -->
-        <div id="editDutyError" class="hidden text-red-600 dark:text-red-400 text-xs font-bold bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200 text-center"></div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">التخصص:</label>
-          <input type="text" id="editDutySubject" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-orange-500">
+      <div class="space-y-3 text-center">
+        <div class="bg-slate-50 dark:bg-slate-900 p-3 rounded-2xl border">
+          <div class="text-[10px] text-slate-500 font-bold">الاسم</div>
+          <div id="pinDisplayName" class="font-extrabold text-sm text-emerald-800 dark:text-emerald-300"></div>
         </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">يوم المناوبة:</label>
-          <select id="editDutyDay" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 outline-none">
-            <option value="">بدون مناوبة</option>
-            <option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option>
-            <option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option>
-            <option value="الخميس">الخميس</option><option value="الجمعة">الجمعة</option><option value="السبت">السبت</option>
-          </select>
+        <div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border-2 border-amber-300">
+          <div class="text-[10px] text-amber-700 dark:text-amber-300 font-bold mb-1">الرمز السري (يجب حفظه الآن)</div>
+          <div id="pinDisplayValue" class="font-mono font-black text-3xl tracking-widest text-amber-900 dark:text-amber-200"></div>
         </div>
-        <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 text-[10px] text-emerald-800 dark:text-emerald-300 font-bold text-center">
-          <i class="fa-solid fa-info-circle"></i> المناوبة يوم كامل (07:00 – 13:50)
+        <div class="text-[11px] text-red-600 font-bold bg-red-50 dark:bg-red-950/40 p-2.5 rounded-xl border border-red-200">
+          ⚠️ سيُطلب من المستخدم تغيير هذا الرمز عند أول دخول. لن يظهر مرة أخرى.
         </div>
       </div>
-      <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeEditDutyModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
-        <button onclick="saveEditDuty()" class="px-5 py-2.5 bg-orange-700 hover:bg-orange-800 text-white rounded-2xl text-xs font-bold shadow-md active:scale-95">حفظ</button>
-      </div>
+      <button onclick="copyPinAndClose()" class="w-full mt-5 bg-emerald-700 hover:bg-emerald-800 text-white font-black py-3.5 rounded-2xl shadow-lg active:scale-95 text-sm">
+        <i class="fa-solid fa-copy"></i> نسخ وإغلاق
+      </button>
     </div>
   </div>
 
-  <div id="copyDayModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md">
-    <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
+  <div id="teacherPermissionsModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md">
+    <div class="glass-card rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
       <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
-        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-copy text-blue-600"></i> نسخ جدول يوم كامل</h3>
-        <button onclick="closeCopyDayModal()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
+        <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2">
+          <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+          صلاحيات: <span id="permTeacherName" class="text-emerald-700"></span>
+        </h3>
+        <button onclick="closePermissionsModal()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <div class="space-y-3">
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">من يوم:</label>
-          <input type="text" id="copyFromDayDisplay" readonly class="w-full p-3 bg-slate-100 dark:bg-slate-800 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700">
-        </div>
-        <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">إلى يوم:</label>
-          <select id="copyToDaySelect" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 outline-none">
-            <option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option>
-            <option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option>
-          </select>
-        </div>
-        <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300">
-          <i class="fa-solid fa-triangle-exclamation"></i> سيتم استبدال جدول "إلى يوم" بالكامل.
-        </div>
+      <div class="grid grid-cols-2 gap-2.5">
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <input type="checkbox" id="perm_attendance" class="accent-emerald-600 w-4 h-4">
+          <span class="text-xs font-bold">رصد الغياب</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <input type="checkbox" id="perm_behavior" class="accent-teal-600 w-4 h-4">
+          <span class="text-xs font-bold">رصد السلوكيات</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <input type="checkbox" id="perm_reports" class="accent-emerald-600 w-4 h-4">
+          <span class="text-xs font-bold">إصدار التقارير</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <input type="checkbox" id="perm_absence_lists" class="accent-emerald-600 w-4 h-4">
+          <span class="text-xs font-bold">كشوفات الغياب</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
+          <input type="checkbox" id="perm_printing" class="accent-purple-600 w-4 h-4">
+          <span class="text-xs font-bold">الطباعة</span>
+        </label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border border-red-300 dark:border-red-800">
+          <input type="checkbox" id="perm_admin" class="accent-red-600 w-4 h-4">
+          <span class="text-xs font-bold text-red-700 dark:text-red-300">الإدارة الكاملة</span>
+        </label>
+      </div>
+      <div class="text-[11px] text-slate-500 bg-slate-50 dark:bg-slate-900/50 p-2.5 rounded-xl border">
+        <i class="fa-solid fa-info-circle text-emerald-600"></i> "الإدارة الكاملة" يمنح الوصول لكل تبويبات لوحة التحكم.
       </div>
       <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeCopyDayModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
-        <button onclick="executeCopyDay()" class="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl text-xs font-bold shadow-md active:scale-95">تنفيذ</button>
+        <button onclick="closePermissionsModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
+        <button onclick="saveTeacherPermissions()" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md active:scale-95">حفظ</button>
       </div>
     </div>
   </div>
@@ -663,17 +669,6 @@
               <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2 border-b pb-3"><i class="fa-solid fa-chalkboard-user text-emerald-600"></i> نشاط المعلمين</h5>
               <div id="teacherActivityStatsContainer" class="overflow-x-auto custom-scrollbar"></div>
             </div>
-            <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
-              <div class="flex flex-wrap justify-between items-center border-b pb-3 gap-2">
-                <h5 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-clock text-orange-600"></i> التزام المعلمين</h5>
-                <select id="complianceSortOrder" onchange="renderTeacherScheduleCompliance()" class="bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-white px-3 py-1.5 rounded-2xl border border-slate-200 font-bold outline-none text-xs">
-                  <option value="missedDesc">الأكثر تخلفاً</option><option value="ratioAsc">الأقل التزاماً</option><option value="nameAsc">الاسم</option>
-                </select>
-              </div>
-              <div id="teacherComplianceContainer" class="overflow-x-auto custom-scrollbar">
-                <div class="text-center py-6 text-slate-400 text-xs font-bold">جاري الحساب...</div>
-              </div>
-            </div>
           </div>
           <div id="statsSubSec-behaviors" class="hidden space-y-6">
             <div class="glass-card rounded-3xl shadow-lg border border-slate-200/80 p-5 space-y-4">
@@ -721,9 +716,11 @@
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة مستخدم مخصص</h5>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input type="text" id="newCustomUserName" placeholder="الاسم" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none focus:ring-2 focus:ring-emerald-500">
-              <input type="password" id="newCustomUserPin" inputmode="numeric" maxlength="10" placeholder="الرمز" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none font-bold tracking-widest focus:ring-2 focus:ring-emerald-500">
+              <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-[11px] text-amber-800 dark:text-amber-300 font-bold flex items-center gap-2">
+                <i class="fa-solid fa-key"></i> سيُولَّد الرمز تلقائياً عند الحفظ
+              </div>
             </div>
-            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 text-xs font-bold">
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-white dark:bg-slate-800 p-3 rounded-2xl border border-slate-200 text-xs font-bold">
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_studstats" class="accent-emerald-600" checked> إحصائيات</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_behaviorstats" class="accent-teal-600" checked> سلوكيات</label>
               <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_users" class="accent-emerald-600"> أشخاص</label>
@@ -766,28 +763,25 @@
         </div>
 
         <div id="sec-teachers" class="hidden space-y-4">
-          <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 mb-4 shadow-sm">
-            <div class="flex justify-between items-center">
-              <h5 class="font-bold text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة</h5>
-            </div>
-            <p class="text-xs text-slate-500">عند تحديد يوم مناوبة لمادة معينة، سيتم تفعيل المناوبة تلقائياً لجميع معلمي هذه المادة.</p>
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-sm">
+            <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
+            <p class="text-xs text-slate-500">حدد يوم المناوبة لكل مادة أو قسم. جميع المنتسبين له سيكونون مناوبين تلقائياً في ذلك اليوم فقط.</p>
             <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
           </div>
 
           <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
-            <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة معلم جديد</h5>
+            <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة معلم / موظف جديد</h5>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <input type="text" id="newTeacherName" placeholder="الاسم (أول + آخر)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none">
-              <input type="password" id="newTeacherPin" inputmode="numeric" maxlength="10" placeholder="الرمز السري" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none font-bold tracking-widest">
-              <input type="text" id="newTeacherSubject" placeholder="التخصص (اختياري)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none">
-              <select id="newTeacherDutyDay" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs">
-                <option value="">بدون مناوبة</option>
-                <option>الأحد</option><option>الاثنين</option><option>الثلاثاء</option>
-                <option>الأربعاء</option><option>الخميس</option><option>الجمعة</option><option>السبت</option>
+              <select id="newTeacherCategory" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs font-bold">
               </select>
+            </div>
+            <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300">
+              <i class="fa-solid fa-key"></i> سيُولَّد رمز سري عشوائي من 4 أرقام تلقائياً، وسيُجبر المعلم على تغييره عند أول دخول.
             </div>
             <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl active:scale-95 shadow-md">حفظ المعلم</button>
           </div>
+
           <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>
         </div>
 
@@ -800,54 +794,6 @@
               <input id="dutyGraceMinutes" type="number" min="0" max="30" value="5" class="p-2 border border-slate-200 dark:border-slate-700 rounded-xl w-20 text-xs font-bold">
             </div>
             <button onclick="saveDutySettings()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold shadow-md active:scale-95">حفظ إعدادات الحصص</button>
-          </div>
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
-            <h4 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-table-cells text-blue-600"></i> الجدول الأسبوعي</h4>
-            <div class="flex flex-wrap justify-between items-center gap-2">
-              <div class="flex gap-2 items-center">
-                <label class="text-xs font-bold text-slate-700 dark:text-slate-300">اليوم:</label>
-                <select id="scheduleDaySelect" onchange="renderScheduleGrid()" class="p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs font-bold bg-white dark:bg-slate-800">
-                  <option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option>
-                  <option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option>
-                </select>
-              </div>
-              <div class="flex flex-wrap gap-2">
-                <button onclick="openCopyDayModal()" class="bg-blue-700 hover:bg-blue-800 text-white px-3 py-2 rounded-xl text-xs font-bold active:scale-95"><i class="fa-solid fa-copy"></i> نسخ</button>
-                <button onclick="clearScheduleDay()" class="bg-red-700 hover:bg-red-800 text-white px-3 py-2 rounded-xl text-xs font-bold active:scale-95"><i class="fa-solid fa-trash"></i> مسح</button>
-                <button onclick="saveScheduleGrid()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-2 rounded-xl text-xs font-bold active:scale-95"><i class="fa-solid fa-floppy-disk"></i> حفظ</button>
-              </div>
-            </div>
-            <div id="scheduleGridContainer" class="overflow-auto custom-scrollbar rounded-2xl border border-slate-200 dark:border-slate-700" style="max-height:55vh;"></div>
-            <div id="scheduleGridStatus" class="text-xs font-bold text-amber-700 dark:text-amber-400 hidden"></div>
-          </div>
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
-            <h4 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-file-import text-purple-600"></i> استيراد الجدول</h4>
-            <input type="file" id="dutyTimetableFile" accept=".csv,.txt,.pdf" onchange="handleDutyTimetableFile(event)" class="w-full text-xs p-2 border border-slate-200 rounded-xl bg-white dark:bg-slate-800 cursor-pointer">
-            <textarea id="dutyTimetableText" rows="7" placeholder="اليوم,الحصة,الصف,المادة,اسم المعلم" class="w-full p-3 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800 font-mono custom-scrollbar outline-none"></textarea>
-            <div class="flex flex-wrap gap-2">
-              <button onclick="previewDutyTimetable()" class="bg-blue-700 hover:bg-blue-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold active:scale-95">معاينة</button>
-              <button onclick="commitDutyTimetable()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold active:scale-95">اعتماد</button>
-            </div>
-            <div class="p-3 bg-purple-50 dark:bg-purple-950/40 rounded-2xl border-2 border-purple-300">
-              <div class="text-xs font-bold text-purple-800 dark:text-purple-300 mb-2"><i class="fa-solid fa-magic"></i> استخراج تلقائي للمعلمين</div>
-              <button onclick="extractTeachersFromSchedule()" class="w-full bg-purple-700 hover:bg-purple-800 text-white px-4 py-3 rounded-xl text-xs font-bold shadow-md active:scale-95">
-                <i class="fa-solid fa-user-plus"></i> استخراج المعلمين
-              </button>
-            </div>
-            <div id="dutyTimetablePreview" class="overflow-x-auto text-xs custom-scrollbar"></div>
-          </div>
-          <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
-            <h4 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-right-left text-teal-600"></i> تبديل الحصص</h4>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <input id="dutySwapDate" type="date" onchange="refreshDutySwapOriginal()" class="p-3 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800">
-              <select id="dutySwapClass" class="p-3 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800 font-bold" onchange="refreshDutySwapOriginal()"><option value="">اختر الصف</option></select>
-              <select id="dutySwapPeriod" class="p-3 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800 font-bold" onchange="refreshDutySwapOriginal()"><option value="">الحصة</option></select>
-              <input id="dutySwapOriginal" readonly placeholder="المعلم الأصلي" class="p-3 border border-slate-200 rounded-xl text-xs bg-slate-100 dark:bg-slate-800 font-bold">
-              <select id="dutySwapReplacement" class="p-3 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800 font-bold"><option value="">المعلم البديل</option></select>
-            </div>
-            <input id="dutySwapReason" placeholder="ملاحظة" class="w-full p-3 border border-slate-200 rounded-xl text-xs bg-white dark:bg-slate-800">
-            <button onclick="saveDutySwap()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2.5 rounded-xl text-xs font-bold active:scale-95">حفظ التبديل</button>
-            <div id="dutySwapsList" class="text-xs space-y-2"></div>
           </div>
           <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
             <div class="flex flex-wrap justify-between items-center gap-2">
@@ -926,7 +872,7 @@
 
   <script>
     /* ============================================================
-       إعدادات Supabase — ⚠️ يجب تفعيل RLS على كل الجداول في Dashboard
+       Supabase config
        ============================================================ */
     const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
@@ -934,111 +880,66 @@
 
     const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
     const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
-    const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 ساعات
-    const ADMIN_AUTH_TTL_MS = 30 * 60 * 1000;  // 30 دقيقة
+    const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
+    const ADMIN_AUTH_TTL_MS = 30 * 60 * 1000;
     const PBKDF2_ITERATIONS = 150000;
 
     let serverTimeOffset = 0;
     let lastServerSyncSuccess = 0;
 
     /* ============================================================
-       التشفير: PBKDF2 (جديد) + SHA-256 (legacy للترقية فقط)
+       Cryptography
        ============================================================ */
     async function sha256Hex(text) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-
     async function pbkdf2Hex(password, salt, iterations = PBKDF2_ITERATIONS) {
       const enc = new TextEncoder();
       const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
-      const bits = await crypto.subtle.deriveBits(
-        { name: 'PBKDF2', salt: enc.encode(salt), iterations, hash: 'SHA-256' },
-        key, 256
-      );
+      const bits = await crypto.subtle.deriveBits({ name: 'PBKDF2', salt: enc.encode(salt), iterations, hash: 'SHA-256' }, key, 256);
       return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-
-    async function hashPin(pin, salt) {
-      return await pbkdf2Hex(APP_PEPPER + ':' + salt + ':' + pin, salt, PBKDF2_ITERATIONS);
-    }
-    async function legacySha256Pin(pin, salt) {
-      return await sha256Hex(LEGACY_APP_PEPPER + ':' + salt + ':' + pin);
-    }
-
-    function genSalt() {
-      const arr = new Uint8Array(16);
-      crypto.getRandomValues(arr);
-      return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    async function createPinRecord(pin) {
-      const salt = genSalt();
-      const hash = await hashPin(pin, salt);
-      return { hash, salt };
-    }
-
+    async function hashPin(pin, salt) { return await pbkdf2Hex(APP_PEPPER + ':' + salt + ':' + pin, salt, PBKDF2_ITERATIONS); }
+    async function legacySha256Pin(pin, salt) { return await sha256Hex(LEGACY_APP_PEPPER + ':' + salt + ':' + pin); }
+    function genSalt() { const arr = new Uint8Array(16); crypto.getRandomValues(arr); return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join(''); }
+    async function createPinRecord(pin) { const salt = genSalt(); const hash = await hashPin(pin, salt); return { hash, salt }; }
     async function verifyPinAgainstRecord(pin, record) {
       if (!record || !record.hash || !record.salt) return false;
-      try {
-        const newHash = await hashPin(pin, record.salt);
-        if (newHash === record.hash) return true;
-      } catch (e) {}
-      try {
-        const legacy = await legacySha256Pin(pin, record.salt);
-        if (legacy === record.hash) return true;
-      } catch (e) {}
+      try { if (await hashPin(pin, record.salt) === record.hash) return true; } catch (e) {}
+      try { if (await legacySha256Pin(pin, record.salt) === record.hash) return true; } catch (e) {}
       return false;
     }
-
     async function isLegacyHash(pin, record) {
       if (!record?.hash || !record?.salt) return false;
-      try {
-        const newHash = await hashPin(pin, record.salt);
-        if (newHash === record.hash) return false;
-      } catch (e) { return false; }
-      try {
-        const legacy = await legacySha256Pin(pin, record.salt);
-        return legacy === record.hash;
-      } catch (e) { return false; }
+      try { if (await hashPin(pin, record.salt) === record.hash) return false; } catch (e) { return false; }
+      try { return await legacySha256Pin(pin, record.salt) === record.hash; } catch (e) { return false; }
     }
-
-    // HMAC-SHA256 لتوقيع الجلسات
     async function hmacSha256Hex(key, message) {
       const enc = new TextEncoder();
       const cryptoKey = await crypto.subtle.importKey('raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
       const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
       return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
-
-    // اشتقاق سر الجلسة من PIN + salt (لا يمكن استنتاجه من pin_hash وحده بدون PIN)
-    async function deriveSessionSecret(pin, salt) {
-      return await pbkdf2Hex(APP_PEPPER + ':session:' + pin, salt + ':session', 100000);
-    }
+    async function deriveSessionSecret(pin, salt) { return await pbkdf2Hex(APP_PEPPER + ':session:' + pin, salt + ':session', 100000); }
 
     /* ============================================================
-       التوقيت الموحّد (Asia/Muscat)
+       Server time (Asia/Muscat)
        ============================================================ */
     async function syncServerTime() {
       try {
         const res = await fetch(SUPABASE_URL, { method: 'HEAD' });
         const serverDateStr = res.headers.get('date');
         if (serverDateStr) {
-          const serverTime = new Date(serverDateStr).getTime();
-          serverTimeOffset = serverTime - Date.now();
+          serverTimeOffset = new Date(serverDateStr).getTime() - Date.now();
           lastServerSyncSuccess = Date.now();
           try { localStorage.setItem('abuDujana_timeOffset', String(serverTimeOffset)); } catch (e) {}
         }
       } catch (e) {
-        // استخدم آخر offset معروف
-        try {
-          const saved = localStorage.getItem('abuDujana_timeOffset');
-          if (saved) serverTimeOffset = Number(saved) || 0;
-        } catch (err) {}
+        try { const saved = localStorage.getItem('abuDujana_timeOffset'); if (saved) serverTimeOffset = Number(saved) || 0; } catch (err) {}
       }
     }
-    function getTrustedDate() {
-      return new Date(Date.now() + serverTimeOffset);
-    }
+    function getTrustedDate() { return new Date(Date.now() + serverTimeOffset); }
     function getOmanLocalDate() {
       return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(getTrustedDate());
     }
@@ -1054,7 +955,7 @@
     }
 
     /* ============================================================
-       أدوات مساعدة
+       Utilities
        ============================================================ */
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
@@ -1064,7 +965,6 @@
     function safeBtoa(str) { try { return btoa(unescape(encodeURIComponent(String(str)))); } catch (e) { return ''; } }
     function safeAtob(str) { if (!str) return ''; try { return decodeURIComponent(escape(atob(str))); } catch (e) { return ''; } }
     function isBase64(str) { if (!str || typeof str !== 'string') return false; try { return btoa(atob(str)) === str; } catch (err) { return false; } }
-    // ✅ CSV injection محمي
     function escapeCsvField(v) {
       let s = String(v == null ? '' : v);
       if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
@@ -1072,7 +972,7 @@
     }
 
     /* ============================================================
-       Toasts & Confirm/Prompt
+       Toasts & Modal helpers
        ============================================================ */
     function showToast(message, type = 'success') {
       const container = document.getElementById('toastContainer'); if (!container) return;
@@ -1105,9 +1005,8 @@
           </div>`;
         document.body.appendChild(modal);
         const okBtn = modal.querySelector('[data-action=ok]');
-        const cancelBtn = modal.querySelector('[data-action=cancel]');
+        modal.querySelector('[data-action=cancel]').onclick = () => { modal.remove(); resolve(false); };
         okBtn.onclick = () => { modal.remove(); resolve(true); };
-        cancelBtn.onclick = () => { modal.remove(); resolve(false); };
         modal.onclick = (e) => { if (e.target === modal) { modal.remove(); resolve(false); } };
         setTimeout(() => okBtn.focus(), 50);
       });
@@ -1141,11 +1040,42 @@
     }
 
     /* ============================================================
-       Constants
+       Constants — Categories, Subjects, Departments
        ============================================================ */
     const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
     const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    const SCHOOL_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+    const SUBJECTS = ['اللغة العربية','اللغة الإنجليزية','التربية الإسلامية','الرياضيات','مواد العلوم','مواد المهارات الحياتية'];
+    const DEPARTMENTS = ['قسم الأخصائيين','قسم الإدارة'];
+    const ALL_CATEGORIES = [...SUBJECTS, ...DEPARTMENTS];
+    const DEFAULT_SUBJECT_DAYS = {
+      'اللغة العربية': 'الأحد',
+      'اللغة الإنجليزية': 'الاثنين',
+      'التربية الإسلامية': 'الثلاثاء',
+      'الرياضيات': 'الأربعاء',
+      'مواد العلوم': 'الخميس',
+      'مواد المهارات الحياتية': '',
+      'قسم الأخصائيين': '',
+      'قسم الإدارة': ''
+    };
     const periodNamesMap = { 1: 'الحصة الأولى', 2: 'الحصة الثانية', 3: 'الحصة الثالثة', 4: 'الحصة الرابعة', 5: 'الحصة الخامسة', 6: 'الحصة السادسة', 7: 'الحصة السابعة', 8: 'الحصة الثامنة' };
+    const PERMISSION_KEYS = ['attendance','behavior','reports','absence_lists','printing','admin'];
+    const ADMIN_TAB_PERMISSIONS = ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'];
+
+    function normalizeCategory(subject) {
+      const s = String(subject || '').trim();
+      const map = {
+        'عربي': 'اللغة العربية', 'اللغة العربية': 'اللغة العربية', 'العربية': 'اللغة العربية',
+        'إنجليزي': 'اللغة الإنجليزية', 'الإنجليزية': 'اللغة الإنجليزية', 'اللغة الإنجليزية': 'اللغة الإنجليزية',
+        'تربية إسلامية': 'التربية الإسلامية', 'التربية الإسلامية': 'التربية الإسلامية',
+        'رياضيات': 'الرياضيات', 'الرياضيات': 'الرياضيات',
+        'علوم': 'مواد العلوم', 'مواد العلوم': 'مواد العلوم',
+        'مهارات حياتية': 'مواد المهارات الحياتية', 'مواد المهارات الحياتية': 'مواد المهارات الحياتية',
+        'أخصائيين': 'قسم الأخصائيين', 'قسم الأخصائيين': 'قسم الأخصائيين',
+        'إدارة': 'قسم الإدارة', 'قسم الإدارة': 'قسم الإدارة'
+      };
+      return map[s] || (ALL_CATEGORIES.includes(s) ? s : '');
+    }
 
     function parseAttendanceKey(key) {
       if (!key) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
@@ -1169,7 +1099,22 @@
     /* ============================================================
        DB Structure
        ============================================================ */
-    let db = { version: 18, adminPin: null, customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { teacherMeta: {}, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), timetable: [], overrides: [], records: [] } };
+    let db = {
+      version: 19,
+      adminPin: null,
+      customUsers: [],
+      teachers: [],
+      classes: [],
+      students: {},
+      attendance: {},
+      behaviors: {},
+      dutyModule: {
+        subjectDays: { ...DEFAULT_SUBJECT_DAYS },
+        graceMinutes: 5,
+        periods: Array.from({length:8}, () => ({start:"",end:""})),
+        records: []
+      }
+    };
 
     const dirtySets = {
       classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(),
@@ -1181,19 +1126,17 @@
     let attendanceDirty = false, behaviorDirty = false;
     let pendingTargetClass = null, pendingMode = 'attendance', pendingPeriod = 1;
     let selectedDutyPeriod = null;
-    let dutyPreviewRows = [];
     let lastDutyMessage = '';
     let dutyTestModeActive = false;
-    let scheduleDirtyChanges = {};
-    let editingDutyTeacherName = null;
     let dutyRefreshInterval = null;
     let attendanceUndoStack = [];
     let behaviorUndoStack = [];
     let loginAttempts = 0;
     let loginLockedUntil = 0;
+    let currentEditingTeacherIndex = null;
 
     /* ============================================================
-       Session Management (HMAC-signed)
+       Session management (HMAC-signed)
        ============================================================ */
     async function createSignedSession(userName, role, sessionSecret) {
       const expiresAt = Date.now() + SESSION_TTL_MS;
@@ -1202,13 +1145,9 @@
       try { localStorage.setItem('abuDujana_session', JSON.stringify(token)); } catch (e) {}
       try { sessionStorage.setItem('abuDujana_session_secret', sessionSecret); } catch (e) {}
     }
-
     async function verifyStoredSession() {
       let tokenStr, sessionSecret;
-      try {
-        tokenStr = localStorage.getItem('abuDujana_session');
-        sessionSecret = sessionStorage.getItem('abuDujana_session_secret');
-      } catch (e) { return null; }
+      try { tokenStr = localStorage.getItem('abuDujana_session'); sessionSecret = sessionStorage.getItem('abuDujana_session_secret'); } catch (e) { return null; }
       if (!tokenStr || !sessionSecret) return null;
       try {
         const token = JSON.parse(tokenStr);
@@ -1219,27 +1158,19 @@
         return token;
       } catch (e) { return null; }
     }
-
     function clearSession() {
       try { localStorage.removeItem('abuDujana_session'); } catch (e) {}
       try { sessionStorage.removeItem('abuDujana_session_secret'); } catch (e) {}
       try { sessionStorage.removeItem('abuDujana_adminAuthUntil'); } catch (e) {}
     }
-
     function isAdminAuthorized() {
       if (activeUser?.type === 'admin') return true;
-      try {
-        const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0');
-        return until > Date.now();
-      } catch (e) { return false; }
+      try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch (e) { return false; }
     }
-
-    function grantTemporaryAdminAuth() {
-      try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch (e) {}
-    }
+    function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch (e) {} }
 
     /* ============================================================
-       Cloud helpers — robustUpsert يرمي الخطأ ✅
+       Cloud helpers
        ============================================================ */
     function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch (e) { return []; } }
     function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch (e) {} }
@@ -1251,10 +1182,7 @@
         if (error) throw error;
         return true;
       } catch (e) {
-        const arr = getPendingDeletes();
-        arr.push({ table, filters, ts: Date.now() });
-        setPendingDeletes(arr);
-        return false;
+        const arr = getPendingDeletes(); arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); return false;
       }
     }
     async function flushPendingDeletes() {
@@ -1270,18 +1198,14 @@
       }
       setPendingDeletes(remaining);
     }
-
     async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       if (!rows || rows.length === 0) return;
       const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
       const failures = [];
-
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
         const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
         if (!error) continue;
-
-        // fallback per-row
         for (const row of chunk) {
           try {
             let matchObj = {};
@@ -1290,7 +1214,6 @@
             for (const [k, v] of Object.entries(matchObj)) query = query.eq(k, v);
             const { data: existing, error: fetchErr } = await query;
             if (fetchErr) throw fetchErr;
-
             if (existing && existing.length > 0) {
               let updateQuery = sb.from(table).update(row);
               for (const [k, v] of Object.entries(matchObj)) updateQuery = updateQuery.eq(k, v);
@@ -1306,17 +1229,10 @@
           }
         }
       }
-
-      // ✅ الآن يرمي الخطأ — dirtySet لن يُمسح
-      if (failures.length > 0) {
-        throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
-      }
+      if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
     }
-
-    /* ✅ Pagination لكسر حد 1000 صف */
     async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
-      const all = [];
-      let from = 0;
+      const all = []; let from = 0;
       while (true) {
         const { data, error } = await sb.from(tableName).select(selectCols).range(from, from + pageSize - 1);
         if (error) throw error;
@@ -1329,51 +1245,45 @@
     }
 
     /* ============================================================
-       Duty helpers
+       Duty module helpers
        ============================================================ */
     function normalizeDutyModule(value) {
       const d = value && typeof value === 'object' ? value : {};
+      const subjectDays = { ...DEFAULT_SUBJECT_DAYS };
+      if (d.subjectDays && typeof d.subjectDays === 'object') {
+        for (const [k, v] of Object.entries(d.subjectDays)) subjectDays[k] = String(v || '');
+      }
       return {
-        teacherMeta: d.teacherMeta && typeof d.teacherMeta === 'object' ? d.teacherMeta : {},
+        subjectDays,
         graceMinutes: Number.isFinite(Number(d.graceMinutes)) ? Math.max(0, Math.min(30, Number(d.graceMinutes))) : 5,
         periods: Array.isArray(d.periods) && d.periods.length === 8 ? d.periods.map(x => ({start: x?.start || '', end: x?.end || ''})) : Array.from({length:8}, () => ({start:'',end:''})),
-        timetable: Array.isArray(d.timetable) ? d.timetable : [],
-        overrides: Array.isArray(d.overrides) ? d.overrides : [],
         records: Array.isArray(d.records) ? d.records : []
       };
     }
     function dutyData() { db.dutyModule = normalizeDutyModule(db.dutyModule); return db.dutyModule; }
-    function isTeacherDutyWindow(meta) {
-      if (!meta || !meta.enabled || !meta.day) return false;
-      const now = omanNowParts();
-      const dayMap = {'Sunday':'الأحد','Monday':'الاثنين','Tuesday':'الثلاثاء','Wednesday':'الأربعاء','Thursday':'الخميس','Friday':'الجمعة','Saturday':'السبت'};
-      return dayMap[now.weekday] === meta.day;
+    function getTeacherCategory(teacherName) {
+      const t = (db.teachers || []).find(x => x.name === teacherName);
+      return t?.permissions?.category || '';
     }
-    function effectiveDutyTeacher(date, period, className, baseTeacher) {
-      const ov = dutyData().overrides.find(x => x.date === date && Number(x.period) === Number(period) && x.className === className);
-      return ov?.replacementTeacher || baseTeacher;
+    function isTeacherOnDutyToday(teacherName) {
+      const cat = getTeacherCategory(teacherName);
+      if (!cat) return false;
+      const dutyDay = dutyData().subjectDays[cat];
+      if (!dutyDay) return false;
+      return dutyDayForDate(getOmanLocalDate()) === dutyDay;
     }
-    function normalizeDutyDay(v) { const x = String(v||'').trim().replace(/^يوم\s*/,''); return ({'Sun':'الأحد','Sunday':'الأحد','Mon':'الاثنين','Monday':'الاثنين','Tue':'الثلاثاء','Tuesday':'الثلاثاء','Wed':'الأربعاء','Wednesday':'الأربعاء','Thu':'الخميس','Thursday':'الخميس','Fri':'الجمعة','Friday':'الجمعة','Sat':'السبت','Saturday':'السبت'})[x] || x; }
-    function dutyStatusLabel(s) { return ({pending:'بانتظار المراجعة',absence:'غياب معتمد',late:'تأخر معتمد',swap:'تبديل مثبت',excused:'عذر مقبول',dismissed:'بلاغ غير مثبت'})[s] || s; }
-    function normalizeDutyClassName(cls) {
-      const s = String(cls || '').trim();
-      const m = s.match(/^(\d+)\s*\/\s*(\d+)$/);
-      if (!m) return s;
-      const a = parseInt(m[1], 10), b = parseInt(m[2], 10);
-      if (a >= 9 && a <= 12 && b >= 1 && b <= 8) return `${a}/${b}`;
-      if (a >= 1 && a <= 8 && b >= 9 && b <= 12) return `${b}/${a}`;
-      return `${a}/${b}`;
+    function dutyStatusLabel(s) {
+      return ({pending:'بانتظار المراجعة',absence:'غياب معتمد',late:'تأخر معتمد',swap:'تبديل مثبت',excused:'عذر مقبول',dismissed:'بلاغ غير مثبت'})[s] || s;
     }
 
     /* ============================================================
-       LocalStorage (14 يوماً + حفظ dirtySets)
+       LocalStorage
        ============================================================ */
     function saveToLocalStorageSafe() {
       try {
         const cutoffDate = getTrustedDate();
-        cutoffDate.setDate(cutoffDate.getDate() - 14); // ✅ 14 يوماً
+        cutoffDate.setDate(cutoffDate.getDate() - 14);
         const cutoffStr = formatDateOman(cutoffDate);
-
         const safeDb = { ...db, attendance: {}, behaviors: {} };
         Object.keys(db.attendance || {}).forEach(k => {
           const p = parseAttendanceKey(k);
@@ -1383,35 +1293,24 @@
           const p = parseAttendanceKey(k);
           if (p.date >= cutoffStr) safeDb.behaviors[k] = db.behaviors[k];
         });
-
-        // ✅ حفظ dirtySets لضمان عدم فقدان التعديلات غير المتزامنة
         const dirtyObj = {
-          classes: [...dirtySets.classes],
-          teachers: [...dirtySets.teachers],
-          students: [...dirtySets.students],
-          attendance: [...dirtySets.attendance],
-          behaviors: [...dirtySets.behaviors],
-          duty_reports: [...dirtySets.duty_reports],
-          admin_pin: dirtySets.admin_pin,
-          duty_module: dirtySets.duty_module
+          classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students],
+          attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors],
+          duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module
         };
         try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch (e) {}
-
         let pendingDeletes = getPendingDeletes();
         if (pendingDeletes.length > 200) pendingDeletes = pendingDeletes.slice(-200);
         setPendingDeletes(pendingDeletes);
-
-        localStorage.setItem('abuDujana_db_v22', JSON.stringify(safeDb));
+        localStorage.setItem('abuDujana_db_v23', JSON.stringify(safeDb));
       } catch(e) {
         console.warn('LocalStorage full, clearing history cache.', e);
-        try { localStorage.removeItem('abuDujana_db_v22'); } catch(err) {}
+        try { localStorage.removeItem('abuDujana_db_v23'); } catch(err) {}
       }
     }
-
     function loadDirtySetsFromLocal() {
       try {
-        const raw = localStorage.getItem('abuDujana_dirtySets');
-        if (!raw) return;
+        const raw = localStorage.getItem('abuDujana_dirtySets'); if (!raw) return;
         const obj = JSON.parse(raw);
         (obj.classes || []).forEach(x => dirtySets.classes.add(x));
         (obj.teachers || []).forEach(x => dirtySets.teachers.add(x));
@@ -1440,10 +1339,14 @@
           if (activeUser) { refreshDutyDashboardCard(); if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods(); }
         }, 30000);
       }
-      // تحديث وقت الخادم كل ساعة
-      setInterval(async () => {
-        if (Date.now() - lastServerSyncSuccess > 60 * 60 * 1000) await syncServerTime();
-      }, 15 * 60 * 1000);
+      setInterval(async () => { if (Date.now() - lastServerSyncSuccess > 60 * 60 * 1000) await syncServerTime(); }, 15 * 60 * 1000);
+      // Populate category dropdown
+      const catSel = document.getElementById('newTeacherCategory');
+      if (catSel) {
+        catSel.innerHTML = '<option value="">— اختر الفئة —</option>';
+        SUBJECTS.forEach(s => catSel.innerHTML += `<option value="${escapeHtml(s)}">${escapeHtml(s)} (مادة)</option>`);
+        DEPARTMENTS.forEach(d => catSel.innerHTML += `<option value="${escapeHtml(d)}">${escapeHtml(d)}</option>`);
+      }
     });
 
     function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_darkMode') === 'true'; if (isDark) { document.documentElement.classList.add('dark'); document.getElementById('darkModeIcon').className = 'fa-solid fa-sun text-sm'; } } catch (e) {} }
@@ -1461,42 +1364,59 @@
 
     async function migrateCredentialsIfNeeded() {
       let needsSave = false;
-
-      // admin pin migration (base64/plain → hash)
       if (typeof db.adminPin === 'string' && db.adminPin) {
         try {
           const plain = isBase64(db.adminPin) ? safeAtob(db.adminPin) : db.adminPin;
-          const rec = await createPinRecord(plain);
-          db.adminPin = rec;
-          dirtySets.admin_pin = true;
-          needsSave = true;
+          db.adminPin = await createPinRecord(plain);
+          dirtySets.admin_pin = true; needsSave = true;
         } catch (e) { db.adminPin = null; }
       } else if (!db.adminPin) {
         db.adminPin = await createPinRecord('1234');
-        dirtySets.admin_pin = true;
-        needsSave = true;
+        dirtySets.admin_pin = true; needsSave = true;
       }
-
       for (const t of (db.teachers || [])) {
         if (t.pin && !t.pin_hash) {
           const rec = await createPinRecord(t.pin);
-          t.pin_hash = rec.hash;
-          t.pin_salt = rec.salt;
-          delete t.pin;
-          dirtySets.teachers.add(t.name);
-          needsSave = true;
+          t.pin_hash = rec.hash; t.pin_salt = rec.salt; delete t.pin;
+          dirtySets.teachers.add(t.name); needsSave = true;
         }
       }
       for (const u of (db.customUsers || [])) {
         if (u.pin && !u.pin_hash) {
           const rec = await createPinRecord(u.pin);
-          u.pin_hash = rec.hash;
-          u.pin_salt = rec.salt;
-          delete u.pin;
-          dirtySets.teachers.add(u.name);
-          needsSave = true;
+          u.pin_hash = rec.hash; u.pin_salt = rec.salt; delete u.pin;
+          dirtySets.teachers.add(u.name); needsSave = true;
         }
       }
+      // Migrate old teacherMeta.subject → permissions.category
+      const oldTeacherMeta = db.dutyModule?.teacherMeta || {};
+      for (const t of (db.teachers || [])) {
+        if (!t.permissions) t.permissions = {};
+        if (!t.permissions.category) {
+          const meta = oldTeacherMeta[t.name];
+          if (meta?.subject) {
+            const norm = normalizeCategory(meta.subject);
+            if (norm) { t.permissions.category = norm; dirtySets.teachers.add(t.name); needsSave = true; }
+          }
+        }
+        // Ensure permission keys exist
+        PERMISSION_KEYS.forEach(k => { if (t.permissions[k] === undefined) t.permissions[k] = (k === 'attendance' || k === 'behavior'); });
+      }
+      // Migrate subjectDays from teacherMeta
+      if (!db.dutyModule.subjectDays || Object.keys(db.dutyModule.subjectDays).length === 0) {
+        db.dutyModule.subjectDays = { ...DEFAULT_SUBJECT_DAYS };
+        for (const [name, meta] of Object.entries(oldTeacherMeta)) {
+          if (meta.subject && meta.day) {
+            const cat = normalizeCategory(meta.subject);
+            if (cat) db.dutyModule.subjectDays[cat] = meta.day;
+          }
+        }
+        dirtySets.duty_module = true; needsSave = true;
+      }
+      // Clean up old fields
+      if (db.dutyModule.teacherMeta) { delete db.dutyModule.teacherMeta; dirtySets.duty_module = true; needsSave = true; }
+      if (db.dutyModule.timetable) { delete db.dutyModule.timetable; dirtySets.duty_module = true; needsSave = true; }
+      if (db.dutyModule.overrides) { delete db.dutyModule.overrides; dirtySets.duty_module = true; needsSave = true; }
 
       if (needsSave) await saveSystemDataToCloud();
     }
@@ -1506,8 +1426,6 @@
       try {
         await flushPendingDeletes();
         loadDirtySetsFromLocal();
-
-        // ✅ استخدام pagination لكل الجداول
         const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
           fetchAllPaginated('classes', 'name'),
           fetchAllPaginated('students', 'class_name, student_name'),
@@ -1516,20 +1434,17 @@
           fetchAllPaginated('behaviors', '*'),
           fetchAllPaginated('school_settings', '*')
         ]);
-
         const isCompletelyEmpty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
-
         if (isCompletelyEmpty) {
-          const saved = localStorage.getItem('abuDujana_db_v22');
+          const saved = localStorage.getItem('abuDujana_db_v23');
           if (saved) {
             try {
               const parsed = JSON.parse(saved);
-              db = { ...db, ...parsed, version: 18 };
+              db = { ...db, ...parsed, version: 19 };
               if (!db.customUsers) db.customUsers = [];
               if (!db.behaviors) db.behaviors = {};
               db.dutyModule = normalizeDutyModule(db.dutyModule);
               Object.keys(db.students || {}).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
-              // ✅ أضف الصفوف الافتراضية للرفع
               db.classes.forEach(c => dirtySets.classes.add(c));
               db.classes.forEach(c => dirtySets.students.add(c));
               updateSyncStatus(false, "جارِ الرفع...");
@@ -1541,66 +1456,66 @@
           updateSyncStatus(false, "بيانات جديدة");
           return true;
         }
-
-        // ✅ فحص التهيئة الجزئية: لو الصفوف فارغة لكن يوجد معلمون => استعد الافتراضية
         if (classesData.length === 0) {
-          console.warn('Partial init: no classes in cloud but other data exists. Restoring defaults.');
           db.classes = [...DEFAULT_CLASSES];
           db.classes.forEach(c => dirtySets.classes.add(c));
           db.classes.forEach(c => dirtySets.students.add(c));
         } else {
           db.classes = classesData.map(r => r.name);
         }
-
         db.students = {};
         studentsData.forEach(r => { if (!db.students[r.class_name]) db.students[r.class_name] = []; db.students[r.class_name].push(r.student_name); });
         db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
         Object.keys(db.students).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
 
-        db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => ({
-          name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, pin: t.pin || null,
-          mustChangePin: t.must_change_pin === true
-        }));
+        db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
+          const perms = t.permissions || {};
+          return {
+            name: t.name,
+            pin_hash: t.pin_hash || null,
+            pin_salt: t.pin_salt || null,
+            mustChangePin: t.must_change_pin === true,
+            permissions: {
+              category: perms.category || '',
+              attendance: perms.attendance !== false,
+              behavior: perms.behavior !== false,
+              reports: !!perms.reports,
+              absence_lists: !!perms.absence_lists,
+              printing: !!perms.printing,
+              admin: !!perms.admin
+            }
+          };
+        });
         db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({
-          name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, pin: t.pin || null,
+          name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null,
           permissions: t.permissions || {}
         }));
-
         const adminRow = (settingsData || []).find(r => r.key === 'admin_pin');
         if (adminRow?.value) {
           if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt };
           else if (adminRow.value.pin) db.adminPin = adminRow.value.pin;
         }
-
         const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
         if (dutyRow?.value && typeof dutyRow.value === 'object') db.dutyModule = normalizeDutyModule(dutyRow.value);
-
-        // ✅ duty_reports paginated
         try {
           const drData = await fetchAllPaginated('duty_reports', '*');
           db.dutyModule.records = drData.map(r => ({
             id: r.id, date: r.date_str, day: r.day_num, period: r.period,
-            className: r.class_name, subject: r.subject, teacherName: r.teacher_name,
+            className: r.class_name, subject: r.subject || '', teacherName: r.teacher_name || '',
             reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at
           }));
         } catch (e) {}
-
         db.attendance = {};
         attendanceData.forEach(r => { db.attendance[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
         db.behaviors = {};
         behaviorsData.forEach(r => { db.behaviors[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
-
-        // ✅ إذا استعدنا الصفوف الافتراضية جزئياً، ارفعها
-        if (dirtySets.classes.size > 0 || dirtySets.students.size > 0) {
-          await saveSystemDataToCloud();
-        }
-
+        if (dirtySets.classes.size > 0 || dirtySets.students.size > 0) await saveSystemDataToCloud();
         saveToLocalStorageSafe();
         updateSyncStatus(true, "متزامن");
         return true;
       } catch (e) {
         console.error('Cloud load failed:', e);
-        const saved = localStorage.getItem('abuDujana_db_v22');
+        const saved = localStorage.getItem('abuDujana_db_v23');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
@@ -1624,26 +1539,28 @@
       updateSyncStatus(true, "جارِ الحفظ...");
       try {
         saveToLocalStorageSafe();
-
-        // ✅ كل عملية حفظ ترمي الخطأ، فالمسح لا يحدث إلا على النجاح
         if (dirtySets.classes.size > 0) {
           const rows = [...dirtySets.classes].map(n => ({ name: n }));
           await robustUpsert('classes', rows, 'name', 200);
           dirtySets.classes.clear();
         }
-
         if (dirtySets.teachers.size > 0) {
           const rows = [];
           for (const name of dirtySets.teachers) {
             const t = db.teachers.find(x => x.name === name);
-            if (t) rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: {}, must_change_pin: !!t.mustChangePin });
+            if (t) {
+              const perms = { ...(t.permissions || {}) };
+              rows.push({
+                name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt,
+                role: 'teacher', permissions: perms, must_change_pin: !!t.mustChangePin
+              });
+            }
             const u = (db.customUsers || []).find(x => x.name === name);
             if (u) rows.push({ name: u.name, pin_hash: u.pin_hash, pin_salt: u.pin_salt, role: 'custom', permissions: u.permissions || {}, must_change_pin: false });
           }
           if (rows.length > 0) await robustUpsert('teachers', rows, 'name', 100);
           dirtySets.teachers.clear();
         }
-
         if (dirtySets.students.size > 0) {
           const rows = [];
           for (const c of dirtySets.students) {
@@ -1652,7 +1569,6 @@
           if (rows.length > 0) await robustUpsert('students', rows, 'class_name,student_name', 500);
           dirtySets.students.clear();
         }
-
         if (dirtySets.attendance.size > 0) {
           const rows = [];
           for (const key of dirtySets.attendance) {
@@ -1662,7 +1578,6 @@
           if (rows.length > 0) await robustUpsert('attendance', rows, 'record_key', 100);
           dirtySets.attendance.clear();
         }
-
         if (dirtySets.behaviors.size > 0) {
           const rows = [];
           for (const key of dirtySets.behaviors) {
@@ -1672,7 +1587,6 @@
           if (rows.length > 0) await robustUpsert('behaviors', rows, 'record_key', 100);
           dirtySets.behaviors.clear();
         }
-
         if (dirtySets.admin_pin) {
           if (db.adminPin && db.adminPin.hash) {
             const { error } = await sb.from('school_settings').upsert({ key: 'admin_pin', value: { hash: db.adminPin.hash, salt: db.adminPin.salt } }, { onConflict: 'key' });
@@ -1680,7 +1594,6 @@
           }
           dirtySets.admin_pin = false;
         }
-
         if (dirtySets.duty_reports.size > 0) {
           const rows = [];
           for (const id of dirtySets.duty_reports) {
@@ -1690,14 +1603,12 @@
           if (rows.length > 0) await robustUpsert('duty_reports', rows, 'id', 100);
           dirtySets.duty_reports.clear();
         }
-
         if (dirtySets.duty_module) {
           const { records: _drop, ...dutySmall } = db.dutyModule;
           const { error: dutySaveError } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' });
           if (dutySaveError) throw new Error('duty_module: ' + dutySaveError.message);
           dirtySets.duty_module = false;
         }
-
         await flushPendingDeletes();
         saveToLocalStorageSafe();
         updateSyncStatus(true, "متزامن");
@@ -1736,7 +1647,6 @@
         }
       });
     }
-
     function updateSyncStatus(isSynced, text) {
       const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
       if (!ind || !txt) return;
@@ -1746,9 +1656,13 @@
     }
 
     async function initDefaults() {
-      db = { version: 18, adminPin: await createPinRecord('1234'), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { teacherMeta: {}, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), timetable: [], overrides: [], records: [] } };
+      db = {
+        version: 19, adminPin: await createPinRecord('1234'),
+        customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [],
+        students: {}, attendance: {}, behaviors: {},
+        dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] }
+      };
       db.classes.forEach(c => { db.students[c] = []; });
-      // ✅ أضف الصفوف الافتراضية للرفع
       db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
       saveToLocalStorageSafe();
       await saveSystemDataToCloud();
@@ -1759,16 +1673,12 @@
        ============================================================ */
     async function checkExistingSession() {
       try {
-        // التحقق من التوقيع + وجود المستخدم
         const token = await verifyStoredSession();
         if (!token) {
-          // مسح أي بقايا جلسة قديمة
           try { localStorage.removeItem('abuDujana_activeUser'); } catch (e) {}
           try { localStorage.removeItem('abuDujana_session'); } catch (e) {}
           return;
         }
-
-        // ✅ التحقق من وجود المستخدم فعلياً في db
         let user = null;
         if (token.role === 'admin') {
           user = { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
@@ -1777,32 +1687,22 @@
           if (u) user = { type: 'custom', name: u.name, permissions: u.permissions || {} };
         } else if (token.role === 'teacher') {
           const t = (db.teachers || []).find(x => x.name === token.userName);
-          if (t) user = { type: 'teacher', name: t.name, permissions: {} };
+          if (t) user = { type: 'teacher', name: t.name, permissions: t.permissions || {} };
         }
-
-        if (!user) {
-          clearSession();
-          return;
-        }
-
+        if (!user) { clearSession(); return; }
         activeUser = user;
-        await finalizeLoginState(false); // لا تُعِد توليد الجلسة
-      } catch (e) {
-        clearSession();
-      }
+        await finalizeLoginState(false);
+      } catch (e) { clearSession(); }
     }
 
     async function handleUserLogin(e) {
       e.preventDefault();
-
-      // ✅ Rate limiting
       const now = Date.now();
       if (now < loginLockedUntil) {
         const wait = Math.ceil((loginLockedUntil - now) / 1000);
         showToast(`محاولات كثيرة. انتظر ${wait} ثانية.`, 'error');
         return;
       }
-
       const pin = document.getElementById('userPinInput').value.trim();
       if (!pin) return;
       const btn = document.getElementById('loginSubmitBtn');
@@ -1815,23 +1715,18 @@
         if (found) {
           activeUser = found.user;
           loginAttempts = 0;
-          // اشتق سر الجلسة من PIN
           const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
           await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
-
-          // ترقية الهاش القديم (SHA-256) إلى PBKDF2
           if (await isLegacyHash(pin, found.record)) {
             try {
               const rec = await createPinRecord(pin);
-              found.record.hash = rec.hash;
-              found.record.salt = rec.salt;
+              found.record.hash = rec.hash; found.record.salt = rec.salt;
               if (found.user.type === 'admin') dirtySets.admin_pin = true;
               else dirtySets.teachers.add(found.user.name);
               await saveSystemDataToCloud();
             } catch (upgradeErr) { console.warn('hash upgrade failed:', upgradeErr); }
           }
-
-          await finalizeLoginState(false); // الجلسة أُنشئت يدوياً
+          await finalizeLoginState(false);
           showToast(`أهلاً بك: ${activeUser.name}`, 'success');
           document.getElementById('userPinInput').value = '';
         } else {
@@ -1853,10 +1748,7 @@
 
     async function findUserByPinWithRecord(pin) {
       if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) {
-        return {
-          user: { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } },
-          record: db.adminPin
-        };
+        return { user: { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } }, record: db.adminPin };
       }
       for (const u of (db.customUsers || [])) {
         if (await verifyPinAgainstRecord(pin, { hash: u.pin_hash, salt: u.pin_salt })) {
@@ -1865,7 +1757,7 @@
       }
       for (const t of (db.teachers || [])) {
         if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) {
-          return { user: { type: 'teacher', name: t.name, permissions: {} }, record: t };
+          return { user: { type: 'teacher', name: t.name, permissions: t.permissions || {} }, record: t };
         }
       }
       return null;
@@ -1877,13 +1769,33 @@
       document.getElementById('activeUserName').textContent = activeUser.name;
       document.getElementById('activeUserRoleBadge').textContent = activeUser.type === 'admin' ? 'مدير النظام' : (activeUser.type === 'custom' ? 'مستخدم مخصص' : 'معلم');
       document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
-      document.getElementById('openControlPanelFromDashboardBtn').classList.toggle('hidden', !(activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPermission(activeUser))));
+      const hasAdminAccess = activeUser.type === 'admin' || (activeUser.type === 'custom' && hasAnyPermission(activeUser)) || (activeUser.type === 'teacher' && activeUser.permissions?.admin);
+      document.getElementById('openControlPanelFromDashboardBtn').classList.toggle('hidden', !hasAdminAccess);
+      // Dashboard cards visibility
+      const attCard = document.getElementById('attendanceDashboardCard');
+      const behCard = document.getElementById('behaviorDashboardCard');
+      if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
+      if (behCard) behCard.classList.toggle('hidden', !canAccessBehavior());
       refreshDutyDashboardCard();
       renderDutyTodayRecords();
       await checkAndEnforcePinChange();
       await checkAndEnforceAdminPinChange();
     }
-    function hasAnyPermission(user) { return user?.permissions ? Object.values(user.permissions).some(Boolean) : false; }
+    function hasAnyPermission(user) { return user?.permissions ? ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k]) : false; }
+    function canAccessAttendance() {
+      if (!activeUser) return false;
+      if (activeUser.type === 'admin') return true;
+      if (activeUser.type === 'custom') return !!activeUser.permissions?.attendance;
+      if (activeUser.type === 'teacher') return activeUser.permissions?.attendance !== false;
+      return false;
+    }
+    function canAccessBehavior() {
+      if (!activeUser) return false;
+      if (activeUser.type === 'admin') return true;
+      if (activeUser.type === 'custom') return !!activeUser.permissions?.behavior;
+      if (activeUser.type === 'teacher') return activeUser.permissions?.behavior !== false;
+      return false;
+    }
 
     async function checkAndEnforcePinChange() {
       if (!activeUser || activeUser.type !== 'teacher') return false;
@@ -1894,17 +1806,13 @@
         document.getElementById('forceNewPin').value = '';
         document.getElementById('forceConfirmPin').value = '';
         document.getElementById('forcePinError').classList.add('hidden');
-        modal.style.display = 'flex';
-        modal.classList.remove('hidden');
+        modal.style.display = 'flex'; modal.classList.remove('hidden');
         setTimeout(() => document.getElementById('forceNewPin')?.focus(), 100);
       }
       return true;
     }
-
-    // ✅ جديد: إجبار المدير على تغيير رمز 1234
     async function checkAndEnforceAdminPinChange() {
       if (!activeUser || activeUser.type !== 'admin') return false;
-      // هل الرمز الافتراضي 1234؟
       const isDefault = await verifyPinAgainstRecord('1234', db.adminPin);
       if (!isDefault) return false;
       const modal = document.getElementById('forceAdminPinModal');
@@ -1912,8 +1820,7 @@
         document.getElementById('forceAdminNewPin').value = '';
         document.getElementById('forceAdminConfirmPin').value = '';
         document.getElementById('forceAdminPinError').classList.add('hidden');
-        modal.style.display = 'flex';
-        modal.classList.remove('hidden');
+        modal.style.display = 'flex'; modal.classList.remove('hidden');
         setTimeout(() => document.getElementById('forceAdminNewPin')?.focus(), 100);
       }
       return true;
@@ -1931,24 +1838,18 @@
       if (!teacher) { errorEl.textContent = 'لم يتم العثور على حسابك.'; errorEl.classList.remove('hidden'); return; }
       if (await verifyPinAgainstRecord(newPin, { hash: teacher.pin_hash, salt: teacher.pin_salt })) { errorEl.textContent = 'اختر رمزاً مختلفاً عن الافتراضي.'; errorEl.classList.remove('hidden'); return; }
       if (await isPinTaken(newPin, activeUser.name)) { errorEl.textContent = 'هذا الرمز مستخدم. اختر غيره.'; errorEl.classList.remove('hidden'); return; }
-
       const rec = await createPinRecord(newPin);
       teacher.pin_hash = rec.hash; teacher.pin_salt = rec.salt; teacher.mustChangePin = false;
       dirtySets.teachers.add(teacher.name);
       const success = await saveSystemDataToCloud();
-
-      // ✅ إعادة إنشاء الجلسة بالرمز الجديد
       try {
         const sessionSecret = await deriveSessionSecret(newPin, rec.salt);
         await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       } catch (e) {}
-
       const modal = document.getElementById('forcePinChangeModal');
       modal.style.display = 'none'; modal.classList.add('hidden');
       showToast(success ? 'تم تغيير الرمز بنجاح! 🎉' : 'تم محلياً.', success ? 'success' : 'info');
     }
-
-    // ✅ جديد: تغيير رمز المدير الإجباري
     async function submitForcedAdminPinChange() {
       const newPin = document.getElementById('forceAdminNewPin').value.trim();
       const confirmPin = document.getElementById('forceAdminConfirmPin').value.trim();
@@ -1959,18 +1860,14 @@
       if (newPin !== confirmPin) { errorEl.textContent = 'الرمز غير متطابق.'; errorEl.classList.remove('hidden'); return; }
       if (newPin === '1234') { errorEl.textContent = 'اختر رمزاً مختلفاً عن الافتراضي.'; errorEl.classList.remove('hidden'); return; }
       if (await isPinTaken(newPin)) { errorEl.textContent = 'هذا الرمز مستخدم. اختر غيره.'; errorEl.classList.remove('hidden'); return; }
-
       const rec = await createPinRecord(newPin);
       db.adminPin = rec;
       dirtySets.admin_pin = true;
       const success = await saveSystemDataToCloud();
-
-      // إعادة إنشاء الجلسة
       try {
         const sessionSecret = await deriveSessionSecret(newPin, rec.salt);
         await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       } catch (e) {}
-
       const modal = document.getElementById('forceAdminPinModal');
       modal.style.display = 'none'; modal.classList.add('hidden');
       showToast(success ? '✅ تم تأمين رمز المدير!' : 'تم محلياً.', success ? 'success' : 'info');
@@ -1978,7 +1875,7 @@
 
     async function isPinTaken(pin, excludeName = null) {
       if (db.adminPin && db.adminPin.hash && await verifyPinAgainstRecord(pin, db.adminPin)) {
-        if (excludeName === 'admin') { /* مسموح */ } else return true;
+        if (excludeName === 'admin') { /* allowed */ } else return true;
       }
       for (const u of (db.customUsers || [])) {
         if (excludeName && u.name === excludeName) continue;
@@ -1990,10 +1887,12 @@
       }
       return false;
     }
-
-    async function findUserByPin(pin) {
-      const found = await findUserByPinWithRecord(pin);
-      return found?.user || null;
+    async function generateUniquePin() {
+      for (let attempts = 0; attempts < 200; attempts++) {
+        const pin = String(Math.floor(1000 + Math.random() * 9000));
+        if (!await isPinTaken(pin)) return pin;
+      }
+      throw new Error('تعذر توليد رمز فريد');
     }
 
     function logoutUser() {
@@ -2018,7 +1917,6 @@
 
     function openChangePinModal() { document.getElementById('currentPinCheck').value = ''; document.getElementById('newPinInput').value = ''; document.getElementById('changePinError').classList.add('hidden'); document.getElementById('changePinModal').classList.remove('hidden'); }
     function closeChangePinModal() { document.getElementById('changePinModal').classList.add('hidden'); }
-
     async function submitNewTeacherPin() {
       const currentPin = document.getElementById('currentPinCheck').value.trim();
       const newPin = document.getElementById('newPinInput').value.trim();
@@ -2029,18 +1927,14 @@
       if (!await verifyPinAgainstRecord(currentPin, { hash: teacher.pin_hash, salt: teacher.pin_salt })) { errorEl.textContent = 'الرمز الحالي غير صحيح!'; errorEl.classList.remove('hidden'); return; }
       if (!newPin || newPin.length < 4) { errorEl.textContent = 'الرمز الجديد 4 أرقام على الأقل!'; errorEl.classList.remove('hidden'); return; }
       if (await isPinTaken(newPin, activeUser.name)) { errorEl.textContent = 'هذا الرمز مستخدم.'; errorEl.classList.remove('hidden'); return; }
-
       const rec = await createPinRecord(newPin);
       teacher.pin_hash = rec.hash; teacher.pin_salt = rec.salt;
       dirtySets.teachers.add(teacher.name);
       const success = await saveSystemDataToCloud();
-
-      // إعادة إنشاء الجلسة بالرمز الجديد
       try {
         const sessionSecret = await deriveSessionSecret(newPin, rec.salt);
         await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       } catch (e) {}
-
       closeChangePinModal();
       showToast(success ? 'تم تغيير الرمز بنجاح!' : 'تم محلياً فقط.', success ? 'success' : 'info');
     }
@@ -2048,9 +1942,18 @@
     /* ============================================================
        Navigation
        ============================================================ */
-    function goToAttendanceSection() { document.getElementById('dashboardSelectionView').classList.add('hidden'); document.getElementById('classesView').classList.remove('hidden'); renderClassesGrid(); }
-    function goToBehaviorSection() { document.getElementById('dashboardSelectionView').classList.add('hidden'); document.getElementById('behaviorClassesView').classList.remove('hidden'); renderBehaviorClassesGrid(); }
-
+    function goToAttendanceSection() {
+      if (!canAccessAttendance()) { showToast('لا تملك صلاحية رصد الغياب.', 'error'); return; }
+      document.getElementById('dashboardSelectionView').classList.add('hidden');
+      document.getElementById('classesView').classList.remove('hidden');
+      renderClassesGrid();
+    }
+    function goToBehaviorSection() {
+      if (!canAccessBehavior()) { showToast('لا تملك صلاحية رصد السلوكيات.', 'error'); return; }
+      document.getElementById('dashboardSelectionView').classList.add('hidden');
+      document.getElementById('behaviorClassesView').classList.remove('hidden');
+      renderBehaviorClassesGrid();
+    }
     async function backToDashboardSelection() {
       if (attendanceDirty) { const ok = await showConfirm('لديك تغييرات غير محفوظة في الحضور. مغادرة؟', { danger: true }); if (!ok) return; }
       if (behaviorDirty) { const ok = await showConfirm('لديك تغييرات غير محفوظة في السلوكيات. مغادرة؟', { danger: true }); if (!ok) return; }
@@ -2062,7 +1965,7 @@
     }
 
     /* ============================================================
-       Attendance
+       Attendance (unchanged)
        ============================================================ */
     function renderClassesGrid() {
       const container = document.getElementById('classesGrid'); if (!container) return;
@@ -2079,7 +1982,6 @@
         container.appendChild(btn);
       });
     }
-
     function openClassAttendance(className) {
       pendingTargetClass = className; pendingMode = 'attendance'; pendingPeriod = 1;
       document.getElementById('selectPeriodModalTitle').innerHTML = `<i class="fa-solid fa-clock text-emerald-600"></i> اختر الحصة لصف ${escapeHtml(className)}`;
@@ -2092,8 +1994,6 @@
       renderPeriodButtons();
       document.getElementById('selectPeriodModal').classList.remove('hidden');
     }
-
-    // ✅ إصلاح: كلاسات ثابتة (Tailwind CDN لا يولّد ديناميكية)
     function renderPeriodButtons() {
       const grid = document.getElementById('periodButtonsGrid');
       const isAtt = pendingMode === 'attendance';
@@ -2111,7 +2011,6 @@
       }
     }
     function closeSelectPeriodModal() { document.getElementById('selectPeriodModal').classList.add('hidden'); pendingTargetClass = null; }
-
     async function confirmPeriodSelection(periodNum) {
       document.getElementById('selectPeriodModal').classList.add('hidden');
       if (!pendingTargetClass) return;
@@ -2141,7 +2040,6 @@
       }
       pendingTargetClass = null;
     }
-
     async function reselectAttendancePeriod() {
       if (!selectedClass) return;
       if (attendanceDirty) { const ok = await showConfirm('لديك تغييرات. تغيير؟', { danger: true }); if (!ok) return; }
@@ -2174,7 +2072,6 @@
       document.getElementById('behaviorClassesView').classList.remove('hidden');
       renderBehaviorClassesGrid();
     }
-
     function loadSessionAttendance() {
       const period = document.getElementById('sessionPeriodSelect').value;
       const today = getOmanLocalDate();
@@ -2192,7 +2089,6 @@
       document.getElementById('studentsCount').textContent = `إجمالي: ${studentsList.length}`;
       updateLiveStats();
       if (studentsList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب.</div>`; return; }
-
       const statusBtns = [
         { key: 'present', label: 'حاضر 🟩', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-md' },
         { key: 'absent', label: 'غائب ⬛', cls: 'bg-black text-white border-black shadow-md' },
@@ -2222,7 +2118,6 @@
       });
       document.getElementById('undoAttendanceBtn').disabled = true;
     }
-
     function setStudentStatus(student, status, skipUndo = false) {
       const prevStatus = currentAttendanceRecord[student] || 'present';
       if (!skipUndo && prevStatus !== status) {
@@ -2243,14 +2138,12 @@
       updateLiveStats();
       document.getElementById('unsavedStatusIndicator').textContent = "⚠️ تغييرات غير محفوظة";
     }
-
     function undoLastAttendanceChange() {
       const last = attendanceUndoStack.pop();
       if (!last) return;
       setStudentStatus(last.student, last.prevStatus, true);
       if (attendanceUndoStack.length === 0) document.getElementById('undoAttendanceBtn').disabled = true;
     }
-
     function updateLiveStats() {
       let p = 0, a = 0, l = 0, e = 0, o = 0;
       (db.students[selectedClass] || []).forEach(st => {
@@ -2259,7 +2152,6 @@
       });
       ['statPresent','statAbsent','statLate','statEscape','statOutside'].forEach((id, i) => { const el = document.getElementById(id); if (el) el.textContent = [p,a,l,e,o][i]; });
     }
-
     async function saveAttendanceSession() {
       if (!selectedClass || !activeUser) return;
       if ((db.students[selectedClass] || []).length === 0) { showToast('لا يوجد طلاب.', 'error'); return; }
@@ -2281,17 +2173,12 @@
         } else {
           document.getElementById('unsavedStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً";
         }
-      } catch (error) {
-        console.error(error);
-        showToast('حدث خطأ.', 'error');
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>حفظ الرصد</span>`;
-      }
+      } catch (error) { console.error(error); showToast('حدث خطأ.', 'error'); }
+      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>حفظ الرصد</span>`; }
     }
 
     /* ============================================================
-       Behavior
+       Behavior (unchanged)
        ============================================================ */
     function renderBehaviorClassesGrid() {
       const container = document.getElementById('behaviorClassesGrid'); if (!container) return;
@@ -2308,7 +2195,6 @@
         container.appendChild(btn);
       });
     }
-
     function loadSessionBehavior() {
       const period = document.getElementById('behaviorPeriodSelect').value;
       const today = getOmanLocalDate();
@@ -2326,7 +2212,6 @@
       container.innerHTML = '';
       document.getElementById('behaviorStudentsCount').textContent = `إجمالي: ${studentsList.length}`;
       if (studentsList.length === 0) { container.innerHTML = `<div class="text-center py-10 text-slate-400 text-xs font-bold">لا يوجد طلاب.</div>`; return; }
-
       const behaviorBtns = [
         { key: 'normal', label: 'منضبط 🟢', cls: 'bg-emerald-600 text-white border-emerald-600 shadow-md' },
         { key: 'eating', label: 'الأكل 🍔', cls: 'bg-amber-500 text-white border-amber-500 shadow-md' },
@@ -2367,7 +2252,6 @@
       });
       document.getElementById('undoBehaviorBtn').disabled = true;
     }
-
     function setStudentBehaviorType(student, type, skipUndo = false) {
       if (!currentBehaviorRecord[student]) currentBehaviorRecord[student] = { type: 'normal', note: '' };
       const prevType = currentBehaviorRecord[student].type;
@@ -2393,14 +2277,12 @@
       behaviorDirty = true;
       document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ تغييرات غير محفوظة";
     }
-
     function undoLastBehaviorChange() {
       const last = behaviorUndoStack.pop();
       if (!last) return;
       setStudentBehaviorType(last.student, last.prevType, true);
       if (behaviorUndoStack.length === 0) document.getElementById('undoBehaviorBtn').disabled = true;
     }
-
     function updateBehaviorNoteFromInput(input) {
       const student = input.dataset.student; if (!student) return;
       if (!currentBehaviorRecord[student]) currentBehaviorRecord[student] = { type: 'other', note: '' };
@@ -2408,7 +2290,6 @@
       behaviorDirty = true;
       document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ تغييرات غير محفوظة";
     }
-
     async function saveBehaviorSession() {
       if (!selectedBehaviorClass || !activeUser) return;
       if ((db.students[selectedBehaviorClass] || []).length === 0) { showToast('لا يوجد طلاب.', 'error'); return; }
@@ -2432,13 +2313,8 @@
         } else {
           document.getElementById('unsavedBehaviorStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً";
         }
-      } catch (error) {
-        console.error(error);
-        showToast('حدث خطأ.', 'error');
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>حفظ الرصد</span>`;
-      }
+      } catch (error) { console.error(error); showToast('حدث خطأ.', 'error'); }
+      finally { saveBtn.disabled = false; saveBtn.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>حفظ الرصد</span>`; }
     }
 
     /* ============================================================
@@ -2456,7 +2332,7 @@
     }
 
     /* ============================================================
-       Stats & Reports
+       Stats
        ============================================================ */
     function onStatsFilterChanged() {
       updateCustomRangeVisibility();
@@ -2485,42 +2361,23 @@
         renderBehaviorStatsDashboard();
       }
     }
-
-    // ✅ إصلاح: الأسبوع والفصل + التوقيت الموحّد
     function getDateRange() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const todayStr = getOmanLocalDate();
       const todayDate = getTrustedDate();
       let start, end;
       if (periodType === 'today') { start = end = todayStr; }
-      else if (periodType === 'yesterday') {
-        const y = new Date(todayDate); y.setDate(y.getDate() - 1);
-        start = end = formatDateOman(y);
-      }
-      else if (periodType === 'week') {
-        const w = new Date(todayDate); w.setDate(w.getDate() - 6); // 7 أيام شاملة اليوم
-        start = formatDateOman(w); end = todayStr;
-      }
-      else if (periodType === 'month') {
-        const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
-        start = formatDateOman(first); end = todayStr;
-      }
+      else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); start = end = formatDateOman(y); }
+      else if (periodType === 'week') { const w = new Date(todayDate); w.setDate(w.getDate() - 6); start = formatDateOman(w); end = todayStr; }
+      else if (periodType === 'month') { const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1); start = formatDateOman(first); end = todayStr; }
       else if (periodType === 'semester') {
-        // ✅ الفصل الدراسي: سبتمبر–يناير أو فبراير–يونيو
-        const m = todayDate.getMonth(); // 0=يناير
-        const y = todayDate.getFullYear();
-        if (m >= 8 || m === 0) { // سبتمبر–يناير
-          start = formatDateOman(new Date(m >= 8 ? y : y - 1, 8, 1));
-          end   = formatDateOman(new Date(m >= 8 ? y + 1 : y, 0, 31));
-        } else { // فبراير–يونيو
-          start = formatDateOman(new Date(y, 1, 1));
-          end   = formatDateOman(new Date(y, 5, 30));
-        }
+        const m = todayDate.getMonth(); const y = todayDate.getFullYear();
+        if (m >= 8 || m === 0) { start = formatDateOman(new Date(m >= 8 ? y : y - 1, 8, 1)); end = formatDateOman(new Date(m >= 8 ? y + 1 : y, 0, 31)); }
+        else { start = formatDateOman(new Date(y, 1, 1)); end = formatDateOman(new Date(y, 5, 30)); }
       }
       else if (periodType === 'custom') { start = document.getElementById('statsStartDate').value; end = document.getElementById('statsEndDate').value; }
       return { start, end, periodType };
     }
-
     function getFilteredAttendanceRecords() {
       const { start, end } = getDateRange();
       const out = [];
@@ -2596,7 +2453,6 @@
         });
         attContainer.innerHTML = html + `</tbody></table>`;
       }
-
       const sortOrder = document.getElementById('classSortOrder').value;
       const classEntries = Object.entries(classStats).filter(([c]) => db.classes.includes(c));
       if (sortOrder === 'violationsDesc') classEntries.sort((a, b) => b[1].total - a[1].total); else classEntries.sort((a, b) => a[0].localeCompare(b[0]));
@@ -2608,7 +2464,6 @@
       classTableContainer.innerHTML = classHtml + `</tbody></table>`;
       renderSessionRegistrationStats();
       renderTeacherActivityStats(sessions);
-      renderTeacherScheduleCompliance();
     }
 
     function renderBehaviorStatsDashboard() {
@@ -2643,7 +2498,7 @@
     }
 
     /* ============================================================
-       Student profile modals
+       Student profiles
        ============================================================ */
     function openStudentProfileFromBtn(btn) { openStudentProfileModal(btn.dataset.class, btn.dataset.name); }
     function openClassDetailFromBtn(btn) { openClassDetailModal(btn.dataset.class); }
@@ -2652,7 +2507,6 @@
 
     function openStudentProfileModal(className, studentName) {
       let realClassName = className;
-      // ✅ Object.entries(db.students || {}) بدل []
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
         for (const [cName, sList] of Object.entries(db.students || {})) if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
       }
@@ -2717,7 +2571,6 @@
       document.getElementById('modalStudentBody').innerHTML = bodyHTML;
       document.getElementById('studentDetailModal').classList.remove('hidden');
     }
-
     function closeStudentDetailModal() { document.getElementById('studentDetailModal').classList.add('hidden'); }
     function closeGeneralModal() { document.getElementById('generalModal').classList.add('hidden'); }
 
@@ -2767,7 +2620,7 @@
     }
 
     /* ============================================================
-       Session registration & teacher activity
+       Session registration & teacher activity stats
        ============================================================ */
     function renderSessionRegistrationStats() {
       const container = document.getElementById('sessionRegistrationStatsContainer');
@@ -2781,7 +2634,6 @@
       const missingTeachers = db.teachers.map(t => t.name).filter(t => !recordedTeachers.has(t));
       container.innerHTML = `<div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border space-y-2"><span class="text-xs text-slate-400 font-bold block">إجمالي حصص اليوم</span><div class="text-2xl font-extrabold">${recordedTodayCount} <span class="text-xs font-normal text-slate-500">من ${totalExpected}</span></div><div class="w-full bg-slate-200 dark:bg-slate-700 h-2.5 rounded-full overflow-hidden"><div class="bg-emerald-600 h-full" style="width:${totalExpected ? (recordedTodayCount / totalExpected) * 100 : 0}%"></div></div></div><div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border space-y-2"><span class="text-xs text-slate-400 font-bold block">الحالة</span><div class="flex gap-4 text-xs font-bold"><span class="text-emerald-600">✔ ${recordedTodayCount}</span><span class="text-red-600">✖ ${unrecordedToday}</span></div></div><div class="bg-slate-50/80 dark:bg-slate-900/50 p-4 rounded-2xl border space-y-2"><span class="text-xs text-slate-400 font-bold block">المعلمون</span><div class="text-xs font-bold space-y-1"><div>أكملوا: <span class="text-emerald-600">${escapeHtml(Array.from(recordedTeachers).join(', ') || 'لا أحد')}</span></div><div>لم يكملوا: <span class="text-red-600">${escapeHtml(missingTeachers.join(', ') || 'الجميع')}</span></div></div></div>`;
     }
-
     function renderTeacherActivityStats(sessions) {
       const container = document.getElementById('teacherActivityStatsContainer');
       const teacherStatsMap = {};
@@ -2799,59 +2651,6 @@
       container.innerHTML = html + `</tbody></table>`;
     }
 
-    function renderTeacherScheduleCompliance() {
-      const container = document.getElementById('teacherComplianceContainer');
-      if (!container) return;
-      const timetable = dutyData().timetable || [];
-      if (timetable.length === 0) { container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لم يتم تحميل الجدول.</div>`; return; }
-      const { start, end, periodType } = getDateRange();
-      const todayStr = getOmanLocalDate();
-      const todayDate = getTrustedDate();
-      const dates = [];
-      if (periodType === 'today') dates.push(todayStr);
-      else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); dates.push(formatDateOman(y)); }
-      else if (periodType === 'week') { for (let i = 0; i < 7; i++) { const d = new Date(todayDate); d.setDate(d.getDate() - i); dates.push(formatDateOman(d)); } }
-      else if (periodType === 'month') { const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1); for (let d = new Date(first); d <= todayDate; d.setDate(d.getDate() + 1)) dates.push(formatDateOman(new Date(d))); }
-      else if (periodType === 'custom' && start && end) { for (let d = new Date(start); d <= new Date(end); d.setDate(d.getDate() + 1)) dates.push(formatDateOman(new Date(d))); }
-      else { Object.keys(db.attendance).forEach(k => { const p = parseAttendanceKey(k); if (p.date && !dates.includes(p.date)) dates.push(p.date); }); }
-      if (dates.length === 0) { container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد تواريخ.</div>`; return; }
-      const todayNow = omanNowParts().minutes;
-      const stats = {};
-      db.teachers.forEach(t => { stats[t.name] = { name: t.name, subject: dutyData().teacherMeta[t.name]?.subject || '—', scheduled: 0, recorded: 0, missed: 0 }; });
-      dates.forEach(date => {
-        const day = dutyDayForDate(date);
-        for (let p = 1; p <= 8; p++) {
-          const pConfig = dutyData().periods[p - 1];
-          const endMin = toMinutes(pConfig?.end);
-          if (endMin === null) continue;
-          if (date === todayStr && todayNow < endMin) continue;
-          db.classes.forEach(cls => {
-            const cell = timetable.find(x => x.day === day && Number(x.period) === p && x.className === cls);
-            if (!cell) return;
-            const effective = effectiveDutyTeacher(date, p, cls, cell.teacher);
-            if (!stats[effective]) return;
-            stats[effective].scheduled++;
-            const key = `${date}_${cls}_p${p}`;
-            if (db.attendance[key]) stats[effective].recorded++; else stats[effective].missed++;
-          });
-        }
-      });
-      const list = Object.values(stats).filter(s => s.scheduled > 0);
-      const order = document.getElementById('complianceSortOrder')?.value || 'missedDesc';
-      if (order === 'missedDesc') list.sort((a, b) => b.missed - a.missed);
-      else if (order === 'ratioAsc') list.sort((a, b) => (a.recorded / a.scheduled) - (b.recorded / b.scheduled));
-      else list.sort((a, b) => a.name.localeCompare(b.name, 'ar'));
-      if (list.length === 0) { container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد بيانات.</div>`; return; }
-      let html = `<table class="w-full text-xs text-right border-collapse"><thead><tr class="bg-orange-50 dark:bg-orange-950/40 border-b"><th class="p-3">المعلم</th><th class="p-3 text-center">التخصص</th><th class="p-3 text-center">مجدول</th><th class="p-3 text-center">مسجّل</th><th class="p-3 text-center">متخلف</th><th class="p-3 text-center">الالتزام</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-700/50">`;
-      list.forEach(s => {
-        const ratio = s.scheduled > 0 ? Math.round((s.recorded / s.scheduled) * 100) : 0;
-        const ratioColor = ratio >= 90 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300' : ratio >= 70 ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300' : 'bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300';
-        const missedBadge = s.missed > 0 ? `<span class="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2.5 py-1 rounded-full font-extrabold">${s.missed}</span>` : `<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2.5 py-1 rounded-full font-bold">0</span>`;
-        html += `<tr><td class="p-3 font-bold">${escapeHtml(s.name)}</td><td class="p-3 text-center text-slate-600 dark:text-slate-400">${escapeHtml(s.subject)}</td><td class="p-3 text-center font-semibold">${s.scheduled}</td><td class="p-3 text-center font-semibold text-emerald-700 dark:text-emerald-400">${s.recorded}</td><td class="p-3 text-center">${missedBadge}</td><td class="p-3 text-center"><span class="px-2.5 py-1 rounded-full font-extrabold ${ratioColor}">${ratio}%</span></td></tr>`;
-      });
-      container.innerHTML = html + `</tbody></table>`;
-    }
-
     /* ============================================================
        Reports
        ============================================================ */
@@ -2859,7 +2658,6 @@
       const STATUS_ORDER = { absent: 0, escape: 1, late: 2, outside: 3 };
       return [...issues].sort((a, b) => { const s = (STATUS_ORDER[a[1]] ?? 4) - (STATUS_ORDER[b[1]] ?? 4); return s !== 0 ? s : String(a[0]).localeCompare(String(b[0]), 'ar'); });
     }
-
     function renderReportsSection() {
       const classFilter = document.getElementById('reportClassFilter').value;
       const targetDate = document.getElementById('reportDatePicker').value;
@@ -2891,7 +2689,6 @@
         }
       });
     }
-
     function printHorizontalReport() {
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
@@ -2918,7 +2715,6 @@
       win.document.write(printHTML); win.document.close(); win.focus();
       setTimeout(() => win.print(), 500);
     }
-
     function exportAttendanceExcel() {
       const targetDate = document.getElementById('reportDatePicker').value;
       let csv = "\uFEFFالصف,الحصة,المعلم,الطالب,الحالة\n";
@@ -2927,13 +2723,10 @@
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `تفريغ_الغياب_${targetDate}.csv`; a.click();
       showToast('تم تنزيل الملف.', 'info');
     }
-
     function populateReportClassSelect() { const sel = document.getElementById('reportClassFilter'); if (!sel) return; const cur = sel.value; sel.innerHTML = '<option value="all">جميع الصفوف</option>'; db.classes.forEach(c => sel.innerHTML += `<option value="${escapeHtml(c)}">صف ${escapeHtml(c)}</option>`); sel.value = db.classes.includes(cur) ? cur : 'all'; }
     function resetReportFilters() { document.getElementById('reportClassFilter').value = 'all'; document.getElementById('reportDatePicker').value = getOmanLocalDate(); renderReportsSection(); }
-
     function populateBehaviorReportClassSelect() { const sel = document.getElementById('behaviorReportClassFilter'); if (!sel) return; const cur = sel.value; sel.innerHTML = '<option value="all">جميع الصفوف</option>'; db.classes.forEach(c => sel.innerHTML += `<option value="${escapeHtml(c)}">صف ${escapeHtml(c)}</option>`); sel.value = db.classes.includes(cur) ? cur : 'all'; }
     function resetBehaviorReportFilters() { document.getElementById('behaviorReportClassFilter').value = 'all'; document.getElementById('behaviorReportDatePicker').value = getOmanLocalDate(); renderBehaviorReportsSection(); }
-
     function renderBehaviorReportsSection() {
       const classFilter = document.getElementById('behaviorReportClassFilter').value;
       const targetDate = document.getElementById('behaviorReportDatePicker').value;
@@ -2962,7 +2755,6 @@
         }
       });
     }
-
     function printHorizontalBehaviorReport() {
       const targetDate = document.getElementById('behaviorReportDatePicker').value;
       const classFilter = document.getElementById('behaviorReportClassFilter').value;
@@ -3020,7 +2812,7 @@
       try {
         if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) {
           document.getElementById('adminAuthError').classList.add('hidden');
-          grantTemporaryAdminAuth(); // ✅ مصادقة إدارية مؤقتة 30 دقيقة
+          grantTemporaryAdminAuth();
           openControlPanelDirectly();
         } else {
           document.getElementById('adminAuthError').classList.remove('hidden');
@@ -3030,35 +2822,33 @@
 
     function setupRolePermissions() {
       const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
-      const tabsConfig = ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'];
-
       if (activeUser?.type === 'admin') {
         text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
         badge.textContent = "مدير النظام"; badge.className = "bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
-        tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
+        ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
         switchAdminTab('studstats');
-      } else if (activeUser?.type === 'custom' || isAdminAuthorized()) {
-        // مستخدم مخصص أو مصادقة إدارية مؤقتة
-        const hasTempAdmin = isAdminAuthorized() && activeUser?.type !== 'custom';
-        if (hasTempAdmin) {
-          text.textContent = "صلاحية إدارية مؤقتة (30 دقيقة)";
-          badge.textContent = "إداري مؤقت"; badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
-          tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
+      } else if (activeUser?.type === 'custom' || (activeUser?.type === 'teacher' && activeUser?.permissions?.admin) || isAdminAuthorized()) {
+        const hasTempAdmin = isAdminAuthorized() && activeUser?.type !== 'custom' && activeUser?.type !== 'admin';
+        const isTeacherAdmin = activeUser?.type === 'teacher' && activeUser?.permissions?.admin;
+        if (hasTempAdmin || isTeacherAdmin) {
+          text.textContent = hasTempAdmin ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة (منحها المدير)";
+          badge.textContent = hasTempAdmin ? "إداري مؤقت" : "إدارة";
+          badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
+          ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
           switchAdminTab('studstats');
         } else {
           text.textContent = `صلاحية الدخول: ${activeUser.name}`;
           badge.textContent = "مستخدم مخصص"; badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
           const perms = activeUser.permissions || {};
           let firstAllowedTab = null;
-          tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); const isAllowed = !!perms[id]; if (el) el.style.display = isAllowed ? 'flex' : 'none'; if (isAllowed && !firstAllowedTab) firstAllowedTab = id; });
+          ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); const isAllowed = !!perms[id]; if (el) el.style.display = isAllowed ? 'flex' : 'none'; if (isAllowed && !firstAllowedTab) firstAllowedTab = id; });
           if (firstAllowedTab) switchAdminTab(firstAllowedTab);
         }
       }
       initAdminDashboard();
     }
-
     function initAdminDashboard() {
-      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
       const has = (k) => isAdmin || !!(activeUser?.permissions?.[k]);
       try {
         if (has('studstats')) renderStudentStatsDashboard();
@@ -3069,12 +2859,11 @@
         if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
       } catch (e) { console.error('initAdminDashboard error:', e); }
     }
-
     function switchAdminTab(tab) {
-      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
       const has = (k) => isAdmin || !!(activeUser?.permissions?.[k]);
       if (!has(tab)) return;
-      ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'].forEach(t => {
+      ADMIN_TAB_PERMISSIONS.forEach(t => {
         document.getElementById(`sec-${t}`)?.classList.add('hidden');
         const tabBtn = document.getElementById(`tab-${t}`);
         if (tabBtn) tabBtn.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
@@ -3115,24 +2904,14 @@
       });
     }
     function removeStudentFromBtn(btn) { removeStudent(btn.dataset.class, parseInt(btn.dataset.idx)); }
-
-    // ✅ إصلاح: حذف جماعي متزامن + إزالة التكرار
     async function saveBulkStudents() {
       const sel = document.getElementById('adminClassSelect').value;
       if (!sel) return;
       const oldList = db.students[sel] || [];
-      const newList = arabicSort(
-        [...new Set(  // ✅ إزالة التكرار
-          document.getElementById('bulkStudentsInput').value
-            .split('\n').map(s => s.trim()).filter(Boolean)
-        )]
-      );
+      const newList = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean))]);
       const removed = oldList.filter(s => !newList.includes(s));
-
       db.students[sel] = newList;
       dirtySets.students.add(sel);
-
-      // حذف سجلات الطلاب المُزالين من attendance/behaviors محلياً
       if (removed.length > 0) {
         Object.entries(db.attendance).forEach(([k, sess]) => {
           if (parseAttendanceKey(k).className === sel && sess.records) {
@@ -3149,21 +2928,12 @@
           }
         });
       }
-
       const success = await saveSystemDataToCloud();
-
-      // ✅ حذف الطلاب المُزالين من السحابة
-      for (const student of removed) {
-        await queueCloudDelete('students', { class_name: sel, student_name: student });
-      }
-
+      for (const student of removed) await queueCloudDelete('students', { class_name: sel, student_name: student });
       loadAdminStudentsList();
-      const msg = removed.length > 0
-        ? `تم الحفظ. حُذف ${removed.length} طالب.`
-        : 'تم الحفظ.';
+      const msg = removed.length > 0 ? `تم الحفظ. حُذف ${removed.length} طالب.` : 'تم الحفظ.';
       showToast(success ? msg : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
-
     function handleStudentFileImport(e) {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
@@ -3184,7 +2954,6 @@
       };
       reader.readAsText(file, 'UTF-8');
     }
-
     async function removeStudent(className, idx) {
       const list = db.students[className]; if (!list || !list[idx]) return;
       const studentName = list[idx];
@@ -3199,7 +2968,6 @@
       loadAdminStudentsList();
       showToast('تم الحذف.', 'info');
     }
-
     async function addNewClassPrompt() {
       const name = await showPrompt('اسم الصف الجديد:', { title: 'إضافة صف', okText: 'إضافة' });
       if (!name || !name.trim()) return;
@@ -3212,7 +2980,6 @@
       populateAdminClassSelect(); populateReportClassSelect(); populateBehaviorReportClassSelect(); renderClassesGrid();
       showToast(`تم إضافة الصف ${trimmed}.`, 'success');
     }
-
     async function deleteCurrentClass() {
       const sel = document.getElementById('adminClassSelect').value;
       if (!sel) return;
@@ -3235,132 +3002,133 @@
     }
 
     /* ============================================================
-       Teachers admin
+       Teachers admin — NEW: Category-based + Auto-PIN + Permissions
        ============================================================ */
-    // ✅ إصلاح: استخدام data-subject + addEventListener بدل onclick
     function renderSubjectDutyDays() {
       const container = document.getElementById('subjectDutyDaysContainer'); if (!container) return;
-      const subjects = [...new Set(Object.values(db.dutyModule.teacherMeta || {}).map(m => m.subject).filter(Boolean))];
-      if (subjects.length === 0) { container.innerHTML = '<div class="text-slate-400 text-xs font-bold p-2">لا توجد مواد مسجلة. قم باستيراد الجدول أولاً.</div>'; return; }
-
-      container.innerHTML = subjects.sort((a,b)=>a.localeCompare(b,'ar')).map(subj => {
-        const days = new Set();
-        for (const t of Object.values(db.dutyModule.teacherMeta)) {
-           if (t.subject === subj && t.day) days.add(t.day);
-        }
-        let currentDay = '';
-        if (days.size === 1) currentDay = [...days][0];
-        else if (days.size > 1) currentDay = 'mixed';
-
+      const subjectDays = dutyData().subjectDays || {};
+      container.innerHTML = ALL_CATEGORIES.map(cat => {
+        const currentDay = subjectDays[cat] || '';
         return `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
-          <div class="font-bold text-xs mb-2 text-emerald-700 dark:text-emerald-300">مادة: ${escapeHtml(subj)}</div>
-          <select data-subject="${escapeHtml(subj)}" class="subject-duty-select w-full p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 outline-none">
+          <div class="font-bold text-xs mb-2 text-emerald-700 dark:text-emerald-300">${escapeHtml(cat)}</div>
+          <select data-category="${escapeHtml(cat)}" class="subject-duty-select w-full p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 outline-none">
             <option value="">بدون مناوبة</option>
-            ${currentDay === 'mixed' ? `<option value="mixed" disabled selected>أيام مختلفة</option>` : ''}
-            <option value="الأحد" ${currentDay === 'الأحد' ? 'selected' : ''}>الأحد</option>
-            <option value="الاثنين" ${currentDay === 'الاثنين' ? 'selected' : ''}>الاثنين</option>
-            <option value="الثلاثاء" ${currentDay === 'الثلاثاء' ? 'selected' : ''}>الثلاثاء</option>
-            <option value="الأربعاء" ${currentDay === 'الأربعاء' ? 'selected' : ''}>الأربعاء</option>
-            <option value="الخميس" ${currentDay === 'الخميس' ? 'selected' : ''}>الخميس</option>
-            <option value="الجمعة" ${currentDay === 'الجمعة' ? 'selected' : ''}>الجمعة</option>
-            <option value="السبت" ${currentDay === 'السبت' ? 'selected' : ''}>السبت</option>
+            ${SCHOOL_DAYS.map(d => `<option value="${d}" ${currentDay === d ? 'selected' : ''}>${d}</option>`).join('')}
           </select>
         </div>`;
       }).join('');
-
-      // ✅ ربط الأحداث بأمان
       container.querySelectorAll('.subject-duty-select').forEach(el => {
-        el.addEventListener('change', () => {
-          const subj = el.getAttribute('data-subject');
-          setSubjectDutyDay(subj, el.value);
-        });
+        el.addEventListener('change', () => setCategoryDutyDay(el.dataset.category, el.value));
       });
     }
-
-    async function setSubjectDutyDay(subject, day) {
-      if (day === 'mixed') return;
-      let updatedCount = 0;
-      for (const tName of Object.keys(db.dutyModule.teacherMeta)) {
-        if (db.dutyModule.teacherMeta[tName].subject === subject) {
-          db.dutyModule.teacherMeta[tName].day = day;
-          db.dutyModule.teacherMeta[tName].enabled = !!day;
-          updatedCount++;
-        }
-      }
-      if (updatedCount > 0) {
-        dirtySets.duty_module = true;
-        const ok = await saveSystemDataToCloud();
-        showToast(ok ? `تم تحديث مناوبة ${updatedCount} معلم لمادة ${subject}` : 'حُفظ محلياً.', ok ? 'success' : 'info');
-        renderTeachersList();
-      }
+    async function setCategoryDutyDay(category, day) {
+      dutyData();
+      db.dutyModule.subjectDays[category] = day || '';
+      dirtySets.duty_module = true;
+      const ok = await saveSystemDataToCloud();
+      renderTeachersList();
+      showToast(ok ? `تم تحديث مناوبة ${category}` : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
 
     function renderTeachersList() {
       const container = document.getElementById('teachersList'); if (!container) return;
       container.innerHTML = '';
       if (!db.teachers || db.teachers.length === 0) { container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد معلمون.</div>`; return; }
-
       const grouped = {};
       db.teachers.forEach((t, idx) => {
-         const subj = db.dutyModule.teacherMeta[t.name]?.subject || 'بدون مادة';
-         if (!grouped[subj]) grouped[subj] = [];
-         grouped[subj].push({ t, idx });
+        const cat = t.permissions?.category || '';
+        const key = cat || 'بدون تصنيف';
+        if (!grouped[key]) grouped[key] = [];
+        grouped[key].push({ t, idx });
       });
-
-      const sortedSubjects = Object.keys(grouped).sort((a,b) => a.localeCompare(b, 'ar'));
-      sortedSubjects.forEach(subj => {
-         container.innerHTML += `<div class="bg-slate-200 dark:bg-slate-700 p-2 font-bold text-xs text-emerald-900 dark:text-emerald-200 border-y border-slate-300 dark:border-slate-600">مادة: ${escapeHtml(subj)}</div>`;
-         grouped[subj].forEach(({t, idx}) => {
-            const meta = db.dutyModule.teacherMeta[t.name] || {};
-            const mustChange = !!t.mustChangePin;
-            const mustChangeBadge = mustChange ? '<span class="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-300">🔑 يجب تغيير الرمز</span>' : '';
-
-            const div = document.createElement('div');
-            div.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50 gap-2 flex-wrap';
-            div.innerHTML = `<div class="min-w-0 flex-grow">
-               <div class="flex items-center gap-2 flex-wrap">
-                  <span class="font-extrabold text-xs sm:text-sm">${escapeHtml(t.name)}</span>${mustChangeBadge}
-               </div>
-               <div class="text-[11px] text-slate-500 mt-1">
-                  المناوبة: ${escapeHtml(meta.day || 'بدون مناوبة')} ${meta.day ? '<span class="text-emerald-600 font-bold">(يوم كامل)</span>' : ''}
-               </div>
+      const sortedCats = [...ALL_CATEGORIES, 'بدون تصنيف'].filter(c => grouped[c]);
+      sortedCats.forEach(cat => {
+        const dutyDay = dutyData().subjectDays?.[cat] || '';
+        const headerBadge = dutyDay ? `<span class="text-[10px] bg-orange-100 dark:bg-orange-950/60 text-orange-800 dark:text-orange-300 px-2 py-0.5 rounded-lg font-bold border border-orange-300">مناوبة: ${escapeHtml(dutyDay)}</span>` : '';
+        container.innerHTML += `<div class="bg-slate-200 dark:bg-slate-700 p-2.5 font-bold text-xs text-emerald-900 dark:text-emerald-200 border-y border-slate-300 dark:border-slate-600 flex items-center justify-between gap-2"><span>${escapeHtml(cat)}</span>${headerBadge}</div>`;
+        grouped[cat].forEach(({ t, idx }) => {
+          const perms = t.permissions || {};
+          const mustChange = !!t.mustChangePin;
+          const mustChangeBadge = mustChange ? '<span class="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-300">🔑 يجب تغيير الرمز</span>' : '';
+          const div = document.createElement('div');
+          div.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50 gap-2 flex-wrap';
+          div.innerHTML = `<div class="min-w-0 flex-grow">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-extrabold text-xs sm:text-sm">${escapeHtml(t.name)}</span>${mustChangeBadge}
+              </div>
+              <div class="text-[11px] text-slate-500 mt-1.5 flex flex-wrap gap-1">${renderPermBadges(perms)}</div>
             </div>
-            <div class="flex flex-wrap gap-2">
-               <button onclick="openEditDutyModal(${idx})" class="text-orange-700 dark:text-orange-400 text-xs font-bold px-3 py-1.5 bg-orange-50 dark:bg-orange-950/40 rounded-xl">تعديل المناوبة</button>
-               <button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl">تعديل الرمز</button>
-               <button onclick="forceTeacherPinReset(${idx})" class="text-purple-600 dark:text-purple-400 text-xs font-bold px-3 py-1.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl">${mustChange ? 'إلغاء الإجبار' : 'إجبار التغيير'}</button>
-               <button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/40 rounded-xl">حذف</button>
+            <div class="flex flex-wrap gap-1.5">
+              <button onclick="openPermissionsModal(${idx})" class="text-emerald-700 dark:text-emerald-400 text-xs font-bold px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">الصلاحيات</button>
+              <button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-2.5 py-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl">الرمز</button>
+              <button onclick="forceTeacherPinReset(${idx})" class="text-purple-600 dark:text-purple-400 text-xs font-bold px-2.5 py-1.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl">${mustChange ? 'إلغاء الإجبار' : 'إجبار'}</button>
+              <button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-2.5 py-1.5 bg-red-50 dark:bg-red-950/40 rounded-xl">حذف</button>
             </div>`;
-            container.appendChild(div);
-         });
+          container.appendChild(div);
+        });
       });
     }
+    function renderPermBadges(perms) {
+      const badges = [];
+      if (perms.attendance) badges.push('<span class="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded text-[10px] font-bold">غياب</span>');
+      if (perms.behavior) badges.push('<span class="bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 px-2 py-0.5 rounded text-[10px] font-bold">سلوك</span>');
+      if (perms.reports) badges.push('<span class="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 px-2 py-0.5 rounded text-[10px] font-bold">تقارير</span>');
+      if (perms.absence_lists) badges.push('<span class="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 px-2 py-0.5 rounded text-[10px] font-bold">كشوفات</span>');
+      if (perms.printing) badges.push('<span class="bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 px-2 py-0.5 rounded text-[10px] font-bold">طباعة</span>');
+      if (perms.admin) badges.push('<span class="bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300 px-2 py-0.5 rounded text-[10px] font-bold">إدارة</span>');
+      return badges.length ? badges.join(' ') : '<span class="text-slate-400 text-[10px]">لا صلاحيات</span>';
+    }
 
-    // ✅ إصلاح: التحقق من الاسم مشتركاً مع customUsers
     async function addNewTeacher() {
       const name = document.getElementById('newTeacherName').value.trim();
-      const pin = document.getElementById('newTeacherPin').value.trim();
-      if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
-      if (pin.length < 4) { showToast('الرمز 4 أرقام على الأقل.', 'error'); return; }
-      // ✅ فحص الاسم في كل الأنواع
-      if (db.teachers.some(t => t.name === name) || (db.customUsers || []).some(u => u.name === name)) {
-        showToast('الاسم مستخدم.', 'error'); return;
+      const category = document.getElementById('newTeacherCategory').value;
+      if (!name || !category) { showToast('أدخل الاسم واختر الفئة.', 'error'); return; }
+      if (db.teachers.some(t => t.name === name) || (db.customUsers || []).some(u => u.name === name)) { showToast('الاسم مستخدم.', 'error'); return; }
+      try {
+        const pin = await generateUniquePin();
+        const rec = await createPinRecord(pin);
+        db.teachers.push({
+          name,
+          pin_hash: rec.hash,
+          pin_salt: rec.salt,
+          mustChangePin: true,
+          permissions: {
+            category,
+            attendance: true,
+            behavior: true,
+            reports: false,
+            absence_lists: false,
+            printing: false,
+            admin: false
+          }
+        });
+        dirtySets.teachers.add(name);
+        const success = await saveSystemDataToCloud();
+        renderTeachersList();
+        document.getElementById('newTeacherName').value = '';
+        document.getElementById('newTeacherCategory').value = '';
+        showPinModal(name, pin);
+        showToast(success ? 'تم إنشاء الحساب!' : 'حُفظ محلياً.', success ? 'success' : 'info');
+      } catch (err) {
+        console.error(err);
+        showToast('تعذر توليد الرمز. حاول مجدداً.', 'error');
       }
-      if (await isPinTaken(pin)) { showToast('الرمز مستخدم.', 'error'); return; }
-      const rec = await createPinRecord(pin);
-      db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: false });
-      dirtySets.teachers.add(name);
-      const dutyDay = document.getElementById('newTeacherDutyDay').value;
-      const subject = document.getElementById('newTeacherSubject').value.trim();
-      db.dutyModule = normalizeDutyModule(db.dutyModule);
-      db.dutyModule.teacherMeta[name] = { subject, day: dutyDay, start: '07:00', end: '13:50', enabled: !!dutyDay };
-      dirtySets.duty_module = true;
-      const success = await saveSystemDataToCloud();
-      renderTeachersList(); renderSubjectDutyDays();
-      ['newTeacherName','newTeacherPin','newTeacherSubject','newTeacherDutyDay'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-      showToast(success ? 'تم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
-
+    function showPinModal(name, pin) {
+      document.getElementById('pinDisplayName').textContent = name;
+      document.getElementById('pinDisplayValue').textContent = pin;
+      document.getElementById('pinDisplayModal').classList.remove('hidden');
+      document.getElementById('pinDisplayModal').dataset.pin = pin;
+      document.getElementById('pinDisplayModal').dataset.name = name;
+    }
+    async function copyPinAndClose() {
+      const modal = document.getElementById('pinDisplayModal');
+      const pin = modal.dataset.pin, name = modal.dataset.name;
+      const text = `اسم: ${name}\nالرمز السري: ${pin}\n(يجب تغييره عند أول دخول)`;
+      try { await navigator.clipboard.writeText(text); showToast('تم النسخ.', 'success'); }
+      catch (e) { showToast('تعذر النسخ.', 'error'); }
+      modal.classList.add('hidden');
+    }
     async function editTeacherPin(idx) {
       const t = db.teachers[idx]; if (!t) return;
       const newPin = await showPrompt(`الرمز الجديد لـ (${t.name}):`, { title: 'تعديل الرمز', inputMode: 'numeric' });
@@ -3375,21 +3143,18 @@
       renderTeachersList();
       showToast(success ? 'تم التحديث.' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
-
     async function deleteTeacher(idx) {
       const t = db.teachers[idx]; if (!t) return;
       const ok = await showConfirm(`حذف المعلم (${t.name})؟`, { danger: true });
       if (!ok) return;
       db.teachers.splice(idx, 1);
-      if (db.dutyModule?.teacherMeta) delete db.dutyModule.teacherMeta[t.name];
-      dirtySets.duty_module = true;
+      dirtySets.teachers.add(t.name);
       await saveSystemDataToCloud();
       await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
-      renderTeachersList(); renderSubjectDutyDays();
+      renderTeachersList();
       showToast('تم الحذف.', 'info');
       if (activeUser && activeUser.type === 'teacher' && activeUser.name === t.name) { showToast('تم حذف حسابك.', 'error'); setTimeout(() => _performLogout(), 800); }
     }
-
     async function forceTeacherPinReset(idx) {
       const t = db.teachers[idx]; if (!t) return;
       const wasForced = !!t.mustChangePin;
@@ -3403,27 +3168,42 @@
       showToast(success ? 'تم.' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
-    // ✅ إصلاح: editDutyError موجود الآن في HTML
-    function openEditDutyModal(idx) {
+    /* ============================================================
+       Teacher Permissions modal
+       ============================================================ */
+    function openPermissionsModal(idx) {
       const t = db.teachers[idx]; if (!t) return;
-      const meta = dutyData().teacherMeta[t.name] || {};
-      editingDutyTeacherName = t.name;
-      document.getElementById('editDutyTeacherName').textContent = t.name;
-      document.getElementById('editDutySubject').value = meta.subject || '';
-      document.getElementById('editDutyDay').value = meta.day || '';
-      document.getElementById('editDutyError').classList.add('hidden');
-      document.getElementById('editDutyModal').classList.remove('hidden');
+      currentEditingTeacherIndex = idx;
+      document.getElementById('permTeacherName').textContent = t.name;
+      const perms = t.permissions || {};
+      document.getElementById('perm_attendance').checked = perms.attendance !== false;
+      document.getElementById('perm_behavior').checked = perms.behavior !== false;
+      document.getElementById('perm_reports').checked = !!perms.reports;
+      document.getElementById('perm_absence_lists').checked = !!perms.absence_lists;
+      document.getElementById('perm_printing').checked = !!perms.printing;
+      document.getElementById('perm_admin').checked = !!perms.admin;
+      document.getElementById('teacherPermissionsModal').classList.remove('hidden');
     }
-    function closeEditDutyModal() { document.getElementById('editDutyModal').classList.add('hidden'); editingDutyTeacherName = null; }
-    async function saveEditDuty() {
-      if (!editingDutyTeacherName) return;
-      const subject = document.getElementById('editDutySubject').value.trim();
-      const day = document.getElementById('editDutyDay').value;
-      dutyData().teacherMeta[editingDutyTeacherName] = { subject, day, start: '07:00', end: '13:50', enabled: !!day };
-      dirtySets.duty_module = true;
-      const success = await saveSystemDataToCloud();
-      closeEditDutyModal(); renderTeachersList(); renderSubjectDutyDays(); refreshDutyDashboardCard();
-      showToast(success ? 'تم.' : 'حُفظ محلياً.', success ? 'success' : 'info');
+    function closePermissionsModal() {
+      document.getElementById('teacherPermissionsModal').classList.add('hidden');
+      currentEditingTeacherIndex = null;
+    }
+    async function saveTeacherPermissions() {
+      if (currentEditingTeacherIndex === null) return;
+      const t = db.teachers[currentEditingTeacherIndex];
+      if (!t) return;
+      if (!t.permissions) t.permissions = {};
+      t.permissions.attendance = document.getElementById('perm_attendance').checked;
+      t.permissions.behavior = document.getElementById('perm_behavior').checked;
+      t.permissions.reports = document.getElementById('perm_reports').checked;
+      t.permissions.absence_lists = document.getElementById('perm_absence_lists').checked;
+      t.permissions.printing = document.getElementById('perm_printing').checked;
+      t.permissions.admin = document.getElementById('perm_admin').checked;
+      dirtySets.teachers.add(t.name);
+      const ok = await saveSystemDataToCloud();
+      closePermissionsModal();
+      renderTeachersList();
+      showToast(ok ? 'تم حفظ الصلاحيات.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
 
     /* ============================================================
@@ -3431,33 +3211,31 @@
        ============================================================ */
     async function addCustomUser() {
       const name = document.getElementById('newCustomUserName').value.trim();
-      const pin = document.getElementById('newCustomUserPin').value.trim();
-      if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
-      if (pin.length < 4) { showToast('الرمز 4 أرقام على الأقل.', 'error'); return; }
-      // ✅ فحص الاسم في كل الأنواع
-      if ((db.customUsers || []).some(u => u.name === name) || db.teachers.some(t => t.name === name)) {
-        showToast('الاسم مستخدم.', 'error'); return;
-      }
-      if (await isPinTaken(pin)) { showToast('الرمز مستخدم.', 'error'); return; }
-      const permissions = {
-        studstats: document.getElementById('perm_studstats').checked,
-        behaviorstats: document.getElementById('perm_behaviorstats').checked,
-        users: document.getElementById('perm_users').checked,
-        students: document.getElementById('perm_students').checked,
-        teachers: document.getElementById('perm_teachers').checked,
-        duty: document.getElementById('perm_duty').checked,
-        alerts: document.getElementById('perm_alerts').checked,
-        reports: document.getElementById('perm_reports').checked,
-        sync: document.getElementById('perm_sync').checked,
-        security: document.getElementById('perm_security').checked
-      };
-      const rec = await createPinRecord(pin);
-      db.customUsers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, permissions });
-      dirtySets.teachers.add(name);
-      const success = await saveSystemDataToCloud();
-      renderCustomUsersList();
-      document.getElementById('newCustomUserName').value = ''; document.getElementById('newCustomUserPin').value = '';
-      showToast(success ? 'تم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
+      if (!name) { showToast('أدخل الاسم.', 'error'); return; }
+      if ((db.customUsers || []).some(u => u.name === name) || db.teachers.some(t => t.name === name)) { showToast('الاسم مستخدم.', 'error'); return; }
+      try {
+        const pin = await generateUniquePin();
+        const rec = await createPinRecord(pin);
+        const permissions = {
+          studstats: document.getElementById('perm_studstats').checked,
+          behaviorstats: document.getElementById('perm_behaviorstats').checked,
+          users: document.getElementById('perm_users').checked,
+          students: document.getElementById('perm_students').checked,
+          teachers: document.getElementById('perm_teachers').checked,
+          duty: document.getElementById('perm_duty').checked,
+          alerts: document.getElementById('perm_alerts').checked,
+          reports: document.getElementById('perm_reports').checked,
+          sync: document.getElementById('perm_sync').checked,
+          security: document.getElementById('perm_security').checked
+        };
+        db.customUsers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, permissions });
+        dirtySets.teachers.add(name);
+        const success = await saveSystemDataToCloud();
+        renderCustomUsersList();
+        document.getElementById('newCustomUserName').value = '';
+        showPinModal(name, pin);
+        showToast(success ? 'تم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
+      } catch (err) { console.error(err); showToast('تعذر توليد الرمز.', 'error'); }
     }
     function renderCustomUsersList() {
       const container = document.getElementById('customUsersList'); if (!container) return;
@@ -3500,7 +3278,6 @@
       document.getElementById('settingAdminPin').value = '';
       showToast(success ? 'تم الحفظ!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
-
     async function executeFullReset() {
       const pin1 = document.getElementById('resetPin1').value.trim();
       const pin2 = document.getElementById('resetPin2').value.trim();
@@ -3520,7 +3297,7 @@
     }
 
     /* ============================================================
-       Alerts
+       Alerts & Daily report
        ============================================================ */
     function generateSmartAlerts() {
       const container = document.getElementById('smartAlertsContainer');
@@ -3549,10 +3326,6 @@
       filtered.forEach(d => { html += `<tr><td class="p-3 font-bold text-emerald-700">${escapeHtml(d.studentName)}</td><td class="p-3 text-center">${escapeHtml(d.className)}</td><td class="p-3 text-center">${d.absent}</td><td class="p-3 text-center">${d.late}</td><td class="p-3 text-center">${d.escape}</td><td class="p-3 text-center">${d.outside}</td><td class="p-3 text-center"><span class="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 px-2.5 py-1 rounded-full font-bold">${d.total}</span></td></tr>`; });
       container.innerHTML = html + `</tbody></table>`;
     }
-
-    /* ============================================================
-       Daily Report
-       ============================================================ */
     function openDailyAdminReportModal() {
       const todayStr = getOmanLocalDate();
       const totals = { absent: 0, escape: 0, late: 0, outside: 0 };
@@ -3581,21 +3354,23 @@
     }
 
     /* ============================================================
-       Duty Module
+       Duty Module — SIMPLIFIED (subject-based, no timetable)
        ============================================================ */
     function refreshDutyDashboardCard() {
-      const card = document.getElementById('dutyDashboardCard'); const testBtn = document.getElementById('dutyTestModeBtn');
+      const card = document.getElementById('dutyDashboardCard');
+      const testBtn = document.getElementById('dutyTestModeBtn');
       if (!card) return;
       const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
-      const isTeacherEligible = activeUser?.type === 'teacher' && isTeacherDutyWindow(dutyData().teacherMeta[activeUser.name]);
+      const isTeacherEligible = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name);
       const shouldShow = isAdmin || isTeacherEligible || dutyTestModeActive;
       card.classList.toggle('hidden', !shouldShow);
       if (testBtn) testBtn.classList.toggle('hidden', !isAdmin);
       if (!shouldShow) return;
       const label = document.getElementById('dutyDashboardTime'); if (!label) return;
       if (isAdmin && !isTeacherEligible && !dutyTestModeActive) { label.textContent = 'وضع الإدارة — اضغط لفتح المناوبة'; return; }
-      const m = dutyData().teacherMeta[activeUser?.name] || {};
-      label.textContent = `مناوب اليوم (${m.day || '—'}) · 07:00–13:50 · ${m.subject || '—'}`;
+      const cat = getTeacherCategory(activeUser?.name) || '—';
+      const day = dutyData().subjectDays[cat] || '—';
+      label.textContent = `مناوب اليوم: ${day} · الفئة: ${cat}`;
     }
     function enableDutyTestMode() {
       if (activeUser?.type !== 'admin') { showToast('للمدير فقط.', 'error'); return; }
@@ -3605,22 +3380,22 @@
     }
     function openDutyView() {
       const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
-      const isTeacherEligible = activeUser?.type === 'teacher' && isTeacherDutyWindow(dutyData().teacherMeta[activeUser.name]);
-      if (!isAdmin && !isTeacherEligible) { showToast('قسم المناوبة غير متاح.', 'error'); return; }
+      const isTeacherEligible = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name);
+      if (!isAdmin && !isTeacherEligible) { showToast('قسم المناوبة غير متاح اليوم.', 'error'); return; }
       ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dashboardSelectionView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
       document.getElementById('dutyView').classList.remove('hidden');
       document.getElementById('dutyTodayLabel').textContent = getOmanLocalDate();
       renderDutyPeriods(); renderDutyTodayRecords();
     }
     function closeDutyView() { document.getElementById('dutyView').classList.add('hidden'); document.getElementById('dashboardSelectionView').classList.remove('hidden'); refreshDutyDashboardCard(); }
-
     function renderDutyPeriods() {
       const wrap = document.getElementById('dutyPeriodsGrid'); if (!wrap) return;
       wrap.innerHTML = '';
-      const d = dutyData(), now = omanNowParts(), today = getOmanLocalDate();
+      const d = dutyData(), now = omanNowParts();
       const isAdminTest = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
-      const teacherMeta = d.teacherMeta[activeUser?.name] || {};
-      const todayDay = dutyDayForDate(today);
+      const cat = getTeacherCategory(activeUser?.name);
+      const teacherDay = cat ? d.subjectDays[cat] : '';
+      const todayDay = dutyDayForDate(getOmanLocalDate());
       for (let i = 0; i < 8; i++) {
         const p = d.periods[i];
         const start = toMinutes(p.start), end = toMinutes(p.end);
@@ -3628,7 +3403,7 @@
         let allowed = false, reason = '';
         if (isAdminTest) { allowed = true; reason = '(اختبار)'; }
         else if (!valid) { reason = 'غير مضبوطة'; }
-        else if (todayDay !== teacherMeta.day) { reason = 'ليس يوم مناوبتك'; }
+        else if (todayDay !== teacherDay) { reason = 'ليس يوم مناوبتك'; }
         else if (now.minutes < start + d.graceMinutes) { reason = `بعد ${Math.ceil((start + d.graceMinutes - now.minutes))} د`; }
         else if (now.minutes > end) { reason = 'انتهت'; }
         else { allowed = true; reason = `${p.start}–${p.end}`; }
@@ -3641,43 +3416,55 @@
       const st = document.getElementById('dutyPeriodStatus');
       if (st) st.textContent = `مدة السماح: ${d.graceMinutes} د${isAdminTest ? ' (اختبار)' : ''}`;
     }
-
     function selectDutyPeriod(period) {
       const d = dutyData(), date = getOmanLocalDate(), day = dutyDayForDate(date);
       const p = d.periods[period - 1];
       const now = omanNowParts(), start = toMinutes(p.start), end = toMinutes(p.end);
       const isAdminTest = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
       if (!isAdminTest && (start === null || end === null || now.minutes < start + d.graceMinutes || now.minutes > end)) { showToast('خارج وقت الحصة.', 'error'); return; }
-      const rows = d.timetable.filter(x => x.day === day && Number(x.period) === period);
-      if (!rows.length) { showToast('لا توجد بيانات.', 'error'); return; }
       selectedDutyPeriod = period;
       document.getElementById('dutySelectedPeriodTitle').textContent = `الصفوف في الحصة ${period}`;
       const list = document.getElementById('dutyClassesList'); list.innerHTML = '';
-      rows.forEach(row => {
-        const teacher = effectiveDutyTeacher(date, period, row.className, row.teacher);
+      db.classes.forEach(className => {
         const label = document.createElement('label');
-        label.className = 'flex items-center gap-3 p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-xs cursor-pointer';
-        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = row.className; cb.dataset.teacher = teacher; cb.dataset.subject = row.subject || ''; cb.className = 'w-4 h-4 accent-emerald-600';
-        const span = document.createElement('span'); span.innerHTML = `<strong>${escapeHtml(row.className)}</strong> — ${escapeHtml(row.subject || 'بدون مادة')} — المعلم: <span class="text-emerald-700 font-bold">${escapeHtml(teacher)}</span>`;
-        label.append(cb, span); list.appendChild(label);
+        label.className = 'flex items-center gap-2 p-3 border border-slate-200 dark:border-slate-700 rounded-xl bg-white dark:bg-slate-800 text-xs cursor-pointer flex-wrap';
+        const cb = document.createElement('input');
+        cb.type = 'checkbox'; cb.value = className;
+        cb.className = 'w-4 h-4 accent-emerald-600';
+        const span = document.createElement('span');
+        span.className = 'font-bold flex-grow';
+        span.textContent = className;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.placeholder = 'اسم المعلم (اختياري)';
+        input.className = 'w-full sm:w-44 text-xs p-1.5 border border-slate-200 dark:border-slate-700 rounded-lg hidden bg-slate-50 dark:bg-slate-900';
+        input.dataset.teacherInput = 'true';
+        cb.addEventListener('change', () => {
+          input.classList.toggle('hidden', !cb.checked);
+          if (cb.checked) setTimeout(() => input.focus(), 50);
+        });
+        label.append(cb, span, input);
+        list.appendChild(label);
       });
       document.getElementById('dutyClassesPanel').classList.remove('hidden');
     }
-
     function buildDutyWhatsAppMessage(records) {
       const date = getOmanLocalDate();
       const day = dutyDayForDate(date);
       const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Muscat', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(getTrustedDate());
       let msg = `*تقرير المناوبة — مدرسة أبو دجانة الأنصاري*\n📅 التاريخ: ${date}\n📆 اليوم: ${day}\n👤 المناوب: ${activeUser?.name || '—'}\n━━━━━━━━━━━━━━━━━\n`;
-      records.forEach(r => { msg += `🏫 الصف: ${r.className}\n⏰ الحصة: ${r.period}\n📚 المادة: ${r.subject || '—'}\n👤 المعلم المتخلف: ${r.teacherName}\n━━━━━━━━━━━━━━━━━\n`; });
+      records.forEach(r => {
+        msg += `🏫 الصف: ${r.className}\n⏰ الحصة: ${r.period}\n`;
+        if (r.teacherName) msg += `👤 المعلم المتخلف: ${r.teacherName}\n`;
+        msg += `━━━━━━━━━━━━━━━━━\n`;
+      });
       msg += `🕐 وقت الإرسال: ${timeStr}`;
       return msg;
     }
-
     async function submitDutyReport() {
       if (!selectedDutyPeriod || !activeUser) return;
       const checked = [...document.querySelectorAll('#dutyClassesList input[type=checkbox]:checked')];
-      if (!checked.length) { showToast('حدد صفاً.', 'error'); return; }
+      if (!checked.length) { showToast('حدد صفاً واحداً على الأقل.', 'error'); return; }
       const date = getOmanLocalDate(), day = dutyDayForDate(date), d = dutyData();
       const createdAt = getTrustedDate().toISOString();
       const isAdminTest = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
@@ -3685,13 +3472,27 @@
         const pConfig = d.periods[selectedDutyPeriod - 1];
         const nowMin = omanNowParts().minutes;
         const periodStart = toMinutes(pConfig?.start), periodEnd = toMinutes(pConfig?.end);
-        const meta = d.teacherMeta[activeUser.name];
-        if (!isTeacherDutyWindow(meta) || day !== meta.day || periodStart === null || periodEnd === null || nowMin < periodStart + d.graceMinutes || nowMin > periodEnd) { showToast('انتهت النافذة.', 'error'); return; }
+        const cat = getTeacherCategory(activeUser.name);
+        const teacherDay = cat ? d.subjectDays[cat] : '';
+        if (todayDay() !== teacherDay || periodStart === null || periodEnd === null || nowMin < periodStart + d.graceMinutes || nowMin > periodEnd) {
+          showToast('انتهت النافذة الزمنية.', 'error'); return;
+        }
       }
-      const added = checked.map(cb => ({ id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`), date, day, period: selectedDutyPeriod, className: cb.value, teacherName: cb.dataset.teacher, subject: cb.dataset.subject, reportedBy: activeUser.name, status: 'pending', createdAt }));
+      const added = checked.map(cb => {
+        const teacherInput = cb.parentElement.querySelector('[data-teacher-input]');
+        return {
+          id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+          date, day, period: selectedDutyPeriod,
+          className: cb.value,
+          teacherName: teacherInput?.value?.trim() || '',
+          reportedBy: activeUser.name,
+          status: 'pending',
+          createdAt
+        };
+      });
       const seen = new Set(d.records.map(r => `${r.date}|${r.period}|${r.className}|${r.reportedBy}`));
       const fresh = added.filter(r => !seen.has(`${r.date}|${r.period}|${r.className}|${r.reportedBy}`));
-      if (!fresh.length) { showToast('سبق التسجيل.', 'info'); return; }
+      if (!fresh.length) { showToast('سبق التسجيل لهذه الصفوف.', 'info'); return; }
       d.records.push(...fresh);
       for (const r of fresh) dirtySets.duty_reports.add(r.id);
       const ok = await saveSystemDataToCloud();
@@ -3700,39 +3501,38 @@
       showToast(ok ? 'تم الحفظ.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
       openWhatsAppSafely(lastDutyMessage);
     }
-
+    function todayDay() { return dutyDayForDate(getOmanLocalDate()); }
     function openWhatsAppSafely(message) {
       const url = 'https://wa.me/?text=' + encodeURIComponent(message);
-      const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer'; document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      const a = document.createElement('a'); a.href = url; a.target = '_blank'; a.rel = 'noopener noreferrer';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
-
     async function copyLastDutyMessage() {
       if (!lastDutyMessage) { showToast('لا يوجد نص.', 'info'); return; }
       try { await navigator.clipboard.writeText(lastDutyMessage); showToast('تم النسخ.', 'success'); }
-      catch (e) { const ta = document.createElement('textarea'); ta.value = lastDutyMessage; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showToast('تم النسخ.', 'success'); } catch (e2) { showToast('تعذر النسخ.', 'error'); } document.body.removeChild(ta); }
+      catch (e) {
+        const ta = document.createElement('textarea'); ta.value = lastDutyMessage;
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand('copy'); showToast('تم النسخ.', 'success'); }
+        catch (e2) { showToast('تعذر النسخ.', 'error'); }
+        document.body.removeChild(ta);
+      }
     }
-
     function renderDutyTodayRecords() {
       const el = document.getElementById('dutyTodayRecords'); if (!el) return;
       const today = getOmanLocalDate();
-      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
-      const rows = dutyData().records.filter(r => r.date === today && (isAdmin || activeUser?.permissions?.duty || r.reportedBy === activeUser?.name));
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
+      const rows = dutyData().records.filter(r => r.date === today && (isAdmin || r.reportedBy === activeUser?.name));
       if (!rows.length) { el.innerHTML = '<p class="text-slate-400 text-xs">لا توجد بلاغات.</p>'; return; }
-      el.innerHTML = rows.map(r => `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period} · ${escapeHtml(r.teacherName)} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`).join('');
+      el.innerHTML = rows.map(r => `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period}${r.teacherName ? ' · ' + escapeHtml(r.teacherName) : ''} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`).join('');
     }
-
     function initDutyAdminPanel() {
       const d = dutyData();
       const settings = document.getElementById('dutyPeriodSettings'); if (!settings) return;
       settings.innerHTML = d.periods.map((p, i) => `<div class="grid grid-cols-3 gap-2 items-center border border-slate-200 dark:border-slate-700 rounded-xl p-2"><strong class="text-xs">الحصة ${i + 1}</strong><input id="dutyP${i + 1}Start" type="time" value="${escapeHtml(p.start)}" class="min-w-0 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><input id="dutyP${i + 1}End" type="time" value="${escapeHtml(p.end)}" class="min-w-0 border border-slate-200 dark:border-slate-700 rounded-lg p-2 text-xs bg-white dark:bg-slate-800"></div>`).join('');
       document.getElementById('dutyGraceMinutes').value = d.graceMinutes;
-      const date = document.getElementById('dutySwapDate'); if (date && !date.value) date.value = getOmanLocalDate();
-      const cls = document.getElementById('dutySwapClass'); if (cls) cls.innerHTML = '<option value="">اختر الصف</option>' + db.classes.map(c => `<option value="${escapeHtml(c)}">${escapeHtml(c)}</option>`).join('');
-      const per = document.getElementById('dutySwapPeriod'); if (per) per.innerHTML = '<option value="">الحصة</option>' + Array.from({length:8},(_,i)=>`<option value="${i+1}">الحصة ${i+1}</option>`).join('');
-      const rep = document.getElementById('dutySwapReplacement'); if (rep) rep.innerHTML = '<option value="">المعلم البديل</option>' + db.teachers.map(t => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`).join('');
-      refreshDutySwapOriginal(); renderDutySwaps(); renderDutyAdminReview(); renderScheduleGrid();
+      renderDutyAdminReview();
     }
-
     async function saveDutySettings() {
       const d = dutyData(); const periods = [];
       for (let i = 1; i <= 8; i++) {
@@ -3749,261 +3549,6 @@
       renderDutyPeriods(); refreshDutyDashboardCard();
       showToast(ok ? 'تم.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
-
-    function renderScheduleGrid() {
-      const container = document.getElementById('scheduleGridContainer'); if (!container) return;
-      const day = document.getElementById('scheduleDaySelect')?.value || 'الأحد';
-      const periodLabels = ['ح1','ح2','ح3','ح4','ح5','ح6','ح7','ح8'];
-
-      const teachersSet = new Set((db.teachers || []).map(t => t.name));
-      (dutyData().timetable || []).forEach(x => { if (x.teacher) teachersSet.add(x.teacher); });
-      const teachers = Array.from(teachersSet).sort((a,b) => String(a).localeCompare(String(b), 'ar'));
-
-      const tt = dutyData().timetable;
-      let html = `<table class="w-full text-[10px] border-collapse" dir="rtl"><thead><tr class="bg-slate-200 dark:bg-slate-800 sticky top-0 z-10"><th class="p-2 border border-slate-300 dark:border-slate-700 sticky right-0 bg-slate-200 dark:bg-slate-800 z-20">الصف</th>`;
-      periodLabels.forEach(lbl => { html += `<th class="p-2 border border-slate-300 dark:border-slate-700 text-center">${lbl}</th>`; });
-      html += `</tr></thead><tbody>`;
-      db.classes.forEach(cls => {
-        html += `<tr><td class="p-1 border border-slate-300 dark:border-slate-700 font-bold sticky right-0 bg-white dark:bg-slate-900 z-10 whitespace-nowrap">${escapeHtml(cls)}</td>`;
-        for (let p = 1; p <= 8; p++) {
-          const changeKey = `${day}_${cls}_p${p}`;
-          const hasChange = Object.prototype.hasOwnProperty.call(scheduleDirtyChanges, changeKey);
-          const existing = tt.find(x => x.day === day && Number(x.period) === p && x.className === cls);
-          const value = hasChange ? scheduleDirtyChanges[changeKey] : (existing?.teacher || '');
-          const cellBg = hasChange ? 'bg-amber-100 dark:bg-amber-950/60' : 'bg-transparent';
-          html += `<td class="p-0 border border-slate-300 dark:border-slate-700 ${cellBg}"><select data-day="${escapeHtml(day)}" data-class="${escapeHtml(cls)}" data-period="${p}" onchange="onScheduleCellChange(this)" class="w-full min-w-[90px] p-1 text-[10px] bg-transparent border-0 outline-none cursor-pointer"><option value="" ${!value ? 'selected' : ''}>— فارغ —</option>`;
-          teachers.forEach(t => { html += `<option value="${escapeHtml(t)}" ${value === t ? 'selected' : ''}>${escapeHtml(t)}</option>`; });
-          html += `</select></td>`;
-        }
-        html += `</tr>`;
-      });
-      html += `</tbody></table>`;
-      container.innerHTML = html; updateScheduleGridStatus();
-    }
-    function onScheduleCellChange(selectEl) {
-      const { day, class: cls, period } = selectEl.dataset;
-      scheduleDirtyChanges[`${day}_${cls}_p${period}`] = selectEl.value || null;
-      selectEl.closest('td').className = 'p-0 border border-slate-300 dark:border-slate-700 bg-amber-100 dark:bg-amber-950/60';
-      updateScheduleGridStatus();
-    }
-    function updateScheduleGridStatus() {
-      const el = document.getElementById('scheduleGridStatus'); if (!el) return;
-      const count = Object.keys(scheduleDirtyChanges).length;
-      if (count > 0) { el.classList.remove('hidden'); el.textContent = `⚠️ ${count} خلية معدّلة.`; } else el.classList.add('hidden');
-    }
-    async function saveScheduleGrid() {
-      if (Object.keys(scheduleDirtyChanges).length === 0) { showToast('لا توجد تغييرات.', 'info'); return; }
-      const d = dutyData();
-      Object.entries(scheduleDirtyChanges).forEach(([key, teacher]) => {
-        const parts = key.split('_'); const day = parts[0]; const p = parts[parts.length - 1]; const cls = parts.slice(1, -1).join('_');
-        const idx = d.timetable.findIndex(x => x.day === day && Number(x.period) === Number(p) && x.className === cls);
-        if (teacher) { if (idx >= 0) d.timetable[idx].teacher = teacher; else d.timetable.push({ day, period: Number(p), className: cls, subject: '', teacher }); }
-        else if (idx >= 0) d.timetable.splice(idx, 1);
-      });
-      const count = Object.keys(scheduleDirtyChanges).length; scheduleDirtyChanges = {};
-      dirtySets.duty_module = true;
-      const ok = await saveSystemDataToCloud();
-      showToast(ok ? `تم حفظ ${count}.` : 'حُفظ محلياً.', ok ? 'success' : 'info');
-      renderScheduleGrid();
-    }
-    function openCopyDayModal() {
-      const fromDay = document.getElementById('scheduleDaySelect')?.value || 'الأحد';
-      document.getElementById('copyFromDayDisplay').value = fromDay;
-      document.getElementById('copyToDaySelect').value = 'الاثنين';
-      document.getElementById('copyDayModal').classList.remove('hidden');
-    }
-    function closeCopyDayModal() { document.getElementById('copyDayModal').classList.add('hidden'); }
-    async function executeCopyDay() {
-      const fromDay = document.getElementById('copyFromDayDisplay').value;
-      const toDay = document.getElementById('copyToDaySelect').value;
-      if (fromDay === toDay) { showToast('اختر يوماً مختلفاً.', 'error'); return; }
-      const ok = await showConfirm(`استبدال جدول "${toDay}" بجدول "${fromDay}"؟`, { danger: true });
-      if (!ok) return;
-      const d = dutyData();
-      d.timetable = d.timetable.filter(x => x.day !== toDay);
-      d.timetable.filter(x => x.day === fromDay).forEach(x => d.timetable.push({ ...x, day: toDay }));
-      dirtySets.duty_module = true;
-      closeCopyDayModal();
-      const s = await saveSystemDataToCloud();
-      document.getElementById('scheduleDaySelect').value = toDay; renderScheduleGrid();
-      showToast(s ? `تم النسخ.` : 'حُفظ محلياً.', s ? 'success' : 'info');
-    }
-    async function clearScheduleDay() {
-      const day = document.getElementById('scheduleDaySelect').value;
-      const ok = await showConfirm(`حذف كل جدول "${day}"؟`, { danger: true });
-      if (!ok) return;
-      const d = dutyData();
-      d.timetable = d.timetable.filter(x => x.day !== day);
-      dirtySets.duty_module = true;
-      const s = await saveSystemDataToCloud();
-      renderScheduleGrid();
-      showToast(s ? `تم المسح.` : 'حُفظ محلياً.', s ? 'success' : 'info');
-    }
-
-    function parseCsvLine(line) {
-      const result = [];
-      let current = '';
-      let inQuotes = false;
-      for (let i = 0; i < line.length; i++) {
-        const char = line[i];
-        if (char === '"') {
-          if (inQuotes && line[i+1] === '"') { current += '"'; i++; }
-          else { inQuotes = !inQuotes; }
-        } else if (char === ',' && !inQuotes) {
-          result.push(current.trim());
-          current = '';
-        } else { current += char; }
-      }
-      result.push(current.trim());
-      return result;
-    }
-
-    function parseDutyCsv(text) {
-      const lines = String(text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-      const rows = []; const warnings = []; const seen = new Set();
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i];
-        const cols = line.includes('\t') ? line.split('\t') : parseCsvLine(line);
-        if (cols.length < 4) { warnings.push(`سطر ${i + 1}: أعمدة أقل من 4`); continue; }
-        const clean = s => String(s || '').trim().replace(/^"|"$/g, '');
-        const dayRaw = clean(cols[0]); const periodRaw = clean(cols[1]);
-        const classRaw = normalizeDutyClassName(clean(cols[2]));
-        const subjectRaw = cols.length >= 5 ? clean(cols[3]) : '';
-        const teacherRaw = cols.length >= 5 ? clean(cols[4]) : clean(cols[3]);
-        if (/اليوم|day|teacher|معلم/i.test(dayRaw)) continue;
-        const day = normalizeDutyDay(dayRaw); const period = Number(periodRaw.replace(/[^0-9]/g, ''));
-        if (!DUTY_DAYS.includes(day)) { warnings.push(`سطر ${i + 1}: يوم غير معروف`); continue; }
-        if (!Number.isInteger(period) || period < 1 || period > 8) { warnings.push(`سطر ${i + 1}: حصة غير صحيحة`); continue; }
-        if (!classRaw || !teacherRaw) { warnings.push(`سطر ${i + 1}: صف/معلم فارغ`); continue; }
-        const key = `${day}|${period}|${classRaw}`;
-        if (seen.has(key)) {
-          const existIdx = rows.findIndex(r => r.day === day && Number(r.period) === period && r.className === classRaw);
-          if (existIdx >= 0 && rows[existIdx].teacher !== teacherRaw) warnings.push(`سطر ${i + 1}: تعارض`);
-          if (existIdx >= 0) rows[existIdx] = { day, period, className: classRaw, subject: subjectRaw, teacher: teacherRaw };
-          continue;
-        }
-        seen.add(key);
-        rows.push({ day, period, className: classRaw, subject: subjectRaw, teacher: teacherRaw });
-      }
-      window._dutyParseWarnings = warnings;
-      return rows;
-    }
-
-    function previewDutyTimetable() {
-      dutyPreviewRows = parseDutyCsv(document.getElementById('dutyTimetableText').value);
-      const el = document.getElementById('dutyTimetablePreview');
-      if (!dutyPreviewRows.length) { el.innerHTML = '<p class="text-red-600 text-xs font-bold">لم يتم التعرف على صفوف.</p>'; return; }
-      const warnings = window._dutyParseWarnings || [];
-      const warnHtml = warnings.length > 0 ? `<details class="mb-2"><summary class="text-amber-700 font-bold cursor-pointer">⚠️ ${warnings.length} تحذير</summary><div class="text-[10px] text-amber-600 mt-1 max-h-32 overflow-y-auto">${warnings.slice(0, 50).map(w => escapeHtml(w)).join('<br>')}</div></details>` : '';
-      el.innerHTML = `${warnHtml}<p class="font-bold mb-2 text-emerald-700">✅ ${dutyPreviewRows.length} سجل. عينة:</p><table class="w-full border-collapse text-[10px]"><thead><tr class="bg-slate-200 dark:bg-slate-800">${['اليوم','الحصة','الصف','المادة','المعلم'].map(x => `<th class="border p-1">${x}</th>`).join('')}</tr></thead><tbody>${dutyPreviewRows.slice(0, 30).map(r => `<tr>${[r.day, r.period, r.className, r.subject, r.teacher].map(x => `<td class="border p-1">${escapeHtml(x)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
-    }
-
-    async function commitDutyTimetable() {
-      if (!dutyPreviewRows.length) previewDutyTimetable();
-      if (!dutyPreviewRows.length) return;
-      const ok = await showConfirm(`استبدال الجدول بـ ${dutyPreviewRows.length} سجل؟`, { danger: true });
-      if (!ok) return;
-      dutyData().timetable = dutyPreviewRows.map(r => ({ ...r }));
-      dirtySets.duty_module = true;
-      const s = await saveSystemDataToCloud();
-      if (dutyPreviewRows.length > 0) {
-          const firstDay = dutyPreviewRows[0].day;
-          const daySelect = document.getElementById('scheduleDaySelect');
-          if (daySelect) daySelect.value = firstDay;
-      }
-      renderScheduleGrid();
-      showToast(s ? `تم الاعتماد بنجاح!` : 'حُفظ محلياً.', s ? 'success' : 'info');
-    }
-
-    async function handleDutyTimetableFile(event) {
-      const file = event.target.files?.[0]; if (!file) return;
-      try {
-        if (file.name.toLowerCase().endsWith('.pdf')) {
-          if (!window.pdfjsLib) await loadPdfJs();
-          const data = new Uint8Array(await file.arrayBuffer());
-          const pdf = await pdfjsLib.getDocument({ data }).promise;
-          const allRows = [];
-          for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i); const content = await page.getTextContent();
-            const items = content.items.map(it => ({ text: it.str.trim(), x: it.transform[4], y: it.transform[5] })).filter(it => it.text);
-            const yBuckets = {};
-            items.forEach(it => { const yKey = Math.round(it.y / 4) * 4; (yBuckets[yKey] = yBuckets[yKey] || []).push(it); });
-            Object.keys(yBuckets).map(Number).sort((a, b) => b - a).forEach(y => { const cells = yBuckets[y].sort((a, b) => a.x - b.x).map(it => it.text); if (cells.length >= 3) allRows.push(cells); });
-          }
-          const csvLines = [];
-          allRows.forEach(cells => {
-            const dayIdx = cells.findIndex(c => DUTY_DAYS.includes(c) || /^(ال)?(أحد|اثنين|ثلاثاء|أربعاء|خميس)/.test(c));
-            if (dayIdx === -1) return;
-            const day = normalizeDutyDay(cells[dayIdx]); const rest = cells.filter((_, i) => i !== dayIdx);
-            const periodMatch = rest.map(c => c.match(/\d+/)).find(m => m && Number(m[0]) >= 1 && Number(m[0]) <= 8);
-            if (!periodMatch) return;
-            const period = Number(periodMatch[0]);
-            const remaining = rest.filter(c => !c.match(/\d+/));
-            if (remaining.length >= 3) csvLines.push([day, period, remaining[0], remaining[1], remaining[remaining.length - 1]].join(','));
-          });
-          if (csvLines.length > 0) { document.getElementById('dutyTimetableText').value = csvLines.join('\n'); previewDutyTimetable(); showToast(`تم استخراج ${csvLines.length}.`, 'info'); }
-          else { document.getElementById('dutyTimetableText').value = allRows.map(r => r.join(' ')).join('\n'); showToast('تعذر التعرّف.', 'info'); }
-        } else { document.getElementById('dutyTimetableText').value = await file.text(); previewDutyTimetable(); }
-      } catch (e) { console.error(e); showToast('تعذر القراءة.', 'error'); }
-    }
-
-    async function loadPdfJs() {
-      return new Promise((resolve, reject) => {
-        const sc = document.createElement('script');
-        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-        sc.onload = () => {
-          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-          resolve();
-        };
-        sc.onerror = () => {
-          const sc2 = document.createElement('script');
-          sc2.src = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
-          sc2.onload = () => {
-            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-            resolve();
-          };
-          sc2.onerror = reject;
-          document.head.appendChild(sc2);
-        };
-        document.head.appendChild(sc);
-      });
-    }
-
-    function refreshDutySwapOriginal() {
-      const date = document.getElementById('dutySwapDate').value;
-      const cls = document.getElementById('dutySwapClass').value;
-      const per = Number(document.getElementById('dutySwapPeriod').value);
-      const row = dutyData().timetable.find(x => x.day === dutyDayForDate(date) && Number(x.period) === per && x.className === cls);
-      document.getElementById('dutySwapOriginal').value = row ? effectiveDutyTeacher(date, per, cls, row.teacher) : '';
-    }
-    async function saveDutySwap() {
-      const date = document.getElementById('dutySwapDate').value;
-      const className = document.getElementById('dutySwapClass').value;
-      const period = Number(document.getElementById('dutySwapPeriod').value);
-      const replacementTeacher = document.getElementById('dutySwapReplacement').value;
-      const originalTeacher = document.getElementById('dutySwapOriginal').value;
-      if (!date || !className || !period || !originalTeacher || !replacementTeacher) { showToast('أكمل الحقول.', 'error'); return; }
-      if (originalTeacher === replacementTeacher) { showToast('نفس المعلم.', 'error'); return; }
-      const d = dutyData();
-      d.overrides = d.overrides.filter(x => !(x.date === date && Number(x.period) === period && x.className === className));
-      d.overrides.push({ date, period, className, originalTeacher, replacementTeacher, reason: document.getElementById('dutySwapReason').value.trim(), createdAt: getTrustedDate().toISOString() });
-      dirtySets.duty_module = true;
-      const ok = await saveSystemDataToCloud();
-      renderDutySwaps(); refreshDutySwapOriginal();
-      showToast(ok ? 'تم.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
-    }
-    function renderDutySwaps() {
-      const el = document.getElementById('dutySwapsList'); if (!el) return;
-      const rows = dutyData().overrides.slice().sort((a, b) => a.date.localeCompare(b.date));
-      el.innerHTML = rows.length ? rows.map(r => `<div class="border rounded-xl p-2 flex justify-between items-center gap-2"><span>${escapeHtml(r.date)} · ${escapeHtml(r.className)} · ح${r.period}: ${escapeHtml(r.originalTeacher)} ← ${escapeHtml(r.replacementTeacher)}</span><button data-date="${escapeHtml(r.date)}" data-class="${escapeHtml(r.className)}" data-period="${r.period}" onclick="removeDutySwapFromBtn(this)" class="text-red-700 font-bold">إلغاء</button></div>`).join('') : '<p class="text-slate-400">لا توجد تبديلات.</p>';
-    }
-    async function removeDutySwapFromBtn(btn) {
-      const d = dutyData();
-      d.overrides = d.overrides.filter(x => !(x.date === btn.dataset.date && x.className === btn.dataset.class && Number(x.period) === Number(btn.dataset.period)));
-      dirtySets.duty_module = true;
-      await saveSystemDataToCloud(); renderDutySwaps(); refreshDutySwapOriginal();
-    }
-
     function renderDutyAdminReview() {
       const d = dutyData();
       const el = document.getElementById('dutyReviewList'); const stats = document.getElementById('dutyAdminStats'); const teacherStats = document.getElementById('dutyTeacherStats');
@@ -4012,9 +3557,12 @@
       stats.innerHTML = [['بانتظار', counts.pending], ['غياب', counts.absence], ['تأخر', counts.late]].map(([label, val]) => `<div class="bg-white dark:bg-slate-800 border rounded-2xl p-4"><div class="text-xs text-slate-500">${label}</div><div class="text-2xl font-black mt-1">${val}</div></div>`).join('');
       const byTeacher = {};
       d.records.filter(r => ['absence', 'late'].includes(r.status)).forEach(r => { if (!byTeacher[r.teacherName]) byTeacher[r.teacherName] = { absence: 0, late: 0 }; byTeacher[r.teacherName][r.status]++; });
-      if (teacherStats) { const names = Object.keys(byTeacher).sort((a, b) => a.localeCompare(b, 'ar')); teacherStats.innerHTML = names.length ? '<h5 class="font-bold text-xs mt-3">حسب المعلم</h5>' + names.map(n => `<div class="border rounded-xl p-3 text-xs flex justify-between gap-2"><strong>${escapeHtml(n)}</strong><span>غياب: ${byTeacher[n].absence} · تأخر: ${byTeacher[n].late}</span></div>`).join('') : '<p class="text-xs text-slate-400 mt-3">لا حالات معتمدة.</p>'; }
-      const rows = d.records.slice().sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      el.innerHTML = rows.length ? rows.map(r => `<div class="border rounded-xl p-3 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-center bg-white dark:bg-slate-800"><div class="text-xs"><strong>${escapeHtml(r.date)} · ${escapeHtml(r.day)} · ${escapeHtml(r.className)} · ح${r.period}</strong><div class="text-slate-500 mt-1">المعلم: ${escapeHtml(r.teacherName)} · المبلّغ: ${escapeHtml(r.reportedBy)}</div></div><span class="text-xs font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span><select data-id="${escapeHtml(String(r.id))}" onchange="updateDutyRecordStatus(this)" class="border rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><option value="pending" ${r.status === 'pending' ? 'selected' : ''}>بانتظار</option><option value="absence" ${r.status === 'absence' ? 'selected' : ''}>غياب</option><option value="late" ${r.status === 'late' ? 'selected' : ''}>تأخر</option><option value="swap" ${r.status === 'swap' ? 'selected' : ''}>تبديل</option><option value="excused" ${r.status === 'excused' ? 'selected' : ''}>عذر</option><option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>غير مثبت</option></select></div>`).join('') : '<p class="text-slate-400 text-xs">لا بلاغات.</p>';
+      if (teacherStats) {
+        const names = Object.keys(byTeacher).sort((a, b) => a.localeCompare(b, 'ar'));
+        teacherStats.innerHTML = names.length ? '<h5 class="font-bold text-xs mt-3">حسب المعلم</h5>' + names.map(n => `<div class="border rounded-xl p-3 text-xs flex justify-between gap-2"><strong>${escapeHtml(n)}</strong><span>غياب: ${byTeacher[n].absence} · تأخر: ${byTeacher[n].late}</span></div>`).join('') : '<p class="text-xs text-slate-400 mt-3">لا حالات معتمدة.</p>';
+      }
+      const rows = d.records.slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+      el.innerHTML = rows.length ? rows.map(r => `<div class="border rounded-xl p-3 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-center bg-white dark:bg-slate-800"><div class="text-xs"><strong>${escapeHtml(r.date)} · ${escapeHtml(r.day)} · ${escapeHtml(r.className)} · ح${r.period}</strong><div class="text-slate-500 mt-1">المعلم: ${escapeHtml(r.teacherName || '—')} · المبلّغ: ${escapeHtml(r.reportedBy)}</div></div><span class="text-xs font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span><select data-id="${escapeHtml(String(r.id))}" onchange="updateDutyRecordStatus(this)" class="border rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><option value="pending" ${r.status === 'pending' ? 'selected' : ''}>بانتظار</option><option value="absence" ${r.status === 'absence' ? 'selected' : ''}>غياب</option><option value="late" ${r.status === 'late' ? 'selected' : ''}>تأخر</option><option value="swap" ${r.status === 'swap' ? 'selected' : ''}>تبديل</option><option value="excused" ${r.status === 'excused' ? 'selected' : ''}>عذر</option><option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>غير مثبت</option></select></div>`).join('') : '<p class="text-slate-400 text-xs">لا بلاغات.</p>';
     }
     async function updateDutyRecordStatus(selectEl) {
       const id = selectEl.dataset.id;
@@ -4025,138 +3573,16 @@
       renderDutyAdminReview();
       showToast(ok ? 'تم.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
-
     function exportDutyReportsCSV() {
       const records = dutyData().records || [];
       if (records.length === 0) { showToast('لا بلاغات.', 'info'); return; }
-      let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المادة,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة\n';
-      records.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).forEach(r => { csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(r.className), escapeCsvField(r.subject || ''), escapeCsvField(r.teacherName), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n'; });
+      let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة\n';
+      records.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).forEach(r => {
+        csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(r.className), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n';
+      });
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
       showToast('تم التنزيل.', 'success');
-    }
-
-    async function extractTeachersFromSchedule() {
-      const textarea = document.getElementById('dutyTimetableText');
-      if (!textarea || !textarea.value.trim()) { showToast('الصق CSV أولاً.', 'error'); return; }
-      const rows = parseDutyCsv(textarea.value);
-      if (rows.length === 0) { showToast('لم يتم التعرف.', 'error'); return; }
-
-      const fullNames = [...new Set(rows.map(r => r.teacher))];
-      const nameGroups = {};
-      fullNames.forEach(full => {
-          const parts = full.trim().split(/\s+/);
-          const short = parts.length <= 2 ? full.trim() : `${parts[0]} ${parts[parts.length - 1]}`;
-          if (!nameGroups[short]) nameGroups[short] = [];
-          nameGroups[short].push(full);
-      });
-
-      const resolvedNames = {};
-      for (const [short, fulls] of Object.entries(nameGroups)) {
-          if (fulls.length === 1) {
-              resolvedNames[fulls[0]] = short;
-          } else {
-              fulls.forEach(full => {
-                  const parts = full.trim().split(/\s+/);
-                  if (parts.length >= 3) {
-                      resolvedNames[full] = `${parts[0]} ${parts[1]} ${parts[parts.length - 1]}`;
-                  } else {
-                      resolvedNames[full] = full;
-                  }
-              });
-          }
-      }
-
-      const finalUniqueNames = new Set(db.teachers.map(t => t.name));
-      for (const full of fullNames) {
-          let finalName = resolvedNames[full];
-          if (finalUniqueNames.has(finalName)) {
-              let counter = 1;
-              while (finalUniqueNames.has(`${finalName} (${counter})`)) counter++;
-              finalName = `${finalName} (${counter})`;
-          }
-          finalUniqueNames.add(finalName);
-          resolvedNames[full] = finalName;
-      }
-
-      const subjectMap = {};
-      rows.forEach(r => {
-        const subj = r.subject || 'غير محدد';
-        if (!subjectMap[subj]) subjectMap[subj] = new Set();
-        subjectMap[subj].add(r.teacher);
-      });
-
-      const added = [], skipped = [], conflicts = [];
-      const usedShortNames = new Set();
-
-      for (const [subject, teacherSet] of Object.entries(subjectMap)) {
-        for (const fullName of teacherSet) {
-          const shortName = resolvedNames[fullName];
-          if (usedShortNames.has(shortName)) { conflicts.push(`"${shortName}" مكرر`); continue; }
-          usedShortNames.add(shortName);
-
-          const existingTeacher = db.teachers.find(t => t.name === shortName);
-          if (existingTeacher) {
-            db.dutyModule.teacherMeta[shortName] = db.dutyModule.teacherMeta[shortName] || {};
-            db.dutyModule.teacherMeta[shortName].subject = subject;
-            skipped.push(shortName);
-          } else {
-            // ✅ فحص تعارض مع customUsers
-            if ((db.customUsers || []).some(u => u.name === shortName)) {
-              conflicts.push(`"${shortName}" موجود كمستخدم مخصص`);
-              continue;
-            }
-            let pin = null, attempts = 0;
-            while (attempts < 200) {
-              const candidate = String(Math.floor(1000 + Math.random() * 9000));
-              if (!await isPinTaken(candidate)) { pin = candidate; break; }
-              attempts++;
-            }
-            if (!pin) { conflicts.push(`تعذر توليد رمز لـ "${shortName}"`); continue; }
-            const rec = await createPinRecord(pin);
-            db.teachers.push({ name: shortName, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true });
-            dirtySets.teachers.add(shortName);
-            db.dutyModule.teacherMeta[shortName] = { subject, day: '', start: '07:00', end: '13:50', enabled: false };
-            added.push({ name: shortName, pin, subject, original: fullName });
-          }
-        }
-      }
-
-      if (added.length > 0 || skipped.length > 0) {
-        dirtySets.duty_module = true;
-        await saveSystemDataToCloud();
-      }
-
-      renderTeachersList();
-      renderSubjectDutyDays();
-
-      let addedHTML = '';
-      if (added.length > 0) {
-         const addedBySubj = {};
-         added.forEach(a => {
-            if (!addedBySubj[a.subject]) addedBySubj[a.subject] = [];
-            addedBySubj[a.subject].push(a);
-         });
-         addedHTML = `<div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border-2 border-emerald-300">
-            <div class="font-black text-emerald-800 dark:text-emerald-300 mb-3 text-base">✅ تمت إضافة ${added.length} معلم جديد</div>
-            <div class="space-y-4">`;
-         for (const [subj, list] of Object.entries(addedBySubj)) {
-            addedHTML += `<div><div class="font-bold text-xs text-emerald-700 dark:text-emerald-400 mb-1 border-b border-emerald-200 dark:border-emerald-800 pb-1">مادة: ${escapeHtml(subj)}</div><div class="space-y-1.5">`;
-            list.forEach(a => {
-               addedHTML += `<div class="flex justify-between items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-lg"><div><strong>${escapeHtml(a.name)}</strong><div class="text-[10px] text-slate-400">${escapeHtml(a.original)}</div></div><div class="font-mono font-black text-lg text-emerald-700 dark:text-emerald-400">${a.pin}</div></div>`;
-            });
-            addedHTML += `</div></div>`;
-         }
-         addedHTML += `</div><div class="text-[10px] text-amber-700 dark:text-amber-400 mt-2 font-bold">⚠️ احفظ هذه الأرقام</div></div>`;
-      }
-
-      const skippedHTML = skipped.length > 0 ? `<div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200"><div class="font-bold text-amber-800 dark:text-amber-300 mb-2">⏭️ ${skipped.length} معلم موجود مسبقاً (تم تحديث مادته)</div></div>` : '';
-      const conflictsHTML = conflicts.length > 0 ? `<div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-2xl border border-red-200"><div class="font-bold text-red-800 dark:text-red-300 mb-2">⚠️ تعارضات (${conflicts.length}):</div><div class="text-xs">${conflicts.map(c => escapeHtml(c)).join('<br>')}</div></div>` : '';
-
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-user-plus text-emerald-400"></i> استخراج المعلمين وتوزيعهم حسب المادة`;
-      document.getElementById('generalModalBody').innerHTML = `<div class="space-y-3">${addedHTML}${skippedHTML}${conflictsHTML}</div>`;
-      document.getElementById('generalModal').classList.remove('hidden');
-      showToast(`تم استخراج وتوزيع المعلمين حسب المواد.`, added.length > 0 ? 'success' : 'info');
     }
   </script>
 </body>
