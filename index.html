@@ -382,54 +382,26 @@
       <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-shield-halved text-emerald-600"></i> صلاحيات: <span id="permTeacherName" class="text-emerald-700"></span></h3>
       <button onclick="closePermissionsModal()" class="text-slate-400 text-base"><i class="fa-solid fa-xmark"></i></button>
     </div>
-
     <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 rounded-2xl p-4">
-      <div class="text-xs font-black text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-2">
-        <i class="fa-solid fa-check-circle text-emerald-600"></i> الصلاحيات الافتراضية (مفعّلة تلقائياً)
-      </div>
+      <div class="text-xs font-black text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-2"><i class="fa-solid fa-check-circle text-emerald-600"></i> الصلاحيات الافتراضية (مفعّلة تلقائياً)</div>
       <div class="grid grid-cols-3 gap-2 text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
         <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">📋 رصد الغياب</div>
         <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">⚖️ رصد السلوكيات</div>
         <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">🕒 المناوبة (في يومها)</div>
       </div>
     </div>
-
     <div>
-      <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2">
-        <i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم
-      </div>
+      <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم</div>
       <div class="grid grid-cols-2 gap-2">
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <input type="checkbox" id="perm_p_studstats" class="accent-emerald-600 w-4 h-4">
-          <span class="text-xs font-bold">📊 الإحصائيات</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <input type="checkbox" id="perm_p_behaviorstats" class="accent-teal-600 w-4 h-4">
-          <span class="text-xs font-bold">⚖️ كشوفات السلوك</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <input type="checkbox" id="perm_p_students" class="accent-indigo-600 w-4 h-4">
-          <span class="text-xs font-bold">🎓 إدارة الطلاب</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <input type="checkbox" id="perm_p_alerts" class="accent-red-600 w-4 h-4">
-          <span class="text-xs font-bold">🔔 التنبيهات</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4">
-          <span class="text-xs font-bold">📄 التقارير</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700">
-          <input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4">
-          <span class="text-xs font-bold">🔐 الأمان</span>
-        </label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2">
-          <input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4">
-          <span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span>
-        </label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_studstats" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📊 الإحصائيات</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_behaviorstats" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ كشوفات السلوك</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_students" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🎓 إدارة الطلاب</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_alerts" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold">🔔 التنبيهات</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📄 التقارير</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4"><span class="text-xs font-bold">🔐 الأمان</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
       </div>
     </div>
-
     <div class="flex justify-end gap-2 pt-2 border-t">
       <button onclick="closePermissionsModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
       <button onclick="saveTeacherPermissions()" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">حفظ الصلاحيات</button>
@@ -617,7 +589,6 @@
           <p class="text-xs text-slate-500">حدد يوم المناوبة لكل مادة/قسم. جميع منتسبيه سيكونون مناوبين تلقائياً في ذلك اليوم فقط.</p>
           <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
         </div>
-
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
           <h5 class="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-plus text-emerald-600"></i> إضافة معلم واحد</h5>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -627,7 +598,6 @@
           <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-key"></i> سيُولَّد رمز سري (4 أرقام) تلقائياً + إجبار التغيير.</div>
           <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md">حفظ المعلم</button>
         </div>
-
         <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 p-5 rounded-3xl border-2 border-emerald-300 dark:border-emerald-800 space-y-3 shadow-md">
           <div class="flex items-center gap-2">
             <div class="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md"><i class="fa-solid fa-paste text-sm"></i></div>
@@ -647,7 +617,6 @@
           </div>
           <button onclick="bulkAddTeachers(event)" class="w-full bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white text-sm font-black px-5 py-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-users"></i> حفظ القائمة الجماعية</button>
         </div>
-
         <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>
       </div>
 
@@ -793,7 +762,7 @@ function dismissToast(toast) { if (!toast || toast.classList.contains('toast-exi
 function showConfirm(message, options = {}) {
   return new Promise((resolve) => {
     const modal = document.createElement('div'); modal.className = 'modal-shell';
-    modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-3 text-slate-800 dark:text-white">${escapeHtml(options.title || 'تأكيد')}</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-5 leading-relaxed">${escapeHtml(message)}</p><div class="flex gap-2 justify-end"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">${escapeHtml(options.cancelText || 'إلغاء')}</button><button data-action="ok" class="px-5 py-2.5 ${options.danger ? 'bg-red-700 hover:bg-red-800' : 'bg-emerald-700 hover:bg-emerald-800'} text-white rounded-2xl text-xs font-bold shadow-md">${escapeHtml(options.okText || 'تأكيد')}</button></div></div>`;
+    modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-3 text-slate-800 dark:text-white">${escapeHtml(options.title || 'تأكيد')}</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-5 leading-relaxed whitespace-pre-line">${escapeHtml(message)}</p><div class="flex gap-2 justify-end"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">${escapeHtml(options.cancelText || 'إلغاء')}</button><button data-action="ok" class="px-5 py-2.5 ${options.danger ? 'bg-red-700 hover:bg-red-800' : 'bg-emerald-700 hover:bg-emerald-800'} text-white rounded-2xl text-xs font-bold shadow-md">${escapeHtml(options.okText || 'تأكيد')}</button></div></div>`;
     document.body.appendChild(modal);
     const okBtn = modal.querySelector('[data-action=ok]');
     modal.querySelector('[data-action=cancel]').onclick = () => { modal.remove(); resolve(false); };
@@ -802,10 +771,11 @@ function showConfirm(message, options = {}) {
     setTimeout(() => okBtn.focus(), 50);
   });
 }
+/* ✅ الإصلاح #1: inputmode */
 function showPrompt(message, options = {}) {
   return new Promise((resolve) => {
     const modal = document.createElement('div'); modal.className = 'modal-shell';
-    modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-3 text-slate-800 dark:text-white">${escapeHtml(options.title || 'إدخال')}</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-3">${escapeHtml(message)}</p><input type="${options.inputType || 'text'}" data-input class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none text-slate-800 dark:text-white" value="${escapeHtml(options.defaultValue || '')}"><div class="flex gap-2 justify-end mt-5"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">${escapeHtml(options.cancelText || 'إلغاء')}</button><button data-action="ok" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">${escapeHtml(options.okText || 'حفظ')}</button></div></div>`;
+    modal.innerHTML = `<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-3 text-slate-800 dark:text-white">${escapeHtml(options.title || 'إدخال')}</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-3">${escapeHtml(message)}</p><input type="${options.inputType || 'text'}" ${options.inputMode ? `inputmode="${options.inputMode}"` : ''} data-input class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold outline-none text-slate-800 dark:text-white" value="${escapeHtml(options.defaultValue || '')}"><div class="flex gap-2 justify-end mt-5"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">${escapeHtml(options.cancelText || 'إلغاء')}</button><button data-action="ok" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">${escapeHtml(options.okText || 'حفظ')}</button></div></div>`;
     document.body.appendChild(modal);
     const input = modal.querySelector('[data-input]');
     setTimeout(() => { input.focus(); input.select(); }, 50);
@@ -940,7 +910,18 @@ function normalizeDutyModule(value) {
 function dutyData() { db.dutyModule = normalizeDutyModule(db.dutyModule); return db.dutyModule; }
 function getTeacherCategory(name) { const t = (db.teachers || []).find(x => x.name === name); return t?.permissions?.category || ''; }
 function isTeacherOnDutyToday(name) { const cat = getTeacherCategory(name); if (!cat) return false; const dd = dutyData().subjectDays[cat]; if (!dd) return false; return dutyDayForDate(getOmanLocalDate()) === dd; }
-function dutyStatusLabel(s) { return ({pending:'بانتظار المراجعة',absence:'غياب معتمد',late:'تأخر معتمد',swap:'تبديل مثبت',excused:'عذر مقبول',dismissed:'بلاغ غير مثبت'})[s] || s; }
+/* ✅ الإصلاح #6: إضافة clean */
+function dutyStatusLabel(s) {
+  return ({
+    pending: 'بانتظار المراجعة',
+    absence: 'غياب معتمد',
+    late: 'تأخر معتمد',
+    swap: 'تبديل مثبت',
+    excused: 'عذر مقبول',
+    dismissed: 'بلاغ غير مثبت',
+    clean: 'سليم (لا غياب)'
+  })[s] || s;
+}
 
 /* ============ LocalStorage ============ */
 function saveToLocalStorageSafe() {
@@ -1565,7 +1546,7 @@ function filterStudentList(containerId) {
   c.querySelectorAll('.student-row').forEach(r => { const n = r.querySelector('.student-name')?.textContent?.toLowerCase() || ''; r.style.display = (!q || n.includes(q)) ? '' : 'none'; });
 }
 
-/* ============ Stats (unchanged logic) ============ */
+/* ============ Stats ============ */
 function onStatsFilterChanged() { updateCustomRangeVisibility(); if (!document.getElementById('statsSubSec-absence').classList.contains('hidden')) renderStudentStatsDashboard(); else if (!document.getElementById('statsSubSec-behaviors').classList.contains('hidden')) renderBehaviorStatsDashboard(); }
 function updateCustomRangeVisibility() { const pt = document.getElementById('statsPeriodFilter').value; const el = document.getElementById('customDateRangeContainer'); if (!el) return; if (pt === 'custom') { el.classList.remove('hidden'); el.classList.add('flex'); } else { el.classList.add('hidden'); el.classList.remove('flex'); } }
 function switchStatsSubTab(st) {
@@ -2135,7 +2116,6 @@ async function copyPinAndClose() {
   }
   m.classList.add('hidden');
 }
-/* ✅ عرض/إعادة تعيين الرمز */
 async function showTeacherPin(idx) {
   const t = db.teachers[idx]; if (!t) return;
   const ok = await showConfirm(`لا يمكن استرجاع الرمز المشفر.\nهل تريد إنشاء رمز جديد لـ (${t.name}) وعرضه الآن؟`, { title: 'إعادة تعيين الرمز', okText: 'إنشاء جديد' });
@@ -2151,7 +2131,7 @@ async function showTeacherPin(idx) {
     showToast(success ? 'تم إنشاء رمز جديد!' : 'حُفظ محلياً.', success ? 'success' : 'info');
   } catch(e) { showToast('تعذر التوليد.', 'error'); }
 }
-/* ✅ تعديل اسم المعلم */
+/* ✅ الإصلاح #2 + #7: تعديل اسم المعلم مع تراجع آمن وتجديد الجلسة */
 async function editTeacherName(idx) {
   const t = db.teachers[idx]; if (!t) return;
   const oldName = t.name;
@@ -2162,17 +2142,53 @@ async function editTeacherName(idx) {
   if (db.teachers.some((x, i) => i !== idx && x.name === trimmed) || (db.customUsers || []).some(u => u.name === trimmed)) {
     showToast('الاسم مستخدم.', 'error'); return;
   }
-  // Update references in attendance/behaviors
+
+  // تعديل جميع المراجع محلياً + تتبع dirty
   Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === oldName) { s.teacher = trimmed; dirtySets.attendance.add(k); } });
   Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === oldName) { s.teacher = trimmed; dirtySets.behaviors.add(k); } });
-  db.dutyModule.records.forEach(r => { if (r.reportedBy === oldName) r.reportedBy = trimmed; if (r.reviewedBy === oldName) r.reviewedBy = trimmed; });
+  db.dutyModule.records.forEach(r => {
+    let changed = false;
+    if (r.reportedBy === oldName) { r.reportedBy = trimmed; changed = true; }
+    if (r.reviewedBy === oldName) { r.reviewedBy = trimmed; changed = true; }
+    if (changed) dirtySets.duty_reports.add(String(r.id));
+  });
   t.name = trimmed;
   dirtySets.teachers.add(trimmed);
+
   const success = await saveSystemDataToCloud();
+
+  // ✅ الإصلاح #1: لا تحذف القديم إلا إذا نجح حفظ الجديد
+  if (!success) {
+    // تراجع كامل
+    t.name = oldName;
+    dirtySets.teachers.delete(trimmed);
+    dirtySets.teachers.add(oldName);
+    Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === trimmed) s.teacher = oldName; });
+    Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === trimmed) s.teacher = oldName; });
+    db.dutyModule.records.forEach(r => { if (r.reportedBy === trimmed) r.reportedBy = oldName; if (r.reviewedBy === trimmed) r.reviewedBy = oldName; });
+    renderTeachersList();
+    showToast('فشل التحديث. لم يتم تغيير الاسم.', 'error');
+    return;
+  }
+
+  // الآن احذف القديم من السحابة
   await queueCloudDelete('teachers', { name: oldName, role: 'teacher' });
   renderTeachersList();
-  showToast(success ? 'تم تحديث الاسم.' : 'حُفظ محلياً.', success ? 'success' : 'info');
-  if (activeUser?.name === oldName) { activeUser.name = trimmed; document.getElementById('activeUserName').textContent = trimmed; }
+  showToast('تم تحديث الاسم.', 'success');
+
+  // ✅ الإصلاح #7: إذا كان المستخدم الحالي هو من غيّر اسمه — جدّد الجلسة
+  if (activeUser?.name === oldName) {
+    activeUser.name = trimmed;
+    document.getElementById('activeUserName').textContent = trimmed;
+    const cp = await showPrompt('أدخل رمزك الحالي لتجديد الجلسة (تغيير الاسم يتطلب ذلك):', { title: 'تجديد الجلسة', inputMode: 'numeric' });
+    if (cp && await verifyPinAgainstRecord(cp, { hash: t.pin_hash, salt: t.pin_salt })) {
+      const ss = await deriveSessionSecret(cp, t.pin_salt);
+      await createSignedSession(trimmed, activeUser.type, ss);
+      showToast('تم تجديد الجلسة.', 'success');
+    } else {
+      showToast('لم تُجدَّد الجلسة. سيُطلب منك الدخول مجدداً.', 'info');
+    }
+  }
 }
 async function editTeacherPin(idx) {
   const t = db.teachers[idx]; if (!t) return;
@@ -2389,7 +2405,6 @@ function renderDutyPeriods() {
   const st = document.getElementById('dutyPeriodStatus');
   if (st) st.textContent = `مدة السماح: ${d.graceMinutes} د${isAT ? ' (اختبار)' : ''}`;
 }
-/* ✅ شبكة بطاقات تفاعلية */
 function selectDutyPeriod(period) {
   const d = dutyData();
   const p = d.periods[period - 1];
@@ -2407,7 +2422,7 @@ function selectDutyPeriod(period) {
     btn.dataset.className = cn;
     btn.dataset.noTeacher = 'false';
     btn.className = 'duty-class-card relative bg-gradient-to-br from-white via-slate-50 to-emerald-50/50 dark:from-slate-800 dark:to-slate-800/90 hover:from-emerald-600 hover:to-teal-700 hover:text-white text-slate-800 dark:text-emerald-100 font-bold py-5 px-3 rounded-3xl border-2 border-emerald-200 dark:border-slate-700/80 shadow-sm hover:shadow-xl transition-all text-center flex flex-col items-center justify-center gap-2';
-    btn.innerHTML = `<div class="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 group-hover:bg-white/20 text-emerald-700 dark:text-emerald-300 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-users text-sm"></i></div><span class="text-base font-extrabold pointer-events-none">صف ${escapeHtml(cn)}</span><span class="text-[10px] px-3 py-1 rounded-full font-bold pointer-events-none bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200">بمعلم ✓</span>`;
+    btn.innerHTML = `<div class="w-10 h-10 rounded-2xl bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 flex items-center justify-center pointer-events-none"><i class="fa-solid fa-users text-sm"></i></div><span class="text-base font-extrabold pointer-events-none">صف ${escapeHtml(cn)}</span><span class="text-[10px] px-3 py-1 rounded-full font-bold pointer-events-none bg-emerald-100/80 dark:bg-emerald-950/80 text-emerald-800 dark:text-emerald-200">بمعلم ✓</span>`;
     btn.onclick = () => toggleDutyClassSelection(btn);
     list.appendChild(btn);
   });
@@ -2436,17 +2451,22 @@ function updateDutySelectionCount() {
     el.className = cnt > 0 ? 'text-[11px] bg-red-600 text-white px-3 py-1.5 rounded-xl font-bold border border-red-400 shadow-sm' : 'text-[11px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-3 py-1.5 rounded-xl font-bold border border-emerald-200';
   }
 }
-/* ✅ رسالة واتساب - الحصة الحالية فقط */
+/* ✅ الإصلاح #4: فرز آمن للشعب من رقمين */
 function buildDutyWhatsAppMessage(classes, period) {
   const date = getOmanLocalDate();
   const day = dutyDayForDate(date);
   const timeStr = getOmanTimeStr();
   const periodName = periodNamesMap[period] || `الحصة ${period}`;
+
   const sortedClasses = [...classes].sort((a, b) => {
-    const na = parseFloat(String(a).replace(/[^\d.]/g, '')) || 0;
-    const nb = parseFloat(String(b).replace(/[^\d.]/g, '')) || 0;
-    return na - nb || String(a).localeCompare(String(b), 'ar');
+    const [ga, sa] = String(a).split(/[\/\-]/).map(Number);
+    const [gb, sb] = String(b).split(/[\/\-]/).map(Number);
+    if (!isNaN(ga) && !isNaN(gb)) {
+      return (ga - gb) || ((sa || 0) - (sb || 0)) || String(a).localeCompare(String(b), 'ar');
+    }
+    return String(a).localeCompare(String(b), 'ar');
   });
+
   let msg = '';
   msg += `*تقرير غياب المناوبة - ${periodName}*\n\n`;
   msg += `📅 التاريخ: ${date}\n`;
@@ -2454,6 +2474,7 @@ function buildDutyWhatsAppMessage(classes, period) {
   msg += `🕐 *وقت الإرسال: ${timeStr}* بتوقيت عُمان\n`;
   msg += `👤 المعلم المناوب: *${activeUser?.name || '—'}*\n`;
   msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
   if (sortedClasses.length === 0) {
     msg += `✅ *لا يوجد صف بدون معلم* 😃\n\n`;
   } else {
@@ -2461,16 +2482,19 @@ function buildDutyWhatsAppMessage(classes, period) {
     sortedClasses.forEach(c => { msg += `• *${classToArabicName(c)}*\n`; });
     msg += `\n`;
   }
+
   msg += `━━━━━━━━━━━━━━━━━━━━\n`;
   msg += `🏫 _${SCHOOL_NAME}_`;
   return msg;
 }
+/* ✅ الإصلاح #3 + #6: استبدال السجلات القديمة بأمان + سجل "سليم" */
 async function submitDutyReport() {
   if (!selectedDutyPeriod || !activeUser) return;
   const selected = [...document.querySelectorAll('#dutyClassesList button[data-no-teacher="true"]')];
   const selectedClasses = selected.map(b => b.dataset.className);
   const date = getOmanLocalDate(), day = dutyDayForDate(date), d = dutyData();
   const createdAt = getTrustedDate().toISOString();
+
   const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
   if (!isAT) {
     const pC = d.periods[selectedDutyPeriod - 1];
@@ -2478,23 +2502,46 @@ async function submitDutyReport() {
     const ps = toMinutes(pC?.start), pe = toMinutes(pC?.end);
     const cat = getTeacherCategory(activeUser.name);
     const tDay = cat ? d.subjectDays[cat] : '';
-    if (dutyDayForDate(date) !== tDay || ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) { showToast('انتهت النافذة.', 'error'); return; }
+    if (dutyDayForDate(date) !== tDay || ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) {
+      showToast('انتهت النافذة الزمنية.', 'error'); return;
+    }
   }
-  // Save records for selected classes
-  if (selectedClasses.length > 0) {
-    const added = selectedClasses.map(cn => ({
-      id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
-      date, day, period: selectedDutyPeriod, className: cn, teacherName: '', reportedBy: activeUser.name, status: 'pending', createdAt
-    }));
-    const seen = new Set(d.records.map(r => `${r.date}|${r.period}|${r.className}|${r.reportedBy}`));
-    const fresh = added.filter(r => !seen.has(`${r.date}|${r.period}|${r.className}|${r.reportedBy}`));
-    if (fresh.length > 0) { d.records.push(...fresh); for (const r of fresh) dirtySets.duty_reports.add(r.id); }
-    await saveSystemDataToCloud();
+
+  const oldRecords = d.records.filter(r => r.date === date && Number(r.period) === selectedDutyPeriod && r.reportedBy === activeUser.name);
+
+  const newRecords = selectedClasses.length > 0
+    ? selectedClasses.map(cn => ({
+        id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+        date, day, period: selectedDutyPeriod, className: cn, teacherName: '',
+        reportedBy: activeUser.name, status: 'pending', createdAt
+      }))
+    : [{
+        id: (window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : `${Date.now()}-${Math.random()}`),
+        date, day, period: selectedDutyPeriod, className: '__CLEAN__', teacherName: '',
+        reportedBy: activeUser.name, status: 'clean', createdAt
+      }];
+
+  d.records.push(...newRecords);
+  for (const r of newRecords) dirtySets.duty_reports.add(r.id);
+
+  const saveOk = await saveSystemDataToCloud();
+  if (!saveOk) {
+    const newIds = new Set(newRecords.map(r => String(r.id)));
+    d.records = d.records.filter(r => !newIds.has(String(r.id)));
+    for (const id of newIds) dirtySets.duty_reports.delete(id);
+    showToast('فشل الحفظ. لم يتم أي تغيير.', 'error');
+    return;
   }
+
+  const oldIds = new Set(oldRecords.map(r => String(r.id)));
+  d.records = d.records.filter(r => !oldIds.has(String(r.id)));
+  for (const oldR of oldRecords) {
+    await queueCloudDelete('duty_reports', { id: String(oldR.id) });
+  }
+
   renderDutyTodayRecords();
-  // Build and send WhatsApp
   lastDutyMessage = buildDutyWhatsAppMessage(selectedClasses, selectedDutyPeriod);
-  showToast(selectedClasses.length > 0 ? `تم حفظ ${selectedClasses.length} صف.` : 'تم إرسال تأكيد الحالة.', 'success');
+  showToast(selectedClasses.length > 0 ? `تم حفظ ${selectedClasses.length} صف.` : 'تم التسجيل: لا يوجد غياب.', 'success');
   openWhatsAppSafely(lastDutyMessage);
 }
 function openWhatsAppSafely(msg) {
@@ -2507,13 +2554,20 @@ async function copyLastDutyMessage() {
   try { await navigator.clipboard.writeText(lastDutyMessage); showToast('نُسخ.', 'success'); }
   catch(e) { const ta = document.createElement('textarea'); ta.value = lastDutyMessage; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showToast('نُسخ.', 'success'); } catch(e2) { showToast('تعذر.', 'error'); } document.body.removeChild(ta); }
 }
+/* ✅ الإصلاح #7: عرض "سليم" بشكل خاص */
 function renderDutyTodayRecords() {
   const el = document.getElementById('dutyTodayRecords'); if (!el) return;
   const today = getOmanLocalDate();
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const rows = dutyData().records.filter(r => r.date === today && (isA || r.reportedBy === activeUser?.name));
   if (!rows.length) { el.innerHTML = '<p class="text-slate-400 text-xs">لا بلاغات.</p>'; return; }
-  el.innerHTML = rows.map(r => `<div class="border border-slate-200 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period}${r.teacherName ? ' · ' + escapeHtml(r.teacherName) : ''} · <span class="text-amber-700">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`).join('');
+
+  el.innerHTML = rows.map(r => {
+    if (r.className === '__CLEAN__') {
+      return `<div class="border border-emerald-200 dark:border-emerald-700 rounded-xl p-3 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-200"><strong>✓ سليم — لا يوجد صف بدون معلم</strong> · ح${r.period} · <span class="text-emerald-700 dark:text-emerald-300 font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`;
+    }
+    return `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period}${r.teacherName ? ' · ' + escapeHtml(r.teacherName) : ''} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`;
+  }).join('');
 }
 function initDutyAdminPanel() {
   const d = dutyData();
@@ -2548,9 +2602,19 @@ function renderDutyAdminReview() {
   d.records.filter(r => ['absence', 'late'].includes(r.status)).forEach(r => { if (!byT[r.teacherName]) byT[r.teacherName] = { absence: 0, late: 0 }; byT[r.teacherName][r.status]++; });
   if (ts) { const names = Object.keys(byT).sort((a, b) => a.localeCompare(b, 'ar')); ts.innerHTML = names.length ? '<h5 class="font-bold text-xs mt-3">حسب المعلم</h5>' + names.map(n => `<div class="border rounded-xl p-3 text-xs flex justify-between gap-2"><strong>${escapeHtml(n)}</strong><span>غياب: ${byT[n].absence} · تأخر: ${byT[n].late}</span></div>`).join('') : '<p class="text-xs text-slate-400 mt-3">لا حالات.</p>'; }
   const rows = d.records.slice().sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
-  el.innerHTML = rows.length ? rows.map(r => `<div class="border rounded-xl p-3 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-center bg-white dark:bg-slate-800"><div class="text-xs"><strong>${escapeHtml(r.date)} · ${escapeHtml(r.day)} · ${escapeHtml(r.className)} · ح${r.period}</strong><div class="text-slate-500 mt-1">المعلم: ${escapeHtml(r.teacherName || '—')} · المبلّغ: ${escapeHtml(r.reportedBy)}</div></div><span class="text-xs font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span><select data-id="${escapeHtml(String(r.id))}" onchange="updateDutyRecordStatus(this)" class="border rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><option value="pending" ${r.status === 'pending' ? 'selected' : ''}>بانتظار</option><option value="absence" ${r.status === 'absence' ? 'selected' : ''}>غياب</option><option value="late" ${r.status === 'late' ? 'selected' : ''}>تأخر</option><option value="swap" ${r.status === 'swap' ? 'selected' : ''}>تبديل</option><option value="excused" ${r.status === 'excused' ? 'selected' : ''}>عذر</option><option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>غير مثبت</option></select></div>`).join('') : '<p class="text-slate-400 text-xs">لا بلاغات.</p>';
+  el.innerHTML = rows.length ? rows.map(r => {
+    const displayName = r.className === '__CLEAN__' ? '✓ سليم' : r.className;
+    return `<div class="border rounded-xl p-3 grid grid-cols-1 md:grid-cols-[1fr_auto_auto] gap-2 items-center bg-white dark:bg-slate-800"><div class="text-xs"><strong>${escapeHtml(r.date)} · ${escapeHtml(r.day)} · ${escapeHtml(displayName)} · ح${r.period}</strong><div class="text-slate-500 mt-1">المعلم: ${escapeHtml(r.teacherName || '—')} · المبلّغ: ${escapeHtml(r.reportedBy)}</div></div><span class="text-xs font-bold">${escapeHtml(dutyStatusLabel(r.status))}</span><select data-id="${escapeHtml(String(r.id))}" onchange="updateDutyRecordStatus(this)" class="border rounded-lg p-2 text-xs bg-white dark:bg-slate-800"><option value="pending" ${r.status === 'pending' ? 'selected' : ''}>بانتظار</option><option value="absence" ${r.status === 'absence' ? 'selected' : ''}>غياب</option><option value="late" ${r.status === 'late' ? 'selected' : ''}>تأخر</option><option value="swap" ${r.status === 'swap' ? 'selected' : ''}>تبديل</option><option value="excused" ${r.status === 'excused' ? 'selected' : ''}>عذر</option><option value="dismissed" ${r.status === 'dismissed' ? 'selected' : ''}>غير مثبت</option><option value="clean" ${r.status === 'clean' ? 'selected' : ''}>سليم</option></select></div>`;
+  }).join('') : '<p class="text-slate-400 text-xs">لا بلاغات.</p>';
 }
+/* ✅ الإصلاح #5: فحص الصلاحيات في المراجعة */
 async function updateDutyRecordStatus(sel) {
+  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin || activeUser?.permissions?.duty;
+  if (!isA) {
+    showToast('لا تملك صلاحية مراجعة البلاغات.', 'error');
+    renderDutyAdminReview();
+    return;
+  }
   const id = sel.dataset.id;
   const r = dutyData().records.find(x => String(x.id) === id); if (!r) return;
   r.status = sel.value; r.reviewedBy = activeUser?.name || 'الإدارة'; r.reviewedAt = getTrustedDate().toISOString();
@@ -2564,7 +2628,8 @@ function exportDutyReportsCSV() {
   if (recs.length === 0) { showToast('لا بلاغات.', 'info'); return; }
   let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة\n';
   recs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).forEach(r => {
-    csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(r.className), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n';
+    const displayName = r.className === '__CLEAN__' ? 'سليم' : r.className;
+    csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(displayName), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n';
   });
   const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
