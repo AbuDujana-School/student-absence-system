@@ -368,7 +368,7 @@
           <input type="password" id="currentPinCheck" inputmode="numeric" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
         </div>
         <div>
-          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز الجديد:</label>
+          <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز الجديد (4 أرقام على الأقل):</label>
           <input type="password" id="newPinInput" inputmode="numeric" maxlength="10" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
         </div>
         <div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200"></div>
@@ -404,6 +404,31 @@
     </div>
   </div>
 
+  <!-- ✅ جديد: إجبار تغيير رمز المدير -->
+  <div id="forceAdminPinModal" class="fixed inset-0 bg-slate-900/98 z-[9999999] hidden p-4 backdrop-blur-md" style="display:none;">
+    <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-7 shadow-2xl border-4 border-red-500 mx-auto mt-20">
+      <div class="text-center mb-5">
+        <div class="w-20 h-20 bg-gradient-to-tr from-red-500 to-rose-600 text-white rounded-3xl flex items-center justify-center mx-auto mb-3 text-3xl shadow-lg"><i class="fa-solid fa-user-shield"></i></div>
+        <h3 class="font-black text-xl text-slate-800 dark:text-white">🔒 تغيير رمز المدير إجباري</h3>
+        <p class="text-xs text-slate-500 mt-2">رمز المدير الافتراضي (1234) غير آمن. يجب تغييره الآن.</p>
+      </div>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">الرمز الجديد (4 أرقام على الأقل):</label>
+          <input type="password" id="forceAdminNewPin" inputmode="numeric" placeholder="••••" maxlength="10" class="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-red-300 rounded-2xl text-center text-2xl font-black tracking-widest text-slate-800 dark:text-white outline-none focus:border-red-500">
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-2">تأكيد الرمز:</label>
+          <input type="password" id="forceAdminConfirmPin" inputmode="numeric" placeholder="••••" maxlength="10" class="w-full p-4 bg-slate-50 dark:bg-slate-900 border-2 border-red-300 rounded-2xl text-center text-2xl font-black tracking-widest text-slate-800 dark:text-white outline-none focus:border-red-500">
+        </div>
+        <div id="forceAdminPinError" class="text-red-600 dark:text-red-400 text-xs font-bold hidden bg-red-50 p-3 rounded-2xl border border-red-200 text-center"></div>
+      </div>
+      <button onclick="submitForcedAdminPinChange()" class="w-full mt-5 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-700 text-white font-black py-4 rounded-2xl shadow-lg active:scale-95 text-sm">
+        <i class="fa-solid fa-shield-halved"></i> حفظ رمز المدير
+      </button>
+    </div>
+  </div>
+
   <div id="editDutyModal" class="fixed inset-0 bg-slate-900/60 z-[99999] flex items-center justify-center hidden p-4 backdrop-blur-md">
     <div class="glass-card rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200/80 dark:border-slate-700/80 space-y-4">
       <div class="flex justify-between items-center border-b pb-3 dark:border-slate-700">
@@ -411,6 +436,8 @@
         <button onclick="closeEditDutyModal()" class="text-slate-400 hover:text-slate-600 text-base"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="space-y-3">
+        <!-- ✅ جديد: عنصر الخطأ المفقود -->
+        <div id="editDutyError" class="hidden text-red-600 dark:text-red-400 text-xs font-bold bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200 text-center"></div>
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">التخصص:</label>
           <input type="text" id="editDutySubject" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 outline-none focus:ring-2 focus:ring-orange-500">
@@ -739,6 +766,14 @@
         </div>
 
         <div id="sec-teachers" class="hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 mb-4 shadow-sm">
+            <div class="flex justify-between items-center">
+              <h5 class="font-bold text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة</h5>
+            </div>
+            <p class="text-xs text-slate-500">عند تحديد يوم مناوبة لمادة معينة، سيتم تفعيل المناوبة تلقائياً لجميع معلمي هذه المادة.</p>
+            <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+          </div>
+
           <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
             <h5 class="font-bold text-xs text-slate-800 dark:text-white">إضافة معلم جديد</h5>
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -891,68 +926,97 @@
 
   <script>
     /* ============================================================
-       إعدادات Supabase
+       إعدادات Supabase — ⚠️ يجب تفعيل RLS على كل الجداول في Dashboard
        ============================================================ */
     const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    const APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
-    let serverTimeOffset = 0;
+    const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
+    const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
+    const SESSION_TTL_MS = 8 * 60 * 60 * 1000; // 8 ساعات
+    const ADMIN_AUTH_TTL_MS = 30 * 60 * 1000;  // 30 دقيقة
+    const PBKDF2_ITERATIONS = 150000;
 
+    let serverTimeOffset = 0;
+    let lastServerSyncSuccess = 0;
+
+    /* ============================================================
+       التشفير: PBKDF2 (جديد) + SHA-256 (legacy للترقية فقط)
+       ============================================================ */
     async function sha256Hex(text) {
       const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
     }
+
+    async function pbkdf2Hex(password, salt, iterations = PBKDF2_ITERATIONS) {
+      const enc = new TextEncoder();
+      const key = await crypto.subtle.importKey('raw', enc.encode(password), 'PBKDF2', false, ['deriveBits']);
+      const bits = await crypto.subtle.deriveBits(
+        { name: 'PBKDF2', salt: enc.encode(salt), iterations, hash: 'SHA-256' },
+        key, 256
+      );
+      return Array.from(new Uint8Array(bits)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function hashPin(pin, salt) {
+      return await pbkdf2Hex(APP_PEPPER + ':' + salt + ':' + pin, salt, PBKDF2_ITERATIONS);
+    }
+    async function legacySha256Pin(pin, salt) {
+      return await sha256Hex(LEGACY_APP_PEPPER + ':' + salt + ':' + pin);
+    }
+
     function genSalt() {
       const arr = new Uint8Array(16);
       crypto.getRandomValues(arr);
       return Array.from(arr).map(b => b.toString(16).padStart(2, '0')).join('');
-    }
-    async function hashPin(pin, salt) {
-      return await sha256Hex(APP_PEPPER + ':' + salt + ':' + pin);
     }
     async function createPinRecord(pin) {
       const salt = genSalt();
       const hash = await hashPin(pin, salt);
       return { hash, salt };
     }
+
     async function verifyPinAgainstRecord(pin, record) {
       if (!record || !record.hash || !record.salt) return false;
-      const h = await hashPin(pin, record.salt);
-      return h === record.hash;
-    }
-    async function isPinTaken(pin, excludeName = null) {
-      if (db.adminPin && db.adminPin.hash && await verifyPinAgainstRecord(pin, db.adminPin)) return true;
-      for (const u of (db.customUsers || [])) {
-        if (excludeName && u.name === excludeName) continue;
-        if (await verifyPinAgainstRecord(pin, { hash: u.pin_hash, salt: u.pin_salt })) return true;
-      }
-      for (const t of (db.teachers || [])) {
-        if (excludeName && t.name === excludeName) continue;
-        if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) return true;
-      }
+      try {
+        const newHash = await hashPin(pin, record.salt);
+        if (newHash === record.hash) return true;
+      } catch (e) {}
+      try {
+        const legacy = await legacySha256Pin(pin, record.salt);
+        if (legacy === record.hash) return true;
+      } catch (e) {}
       return false;
     }
-    async function findUserByPin(pin) {
-      if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) {
-        return { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
-      }
-      for (const u of (db.customUsers || [])) {
-        if (await verifyPinAgainstRecord(pin, { hash: u.pin_hash, salt: u.pin_salt })) {
-          return { type: 'custom', name: u.name, permissions: u.permissions || {} };
-        }
-      }
-      for (const t of (db.teachers || [])) {
-        if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) {
-          return { type: 'teacher', name: t.name, permissions: {} };
-        }
-      }
-      return null;
+
+    async function isLegacyHash(pin, record) {
+      if (!record?.hash || !record?.salt) return false;
+      try {
+        const newHash = await hashPin(pin, record.salt);
+        if (newHash === record.hash) return false;
+      } catch (e) { return false; }
+      try {
+        const legacy = await legacySha256Pin(pin, record.salt);
+        return legacy === record.hash;
+      } catch (e) { return false; }
+    }
+
+    // HMAC-SHA256 لتوقيع الجلسات
+    async function hmacSha256Hex(key, message) {
+      const enc = new TextEncoder();
+      const cryptoKey = await crypto.subtle.importKey('raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
+      const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message));
+      return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    // اشتقاق سر الجلسة من PIN + salt (لا يمكن استنتاجه من pin_hash وحده بدون PIN)
+    async function deriveSessionSecret(pin, salt) {
+      return await pbkdf2Hex(APP_PEPPER + ':session:' + pin, salt + ':session', 100000);
     }
 
     /* ============================================================
-       Sync Time & Date
+       التوقيت الموحّد (Asia/Muscat)
        ============================================================ */
     async function syncServerTime() {
       try {
@@ -961,16 +1025,27 @@
         if (serverDateStr) {
           const serverTime = new Date(serverDateStr).getTime();
           serverTimeOffset = serverTime - Date.now();
+          lastServerSyncSuccess = Date.now();
+          try { localStorage.setItem('abuDujana_timeOffset', String(serverTimeOffset)); } catch (e) {}
         }
       } catch (e) {
-        console.warn('Time sync failed. Relying on device clock.', e);
+        // استخدم آخر offset معروف
+        try {
+          const saved = localStorage.getItem('abuDujana_timeOffset');
+          if (saved) serverTimeOffset = Number(saved) || 0;
+        } catch (err) {}
       }
     }
     function getTrustedDate() {
       return new Date(Date.now() + serverTimeOffset);
     }
-    function getOmanLocalDate() { 
-      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(getTrustedDate()); 
+    function getOmanLocalDate() {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(getTrustedDate());
+    }
+    function formatDateOman(d) {
+      const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+      const o = {}; parts.forEach(p => o[p.type] = p.value);
+      return `${o.year}-${o.month}-${o.day}`;
     }
     function omanNowParts() {
       const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',hourCycle:'h23',weekday:'long'}).formatToParts(getTrustedDate());
@@ -979,21 +1054,25 @@
     }
 
     /* ============================================================
-       أدوات مساعدة آمنة
+       أدوات مساعدة
        ============================================================ */
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     }
     function arabicSort(list) { return Array.isArray(list) ? [...list].sort((a, b) => String(a).localeCompare(String(b), 'ar')) : []; }
-    function formatDateLocal(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-    function safeBtoa(str) { try { return btoa(unescape(encodeURIComponent(String(str)))); } catch (e) { try { return btoa(String(str)); } catch (e2) { return ''; } } }
-    function safeAtob(str) { if (!str) return ''; try { return decodeURIComponent(escape(atob(str))); } catch (e) { try { return atob(str); } catch (e2) { return ''; } } }
+    function safeBtoa(str) { try { return btoa(unescape(encodeURIComponent(String(str)))); } catch (e) { return ''; } }
+    function safeAtob(str) { if (!str) return ''; try { return decodeURIComponent(escape(atob(str))); } catch (e) { return ''; } }
     function isBase64(str) { if (!str || typeof str !== 'string') return false; try { return btoa(atob(str)) === str; } catch (err) { return false; } }
-    function escapeCsvField(v) { const s = String(v == null ? '' : v); return '"' + s.replace(/"/g, '""') + '"'; }
+    // ✅ CSV injection محمي
+    function escapeCsvField(v) {
+      let s = String(v == null ? '' : v);
+      if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    }
 
     /* ============================================================
-       Toasts & Confirm/Prompt Modals
+       Toasts & Confirm/Prompt
        ============================================================ */
     function showToast(message, type = 'success') {
       const container = document.getElementById('toastContainer'); if (!container) return;
@@ -1062,8 +1141,12 @@
     }
 
     /* ============================================================
-       Date & Time helpers
+       Constants
        ============================================================ */
+    const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
+    const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
+    const periodNamesMap = { 1: 'الحصة الأولى', 2: 'الحصة الثانية', 3: 'الحصة الثالثة', 4: 'الحصة الرابعة', 5: 'الحصة الخامسة', 6: 'الحصة السادسة', 7: 'الحصة السابعة', 8: 'الحصة الثامنة' };
+
     function parseAttendanceKey(key) {
       if (!key) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
       const lastUnderscore = key.lastIndexOf('_');
@@ -1084,26 +1167,13 @@
     function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
     /* ============================================================
-       Constants
-       ============================================================ */
-    const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
-    const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-    const periodNamesMap = { 1: 'الحصة الأولى', 2: 'الحصة الثانية', 3: 'الحصة الثالثة', 4: 'الحصة الرابعة', 5: 'الحصة الخامسة', 6: 'الحصة السادسة', 7: 'الحصة السابعة', 8: 'الحصة الثامنة' };
-
-    /* ============================================================
-       DB Structure & Pending Changes
+       DB Structure
        ============================================================ */
     let db = { version: 18, adminPin: null, customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { teacherMeta: {}, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), timetable: [], overrides: [], records: [] } };
 
     const dirtySets = {
-      classes: new Set(),
-      teachers: new Set(),
-      students: new Set(),
-      attendance: new Set(),
-      behaviors: new Set(),
-      duty_reports: new Set(),
-      admin_pin: false,
-      duty_module: false
+      classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(),
+      behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false
     };
 
     let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
@@ -1119,15 +1189,73 @@
     let dutyRefreshInterval = null;
     let attendanceUndoStack = [];
     let behaviorUndoStack = [];
+    let loginAttempts = 0;
+    let loginLockedUntil = 0;
 
     /* ============================================================
-       Cloud helpers
+       Session Management (HMAC-signed)
+       ============================================================ */
+    async function createSignedSession(userName, role, sessionSecret) {
+      const expiresAt = Date.now() + SESSION_TTL_MS;
+      const sig = await hmacSha256Hex(sessionSecret, `${userName}|${role}|${expiresAt}`);
+      const token = { userName, role, expiresAt, sig };
+      try { localStorage.setItem('abuDujana_session', JSON.stringify(token)); } catch (e) {}
+      try { sessionStorage.setItem('abuDujana_session_secret', sessionSecret); } catch (e) {}
+    }
+
+    async function verifyStoredSession() {
+      let tokenStr, sessionSecret;
+      try {
+        tokenStr = localStorage.getItem('abuDujana_session');
+        sessionSecret = sessionStorage.getItem('abuDujana_session_secret');
+      } catch (e) { return null; }
+      if (!tokenStr || !sessionSecret) return null;
+      try {
+        const token = JSON.parse(tokenStr);
+        if (!token || !token.userName || !token.role || !token.expiresAt || !token.sig) return null;
+        if (token.expiresAt < Date.now()) return null;
+        const expectedSig = await hmacSha256Hex(sessionSecret, `${token.userName}|${token.role}|${token.expiresAt}`);
+        if (expectedSig !== token.sig) return null;
+        return token;
+      } catch (e) { return null; }
+    }
+
+    function clearSession() {
+      try { localStorage.removeItem('abuDujana_session'); } catch (e) {}
+      try { sessionStorage.removeItem('abuDujana_session_secret'); } catch (e) {}
+      try { sessionStorage.removeItem('abuDujana_adminAuthUntil'); } catch (e) {}
+    }
+
+    function isAdminAuthorized() {
+      if (activeUser?.type === 'admin') return true;
+      try {
+        const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0');
+        return until > Date.now();
+      } catch (e) { return false; }
+    }
+
+    function grantTemporaryAdminAuth() {
+      try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch (e) {}
+    }
+
+    /* ============================================================
+       Cloud helpers — robustUpsert يرمي الخطأ ✅
        ============================================================ */
     function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch (e) { return []; } }
     function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch (e) {} }
     async function queueCloudDelete(table, filters) {
-      try { let q = sb.from(table).delete(); for (const [k, v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; }
-      catch (e) { const arr = getPendingDeletes(); arr.push({ table, filters }); setPendingDeletes(arr); return false; }
+      try {
+        let q = sb.from(table).delete();
+        for (const [k, v] of Object.entries(filters)) q = q.eq(k, v);
+        const { error } = await q;
+        if (error) throw error;
+        return true;
+      } catch (e) {
+        const arr = getPendingDeletes();
+        arr.push({ table, filters, ts: Date.now() });
+        setPendingDeletes(arr);
+        return false;
+      }
     }
     async function flushPendingDeletes() {
       const arr = getPendingDeletes(); if (!arr.length) return;
@@ -1136,31 +1264,33 @@
         try {
           let q = sb.from(item.table).delete();
           for (const [k, v] of Object.entries(item.filters)) q = q.eq(k, v);
-          const { error } = await q; if (error) throw error;
+          const { error } = await q;
+          if (error) throw error;
         } catch (e) { remaining.push(item); }
       }
       setPendingDeletes(remaining);
     }
-    
+
     async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       if (!rows || rows.length === 0) return;
       const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
+      const failures = [];
+
       for (let i = 0; i < rows.length; i += chunkSize) {
         const chunk = rows.slice(i, i + chunkSize);
         const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
         if (!error) continue;
-        
+
+        // fallback per-row
         for (const row of chunk) {
           try {
             let matchObj = {};
             cols.forEach(c => { matchObj[c] = row[c]; });
-            
             let query = sb.from(table).select('*');
             for (const [k, v] of Object.entries(matchObj)) query = query.eq(k, v);
             const { data: existing, error: fetchErr } = await query;
-            
             if (fetchErr) throw fetchErr;
-            
+
             if (existing && existing.length > 0) {
               let updateQuery = sb.from(table).update(row);
               for (const [k, v] of Object.entries(matchObj)) updateQuery = updateQuery.eq(k, v);
@@ -1171,14 +1301,35 @@
               if (insErr) throw insErr;
             }
           } catch (rowErr) {
-            console.error(`robustUpsert fallback failed for ${table}:`, rowErr, row);
+            console.error(`robustUpsert failed for ${table}:`, rowErr, row);
+            failures.push({ table, row, error: rowErr?.message || String(rowErr) });
           }
         }
       }
+
+      // ✅ الآن يرمي الخطأ — dirtySet لن يُمسح
+      if (failures.length > 0) {
+        throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
+      }
+    }
+
+    /* ✅ Pagination لكسر حد 1000 صف */
+    async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
+      const all = [];
+      let from = 0;
+      while (true) {
+        const { data, error } = await sb.from(tableName).select(selectCols).range(from, from + pageSize - 1);
+        if (error) throw error;
+        if (!data || data.length === 0) break;
+        all.push(...data);
+        if (data.length < pageSize) break;
+        from += pageSize;
+      }
+      return all;
     }
 
     /* ============================================================
-       Duty module helpers
+       Duty helpers
        ============================================================ */
     function normalizeDutyModule(value) {
       const d = value && typeof value === 'object' ? value : {};
@@ -1215,28 +1366,39 @@
     }
 
     /* ============================================================
-       LocalStorage Storage Quota Fix
+       LocalStorage (14 يوماً + حفظ dirtySets)
        ============================================================ */
     function saveToLocalStorageSafe() {
       try {
         const cutoffDate = getTrustedDate();
-        cutoffDate.setDate(cutoffDate.getDate() - 2);
-        const cutoffStr = formatDateLocal(cutoffDate);
-        
+        cutoffDate.setDate(cutoffDate.getDate() - 14); // ✅ 14 يوماً
+        const cutoffStr = formatDateOman(cutoffDate);
+
         const safeDb = { ...db, attendance: {}, behaviors: {} };
-        
         Object.keys(db.attendance || {}).forEach(k => {
           const p = parseAttendanceKey(k);
           if (p.date >= cutoffStr) safeDb.attendance[k] = db.attendance[k];
         });
-        
         Object.keys(db.behaviors || {}).forEach(k => {
           const p = parseAttendanceKey(k);
           if (p.date >= cutoffStr) safeDb.behaviors[k] = db.behaviors[k];
         });
-        
+
+        // ✅ حفظ dirtySets لضمان عدم فقدان التعديلات غير المتزامنة
+        const dirtyObj = {
+          classes: [...dirtySets.classes],
+          teachers: [...dirtySets.teachers],
+          students: [...dirtySets.students],
+          attendance: [...dirtySets.attendance],
+          behaviors: [...dirtySets.behaviors],
+          duty_reports: [...dirtySets.duty_reports],
+          admin_pin: dirtySets.admin_pin,
+          duty_module: dirtySets.duty_module
+        };
+        try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch (e) {}
+
         let pendingDeletes = getPendingDeletes();
-        if (pendingDeletes.length > 100) pendingDeletes = pendingDeletes.slice(-100);
+        if (pendingDeletes.length > 200) pendingDeletes = pendingDeletes.slice(-200);
         setPendingDeletes(pendingDeletes);
 
         localStorage.setItem('abuDujana_db_v22', JSON.stringify(safeDb));
@@ -1244,6 +1406,22 @@
         console.warn('LocalStorage full, clearing history cache.', e);
         try { localStorage.removeItem('abuDujana_db_v22'); } catch(err) {}
       }
+    }
+
+    function loadDirtySetsFromLocal() {
+      try {
+        const raw = localStorage.getItem('abuDujana_dirtySets');
+        if (!raw) return;
+        const obj = JSON.parse(raw);
+        (obj.classes || []).forEach(x => dirtySets.classes.add(x));
+        (obj.teachers || []).forEach(x => dirtySets.teachers.add(x));
+        (obj.students || []).forEach(x => dirtySets.students.add(x));
+        (obj.attendance || []).forEach(x => dirtySets.attendance.add(x));
+        (obj.behaviors || []).forEach(x => dirtySets.behaviors.add(x));
+        (obj.duty_reports || []).forEach(x => dirtySets.duty_reports.add(x));
+        dirtySets.admin_pin = !!obj.admin_pin;
+        dirtySets.duty_module = !!obj.duty_module;
+      } catch (e) {}
     }
 
     /* ============================================================
@@ -1262,6 +1440,10 @@
           if (activeUser) { refreshDutyDashboardCard(); if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods(); }
         }, 30000);
       }
+      // تحديث وقت الخادم كل ساعة
+      setInterval(async () => {
+        if (Date.now() - lastServerSyncSuccess > 60 * 60 * 1000) await syncServerTime();
+      }, 15 * 60 * 1000);
     });
 
     function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_darkMode') === 'true'; if (isDark) { document.documentElement.classList.add('dark'); document.getElementById('darkModeIcon').className = 'fa-solid fa-sun text-sm'; } } catch (e) {} }
@@ -1280,6 +1462,7 @@
     async function migrateCredentialsIfNeeded() {
       let needsSave = false;
 
+      // admin pin migration (base64/plain → hash)
       if (typeof db.adminPin === 'string' && db.adminPin) {
         try {
           const plain = isBase64(db.adminPin) ? safeAtob(db.adminPin) : db.adminPin;
@@ -1287,7 +1470,7 @@
           db.adminPin = rec;
           dirtySets.admin_pin = true;
           needsSave = true;
-        } catch (e) { console.warn('admin pin migration failed', e); db.adminPin = null; }
+        } catch (e) { db.adminPin = null; }
       } else if (!db.adminPin) {
         db.adminPin = await createPinRecord('1234');
         dirtySets.admin_pin = true;
@@ -1304,7 +1487,6 @@
           needsSave = true;
         }
       }
-
       for (const u of (db.customUsers || [])) {
         if (u.pin && !u.pin_hash) {
           const rec = await createPinRecord(u.pin);
@@ -1316,29 +1498,28 @@
         }
       }
 
-      if (needsSave) {
-        await saveSystemDataToCloud();
-      }
+      if (needsSave) await saveSystemDataToCloud();
     }
 
     async function loadSystemDataFromCloud() {
       updateSyncStatus(false, "جارِ التحميل...");
       try {
         await flushPendingDeletes();
-        const [classesRes, studentsRes, teachersRes, attendanceRes, behaviorsRes, settingsRes] = await Promise.all([
-          sb.from('classes').select('name'),
-          sb.from('students').select('class_name, student_name'),
-          sb.from('teachers').select('*'),
-          sb.from('attendance').select('*'),
-          sb.from('behaviors').select('*'),
-          sb.from('school_settings').select('*')
+        loadDirtySetsFromLocal();
+
+        // ✅ استخدام pagination لكل الجداول
+        const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
+          fetchAllPaginated('classes', 'name'),
+          fetchAllPaginated('students', 'class_name, student_name'),
+          fetchAllPaginated('teachers', '*'),
+          fetchAllPaginated('attendance', '*'),
+          fetchAllPaginated('behaviors', '*'),
+          fetchAllPaginated('school_settings', '*')
         ]);
-        const firstErr = [classesRes, studentsRes, teachersRes, attendanceRes, behaviorsRes, settingsRes].find(r => r.error);
-        if (firstErr) throw new Error(firstErr.error.message);
 
-        const classesData = classesRes.data || [], studentsData = studentsRes.data || [], teachersData = teachersRes.data || [];
+        const isCompletelyEmpty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
 
-        if (classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0) {
+        if (isCompletelyEmpty) {
           const saved = localStorage.getItem('abuDujana_db_v22');
           if (saved) {
             try {
@@ -1348,6 +1529,9 @@
               if (!db.behaviors) db.behaviors = {};
               db.dutyModule = normalizeDutyModule(db.dutyModule);
               Object.keys(db.students || {}).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
+              // ✅ أضف الصفوف الافتراضية للرفع
+              db.classes.forEach(c => dirtySets.classes.add(c));
+              db.classes.forEach(c => dirtySets.students.add(c));
               updateSyncStatus(false, "جارِ الرفع...");
               await saveSystemDataToCloud();
               return true;
@@ -1358,54 +1542,58 @@
           return true;
         }
 
-        db.classes = classesData.map(r => r.name);
+        // ✅ فحص التهيئة الجزئية: لو الصفوف فارغة لكن يوجد معلمون => استعد الافتراضية
+        if (classesData.length === 0) {
+          console.warn('Partial init: no classes in cloud but other data exists. Restoring defaults.');
+          db.classes = [...DEFAULT_CLASSES];
+          db.classes.forEach(c => dirtySets.classes.add(c));
+          db.classes.forEach(c => dirtySets.students.add(c));
+        } else {
+          db.classes = classesData.map(r => r.name);
+        }
+
         db.students = {};
         studentsData.forEach(r => { if (!db.students[r.class_name]) db.students[r.class_name] = []; db.students[r.class_name].push(r.student_name); });
         db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
         Object.keys(db.students).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
 
         db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => ({
-          name: t.name,
-          pin_hash: t.pin_hash || null,
-          pin_salt: t.pin_salt || null,
-          pin: t.pin || null,
+          name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, pin: t.pin || null,
           mustChangePin: t.must_change_pin === true
         }));
         db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({
-          name: t.name,
-          pin_hash: t.pin_hash || null,
-          pin_salt: t.pin_salt || null,
-          pin: t.pin || null,
+          name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, pin: t.pin || null,
           permissions: t.permissions || {}
         }));
 
-        const adminRow = (settingsRes.data || []).find(r => r.key === 'admin_pin');
+        const adminRow = (settingsData || []).find(r => r.key === 'admin_pin');
         if (adminRow?.value) {
-          if (adminRow.value.hash && adminRow.value.salt) {
-            db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt };
-          } else if (adminRow.value.pin) {
-            db.adminPin = adminRow.value.pin;
-          }
+          if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt };
+          else if (adminRow.value.pin) db.adminPin = adminRow.value.pin;
         }
 
-        const dutyRow = (settingsRes.data || []).find(r => r.key === 'duty_module');
+        const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
         if (dutyRow?.value && typeof dutyRow.value === 'object') db.dutyModule = normalizeDutyModule(dutyRow.value);
 
+        // ✅ duty_reports paginated
         try {
-          const drRes = await sb.from('duty_reports').select('*');
-          if (!drRes.error && drRes.data) {
-            db.dutyModule.records = drRes.data.map(r => ({
-              id: r.id, date: r.date_str, day: r.day_num, period: r.period,
-              className: r.class_name, subject: r.subject, teacherName: r.teacher_name,
-              reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at
-            }));
-          }
+          const drData = await fetchAllPaginated('duty_reports', '*');
+          db.dutyModule.records = drData.map(r => ({
+            id: r.id, date: r.date_str, day: r.day_num, period: r.period,
+            className: r.class_name, subject: r.subject, teacherName: r.teacher_name,
+            reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at
+          }));
         } catch (e) {}
 
         db.attendance = {};
-        (attendanceRes.data || []).forEach(r => { db.attendance[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
+        attendanceData.forEach(r => { db.attendance[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
         db.behaviors = {};
-        (behaviorsRes.data || []).forEach(r => { db.behaviors[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
+        behaviorsData.forEach(r => { db.behaviors[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
+
+        // ✅ إذا استعدنا الصفوف الافتراضية جزئياً، ارفعها
+        if (dirtySets.classes.size > 0 || dirtySets.students.size > 0) {
+          await saveSystemDataToCloud();
+        }
 
         saveToLocalStorageSafe();
         updateSyncStatus(true, "متزامن");
@@ -1421,6 +1609,7 @@
             if (!db.behaviors) db.behaviors = {};
             db.dutyModule = normalizeDutyModule(db.dutyModule);
             Object.keys(db.students || {}).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
+            loadDirtySetsFromLocal();
             updateSyncStatus(false, "محلي - انقر للمزامنة");
             return true;
           } catch (pe) {}
@@ -1436,6 +1625,7 @@
       try {
         saveToLocalStorageSafe();
 
+        // ✅ كل عملية حفظ ترمي الخطأ، فالمسح لا يحدث إلا على النجاح
         if (dirtySets.classes.size > 0) {
           const rows = [...dirtySets.classes].map(n => ({ name: n }));
           await robustUpsert('classes', rows, 'name', 200);
@@ -1509,17 +1699,24 @@
         }
 
         await flushPendingDeletes();
+        saveToLocalStorageSafe();
         updateSyncStatus(true, "متزامن");
         return true;
       } catch (error) {
         console.error('Cloud save failed:', error);
         updateSyncStatus(false, "محلي فقط - انقر للمزامنة");
+        showToast('فشل الحفظ السحابي. حُفظ محلياً.', 'error');
         return false;
       }
     }
 
     function forceSyncWithCloud() {
-      if (attendanceDirty || behaviorDirty) { showConfirm('لديك تغييرات غير محفوظة. قد تُستبدل. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); }); return; }
+      if (attendanceDirty || behaviorDirty || dirtySets.classes.size || dirtySets.teachers.size ||
+          dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
+          dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module) {
+        showConfirm('لديك تغييرات غير محفوظة قد تُستبدل. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
+        return;
+      }
       doForceSync();
     }
     function doForceSync() {
@@ -1528,8 +1725,10 @@
         showToast(success ? 'تم التحديث!' : 'تعذر الجلب.', success ? 'success' : 'error');
         if (success && activeUser) {
           try {
-            if (activeUser.type === 'admin' || activeUser.permissions?.teachers) renderTeachersList();
-            if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+            if (isAdminAuthorized()) {
+              if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+              if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+            }
             if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
             if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
             refreshDutyDashboardCard();
@@ -1549,7 +1748,10 @@
     async function initDefaults() {
       db = { version: 18, adminPin: await createPinRecord('1234'), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { teacherMeta: {}, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), timetable: [], overrides: [], records: [] } };
       db.classes.forEach(c => { db.students[c] = []; });
+      // ✅ أضف الصفوف الافتراضية للرفع
+      db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
       saveToLocalStorageSafe();
+      await saveSystemDataToCloud();
     }
 
     /* ============================================================
@@ -1557,20 +1759,50 @@
        ============================================================ */
     async function checkExistingSession() {
       try {
-        const savedUser = localStorage.getItem('abuDujana_activeUser');
-        if (!savedUser) return;
-        const parsed = JSON.parse(savedUser);
-        const exists = parsed.type === 'admin'
-          || (parsed.type === 'custom' && db.customUsers.some(u => u.name === parsed.name))
-          || (parsed.type === 'teacher' && db.teachers.some(t => t.name === parsed.name));
-        if (!exists) { _performLogout(); return; }
-        activeUser = parsed;
-        finalizeLoginState();
-      } catch (e) { _performLogout(); }
+        // التحقق من التوقيع + وجود المستخدم
+        const token = await verifyStoredSession();
+        if (!token) {
+          // مسح أي بقايا جلسة قديمة
+          try { localStorage.removeItem('abuDujana_activeUser'); } catch (e) {}
+          try { localStorage.removeItem('abuDujana_session'); } catch (e) {}
+          return;
+        }
+
+        // ✅ التحقق من وجود المستخدم فعلياً في db
+        let user = null;
+        if (token.role === 'admin') {
+          user = { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
+        } else if (token.role === 'custom') {
+          const u = (db.customUsers || []).find(x => x.name === token.userName);
+          if (u) user = { type: 'custom', name: u.name, permissions: u.permissions || {} };
+        } else if (token.role === 'teacher') {
+          const t = (db.teachers || []).find(x => x.name === token.userName);
+          if (t) user = { type: 'teacher', name: t.name, permissions: {} };
+        }
+
+        if (!user) {
+          clearSession();
+          return;
+        }
+
+        activeUser = user;
+        await finalizeLoginState(false); // لا تُعِد توليد الجلسة
+      } catch (e) {
+        clearSession();
+      }
     }
 
     async function handleUserLogin(e) {
       e.preventDefault();
+
+      // ✅ Rate limiting
+      const now = Date.now();
+      if (now < loginLockedUntil) {
+        const wait = Math.ceil((loginLockedUntil - now) / 1000);
+        showToast(`محاولات كثيرة. انتظر ${wait} ثانية.`, 'error');
+        return;
+      }
+
       const pin = document.getElementById('userPinInput').value.trim();
       if (!pin) return;
       const btn = document.getElementById('loginSubmitBtn');
@@ -1578,14 +1810,36 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
       document.getElementById('loginError').classList.add('hidden');
       try {
-        await new Promise(r => setTimeout(r, 300));
-        const user = await findUserByPin(pin);
-        if (user) {
-          activeUser = user;
-          await finalizeLoginState();
+        await new Promise(r => setTimeout(r, 200));
+        const found = await findUserByPinWithRecord(pin);
+        if (found) {
+          activeUser = found.user;
+          loginAttempts = 0;
+          // اشتق سر الجلسة من PIN
+          const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
+          await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
+
+          // ترقية الهاش القديم (SHA-256) إلى PBKDF2
+          if (await isLegacyHash(pin, found.record)) {
+            try {
+              const rec = await createPinRecord(pin);
+              found.record.hash = rec.hash;
+              found.record.salt = rec.salt;
+              if (found.user.type === 'admin') dirtySets.admin_pin = true;
+              else dirtySets.teachers.add(found.user.name);
+              await saveSystemDataToCloud();
+            } catch (upgradeErr) { console.warn('hash upgrade failed:', upgradeErr); }
+          }
+
+          await finalizeLoginState(false); // الجلسة أُنشئت يدوياً
           showToast(`أهلاً بك: ${activeUser.name}`, 'success');
           document.getElementById('userPinInput').value = '';
         } else {
+          loginAttempts++;
+          if (loginAttempts >= 5) {
+            loginLockedUntil = now + Math.min(30, Math.pow(2, loginAttempts - 5)) * 1000 * 5;
+            showToast(`محاولات كثيرة. تأخير مؤقت.`, 'error');
+          }
           document.getElementById('loginError').classList.remove('hidden');
         }
       } catch (err) {
@@ -1597,9 +1851,27 @@
       }
     }
 
-    async function finalizeLoginState() {
-      const sessionSafe = { name: activeUser.name, type: activeUser.type, permissions: activeUser.permissions || {} };
-      try { localStorage.setItem('abuDujana_activeUser', JSON.stringify(sessionSafe)); } catch (e) {}
+    async function findUserByPinWithRecord(pin) {
+      if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) {
+        return {
+          user: { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } },
+          record: db.adminPin
+        };
+      }
+      for (const u of (db.customUsers || [])) {
+        if (await verifyPinAgainstRecord(pin, { hash: u.pin_hash, salt: u.pin_salt })) {
+          return { user: { type: 'custom', name: u.name, permissions: u.permissions || {} }, record: u };
+        }
+      }
+      for (const t of (db.teachers || [])) {
+        if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) {
+          return { user: { type: 'teacher', name: t.name, permissions: {} }, record: t };
+        }
+      }
+      return null;
+    }
+
+    async function finalizeLoginState(regenerateSession = false) {
       document.getElementById('loginView').classList.add('hidden');
       document.getElementById('dashboardSelectionView').classList.remove('hidden');
       document.getElementById('activeUserName').textContent = activeUser.name;
@@ -1609,6 +1881,7 @@
       refreshDutyDashboardCard();
       renderDutyTodayRecords();
       await checkAndEnforcePinChange();
+      await checkAndEnforceAdminPinChange();
     }
     function hasAnyPermission(user) { return user?.permissions ? Object.values(user.permissions).some(Boolean) : false; }
 
@@ -1624,6 +1897,24 @@
         modal.style.display = 'flex';
         modal.classList.remove('hidden');
         setTimeout(() => document.getElementById('forceNewPin')?.focus(), 100);
+      }
+      return true;
+    }
+
+    // ✅ جديد: إجبار المدير على تغيير رمز 1234
+    async function checkAndEnforceAdminPinChange() {
+      if (!activeUser || activeUser.type !== 'admin') return false;
+      // هل الرمز الافتراضي 1234؟
+      const isDefault = await verifyPinAgainstRecord('1234', db.adminPin);
+      if (!isDefault) return false;
+      const modal = document.getElementById('forceAdminPinModal');
+      if (modal) {
+        document.getElementById('forceAdminNewPin').value = '';
+        document.getElementById('forceAdminConfirmPin').value = '';
+        document.getElementById('forceAdminPinError').classList.add('hidden');
+        modal.style.display = 'flex';
+        modal.classList.remove('hidden');
+        setTimeout(() => document.getElementById('forceAdminNewPin')?.focus(), 100);
       }
       return true;
     }
@@ -1645,9 +1936,64 @@
       teacher.pin_hash = rec.hash; teacher.pin_salt = rec.salt; teacher.mustChangePin = false;
       dirtySets.teachers.add(teacher.name);
       const success = await saveSystemDataToCloud();
+
+      // ✅ إعادة إنشاء الجلسة بالرمز الجديد
+      try {
+        const sessionSecret = await deriveSessionSecret(newPin, rec.salt);
+        await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
+      } catch (e) {}
+
       const modal = document.getElementById('forcePinChangeModal');
       modal.style.display = 'none'; modal.classList.add('hidden');
       showToast(success ? 'تم تغيير الرمز بنجاح! 🎉' : 'تم محلياً.', success ? 'success' : 'info');
+    }
+
+    // ✅ جديد: تغيير رمز المدير الإجباري
+    async function submitForcedAdminPinChange() {
+      const newPin = document.getElementById('forceAdminNewPin').value.trim();
+      const confirmPin = document.getElementById('forceAdminConfirmPin').value.trim();
+      const errorEl = document.getElementById('forceAdminPinError');
+      errorEl.classList.add('hidden');
+      if (!newPin || newPin.length < 4) { errorEl.textContent = 'الرمز يجب أن يكون 4 أرقام على الأقل.'; errorEl.classList.remove('hidden'); return; }
+      if (!/^\d+$/.test(newPin)) { errorEl.textContent = 'الرمز يجب أن يحتوي أرقاماً فقط.'; errorEl.classList.remove('hidden'); return; }
+      if (newPin !== confirmPin) { errorEl.textContent = 'الرمز غير متطابق.'; errorEl.classList.remove('hidden'); return; }
+      if (newPin === '1234') { errorEl.textContent = 'اختر رمزاً مختلفاً عن الافتراضي.'; errorEl.classList.remove('hidden'); return; }
+      if (await isPinTaken(newPin)) { errorEl.textContent = 'هذا الرمز مستخدم. اختر غيره.'; errorEl.classList.remove('hidden'); return; }
+
+      const rec = await createPinRecord(newPin);
+      db.adminPin = rec;
+      dirtySets.admin_pin = true;
+      const success = await saveSystemDataToCloud();
+
+      // إعادة إنشاء الجلسة
+      try {
+        const sessionSecret = await deriveSessionSecret(newPin, rec.salt);
+        await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
+      } catch (e) {}
+
+      const modal = document.getElementById('forceAdminPinModal');
+      modal.style.display = 'none'; modal.classList.add('hidden');
+      showToast(success ? '✅ تم تأمين رمز المدير!' : 'تم محلياً.', success ? 'success' : 'info');
+    }
+
+    async function isPinTaken(pin, excludeName = null) {
+      if (db.adminPin && db.adminPin.hash && await verifyPinAgainstRecord(pin, db.adminPin)) {
+        if (excludeName === 'admin') { /* مسموح */ } else return true;
+      }
+      for (const u of (db.customUsers || [])) {
+        if (excludeName && u.name === excludeName) continue;
+        if (await verifyPinAgainstRecord(pin, { hash: u.pin_hash, salt: u.pin_salt })) return true;
+      }
+      for (const t of (db.teachers || [])) {
+        if (excludeName && t.name === excludeName) continue;
+        if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) return true;
+      }
+      return false;
+    }
+
+    async function findUserByPin(pin) {
+      const found = await findUserByPinWithRecord(pin);
+      return found?.user || null;
     }
 
     function logoutUser() {
@@ -1661,6 +2007,7 @@
       activeUser = null; selectedClass = null; selectedBehaviorClass = null;
       attendanceDirty = false; behaviorDirty = false; dutyTestModeActive = false;
       attendanceUndoStack = []; behaviorUndoStack = [];
+      clearSession();
       try { localStorage.removeItem('abuDujana_activeUser'); } catch (e) {}
       document.getElementById('userPinInput').value = '';
       ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyDashboardCard'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
@@ -1680,13 +2027,20 @@
       const teacher = db.teachers.find(t => t.name === activeUser.name);
       if (!teacher) { errorEl.textContent = 'لم يتم العثور على حسابك.'; errorEl.classList.remove('hidden'); return; }
       if (!await verifyPinAgainstRecord(currentPin, { hash: teacher.pin_hash, salt: teacher.pin_salt })) { errorEl.textContent = 'الرمز الحالي غير صحيح!'; errorEl.classList.remove('hidden'); return; }
-      if (!newPin || newPin.length < 2) { errorEl.textContent = 'أدخل رمزاً جديداً (حرفان على الأقل)!'; errorEl.classList.remove('hidden'); return; }
+      if (!newPin || newPin.length < 4) { errorEl.textContent = 'الرمز الجديد 4 أرقام على الأقل!'; errorEl.classList.remove('hidden'); return; }
       if (await isPinTaken(newPin, activeUser.name)) { errorEl.textContent = 'هذا الرمز مستخدم.'; errorEl.classList.remove('hidden'); return; }
 
       const rec = await createPinRecord(newPin);
       teacher.pin_hash = rec.hash; teacher.pin_salt = rec.salt;
       dirtySets.teachers.add(teacher.name);
       const success = await saveSystemDataToCloud();
+
+      // إعادة إنشاء الجلسة بالرمز الجديد
+      try {
+        const sessionSecret = await deriveSessionSecret(newPin, rec.salt);
+        await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
+      } catch (e) {}
+
       closeChangePinModal();
       showToast(success ? 'تم تغيير الرمز بنجاح!' : 'تم محلياً فقط.', success ? 'success' : 'info');
     }
@@ -1738,15 +2092,20 @@
       renderPeriodButtons();
       document.getElementById('selectPeriodModal').classList.remove('hidden');
     }
+
+    // ✅ إصلاح: كلاسات ثابتة (Tailwind CDN لا يولّد ديناميكية)
     function renderPeriodButtons() {
       const grid = document.getElementById('periodButtonsGrid');
-      const color = pendingMode === 'attendance' ? 'emerald' : 'teal';
+      const isAtt = pendingMode === 'attendance';
       grid.innerHTML = '';
       for (let i = 1; i <= 8; i++) {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `p-4 rounded-2xl border-2 border-${color}-500/30 hover:border-${color}-600 bg-${color}-50/50 dark:bg-${color}-950/40 hover:bg-${color}-600 hover:text-white text-${color}-900 dark:text-${color}-200 font-extrabold text-sm flex flex-col items-center justify-center gap-2 shadow-sm active:scale-95`;
-        btn.innerHTML = `<span class="w-8 h-8 rounded-xl bg-${color}-600 text-white flex items-center justify-center text-xs font-black">${i}</span><span>${periodNamesMap[i]}</span>`;
+        btn.className = isAtt
+          ? 'p-4 rounded-2xl border-2 border-emerald-500/30 hover:border-emerald-600 bg-emerald-50/50 dark:bg-emerald-950/40 hover:bg-emerald-600 hover:text-white text-emerald-900 dark:text-emerald-200 font-extrabold text-sm flex flex-col items-center justify-center gap-2 shadow-sm active:scale-95'
+          : 'p-4 rounded-2xl border-2 border-teal-500/30 hover:border-teal-600 bg-teal-50/50 dark:bg-teal-950/40 hover:bg-teal-600 hover:text-white text-teal-900 dark:text-teal-200 font-extrabold text-sm flex flex-col items-center justify-center gap-2 shadow-sm active:scale-95';
+        const badgeCls = isAtt ? 'bg-emerald-600' : 'bg-teal-600';
+        btn.innerHTML = `<span class="w-8 h-8 rounded-xl ${badgeCls} text-white flex items-center justify-center text-xs font-black">${i}</span><span>${periodNamesMap[i]}</span>`;
         btn.onclick = () => confirmPeriodSelection(i);
         grid.appendChild(btn);
       }
@@ -1921,7 +2280,6 @@
           loadSessionAttendance();
         } else {
           document.getElementById('unsavedStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً";
-          showToast("تعذر الاتصال، حُفظت محلياً.", 'info');
         }
       } catch (error) {
         console.error(error);
@@ -2073,7 +2431,6 @@
           loadSessionBehavior();
         } else {
           document.getElementById('unsavedBehaviorStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً";
-          showToast("تعذر الاتصال.", 'info');
         }
       } catch (error) {
         console.error(error);
@@ -2129,44 +2486,60 @@
       }
     }
 
+    // ✅ إصلاح: الأسبوع والفصل + التوقيت الموحّد
     function getDateRange() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const todayStr = getOmanLocalDate();
       const todayDate = getTrustedDate();
       let start, end;
       if (periodType === 'today') { start = end = todayStr; }
-      else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); start = end = formatDateLocal(y); }
-      else if (periodType === 'week') { const w = new Date(todayDate); w.setDate(w.getDate() - 7); start = formatDateLocal(w); end = todayStr; }
-      else if (periodType === 'month') { start = formatDateLocal(new Date(todayDate.getFullYear(), todayDate.getMonth(), 1)); end = todayStr; }
-      else if (periodType === 'semester') { start = null; end = null; }
+      else if (periodType === 'yesterday') {
+        const y = new Date(todayDate); y.setDate(y.getDate() - 1);
+        start = end = formatDateOman(y);
+      }
+      else if (periodType === 'week') {
+        const w = new Date(todayDate); w.setDate(w.getDate() - 6); // 7 أيام شاملة اليوم
+        start = formatDateOman(w); end = todayStr;
+      }
+      else if (periodType === 'month') {
+        const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1);
+        start = formatDateOman(first); end = todayStr;
+      }
+      else if (periodType === 'semester') {
+        // ✅ الفصل الدراسي: سبتمبر–يناير أو فبراير–يونيو
+        const m = todayDate.getMonth(); // 0=يناير
+        const y = todayDate.getFullYear();
+        if (m >= 8 || m === 0) { // سبتمبر–يناير
+          start = formatDateOman(new Date(m >= 8 ? y : y - 1, 8, 1));
+          end   = formatDateOman(new Date(m >= 8 ? y + 1 : y, 0, 31));
+        } else { // فبراير–يونيو
+          start = formatDateOman(new Date(y, 1, 1));
+          end   = formatDateOman(new Date(y, 5, 30));
+        }
+      }
       else if (periodType === 'custom') { start = document.getElementById('statsStartDate').value; end = document.getElementById('statsEndDate').value; }
       return { start, end, periodType };
     }
 
     function getFilteredAttendanceRecords() {
-      const { start, end, periodType } = getDateRange();
+      const { start, end } = getDateRange();
       const out = [];
       Object.entries(db.attendance).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
         const sessDate = session.date || parsed.date;
-        let include = false;
-        if (periodType === 'semester') include = true;
-        else include = (!start || sessDate >= start) && (!end || sessDate <= end);
+        const include = (!start || sessDate >= start) && (!end || sessDate <= end);
         if (include && session && session.records) out.push({ key, date: sessDate, className: session.className || parsed.className, period: session.period || parsed.period, teacher: session.teacher || 'معلم', records: session.records });
       });
       return out;
     }
-
     function getFilteredBehaviorRecords() {
-      const { start, end, periodType } = getDateRange();
+      const { start, end } = getDateRange();
       const out = [];
       if (!db.behaviors) return out;
       Object.entries(db.behaviors).forEach(([key, session]) => {
         const parsed = parseAttendanceKey(key);
         const sessDate = session.date || parsed.date;
-        let include = false;
-        if (periodType === 'semester') include = true;
-        else include = (!start || sessDate >= start) && (!end || sessDate <= end);
+        const include = (!start || sessDate >= start) && (!end || sessDate <= end);
         if (include && session && session.records) out.push({ key, date: sessDate, className: session.className || parsed.className, period: session.period || parsed.period, teacher: session.teacher || 'معلم', records: session.records });
       });
       return out;
@@ -2279,8 +2652,9 @@
 
     function openStudentProfileModal(className, studentName) {
       let realClassName = className;
+      // ✅ Object.entries(db.students || {}) بدل []
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
-        for (const [cName, sList] of Object.entries(db.students || [])) if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
+        for (const [cName, sList] of Object.entries(db.students || {})) if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
       }
       if (!realClassName || realClassName === 'undefined') realClassName = 'غير محدد';
       document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-user-graduate text-emerald-400"></i> الملف: ${escapeHtml(studentName)}`;
@@ -2314,7 +2688,7 @@
     function openStudentBehaviorProfileModal(className, studentName) {
       let realClassName = className;
       if (!realClassName || realClassName === 'undefined' || realClassName === 'غير محدد') {
-        for (const [cName, sList] of Object.entries(db.students || [])) if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
+        for (const [cName, sList] of Object.entries(db.students || {})) if (Array.isArray(sList) && sList.includes(studentName)) { realClassName = cName; break; }
       }
       if (!realClassName || realClassName === 'undefined') realClassName = 'غير محدد';
       document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-scale-balanced text-teal-400"></i> الملف السلوكي: ${escapeHtml(studentName)}`;
@@ -2435,10 +2809,10 @@
       const todayDate = getTrustedDate();
       const dates = [];
       if (periodType === 'today') dates.push(todayStr);
-      else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); dates.push(formatDateLocal(y)); }
-      else if (periodType === 'week') { for (let i = 0; i < 7; i++) { const d = new Date(todayDate); d.setDate(d.getDate() - i); dates.push(formatDateLocal(d)); } }
-      else if (periodType === 'month') { const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1); for (let d = new Date(first); d <= todayDate; d.setDate(d.getDate() + 1)) dates.push(formatDateLocal(new Date(d))); }
-      else if (periodType === 'custom' && start && end) { for (let d = new Date(start); d <= new Date(end); d.setDate(d.getDate() + 1)) dates.push(formatDateLocal(new Date(d))); }
+      else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); dates.push(formatDateOman(y)); }
+      else if (periodType === 'week') { for (let i = 0; i < 7; i++) { const d = new Date(todayDate); d.setDate(d.getDate() - i); dates.push(formatDateOman(d)); } }
+      else if (periodType === 'month') { const first = new Date(todayDate.getFullYear(), todayDate.getMonth(), 1); for (let d = new Date(first); d <= todayDate; d.setDate(d.getDate() + 1)) dates.push(formatDateOman(new Date(d))); }
+      else if (periodType === 'custom' && start && end) { for (let d = new Date(start); d <= new Date(end); d.setDate(d.getDate() + 1)) dates.push(formatDateOman(new Date(d))); }
       else { Object.keys(db.attendance).forEach(k => { const p = parseAttendanceKey(k); if (p.date && !dates.includes(p.date)) dates.push(p.date); }); }
       if (dates.length === 0) { container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لا توجد تواريخ.</div>`; return; }
       const todayNow = omanNowParts().minutes;
@@ -2616,10 +2990,10 @@
     }
 
     /* ============================================================
-       Admin modal & tabs
+       Admin modal & auth
        ============================================================ */
     function openAdminModal() {
-      if (activeUser?.type === 'admin' || (activeUser?.type === 'custom' && hasAnyPermission(activeUser))) openControlPanelDirectly();
+      if (isAdminAuthorized()) openControlPanelDirectly();
       else {
         document.getElementById('adminModal').classList.remove('hidden');
         document.getElementById('adminAuthSection').classList.remove('hidden');
@@ -2628,7 +3002,7 @@
         document.getElementById('adminAuthError').classList.add('hidden');
       }
     }
-    function openAdminModalFromDashboard() { openControlPanelDirectly(); }
+    function openAdminModalFromDashboard() { openAdminModal(); }
     function openControlPanelDirectly() {
       document.getElementById('adminModal').classList.remove('hidden');
       document.getElementById('adminAuthSection').classList.add('hidden');
@@ -2636,6 +3010,7 @@
       setupRolePermissions();
     }
     function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+
     async function verifyAdminPinAndOpen() {
       const pin = document.getElementById('adminPinInput').value.trim();
       if (!pin) return;
@@ -2645,6 +3020,7 @@
       try {
         if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) {
           document.getElementById('adminAuthError').classList.add('hidden');
+          grantTemporaryAdminAuth(); // ✅ مصادقة إدارية مؤقتة 30 دقيقة
           openControlPanelDirectly();
         } else {
           document.getElementById('adminAuthError').classList.remove('hidden');
@@ -2655,37 +3031,47 @@
     function setupRolePermissions() {
       const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
       const tabsConfig = ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'];
+
       if (activeUser?.type === 'admin') {
         text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
         badge.textContent = "مدير النظام"; badge.className = "bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
         tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
         switchAdminTab('studstats');
-      } else if (activeUser?.type === 'custom') {
-        text.textContent = `صلاحية الدخول: ${activeUser.name}`;
-        badge.textContent = "مستخدم مخصص"; badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
-        const perms = activeUser.permissions || {};
-        let firstAllowedTab = null;
-        tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); const isAllowed = !!perms[id]; if (el) el.style.display = isAllowed ? 'flex' : 'none'; if (isAllowed && !firstAllowedTab) firstAllowedTab = id; });
-        if (firstAllowedTab) switchAdminTab(firstAllowedTab);
+      } else if (activeUser?.type === 'custom' || isAdminAuthorized()) {
+        // مستخدم مخصص أو مصادقة إدارية مؤقتة
+        const hasTempAdmin = isAdminAuthorized() && activeUser?.type !== 'custom';
+        if (hasTempAdmin) {
+          text.textContent = "صلاحية إدارية مؤقتة (30 دقيقة)";
+          badge.textContent = "إداري مؤقت"; badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
+          tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
+          switchAdminTab('studstats');
+        } else {
+          text.textContent = `صلاحية الدخول: ${activeUser.name}`;
+          badge.textContent = "مستخدم مخصص"; badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
+          const perms = activeUser.permissions || {};
+          let firstAllowedTab = null;
+          tabsConfig.forEach(id => { const el = document.getElementById(`tab-${id}`); const isAllowed = !!perms[id]; if (el) el.style.display = isAllowed ? 'flex' : 'none'; if (isAllowed && !firstAllowedTab) firstAllowedTab = id; });
+          if (firstAllowedTab) switchAdminTab(firstAllowedTab);
+        }
       }
       initAdminDashboard();
     }
 
     function initAdminDashboard() {
-      const isAdmin = activeUser?.type === 'admin';
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
       const has = (k) => isAdmin || !!(activeUser?.permissions?.[k]);
       try {
         if (has('studstats')) renderStudentStatsDashboard();
         if (has('behaviorstats')) { populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); }
         if (has('users')) renderCustomUsersList();
         if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
-        if (has('teachers')) renderTeachersList();
+        if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); }
         if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
       } catch (e) { console.error('initAdminDashboard error:', e); }
     }
 
     function switchAdminTab(tab) {
-      const isAdmin = activeUser?.type === 'admin';
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
       const has = (k) => isAdmin || !!(activeUser?.permissions?.[k]);
       if (!has(tab)) return;
       ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'].forEach(t => {
@@ -2699,7 +3085,7 @@
       if (tab === 'studstats') switchStatsSubTab('absence');
       if (tab === 'behaviorstats') renderBehaviorReportsSection();
       if (tab === 'users') renderCustomUsersList();
-      if (tab === 'teachers') renderTeachersList();
+      if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
       if (tab === 'duty') initDutyAdminPanel();
       if (tab === 'alerts') generateSmartAlerts();
       if (tab === 'reports') renderReportsSection();
@@ -2730,14 +3116,54 @@
     }
     function removeStudentFromBtn(btn) { removeStudent(btn.dataset.class, parseInt(btn.dataset.idx)); }
 
+    // ✅ إصلاح: حذف جماعي متزامن + إزالة التكرار
     async function saveBulkStudents() {
       const sel = document.getElementById('adminClassSelect').value;
-      db.students[sel] = arabicSort(document.getElementById('bulkStudentsInput').value.split('\n').map(s => s.trim()).filter(Boolean));
+      if (!sel) return;
+      const oldList = db.students[sel] || [];
+      const newList = arabicSort(
+        [...new Set(  // ✅ إزالة التكرار
+          document.getElementById('bulkStudentsInput').value
+            .split('\n').map(s => s.trim()).filter(Boolean)
+        )]
+      );
+      const removed = oldList.filter(s => !newList.includes(s));
+
+      db.students[sel] = newList;
       dirtySets.students.add(sel);
+
+      // حذف سجلات الطلاب المُزالين من attendance/behaviors محلياً
+      if (removed.length > 0) {
+        Object.entries(db.attendance).forEach(([k, sess]) => {
+          if (parseAttendanceKey(k).className === sel && sess.records) {
+            let changed = false;
+            removed.forEach(r => { if (sess.records[r] !== undefined) { delete sess.records[r]; changed = true; } });
+            if (changed) dirtySets.attendance.add(k);
+          }
+        });
+        Object.entries(db.behaviors).forEach(([k, sess]) => {
+          if (parseAttendanceKey(k).className === sel && sess.records) {
+            let changed = false;
+            removed.forEach(r => { if (sess.records[r] !== undefined) { delete sess.records[r]; changed = true; } });
+            if (changed) dirtySets.behaviors.add(k);
+          }
+        });
+      }
+
       const success = await saveSystemDataToCloud();
+
+      // ✅ حذف الطلاب المُزالين من السحابة
+      for (const student of removed) {
+        await queueCloudDelete('students', { class_name: sel, student_name: student });
+      }
+
       loadAdminStudentsList();
-      showToast(success ? 'تم!' : 'محلياً.', success ? 'success' : 'info');
+      const msg = removed.length > 0
+        ? `تم الحفظ. حُذف ${removed.length} طالب.`
+        : 'تم الحفظ.';
+      showToast(success ? msg : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
+
     function handleStudentFileImport(e) {
       const file = e.target.files[0]; if (!file) return;
       const reader = new FileReader();
@@ -2746,15 +3172,19 @@
         const lines = text.split(/\r?\n/).map(s => s.trim()).filter(Boolean);
         const sel = document.getElementById('adminClassSelect').value;
         if (lines.length > 0) {
-          db.students[sel] = arabicSort([...new Set([...(db.students[sel] || []), ...lines])]);
+          const oldList = db.students[sel] || [];
+          const newList = arabicSort([...new Set([...oldList, ...lines])]);
+          const added = newList.filter(s => !oldList.includes(s));
+          db.students[sel] = newList;
           dirtySets.students.add(sel);
           await saveSystemDataToCloud();
           loadAdminStudentsList();
-          showToast(`تم استيراد ${lines.length} طالب!`, 'success');
+          showToast(`تم استيراد ${added.length} طالب جديد (الإجمالي: ${newList.length}).`, 'success');
         }
       };
       reader.readAsText(file, 'UTF-8');
     }
+
     async function removeStudent(className, idx) {
       const list = db.students[className]; if (!list || !list[idx]) return;
       const studentName = list[idx];
@@ -2769,6 +3199,7 @@
       loadAdminStudentsList();
       showToast('تم الحذف.', 'info');
     }
+
     async function addNewClassPrompt() {
       const name = await showPrompt('اسم الصف الجديد:', { title: 'إضافة صف', okText: 'إضافة' });
       if (!name || !name.trim()) return;
@@ -2781,6 +3212,7 @@
       populateAdminClassSelect(); populateReportClassSelect(); populateBehaviorReportClassSelect(); renderClassesGrid();
       showToast(`تم إضافة الصف ${trimmed}.`, 'success');
     }
+
     async function deleteCurrentClass() {
       const sel = document.getElementById('adminClassSelect').value;
       if (!sel) return;
@@ -2805,26 +3237,115 @@
     /* ============================================================
        Teachers admin
        ============================================================ */
+    // ✅ إصلاح: استخدام data-subject + addEventListener بدل onclick
+    function renderSubjectDutyDays() {
+      const container = document.getElementById('subjectDutyDaysContainer'); if (!container) return;
+      const subjects = [...new Set(Object.values(db.dutyModule.teacherMeta || {}).map(m => m.subject).filter(Boolean))];
+      if (subjects.length === 0) { container.innerHTML = '<div class="text-slate-400 text-xs font-bold p-2">لا توجد مواد مسجلة. قم باستيراد الجدول أولاً.</div>'; return; }
+
+      container.innerHTML = subjects.sort((a,b)=>a.localeCompare(b,'ar')).map(subj => {
+        const days = new Set();
+        for (const t of Object.values(db.dutyModule.teacherMeta)) {
+           if (t.subject === subj && t.day) days.add(t.day);
+        }
+        let currentDay = '';
+        if (days.size === 1) currentDay = [...days][0];
+        else if (days.size > 1) currentDay = 'mixed';
+
+        return `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-slate-50 dark:bg-slate-900/50">
+          <div class="font-bold text-xs mb-2 text-emerald-700 dark:text-emerald-300">مادة: ${escapeHtml(subj)}</div>
+          <select data-subject="${escapeHtml(subj)}" class="subject-duty-select w-full p-2 border border-slate-200 dark:border-slate-700 rounded-xl text-xs bg-white dark:bg-slate-800 outline-none">
+            <option value="">بدون مناوبة</option>
+            ${currentDay === 'mixed' ? `<option value="mixed" disabled selected>أيام مختلفة</option>` : ''}
+            <option value="الأحد" ${currentDay === 'الأحد' ? 'selected' : ''}>الأحد</option>
+            <option value="الاثنين" ${currentDay === 'الاثنين' ? 'selected' : ''}>الاثنين</option>
+            <option value="الثلاثاء" ${currentDay === 'الثلاثاء' ? 'selected' : ''}>الثلاثاء</option>
+            <option value="الأربعاء" ${currentDay === 'الأربعاء' ? 'selected' : ''}>الأربعاء</option>
+            <option value="الخميس" ${currentDay === 'الخميس' ? 'selected' : ''}>الخميس</option>
+            <option value="الجمعة" ${currentDay === 'الجمعة' ? 'selected' : ''}>الجمعة</option>
+            <option value="السبت" ${currentDay === 'السبت' ? 'selected' : ''}>السبت</option>
+          </select>
+        </div>`;
+      }).join('');
+
+      // ✅ ربط الأحداث بأمان
+      container.querySelectorAll('.subject-duty-select').forEach(el => {
+        el.addEventListener('change', () => {
+          const subj = el.getAttribute('data-subject');
+          setSubjectDutyDay(subj, el.value);
+        });
+      });
+    }
+
+    async function setSubjectDutyDay(subject, day) {
+      if (day === 'mixed') return;
+      let updatedCount = 0;
+      for (const tName of Object.keys(db.dutyModule.teacherMeta)) {
+        if (db.dutyModule.teacherMeta[tName].subject === subject) {
+          db.dutyModule.teacherMeta[tName].day = day;
+          db.dutyModule.teacherMeta[tName].enabled = !!day;
+          updatedCount++;
+        }
+      }
+      if (updatedCount > 0) {
+        dirtySets.duty_module = true;
+        const ok = await saveSystemDataToCloud();
+        showToast(ok ? `تم تحديث مناوبة ${updatedCount} معلم لمادة ${subject}` : 'حُفظ محلياً.', ok ? 'success' : 'info');
+        renderTeachersList();
+      }
+    }
+
     function renderTeachersList() {
       const container = document.getElementById('teachersList'); if (!container) return;
       container.innerHTML = '';
       if (!db.teachers || db.teachers.length === 0) { container.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا يوجد معلمون.</div>`; return; }
+
+      const grouped = {};
       db.teachers.forEach((t, idx) => {
-        const div = document.createElement('div');
-        div.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50 gap-2 flex-wrap';
-        const meta = normalizeDutyModule(db.dutyModule).teacherMeta[t.name] || {};
-        const mustChange = !!t.mustChangePin;
-        const mustChangeBadge = mustChange ? '<span class="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-300">🔑 يجب تغيير الرمز</span>' : '';
-        div.innerHTML = `<div class="min-w-0 flex-grow"><div class="flex items-center gap-2 flex-wrap"><span class="font-extrabold text-xs sm:text-sm">${escapeHtml(t.name)}</span>${mustChangeBadge}</div><div class="text-[11px] text-slate-500 mt-1">${escapeHtml(meta.subject || 'التخصص غير محدد')} · ${escapeHtml(meta.day || 'بدون مناوبة')} ${meta.day ? '<span class="text-emerald-600 font-bold">(يوم كامل)</span>' : ''}</div></div><div class="flex flex-wrap gap-2"><button onclick="openEditDutyModal(${idx})" class="text-orange-700 dark:text-orange-400 text-xs font-bold px-3 py-1.5 bg-orange-50 dark:bg-orange-950/40 rounded-xl">بيانات المناوبة</button><button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl">تعديل الرمز</button><button onclick="forceTeacherPinReset(${idx})" class="text-purple-600 dark:text-purple-400 text-xs font-bold px-3 py-1.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl">${mustChange ? 'إلغاء الإجبار' : 'إجبار التغيير'}</button><button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/40 rounded-xl">حذف</button></div>`;
-        container.appendChild(div);
+         const subj = db.dutyModule.teacherMeta[t.name]?.subject || 'بدون مادة';
+         if (!grouped[subj]) grouped[subj] = [];
+         grouped[subj].push({ t, idx });
+      });
+
+      const sortedSubjects = Object.keys(grouped).sort((a,b) => a.localeCompare(b, 'ar'));
+      sortedSubjects.forEach(subj => {
+         container.innerHTML += `<div class="bg-slate-200 dark:bg-slate-700 p-2 font-bold text-xs text-emerald-900 dark:text-emerald-200 border-y border-slate-300 dark:border-slate-600">مادة: ${escapeHtml(subj)}</div>`;
+         grouped[subj].forEach(({t, idx}) => {
+            const meta = db.dutyModule.teacherMeta[t.name] || {};
+            const mustChange = !!t.mustChangePin;
+            const mustChangeBadge = mustChange ? '<span class="text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 px-2 py-0.5 rounded-lg font-bold border border-amber-300">🔑 يجب تغيير الرمز</span>' : '';
+
+            const div = document.createElement('div');
+            div.className = 'flex justify-between items-center p-3 border-b border-slate-100 dark:border-slate-700/50 gap-2 flex-wrap';
+            div.innerHTML = `<div class="min-w-0 flex-grow">
+               <div class="flex items-center gap-2 flex-wrap">
+                  <span class="font-extrabold text-xs sm:text-sm">${escapeHtml(t.name)}</span>${mustChangeBadge}
+               </div>
+               <div class="text-[11px] text-slate-500 mt-1">
+                  المناوبة: ${escapeHtml(meta.day || 'بدون مناوبة')} ${meta.day ? '<span class="text-emerald-600 font-bold">(يوم كامل)</span>' : ''}
+               </div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+               <button onclick="openEditDutyModal(${idx})" class="text-orange-700 dark:text-orange-400 text-xs font-bold px-3 py-1.5 bg-orange-50 dark:bg-orange-950/40 rounded-xl">تعديل المناوبة</button>
+               <button onclick="editTeacherPin(${idx})" class="text-blue-600 dark:text-blue-400 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl">تعديل الرمز</button>
+               <button onclick="forceTeacherPinReset(${idx})" class="text-purple-600 dark:text-purple-400 text-xs font-bold px-3 py-1.5 bg-purple-50 dark:bg-purple-950/40 rounded-xl">${mustChange ? 'إلغاء الإجبار' : 'إجبار التغيير'}</button>
+               <button onclick="deleteTeacher(${idx})" class="text-red-600 dark:text-red-400 text-xs font-bold px-3 py-1.5 bg-red-50 dark:bg-red-950/40 rounded-xl">حذف</button>
+            </div>`;
+            container.appendChild(div);
+         });
       });
     }
 
+    // ✅ إصلاح: التحقق من الاسم مشتركاً مع customUsers
     async function addNewTeacher() {
       const name = document.getElementById('newTeacherName').value.trim();
       const pin = document.getElementById('newTeacherPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
-      if (db.teachers.some(t => t.name === name)) { showToast('الاسم مستخدم.', 'error'); return; }
+      if (pin.length < 4) { showToast('الرمز 4 أرقام على الأقل.', 'error'); return; }
+      // ✅ فحص الاسم في كل الأنواع
+      if (db.teachers.some(t => t.name === name) || (db.customUsers || []).some(u => u.name === name)) {
+        showToast('الاسم مستخدم.', 'error'); return;
+      }
       if (await isPinTaken(pin)) { showToast('الرمز مستخدم.', 'error'); return; }
       const rec = await createPinRecord(pin);
       db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: false });
@@ -2835,9 +3356,9 @@
       db.dutyModule.teacherMeta[name] = { subject, day: dutyDay, start: '07:00', end: '13:50', enabled: !!dutyDay };
       dirtySets.duty_module = true;
       const success = await saveSystemDataToCloud();
-      renderTeachersList();
+      renderTeachersList(); renderSubjectDutyDays();
       ['newTeacherName','newTeacherPin','newTeacherSubject','newTeacherDutyDay'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
-      showToast(success ? 'تم!' : 'محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
     async function editTeacherPin(idx) {
@@ -2845,13 +3366,14 @@
       const newPin = await showPrompt(`الرمز الجديد لـ (${t.name}):`, { title: 'تعديل الرمز', inputMode: 'numeric' });
       if (!newPin || !newPin.trim()) return;
       const trimmed = newPin.trim();
+      if (trimmed.length < 4) { showToast('الرمز 4 أرقام على الأقل.', 'error'); return; }
       if (await isPinTaken(trimmed, t.name)) { showToast('الرمز مستخدم.', 'error'); return; }
       const rec = await createPinRecord(trimmed);
       t.pin_hash = rec.hash; t.pin_salt = rec.salt;
       dirtySets.teachers.add(t.name);
       const success = await saveSystemDataToCloud();
       renderTeachersList();
-      showToast(success ? 'تم التحديث.' : 'محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم التحديث.' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
     async function deleteTeacher(idx) {
@@ -2863,7 +3385,7 @@
       dirtySets.duty_module = true;
       await saveSystemDataToCloud();
       await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
-      renderTeachersList();
+      renderTeachersList(); renderSubjectDutyDays();
       showToast('تم الحذف.', 'info');
       if (activeUser && activeUser.type === 'teacher' && activeUser.name === t.name) { showToast('تم حذف حسابك.', 'error'); setTimeout(() => _performLogout(), 800); }
     }
@@ -2878,9 +3400,10 @@
       dirtySets.teachers.add(t.name);
       const success = await saveSystemDataToCloud();
       renderTeachersList();
-      showToast(success ? 'تم.' : 'محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم.' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
+    // ✅ إصلاح: editDutyError موجود الآن في HTML
     function openEditDutyModal(idx) {
       const t = db.teachers[idx]; if (!t) return;
       const meta = dutyData().teacherMeta[t.name] || {};
@@ -2899,8 +3422,8 @@
       dutyData().teacherMeta[editingDutyTeacherName] = { subject, day, start: '07:00', end: '13:50', enabled: !!day };
       dirtySets.duty_module = true;
       const success = await saveSystemDataToCloud();
-      closeEditDutyModal(); renderTeachersList(); refreshDutyDashboardCard();
-      showToast(success ? 'تم.' : 'محلياً.', success ? 'success' : 'info');
+      closeEditDutyModal(); renderTeachersList(); renderSubjectDutyDays(); refreshDutyDashboardCard();
+      showToast(success ? 'تم.' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
 
     /* ============================================================
@@ -2910,7 +3433,11 @@
       const name = document.getElementById('newCustomUserName').value.trim();
       const pin = document.getElementById('newCustomUserPin').value.trim();
       if (!name || !pin) { showToast('أدخل الاسم والرمز.', 'error'); return; }
-      if (db.customUsers.some(u => u.name === name)) { showToast('الاسم مستخدم.', 'error'); return; }
+      if (pin.length < 4) { showToast('الرمز 4 أرقام على الأقل.', 'error'); return; }
+      // ✅ فحص الاسم في كل الأنواع
+      if ((db.customUsers || []).some(u => u.name === name) || db.teachers.some(t => t.name === name)) {
+        showToast('الاسم مستخدم.', 'error'); return;
+      }
       if (await isPinTaken(pin)) { showToast('الرمز مستخدم.', 'error'); return; }
       const permissions = {
         studstats: document.getElementById('perm_studstats').checked,
@@ -2930,7 +3457,7 @@
       const success = await saveSystemDataToCloud();
       renderCustomUsersList();
       document.getElementById('newCustomUserName').value = ''; document.getElementById('newCustomUserPin').value = '';
-      showToast(success ? 'تم!' : 'محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
     function renderCustomUsersList() {
       const container = document.getElementById('customUsersList'); if (!container) return;
@@ -2961,16 +3488,19 @@
     async function saveNewAdminPin() {
       const newPin = document.getElementById('settingAdminPin').value.trim();
       if (!newPin) { showToast('أدخل الرمز.', 'error'); return; }
+      if (newPin.length < 4) { showToast('الرمز 4 أرقام على الأقل.', 'error'); return; }
       const currentPin = await showPrompt('أدخل رمز المدير الحالي للتأكيد:', { title: 'تأكيد', inputMode: 'numeric' });
       if (currentPin === null || !currentPin.trim()) return;
       if (!await verifyPinAgainstRecord(currentPin.trim(), db.adminPin)) { showToast('الرمز الحالي غير صحيح.', 'error'); return; }
+      if (await isPinTaken(newPin, 'admin')) { showToast('الرمز مستخدم.', 'error'); return; }
       const rec = await createPinRecord(newPin);
       db.adminPin = rec;
       dirtySets.admin_pin = true;
       const success = await saveSystemDataToCloud();
       document.getElementById('settingAdminPin').value = '';
-      showToast(success ? 'تم الحفظ!' : 'محلياً.', success ? 'success' : 'info');
+      showToast(success ? 'تم الحفظ!' : 'حُفظ محلياً.', success ? 'success' : 'info');
     }
+
     async function executeFullReset() {
       const pin1 = document.getElementById('resetPin1').value.trim();
       const pin2 = document.getElementById('resetPin2').value.trim();
@@ -3056,7 +3586,7 @@
     function refreshDutyDashboardCard() {
       const card = document.getElementById('dutyDashboardCard'); const testBtn = document.getElementById('dutyTestModeBtn');
       if (!card) return;
-      const isAdmin = activeUser?.type === 'admin';
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
       const isTeacherEligible = activeUser?.type === 'teacher' && isTeacherDutyWindow(dutyData().teacherMeta[activeUser.name]);
       const shouldShow = isAdmin || isTeacherEligible || dutyTestModeActive;
       card.classList.toggle('hidden', !shouldShow);
@@ -3074,7 +3604,7 @@
       refreshDutyDashboardCard();
     }
     function openDutyView() {
-      const isAdmin = activeUser?.type === 'admin' || dutyTestModeActive;
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
       const isTeacherEligible = activeUser?.type === 'teacher' && isTeacherDutyWindow(dutyData().teacherMeta[activeUser.name]);
       if (!isAdmin && !isTeacherEligible) { showToast('قسم المناوبة غير متاح.', 'error'); return; }
       ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dashboardSelectionView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
@@ -3088,7 +3618,7 @@
       const wrap = document.getElementById('dutyPeriodsGrid'); if (!wrap) return;
       wrap.innerHTML = '';
       const d = dutyData(), now = omanNowParts(), today = getOmanLocalDate();
-      const isAdminTest = activeUser?.type === 'admin' || dutyTestModeActive;
+      const isAdminTest = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
       const teacherMeta = d.teacherMeta[activeUser?.name] || {};
       const todayDay = dutyDayForDate(today);
       for (let i = 0; i < 8; i++) {
@@ -3116,7 +3646,7 @@
       const d = dutyData(), date = getOmanLocalDate(), day = dutyDayForDate(date);
       const p = d.periods[period - 1];
       const now = omanNowParts(), start = toMinutes(p.start), end = toMinutes(p.end);
-      const isAdminTest = activeUser?.type === 'admin' || dutyTestModeActive;
+      const isAdminTest = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
       if (!isAdminTest && (start === null || end === null || now.minutes < start + d.graceMinutes || now.minutes > end)) { showToast('خارج وقت الحصة.', 'error'); return; }
       const rows = d.timetable.filter(x => x.day === day && Number(x.period) === period);
       if (!rows.length) { showToast('لا توجد بيانات.', 'error'); return; }
@@ -3150,7 +3680,7 @@
       if (!checked.length) { showToast('حدد صفاً.', 'error'); return; }
       const date = getOmanLocalDate(), day = dutyDayForDate(date), d = dutyData();
       const createdAt = getTrustedDate().toISOString();
-      const isAdminTest = activeUser?.type === 'admin' || dutyTestModeActive;
+      const isAdminTest = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
       if (!isAdminTest) {
         const pConfig = d.periods[selectedDutyPeriod - 1];
         const nowMin = omanNowParts().minutes;
@@ -3167,7 +3697,7 @@
       const ok = await saveSystemDataToCloud();
       renderDutyTodayRecords();
       lastDutyMessage = buildDutyWhatsAppMessage(fresh);
-      showToast(ok ? 'تم الحفظ.' : 'محلياً.', ok ? 'success' : 'info');
+      showToast(ok ? 'تم الحفظ.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
       openWhatsAppSafely(lastDutyMessage);
     }
 
@@ -3185,7 +3715,8 @@
     function renderDutyTodayRecords() {
       const el = document.getElementById('dutyTodayRecords'); if (!el) return;
       const today = getOmanLocalDate();
-      const rows = dutyData().records.filter(r => r.date === today && (activeUser?.type === 'admin' || activeUser?.permissions?.duty || r.reportedBy === activeUser?.name));
+      const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized();
+      const rows = dutyData().records.filter(r => r.date === today && (isAdmin || activeUser?.permissions?.duty || r.reportedBy === activeUser?.name));
       if (!rows.length) { el.innerHTML = '<p class="text-slate-400 text-xs">لا توجد بلاغات.</p>'; return; }
       el.innerHTML = rows.map(r => `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>${escapeHtml(r.className)}</strong> · ح${r.period} · ${escapeHtml(r.teacherName)} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`).join('');
     }
@@ -3216,15 +3747,14 @@
       dirtySets.duty_module = true;
       const ok = await saveSystemDataToCloud();
       renderDutyPeriods(); refreshDutyDashboardCard();
-      showToast(ok ? 'تم.' : 'محلياً.', ok ? 'success' : 'info');
+      showToast(ok ? 'تم.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
 
     function renderScheduleGrid() {
       const container = document.getElementById('scheduleGridContainer'); if (!container) return;
       const day = document.getElementById('scheduleDaySelect')?.value || 'الأحد';
       const periodLabels = ['ح1','ح2','ح3','ح4','ح5','ح6','ح7','ح8'];
-      
-      // 🔴 تم إصلاح هذه المشكلة: إضافة أسماء المعلمين من الجدول المستورد حتى لو لم يكونوا في قاعدة البيانات
+
       const teachersSet = new Set((db.teachers || []).map(t => t.name));
       (dutyData().timetable || []).forEach(x => { if (x.teacher) teachersSet.add(x.teacher); });
       const teachers = Array.from(teachersSet).sort((a,b) => String(a).localeCompare(String(b), 'ar'));
@@ -3273,7 +3803,7 @@
       const count = Object.keys(scheduleDirtyChanges).length; scheduleDirtyChanges = {};
       dirtySets.duty_module = true;
       const ok = await saveSystemDataToCloud();
-      showToast(ok ? `تم حفظ ${count}.` : 'محلياً.', ok ? 'success' : 'info');
+      showToast(ok ? `تم حفظ ${count}.` : 'حُفظ محلياً.', ok ? 'success' : 'info');
       renderScheduleGrid();
     }
     function openCopyDayModal() {
@@ -3296,7 +3826,7 @@
       closeCopyDayModal();
       const s = await saveSystemDataToCloud();
       document.getElementById('scheduleDaySelect').value = toDay; renderScheduleGrid();
-      showToast(s ? `تم النسخ.` : 'محلياً.', s ? 'success' : 'info');
+      showToast(s ? `تم النسخ.` : 'حُفظ محلياً.', s ? 'success' : 'info');
     }
     async function clearScheduleDay() {
       const day = document.getElementById('scheduleDaySelect').value;
@@ -3307,7 +3837,7 @@
       dirtySets.duty_module = true;
       const s = await saveSystemDataToCloud();
       renderScheduleGrid();
-      showToast(s ? `تم المسح.` : 'محلياً.', s ? 'success' : 'info');
+      showToast(s ? `تم المسح.` : 'حُفظ محلياً.', s ? 'success' : 'info');
     }
 
     function parseCsvLine(line) {
@@ -3371,23 +3901,18 @@
     async function commitDutyTimetable() {
       if (!dutyPreviewRows.length) previewDutyTimetable();
       if (!dutyPreviewRows.length) return;
-      
       const ok = await showConfirm(`استبدال الجدول بـ ${dutyPreviewRows.length} سجل؟`, { danger: true });
       if (!ok) return;
-      
       dutyData().timetable = dutyPreviewRows.map(r => ({ ...r }));
       dirtySets.duty_module = true;
       const s = await saveSystemDataToCloud();
-      
-      // 🔴 تم إصلاح هذه المشكلة: التبديل التلقائي إلى أول يوم تم استيراده
       if (dutyPreviewRows.length > 0) {
           const firstDay = dutyPreviewRows[0].day;
           const daySelect = document.getElementById('scheduleDaySelect');
           if (daySelect) daySelect.value = firstDay;
       }
-      
       renderScheduleGrid();
-      showToast(s ? `تم الاعتماد بنجاح!` : 'تم الاعتماد محلياً.', s ? 'success' : 'info');
+      showToast(s ? `تم الاعتماد بنجاح!` : 'حُفظ محلياً.', s ? 'success' : 'info');
     }
 
     async function handleDutyTimetableFile(event) {
@@ -3431,7 +3956,6 @@
           resolve();
         };
         sc.onerror = () => {
-          console.warn('cdnjs failed, trying unpkg...');
           const sc2 = document.createElement('script');
           sc2.src = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
           sc2.onload = () => {
@@ -3466,7 +3990,7 @@
       dirtySets.duty_module = true;
       const ok = await saveSystemDataToCloud();
       renderDutySwaps(); refreshDutySwapOriginal();
-      showToast(ok ? 'تم.' : 'محلياً.', ok ? 'success' : 'info');
+      showToast(ok ? 'تم.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
     function renderDutySwaps() {
       const el = document.getElementById('dutySwapsList'); if (!el) return;
@@ -3499,7 +4023,7 @@
       dirtySets.duty_reports.add(id);
       const ok = await saveSystemDataToCloud();
       renderDutyAdminReview();
-      showToast(ok ? 'تم.' : 'محلياً.', ok ? 'success' : 'info');
+      showToast(ok ? 'تم.' : 'حُفظ محلياً.', ok ? 'success' : 'info');
     }
 
     function exportDutyReportsCSV() {
@@ -3517,41 +4041,122 @@
       if (!textarea || !textarea.value.trim()) { showToast('الصق CSV أولاً.', 'error'); return; }
       const rows = parseDutyCsv(textarea.value);
       if (rows.length === 0) { showToast('لم يتم التعرف.', 'error'); return; }
+
       const fullNames = [...new Set(rows.map(r => r.teacher))];
-      const shorten = (full) => { const parts = full.trim().split(/\s+/).filter(Boolean); if (parts.length <= 2) return full.trim(); return parts[0] + ' ' + parts[parts.length - 1]; };
-      const added = [], skipped = [], shortened = [], conflicts = [];
-      const usedShortNames = new Set();
-      for (const fullName of fullNames) {
-        const shortName = shorten(fullName);
-        if (shortName !== fullName) shortened.push(`${fullName} → ${shortName}`);
-        if (usedShortNames.has(shortName)) { conflicts.push(`"${shortName}" مكرر`); continue; }
-        usedShortNames.add(shortName);
-        if (db.teachers.some(t => t.name === shortName)) { skipped.push(shortName); continue; }
-        let pin = null, attempts = 0;
-        while (attempts < 200) {
-          const candidate = String(Math.floor(1000 + Math.random() * 9000));
-          if (!await isPinTaken(candidate)) { pin = candidate; break; }
-          attempts++;
-        }
-        if (!pin) { conflicts.push(`تعذر توليد رمز لـ "${shortName}"`); continue; }
-        const rec = await createPinRecord(pin);
-        db.teachers.push({ name: shortName, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true });
-        dirtySets.teachers.add(shortName);
-        db.dutyModule = normalizeDutyModule(db.dutyModule);
-        db.dutyModule.teacherMeta[shortName] = { subject: '', day: '', start: '07:00', end: '13:50', enabled: false };
-        dirtySets.duty_module = true;
-        added.push({ name: shortName, pin, original: fullName });
+      const nameGroups = {};
+      fullNames.forEach(full => {
+          const parts = full.trim().split(/\s+/);
+          const short = parts.length <= 2 ? full.trim() : `${parts[0]} ${parts[parts.length - 1]}`;
+          if (!nameGroups[short]) nameGroups[short] = [];
+          nameGroups[short].push(full);
+      });
+
+      const resolvedNames = {};
+      for (const [short, fulls] of Object.entries(nameGroups)) {
+          if (fulls.length === 1) {
+              resolvedNames[fulls[0]] = short;
+          } else {
+              fulls.forEach(full => {
+                  const parts = full.trim().split(/\s+/);
+                  if (parts.length >= 3) {
+                      resolvedNames[full] = `${parts[0]} ${parts[1]} ${parts[parts.length - 1]}`;
+                  } else {
+                      resolvedNames[full] = full;
+                  }
+              });
+          }
       }
-      if (added.length > 0) await saveSystemDataToCloud();
+
+      const finalUniqueNames = new Set(db.teachers.map(t => t.name));
+      for (const full of fullNames) {
+          let finalName = resolvedNames[full];
+          if (finalUniqueNames.has(finalName)) {
+              let counter = 1;
+              while (finalUniqueNames.has(`${finalName} (${counter})`)) counter++;
+              finalName = `${finalName} (${counter})`;
+          }
+          finalUniqueNames.add(finalName);
+          resolvedNames[full] = finalName;
+      }
+
+      const subjectMap = {};
+      rows.forEach(r => {
+        const subj = r.subject || 'غير محدد';
+        if (!subjectMap[subj]) subjectMap[subj] = new Set();
+        subjectMap[subj].add(r.teacher);
+      });
+
+      const added = [], skipped = [], conflicts = [];
+      const usedShortNames = new Set();
+
+      for (const [subject, teacherSet] of Object.entries(subjectMap)) {
+        for (const fullName of teacherSet) {
+          const shortName = resolvedNames[fullName];
+          if (usedShortNames.has(shortName)) { conflicts.push(`"${shortName}" مكرر`); continue; }
+          usedShortNames.add(shortName);
+
+          const existingTeacher = db.teachers.find(t => t.name === shortName);
+          if (existingTeacher) {
+            db.dutyModule.teacherMeta[shortName] = db.dutyModule.teacherMeta[shortName] || {};
+            db.dutyModule.teacherMeta[shortName].subject = subject;
+            skipped.push(shortName);
+          } else {
+            // ✅ فحص تعارض مع customUsers
+            if ((db.customUsers || []).some(u => u.name === shortName)) {
+              conflicts.push(`"${shortName}" موجود كمستخدم مخصص`);
+              continue;
+            }
+            let pin = null, attempts = 0;
+            while (attempts < 200) {
+              const candidate = String(Math.floor(1000 + Math.random() * 9000));
+              if (!await isPinTaken(candidate)) { pin = candidate; break; }
+              attempts++;
+            }
+            if (!pin) { conflicts.push(`تعذر توليد رمز لـ "${shortName}"`); continue; }
+            const rec = await createPinRecord(pin);
+            db.teachers.push({ name: shortName, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true });
+            dirtySets.teachers.add(shortName);
+            db.dutyModule.teacherMeta[shortName] = { subject, day: '', start: '07:00', end: '13:50', enabled: false };
+            added.push({ name: shortName, pin, subject, original: fullName });
+          }
+        }
+      }
+
+      if (added.length > 0 || skipped.length > 0) {
+        dirtySets.duty_module = true;
+        await saveSystemDataToCloud();
+      }
+
       renderTeachersList();
-      const shortInfo = shortened.length > 0 ? `<div class="bg-blue-50 dark:bg-blue-950/40 p-4 rounded-2xl border border-blue-200"><div class="font-bold text-blue-800 dark:text-blue-300 mb-2">✂️ ${shortened.length} اسم مختصر:</div><div class="text-[10px] space-y-0.5 max-h-32 overflow-y-auto font-mono">${shortened.slice(0, 30).map(s => `<div>${escapeHtml(s)}</div>`).join('')}</div></div>` : '';
-      const skippedInfo = skipped.length > 0 ? `<div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200"><div class="font-bold text-amber-800 dark:text-amber-300 mb-2">⏭️ ${skipped.length} موجود:</div><div class="text-xs">${skipped.map(n => escapeHtml(n)).join('، ')}</div></div>` : '';
-      const conflictsInfo = conflicts.length > 0 ? `<div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-2xl border border-red-200"><div class="font-bold text-red-800 dark:text-red-300 mb-2">⚠️ تعارضات (${conflicts.length}):</div><div class="text-xs">${conflicts.map(c => escapeHtml(c)).join('<br>')}</div></div>` : '';
-      const addedInfo = added.length > 0 ? `<div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border-2 border-emerald-300"><div class="font-black text-emerald-800 dark:text-emerald-300 mb-3 text-base">✅ ${added.length} معلم جديد</div><div class="text-xs space-y-1.5 max-h-72 overflow-y-auto">${added.map(a => `<div class="flex justify-between items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-lg"><div><strong>${escapeHtml(a.name)}</strong><div class="text-[10px] text-slate-400">${escapeHtml(a.original)}</div></div><div class="font-mono font-black text-lg text-emerald-700 dark:text-emerald-400">${a.pin}</div></div>`).join('')}</div><div class="text-[10px] text-amber-700 dark:text-amber-400 mt-2 font-bold">⚠️ احفظ هذه الأرقام</div></div>` : `<div class="bg-slate-50 dark:bg-slate-900/40 p-4 rounded-2xl border text-center"><div class="text-slate-500 font-bold">لم تتم إضافة معلمين.</div></div>`;
-      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-user-plus text-emerald-400"></i> استخراج المعلمين`;
-      document.getElementById('generalModalBody').innerHTML = `<div class="space-y-3">${addedInfo}${skippedInfo}${conflictsInfo}${shortInfo}</div>`;
+      renderSubjectDutyDays();
+
+      let addedHTML = '';
+      if (added.length > 0) {
+         const addedBySubj = {};
+         added.forEach(a => {
+            if (!addedBySubj[a.subject]) addedBySubj[a.subject] = [];
+            addedBySubj[a.subject].push(a);
+         });
+         addedHTML = `<div class="bg-emerald-50 dark:bg-emerald-950/40 p-4 rounded-2xl border-2 border-emerald-300">
+            <div class="font-black text-emerald-800 dark:text-emerald-300 mb-3 text-base">✅ تمت إضافة ${added.length} معلم جديد</div>
+            <div class="space-y-4">`;
+         for (const [subj, list] of Object.entries(addedBySubj)) {
+            addedHTML += `<div><div class="font-bold text-xs text-emerald-700 dark:text-emerald-400 mb-1 border-b border-emerald-200 dark:border-emerald-800 pb-1">مادة: ${escapeHtml(subj)}</div><div class="space-y-1.5">`;
+            list.forEach(a => {
+               addedHTML += `<div class="flex justify-between items-center gap-2 bg-white dark:bg-slate-800 p-2 rounded-lg"><div><strong>${escapeHtml(a.name)}</strong><div class="text-[10px] text-slate-400">${escapeHtml(a.original)}</div></div><div class="font-mono font-black text-lg text-emerald-700 dark:text-emerald-400">${a.pin}</div></div>`;
+            });
+            addedHTML += `</div></div>`;
+         }
+         addedHTML += `</div><div class="text-[10px] text-amber-700 dark:text-amber-400 mt-2 font-bold">⚠️ احفظ هذه الأرقام</div></div>`;
+      }
+
+      const skippedHTML = skipped.length > 0 ? `<div class="bg-amber-50 dark:bg-amber-950/40 p-4 rounded-2xl border border-amber-200"><div class="font-bold text-amber-800 dark:text-amber-300 mb-2">⏭️ ${skipped.length} معلم موجود مسبقاً (تم تحديث مادته)</div></div>` : '';
+      const conflictsHTML = conflicts.length > 0 ? `<div class="bg-red-50 dark:bg-red-950/40 p-4 rounded-2xl border border-red-200"><div class="font-bold text-red-800 dark:text-red-300 mb-2">⚠️ تعارضات (${conflicts.length}):</div><div class="text-xs">${conflicts.map(c => escapeHtml(c)).join('<br>')}</div></div>` : '';
+
+      document.getElementById('generalModalTitle').innerHTML = `<i class="fa-solid fa-user-plus text-emerald-400"></i> استخراج المعلمين وتوزيعهم حسب المادة`;
+      document.getElementById('generalModalBody').innerHTML = `<div class="space-y-3">${addedHTML}${skippedHTML}${conflictsHTML}</div>`;
       document.getElementById('generalModal').classList.remove('hidden');
-      showToast(`تم استخراج ${added.length}.`, added.length > 0 ? 'success' : 'info');
+      showToast(`تم استخراج وتوزيع المعلمين حسب المواد.`, added.length > 0 ? 'success' : 'info');
     }
   </script>
 </body>
