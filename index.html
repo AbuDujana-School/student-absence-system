@@ -116,12 +116,9 @@
       </div>
     </div>
 
-    <div class="text-center py-2">
-      <h3 class="text-2xl font-black text-slate-800 dark:text-white mb-1.5 tracking-wide">لوحة التحكم الرئيسية</h3>
-      <p class="text-xs text-slate-500 dark:text-slate-400 font-medium">اختر القسم المطلوب</p>
-    </div>
+    <!-- تم إزالة عنوان لوحة التحكم الرئيسية من هنا -->
 
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mt-6">
       <div id="attendanceDashboardCard" onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
         <div class="relative z-10"><div class="w-16 h-16 bg-white/15 backdrop-blur-md text-emerald-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner"><i class="fa-solid fa-clipboard-user"></i></div></div>
         <div class="relative z-10 mt-6"><h4 class="text-3xl font-black text-white mb-2">الغياب</h4></div>
@@ -769,6 +766,12 @@ const UNIFIED_PERIOD_GRADIENT = { from: '#0d9488', via: '#0f766e', to: '#115e59'
 /* ============ Helpers ============ */
 function formatClassName(c) {
   if (!c) return '';
+  const parts = String(c).split('/');
+  if (parts.length === 2) {
+    // تقوم بعكس الجزأين: إذا كان 1/9 ستجعله 9/1 أو العكس حسب رغبتك
+    // هنا نقوم بعرضه بالشكل 1/9
+    return `${parts[0]}/${parts[1]}`;
+  }
   return String(c).replace(/\//g, ' / ');
 }
 function ltrHtml(str) {
@@ -854,7 +857,8 @@ function showPrompt(message, options = {}) {
 }
 
 /* ============ Constants ============ */
-const DEFAULT_CLASSES = ["9/1","9/2","9/3","9/4","9/5","9/6","9/7","9/8","10/1","10/2","10/3","10/4","10/5","10/6","10/7","10/8","11/1","11/2","11/3","11/4","11/5","11/6","11/7","11/8","12/1","12/2","12/3","12/4","12/5","12/6","12/7","12/8"];
+// تم تعديل الصفوف لتكون بالشكل 1/9 بدلاً من 9/1
+const DEFAULT_CLASSES = ["1/9","2/9","3/9","4/9","5/9","6/9","7/9","8/9","1/10","2/10","3/10","4/10","5/10","6/10","7/10","8/10","1/11","2/11","3/11","4/11","5/11","6/11","7/11","8/11","1/12","2/12","3/12","4/12","5/12","6/12","7/12","8/12"];
 const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
 const SCHOOL_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
 const SUBJECTS = ['اللغة العربية','اللغة الإنجليزية','التربية الإسلامية','الرياضيات','مواد العلوم','مواد المهارات الحياتية'];
@@ -1278,7 +1282,6 @@ async function finalizeLoginState() {
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
   
-  // تم إزالة openControlPanelFromDashboardBtn لأنه لم يعد موجوداً في HTML
   document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
   const attCard = document.getElementById('attendanceDashboardCard'), behCard = document.getElementById('behaviorDashboardCard');
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
