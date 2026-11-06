@@ -4,17 +4,19 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
-  <script src="https://cdn.tailwindcss.com" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet" crossorigin="anonymous">
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
+  
   <style>
     body { font-family: 'Tajawal', sans-serif; }
+    .hidden { display: none !important; }
     .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
     .custom-scrollbar::-webkit-scrollbar-track { background: rgba(241, 245, 249, 0.5); border-radius: 10px; }
     .dark .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
     .custom-scrollbar::-webkit-scrollbar-thumb { background: #0d9488; border-radius: 10px; }
-    .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #0f766e; }
     .status-btn { transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1); cursor: pointer; }
     .status-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12); }
     .status-btn:active { transform: scale(0.94); }
@@ -26,8 +28,6 @@
     .toast-exit { animation: toastOut 0.25s ease forwards; }
     .glass-card { background: rgba(255, 255, 255, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
     .dark .glass-card { background: rgba(30, 41, 59, 0.85); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); }
-    .schedule-cell-changed { background: #fef3c7 !important; }
-    .dark .schedule-cell-changed { background: rgba(120, 53, 15, 0.5) !important; }
     .modal-shell { position: fixed; inset: 0; background: rgba(15, 23, 42, 0.7); z-index: 9999999; display: flex; align-items: center; justify-content: center; padding: 1rem; backdrop-filter: blur(8px); }
   </style>
   <script>tailwind.config = { darkMode: 'class' }</script>
@@ -45,7 +45,7 @@
         </div>
         <div>
           <h1 class="text-base sm:text-xl font-extrabold tracking-wide text-white">مدرسة أبو دجانة الأنصاري</h1>
-          <p class="text-[11px] text-emerald-300 font-medium">نظام حصر ومتابعة الغياب والسلوك الذكي (توقيت عمان)</p>
+          <p class="text-[11px] text-emerald-300 font-medium">نظام حصر ومتابعة الغياب والسلوك الذكي</p>
         </div>
       </div>
       <div class="flex items-center space-x-2 space-x-reverse">
@@ -76,10 +76,10 @@
       <form onsubmit="handleUserLogin(event)" class="space-y-5" id="loginForm">
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">الرقم السري</label>
-          <input type="password" id="userPinInput" required placeholder="••••" inputmode="numeric" autocomplete="current-password" class="w-full text-center text-3xl tracking-widest px-4 py-4 bg-slate-50/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none font-bold">
+          <input type="password" id="userPinInput" required placeholder="••••" inputmode="numeric" class="w-full text-center text-3xl tracking-widest px-4 py-4 bg-slate-50/80 dark:bg-slate-900/90 border border-slate-200 dark:border-slate-700 rounded-2xl focus:ring-2 focus:ring-emerald-500 text-slate-800 dark:text-white outline-none font-bold">
         </div>
-        <div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-3 rounded-2xl border border-red-200">الرمز السري غير صحيح، يرجى المحاولة مجدداً</div>
-        <button type="submit" id="loginSubmitBtn" class="w-full bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 hover:to-teal-900 text-white font-extrabold py-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95 disabled:opacity-50">
+        <div id="loginError" class="text-red-600 dark:text-red-400 text-xs text-center font-bold hidden bg-red-50 dark:bg-red-950/50 p-3 rounded-2xl border border-red-200">الرمز السري غير صحيح</div>
+        <button type="submit" id="loginSubmitBtn" class="w-full bg-gradient-to-r from-emerald-700 to-teal-800 hover:from-emerald-800 text-white font-extrabold py-4 rounded-2xl shadow-xl transition-all text-sm flex items-center justify-center gap-2 active:scale-95">
           <span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>
         </button>
       </form>
@@ -365,11 +365,11 @@
       <div class="space-y-3">
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز الحالي:</label>
-          <input type="password" id="currentPinCheck" inputmode="numeric" autocomplete="current-password" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+          <input type="password" id="currentPinCheck" inputmode="numeric" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
         </div>
         <div>
           <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-1">الرمز الجديد:</label>
-          <input type="password" id="newPinInput" inputmode="numeric" maxlength="10" autocomplete="new-password" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
+          <input type="password" id="newPinInput" inputmode="numeric" maxlength="10" class="w-full p-3 bg-slate-50 dark:bg-slate-900/80 border rounded-2xl text-xs font-bold border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-emerald-500 outline-none">
         </div>
         <div id="changePinError" class="text-red-500 text-xs font-bold hidden bg-red-50 dark:bg-red-950/50 p-2.5 rounded-2xl border border-red-200"></div>
       </div>
@@ -427,7 +427,6 @@
         <div class="p-2.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl border border-emerald-200 text-[10px] text-emerald-800 dark:text-emerald-300 font-bold text-center">
           <i class="fa-solid fa-info-circle"></i> المناوبة يوم كامل (07:00 – 13:50)
         </div>
-        <div id="editDutyError" class="text-red-500 text-xs font-bold hidden bg-red-50 p-2.5 rounded-2xl border border-red-200"></div>
       </div>
       <div class="flex justify-end gap-2 pt-2">
         <button onclick="closeEditDutyModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
@@ -892,27 +891,19 @@
 
   <script>
     /* ============================================================
-       إعدادات Supabase
+       إعدادات Supabase والتحذيرات الأمنية
        ============================================================ */
     const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    /* ============================================================
-       أدوات مساعدة آمنة
-       ============================================================ */
+    /* 
+      ⚠️ تحذير أمني هام: 
+      1. مفتاح APP_PEPPER مكشوف في كود العميل (Client-side)، لذا لا يمكن الاعتماد عليه كحماية مطلقة.
+      2. يجب تفعيل Row Level Security (RLS) في لوحة تحكم Supabase لمنع أي شخص من التلاعب بالبيانات.
+    */
     const APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
-
-    function escapeHtml(str) {
-      if (str === null || str === undefined) return '';
-      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-    }
-    function arabicSort(list) { return Array.isArray(list) ? [...list].sort((a, b) => String(a).localeCompare(String(b), 'ar')) : []; }
-    function formatDateLocal(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
-    function safeBtoa(str) { try { return btoa(unescape(encodeURIComponent(String(str)))); } catch (e) { try { return btoa(String(str)); } catch (e2) { return ''; } } }
-    function safeAtob(str) { if (!str) return ''; try { return decodeURIComponent(escape(atob(str))); } catch (e) { try { return atob(str); } catch (e2) { return ''; } } }
-    function isBase64(str) { if (!str || typeof str !== 'string') return false; try { return btoa(atob(str)) === str; } catch (err) { return false; } }
-    function escapeCsvField(v) { const s = String(v == null ? '' : v); return '"' + s.replace(/"/g, '""') + '"'; }
+    let serverTimeOffset = 0; // لحل مشكلة التوقيت المعتمد على جهاز المستخدم
 
     // ===== Security: Hashing =====
     async function sha256Hex(text) {
@@ -965,6 +956,48 @@
       }
       return null;
     }
+
+    /* ============================================================
+       Sync Time & Date
+       ============================================================ */
+    async function syncServerTime() {
+      try {
+        // جلب التاريخ من هيدر السيرفر لتفادي التلاعب بوقت الجهاز
+        const res = await fetch(SUPABASE_URL, { method: 'HEAD' });
+        const serverDateStr = res.headers.get('date');
+        if (serverDateStr) {
+          const serverTime = new Date(serverDateStr).getTime();
+          serverTimeOffset = serverTime - Date.now();
+        }
+      } catch (e) {
+        console.warn('Time sync failed. Relying on device clock.', e);
+      }
+    }
+    function getTrustedDate() {
+      return new Date(Date.now() + serverTimeOffset);
+    }
+    function getOmanLocalDate() { 
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(getTrustedDate()); 
+    }
+    function omanNowParts() {
+      const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',hourCycle:'h23',weekday:'long'}).formatToParts(getTrustedDate());
+      const o = {}; parts.forEach(p => o[p.type] = p.value);
+      return { minutes: Number(o.hour)*60 + Number(o.minute), weekday: o.weekday };
+    }
+
+    /* ============================================================
+       أدوات مساعدة آمنة
+       ============================================================ */
+    function escapeHtml(str) {
+      if (str === null || str === undefined) return '';
+      return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+    function arabicSort(list) { return Array.isArray(list) ? [...list].sort((a, b) => String(a).localeCompare(String(b), 'ar')) : []; }
+    function formatDateLocal(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+    function safeBtoa(str) { try { return btoa(unescape(encodeURIComponent(String(str)))); } catch (e) { try { return btoa(String(str)); } catch (e2) { return ''; } } }
+    function safeAtob(str) { if (!str) return ''; try { return decodeURIComponent(escape(atob(str))); } catch (e) { try { return atob(str); } catch (e2) { return ''; } } }
+    function isBase64(str) { if (!str || typeof str !== 'string') return false; try { return btoa(atob(str)) === str; } catch (err) { return false; } }
+    function escapeCsvField(v) { const s = String(v == null ? '' : v); return '"' + s.replace(/"/g, '""') + '"'; }
 
     /* ============================================================
        Toasts & Confirm/Prompt Modals
@@ -1036,9 +1069,8 @@
     }
 
     /* ============================================================
-       Date & Time
+       Date & Time helpers
        ============================================================ */
-    function getOmanLocalDate() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date()); }
     function parseAttendanceKey(key) {
       if (!key) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
       const lastUnderscore = key.lastIndexOf('_');
@@ -1048,11 +1080,6 @@
       const firstUnderscore = prefix.indexOf('_');
       if (firstUnderscore === -1) return { date: prefix, className: 'غير محدد', period };
       return { date: prefix.substring(0, firstUnderscore), className: prefix.substring(firstUnderscore + 1), period };
-    }
-    function omanNowParts() {
-      const parts = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',hourCycle:'h23',weekday:'long'}).formatToParts(new Date());
-      const o = {}; parts.forEach(p => o[p.type] = p.value);
-      return { minutes: Number(o.hour)*60 + Number(o.minute), weekday: o.weekday };
     }
     function dutyDayForDate(dateStr) {
       const d = new Date(dateStr + 'T12:00:00Z');
@@ -1071,11 +1098,10 @@
     const periodNamesMap = { 1: 'الحصة الأولى', 2: 'الحصة الثانية', 3: 'الحصة الثالثة', 4: 'الحصة الرابعة', 5: 'الحصة الخامسة', 6: 'الحصة السادسة', 7: 'الحصة السابعة', 8: 'الحصة الثامنة' };
 
     /* ============================================================
-       DB Structure & Pending Changes (incremental save)
+       DB Structure & Pending Changes
        ============================================================ */
     let db = { version: 18, adminPin: null, customUsers: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { teacherMeta: {}, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), timetable: [], overrides: [], records: [] } };
 
-    // Sets tracking what needs to be saved
     const dirtySets = {
       classes: new Set(),
       teachers: new Set(),
@@ -1122,6 +1148,8 @@
       }
       setPendingDeletes(remaining);
     }
+    
+    // محسن: تجنب Race Conditions
     async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       if (!rows || rows.length === 0) return;
       const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -1129,14 +1157,29 @@
         const chunk = rows.slice(i, i + chunkSize);
         const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
         if (!error) continue;
+        
         for (const row of chunk) {
           try {
-            let q = sb.from(table).delete();
-            for (const c of cols) q = q.eq(c, row[c]);
-            const { error: delErr } = await q; if (delErr) throw new Error(`${table} delete: ${delErr.message}`);
-            const { error: insErr } = await sb.from(table).insert(row); if (insErr) throw new Error(`${table} insert: ${insErr.message}`);
+            let matchObj = {};
+            cols.forEach(c => { matchObj[c] = row[c]; });
+            
+            let query = sb.from(table).select('*');
+            for (const [k, v] of Object.entries(matchObj)) query = query.eq(k, v);
+            const { data: existing, error: fetchErr } = await query;
+            
+            if (fetchErr) throw fetchErr;
+            
+            if (existing && existing.length > 0) {
+              let updateQuery = sb.from(table).update(row);
+              for (const [k, v] of Object.entries(matchObj)) updateQuery = updateQuery.eq(k, v);
+              const { error: updErr } = await updateQuery;
+              if (updErr) throw updErr;
+            } else {
+              const { error: insErr } = await sb.from(table).insert(row);
+              if (insErr) throw insErr;
+            }
           } catch (rowErr) {
-            console.error('robustUpsert row failed:', rowErr, row);
+            console.error(`robustUpsert fallback failed for ${table}:`, rowErr, row);
           }
         }
       }
@@ -1180,10 +1223,44 @@
     }
 
     /* ============================================================
+       LocalStorage Storage Quota Fix
+       ============================================================ */
+    function saveToLocalStorageSafe() {
+      try {
+        // حماية الذاكرة: الاحتفاظ فقط بآخر يومين من السجلات
+        const cutoffDate = getTrustedDate();
+        cutoffDate.setDate(cutoffDate.getDate() - 2);
+        const cutoffStr = formatDateLocal(cutoffDate);
+        
+        const safeDb = { ...db, attendance: {}, behaviors: {} };
+        
+        Object.keys(db.attendance || {}).forEach(k => {
+          const p = parseAttendanceKey(k);
+          if (p.date >= cutoffStr) safeDb.attendance[k] = db.attendance[k];
+        });
+        
+        Object.keys(db.behaviors || {}).forEach(k => {
+          const p = parseAttendanceKey(k);
+          if (p.date >= cutoffStr) safeDb.behaviors[k] = db.behaviors[k];
+        });
+        
+        let pendingDeletes = getPendingDeletes();
+        if (pendingDeletes.length > 100) pendingDeletes = pendingDeletes.slice(-100);
+        setPendingDeletes(pendingDeletes);
+
+        localStorage.setItem('abuDujana_db_v22', JSON.stringify(safeDb));
+      } catch(e) {
+        console.warn('LocalStorage full, clearing history cache.', e);
+        try { localStorage.removeItem('abuDujana_db_v22'); } catch(err) {}
+      }
+    }
+
+    /* ============================================================
        Initialization
        ============================================================ */
     window.addEventListener('DOMContentLoaded', async () => {
       initDarkMode(); setCurrentDate();
+      await syncServerTime(); // جلب التوقيت من السيرفر
       await loadSystemDataFromCloud();
       await migrateCredentialsIfNeeded();
       await checkExistingSession();
@@ -1215,7 +1292,6 @@
     async function migrateCredentialsIfNeeded() {
       let needsSave = false;
 
-      // Admin pin migration
       if (typeof db.adminPin === 'string' && db.adminPin) {
         try {
           const plain = isBase64(db.adminPin) ? safeAtob(db.adminPin) : db.adminPin;
@@ -1225,13 +1301,11 @@
           needsSave = true;
         } catch (e) { console.warn('admin pin migration failed', e); db.adminPin = null; }
       } else if (!db.adminPin) {
-        // Initialize default admin PIN 1234 on first launch
         db.adminPin = await createPinRecord('1234');
         dirtySets.admin_pin = true;
         needsSave = true;
       }
 
-      // Teachers
       for (const t of (db.teachers || [])) {
         if (t.pin && !t.pin_hash) {
           const rec = await createPinRecord(t.pin);
@@ -1243,7 +1317,6 @@
         }
       }
 
-      // Custom users
       for (const u of (db.customUsers || [])) {
         if (u.pin && !u.pin_hash) {
           const rec = await createPinRecord(u.pin);
@@ -1306,12 +1379,11 @@
         db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
         Object.keys(db.students).forEach(k => { db.students[k] = arabicSort(db.students[k]); });
 
-        // Teachers: keep pin_hash and pin_salt
         db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => ({
           name: t.name,
           pin_hash: t.pin_hash || null,
           pin_salt: t.pin_salt || null,
-          pin: t.pin || null, // temporary for migration
+          pin: t.pin || null,
           mustChangePin: t.must_change_pin === true
         }));
         db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({
@@ -1327,7 +1399,7 @@
           if (adminRow.value.hash && adminRow.value.salt) {
             db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt };
           } else if (adminRow.value.pin) {
-            db.adminPin = adminRow.value.pin; // old format, will be migrated
+            db.adminPin = adminRow.value.pin;
           }
         }
 
@@ -1350,7 +1422,7 @@
         db.behaviors = {};
         (behaviorsRes.data || []).forEach(r => { db.behaviors[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at }; });
 
-        try { localStorage.setItem('abuDujana_db_v22', JSON.stringify(db)); } catch (e) {}
+        saveToLocalStorageSafe();
         updateSyncStatus(true, "متزامن");
         return true;
       } catch (e) {
@@ -1375,21 +1447,19 @@
     }
 
     /* ============================================================
-       INCREMENTAL Save - only push what's changed
+       INCREMENTAL Save
        ============================================================ */
     async function saveSystemDataToCloud() {
       updateSyncStatus(true, "جارِ الحفظ...");
       try {
-        try { localStorage.setItem('abuDujana_db_v22', JSON.stringify(db)); } catch (e) {}
+        saveToLocalStorageSafe();
 
-        // 1) Classes (only dirty)
         if (dirtySets.classes.size > 0) {
           const rows = [...dirtySets.classes].map(n => ({ name: n }));
           await robustUpsert('classes', rows, 'name', 200);
           dirtySets.classes.clear();
         }
 
-        // 2) Teachers (only dirty - by name)
         if (dirtySets.teachers.size > 0) {
           const rows = [];
           for (const name of dirtySets.teachers) {
@@ -1402,7 +1472,6 @@
           dirtySets.teachers.clear();
         }
 
-        // 3) Students (only dirty)
         if (dirtySets.students.size > 0) {
           const rows = [];
           for (const c of dirtySets.students) {
@@ -1412,29 +1481,26 @@
           dirtySets.students.clear();
         }
 
-        // 4) Attendance (only dirty)
         if (dirtySets.attendance.size > 0) {
           const rows = [];
           for (const key of dirtySets.attendance) {
             const v = db.attendance[key];
-            if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: new Date().toISOString() }); }
+            if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); }
           }
           if (rows.length > 0) await robustUpsert('attendance', rows, 'record_key', 100);
           dirtySets.attendance.clear();
         }
 
-        // 5) Behaviors (only dirty)
         if (dirtySets.behaviors.size > 0) {
           const rows = [];
           for (const key of dirtySets.behaviors) {
             const v = db.behaviors[key];
-            if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: new Date().toISOString() }); }
+            if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); }
           }
           if (rows.length > 0) await robustUpsert('behaviors', rows, 'record_key', 100);
           dirtySets.behaviors.clear();
         }
 
-        // 6) Admin pin
         if (dirtySets.admin_pin) {
           if (db.adminPin && db.adminPin.hash) {
             const { error } = await sb.from('school_settings').upsert({ key: 'admin_pin', value: { hash: db.adminPin.hash, salt: db.adminPin.salt } }, { onConflict: 'key' });
@@ -1443,18 +1509,16 @@
           dirtySets.admin_pin = false;
         }
 
-        // 7) Duty reports (only dirty)
         if (dirtySets.duty_reports.size > 0) {
           const rows = [];
           for (const id of dirtySets.duty_reports) {
             const r = (db.dutyModule.records || []).find(x => String(x.id) === String(id));
-            if (r) rows.push({ id: String(r.id), date_str: r.date, day_num: r.day, period: r.period, class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null, reported_by: r.reportedBy || null, status: r.status || 'pending', reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null, created_at: r.createdAt || new Date().toISOString() });
+            if (r) rows.push({ id: String(r.id), date_str: r.date, day_num: r.day, period: r.period, class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null, reported_by: r.reportedBy || null, status: r.status || 'pending', reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null, created_at: r.createdAt || getTrustedDate().toISOString() });
           }
           if (rows.length > 0) await robustUpsert('duty_reports', rows, 'id', 100);
           dirtySets.duty_reports.clear();
         }
 
-        // 8) Duty module settings
         if (dirtySets.duty_module) {
           const { records: _drop, ...dutySmall } = db.dutyModule;
           const { error: dutySaveError } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' });
@@ -1503,7 +1567,7 @@
     async function initDefaults() {
       db = { version: 18, adminPin: await createPinRecord('1234'), customUsers: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { teacherMeta: {}, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), timetable: [], overrides: [], records: [] } };
       db.classes.forEach(c => { db.students[c] = []; });
-      try { localStorage.setItem('abuDujana_db_v22', JSON.stringify(db)); } catch (e) {}
+      saveToLocalStorageSafe();
     }
 
     /* ============================================================
@@ -1514,7 +1578,6 @@
         const savedUser = localStorage.getItem('abuDujana_activeUser');
         if (!savedUser) return;
         const parsed = JSON.parse(savedUser);
-        // Session has only name + type (no PIN)
         const exists = parsed.type === 'admin'
           || (parsed.type === 'custom' && db.customUsers.some(u => u.name === parsed.name))
           || (parsed.type === 'teacher' && db.teachers.some(t => t.name === parsed.name));
@@ -1533,7 +1596,6 @@
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
       document.getElementById('loginError').classList.add('hidden');
       try {
-        // Small delay to prevent rapid brute-force
         await new Promise(r => setTimeout(r, 300));
         const user = await findUserByPin(pin);
         if (user) {
@@ -1554,7 +1616,6 @@
     }
 
     async function finalizeLoginState() {
-      // Store only non-sensitive session info
       const sessionSafe = { name: activeUser.name, type: activeUser.type, permissions: activeUser.permissions || {} };
       try { localStorage.setItem('abuDujana_activeUser', JSON.stringify(sessionSafe)); } catch (e) {}
       document.getElementById('loginView').classList.add('hidden');
@@ -1868,7 +1929,7 @@
         const period = document.getElementById('sessionPeriodSelect').value;
         const today = getOmanLocalDate();
         const key = `${today}_${selectedClass}_p${period}`;
-        db.attendance[key] = { teacher: activeUser.name, className: selectedClass, period: parseInt(period), records: { ...currentAttendanceRecord }, timestamp: new Date().toISOString() };
+        db.attendance[key] = { teacher: activeUser.name, className: selectedClass, period: parseInt(period), records: { ...currentAttendanceRecord }, timestamp: getTrustedDate().toISOString() };
         dirtySets.attendance.add(key);
         const success = await saveSystemDataToCloud();
         if (success) {
@@ -2019,7 +2080,7 @@
         const today = getOmanLocalDate();
         const key = `${today}_${selectedBehaviorClass}_p${period}`;
         if (!db.behaviors) db.behaviors = {};
-        db.behaviors[key] = { teacher: activeUser.name, className: selectedBehaviorClass, period: parseInt(period), records: { ...currentBehaviorRecord }, timestamp: new Date().toISOString() };
+        db.behaviors[key] = { teacher: activeUser.name, className: selectedBehaviorClass, period: parseInt(period), records: { ...currentBehaviorRecord }, timestamp: getTrustedDate().toISOString() };
         dirtySets.behaviors.add(key);
         const success = await saveSystemDataToCloud();
         if (success) {
@@ -2089,7 +2150,7 @@
     function getDateRange() {
       const periodType = document.getElementById('statsPeriodFilter').value;
       const todayStr = getOmanLocalDate();
-      const todayDate = new Date(todayStr + 'T00:00:00');
+      const todayDate = getTrustedDate();
       let start, end;
       if (periodType === 'today') { start = end = todayStr; }
       else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); start = end = formatDateLocal(y); }
@@ -2389,7 +2450,7 @@
       if (timetable.length === 0) { container.innerHTML = `<div class="text-center py-6 text-slate-400 text-xs font-bold">لم يتم تحميل الجدول.</div>`; return; }
       const { start, end, periodType } = getDateRange();
       const todayStr = getOmanLocalDate();
-      const todayDate = new Date(todayStr + 'T00:00:00');
+      const todayDate = getTrustedDate();
       const dates = [];
       if (periodType === 'today') dates.push(todayStr);
       else if (periodType === 'yesterday') { const y = new Date(todayDate); y.setDate(y.getDate() - 1); dates.push(formatDateLocal(y)); }
@@ -2479,7 +2540,7 @@
       const targetDate = document.getElementById('reportDatePicker').value;
       const classFilter = document.getElementById('reportClassFilter').value;
       const classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>غياب ${escapeHtml(targetDate)}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:5px}.report-title-box{text-align:center;margin-bottom:15px;border-bottom:2px solid #065f46;padding-bottom:8px}.report-title-box h2{margin:0;font-size:16px;color:#065f46;font-weight:900}.class-row-card{page-break-inside:avoid;border:2px solid #cbd5e1;border-radius:12px;margin-bottom:15px;background:#fff}.class-header-bar{padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;font-weight:900;font-size:12px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:8px}.period-cell{border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;min-height:130px;background:#f8fafc;display:flex;flex-direction:column}.period-header{text-align:center;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:6px;background:#f1f5f9;border-radius:6px;padding-top:4px}.period-name{font-size:11px;font-weight:900}.period-teacher{font-size:8.5px;color:#64748b;font-weight:600}.no-violations{text-align:center;color:#94a3b8;font-size:9px;margin-top:25px}.badge-absent{display:block;padding:3px 6px;text-align:center;border:2px solid #fbbf24;border-radius:9999px;background:#000;color:#fff;font-size:9px;font-weight:900;margin-bottom:4px}.badge-other{font-size:9px;font-weight:700;padding:2px 4px;margin-bottom:3px;border-radius:4px}.badge-escape{color:#dc2626;background:#fef2f2;border:1px solid #fca5a5}.badge-late{color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe}.badge-outside{color:#9333ea;background:#faf5ff;border:1px solid #e9d5ff}</style></head><body><div class="report-title-box"><h2>مدرسة أبو دجانة الأنصاري - تقرير الغياب</h2><p style="margin:4px 0 0 0;font-size:11px;color:#475569;font-weight:bold">التاريخ: ${escapeHtml(targetDate)}</p></div>`;
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>غياب ${escapeHtml(targetDate)}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:5px;-webkit-print-color-adjust: exact;print-color-adjust: exact;}.report-title-box{text-align:center;margin-bottom:15px;border-bottom:2px solid #065f46;padding-bottom:8px}.report-title-box h2{margin:0;font-size:16px;color:#065f46;font-weight:900}.class-row-card{page-break-inside:avoid;border:2px solid #cbd5e1;border-radius:12px;margin-bottom:15px;background:#fff}.class-header-bar{padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;font-weight:900;font-size:12px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:8px;transform: scale(0.98);transform-origin: top right;}.period-cell{border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;min-height:130px;background:#f8fafc;display:flex;flex-direction:column}.period-header{text-align:center;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:6px;background:#f1f5f9;border-radius:6px;padding-top:4px}.period-name{font-size:11px;font-weight:900}.period-teacher{font-size:8.5px;color:#64748b;font-weight:600}.no-violations{text-align:center;color:#94a3b8;font-size:9px;margin-top:25px}.badge-absent{display:block;padding:3px 6px;text-align:center;border:2px solid #fbbf24;border-radius:9999px;background:#000;color:#fff;font-size:9px;font-weight:900;margin-bottom:4px}.badge-other{font-size:9px;font-weight:700;padding:2px 4px;margin-bottom:3px;border-radius:4px}.badge-escape{color:#dc2626;background:#fef2f2;border:1px solid #fca5a5}.badge-late{color:#2563eb;background:#eff6ff;border:1px solid #bfdbfe}.badge-outside{color:#9333ea;background:#faf5ff;border:1px solid #e9d5ff}</style></head><body><div class="report-title-box"><h2>مدرسة أبو دجانة الأنصاري - تقرير الغياب</h2><p style="margin:4px 0 0 0;font-size:11px;color:#475569;font-weight:bold">التاريخ: ${escapeHtml(targetDate)}</p></div>`;
       classesToPrint.forEach(className => {
         printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: ${escapeHtml(className)}</span><span>التاريخ: ${escapeHtml(targetDate)}</span></div><div class="periods-horizontal-grid">`;
         for (let p = 1; p <= 8; p++) {
@@ -2551,7 +2612,7 @@
       const classFilter = document.getElementById('behaviorReportClassFilter').value;
       const classesToPrint = classFilter === 'all' ? db.classes : [classFilter];
       const behLabels = { normal: 'منضبط', eating: 'الأكل', talking: 'كلام', tools: 'أدوات', chaos: 'فوضى', sleeping: 'نوم', homework: 'واجب', other: 'أخرى' };
-      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>سلوكيات ${escapeHtml(targetDate)}</title><style>@page{size:A4 landscape;margin:6mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:10px}.header-title{text-align:center;margin-bottom:12px;border-bottom:2px solid #0d9488;padding-bottom:6px}.class-row-card{page-break-inside:avoid;border:2px solid #0d9488;border-radius:8px;margin-bottom:12px;background:#fff}.class-header-bar{padding:6px 12px;background:#0f766e;color:#fff;display:flex;justify-content:space-between;font-weight:bold;font-size:11px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;padding:6px}.period-cell{border:1.5px solid #ccc;border-radius:6px;padding:4px;min-height:120px;background:#fafafa}.period-title{text-align:center;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:4px;background:#e6fffa;font-weight:bold}.item-violation{font-size:8.5px;font-weight:bold;color:#b91c1c;margin-bottom:3px;padding:2px;border-bottom:1px dashed #fca5a5}</style></head><body><div class="header-title"><h2 style="margin:0;font-size:16px;color:#0f766e">مدرسة أبو دجانة الأنصاري - سلوكيات الطلاب</h2><p style="margin:2px 0 0 0;font-size:11px;color:#555">التاريخ: ${escapeHtml(targetDate)}</p></div>`;
+      let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>سلوكيات ${escapeHtml(targetDate)}</title><style>@page{size:A4 landscape;margin:6mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:10px;-webkit-print-color-adjust: exact;print-color-adjust: exact;}.header-title{text-align:center;margin-bottom:12px;border-bottom:2px solid #0d9488;padding-bottom:6px}.class-row-card{page-break-inside:avoid;border:2px solid #0d9488;border-radius:8px;margin-bottom:12px;background:#fff}.class-header-bar{padding:6px 12px;background:#0f766e;color:#fff;display:flex;justify-content:space-between;font-weight:bold;font-size:11px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;padding:6px;transform: scale(0.98);transform-origin: top right;}.period-cell{border:1.5px solid #ccc;border-radius:6px;padding:4px;min-height:120px;background:#fafafa}.period-title{text-align:center;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:4px;background:#e6fffa;font-weight:bold}.item-violation{font-size:8.5px;font-weight:bold;color:#b91c1c;margin-bottom:3px;padding:2px;border-bottom:1px dashed #fca5a5}</style></head><body><div class="header-title"><h2 style="margin:0;font-size:16px;color:#0f766e">مدرسة أبو دجانة الأنصاري - سلوكيات الطلاب</h2><p style="margin:2px 0 0 0;font-size:11px;color:#555">التاريخ: ${escapeHtml(targetDate)}</p></div>`;
       classesToPrint.forEach(className => {
         printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: ${escapeHtml(className)}</span><span>التاريخ: ${escapeHtml(targetDate)}</span></div><div class="periods-horizontal-grid">`;
         for (let p = 1; p <= 8; p++) {
@@ -3094,7 +3155,7 @@
     function buildDutyWhatsAppMessage(records) {
       const date = getOmanLocalDate();
       const day = dutyDayForDate(date);
-      const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Muscat', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(new Date());
+      const timeStr = new Intl.DateTimeFormat('en-GB', { timeZone: 'Asia/Muscat', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(getTrustedDate());
       let msg = `*تقرير المناوبة — مدرسة أبو دجانة الأنصاري*\n📅 التاريخ: ${date}\n📆 اليوم: ${day}\n👤 المناوب: ${activeUser?.name || '—'}\n━━━━━━━━━━━━━━━━━\n`;
       records.forEach(r => { msg += `🏫 الصف: ${r.className}\n⏰ الحصة: ${r.period}\n📚 المادة: ${r.subject || '—'}\n👤 المعلم المتخلف: ${r.teacherName}\n━━━━━━━━━━━━━━━━━\n`; });
       msg += `🕐 وقت الإرسال: ${timeStr}`;
@@ -3106,7 +3167,7 @@
       const checked = [...document.querySelectorAll('#dutyClassesList input[type=checkbox]:checked')];
       if (!checked.length) { showToast('حدد صفاً.', 'error'); return; }
       const date = getOmanLocalDate(), day = dutyDayForDate(date), d = dutyData();
-      const createdAt = new Date().toISOString();
+      const createdAt = getTrustedDate().toISOString();
       const isAdminTest = activeUser?.type === 'admin' || dutyTestModeActive;
       if (!isAdminTest) {
         const pConfig = d.periods[selectedDutyPeriod - 1];
@@ -3262,12 +3323,35 @@
       showToast(s ? `تم المسح.` : 'محلياً.', s ? 'success' : 'info');
     }
 
+    function parseCsvLine(line) {
+      const result = [];
+      let current = '';
+      let inQuotes = false;
+      for (let i = 0; i < line.length; i++) {
+        const char = line[i];
+        if (char === '"') {
+          if (inQuotes && line[i+1] === '"') {
+            current += '"'; i++;
+          } else {
+            inQuotes = !inQuotes;
+          }
+        } else if (char === ',' && !inQuotes) {
+          result.push(current.trim());
+          current = '';
+        } else {
+          current += char;
+        }
+      }
+      result.push(current.trim());
+      return result;
+    }
+
     function parseDutyCsv(text) {
       const lines = String(text || '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
       const rows = []; const warnings = []; const seen = new Set();
       for (let i = 0; i < lines.length; i++) {
         const line = lines[i];
-        const cols = line.includes('\t') ? line.split('\t') : line.split(',');
+        const cols = line.includes('\t') ? line.split('\t') : parseCsvLine(line);
         if (cols.length < 4) { warnings.push(`سطر ${i + 1}: أعمدة أقل من 4`); continue; }
         const clean = s => String(s || '').trim().replace(/^"|"$/g, '');
         const dayRaw = clean(cols[0]); const periodRaw = clean(cols[1]);
@@ -3349,8 +3433,26 @@
     }
 
     async function loadPdfJs() {
-      await new Promise((resolve, reject) => { const sc = document.createElement('script'); sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'; sc.onload = resolve; sc.onerror = reject; document.head.appendChild(sc); });
-      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      return new Promise((resolve, reject) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+        sc.onload = () => {
+          pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+          resolve();
+        };
+        sc.onerror = () => {
+          console.warn('cdnjs failed, trying unpkg...');
+          const sc2 = document.createElement('script');
+          sc2.src = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.min.js';
+          sc2.onload = () => {
+            pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+            resolve();
+          };
+          sc2.onerror = reject;
+          document.head.appendChild(sc2);
+        };
+        document.head.appendChild(sc);
+      });
     }
 
     function refreshDutySwapOriginal() {
@@ -3370,7 +3472,7 @@
       if (originalTeacher === replacementTeacher) { showToast('نفس المعلم.', 'error'); return; }
       const d = dutyData();
       d.overrides = d.overrides.filter(x => !(x.date === date && Number(x.period) === period && x.className === className));
-      d.overrides.push({ date, period, className, originalTeacher, replacementTeacher, reason: document.getElementById('dutySwapReason').value.trim(), createdAt: new Date().toISOString() });
+      d.overrides.push({ date, period, className, originalTeacher, replacementTeacher, reason: document.getElementById('dutySwapReason').value.trim(), createdAt: getTrustedDate().toISOString() });
       dirtySets.duty_module = true;
       const ok = await saveSystemDataToCloud();
       renderDutySwaps(); refreshDutySwapOriginal();
@@ -3403,7 +3505,7 @@
     async function updateDutyRecordStatus(selectEl) {
       const id = selectEl.dataset.id;
       const r = dutyData().records.find(x => String(x.id) === id); if (!r) return;
-      r.status = selectEl.value; r.reviewedBy = activeUser?.name || 'الإدارة'; r.reviewedAt = new Date().toISOString();
+      r.status = selectEl.value; r.reviewedBy = activeUser?.name || 'الإدارة'; r.reviewedAt = getTrustedDate().toISOString();
       dirtySets.duty_reports.add(id);
       const ok = await saveSystemDataToCloud();
       renderDutyAdminReview();
