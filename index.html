@@ -330,7 +330,6 @@
       <div id="dutyDashboardCard" onclick="openDutyView()" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-amber-600 via-orange-700 to-rose-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-amber-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
         <div class="relative z-10 flex justify-between items-start">
           <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-amber-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20"><i class="fa-solid fa-user-clock"></i></div>
-          <button id="dutyTestModeBtn" onclick="event.stopPropagation(); enableDutyTestMode()" class="hidden text-[10px] bg-white/20 hover:bg-white/30 rounded-xl px-3 py-1.5 font-bold">🧪 وضع الاختبار</button>
         </div>
         <div class="relative z-10 mt-6">
           <h4 class="text-3xl font-black text-white mb-2">المناوبة</h4>
@@ -607,6 +606,7 @@
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_students" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🎓 إدارة الطلاب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_alerts" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold">🔔 التنبيهات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📄 التقارير</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_duty" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة الدائمة</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4"><span class="text-xs font-bold">🔐 الأمان</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
       </div>
@@ -1078,7 +1078,7 @@ let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
 let selectedBehaviorClass = null, currentBehaviorRecord = {};
 let attendanceDirty = false, behaviorDirty = false;
 let pendingTargetClass = null, pendingMode = 'attendance', pendingPeriod = 1;
-let selectedDutyPeriod = null, lastDutyMessage = '', dutyTestModeActive = false, dutyRefreshInterval = null;
+let selectedDutyPeriod = null, lastDutyMessage = '', dutyRefreshInterval = null;
 let attendanceUndoStack = [], behaviorUndoStack = [];
 let loginAttempts = 0, loginLockedUntil = 0, currentEditingTeacherIndex = null;
 /* Chart.js instances */
@@ -1624,7 +1624,7 @@ function logoutUser() {
 }
 function _performLogout() {
   activeUser = null; selectedClass = null; selectedBehaviorClass = null;
-  attendanceDirty = false; behaviorDirty = false; dutyTestModeActive = false;
+  attendanceDirty = false; behaviorDirty = false;
   attendanceUndoStack = []; behaviorUndoStack = [];
   clearSession(); try { localStorage.removeItem('abuDujana_activeUser'); } catch(e) {}
   document.getElementById('userPinInput').value = '';
@@ -2584,6 +2584,7 @@ function renderPermBadges(perms) {
   const b = [];
   if (perms.attendance !== false) b.push('<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">غياب ✓</span>');
   if (perms.behavior !== false) b.push('<span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-[10px] font-bold">سلوك ✓</span>');
+  if (perms.duty) b.push('<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-[10px] font-bold">مناوبة</span>');
   if (perms.admin) b.push('<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">إدارة</span>');
   else {
     if (perms.studstats) b.push('<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">إحصاء</span>');
@@ -2768,6 +2769,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_students').checked = !!p.students;
   document.getElementById('perm_p_alerts').checked = !!p.alerts;
   document.getElementById('perm_p_reports').checked = !!p.reports;
+  document.getElementById('perm_p_duty').checked = !!p.duty;
   document.getElementById('perm_p_security').checked = !!p.security;
   document.getElementById('perm_p_admin').checked = !!p.admin;
   document.getElementById('teacherPermissionsModal').classList.remove('hidden');
@@ -2783,6 +2785,7 @@ async function saveTeacherPermissions() {
   t.permissions.students = document.getElementById('perm_p_students').checked;
   t.permissions.alerts = document.getElementById('perm_p_alerts').checked;
   t.permissions.reports = document.getElementById('perm_p_reports').checked;
+  t.permissions.duty = document.getElementById('perm_p_duty').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
   t.permissions.admin = document.getElementById('perm_p_admin').checked;
   dirtySets.teachers.add(t.name);
@@ -2897,29 +2900,65 @@ function printDailyReportPDF() {
 
 /* ============ Duty Module ============ */
 function refreshDutyDashboardCard() {
-  const card = document.getElementById('dutyDashboardCard'); const tb = document.getElementById('dutyTestModeBtn'); if (!card) return;
+  const card = document.getElementById('dutyDashboardCard'); if (!card) return;
+  
   const isA = activeUser?.type === 'admin' || isAdminAuthorized();
-  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name);
-  const show = isA || isTE || dutyTestModeActive;
+  const hasDutyPerm = activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  
+  // التحقق من ساعات العمل (يظهر إذا كان الوقت قبل نهاية آخر حصة + 30 دقيقة)
+  const checkWorkingHours = () => {
+      const d = dutyData();
+      const now = omanNowParts().minutes;
+      let lastEnd = 0;
+      d.periods.forEach(p => {
+          const e = toMinutes(p.end);
+          if (e !== null && e > lastEnd) lastEnd = e;
+      });
+      if (lastEnd === 0) return true; // إذا لم تضبط الحصص، يظهر الكرت
+      return now <= lastEnd + 30; // يختفي بعد 30 دقيقة من نهاية آخر حصة
+  };
+
+  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
+  
+  // الظهور: للمدير، أو لصاحب الصلاحية، أو للمعلم المناوب في وقته
+  const show = isA || hasDutyPerm || isTE;
+  
   card.classList.toggle('hidden', !show);
-  if (tb) tb.classList.toggle('hidden', !isA);
+  
   if (!show) return;
+  
   const l = document.getElementById('dutyDashboardTime'); if (!l) return;
-  if (isA && !isTE && !dutyTestModeActive) { l.textContent = 'وضع الإدارة — اضغط لفتح المناوبة'; return; }
+  
+  if (isA || hasDutyPerm) { 
+      l.textContent = 'صلاحية المناوبة مفعلة — اضغط للفتح'; 
+      return; 
+  }
+  
   const cat = getTeacherCategory(activeUser?.name) || '—';
   const day = dutyData().subjectDays[cat] || '—';
   l.textContent = `مناوب اليوم: ${day} · الفئة: ${cat}`;
 }
-function enableDutyTestMode() { if (activeUser?.type !== 'admin') { showToast('للمدير.', 'error'); return; } dutyTestModeActive = !dutyTestModeActive; showToast(dutyTestModeActive ? '🧪 وضع الاختبار' : 'تم الإيقاف', 'info'); refreshDutyDashboardCard(); }
+
 function openDutyView() {
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
-  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name);
-  if (!isA && !isTE) { showToast('غير متاح اليوم.', 'error'); return; }
+  const isA = activeUser?.type === 'admin' || isAdminAuthorized();
+  const hasDutyPerm = activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  
+  const d = dutyData();
+  const now = omanNowParts().minutes;
+  let lastEnd = 0;
+  d.periods.forEach(p => { const e = toMinutes(p.end); if (e !== null && e > lastEnd) lastEnd = e; });
+  const isWithinTime = lastEnd === 0 || now <= lastEnd + 30;
+  
+  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && isWithinTime;
+
+  if (!isA && !hasDutyPerm && !isTE) { showToast('غير متاح حالياً أو انتهى وقت العمل.', 'error'); return; }
+  
   ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyClassesView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('dutyView').classList.remove('hidden');
   document.getElementById('dutyTodayLabel').textContent = getOmanLocalDate();
   renderDutyPeriods(); renderDutyTodayRecords();
 }
+
 function closeDutyView() {
   selectedDutyPeriod = null; lastDutyMessage = '';
   document.getElementById('dutyView').classList.add('hidden');
@@ -2939,7 +2978,7 @@ function renderDutyPeriods() {
   const w = document.getElementById('dutyPeriodsGrid'); if (!w) return;
   w.innerHTML = '';
   const d = dutyData(), now = omanNowParts();
-  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
+  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
   const cat = getTeacherCategory(activeUser?.name);
   const tDay = cat ? d.subjectDays[cat] : '';
   const td = dutyDayForDate(getOmanLocalDate());
@@ -2948,7 +2987,8 @@ function renderDutyPeriods() {
     const s = toMinutes(p.start), e = toMinutes(p.end);
     const valid = s !== null && e !== null && e > s;
     let allow = false, reason = '';
-    if (isAT) { allow = true; reason = '(اختبار)'; }
+    
+    if (isAT) { allow = true; reason = '(صلاحية إدارية)'; }
     else if (!valid) reason = 'غير مضبوطة';
     else if (td !== tDay) reason = 'ليس يوم مناوبتك';
     else if (now.minutes < s + d.graceMinutes) reason = `بعد ${Math.ceil((s + d.graceMinutes - now.minutes))} د`;
@@ -2969,7 +3009,7 @@ function renderDutyPeriods() {
     w.appendChild(b);
   }
   const st = document.getElementById('dutyPeriodStatus');
-  if (st) st.textContent = `مدة السماح: ${d.graceMinutes} د${isAT ? ' (اختبار)' : ''}`;
+  if (st) st.textContent = `مدة السماح: ${d.graceMinutes} د`;
 }
 
 /* ============ NAVIGATE TO SEPARATE DUTY CLASSES VIEW ============ */
@@ -2977,7 +3017,8 @@ function selectDutyPeriod(period) {
   const d = dutyData();
   const p = d.periods[period - 1];
   const now = omanNowParts(), s = toMinutes(p.start), e = toMinutes(p.end);
-  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
+  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  
   if (!isAT && (s === null || e === null || now.minutes < s + d.graceMinutes || now.minutes > e)) { showToast('خارج وقت الحصة.', 'error'); return; }
   selectedDutyPeriod = period;
 
@@ -3070,7 +3111,7 @@ async function submitDutyReport() {
   const date = getOmanLocalDate(), day = dutyDayForDate(date), d = dutyData();
   const createdAt = getTrustedDate().toISOString();
 
-  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || dutyTestModeActive;
+  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
   if (!isAT) {
     const pC = d.periods[selectedDutyPeriod - 1];
     const nowMin = omanNowParts().minutes;
