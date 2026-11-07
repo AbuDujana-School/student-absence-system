@@ -83,9 +83,9 @@
   header .w-11.bg-emerald-800\/90 i { color: #fff !important; }
   #syncIndicator, #currentDateDisplay { background-color: rgba(255,255,255,.08) !important; border-color: rgba(255,255,255,.15) !important; color: rgba(255,255,255,.92) !important; }
   #syncIndicator .bg-emerald-400, #syncIndicator .bg-emerald-300 { background-color: #4ade80 !important; }
-  header button[onclick="openAdminModal()"] { background: linear-gradient(135deg, var(--brand-gold) 0%, var(--brand-gold-dark) 100%) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; box-shadow: 0 4px 14px -4px rgba(213,166,74,.5) !important; }
-  header button[onclick="openAdminModal()"]:hover { background: linear-gradient(135deg, var(--brand-gold-light) 0%, var(--brand-gold) 100%) !important; }
-  header button[onclick="openAdminModal()"] i { color: #fff !important; }
+  header #adminPanelBtn { background: linear-gradient(135deg, var(--brand-gold) 0%, var(--brand-gold-dark) 100%) !important; border-color: rgba(255,255,255,.25) !important; color: #fff !important; box-shadow: 0 4px 14px -4px rgba(213,166,74,.5) !important; }
+  header #adminPanelBtn:hover { background: linear-gradient(135deg, var(--brand-gold-light) 0%, var(--brand-gold) 100%) !important; }
+  header #adminPanelBtn i { color: #fff !important; }
   .glass-card { background: var(--brand-card) !important; border-color: var(--brand-border) !important; box-shadow: var(--shadow-card) !important; }
   .dark .glass-card { background: #0f1a2b !important; border-color: rgba(255,255,255,.06) !important; }
   .bg-emerald-900, .bg-emerald-950, .bg-emerald-900\/95, .bg-emerald-950\/95 { background-color: var(--brand-navy) !important; }
@@ -261,9 +261,12 @@
         <i class="fa-solid fa-cloud-arrow-up text-emerald-300"></i> <span id="syncText">جاري الاتصال...</span>
       </span>
       <span id="currentDateDisplay" class="hidden md:inline-block bg-emerald-800/60 text-emerald-100 px-3.5 py-1.5 rounded-2xl text-xs font-semibold border border-emerald-700/50"></span>
-      <button onclick="openAdminModal()" class="bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md border border-emerald-700/80 active:scale-95">
-        <i class="fa-solid fa-gear text-emerald-300"></i><span>الإعدادات</span>
+      
+      <!-- زر لوحة التحكم (مخفي افتراضياً ويظهر حسب الصلاحيات) -->
+      <button id="adminPanelBtn" onclick="openAdminModal()" class="hidden bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md border border-emerald-700/80 active:scale-95">
+        <i class="fa-solid fa-sliders text-emerald-300"></i><span>لوحة التحكم</span>
       </button>
+
     </div>
   </div>
 </header>
@@ -1545,6 +1548,21 @@ async function finalizeLoginState() {
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
   
+  // إظهار/إخفاء زر لوحة التحكم بناءً على الصلاحيات
+  const adminBtn = document.getElementById('adminPanelBtn');
+  if (adminBtn) {
+    const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin || isAdminAuthorized();
+    const hasAny = hasAnyPermission(activeUser);
+    
+    if (isAdmin || hasAny) {
+      adminBtn.classList.remove('hidden');
+      adminBtn.classList.add('flex');
+    } else {
+      adminBtn.classList.add('hidden');
+      adminBtn.classList.remove('flex');
+    }
+  }
+
   document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
   const attCard = document.getElementById('attendanceDashboardCard'), behCard = document.getElementById('behaviorDashboardCard');
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
@@ -1628,6 +1646,11 @@ function _performLogout() {
   attendanceUndoStack = []; behaviorUndoStack = [];
   clearSession(); try { localStorage.removeItem('abuDujana_activeUser'); } catch(e) {}
   document.getElementById('userPinInput').value = '';
+  
+  // إخفاء زر لوحة التحكم عند تسجيل الخروج
+  const adminBtn = document.getElementById('adminPanelBtn');
+  if (adminBtn) adminBtn.classList.add('hidden');
+
   ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyClassesView','dutyDashboardCard'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('loginView').classList.remove('hidden');
   document.getElementById('changeTeacherPinBtn').classList.add('hidden');
@@ -2324,8 +2347,14 @@ function printHorizontalBehaviorReport() {
 
 /* ============ Admin modal ============ */
 function openAdminModal() {
-  if (isAdminAuthorized()) openControlPanelDirectly();
-  else {
+  const isAdmin = activeUser?.type === 'admin' || activeUser?.permissions?.admin || isAdminAuthorized();
+  const hasAny = hasAnyPermission(activeUser);
+  
+  if (isAdmin || hasAny) {
+    // إذا كان مديراً أو لديه أي صلاحية، افتح اللوحة مباشرة
+    openControlPanelDirectly();
+  } else {
+    // طلب رمز الإدارة فقط لمن لا يملك أي صلاحيات
     document.getElementById('adminModal').classList.remove('hidden');
     document.getElementById('adminAuthSection').classList.remove('hidden');
     document.getElementById('adminContentSection').classList.add('hidden');
@@ -2905,7 +2934,6 @@ function refreshDutyDashboardCard() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized();
   const hasDutyPerm = activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
   
-  // التحقق من ساعات العمل (يظهر إذا كان الوقت قبل نهاية آخر حصة + 30 دقيقة)
   const checkWorkingHours = () => {
       const d = dutyData();
       const now = omanNowParts().minutes;
@@ -2914,13 +2942,11 @@ function refreshDutyDashboardCard() {
           const e = toMinutes(p.end);
           if (e !== null && e > lastEnd) lastEnd = e;
       });
-      if (lastEnd === 0) return true; // إذا لم تضبط الحصص، يظهر الكرت
-      return now <= lastEnd + 30; // يختفي بعد 30 دقيقة من نهاية آخر حصة
+      if (lastEnd === 0) return true; 
+      return now <= lastEnd + 30; 
   };
 
   const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
-  
-  // الظهور: للمدير، أو لصاحب الصلاحية، أو للمعلم المناوب في وقته
   const show = isA || hasDutyPerm || isTE;
   
   card.classList.toggle('hidden', !show);
