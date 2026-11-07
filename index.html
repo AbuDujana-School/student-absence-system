@@ -2,16 +2,7 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#065f46">
-<meta name="application-name" content="نظام متابعة الغياب والسلوك">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="متابعة المدرسة">
-<meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
-<link rel="apple-touch-icon" href="./icons/icon-192.png">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -52,25 +43,12 @@
   .student-name-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .85rem; border-radius: 1rem; font-weight: 800; font-size: .82rem; letter-spacing: .01em; box-shadow: 0 4px 10px -4px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.25); border: 1px solid rgba(255,255,255,.25); }
   
   .chart-container { position: relative; width: 100%; }
-  /* PWA status and install controls */
-  #pwaStatusBar { position:fixed; inset-inline:12px; bottom:12px; z-index:999990; display:none; align-items:center; gap:10px; padding:10px 14px; border-radius:16px; background:#064e3b; color:#fff; box-shadow:0 10px 30px rgba(0,0,0,.22); font-size:12px; }
-  #pwaStatusBar.show { display:flex; }
-  #pwaStatusText { flex:1; }
-  #pwaInstallButton { border:1px solid rgba(255,255,255,.35); border-radius:10px; padding:7px 11px; font-weight:800; white-space:nowrap; }
-  #pwaInstallButton:disabled { opacity:.5; }
-  @supports (padding: env(safe-area-inset-bottom)) { #pwaStatusBar { bottom:calc(12px + env(safe-area-inset-bottom)); } }
 </style>
 <script>tailwind.config = { darkMode: 'class' }</script>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
 <div id="toastContainer" class="fixed top-5 left-5 z-[999999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4"></div>
-<div id="pwaStatusBar" role="status" aria-live="polite">
-  <span id="pwaStatusIcon" aria-hidden="true">📶</span>
-  <span id="pwaStatusText">جاهز للتثبيت والعمل دون اتصال بعد التحميل الأول.</span>
-  <button id="pwaInstallButton" type="button" hidden>تثبيت التطبيق</button>
-  <button id="pwaStatusClose" type="button" aria-label="إغلاق" style="padding:4px 7px">✕</button>
-</div>
 
 <header class="sticky top-0 z-40 bg-emerald-900/95 dark:bg-emerald-950/95 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex justify-between items-center">
@@ -2121,9 +2099,7 @@ function printHorizontalReport() {
   const classes = cf === 'all' ? db.classes : [cf];
   let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>غياب ${escapeHtml(td)}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:5px}.report-title-box{text-align:center;margin-bottom:15px;border-bottom:2px solid #065f46;padding-bottom:8px}.class-row-card{page-break-inside:avoid;border:2px solid #cbd5e1;border-radius:12px;margin-bottom:15px;background:#fff}.class-header-bar{padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;font-weight:900;font-size:12px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:8px}.period-cell{border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;min-height:130px;background:#f8fafc}.period-header{text-align:center;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:6px;background:#f1f5f9;border-radius:6px;padding-top:4px}.badge-absent{display:block;padding:3px 6px;text-align:center;border:2px solid #fbbf24;border-radius:9999px;background:#000;color:#fff;font-size:9px;font-weight:900;margin-bottom:4px}.badge-other{font-size:9px;font-weight:700;padding:2px 4px;margin-bottom:3px;border-radius:4px}</style></head><body><div class="report-title-box"><h2>${SCHOOL_NAME} - تقرير الغياب</h2><p style="margin:4px 0 0 0;font-size:11px;color:#475569">التاريخ: ${escapeHtml(td)}</p></div>`;
   classes.forEach(cn => { printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: <span dir="ltr" style="display:inline-block">${escapeHtml(formatClassName(cn))}</span></span><span>التاريخ: ${escapeHtml(td)}</span></div><div class="periods-horizontal-grid">`; for (let p = 1; p <= 8; p++) { const sd = db.attendance[`${td}_${cn}_p${p}`]; printHTML += `<div class="period-cell"><div class="period-header"><div style="font-size:11px;font-weight:900">الحصة ${p}</div><div style="font-size:8.5px;color:#64748b">(${escapeHtml(sd?.teacher || 'غير مسجل')})</div></div>`; const iss = sortAttendanceIssues(Object.entries(sd?.records || {}).filter(([n, s]) => s !== 'present')); if (iss.length === 0) printHTML += `<div style="text-align:center;color:#94a3b8;font-size:9px;margin-top:25px">لا مخالفات</div>`; else iss.forEach(([n, s]) => { if (s === 'absent') printHTML += `<div class="badge-absent">• ${escapeHtml(n)} (غائب)</div>`; else { const lb = s === 'escape' ? 'متسرب' : (s === 'late' ? 'متأخر' : 'خارج'); printHTML += `<div class="badge-other">• ${escapeHtml(n)} (${lb})</div>`; } }); printHTML += `</div>`; } printHTML += `</div></div>`; });
-  printHTML += `
-
-</body></html>`;
+  printHTML += `</body></html>`;
   const w = window.open('', '_blank'); if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة.', 'error'); return; }
   w.document.write(printHTML); w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
 }
@@ -3069,93 +3045,6 @@ function exportDutyReportsCSV() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
   showToast('تم التنزيل.', 'success');
 }
-</script>
-<script>
-/* ============ PWA integration ============ */
-(() => {
-  'use strict';
-  const bar = document.getElementById('pwaStatusBar');
-  const statusText = document.getElementById('pwaStatusText');
-  const statusIcon = document.getElementById('pwaStatusIcon');
-  const installButton = document.getElementById('pwaInstallButton');
-  const closeButton = document.getElementById('pwaStatusClose');
-  let installPrompt = null;
-  let dismissed = false;
-  let syncInProgress = false;
-  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
-  function showStatus(message, icon='📶', force=false) {
-    if (!bar || (dismissed && !force)) return;
-    statusText.textContent = message;
-    statusIcon.textContent = icon;
-    bar.classList.add('show');
-  }
-  function updateNetworkStatus() {
-    if (!navigator.onLine) showStatus('أنت غير متصل. يمكنك متابعة العمل على البيانات المحفوظة محلياً، وستتم محاولة المزامنة عند عودة الاتصال.', '📴', true);
-    else if (isStandalone()) showStatus('التطبيق مثبت ويعمل في وضع مستقل.', '✅');
-    else if (!installPrompt) bar?.classList.remove('show');
-  }
-  closeButton?.addEventListener('click', () => { dismissed = true; bar.classList.remove('show'); });
-  window.addEventListener('beforeinstallprompt', (event) => {
-    event.preventDefault(); installPrompt = event;
-    installButton.hidden = false;
-    showStatus('ثبّت النظام على هاتفك للوصول إليه كتطبيق مستقل.', '📲', true);
-  });
-  installButton?.addEventListener('click', async () => {
-    if (!installPrompt) return;
-    installPrompt.prompt();
-    try {
-      const choice = await installPrompt.userChoice;
-      if (choice?.outcome === 'accepted') showStatus('تم قبول تثبيت التطبيق. أكمل الخطوات التي يعرضها جهازك.', '✅', true);
-      else showStatus('يمكنك تثبيت النظام لاحقاً من قائمة المتصفح.', 'ℹ️', true);
-    } catch (_) {}
-    installPrompt = null; installButton.hidden = true;
-  });
-  window.addEventListener('appinstalled', () => {
-    installPrompt = null; installButton.hidden = true;
-    showStatus('تم تثبيت النظام بنجاح.', '✅', true);
-  });
-  window.addEventListener('offline', updateNetworkStatus);
-  window.addEventListener('online', () => {
-    updateNetworkStatus();
-    // Push the app's existing pending changes; do not pull/replace local data automatically.
-    setTimeout(tryPwaSync, 1200);
-  });
-  async function tryPwaSync() {
-    if (syncInProgress || !navigator.onLine || typeof saveSystemDataToCloud !== 'function') return;
-    // Avoid racing with a teacher's in-progress attendance/behavior form.
-    if (typeof attendanceDirty !== 'undefined' && attendanceDirty) return;
-    if (typeof behaviorDirty !== 'undefined' && behaviorDirty) return;
-    try {
-      const hasPending = (typeof dirtySets !== 'undefined') && (
-        dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size ||
-        dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size ||
-        dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories ||
-        (typeof getPendingDeletes === 'function' && getPendingDeletes().length)
-      );
-      if (!hasPending) return;
-      syncInProgress = true;
-      const ok = await saveSystemDataToCloud();
-      if (ok) showStatus('تمت مزامنة التغييرات المحفوظة محلياً مع الخادم.', '☁️');
-    } catch (error) { console.warn('PWA background sync attempt failed:', error); }
-    finally { syncInProgress = false; }
-  }
-  // Retry when the installed app returns to the foreground.
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && navigator.onLine) setTimeout(tryPwaSync, 800);
-  });
-  // Periodic in-page retry as a fallback where Background Sync is unavailable.
-  setInterval(tryPwaSync, 60000);
-  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-    window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js', { scope: './' })
-        .then(reg => { console.info('PWA service worker ready:', reg.scope); })
-        .catch(err => { console.warn('PWA service worker registration failed:', err); showStatus('تعذر تفعيل التخزين دون اتصال. تحقق من استضافة ملفات PWA بجانب النظام عبر HTTPS.', '⚠️', true); });
-    });
-  } else {
-    showStatus('التثبيت والعمل دون اتصال يتطلبان استضافة آمنة عبر HTTPS (أو localhost أثناء التطوير).', '⚠️', true);
-  }
-  updateNetworkStatus();
-})();
 </script>
 </body>
 </html>
