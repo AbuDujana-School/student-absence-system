@@ -94,7 +94,7 @@
   </div>
 
   <div id="dashboardSelectionView" class="hidden space-y-8">
-    <!-- الشريط الترحيبي الجديد -->
+    <!-- الشريط الترحيبي -->
     <div class="glass-card p-5 sm:p-6 rounded-3xl shadow-lg border border-emerald-100 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4 relative overflow-hidden">
       <div class="absolute -right-10 -top-10 w-40 h-40 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none"></div>
       <div class="flex items-center gap-4 relative z-10">
@@ -768,8 +768,7 @@ function formatClassName(c) {
   if (!c) return '';
   const parts = String(c).split('/');
   if (parts.length === 2) {
-    // تقوم بعكس الجزأين: إذا كان 1/9 ستجعله 9/1 أو العكس حسب رغبتك
-    // هنا نقوم بعرضه بالشكل 1/9
+    // عرض الصفوف بالشكل المطلوب 1/9
     return `${parts[0]}/${parts[1]}`;
   }
   return String(c).replace(/\//g, ' / ');
@@ -1102,8 +1101,45 @@ async function loadSystemDataFromCloud() {
       }
       await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
     }
-    if (classesData.length === 0) { db.classes = [...DEFAULT_CLASSES]; db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); }
-    else db.classes = classesData.map(r => r.name);
+    
+    // ==========================================
+    // إصلاح أسماء الصفوف تلقائياً (من 9/1 إلى 1/9)
+    // ==========================================
+    let classesFixed = false;
+    if (classesData.length > 0) {
+      db.classes = classesData.map(r => r.name);
+      
+      // التحقق مما إذا كانت الأسماء القديمة موجودة وتحتاج إلى تعديل
+      const needsFix = db.classes.some(c => c.includes('/') && DEFAULT_CLASSES.includes(c.split('/').reverse().join('/')));
+      
+      if (needsFix) {
+        console.log("تم اكتشاف صفوف بأسماء قديمة. جاري تحديثها...");
+        // تحديث مصفوفة الصفوف في الذاكرة
+        db.classes = db.classes.map(c => {
+          const parts = String(c).split('/');
+          if (parts.length === 2) return `${parts[1]}/${parts[0]}`; // عكس الترتيب
+          return c;
+        });
+        
+        // تحديث أسماء الصفوف في بيانات الطلاب
+        studentsData.forEach(r => {
+          if (r.class_name && r.class_name.includes('/')) {
+            const parts = String(r.class_name).split('/');
+            if (parts.length === 2) r.class_name = `${parts[1]}/${parts[0]}`;
+          }
+        });
+
+        // إضافة الصفوف الجديدة لـ dirtySets ليتم رفعها للسحابة
+        db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
+        classesFixed = true;
+      } else {
+        db.classes = classesData.map(r => r.name);
+      }
+    } else {
+      db.classes = [...DEFAULT_CLASSES]; 
+      db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
+    }
+
     db.students = {};
     studentsData.forEach(r => { if (!db.students[r.class_name]) db.students[r.class_name] = []; db.students[r.class_name].push(r.student_name); });
     db.classes.forEach(c => { if (!db.students[c]) db.students[c] = []; });
@@ -1130,11 +1166,34 @@ async function loadSystemDataFromCloud() {
         .filter(r => r.class_name !== '__CLEAN__')
         .map(r => ({ id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: r.class_name, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at }));
     } catch(e) {}
+    
     db.attendance = {};
-    attendanceData.forEach(r => db.attendance[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at });
+    attendanceData.forEach(r => {
+      // إصلاح أسماء الصفوف في سجلات الغياب
+      let cn = r.class_name;
+      if (classesFixed && cn && cn.includes('/')) {
+        const parts = String(cn).split('/');
+        if (parts.length === 2) cn = `${parts[1]}/${parts[0]}`;
+      }
+      db.attendance[r.record_key] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
+    });
+
     db.behaviors = {};
-    behaviorsData.forEach(r => db.behaviors[r.record_key] = { teacher: r.teacher_name, className: r.class_name, period: r.period, records: r.records || {}, timestamp: r.updated_at });
-    if (dirtySets.classes.size > 0 || dirtySets.students.size > 0) await saveSystemDataToCloud();
+    behaviorsData.forEach(r => {
+      // إصلاح أسماء الصفوف في سجلات السلوك
+      let cn = r.class_name;
+      if (classesFixed && cn && cn.includes('/')) {
+        const parts = String(cn).split('/');
+        if (parts.length === 2) cn = `${parts[1]}/${parts[0]}`;
+      }
+      db.behaviors[r.record_key] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
+    });
+
+    // إذا تم إصلاح الأسماء، قم بحفظ التعديلات في السحابة فوراً
+    if (classesFixed || dirtySets.classes.size > 0 || dirtySets.students.size > 0) {
+       await saveSystemDataToCloud();
+    }
+    
     saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
   } catch(e) {
     console.error('Cloud load failed:', e);
