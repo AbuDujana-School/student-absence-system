@@ -1,39 +1,24 @@
 {
-  "id": "./",
-  "name": "نظام متابعة الغياب والسلوكيات - مدرسة أبو دجانة الأنصاري",
-  "short_name": "مدرسة ابو دجانة",
-  "description": "نظام متابعة الغياب والسلوك والمناوبة المدرسية",
-  "lang": "ar",
-  "dir": "rtl",
-  "start_url": "./",
-  "scope": "./",
+  "name": "مدرسة أبو دجانة الأنصاري (9-12)",
+  "short_name": "أبو دجانة",
+  "start_url": "./index.html",
   "display": "standalone",
-  "display_override": [
-    "standalone",
-    "minimal-ui"
-  ],
-  "orientation": "any",
-  "background_color": "#f1f5f9",
-  "theme_color": "#065f46",
-  "categories": [
-    "education",
-    "productivity"
-  ],
+  "background_color": "#1a0b2e",
+  "theme_color": "#1a0b2e",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "./icons/icon-192.png",
+      "src": "icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-      "src": "./icons/icon-512.png",
+      "src": "icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any"
+      "type": "image/png"
     },
     {
-      "src": "./icons/icon-512-maskable.png",
+      "src": "icons/icon-512-maskable.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
