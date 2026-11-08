@@ -1333,10 +1333,10 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
   });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
+    if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
   });
   setInterval(() => {
-    if (navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
+    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
   }, 60000);
 });
 
