@@ -1326,7 +1326,11 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!dutyRefreshInterval) dutyRefreshInterval = setInterval(() => { if (activeUser) { refreshDutyDashboardCard(); if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods(); } }, 30000);
   setInterval(async () => { if (Date.now() - lastServerSyncSuccess > 60*60*1000) await syncServerTime(); }, 15*60*1000);
   populateCategoryDropdowns();
+  window.addEventListener('offline', () => {
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
+  });
   window.addEventListener('online', () => {
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - جارِ المزامنة" : "تم الاتصال");
     setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
   });
   window.addEventListener('pageshow', () => {
