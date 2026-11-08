@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#183653">
+<title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -240,9 +242,67 @@
 </style>
 
 <script>tailwind.config = { darkMode: 'class' }</script>
-</head>
+
+<style id="abu-dujana-splash-style">
+#schoolSplash{position:fixed;inset:0;z-index:2147483000;display:grid;place-items:center;overflow:hidden;color:#fff;background:radial-gradient(ellipse at 50% 42%,#245b76 0%,#173d5b 38%,#091b30 78%,#061322 100%);isolation:isolate;opacity:1;visibility:visible;transition:opacity .85s ease,visibility .85s ease}
+#schoolSplash.splash-leaving{opacity:0;visibility:hidden;pointer-events:none}
+#schoolSplash .splash-glow{position:absolute;width:min(85vw,620px);aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(36,205,190,.2),rgba(213,166,74,.09) 42%,transparent 70%);filter:blur(8px);animation:splashBreath 4.5s ease-in-out infinite}
+#schoolSplash .splash-orb{position:absolute;border-radius:50%;filter:blur(1px);opacity:.65;animation:splashFloat 8s ease-in-out infinite}
+#schoolSplash .splash-orb.one{width:190px;height:190px;top:8%;left:-55px;background:radial-gradient(circle at 35% 35%,rgba(53,218,205,.48),rgba(53,218,205,0) 70%)}
+#schoolSplash .splash-orb.two{width:240px;height:240px;right:-90px;bottom:7%;background:radial-gradient(circle at 45% 45%,rgba(224,177,83,.35),rgba(224,177,83,0) 70%);animation-delay:-3s}
+#schoolSplash .splash-orb.three{width:130px;height:130px;right:12%;top:12%;background:radial-gradient(circle,rgba(98,170,230,.28),transparent 70%);animation-delay:-5s}
+#schoolSplash .splash-particles{position:absolute;inset:0;pointer-events:none}
+#schoolSplash .splash-particles i{position:absolute;width:4px;height:4px;border-radius:50%;background:#f5d58d;box-shadow:0 0 12px 3px rgba(245,213,141,.6);animation:splashSpark 3.8s ease-in-out infinite}
+#schoolSplash .splash-particles i:nth-child(1){top:17%;left:18%;animation-delay:-.4s}#schoolSplash .splash-particles i:nth-child(2){top:27%;right:16%;animation-delay:-2s}#schoolSplash .splash-particles i:nth-child(3){top:69%;left:13%;animation-delay:-1.3s}#schoolSplash .splash-particles i:nth-child(4){top:78%;right:22%;animation-delay:-2.7s}#schoolSplash .splash-particles i:nth-child(5){top:48%;left:8%;animation-delay:-.9s}#schoolSplash .splash-particles i:nth-child(6){top:53%;right:9%;animation-delay:-1.8s}#schoolSplash .splash-particles i:nth-child(7){top:11%;left:54%;animation-delay:-3.1s}#schoolSplash .splash-particles i:nth-child(8){top:88%;left:49%;animation-delay:-2.2s}
+#schoolSplash .splash-content{position:relative;z-index:2;width:min(90vw,480px);padding:34px 22px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;animation:splashRise 1.1s cubic-bezier(.2,.8,.2,1) both}
+#schoolSplash .splash-emblem{position:relative;width:154px;height:154px;display:grid;place-items:center;margin-bottom:27px}
+#schoolSplash .splash-ring{position:absolute;inset:0;border:1px solid rgba(231,194,111,.7);border-radius:35%;transform:rotate(45deg);animation:splashSpin 13s linear infinite}
+#schoolSplash .splash-ring:before,#schoolSplash .splash-ring:after{content:"";position:absolute;width:9px;height:9px;border-radius:50%;background:#f0c56e;box-shadow:0 0 16px #f0c56e}
+#schoolSplash .splash-ring:before{top:8px;left:22px}#schoolSplash .splash-ring:after{bottom:8px;right:22px}
+#schoolSplash .splash-ring.ring-two{inset:10px;border-color:rgba(87,221,208,.6);border-radius:50%;transform:none;animation:splashSpinReverse 18s linear infinite}
+#schoolSplash .splash-logo{width:104px;height:104px;object-fit:contain;border-radius:27px;filter:drop-shadow(0 12px 24px rgba(0,0,0,.32));animation:splashLogo 3.4s ease-in-out infinite}
+#schoolSplash .splash-kicker{font-size:11px;font-weight:800;letter-spacing:.28em;color:#8de1d8;margin-bottom:10px;opacity:0;animation:splashTextIn .7s .25s ease forwards}
+#schoolSplash .splash-title{font-size:clamp(27px,7vw,40px);line-height:1.25;font-weight:900;letter-spacing:-.035em;background:linear-gradient(100deg,#fff 10%,#f5d58d 48%,#fff 85%);background-size:220% auto;-webkit-background-clip:text;background-clip:text;color:transparent;animation:splashShimmer 4s linear infinite,splashTextIn .8s .4s ease both}
+#schoolSplash .splash-subtitle{margin-top:12px;color:rgba(225,241,248,.84);font-size:13px;font-weight:600;letter-spacing:.02em;opacity:0;animation:splashTextIn .7s .7s ease forwards}
+#schoolSplash .splash-motto{margin-top:23px;color:#f1d18e;font-size:12px;font-weight:800;opacity:0;animation:splashTextIn .7s .9s ease forwards}
+#schoolSplash .splash-progress{width:min(220px,65vw);height:3px;border-radius:10px;background:rgba(255,255,255,.17);overflow:hidden;margin-top:27px}
+#schoolSplash .splash-progress span{display:block;width:38%;height:100%;border-radius:10px;background:linear-gradient(90deg,#38c8bd,#f2ce83);box-shadow:0 0 14px rgba(56,200,189,.8);animation:splashProgress 2.6s ease-in-out infinite}
+#schoolSplash .splash-start{margin-top:22px;border:1px solid rgba(245,213,141,.55);border-radius:999px;padding:10px 25px;color:#fff;background:linear-gradient(120deg,rgba(28,143,139,.8),rgba(31,79,105,.8));font:800 12px 'Tajawal',sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.2);transition:transform .2s ease,box-shadow .2s ease;cursor:pointer}
+#schoolSplash .splash-start:active{transform:scale(.96)}#schoolSplash .splash-start:focus-visible{outline:2px solid #f5d58d;outline-offset:4px}
+#schoolSplash .splash-footer{position:absolute;bottom:max(17px,env(safe-area-inset-bottom));font-size:10px;color:rgba(224,238,246,.5);letter-spacing:.12em}
+@keyframes splashSpin{to{transform:rotate(405deg)}}@keyframes splashSpinReverse{to{transform:rotate(-360deg)}}@keyframes splashLogo{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-6px) scale(1.035)}}@keyframes splashBreath{0%,100%{transform:scale(.88);opacity:.55}50%{transform:scale(1.08);opacity:1}}@keyframes splashFloat{0%,100%{transform:translate3d(0,0,0)}50%{transform:translate3d(22px,-28px,0)}}@keyframes splashSpark{0%,100%{opacity:.15;transform:scale(.65)}50%{opacity:1;transform:scale(1.5)}}@keyframes splashRise{from{opacity:0;transform:translateY(24px) scale(.97)}to{opacity:1;transform:translateY(0) scale(1)}}@keyframes splashTextIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}@keyframes splashShimmer{to{background-position:220% center}}@keyframes splashProgress{0%{transform:translateX(260%)}100%{transform:translateX(-360%)}}
+@media(prefers-reduced-motion:reduce){#schoolSplash *,#schoolSplash *:before,#schoolSplash *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}#schoolSplash{transition-duration:.2s}}
+</style>
+<style>
+/* Responsive PWA install bottom sheet */
+#pwaInstallSheet{box-sizing:border-box;position:fixed;z-index:2147482000;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:auto;max-width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;margin:0 auto;padding:clamp(14px,3.5vw,18px);border:1px solid rgba(226,232,240,.9);border-radius:20px;background:rgba(255,255,255,.98);color:#183653;box-shadow:0 14px 42px rgba(5,24,42,.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transform:translate3d(0,calc(100% + 30px),0);opacity:0;visibility:hidden;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease,visibility .3s}
+#pwaInstallSheet,#pwaInstallSheet *{box-sizing:border-box}
+#pwaInstallSheet.pwa-visible{transform:translate3d(0,0,0);opacity:1;visibility:visible}
+#pwaInstallSheet .pwa-install-top{display:flex;align-items:center;gap:12px;padding-inline-end:34px;min-width:0}
+#pwaInstallSheet .pwa-install-icon{width:46px;height:46px;flex:0 0 46px;border-radius:13px;object-fit:cover;box-shadow:0 4px 12px rgba(24,54,83,.14)}
+#pwaInstallSheet .pwa-install-copy{min-width:0;flex:1}
+#pwaInstallSheet .pwa-install-title{font-size:clamp(14px,3.8vw,16px);font-weight:900;line-height:1.45;overflow-wrap:anywhere}
+#pwaInstallSheet .pwa-install-desc{font-size:12px;color:#64748b;margin-top:3px;line-height:1.65;overflow-wrap:anywhere}
+#pwaInstallSheet .pwa-install-actions{display:flex;gap:9px;margin-top:13px;width:100%}
+#pwaInstallSheet .pwa-install-button{flex:1;min-width:0;border:0;border-radius:12px;padding:11px 10px;background:linear-gradient(110deg,#176b78,#183653);color:white;font:800 13px 'Tajawal',sans-serif;box-shadow:0 5px 14px rgba(24,54,83,.18);cursor:pointer}
+#pwaInstallSheet .pwa-later-button{flex:0 0 auto;border:1px solid #dbe3ea;border-radius:12px;padding:10px 14px;background:#f8fafc;color:#475569;font:700 12px 'Tajawal',sans-serif;cursor:pointer}
+#pwaInstallSheet .pwa-close{position:absolute;top:10px;inset-inline-end:10px;width:28px;height:28px;border:0;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:19px;line-height:1;cursor:pointer}
+#pwaInstallHelp{display:none;margin-top:10px;padding:10px 12px;border-radius:11px;background:#f1f6f8;color:#334155;font-size:12px;line-height:1.8;overflow-wrap:anywhere}
+#pwaInstallHelp.pwa-help-visible{display:block}
+@media(max-width:360px){#pwaInstallSheet{left:8px;right:8px;max-width:calc(100vw - 16px);padding:13px;border-radius:17px}#pwaInstallSheet .pwa-install-top{gap:9px;padding-inline-end:31px}#pwaInstallSheet .pwa-install-icon{width:40px;height:40px;flex-basis:40px}#pwaInstallSheet .pwa-install-actions{gap:7px}#pwaInstallSheet .pwa-install-button{font-size:12px;padding:10px 7px}#pwaInstallSheet .pwa-later-button{padding:9px 10px}}
+@media(prefers-reduced-motion:reduce){#pwaInstallSheet{transition:none}}
+</style></head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
+
+<div id="schoolSplash" role="status" aria-label="مرحباً بكم في مدرسة ابو دجانة">
+<div class="splash-glow"></div><div class="splash-orb one"></div><div class="splash-orb two"></div><div class="splash-orb three"></div>
+<div class="splash-particles" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="splash-content"><div class="splash-emblem" aria-hidden="true"><div class="splash-ring"></div><div class="splash-ring ring-two"></div><img class="splash-logo" src="./icons/icon-512.png" alt=""></div>
+<div class="splash-kicker">ABU DUJANA SCHOOL</div><div class="splash-title">مدرسة ابو دجانة</div>
+<div class="splash-subtitle">بوابتك إلى بيئة مدرسية أكثر تميزاً وإبداعاً</div><div class="splash-motto">علمٌ وانضباطٌ وتميّز ✦</div>
+<div class="splash-progress" aria-hidden="true"><span></span></div><button class="splash-start" type="button" onclick="dismissSchoolSplash()">ابدأ الآن <span aria-hidden="true">←</span></button></div>
+<div class="splash-footer">SMART SCHOOL EXPERIENCE</div></div>
 <div id="toastContainer" class="fixed top-5 left-5 z-[999999] flex flex-col gap-3 pointer-events-none max-w-sm w-full px-4"></div>
 
 <header class="sticky top-0 z-40 bg-emerald-900/95 dark:bg-emerald-950/95 backdrop-blur-md text-white shadow-xl border-b border-emerald-800/60">
@@ -1130,8 +1190,8 @@ function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adm
 /* ============ Cloud helpers ============ */
 function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch(e) { return []; } }
 function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch(e) {} }
-async function queueCloudDelete(table, filters) { try { let q = sb.from(table).delete(); for (const [k,v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; } catch(e) { const arr = getPendingDeletes(); arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); return false; } }
-async function flushPendingDeletes() { const arr = getPendingDeletes(); if (!arr.length) return; const remaining = []; for (const item of arr) { try { let q = sb.from(item.table).delete(); for (const [k,v] of Object.entries(item.filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; } catch(e) { remaining.push(item); } } setPendingDeletes(remaining); }
+async function queueCloudDelete(table, filters) { try { let q = sb.from(table).delete(); for (const [k,v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; } catch(e) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); return false; } }
+async function flushPendingDeletes() { const arr = getPendingDeletes(); if (!arr.length) return; const remaining = []; for (const item of arr) { try { let q = sb.from(item.table).delete(); for (const [k,v] of Object.entries(item.filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; } catch(e) { remaining.push(item); } } setPendingDeletes(remaining); await persistOfflineState(); }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
   const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -1190,6 +1250,88 @@ function getTeacherCategory(name) { const t = (db.teachers || []).find(x => x.na
 function isTeacherOnDutyToday(name) { const cat = getTeacherCategory(name); if (!cat) return false; const dd = dutyData().subjectDays[cat]; if (!dd) return false; return dutyDayForDate(getOmanLocalDate()) === dd; }
 function dutyStatusLabel(s) { return ({ pending: 'بانتظار المراجعة', absence: 'غياب معتمد', late: 'تأخر معتمد', swap: 'تبديل مثبت', excused: 'عذر مقبول', dismissed: 'بلاغ غير مثبت', clean: 'سليم (لا غياب)' })[s] || s; }
 
+/* ============ Durable Offline Storage (IndexedDB) ============ */
+const OFFLINE_DB_NAME = 'abuDujanaOffline';
+const OFFLINE_DB_VERSION = 1;
+let offlineDbPromise = null;
+function openOfflineDatabase() {
+  if (!('indexedDB' in window)) return Promise.reject(new Error('IndexedDB غير مدعوم'));
+  if (!offlineDbPromise) offlineDbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+    request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains('state')) request.result.createObjectStore('state', { keyPath: 'key' }); };
+    request.onsuccess = () => { const database = request.result; database.onversionchange = () => { database.close(); offlineDbPromise = null; }; resolve(database); };
+    request.onerror = () => reject(request.error || new Error('تعذر فتح التخزين المحلي'));
+    request.onblocked = () => reject(new Error('التخزين المحلي مشغول في نافذة أخرى'));
+  });
+  return offlineDbPromise;
+}
+function serializeDirtySets() {
+  return { classes:[...dirtySets.classes], teachers:[...dirtySets.teachers], students:[...dirtySets.students], attendance:[...dirtySets.attendance], behaviors:[...dirtySets.behaviors], duty_reports:[...dirtySets.duty_reports], admin_pin:!!dirtySets.admin_pin, duty_module:!!dirtySets.duty_module, custom_categories:!!dirtySets.custom_categories };
+}
+function restoreDirtySetsObject(obj) {
+  if (!obj || typeof obj !== 'object') return;
+  Object.keys(dirtySets).forEach(k => { if (dirtySets[k] instanceof Set) dirtySets[k].clear(); else dirtySets[k] = false; });
+  (obj.classes||[]).forEach(x=>dirtySets.classes.add(x)); (obj.teachers||[]).forEach(x=>dirtySets.teachers.add(x));
+  (obj.students||[]).forEach(x=>dirtySets.students.add(x)); (obj.attendance||[]).forEach(x=>dirtySets.attendance.add(x));
+  (obj.behaviors||[]).forEach(x=>dirtySets.behaviors.add(x)); (obj.duty_reports||[]).forEach(x=>dirtySets.duty_reports.add(x));
+  dirtySets.admin_pin=!!obj.admin_pin; dirtySets.duty_module=!!obj.duty_module; dirtySets.custom_categories=!!obj.custom_categories;
+}
+async function persistOfflineState() {
+  try {
+    const database=await openOfflineDatabase();
+    const payload={key:'snapshot',savedAt:new Date().toISOString(),db:JSON.parse(JSON.stringify(db)),dirtySets:serializeDirtySets(),pendingDeletes:getPendingDeletes()};
+    await new Promise((resolve,reject)=>{const tx=database.transaction('state','readwrite');tx.objectStore('state').put(payload);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('فشل الحفظ المحلي'));tx.onabort=()=>reject(tx.error||new Error('ألغي الحفظ المحلي'));});
+    try { if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{}); } catch(e) {}
+    return true;
+  } catch(error) { console.error('IndexedDB save failed:',error); return false; }
+}
+async function restoreOfflineState() {
+  try {
+    const database=await openOfflineDatabase();
+    const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
+    if(!snapshot?.db||typeof snapshot.db!=='object') return false;
+    db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
+    db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
+    restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
+    return true;
+  } catch(error) { console.warn('IndexedDB restore unavailable:',error);return false; }
+}
+function cloneOfflineValue(value){return JSON.parse(JSON.stringify(value??null));}
+function captureDirtyLocalState(){return {db:cloneOfflineValue(db),dirty:serializeDirtySets()};}
+function mergeDirtyLocalState(snapshot) {
+  if(!snapshot?.db||!snapshot?.dirty)return;
+  const local=snapshot.db,d=snapshot.dirty;
+  (d.classes||[]).forEach(c=>{if(!(db.classes||[]).includes(c))db.classes.push(c);});
+  (d.teachers||[]).forEach(name=>{
+    const t=(local.teachers||[]).find(x=>x.name===name);if(t){const i=db.teachers.findIndex(x=>x.name===name);if(i>=0)db.teachers[i]=t;else db.teachers.push(t);}
+    const u=(local.customUsers||[]).find(x=>x.name===name);if(u){const i=db.customUsers.findIndex(x=>x.name===name);if(i>=0)db.customUsers[i]=u;else db.customUsers.push(u);}
+  });
+  (d.students||[]).forEach(c=>{db.students[c]=cloneOfflineValue(local.students?.[c]||[]);});
+  (d.attendance||[]).forEach(k=>{if(local.attendance?.[k])db.attendance[k]=cloneOfflineValue(local.attendance[k]);});
+  (d.behaviors||[]).forEach(k=>{if(local.behaviors?.[k])db.behaviors[k]=cloneOfflineValue(local.behaviors[k]);});
+  (d.duty_reports||[]).forEach(id=>{const rec=(local.dutyModule?.records||[]).find(x=>String(x.id)===String(id));if(rec){const i=(db.dutyModule.records||[]).findIndex(x=>String(x.id)===String(id));if(i>=0)db.dutyModule.records[i]=cloneOfflineValue(rec);else db.dutyModule.records.push(cloneOfflineValue(rec));}});
+  if(d.admin_pin)db.adminPin=cloneOfflineValue(local.adminPin);
+  if(d.custom_categories)db.customCategories=cloneOfflineValue(local.customCategories||[]);
+  if(d.duty_module){const records=db.dutyModule.records||[];db.dutyModule=normalizeDutyModule(local.dutyModule);db.dutyModule.records=records;}
+}
+function markOfflineDatabaseForUpload() {
+  (db.classes||[]).forEach(c=>{dirtySets.classes.add(c);dirtySets.students.add(c);});
+  (db.teachers||[]).forEach(t=>dirtySets.teachers.add(t.name));(db.customUsers||[]).forEach(u=>dirtySets.teachers.add(u.name));
+  Object.keys(db.attendance||{}).forEach(k=>dirtySets.attendance.add(k));Object.keys(db.behaviors||{}).forEach(k=>dirtySets.behaviors.add(k));
+  (db.dutyModule?.records||[]).forEach(r=>dirtySets.duty_reports.add(String(r.id)));
+  dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
+}
+let offlineAutoSyncInProgress = false;
+function hasPendingOfflineChanges() {
+  return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
+}
+async function retryOfflineSyncSilently() {
+  if (!navigator.onLine || !hasPendingOfflineChanges() || offlineAutoSyncInProgress) return;
+  offlineAutoSyncInProgress = true;
+  try { await saveSystemDataToCloud({ silent: true }); }
+  finally { offlineAutoSyncInProgress = false; }
+}
+
 /* ============ LocalStorage ============ */
 function saveToLocalStorageSafe() {
   try {
@@ -1202,21 +1344,18 @@ function saveToLocalStorageSafe() {
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v30'); } catch(err) {} }
+  } catch(e) { console.warn('LocalStorage full; IndexedDB is the durable store when available.', e); }
 }
 function loadDirtySetsFromLocal() {
   try {
     const raw = localStorage.getItem('abuDujana_dirtySets'); if (!raw) return;
     const obj = JSON.parse(raw);
-    (obj.classes || []).forEach(x => dirtySets.classes.add(x));
-    (obj.teachers || []).forEach(x => dirtySets.teachers.add(x));
-    (obj.students || []).forEach(x => dirtySets.students.add(x));
-    (obj.attendance || []).forEach(x => dirtySets.attendance.add(x));
-    (obj.behaviors || []).forEach(x => dirtySets.behaviors.add(x));
-    (obj.duty_reports || []).forEach(x => dirtySets.duty_reports.add(x));
-    dirtySets.admin_pin = !!obj.admin_pin;
-    dirtySets.duty_module = !!obj.duty_module;
-    dirtySets.custom_categories = !!obj.custom_categories;
+    (obj.classes||[]).forEach(x=>dirtySets.classes.add(x)); (obj.teachers||[]).forEach(x=>dirtySets.teachers.add(x));
+    (obj.students||[]).forEach(x=>dirtySets.students.add(x)); (obj.attendance||[]).forEach(x=>dirtySets.attendance.add(x));
+    (obj.behaviors||[]).forEach(x=>dirtySets.behaviors.add(x)); (obj.duty_reports||[]).forEach(x=>dirtySets.duty_reports.add(x));
+    dirtySets.admin_pin = dirtySets.admin_pin || !!obj.admin_pin;
+    dirtySets.duty_module = dirtySets.duty_module || !!obj.duty_module;
+    dirtySets.custom_categories = dirtySets.custom_categories || !!obj.custom_categories;
   } catch(e) {}
 }
 
@@ -1234,7 +1373,9 @@ function populateCategoryDropdowns() {
 /* ============ Init ============ */
 window.addEventListener('DOMContentLoaded', async () => {
   initDarkMode(); setCurrentDate();
-  await syncServerTime();
+  try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
+  await restoreOfflineState();
+  syncServerTime();
   await loadSystemDataFromCloud();
   await migrateCredentialsIfNeeded();
   await checkExistingSession();
@@ -1243,6 +1384,22 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!dutyRefreshInterval) dutyRefreshInterval = setInterval(() => { if (activeUser) { refreshDutyDashboardCard(); if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods(); } }, 30000);
   setInterval(async () => { if (Date.now() - lastServerSyncSuccess > 60*60*1000) await syncServerTime(); }, 15*60*1000);
   populateCategoryDropdowns();
+  window.addEventListener('offline', () => {
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
+  });
+  window.addEventListener('online', () => {
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - جارِ المزامنة" : "تم الاتصال");
+    setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
+  });
+  window.addEventListener('pageshow', () => {
+    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+  });
+  setInterval(() => {
+    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+  }, 60000);
 });
 
 function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_darkMode') === 'true'; if (isDark) { document.documentElement.classList.add('dark'); document.getElementById('darkModeIcon').className = 'fa-solid fa-sun text-sm'; } } catch(e) {} }
@@ -1274,10 +1431,14 @@ async function migrateCredentialsIfNeeded() {
 }
 
 async function loadSystemDataFromCloud() {
+  updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
+  const offlineSnapshotAvailable = await restoreOfflineState();
+  loadDirtySetsFromLocal();
+  const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
+  const pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحميل...");
   try {
     await flushPendingDeletes();
-    loadDirtySetsFromLocal();
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
       fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
       fetchAllPaginated('teachers', '*'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
@@ -1285,8 +1446,21 @@ async function loadSystemDataFromCloud() {
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
     if (empty) {
       const saved = localStorage.getItem('abuDujana_db_v30');
-      if (saved) {
-        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 27 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
+      if (offlineSnapshotAvailable || saved) {
+        try {
+          if (saved && !offlineSnapshotAvailable) db = { ...db, ...JSON.parse(saved), version: 27 };
+          else if (offlineSnapshot) db = { ...db, ...offlineSnapshot, version: 27 };
+          if (!db.customUsers) db.customUsers = [];
+          if (!db.behaviors) db.behaviors = {};
+          if (!db.customCategories) db.customCategories = [];
+          db.dutyModule = normalizeDutyModule(db.dutyModule);
+          Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
+          markOfflineDatabaseForUpload();
+          await persistOfflineState();
+          updateSyncStatus(false, "جارِ رفع النسخة المحلية...");
+          await saveSystemDataToCloud();
+          return true;
+        } catch(e) { console.warn('local snapshot restore failed', e); }
       }
       await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
     }
@@ -1397,23 +1571,42 @@ async function loadSystemDataFromCloud() {
       }
     }
 
-    if (classesFixed || dirtySets.classes.size > 0 || dirtySets.students.size > 0 || dirtySets.attendance.size > 0 || dirtySets.behaviors.size > 0 || dirtySets.duty_reports.size > 0) {
+    mergeDirtyLocalState(pendingLocalState);
+    if (classesFixed || dirtySets.classes.size > 0 || dirtySets.teachers.size > 0 || dirtySets.students.size > 0 || dirtySets.attendance.size > 0 || dirtySets.behaviors.size > 0 || dirtySets.duty_reports.size > 0 || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
        await saveSystemDataToCloud();
     }
-    
-    saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
+    saveToLocalStorageSafe();
+    await persistOfflineState();
+    const pendingSync = dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length;
+    updateSyncStatus(!pendingSync, pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+    return true;
   } catch(e) {
     console.error('Cloud load failed:', e);
     const saved = localStorage.getItem('abuDujana_db_v30');
-    if (saved) { try { const parsed = JSON.parse(saved); db = { ...db, ...parsed }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); loadDirtySetsFromLocal(); updateSyncStatus(false, "محلي - انقر للمزامنة"); return true; } catch(pe) {} }
-    await initDefaults(); updateSyncStatus(false, "فشل الاتصال - انقر للمزامنة"); return false;
+    if (offlineSnapshotAvailable || saved) {
+      try {
+        db = { ...db, ...(offlineSnapshot || JSON.parse(saved)) };
+        if (!db.customUsers) db.customUsers = [];
+        if (!db.behaviors) db.behaviors = {};
+        if (!db.customCategories) db.customCategories = [];
+        db.dutyModule = normalizeDutyModule(db.dutyModule);
+        Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
+        loadDirtySetsFromLocal();
+        await persistOfflineState();
+        updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");
+        return true;
+      } catch(pe) { console.warn('Local fallback restore failed', pe); }
+    }
+    await initDefaults(); updateSyncStatus(false, "تعذر الاتصال ولا توجد نسخة محلية"); return false;
   }
 }
 
-async function saveSystemDataToCloud() {
+async function saveSystemDataToCloud(options = {}) {
   updateSyncStatus(true, "جارِ الحفظ...");
+  saveToLocalStorageSafe();
+  const durableSaved = await persistOfflineState();
+  if (!durableSaved) updateSyncStatus(false, "تحذير: تعذر تأكيد التخزين المحلي");
   try {
-    saveToLocalStorageSafe();
     if (dirtySets.classes.size > 0) { const rows = [...dirtySets.classes].map(n => ({ name: n })); await robustUpsert('classes', rows, 'name', 200); dirtySets.classes.clear(); }
     if (dirtySets.teachers.size > 0) {
       const rows = [];
@@ -1444,12 +1637,16 @@ async function saveSystemDataToCloud() {
     }
     if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
     await flushPendingDeletes();
-    saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
+    saveToLocalStorageSafe();
+    await persistOfflineState();
+    updateSyncStatus(true, "متزامن");
+    return true;
   } catch(error) {
     console.error('Cloud save failed:', error);
-    updateSyncStatus(false, "محلي فقط - انقر للمزامنة");
+    await persistOfflineState();
+    updateSyncStatus(false, "محفوظ محلياً - انقر للمزامنة");
     const errMsg = (error?.message || String(error)).substring(0, 200);
-    showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
+    if (!options.silent) showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
   }
 }
@@ -3279,5 +3476,59 @@ function exportDutyReportsCSV() {
   showToast('تم التنزيل.', 'success');
 }
 </script>
+<script>
+(function(){
+ const started=Date.now();let done=false;
+ function closeSplash(skip){
+  if(done)return;done=true;const el=document.getElementById('schoolSplash');if(!el)return;
+  const hide=()=>{el.classList.add('splash-leaving');window.setTimeout(()=>el.remove(),950)};
+  if(skip)hide();else window.setTimeout(hide,Math.max(0,2100-(Date.now()-started)));
+ }
+ window.dismissSchoolSplash=()=>closeSplash(true);
+ if(document.readyState==='complete')closeSplash(false);else window.addEventListener('load',()=>closeSplash(false),{once:true});
+ window.setTimeout(()=>closeSplash(false),6500);
+})();
+</script>
+<script>
+// PWA shell registration. Offline data persistence is implemented in a separate stage.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(error => {
+      console.warn("تعذر تسجيل خدمة التطبيق:", error);
+    });
+  });
+}
+</script>
+
+<!-- Install app bottom sheet: main application document -->
+<section id="pwaInstallSheet" dir="rtl" aria-label="تثبيت التطبيق" aria-hidden="true">
+ <button class="pwa-close" id="pwaInstallClose" type="button" aria-label="إغلاق">×</button>
+ <div class="pwa-install-top">
+  <img class="pwa-install-icon" src="./icons/icon-192.png" alt="أيقونة مدرسة ابو دجانة">
+  <div class="pwa-install-copy"><div class="pwa-install-title">ثبّت تطبيق مدرسة ابو دجانة</div><div class="pwa-install-desc">أضف التطبيق إلى شاشة هاتفك للوصول إليه بسرعة وبسهولة.</div></div>
+ </div>
+ <div class="pwa-install-actions"><button class="pwa-install-button" id="pwaInstallAction" type="button">تنزيل التطبيق</button><button class="pwa-later-button" id="pwaInstallLater" type="button">لاحقاً</button></div>
+ <div id="pwaInstallHelp" aria-live="polite"></div>
+</section>
+<script>
+(function(){
+ const sheet=document.getElementById('pwaInstallSheet'),action=document.getElementById('pwaInstallAction'),help=document.getElementById('pwaInstallHelp'),close=document.getElementById('pwaInstallClose'),later=document.getElementById('pwaInstallLater');
+ if(!sheet||!action||!help||!close||!later)return;
+ let installPrompt=null;
+ const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+ const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+ const dismissed=()=>{try{return sessionStorage.getItem('abuDujanaInstallDismissed')==='1'}catch(e){return false}};
+ function show(){if(isStandalone()||dismissed())return;sheet.classList.add('pwa-visible');sheet.setAttribute('aria-hidden','false')}
+ function hide(){sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');try{sessionStorage.setItem('abuDujanaInstallDismissed','1')}catch(e){}}
+ function showHelp(){help.innerHTML=isIOS()?'على iPhone أو iPad: اضغط زر المشاركة <b>Share</b> في المتصفح، ثم اختر <b>Add to Home Screen</b> أو «إضافة إلى الشاشة الرئيسية».':'من قائمة المتصفح <b>⋮</b> اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»، ثم أكد الإضافة.';help.classList.add('pwa-help-visible')}
+ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event});
+ window.addEventListener('appinstalled',()=>{sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');installPrompt=null});
+ action.addEventListener('click',async()=>{if(installPrompt){const p=installPrompt;installPrompt=null;try{await p.prompt();const choice=await p.userChoice;if(choice&&choice.outcome==='accepted')hide();else showHelp()}catch(e){showHelp()}}else showHelp()});
+ close.addEventListener('click',hide);later.addEventListener('click',hide);
+ window.addEventListener('load',()=>window.setTimeout(show,1800),{once:true});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&isStandalone())hide()});
+})();
+</script>
+
 </body>
 </html>
