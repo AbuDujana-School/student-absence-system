@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#183653">
 <title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -3277,6 +3279,16 @@ function exportDutyReportsCSV() {
   const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
   showToast('تم التنزيل.', 'success');
+}
+</script>
+<script>
+// PWA shell registration. Offline data persistence is implemented in a separate stage.
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("./sw.js").catch(error => {
+      console.warn("تعذر تسجيل خدمة التطبيق:", error);
+    });
+  });
 }
 </script>
 </body>
