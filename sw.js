@@ -9,6 +9,13 @@ const APP_SHELL = [
   './icons/icon-512-maskable.png'
 ];
 const RUNTIME_CACHE = 'abudujana-static-v3';
+const CDN_PRECACHE = [
+  'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
+  'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap'
+];
 const CDN_HOSTS = new Set([
   'cdn.tailwindcss.com',
   'cdn.jsdelivr.net',
@@ -18,11 +25,12 @@ const CDN_HOSTS = new Set([
 ]);
 
 self.addEventListener('install', event => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(APP_SHELL))
-      .catch(error => { console.error('App shell precache failed:', error); })
-  );
+  event.waitUntil((async () => {
+    const cache = await caches.open(CACHE_NAME);
+    await cache.addAll(APP_SHELL);
+    const runtime = await caches.open(RUNTIME_CACHE);
+    await Promise.allSettled(CDN_PRECACHE.map(url => runtime.add(url)));
+  })().catch(error => { console.error('App shell precache failed:', error); }));
   self.skipWaiting();
 });
 
