@@ -3168,8 +3168,9 @@ function refreshDutyDashboardCard() {
   }
   
   const cat = getTeacherCategory(activeUser?.name) || '—';
-  const day = dutyData().subjectDays[cat] || '—';
-  l.textContent = `مناوب اليوم: ${day} · الفئة: ${cat}`;
+  const day = getTeacherDutyDay(activeUser?.name) || '—';
+  const individual = SCHOOL_DAYS.includes(activeUser?.permissions?.dutyDay);
+  l.textContent = `مناوب اليوم: ${day} · ${individual ? 'تحديد فردي' : 'حسب الفئة'} · الفئة: ${cat}`;
 }
 
 function openDutyView() {
@@ -3213,7 +3214,7 @@ function renderDutyPeriods() {
   const d = dutyData(), now = omanNowParts();
   const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
   const cat = getTeacherCategory(activeUser?.name);
-  const tDay = cat ? d.subjectDays[cat] : '';
+  const tDay = getTeacherDutyDay(activeUser?.name);
   const td = dutyDayForDate(getOmanLocalDate());
   for (let i = 0; i < 8; i++) {
     const p = d.periods[i];
@@ -3350,7 +3351,7 @@ async function submitDutyReport() {
     const nowMin = omanNowParts().minutes;
     const ps = toMinutes(pC?.start), pe = toMinutes(pC?.end);
     const cat = getTeacherCategory(activeUser.name);
-    const tDay = cat ? d.subjectDays[cat] : '';
+    const tDay = getTeacherDutyDay(activeUser?.name);
     if (dutyDayForDate(date) !== tDay || ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) {
       showToast('انتهت النافذة الزمنية.', 'error'); return;
     }
