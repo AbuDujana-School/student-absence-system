@@ -1132,8 +1132,8 @@ function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adm
 /* ============ Cloud helpers ============ */
 function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch(e) { return []; } }
 function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch(e) {} }
-async function queueCloudDelete(table, filters) { try { let q = sb.from(table).delete(); for (const [k,v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; } catch(e) { const arr = getPendingDeletes(); arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); return false; } }
-async function flushPendingDeletes() { const arr = getPendingDeletes(); if (!arr.length) return; const remaining = []; for (const item of arr) { try { let q = sb.from(item.table).delete(); for (const [k,v] of Object.entries(item.filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; } catch(e) { remaining.push(item); } } setPendingDeletes(remaining); }
+async function queueCloudDelete(table, filters) { try { let q = sb.from(table).delete(); for (const [k,v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; } catch(e) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); return false; } }
+async function flushPendingDeletes() { const arr = getPendingDeletes(); if (!arr.length) return; const remaining = []; for (const item of arr) { try { let q = sb.from(item.table).delete(); for (const [k,v] of Object.entries(item.filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; } catch(e) { remaining.push(item); } } setPendingDeletes(remaining); await persistOfflineState(); }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
   const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -1192,6 +1192,78 @@ function getTeacherCategory(name) { const t = (db.teachers || []).find(x => x.na
 function isTeacherOnDutyToday(name) { const cat = getTeacherCategory(name); if (!cat) return false; const dd = dutyData().subjectDays[cat]; if (!dd) return false; return dutyDayForDate(getOmanLocalDate()) === dd; }
 function dutyStatusLabel(s) { return ({ pending: 'بانتظار المراجعة', absence: 'غياب معتمد', late: 'تأخر معتمد', swap: 'تبديل مثبت', excused: 'عذر مقبول', dismissed: 'بلاغ غير مثبت', clean: 'سليم (لا غياب)' })[s] || s; }
 
+/* ============ Durable Offline Storage (IndexedDB) ============ */
+const OFFLINE_DB_NAME = 'abuDujanaOffline';
+const OFFLINE_DB_VERSION = 1;
+let offlineDbPromise = null;
+function openOfflineDatabase() {
+  if (!('indexedDB' in window)) return Promise.reject(new Error('IndexedDB غير مدعوم'));
+  if (!offlineDbPromise) offlineDbPromise = new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_DB_NAME, OFFLINE_DB_VERSION);
+    request.onupgradeneeded = () => { if (!request.result.objectStoreNames.contains('state')) request.result.createObjectStore('state', { keyPath: 'key' }); };
+    request.onsuccess = () => { const database = request.result; database.onversionchange = () => { database.close(); offlineDbPromise = null; }; resolve(database); };
+    request.onerror = () => reject(request.error || new Error('تعذر فتح التخزين المحلي'));
+    request.onblocked = () => reject(new Error('التخزين المحلي مشغول في نافذة أخرى'));
+  });
+  return offlineDbPromise;
+}
+function serializeDirtySets() {
+  return { classes:[...dirtySets.classes], teachers:[...dirtySets.teachers], students:[...dirtySets.students], attendance:[...dirtySets.attendance], behaviors:[...dirtySets.behaviors], duty_reports:[...dirtySets.duty_reports], admin_pin:!!dirtySets.admin_pin, duty_module:!!dirtySets.duty_module, custom_categories:!!dirtySets.custom_categories };
+}
+function restoreDirtySetsObject(obj) {
+  if (!obj || typeof obj !== 'object') return;
+  Object.keys(dirtySets).forEach(k => { if (dirtySets[k] instanceof Set) dirtySets[k].clear(); else dirtySets[k] = false; });
+  (obj.classes||[]).forEach(x=>dirtySets.classes.add(x)); (obj.teachers||[]).forEach(x=>dirtySets.teachers.add(x));
+  (obj.students||[]).forEach(x=>dirtySets.students.add(x)); (obj.attendance||[]).forEach(x=>dirtySets.attendance.add(x));
+  (obj.behaviors||[]).forEach(x=>dirtySets.behaviors.add(x)); (obj.duty_reports||[]).forEach(x=>dirtySets.duty_reports.add(x));
+  dirtySets.admin_pin=!!obj.admin_pin; dirtySets.duty_module=!!obj.duty_module; dirtySets.custom_categories=!!obj.custom_categories;
+}
+async function persistOfflineState() {
+  try {
+    const database=await openOfflineDatabase();
+    const payload={key:'snapshot',savedAt:new Date().toISOString(),db:JSON.parse(JSON.stringify(db)),dirtySets:serializeDirtySets(),pendingDeletes:getPendingDeletes()};
+    await new Promise((resolve,reject)=>{const tx=database.transaction('state','readwrite');tx.objectStore('state').put(payload);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('فشل الحفظ المحلي'));tx.onabort=()=>reject(tx.error||new Error('ألغي الحفظ المحلي'));});
+    try { if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{}); } catch(e) {}
+    return true;
+  } catch(error) { console.error('IndexedDB save failed:',error); return false; }
+}
+async function restoreOfflineState() {
+  try {
+    const database=await openOfflineDatabase();
+    const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
+    if(!snapshot?.db||typeof snapshot.db!=='object') return false;
+    db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
+    db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
+    restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
+    return true;
+  } catch(error) { console.warn('IndexedDB restore unavailable:',error);return false; }
+}
+function cloneOfflineValue(value){return JSON.parse(JSON.stringify(value??null));}
+function captureDirtyLocalState(){return {db:cloneOfflineValue(db),dirty:serializeDirtySets()};}
+function mergeDirtyLocalState(snapshot) {
+  if(!snapshot?.db||!snapshot?.dirty)return;
+  const local=snapshot.db,d=snapshot.dirty;
+  (d.classes||[]).forEach(c=>{if(!(db.classes||[]).includes(c))db.classes.push(c);});
+  (d.teachers||[]).forEach(name=>{
+    const t=(local.teachers||[]).find(x=>x.name===name);if(t){const i=db.teachers.findIndex(x=>x.name===name);if(i>=0)db.teachers[i]=t;else db.teachers.push(t);}
+    const u=(local.customUsers||[]).find(x=>x.name===name);if(u){const i=db.customUsers.findIndex(x=>x.name===name);if(i>=0)db.customUsers[i]=u;else db.customUsers.push(u);}
+  });
+  (d.students||[]).forEach(c=>{db.students[c]=cloneOfflineValue(local.students?.[c]||[]);});
+  (d.attendance||[]).forEach(k=>{if(local.attendance?.[k])db.attendance[k]=cloneOfflineValue(local.attendance[k]);});
+  (d.behaviors||[]).forEach(k=>{if(local.behaviors?.[k])db.behaviors[k]=cloneOfflineValue(local.behaviors[k]);});
+  (d.duty_reports||[]).forEach(id=>{const rec=(local.dutyModule?.records||[]).find(x=>String(x.id)===String(id));if(rec){const i=(db.dutyModule.records||[]).findIndex(x=>String(x.id)===String(id));if(i>=0)db.dutyModule.records[i]=cloneOfflineValue(rec);else db.dutyModule.records.push(cloneOfflineValue(rec));}});
+  if(d.admin_pin)db.adminPin=cloneOfflineValue(local.adminPin);
+  if(d.custom_categories)db.customCategories=cloneOfflineValue(local.customCategories||[]);
+  if(d.duty_module){const records=db.dutyModule.records||[];db.dutyModule=normalizeDutyModule(local.dutyModule);db.dutyModule.records=records;}
+}
+function markOfflineDatabaseForUpload() {
+  (db.classes||[]).forEach(c=>{dirtySets.classes.add(c);dirtySets.students.add(c);});
+  (db.teachers||[]).forEach(t=>dirtySets.teachers.add(t.name));(db.customUsers||[]).forEach(u=>dirtySets.teachers.add(u.name));
+  Object.keys(db.attendance||{}).forEach(k=>dirtySets.attendance.add(k));Object.keys(db.behaviors||{}).forEach(k=>dirtySets.behaviors.add(k));
+  (db.dutyModule?.records||[]).forEach(r=>dirtySets.duty_reports.add(String(r.id)));
+  dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
+}
+
 /* ============ LocalStorage ============ */
 function saveToLocalStorageSafe() {
   try {
@@ -1204,21 +1276,12 @@ function saveToLocalStorageSafe() {
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full', e); try { localStorage.removeItem('abuDujana_db_v30'); } catch(err) {} }
+  } catch(e) { console.warn('LocalStorage full; IndexedDB is the durable store when available.', e); }
 }
 function loadDirtySetsFromLocal() {
   try {
     const raw = localStorage.getItem('abuDujana_dirtySets'); if (!raw) return;
-    const obj = JSON.parse(raw);
-    (obj.classes || []).forEach(x => dirtySets.classes.add(x));
-    (obj.teachers || []).forEach(x => dirtySets.teachers.add(x));
-    (obj.students || []).forEach(x => dirtySets.students.add(x));
-    (obj.attendance || []).forEach(x => dirtySets.attendance.add(x));
-    (obj.behaviors || []).forEach(x => dirtySets.behaviors.add(x));
-    (obj.duty_reports || []).forEach(x => dirtySets.duty_reports.add(x));
-    dirtySets.admin_pin = !!obj.admin_pin;
-    dirtySets.duty_module = !!obj.duty_module;
-    dirtySets.custom_categories = !!obj.custom_categories;
+    restoreDirtySetsObject(JSON.parse(raw));
   } catch(e) {}
 }
 
@@ -1236,7 +1299,9 @@ function populateCategoryDropdowns() {
 /* ============ Init ============ */
 window.addEventListener('DOMContentLoaded', async () => {
   initDarkMode(); setCurrentDate();
-  await syncServerTime();
+  try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
+  await restoreOfflineState();
+  syncServerTime();
   await loadSystemDataFromCloud();
   await migrateCredentialsIfNeeded();
   await checkExistingSession();
@@ -1276,10 +1341,14 @@ async function migrateCredentialsIfNeeded() {
 }
 
 async function loadSystemDataFromCloud() {
+  updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
+  const offlineSnapshotAvailable = await restoreOfflineState();
+  loadDirtySetsFromLocal();
+  const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
+  const pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحميل...");
   try {
     await flushPendingDeletes();
-    loadDirtySetsFromLocal();
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
       fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
       fetchAllPaginated('teachers', '*'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
@@ -1287,8 +1356,21 @@ async function loadSystemDataFromCloud() {
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
     if (empty) {
       const saved = localStorage.getItem('abuDujana_db_v30');
-      if (saved) {
-        try { const parsed = JSON.parse(saved); db = { ...db, ...parsed, version: 27 }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); db.classes.forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); }); updateSyncStatus(false, "جارِ الرفع..."); await saveSystemDataToCloud(); return true; } catch(e) { console.warn('restore failed', e); }
+      if (offlineSnapshotAvailable || saved) {
+        try {
+          if (saved && !offlineSnapshotAvailable) db = { ...db, ...JSON.parse(saved), version: 27 };
+          else if (offlineSnapshot) db = { ...db, ...offlineSnapshot, version: 27 };
+          if (!db.customUsers) db.customUsers = [];
+          if (!db.behaviors) db.behaviors = {};
+          if (!db.customCategories) db.customCategories = [];
+          db.dutyModule = normalizeDutyModule(db.dutyModule);
+          Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
+          markOfflineDatabaseForUpload();
+          await persistOfflineState();
+          updateSyncStatus(false, "جارِ رفع النسخة المحلية...");
+          await saveSystemDataToCloud();
+          return true;
+        } catch(e) { console.warn('local snapshot restore failed', e); }
       }
       await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
     }
@@ -1399,23 +1481,42 @@ async function loadSystemDataFromCloud() {
       }
     }
 
-    if (classesFixed || dirtySets.classes.size > 0 || dirtySets.students.size > 0 || dirtySets.attendance.size > 0 || dirtySets.behaviors.size > 0 || dirtySets.duty_reports.size > 0) {
+    mergeDirtyLocalState(pendingLocalState);
+    if (classesFixed || dirtySets.classes.size > 0 || dirtySets.teachers.size > 0 || dirtySets.students.size > 0 || dirtySets.attendance.size > 0 || dirtySets.behaviors.size > 0 || dirtySets.duty_reports.size > 0 || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
        await saveSystemDataToCloud();
     }
-    
-    saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
+    saveToLocalStorageSafe();
+    await persistOfflineState();
+    const pendingSync = dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length;
+    updateSyncStatus(!pendingSync, pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+    return true;
   } catch(e) {
     console.error('Cloud load failed:', e);
     const saved = localStorage.getItem('abuDujana_db_v30');
-    if (saved) { try { const parsed = JSON.parse(saved); db = { ...db, ...parsed }; if (!db.customUsers) db.customUsers = []; if (!db.behaviors) db.behaviors = {}; if (!db.customCategories) db.customCategories = []; db.dutyModule = normalizeDutyModule(db.dutyModule); Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k])); loadDirtySetsFromLocal(); updateSyncStatus(false, "محلي - انقر للمزامنة"); return true; } catch(pe) {} }
-    await initDefaults(); updateSyncStatus(false, "فشل الاتصال - انقر للمزامنة"); return false;
+    if (offlineSnapshotAvailable || saved) {
+      try {
+        db = { ...db, ...(offlineSnapshot || JSON.parse(saved)) };
+        if (!db.customUsers) db.customUsers = [];
+        if (!db.behaviors) db.behaviors = {};
+        if (!db.customCategories) db.customCategories = [];
+        db.dutyModule = normalizeDutyModule(db.dutyModule);
+        Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
+        loadDirtySetsFromLocal();
+        await persistOfflineState();
+        updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");
+        return true;
+      } catch(pe) { console.warn('Local fallback restore failed', pe); }
+    }
+    await initDefaults(); updateSyncStatus(false, "تعذر الاتصال ولا توجد نسخة محلية"); return false;
   }
 }
 
 async function saveSystemDataToCloud() {
   updateSyncStatus(true, "جارِ الحفظ...");
+  saveToLocalStorageSafe();
+  const durableSaved = await persistOfflineState();
+  if (!durableSaved) updateSyncStatus(false, "تحذير: تعذر تأكيد التخزين المحلي");
   try {
-    saveToLocalStorageSafe();
     if (dirtySets.classes.size > 0) { const rows = [...dirtySets.classes].map(n => ({ name: n })); await robustUpsert('classes', rows, 'name', 200); dirtySets.classes.clear(); }
     if (dirtySets.teachers.size > 0) {
       const rows = [];
@@ -1446,10 +1547,14 @@ async function saveSystemDataToCloud() {
     }
     if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
     await flushPendingDeletes();
-    saveToLocalStorageSafe(); updateSyncStatus(true, "متزامن"); return true;
+    saveToLocalStorageSafe();
+    await persistOfflineState();
+    updateSyncStatus(true, "متزامن");
+    return true;
   } catch(error) {
     console.error('Cloud save failed:', error);
-    updateSyncStatus(false, "محلي فقط - انقر للمزامنة");
+    await persistOfflineState();
+    updateSyncStatus(false, "محفوظ محلياً - انقر للمزامنة");
     const errMsg = (error?.message || String(error)).substring(0, 200);
     showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
