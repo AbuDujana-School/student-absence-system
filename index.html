@@ -661,6 +661,7 @@
         <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">🕒 المناوبة (في يومها)</div>
       </div>
     </div>
+    <div class="space-y-2 border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 rounded-2xl p-4 shadow-sm"><label for="perm_teacher_duty_day" class="block text-sm font-black text-orange-900 dark:text-orange-200">🕒 تغيير يوم المناوبة لهذا المعلم</label><select id="perm_teacher_duty_day" class="w-full p-3 bg-white dark:bg-slate-900 border-2 border-orange-200 dark:border-orange-800 rounded-xl text-sm font-bold"><option value="">استخدم يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[11px] font-semibold text-orange-800 dark:text-orange-200">اختر يوماً مستقلاً لهذا المعلم. اتركه على الخيار الأول للعودة تلقائياً إلى يوم مناوبة المادة/القسم.</p></div>
     <div>
       <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم</div>
       <div class="grid grid-cols-2 gap-2">
@@ -674,6 +675,7 @@
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
       </div>
     </div>
+
     <div class="flex justify-end gap-2 pt-2 border-t">
       <button onclick="closePermissionsModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
       <button onclick="saveTeacherPermissions()" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">حفظ الصلاحيات</button>
@@ -884,7 +886,7 @@
           <div class="flex flex-wrap justify-between items-center gap-2">
              <div>
                <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
-               <p class="text-xs text-slate-500 mt-1">حدد يوم المناوبة لكل مادة/قسم. جميع منتسبيه سيكونون مناوبين تلقائياً في ذلك اليوم فقط.</p>
+               <p class="text-xs text-slate-500 mt-1">حدد يوم المناوبة لكل مادة/قسم. ويمكن تخصيص يوم مختلف لأي معلم بشكل مستقل.</p>
              </div>
           </div>
           <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
@@ -899,6 +901,7 @@
                 <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
             </div>
           </div>
+          <div class="space-y-1.5"><label for="newTeacherDutyDay" class="block text-xs font-bold">🕒 يوم المناوبة الفردي (اختياري)</label><select id="newTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[10px] text-slate-500">إذا لم تحدد يوماً، سيُعتمد يوم مناوبة المادة تلقائياً.</p></div>
           <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-key"></i> سيُولَّد رمز سري (4 أرقام) تلقائياً + إجبار التغيير.</div>
           <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md">حفظ المعلم</button>
         </div>
@@ -916,7 +919,8 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
+            <label for="bulkTeacherDutyDay" class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">🕒 يوم المناوبة الفردي للقائمة (اختياري)</label><select id="bulkTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border border-emerald-200 rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select>
+          <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
             <textarea id="bulkTeacherNames" rows="7" placeholder="أحمد محمد&#10;خالد عبدالله&#10;سالم علي&#10;فاطمة سالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl outline-none custom-scrollbar font-bold leading-relaxed"></textarea>
           </div>
           <div class="p-2.5 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-start gap-2">
@@ -1247,7 +1251,8 @@ function normalizeDutyModule(value) {
 }
 function dutyData() { db.dutyModule = normalizeDutyModule(db.dutyModule); return db.dutyModule; }
 function getTeacherCategory(name) { const t = (db.teachers || []).find(x => x.name === name); return t?.permissions?.category || ''; }
-function isTeacherOnDutyToday(name) { const cat = getTeacherCategory(name); if (!cat) return false; const dd = dutyData().subjectDays[cat]; if (!dd) return false; return dutyDayForDate(getOmanLocalDate()) === dd; }
+function getTeacherDutyDay(name) { const t = (db.teachers || []).find(x => x.name === name); const personalDay = t?.permissions?.dutyDay; if (SCHOOL_DAYS.includes(personalDay)) return personalDay; const cat = t?.permissions?.category || ''; return cat ? (dutyData().subjectDays[cat] || '') : ''; }
+function isTeacherOnDutyToday(name) { const day = getTeacherDutyDay(name); return !!day && dutyDayForDate(getOmanLocalDate()) === day; }
 function dutyStatusLabel(s) { return ({ pending: 'بانتظار المراجعة', absence: 'غياب معتمد', late: 'تأخر معتمد', swap: 'تبديل مثبت', excused: 'عذر مقبول', dismissed: 'بلاغ غير مثبت', clean: 'سليم (لا غياب)' })[s] || s; }
 
 /* ============ Durable Offline Storage (IndexedDB) ============ */
@@ -2828,21 +2833,23 @@ function buildTeacherPermissions(category) {
 async function addNewTeacher() {
   const name = document.getElementById('newTeacherName').value.trim();
   const cat = document.getElementById('newTeacherCategory').value;
+  const individualDutyDay = document.getElementById('newTeacherDutyDay')?.value || '';
   if (!name || !cat) { showToast('أدخل الاسم واختر الفئة.', 'error'); return; }
   if (db.teachers.some(t => t.name === name) || (db.customUsers || []).some(u => u.name === name)) { showToast('الاسم مستخدم.', 'error'); return; }
   try {
     const pin = await generateUniquePin(); const rec = await createPinRecord(pin);
-    db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true, permissions: buildTeacherPermissions(cat) });
+    db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true, permissions: { ...buildTeacherPermissions(cat), dutyDay: SCHOOL_DAYS.includes(individualDutyDay) ? individualDutyDay : '' } });
     dirtySets.teachers.add(name);
     const success = await saveSystemDataToCloud();
     renderTeachersList();
-    document.getElementById('newTeacherName').value = ''; document.getElementById('newTeacherCategory').value = '';
+    document.getElementById('newTeacherName').value = ''; document.getElementById('newTeacherCategory').value = ''; document.getElementById('newTeacherDutyDay').value = '';
     showPinModal(name, pin);
     showToast(success ? 'تم!' : 'حُفظ محلياً.', success ? 'success' : 'info');
   } catch(e) { console.error(e); showToast('تعذر التوليد.', 'error'); }
 }
 async function bulkAddTeachers(evt) {
   const cat = document.getElementById('bulkTeacherCategory').value;
+  const individualDutyDay = document.getElementById('bulkTeacherDutyDay')?.value || '';
   const txt = document.getElementById('bulkTeacherNames').value.trim();
   if (!cat) { showToast('اختر الفئة.', 'error'); return; }
   if (!txt) { showToast('الصق الأسماء.', 'error'); return; }
@@ -2860,7 +2867,7 @@ async function bulkAddTeachers(evt) {
     for (const name of newNames) {
       try {
         const pin = await generateUniquePin(); const rec = await createPinRecord(pin);
-        db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true, permissions: buildTeacherPermissions(cat) });
+        db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true, permissions: { ...buildTeacherPermissions(cat), dutyDay: SCHOOL_DAYS.includes(individualDutyDay) ? individualDutyDay : '' } });
         dirtySets.teachers.add(name);
         created.push({ name, pin, category: cat });
       } catch(pe) { console.warn('PIN fail', name, pe); }
@@ -2868,7 +2875,7 @@ async function bulkAddTeachers(evt) {
     if (created.length === 0) { showToast('تعذر إنشاء أي حساب.', 'error'); return; }
     const ok = await saveSystemDataToCloud();
     renderTeachersList();
-    document.getElementById('bulkTeacherNames').value = '';
+    document.getElementById('bulkTeacherNames').value = ''; document.getElementById('bulkTeacherDutyDay').value = '';
     showBulkPinModal(created, skipped);
     showToast(ok ? `تم إنشاء ${created.length}!` : 'حُفظ محلياً.', ok ? 'success' : 'info');
   } catch(e) { console.error(e); showToast('خطأ.', 'error'); }
@@ -2998,6 +3005,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_duty').checked = !!p.duty;
   document.getElementById('perm_p_security').checked = !!p.security;
   document.getElementById('perm_p_admin').checked = !!p.admin;
+  document.getElementById('perm_teacher_duty_day').value = SCHOOL_DAYS.includes(p.dutyDay) ? p.dutyDay : '';
   document.getElementById('teacherPermissionsModal').classList.remove('hidden');
 }
 function closePermissionsModal() { document.getElementById('teacherPermissionsModal').classList.add('hidden'); currentEditingTeacherIndex = null; }
@@ -3014,6 +3022,8 @@ async function saveTeacherPermissions() {
   t.permissions.duty = document.getElementById('perm_p_duty').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
   t.permissions.admin = document.getElementById('perm_p_admin').checked;
+  const chosenDutyDay = document.getElementById('perm_teacher_duty_day').value;
+  t.permissions.dutyDay = SCHOOL_DAYS.includes(chosenDutyDay) ? chosenDutyDay : '';
   dirtySets.teachers.add(t.name);
   const ok = await saveSystemDataToCloud();
   closePermissionsModal();
@@ -3158,7 +3168,7 @@ function refreshDutyDashboardCard() {
   }
   
   const cat = getTeacherCategory(activeUser?.name) || '—';
-  const day = dutyData().subjectDays[cat] || '—';
+  const day = getTeacherDutyDay(activeUser?.name) || '—';
   l.textContent = `مناوب اليوم: ${day} · الفئة: ${cat}`;
 }
 
@@ -3203,7 +3213,7 @@ function renderDutyPeriods() {
   const d = dutyData(), now = omanNowParts();
   const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
   const cat = getTeacherCategory(activeUser?.name);
-  const tDay = cat ? d.subjectDays[cat] : '';
+  const tDay = getTeacherDutyDay(activeUser?.name);
   const td = dutyDayForDate(getOmanLocalDate());
   for (let i = 0; i < 8; i++) {
     const p = d.periods[i];
