@@ -1,6 +1,6 @@
 {
   "name": "مدرسة ابو دجانة",
-  "short_name": "ابو دجانة",
+  "short_name": "مدرسة ابو دجانة",
   "description": "النظام الرقمي الذكي لمدرسة ابو دجانة",
   "start_url": "./index.html",
   "display": "standalone",
