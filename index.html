@@ -274,19 +274,22 @@
 @media(prefers-reduced-motion:reduce){#schoolSplash *,#schoolSplash *:before,#schoolSplash *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important}#schoolSplash{transition-duration:.2s}}
 </style>
 <style>
-/* Bottom-sheet PWA install prompt */
-#pwaInstallSheet{position:fixed;z-index:2147482000;left:14px;right:14px;bottom:calc(14px + env(safe-area-inset-bottom));max-width:560px;margin:0 auto;padding:17px 17px 15px;border:1px solid rgba(226,232,240,.8);border-radius:22px;background:rgba(255,255,255,.97);color:#183653;box-shadow:0 18px 55px rgba(5,24,42,.28);backdrop-filter:blur(18px);transform:translateY(150%);opacity:0;visibility:hidden;transition:transform .45s cubic-bezier(.2,.8,.2,1),opacity .35s ease,visibility .35s}
-#pwaInstallSheet.pwa-visible{transform:translateY(0);opacity:1;visibility:visible}
-#pwaInstallSheet .pwa-install-top{display:flex;align-items:center;gap:12px;padding-inline-end:30px}
-#pwaInstallSheet .pwa-install-icon{width:48px;height:48px;flex:0 0 48px;border-radius:14px;object-fit:cover;box-shadow:0 5px 15px rgba(24,54,83,.16)}
-#pwaInstallSheet .pwa-install-title{font-size:16px;font-weight:900;line-height:1.35}
-#pwaInstallSheet .pwa-install-desc{font-size:12px;color:#64748b;margin-top:3px;line-height:1.6}
-#pwaInstallSheet .pwa-install-actions{display:flex;gap:9px;margin-top:14px}
-#pwaInstallSheet .pwa-install-button{flex:1;border:0;border-radius:13px;padding:11px 14px;background:linear-gradient(110deg,#176b78,#183653);color:white;font:800 13px 'Tajawal',sans-serif;box-shadow:0 6px 16px rgba(24,54,83,.2);cursor:pointer}
-#pwaInstallSheet .pwa-later-button{border:1px solid #dbe3ea;border-radius:13px;padding:10px 15px;background:#f8fafc;color:#475569;font:700 12px 'Tajawal',sans-serif;cursor:pointer}
-#pwaInstallSheet .pwa-close{position:absolute;top:12px;inset-inline-end:12px;width:29px;height:29px;border:0;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:19px;line-height:1;cursor:pointer}
-#pwaInstallHelp{display:none;margin-top:11px;padding:10px 12px;border-radius:12px;background:#f1f6f8;color:#334155;font-size:12px;line-height:1.8}
+/* Responsive PWA install bottom sheet */
+#pwaInstallSheet{box-sizing:border-box;position:fixed;z-index:2147482000;left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));bottom:max(12px,env(safe-area-inset-bottom));width:auto;max-width:min(520px,calc(100vw - 24px));max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));overflow-y:auto;overscroll-behavior:contain;margin:0 auto;padding:clamp(14px,3.5vw,18px);border:1px solid rgba(226,232,240,.9);border-radius:20px;background:rgba(255,255,255,.98);color:#183653;box-shadow:0 14px 42px rgba(5,24,42,.25);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transform:translate3d(0,calc(100% + 30px),0);opacity:0;visibility:hidden;transition:transform .38s cubic-bezier(.2,.8,.2,1),opacity .3s ease,visibility .3s}
+#pwaInstallSheet,#pwaInstallSheet *{box-sizing:border-box}
+#pwaInstallSheet.pwa-visible{transform:translate3d(0,0,0);opacity:1;visibility:visible}
+#pwaInstallSheet .pwa-install-top{display:flex;align-items:center;gap:12px;padding-inline-end:34px;min-width:0}
+#pwaInstallSheet .pwa-install-icon{width:46px;height:46px;flex:0 0 46px;border-radius:13px;object-fit:cover;box-shadow:0 4px 12px rgba(24,54,83,.14)}
+#pwaInstallSheet .pwa-install-copy{min-width:0;flex:1}
+#pwaInstallSheet .pwa-install-title{font-size:clamp(14px,3.8vw,16px);font-weight:900;line-height:1.45;overflow-wrap:anywhere}
+#pwaInstallSheet .pwa-install-desc{font-size:12px;color:#64748b;margin-top:3px;line-height:1.65;overflow-wrap:anywhere}
+#pwaInstallSheet .pwa-install-actions{display:flex;gap:9px;margin-top:13px;width:100%}
+#pwaInstallSheet .pwa-install-button{flex:1;min-width:0;border:0;border-radius:12px;padding:11px 10px;background:linear-gradient(110deg,#176b78,#183653);color:white;font:800 13px 'Tajawal',sans-serif;box-shadow:0 5px 14px rgba(24,54,83,.18);cursor:pointer}
+#pwaInstallSheet .pwa-later-button{flex:0 0 auto;border:1px solid #dbe3ea;border-radius:12px;padding:10px 14px;background:#f8fafc;color:#475569;font:700 12px 'Tajawal',sans-serif;cursor:pointer}
+#pwaInstallSheet .pwa-close{position:absolute;top:10px;inset-inline-end:10px;width:28px;height:28px;border:0;border-radius:50%;background:#f1f5f9;color:#64748b;font-size:19px;line-height:1;cursor:pointer}
+#pwaInstallHelp{display:none;margin-top:10px;padding:10px 12px;border-radius:11px;background:#f1f6f8;color:#334155;font-size:12px;line-height:1.8;overflow-wrap:anywhere}
 #pwaInstallHelp.pwa-help-visible{display:block}
+@media(max-width:360px){#pwaInstallSheet{left:8px;right:8px;max-width:calc(100vw - 16px);padding:13px;border-radius:17px}#pwaInstallSheet .pwa-install-top{gap:9px;padding-inline-end:31px}#pwaInstallSheet .pwa-install-icon{width:40px;height:40px;flex-basis:40px}#pwaInstallSheet .pwa-install-actions{gap:7px}#pwaInstallSheet .pwa-install-button{font-size:12px;padding:10px 7px}#pwaInstallSheet .pwa-later-button{padding:9px 10px}}
 @media(prefers-reduced-motion:reduce){#pwaInstallSheet{transition:none}}
 </style></head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
@@ -2485,48 +2488,7 @@ function printHorizontalReport() {
   const classes = cf === 'all' ? db.classes : [cf];
   let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>غياب ${escapeHtml(td)}</title><style>@page{size:A4 landscape;margin:8mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:5px}.report-title-box{text-align:center;margin-bottom:15px;border-bottom:2px solid #065f46;padding-bottom:8px}.class-row-card{page-break-inside:avoid;border:2px solid #cbd5e1;border-radius:12px;margin-bottom:15px;background:#fff}.class-header-bar{padding:8px 14px;background:#f8fafc;border-bottom:2px solid #e2e8f0;display:flex;justify-content:space-between;font-weight:900;font-size:12px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:6px;padding:8px}.period-cell{border:1.5px solid #e2e8f0;border-radius:8px;padding:6px;min-height:130px;background:#f8fafc}.period-header{text-align:center;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:6px;background:#f1f5f9;border-radius:6px;padding-top:4px}.badge-absent{display:block;padding:3px 6px;text-align:center;border:2px solid #fbbf24;border-radius:9999px;background:#000;color:#fff;font-size:9px;font-weight:900;margin-bottom:4px}.badge-other{font-size:9px;font-weight:700;padding:2px 4px;margin-bottom:3px;border-radius:4px}</style></head><body><div class="report-title-box"><h2>${SCHOOL_NAME} - تقرير الغياب</h2><p style="margin:4px 0 0 0;font-size:11px;color:#475569">التاريخ: ${escapeHtml(td)}</p></div>`;
   classes.forEach(cn => { printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: <span dir="ltr" style="display:inline-block">${escapeHtml(formatClassName(cn))}</span></span><span>التاريخ: ${escapeHtml(td)}</span></div><div class="periods-horizontal-grid">`; for (let p = 1; p <= 8; p++) { const sd = db.attendance[`${td}_${cn}_p${p}`]; printHTML += `<div class="period-cell"><div class="period-header"><div style="font-size:11px;font-weight:900">الحصة ${p}</div><div style="font-size:8.5px;color:#64748b">(${escapeHtml(sd?.teacher || 'غير مسجل')})</div></div>`; const iss = sortAttendanceIssues(Object.entries(sd?.records || {}).filter(([n, s]) => s !== 'present')); if (iss.length === 0) printHTML += `<div style="text-align:center;color:#94a3b8;font-size:9px;margin-top:25px">لا مخالفات</div>`; else iss.forEach(([n, s]) => { if (s === 'absent') printHTML += `<div class="badge-absent">• ${escapeHtml(n)} (غائب)</div>`; else { const lb = s === 'escape' ? 'متسرب' : (s === 'late' ? 'متأخر' : 'خارج'); printHTML += `<div class="badge-other">• ${escapeHtml(n)} (${lb})</div>`; } }); printHTML += `</div>`; } printHTML += `</div></div>`; });
-  printHTML += `
-<!-- Install app bottom sheet -->
-<section id="pwaInstallSheet" dir="rtl" aria-label="تثبيت التطبيق" aria-hidden="true">
- <button class="pwa-close" id="pwaInstallClose" type="button" aria-label="إغلاق">×</button>
- <div class="pwa-install-top">
-  <img class="pwa-install-icon" src="./icons/icon-192.png" alt="أيقونة مدرسة ابو دجانة">
-  <div><div class="pwa-install-title">ثبّت تطبيق مدرسة ابو دجانة</div><div class="pwa-install-desc">أضف التطبيق إلى شاشة هاتفك للوصول إليه بسرعة وبسهولة.</div></div>
- </div>
- <div class="pwa-install-actions"><button class="pwa-install-button" id="pwaInstallAction" type="button">تنزيل التطبيق</button><button class="pwa-later-button" id="pwaInstallLater" type="button">لاحقاً</button></div>
- <div id="pwaInstallHelp" aria-live="polite"></div>
-</section>
-<script>
-(function(){
- const sheet=document.getElementById('pwaInstallSheet');
- const action=document.getElementById('pwaInstallAction');
- const help=document.getElementById('pwaInstallHelp');
- const close=document.getElementById('pwaInstallClose');
- const later=document.getElementById('pwaInstallLater');
- if(!sheet||!action||!help)return;
- let installPrompt=null;
- const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
- const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
- const dismissed=()=>{try{return sessionStorage.getItem('abuDujanaInstallDismissed')==='1'}catch(e){return false}};
- function show(){if(isStandalone()||dismissed())return;sheet.classList.add('pwa-visible');sheet.setAttribute('aria-hidden','false')}
- function hide(){sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');try{sessionStorage.setItem('abuDujanaInstallDismissed','1')}catch(e){}}
- function showHelp(){
-  if(isIOS())help.innerHTML='على iPhone أو iPad: اضغط زر المشاركة <b>Share</b> في المتصفح، ثم اختر <b>Add to Home Screen</b> أو «إضافة إلى الشاشة الرئيسية».';
-  else help.innerHTML='من قائمة المتصفح <b>⋮</b> اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»، ثم أكد الإضافة.';
-  help.classList.add('pwa-help-visible');
- }
- window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event;action.textContent='تنزيل التطبيق';});
- window.addEventListener('appinstalled',()=>{sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');installPrompt=null;});
- action.addEventListener('click',async()=>{
-  if(installPrompt){const promptEvent=installPrompt;installPrompt=null;try{await promptEvent.prompt();const choice=await promptEvent.userChoice;if(choice&&choice.outcome==='accepted')hide();}catch(e){showHelp();}}
-  else showHelp();
- });
- close.addEventListener('click',hide);later.addEventListener('click',hide);
- window.addEventListener('load',()=>window.setTimeout(show,2800),{once:true});
- document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&isStandalone())hide()});
-})();
-</script>
-</body></html>`;
+  printHTML += `</body></html>`;
   const w = window.open('', '_blank'); if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة.', 'error'); return; }
   w.document.write(printHTML); w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
 }
@@ -3537,5 +3499,36 @@ if ("serviceWorker" in navigator) {
   });
 }
 </script>
+
+<!-- Install app bottom sheet: main application document -->
+<section id="pwaInstallSheet" dir="rtl" aria-label="تثبيت التطبيق" aria-hidden="true">
+ <button class="pwa-close" id="pwaInstallClose" type="button" aria-label="إغلاق">×</button>
+ <div class="pwa-install-top">
+  <img class="pwa-install-icon" src="./icons/icon-192.png" alt="أيقونة مدرسة ابو دجانة">
+  <div class="pwa-install-copy"><div class="pwa-install-title">ثبّت تطبيق مدرسة ابو دجانة</div><div class="pwa-install-desc">أضف التطبيق إلى شاشة هاتفك للوصول إليه بسرعة وبسهولة.</div></div>
+ </div>
+ <div class="pwa-install-actions"><button class="pwa-install-button" id="pwaInstallAction" type="button">تنزيل التطبيق</button><button class="pwa-later-button" id="pwaInstallLater" type="button">لاحقاً</button></div>
+ <div id="pwaInstallHelp" aria-live="polite"></div>
+</section>
+<script>
+(function(){
+ const sheet=document.getElementById('pwaInstallSheet'),action=document.getElementById('pwaInstallAction'),help=document.getElementById('pwaInstallHelp'),close=document.getElementById('pwaInstallClose'),later=document.getElementById('pwaInstallLater');
+ if(!sheet||!action||!help||!close||!later)return;
+ let installPrompt=null;
+ const isStandalone=()=>window.matchMedia('(display-mode: standalone)').matches||window.navigator.standalone===true;
+ const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent);
+ const dismissed=()=>{try{return sessionStorage.getItem('abuDujanaInstallDismissed')==='1'}catch(e){return false}};
+ function show(){if(isStandalone()||dismissed())return;sheet.classList.add('pwa-visible');sheet.setAttribute('aria-hidden','false')}
+ function hide(){sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');try{sessionStorage.setItem('abuDujanaInstallDismissed','1')}catch(e){}}
+ function showHelp(){help.innerHTML=isIOS()?'على iPhone أو iPad: اضغط زر المشاركة <b>Share</b> في المتصفح، ثم اختر <b>Add to Home Screen</b> أو «إضافة إلى الشاشة الرئيسية».':'من قائمة المتصفح <b>⋮</b> اختر «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية»، ثم أكد الإضافة.';help.classList.add('pwa-help-visible')}
+ window.addEventListener('beforeinstallprompt',event=>{event.preventDefault();installPrompt=event});
+ window.addEventListener('appinstalled',()=>{sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');installPrompt=null});
+ action.addEventListener('click',async()=>{if(installPrompt){const p=installPrompt;installPrompt=null;try{await p.prompt();const choice=await p.userChoice;if(choice&&choice.outcome==='accepted')hide();else showHelp()}catch(e){showHelp()}}else showHelp()});
+ close.addEventListener('click',hide);later.addEventListener('click',hide);
+ window.addEventListener('load',()=>window.setTimeout(show,1800),{once:true});
+ document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&isStandalone())hide()});
+})();
+</script>
+
 </body>
 </html>
