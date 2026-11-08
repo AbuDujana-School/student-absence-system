@@ -918,7 +918,8 @@
             </div>
           </div>
           <div>
-            <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
+            <label for="bulkTeacherDutyDay" class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">🕒 يوم المناوبة الفردي للقائمة (اختياري)</label><select id="bulkTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border border-emerald-200 rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select>
+          <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
             <textarea id="bulkTeacherNames" rows="7" placeholder="أحمد محمد&#10;خالد عبدالله&#10;سالم علي&#10;فاطمة سالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl outline-none custom-scrollbar font-bold leading-relaxed"></textarea>
           </div>
           <div class="p-2.5 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-start gap-2">
@@ -2847,6 +2848,7 @@ async function addNewTeacher() {
 }
 async function bulkAddTeachers(evt) {
   const cat = document.getElementById('bulkTeacherCategory').value;
+  const individualDutyDay = document.getElementById('bulkTeacherDutyDay')?.value || '';
   const txt = document.getElementById('bulkTeacherNames').value.trim();
   if (!cat) { showToast('اختر الفئة.', 'error'); return; }
   if (!txt) { showToast('الصق الأسماء.', 'error'); return; }
@@ -2864,7 +2866,7 @@ async function bulkAddTeachers(evt) {
     for (const name of newNames) {
       try {
         const pin = await generateUniquePin(); const rec = await createPinRecord(pin);
-        db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true, permissions: buildTeacherPermissions(cat) });
+        db.teachers.push({ name, pin_hash: rec.hash, pin_salt: rec.salt, mustChangePin: true, permissions: { ...buildTeacherPermissions(cat), dutyDay: SCHOOL_DAYS.includes(individualDutyDay) ? individualDutyDay : '' } });
         dirtySets.teachers.add(name);
         created.push({ name, pin, category: cat });
       } catch(pe) { console.warn('PIN fail', name, pe); }
@@ -2872,7 +2874,7 @@ async function bulkAddTeachers(evt) {
     if (created.length === 0) { showToast('تعذر إنشاء أي حساب.', 'error'); return; }
     const ok = await saveSystemDataToCloud();
     renderTeachersList();
-    document.getElementById('bulkTeacherNames').value = '';
+    document.getElementById('bulkTeacherNames').value = ''; document.getElementById('bulkTeacherDutyDay').value = '';
     showBulkPinModal(created, skipped);
     showToast(ok ? `تم إنشاء ${created.length}!` : 'حُفظ محلياً.', ok ? 'success' : 'info');
   } catch(e) { console.error(e); showToast('خطأ.', 'error'); }
