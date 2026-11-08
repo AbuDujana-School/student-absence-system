@@ -661,6 +661,7 @@
         <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">🕒 المناوبة (في يومها)</div>
       </div>
     </div>
+    <div class="space-y-2 border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 rounded-2xl p-4 shadow-sm"><label for="perm_teacher_duty_day" class="block text-sm font-black text-orange-900 dark:text-orange-200">🕒 تغيير يوم المناوبة لهذا المعلم</label><select id="perm_teacher_duty_day" class="w-full p-3 bg-white dark:bg-slate-900 border-2 border-orange-200 dark:border-orange-800 rounded-xl text-sm font-bold"><option value="">استخدم يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[11px] font-semibold text-orange-800 dark:text-orange-200">اختر يوماً مستقلاً لهذا المعلم. اتركه على الخيار الأول للعودة تلقائياً إلى يوم مناوبة المادة/القسم.</p></div>
     <div>
       <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم</div>
       <div class="grid grid-cols-2 gap-2">
@@ -674,7 +675,7 @@
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
       </div>
     </div>
-    <div class="space-y-1.5 border-t pt-3 dark:border-slate-700"><label for="perm_teacher_duty_day" class="block text-xs font-black">🕒 يوم المناوبة الخاص بهذا المعلم</label><select id="perm_teacher_duty_day" class="w-full p-3 bg-slate-50 dark:bg-slate-900 border rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[10px] text-slate-500">اختيار يوم يجعل مناوبة هذا المعلم مستقلة عن بقية معلمي مادته.</p></div>
+
     <div class="flex justify-end gap-2 pt-2 border-t">
       <button onclick="closePermissionsModal()" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button>
       <button onclick="saveTeacherPermissions()" class="px-5 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-2xl text-xs font-bold shadow-md">حفظ الصلاحيات</button>
