@@ -1263,8 +1263,15 @@ function markOfflineDatabaseForUpload() {
   (db.dutyModule?.records||[]).forEach(r=>dirtySets.duty_reports.add(String(r.id)));
   dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
 }
+let offlineAutoSyncInProgress = false;
 function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
+}
+async function retryOfflineSyncSilently() {
+  if (!navigator.onLine || !hasPendingOfflineChanges() || offlineAutoSyncInProgress) return;
+  offlineAutoSyncInProgress = true;
+  try { await saveSystemDataToCloud({ silent: true }); }
+  finally { offlineAutoSyncInProgress = false; }
 }
 
 /* ============ LocalStorage ============ */
@@ -1320,10 +1327,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   setInterval(async () => { if (Date.now() - lastServerSyncSuccess > 60*60*1000) await syncServerTime(); }, 15*60*1000);
   populateCategoryDropdowns();
   window.addEventListener('online', () => {
-    setTimeout(() => { if (hasPendingOfflineChanges()) saveSystemDataToCloud(); }, 1200);
+    setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
   });
   window.addEventListener('pageshow', () => {
-    if (navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
+    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
   });
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
@@ -1532,7 +1539,7 @@ async function loadSystemDataFromCloud() {
   }
 }
 
-async function saveSystemDataToCloud() {
+async function saveSystemDataToCloud(options = {}) {
   updateSyncStatus(true, "جارِ الحفظ...");
   saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
@@ -1577,7 +1584,7 @@ async function saveSystemDataToCloud() {
     await persistOfflineState();
     updateSyncStatus(false, "محفوظ محلياً - انقر للمزامنة");
     const errMsg = (error?.message || String(error)).substring(0, 200);
-    showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
+    if (!options.silent) showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
   }
 }
