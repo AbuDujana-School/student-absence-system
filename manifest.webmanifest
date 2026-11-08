@@ -1,7 +1,7 @@
 {
-  "name": "مدرسة أبو دجانة",
-  "short_name": "أبو دجانة",
-  "description": "النظام الرقمي الذكي لمدرسة أبو دجانة الأنصاري",
+  "name": "مدرسة ابو دجانة",
+  "short_name": "ابو دجانة",
+  "description": "النظام الرقمي الذكي لمدرسة ابو دجانة",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#E9EFF5",
