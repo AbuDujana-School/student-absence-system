@@ -1263,6 +1263,9 @@ function markOfflineDatabaseForUpload() {
   (db.dutyModule?.records||[]).forEach(r=>dirtySets.duty_reports.add(String(r.id)));
   dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
 }
+function hasPendingOfflineChanges() {
+  return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
+}
 
 /* ============ LocalStorage ============ */
 function saveToLocalStorageSafe() {
@@ -1281,7 +1284,13 @@ function saveToLocalStorageSafe() {
 function loadDirtySetsFromLocal() {
   try {
     const raw = localStorage.getItem('abuDujana_dirtySets'); if (!raw) return;
-    restoreDirtySetsObject(JSON.parse(raw));
+    const obj = JSON.parse(raw);
+    (obj.classes||[]).forEach(x=>dirtySets.classes.add(x)); (obj.teachers||[]).forEach(x=>dirtySets.teachers.add(x));
+    (obj.students||[]).forEach(x=>dirtySets.students.add(x)); (obj.attendance||[]).forEach(x=>dirtySets.attendance.add(x));
+    (obj.behaviors||[]).forEach(x=>dirtySets.behaviors.add(x)); (obj.duty_reports||[]).forEach(x=>dirtySets.duty_reports.add(x));
+    dirtySets.admin_pin = dirtySets.admin_pin || !!obj.admin_pin;
+    dirtySets.duty_module = dirtySets.duty_module || !!obj.duty_module;
+    dirtySets.custom_categories = dirtySets.custom_categories || !!obj.custom_categories;
   } catch(e) {}
 }
 
@@ -1310,6 +1319,18 @@ window.addEventListener('DOMContentLoaded', async () => {
   if (!dutyRefreshInterval) dutyRefreshInterval = setInterval(() => { if (activeUser) { refreshDutyDashboardCard(); if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods(); } }, 30000);
   setInterval(async () => { if (Date.now() - lastServerSyncSuccess > 60*60*1000) await syncServerTime(); }, 15*60*1000);
   populateCategoryDropdowns();
+  window.addEventListener('online', () => {
+    setTimeout(() => { if (hasPendingOfflineChanges()) saveSystemDataToCloud(); }, 1200);
+  });
+  window.addEventListener('pageshow', () => {
+    if (navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
+  });
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
+  });
+  setInterval(() => {
+    if (navigator.onLine && hasPendingOfflineChanges()) saveSystemDataToCloud();
+  }, 60000);
 });
 
 function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_darkMode') === 'true'; if (isDark) { document.documentElement.classList.add('dark'); document.getElementById('darkModeIcon').className = 'fa-solid fa-sun text-sm'; } } catch(e) {} }
