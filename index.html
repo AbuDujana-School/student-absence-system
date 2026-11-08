@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<title>نظام متابعة الغياب والسلوك الذكي - مدرسة أبو دجانة الأنصاري</title>
+<title>مدرسة أبو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -3457,6 +3457,19 @@ function exportDutyReportsCSV() {
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
   showToast('تم التنزيل.', 'success');
 }
+</script>
+<script>
+(function(){
+ const started=Date.now();let done=false;
+ function closeSplash(skip){
+  if(done)return;done=true;const el=document.getElementById('schoolSplash');if(!el)return;
+  const hide=()=>{el.classList.add('splash-leaving');window.setTimeout(()=>el.remove(),950)};
+  if(skip)hide();else window.setTimeout(hide,Math.max(0,2100-(Date.now()-started)));
+ }
+ window.dismissSchoolSplash=()=>closeSplash(true);
+ if(document.readyState==='complete')closeSplash(false);else window.addEventListener('load',()=>closeSplash(false),{once:true});
+ window.setTimeout(()=>closeSplash(false),6500);
+})();
 </script>
 <script>
 // PWA shell registration. Offline data persistence is implemented in a separate stage.
