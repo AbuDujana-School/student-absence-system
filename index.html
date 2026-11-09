@@ -1314,7 +1314,7 @@ function saBuildPrintHtml(data){
     (behavior?'<td class="center behavior-type">'+esc(SA_BEHAVIOR_TYPES[r.type]||r.type)+'</td>':'')+
     '<td class="center">'+esc(r.session.date_str||"—")+'</td>'+
     '<td class="center nowrap strong">'+esc(r.session.period||"—")+'</td>'+
-    '<td class="center nowrap strong '+(behavior?"repeat-blue":"repeat-color")+'">'+esc(saFormatRepeatCount(r.count))+'</td>'+
+    '<td class="center nowrap strong '+(behavior?"repeat-blue":"repeat-color")+'">'+esc(Math.max(1,Math.trunc(Number(r.count)||1)))+'</td>'+
     '<td>'+esc(r.session.teacher_name||"—")+'</td>'+
     (behavior?'<td class="notes">'+esc(r.note||"—")+'</td>':'')+'</tr>'
   ).join("");
@@ -1327,7 +1327,7 @@ function saBuildPrintHtml(data){
       '<table><thead><tr>'+
       '<th style="width:4%">م</th><th style="width:25%">اسم الطالب</th><th style="width:9%">الصف</th>'+
       '<th style="width:12%">التاريخ</th><th style="width:9%;white-space:nowrap">الحصة</th>'+
-      '<th style="width:13%;white-space:nowrap">عدد مرات التكرار</th><th style="width:28%">المعلم الراصد</th>'+
+      '<th style="width:13%;white-space:nowrap">عدد المرات</th><th style="width:28%">المعلم الراصد</th>'+
       '</tr></thead><tbody>'+tableRows(list,false)+'</tbody></table></section>';
     });
     if(!sections)sections='<div class="empty">لا توجد سجلات مطابقة للصفوف والفترة والحالات المحددة.</div>';
@@ -1335,7 +1335,7 @@ function saBuildPrintHtml(data){
     sections='<section class="category"><div class="category-title behavior-title"><strong>📑 كشف المخالفات السلوكية اليومية</strong><span class="count-badge behavior-badge">'+rows.length+' مخالفة</span></div>'+
     '<table><thead><tr>'+
     '<th style="width:4%">م</th><th style="width:22%">اسم الطالب</th><th style="width:8%">الصف</th>'+
-    '<th style="width:14%">نوع المخالفة</th><th style="width:12%;white-space:nowrap">عدد مرات التكرار</th>'+
+    '<th style="width:14%">نوع المخالفة</th><th style="width:12%;white-space:nowrap">عدد المرات</th>'+
     '<th style="width:10%">التاريخ</th><th style="width:7%;white-space:nowrap">الحصة</th>'+
     '<th style="width:13%">المعلم الراصد</th><th style="width:10%">ملاحظات</th>'+
     '</tr></thead><tbody>'+(rows.length?tableRows(rows,true):'<tr><td colspan="9" class="empty-cell">لا توجد مخالفات سلوكية مسجلة في الفترة المحددة.</td></tr>')+'</tbody></table></section>';
