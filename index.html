@@ -1145,7 +1145,7 @@ try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||session
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_view_analytics","عرض التحليلات"],["can_print_combined","طباعة موحدة"]];
 const SA_ATTENDANCE_STATUS=[["absent","غياب","bg-slate-900 text-white"],["late","تأخر","bg-amber-500 text-white"],["outside","خروج","bg-violet-600 text-white"],["escape","تسرب","bg-rose-600 text-white"]];
 const SA_BEHAVIOR_TYPES={eating:"الأكل",talking:"الكلام",tools:"الأدوات",chaos:"الفوضى",sleeping:"النوم",homework:"الواجب",other:"أخرى"};
-let saDomain="attendance",saLastReport=null,saReportPermissions={};
+let saDomain="attendance",saReportPermissions={};
 function saReadStoredSession(){for(const store of [localStorage,sessionStorage]){try{const raw=store.getItem("abuDujana_studentAffairsSession");if(!raw)continue;const v=JSON.parse(raw);if(v?.token&&v?.expires_at&&Date.parse(v.expires_at)>Date.now())return v;}catch(e){}}return null;}
 try{saSession=saReadStoredSession();}catch(e){saSession=null;}
 async function saRequest(body){const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;const r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||"تعذر تنفيذ الطلب");return d;}
