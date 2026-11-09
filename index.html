@@ -1580,8 +1580,10 @@ function saSetCompetitionPeriod(period){
     if(from)from.value=weekStart;
     if(to)to.value=lastSchoolDay;
   }else if(period==="monthly"){
-    if(from)from.value=today.slice(0,7)+"-01";
-    if(to)to.value=saDateShift(today,-1);
+    const monthStart=today.slice(0,7)+"-01";
+    const yesterday=saDateShift(today,-1);
+    if(from)from.value=monthStart;
+    if(to)to.value=yesterday<monthStart?today:yesterday;
   }else if(period==="term"){
     if(from)from.value="";
     if(to)to.value="";
@@ -1621,7 +1623,7 @@ async function saLoadCompetition(){
   if(status){status.textContent="جارٍ احتساب النتائج والتحقق من اكتمال سجلات الفرق...";status.classList.remove("hidden");}
   document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
   try{
-    const data=await saRequest({action:"competition",from,to});
+    const data=await saRequest({action:"competition",from,to,period:saCompetitionPeriod});
     saCompetitionData=data;
     saRenderCompetition(data);
   }catch(error){
