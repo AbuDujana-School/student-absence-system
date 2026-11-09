@@ -3104,25 +3104,27 @@ function renderUrgentCategoryDetails(type) {
 }
 
 function printUrgentCategoryReport(type) {
-  const allowed = new Set(['absent', 'escape', 'late', 'outside']);
-  if (!allowed.has(type)) return;
+  const themes = {
+    absent: { title: 'كشف متابعة حالات الغياب اليومي', accent: '#475569', soft: '#f1f5f9', deep: '#1e293b' },
+    escape: { title: 'كشف حالات التسرب من الحصص', accent: '#e11d48', soft: '#fff1f2', deep: '#9f1239' },
+    late: { title: 'كشف حالات التأخر عن الحصص', accent: '#d97706', soft: '#fffbeb', deep: '#92400e' },
+    outside: { title: 'كشف حالات الخروج من الحصص', accent: '#9333ea', soft: '#faf5ff', deep: '#6b21a8' }
+  };
+  if (!Object.prototype.hasOwnProperty.call(themes, type)) return;
   const rows = getUrgentAttendanceRows(type);
   if (!rows.length) { showToast('لا توجد بيانات متاحة للطباعة في هذا الكشف.', 'error'); return; }
-  const titles = {
-    absent: 'كشف متابعة حالات الغياب اليومي',
-    escape: 'كشف حالات التسرب من الحصص',
-    late: 'كشف حالات التأخر عن الحصص',
-    outside: 'كشف حالات الخروج من الحصص'
-  };
+  const theme = themes[type];
   const popup = window.open('', '_blank');
   if (!popup) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-  popup.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(titles[type])}</title><style>
-    body{font-family:Arial,Tahoma,sans-serif;padding:24px;color:#0f172a}header{text-align:center;border-bottom:3px double #0284c7;padding-bottom:12px;margin-bottom:18px}h1{font-size:20px;color:#0369a1}h2{font-size:16px}p{font-size:12px;color:#475569}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #cbd5e1;padding:8px;font-size:12px}th{background:#f1f5f9}td:first-child,td:nth-child(3),td:nth-child(4){text-align:center}.sign{display:flex;justify-content:space-between;margin-top:40px;font-weight:bold;font-size:12px}@media print{body{padding:0}tr{break-inside:avoid}}
-  </style></head><body><header><h1>${esc(typeof SCHOOL_NAME !== 'undefined' ? SCHOOL_NAME : 'مدرسة أبو دجانة الأنصاري')}</h1><h2>${esc(titles[type])}</h2><p>تاريخ التقرير: ${new Date().toLocaleDateString('ar-OM')} · إجمالي السجلات: ${rows.length}</p></header><table><thead><tr><th>م</th><th>اسم الطالب</th><th>الصف</th><th>الحصة</th><th>المعلم الراصد</th></tr></thead><tbody>${rows.map((row,index)=>`<tr><td>${index+1}</td><td>${esc(row.student)}</td><td>${esc(formatClassName(row.class_name))}</td><td>${esc(row.period)}</td><td>${esc(row.teacher_name)}</td></tr>`).join('')}</tbody></table><div class="sign"><span>مُعد التقرير: إدارة المدرسة ....................</span><span>اعتماد المدير: ....................</span></div><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`);
+  const school = typeof SCHOOL_NAME !== 'undefined' ? SCHOOL_NAME : 'مدرسة أبو دجانة الأنصاري';
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(theme.title)+'</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">'+
+    '<style>@page{size:A4 portrait;margin:14mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;margin:0;color:#1e293b;background:#fff;direction:rtl;font-size:11px}.report{width:100%}.head{text-align:center;border-bottom:3px double '+theme.accent+';padding:0 0 13px;margin-bottom:16px}.school{font-size:22px;font-weight:900;color:'+theme.deep+'}.title{font-size:16px;font-weight:800;margin-top:5px}.subtitle{font-size:10px;color:#64748b;margin-top:5px}.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:15px}.summary-item{border:1px solid #cbd5e1;border-radius:8px;padding:9px;background:'+theme.soft+'}.summary-item span{display:block;font-size:9px;color:#64748b;margin-bottom:4px}.summary-item strong{font-size:12px;color:'+theme.deep+'}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th,td{border:1px solid #cbd5e1;padding:8px 6px;font-size:10px;vertical-align:middle;overflow-wrap:anywhere}th{background:'+theme.soft+';color:'+theme.deep+';font-weight:900;text-align:center;white-space:nowrap}td:nth-child(1),td:nth-child(3),td:nth-child(4){text-align:center}td:nth-child(2){font-weight:800}tbody tr:nth-child(even){background:#f8fafc}.sign{display:flex;justify-content:space-between;gap:15px;margin-top:32px;font-size:10px;font-weight:800}.sign span{flex:1}@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{break-inside:avoid;page-break-inside:avoid}}</style></head><body><main class="report"><header class="head"><div class="school">'+esc(school)+'</div><div class="title">'+esc(theme.title)+'</div><div class="subtitle">نظام حصر الغياب والسلوك الذكي · كشف لوحة التحكم الرئيسية</div></header><section class="summary"><div class="summary-item"><span>نوع الحالة</span><strong>'+esc(theme.title.replace('كشف ','').replace('متابعة ','').replace('حالات ','حالات '))+'</strong></div><div class="summary-item"><span>تاريخ الكشف</span><strong>'+esc(new Date().toLocaleDateString('ar-OM'))+'</strong></div><div class="summary-item"><span>إجمالي السجلات</span><strong>'+rows.length.toLocaleString('en-US')+'</strong></div></section><table><thead><tr><th style="width:6%">م</th><th style="width:38%">اسم الطالب</th><th style="width:14%">الصف</th><th style="width:10%">الحصة</th><th style="width:32%">المعلم الراصد</th></tr></thead><tbody>'+rows.map((row,index)=>'<tr><td>'+ (index+1)+'</td><td>'+esc(row.student)+'</td><td dir="ltr">'+esc(formatClassName(row.class_name))+'</td><td>'+esc(row.period)+'</td><td>'+esc(row.teacher_name)+'</td></tr>').join('')+'</tbody></table><div class="sign"><span>مُعد الكشف / إدارة المدرسة: ....................................</span><span>اعتماد مدير المدرسة: ....................................</span></div></main><script>window.onload=()=>setTimeout(()=>window.print(),350);<\/script></body></html>';
+  popup.document.open();
+  popup.document.write(html);
   popup.document.close();
 }
-
 function refreshUrgentCategoryCounts() {
   const today = getOmanLocalDate();
   ['absent', 'escape', 'outside', 'late'].forEach(type => {
@@ -4119,12 +4121,21 @@ function openDailyAdminReportModal() {
   document.getElementById('generalModal').classList.remove('hidden');
 }
 function printDailyReportPDF() {
-  const c = document.getElementById('printableDailyReport').innerHTML;
-  const w = window.open('', '_blank'); if (!w) { showToast('نافذة.', 'error'); return; }
-  w.document.write(`<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>التقرير</title><style>@page{size:A4;margin:15mm}body{font-family:'Tajawal',sans-serif;direction:rtl;padding:20px;font-size:12px}</style></head><body>${c}</body></html>`);
-  w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
+  const source = document.getElementById('printableDailyReport');
+  if (!source) { showToast('تعذر العثور على بيانات التقرير اليومي.', 'error'); return; }
+  const w = window.open('', '_blank');
+  if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
+  const content = source.innerHTML;
+  const school = typeof SCHOOL_NAME !== 'undefined' ? SCHOOL_NAME : 'مدرسة أبو دجانة الأنصاري';
+  const date = getOmanLocalDate();
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>التقرير اليومي</title>'+
+    '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">'+
+    '<style>@page{size:A4 portrait;margin:15mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;color:#1e293b;direction:rtl;margin:0;background:#fff}.head{text-align:center;border-bottom:3px double #059669;padding-bottom:13px;margin-bottom:18px}.school{font-size:21px;font-weight:900;color:#065f46}.title{font-size:17px;font-weight:800;margin-top:5px}.date{font-size:11px;color:#64748b;margin-top:5px}.daily-content{padding:0}.daily-content .text-center{ text-align:center}.daily-content .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:16px}.daily-content .grid>div{border:1px solid #cbd5e1;border-radius:10px;padding:16px;text-align:center;background:#f8fafc}.daily-content .grid>div:nth-child(2){background:#fff1f2;border-color:#fecdd3}.daily-content .grid>div:nth-child(3){background:#fffbeb;border-color:#fde68a}.daily-content .grid>div:nth-child(4){background:#faf5ff;border-color:#e9d5ff}.daily-content span{display:block;font-size:12px;font-weight:800;color:#475569;margin-bottom:8px}.daily-content strong{font-size:25px;font-weight:900;color:#0f172a}.daily-content .border-b{border-bottom:1px solid #cbd5e1;padding-bottom:12px}.daily-content .text-xs{font-size:11px;color:#64748b}.footer{margin-top:35px;display:flex;justify-content:space-between;gap:20px;font-size:11px;font-weight:800}@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}</style></head><body><header class="head"><div class="school">'+esc(school)+'</div><div class="title">ملخص المتابعة اليومية للحالات</div><div class="date">تاريخ الكشف: '+esc(date)+'</div></header><main class="daily-content">'+content+'</main><footer class="footer"><span>مُعد التقرير / إدارة المدرسة: ............................</span><span>اعتماد مدير المدرسة: ............................</span></footer><script>window.onload=()=>setTimeout(()=>window.print(),350);<\/script></body></html>';
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
-
 /* ============ Duty Module ============ */
 function refreshDutyDashboardCard() {
   const card = document.getElementById('dutyDashboardCard'); if (!card) return;
