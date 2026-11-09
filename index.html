@@ -941,80 +941,6 @@
       </div>
 
       <div id="sec-teachers" class="hidden space-y-4">
-<div id="teachersActivityCard" class="glass-card p-6 sm:p-8 rounded-[2rem] border border-slate-200/80 dark:border-slate-700 shadow-xl space-y-6" dir="rtl">
-  <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
-    <div class="flex items-center gap-3.5">
-      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center text-xl shadow-lg shadow-emerald-500/20"><i class="fa-solid fa-chart-line"></i></div>
-      <div><h3 class="font-black text-base sm:text-lg text-slate-800 dark:text-white">كشف وتقييم نشاط المعلمين</h3><p class="text-xs text-slate-500 mt-0.5">ترتيب المعلمين تلقائياً من الأكثر تسجيلاً إلى الأقل</p></div>
-    </div>
-    <button type="button" onclick="printTeachersActivityPDF()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-lg active:scale-95 transition-all flex items-center gap-2"><i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i><span>طباعة تقرير النشاط (PDF)</span></button>
-  </div>
-  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-    <div class="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-center"><span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 block mb-1">المعلمون النشطون</span><strong id="activeTeachersCount" class="text-2xl font-black text-emerald-600">0</strong></div>
-    <div class="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 text-center"><span class="text-[11px] font-bold text-rose-700 dark:text-rose-300 block mb-1">المعلمون غير النشطين</span><strong id="inactiveTeachersCount" class="text-2xl font-black text-rose-600">0</strong></div>
-    <div class="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-center"><span class="text-[11px] font-bold text-blue-700 dark:text-blue-300 block mb-1">مرات تسجيل الغياب</span><strong id="totalAttendanceSessions" class="text-2xl font-black text-blue-600">0</strong></div>
-    <div class="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-center"><span class="text-[11px] font-bold text-amber-700 dark:text-amber-300 block mb-1">مرات تسجيل السلوكيات</span><strong id="totalBehaviorLogs" class="text-2xl font-black text-amber-600">0</strong></div>
-  </div>
-  <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
-    <table class="w-full text-xs text-right">
-      <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-black border-b dark:border-slate-700"><tr><th class="p-3.5 text-center w-12">#</th><th class="p-3.5">اسم المعلم</th><th class="p-3.5 text-center">مرات تسجيل الغياب</th><th class="p-3.5 text-center">مرات تسجيل السلوكيات</th><th class="p-3.5 text-center">إجمالي التسجيلات</th><th class="p-3.5 text-center">حالة النشاط</th></tr></thead>
-      <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"><tr><td colspan="6" class="p-5 text-center text-slate-400">جارٍ تحميل بيانات النشاط...</td></tr></tbody>
-    </table>
-  </div>
-  <p class="text-[10px] leading-5 text-slate-500">يُحسب الغياب بعدد الطلاب المسجلين بحالة «غائب»، والسلوكيات بعدد سجلات السلوك المسجلة لكل طالب. المعلم نشط إذا كان لديه تسجيل واحد أو أكثر.</p>
-</div>
-
-
-        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-sm">
-          <div class="flex flex-wrap justify-between items-center gap-2">
-             <div>
-               <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
-               <p class="text-xs text-slate-500 mt-1">حدد يوم المناوبة لكل مادة/قسم. ويمكن تخصيص يوم مختلف لأي معلم بشكل مستقل.</p>
-             </div>
-          </div>
-          <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
-        </div>
-        
-        <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
-          <h5 class="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-plus text-emerald-600"></i> إضافة معلم واحد</h5>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input type="text" id="newTeacherName" placeholder="الاسم (أول + آخر)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none">
-            <div class="flex gap-2">
-                <select id="newTeacherCategory" class="flex-grow p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs font-bold outline-none"></select>
-                <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
-            </div>
-          </div>
-          <div class="space-y-1.5"><label for="newTeacherDutyDay" class="block text-xs font-bold">🕒 يوم المناوبة الفردي (اختياري)</label><select id="newTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[10px] text-slate-500">إذا لم تحدد يوماً، سيُعتمد يوم مناوبة المادة تلقائياً.</p></div>
-          <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-key"></i> سيُولَّد رمز سري (4 أرقام) تلقائياً + إجبار التغيير.</div>
-          <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md">حفظ المعلم</button>
-        </div>
-        
-        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 p-5 rounded-3xl border-2 border-emerald-300 dark:border-emerald-800 space-y-3 shadow-md">
-          <div class="flex items-center gap-2">
-            <div class="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md"><i class="fa-solid fa-paste text-sm"></i></div>
-            <div><h5 class="font-black text-sm text-emerald-900 dark:text-emerald-200">إضافة جماعية (نسخ ولصق)</h5><p class="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">الصق قائمة الأسماء — كل سطر معلم واحد</p></div>
-          </div>
-          <div>
-            <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-tag"></i> الفئة / المادة:</label>
-            <div class="flex gap-2">
-                <select id="bulkTeacherCategory" class="flex-grow p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl text-xs font-bold outline-none"></select>
-                <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
-            </div>
-          </div>
-          <div>
-            <label for="bulkTeacherDutyDay" class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">🕒 يوم المناوبة الفردي للقائمة (اختياري)</label><select id="bulkTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border border-emerald-200 rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select>
-          <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
-            <textarea id="bulkTeacherNames" rows="7" placeholder="أحمد محمد&#10;خالد عبدالله&#10;سالم علي&#10;فاطمة سالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl outline-none custom-scrollbar font-bold leading-relaxed"></textarea>
-          </div>
-          <div class="p-2.5 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-start gap-2">
-            <i class="fa-solid fa-info-circle mt-0.5"></i>
-            <span>سيُولّد النظام رمزاً سرياً فريداً (4 أرقام) لكل معلم تلقائياً، وسيُجبر على تغييره عند أول دخول.</span>
-          </div>
-          <button onclick="bulkAddTeachers(event)" class="w-full bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white text-sm font-black px-5 py-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-users"></i> حفظ القائمة الجماعية</button>
-        </div>
-        <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>
-      </div>
-
       <div id="sec-duty" class="hidden space-y-5">
         <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-4">
           <h4 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-clock text-orange-600"></i> توقيت الحصص</h4>
@@ -1080,6 +1006,37 @@
           <div id="resetErrorMsg" class="text-red-600 text-xs font-bold hidden"></div>
           <button onclick="executeFullReset()" class="bg-red-700 hover:bg-red-800 text-white text-xs font-bold px-6 py-3 rounded-2xl shadow-md flex items-center gap-2"><i class="fa-solid fa-trash-can"></i> تصفير الآن</button>
         </div>
+      </div>
+
+      <div id="teachersActivityCard" class="glass-card p-6 sm:p-8 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-700 shadow-xl space-y-6 mt-8" dir="rtl">
+        <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+          <div class="flex items-center gap-3.5">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-500/20"><i class="fa-solid fa-chart-line"></i></div>
+            <div>
+              <div class="flex items-center gap-2 mb-0.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-[11px] font-black text-teal-600 dark:text-teal-400">لوحة الإحصاءات العامة</span></div>
+              <h3 class="font-black text-lg text-slate-800 dark:text-white">تقييم ونشاط المعلمين على النظام</h3>
+              <p class="text-xs text-slate-500 mt-0.5">ترتيب المعلمين تلقائياً من الأكثر تسجيلاً إلى الأقل</p>
+            </div>
+          </div>
+          <button type="button" onclick="printTeachersActivityPDF()" class="bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white px-7 py-3 rounded-2xl text-xs font-black shadow-lg shadow-slate-950/20 active:scale-95 transition-all flex items-center gap-2.5">
+            <i class="fa-solid fa-file-pdf text-rose-400 text-base"></i><span>طباعة تقرير النشاط (PDF)</span>
+          </button>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
+          <div class="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block mb-1">المعلمون النشطون</span><strong id="activeTeachersCount" class="text-2xl font-black text-emerald-600">0</strong></div>
+          <div class="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-rose-800 dark:text-rose-300 block mb-1">المعلمون غير النشطين</span><strong id="inactiveTeachersCount" class="text-2xl font-black text-rose-600">0</strong></div>
+          <div class="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-blue-800 dark:text-blue-300 block mb-1">مرات تسجيل الغياب</span><strong id="totalAttendanceSessions" class="text-2xl font-black text-blue-600">0</strong></div>
+          <div class="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-amber-800 dark:text-amber-300 block mb-1">مرات تسجيل السلوكيات</span><strong id="totalBehaviorLogs" class="text-2xl font-black text-amber-600">0</strong></div>
+        </div>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-inner">
+          <table class="w-full text-xs text-right">
+            <thead class="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
+              <tr><th class="p-3.5 text-center w-12">#</th><th class="p-3.5">اسم المعلم</th><th class="p-3.5 text-center">مرات تسجيل الغياب</th><th class="p-3.5 text-center">مرات تسجيل السلوكيات</th><th class="p-3.5 text-center">إجمالي التسجيلات</th><th class="p-3.5 text-center">حالة النشاط</th></tr>
+            </thead>
+            <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"><tr><td colspan="6" class="p-5 text-center text-slate-400">جارٍ تحميل بيانات النشاط...</td></tr></tbody>
+          </table>
+        </div>
+        <p class="text-[10px] leading-5 text-slate-500">يُحسب الغياب بعدد الطلاب المسجلين بحالة «غائب»، والسلوكيات بعدد سجلات السلوك الفعلية. يُصنّف المعلم نشطاً عند وجود تسجيل واحد أو أكثر.</p>
       </div>
     </div>
   </div>
@@ -2894,6 +2851,8 @@ function setupRolePermissions() {
 function initAdminDashboard() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
+  const activityCard = document.getElementById('teachersActivityCard');
+  if (activityCard) activityCard.classList.toggle('hidden', !has('teachers'));
   try {
     if (has('studstats')) renderStudentStatsDashboard();
     if (has('behaviorstats')) { populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); }
@@ -3092,6 +3051,10 @@ function renderTeachersActivity() {
   const rows = getTeachersActivityRows();
   const active = rows.filter(r => r.active).length;
   const inactive = rows.length - active;
+  window.lastTeachersActivityData = {
+    teachersArray: rows.map(r => ({ name: r.name, attendanceCount: r.absences, behaviorCount: r.behaviors, total: r.total })),
+    activeCount: active, inactiveCount: inactive, threshold: 1
+  };
   const totalAbsences = rows.reduce((sum, r) => sum + r.absences, 0);
   const totalBehaviors = rows.reduce((sum, r) => sum + r.behaviors, 0);
   const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = Number(value).toLocaleString('en-US'); };
@@ -3112,20 +3075,57 @@ function renderTeachersActivity() {
     '<td class="p-3.5 text-center"><span class="inline-flex px-3 py-1 rounded-full text-[10px] font-black '+(r.active?'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300':'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300')+'">'+(r.active?'نشط':'غير نشط')+'</span></td></tr>').join('');
 }
 function printTeachersActivityPDF() {
-  const rows = getTeachersActivityRows();
-  const totalAbsences = rows.reduce((sum, r) => sum + r.absences, 0);
-  const totalBehaviors = rows.reduce((sum, r) => sum + r.behaviors, 0);
-  const active = rows.filter(r => r.active).length;
-  const inactive = rows.length - active;
-  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
-  const popup = window.open('', '_blank');
-  if (!popup) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
-  const tableRows = rows.map((r, i) => '<tr><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td>'+r.absences+'</td><td>'+r.behaviors+'</td><td><strong>'+r.total+'</strong></td><td>'+(r.active?'نشط':'غير نشط')+'</td></tr>').join('');
-  popup.document.open();
-  popup.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير نشاط المعلمين</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;color:#172033;margin:0;font-size:12px}.head{text-align:center;border-bottom:2px solid #0f766e;padding:0 0 12px;margin-bottom:14px}.head h1{font-size:20px;margin:0 0 6px}.head p{margin:0;color:#64748b}.stats{display:flex;gap:10px;margin:14px 0}.stat{flex:1;text-align:center;border:1px solid #cbd5e1;border-radius:8px;padding:10px}.stat b{display:block;font-size:19px;margin-top:4px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:9px;text-align:center}th{background:#e2e8f0;color:#1e293b;font-weight:bold}td:nth-child(2){text-align:right}.foot{margin-top:16px;text-align:left;color:#64748b;font-size:10px}@media print{thead{display:table-header-group}tr{break-inside:avoid}}</style></head><body><header class="head"><h1>كشف وتقييم نشاط المعلمين</h1><p>مدرسة أبو دجانة الأنصاري · تاريخ الطباعة: '+esc(new Date().toLocaleDateString('ar-OM'))+'</p></header><div class="stats"><div class="stat">المعلمون النشطون<b>'+active+'</b></div><div class="stat">المعلمون غير النشطين<b>'+inactive+'</b></div><div class="stat">مرات تسجيل الغياب<b>'+totalAbsences+'</b></div><div class="stat">مرات تسجيل السلوكيات<b>'+totalBehaviors+'</b></div></div><table><thead><tr><th>#</th><th>اسم المعلم</th><th>مرات تسجيل الغياب</th><th>مرات تسجيل السلوكيات</th><th>إجمالي التسجيلات</th><th>حالة النشاط</th></tr></thead><tbody>'+tableRows+'</tbody></table><div class="foot">يُحسب الغياب بعدد الطلاب المسجلين بحالة غائب، والسلوكيات بعدد سجلات السلوك المسجلة لكل طالب.</div><script>window.onload=function(){window.print();};<\/script></body></html>');
-  popup.document.close();
+  const canViewActivity = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.teachers;
+  if (!canViewActivity) { showToast('ليست لديك صلاحية عرض تقرير نشاط المعلمين.', 'error'); return; }
+  const data = window.lastTeachersActivityData;
+  if (!data || !Array.isArray(data.teachersArray) || data.teachersArray.length === 0) {
+    showToast("لا توجد بيانات معلمين متوفرة حالياً للطباعة.", "error");
+    return;
+  }
+  const w = window.open("", "_blank");
+  if (!w) { showToast("يرجى السماح بالنوافذ المنبثقة لفتح كشف PDF.", "error"); return; }
+  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const number = v => Number(v || 0).toLocaleString('en-US');
+  const totalAbsences = data.teachersArray.reduce((sum, t) => sum + Number(t.attendanceCount || 0), 0);
+  const totalBehaviors = data.teachersArray.reduce((sum, t) => sum + Number(t.behaviorCount || 0), 0);
+  const threshold = Number(data.threshold || 1);
+  const rows = data.teachersArray.map((t, idx) => {
+    const total = Number(t.total || 0);
+    const isActive = total >= threshold && total > 0;
+    return '<tr><td style="text-align:center;font-weight:bold;">'+(idx+1)+'</td>' +
+      '<td style="text-align:right;"><b>'+esc(t.name)+'</b></td>' +
+      '<td style="text-align:center;font-weight:900;color:#0284c7;">'+number(t.attendanceCount)+'</td>' +
+      '<td style="text-align:center;font-weight:900;color:#d97706;">'+number(t.behaviorCount)+'</td>' +
+      '<td style="text-align:center;font-weight:900;font-size:12px;background:#f1f5f9;">'+number(total)+'</td>' +
+      '<td style="text-align:center;"><span class="'+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'نشط':'غير نشط')+'</span></td></tr>';
+  }).join("");
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">' +
+    '<title>كشف تقييم ونشاط المعلمين - '+esc(SCHOOL_NAME)+'</title>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">' +
+    '<style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}' +
+    'body{font-family:"Tajawal",Arial,sans-serif;padding:25px;color:#0f172a;background:#fff;direction:rtl;font-size:12px}' +
+    '.school-header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px double #0d9488;padding-bottom:15px;margin-bottom:20px}' +
+    '.school-title h1{margin:0;font-size:22px;color:#0f766e;font-weight:900}.school-title h3{margin:4px 0 0;font-size:14px;color:#334155;font-weight:700}' +
+    '.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.stat-card{background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:10px;text-align:center}' +
+    '.stat-card span{font-size:11px;color:#475569;font-weight:700;display:block;margin-bottom:3px}.stat-card strong{font-size:18px;font-weight:900}' +
+    'table{width:100%;border-collapse:collapse;margin-top:5px}th,td{border:1px solid #cbd5e1;padding:9px 12px;font-size:11px;vertical-align:middle}' +
+    'th{background:#0f766e!important;color:#fff!important;font-weight:900;text-align:center;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'tbody tr:nth-child(even){background:#f0fdf4!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '.badge-active{background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:4px 12px;border-radius:12px;font-weight:900;display:inline-block}' +
+    '.badge-inactive{background:#ffe4e6;color:#be123c;border:1px solid #fca5a5;padding:4px 12px;border-radius:12px;font-weight:900;display:inline-block}' +
+    '.footer{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;font-weight:900;padding:0 20px}' +
+    '@media print{body{padding:0}tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}}</style></head><body>' +
+    '<div class="school-header"><div class="school-title"><h1>'+esc(SCHOOL_NAME)+'</h1><h3>كشف تقييم وتفريغ نشاط المعلمين المعتمد</h3></div>' +
+    '<div style="text-align:left"><div style="font-size:12px;font-weight:900;color:#0f766e">نظام حصر الغياب والسلوك الذكي</div><div style="font-size:10px;color:#64748b">تاريخ الاستخراج: '+esc(new Date().toLocaleDateString('ar-OM'))+'</div></div></div>' +
+    '<div class="stats-grid"><div class="stat-card"><span>المعلمون النشطون</span><strong style="color:#16a34a">'+number(data.activeCount)+' معلم</strong></div>' +
+    '<div class="stat-card"><span>المعلمون غير النشطين</span><strong style="color:#dc2626">'+number(data.inactiveCount)+' معلم</strong></div>' +
+    '<div class="stat-card"><span>مرات تسجيل الغياب</span><strong style="color:#2563eb">'+number(totalAbsences)+'</strong></div>' +
+    '<div class="stat-card"><span>مرات تسجيل السلوكيات</span><strong style="color:#d97706">'+number(totalBehaviors)+'</strong></div></div>' +
+    '<table><thead><tr><th style="width:5%">م</th><th style="width:35%;text-align:right">اسم المعلم</th><th style="width:15%">مرات تسجيل الغياب</th><th style="width:15%">مرات تسجيل السلوكيات</th><th style="width:15%">إجمالي التسجيلات</th><th style="width:15%">حالة النشاط</th></tr></thead><tbody>'+rows+'</tbody></table>' +
+    '<div class="footer"><div>مُعد التقرير / إدارة المدرسة: .......................................</div><div>اعتماد مدير المدرسة: .......................................</div></div>' +
+    '<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>';
+  w.document.open(); w.document.write(html); w.document.close();
 }
-
 /* ============ Teachers List Redesign ============ */
 function renderTeachersList() {
   const c = document.getElementById('teachersList'); if (!c) return;
