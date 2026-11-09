@@ -216,9 +216,10 @@ async function handle(req: Request) {
     const to = body.to == null ? "2100-12-31" : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
     const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
+    if (body.attendance_status_filters != null && !Array.isArray(body.attendance_status_filters)) return reply(400, { error: "قائمة حالات الغياب غير صالحة" });
     const requestedStatuses = body.attendance_status_filters == null
       ? (body.attendance_status_filter == null ? null : [String(body.attendance_status_filter)])
-      : (Array.isArray(body.attendance_status_filters) ? Array.from(new Set((body.attendance_status_filters as unknown[]).map(String))) : []);
+      : Array.from(new Set((body.attendance_status_filters as unknown[]).map(String)));
     if (requestedStatuses && requestedStatuses.some((status: string) => !statusAllow.has(status))) return reply(403, { error: "غير مصرح بعرض إحدى حالات الغياب المطلوبة" });
     if (mode === "analytics") {
       const classes = Array.from(new Set([...requestedAttendance, ...requestedBehavior]));
@@ -226,7 +227,7 @@ async function handle(req: Request) {
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
         const [a, b] = await Promise.all([
-          allowedAttendance.has(className) ? db.from("attendance").select("record_key,records").eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31").limit(5000) : Promise.resolve({ data: [], error: null } as any),
+          allowedAttendance.has(className) ? db.from("attendance").select("record_key,records", { count: "exact" }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31").limit(5000) : Promise.resolve({ data: [], error: null } as any),
           allowedBehavior.has(className) ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
         ]);
         if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
@@ -235,7 +236,7 @@ async function handle(req: Request) {
           const records = session.records && typeof session.records === "object" && !Array.isArray(session.records) ? session.records : {};
           for (const value of Object.values(records as Record<string, unknown>)) {
             const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
-            if (status in statusCounts && statusAllow.has(status) && (!requestedStatuses || requestedStatuses.includes(status))) statusCounts[status]++;
+            if (Object.prototype.hasOwnProperty.call(statusCounts, status) && statusAllow.has(status) && (!requestedStatuses || requestedStatuses.includes(status))) statusCounts[status]++;
           }
         }
         const selectedAttendanceRecords = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
