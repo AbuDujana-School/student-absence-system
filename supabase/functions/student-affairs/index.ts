@@ -226,8 +226,8 @@ async function handle(req: Request) {
     }
     const wantsAttendance = mode === "view" || mode === "print_attendance" || mode === "print_combined";
     const wantsBehavior = mode === "view" || mode === "print_behavior" || mode === "print_combined";
-    if (wantsAttendance && requestedAttendance.length && !permissions.can_read_attendance) return reply(403, { error: "غير مصرح بعرض الغياب" });
-    if (wantsBehavior && requestedBehavior.length && !permissions.can_read_behavior) return reply(403, { error: "غير مصرح بعرض السلوكيات" });
+    if (wantsAttendance && Array.isArray(body.attendance_classes) && requestedAttendance.length && !permissions.can_read_attendance) return reply(403, { error: "غير مصرح بعرض الغياب" });
+    if (wantsBehavior && Array.isArray(body.behavior_classes) && requestedBehavior.length && !permissions.can_read_behavior) return reply(403, { error: "غير مصرح بعرض السلوكيات" });
     const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
     const requestedStatus = body.attendance_status_filter == null ? null : String(body.attendance_status_filter);
     if (requestedStatus && !statusAllow.has(requestedStatus)) return reply(403, { error: "غير مصرح بعرض حالة الغياب المطلوبة" });
