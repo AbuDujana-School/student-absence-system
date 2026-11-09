@@ -103,7 +103,7 @@ async function hasStudentAffairsAccess(p: { type: string; name: string }) {
   if (error || !data) return false;
   const expectedRole = p.type === "custom" ? "custom" : "teacher";
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
-    && data.permissions?.studentAffairs === true;
+    && (data.permissions?.studentAffairs === true || data.permissions?.admin === true);
 }
 async function getSession(req: Request) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
