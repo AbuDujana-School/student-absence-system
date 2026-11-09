@@ -839,7 +839,12 @@
           </div>
           <div class="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-inner"><table class="w-full text-xs text-right"><thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-800"><tr><th class="p-4 text-center w-14">#</th><th class="p-4">اسم المعلم</th><th class="p-4 text-center">مرات تسجيل الغياب</th><th class="p-4 text-center">مرات تسجيل السلوكيات</th><th class="p-4 text-center">إجمالي التسجيلات</th><th class="p-4 text-center">حالة النشاط</th></tr></thead><tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"></tbody></table></div>
         </div>
-        <section id="advancedAnalyticsSection" class="space-y-6 mb-8 hidden" dir="rtl">
+
+
+      </section>
+
+      <div id="sec-studstats" class="space-y-6">
+        <section id="advancedAnalyticsSection" class="space-y-6 mb-8" dir="rtl">
           <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600"></i> لوحة التحليلات والاتجاهات الزمنية</h2>
@@ -873,10 +878,6 @@
             </div>
           </div>
         </section>
-
-      </section>
-
-      <div id="sec-studstats" class="space-y-6">
         <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
           <div><h4 class="font-extrabold text-base flex items-center gap-2"><i class="fa-solid fa-chart-pie text-emerald-300"></i> إحصائيات الطلاب</h4><p class="text-xs text-emerald-200 mt-0.5">متابعة الغياب والسلوكيات</p></div>
           <div class="flex flex-wrap items-center gap-3">
@@ -3220,8 +3221,6 @@ function renderAdminOverview() {
   setText('adminDashboardUserName', activeUser?.name || 'أستاذي الفاضل');
   toggle('dashboardMetricsSection', canStats);
   toggle('dashboardUrgentSection', canStats);
-  toggle('advancedAnalyticsSection', canStats);
-  if (canStats) updateAdvancedAnalytics();
   toggle('dashboardTeachersActivity', canTeachers);
   const saAction = document.getElementById('dashboardStudentAffairsAction');
   if (saAction) { saAction.classList.toggle('hidden', !canStudentAffairs); saAction.classList.toggle('flex', canStudentAffairs); }
@@ -3367,6 +3366,7 @@ function switchAdminTab(tab) {
   if (ab) ab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm';
   if (tab === 'dashboard') renderAdminOverview();
   if (tab === 'studstats') switchStatsSubTab('absence');
+  if (tab === 'studstats') { updateAdvancedAnalytics(); requestAnimationFrame(() => Object.values(chartInstances).forEach(chart => chart && chart.resize())); }
   if (tab === 'behaviorstats') renderBehaviorReportsSection();
   if (tab === 'users') renderCustomUsersList();
   if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
