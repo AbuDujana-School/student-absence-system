@@ -178,16 +178,41 @@ async function fetchCompetitionStudents(classNames: string[]) {
   }
   return rows;
 }
-function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, string[]>, rosters: Record<string, string[]>, attendanceRows: any[], behaviorRows: any[], from: string, to: string) {
-  const metrics = grades.map(grade => buildTeamRates({
-    grade,
-    classNames: classesByGrade[grade] || [],
-    rosters,
-    attendanceRows,
-    behaviorRows,
-    from,
-    to
-  }));
+function indexCompetitionRows(rows: any[]) {
+  const index = new Map<string, Map<string, any[]>>();
+  for (const row of rows || []) {
+    const date = String(row.date_str || "");
+    const className = String(row.class_name || "");
+    if (!date || !className) continue;
+    if (!index.has(date)) index.set(date, new Map());
+    const byClass = index.get(date)!;
+    if (!byClass.has(className)) byClass.set(className, []);
+    byClass.get(className)!.push(row);
+  }
+  return index;
+}
+function rowsForCompetitionRange(index: Map<string, Map<string, any[]>>, classNames: string[], from: string, to: string) {
+  const rows: any[] = [];
+  for (const day of getSchoolDays(from, to)) {
+    const byClass = index.get(day);
+    if (!byClass) continue;
+    for (const className of classNames) rows.push(...(byClass.get(className) || []));
+  }
+  return rows;
+}
+function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, string[]>, rosters: Record<string, string[]>, attendanceIndex: Map<string, Map<string, any[]>>, behaviorIndex: Map<string, Map<string, any[]>>, from: string, to: string) {
+  const metrics = grades.map(grade => {
+    const classNames = classesByGrade[grade] || [];
+    return buildTeamRates({
+      grade,
+      classNames,
+      rosters,
+      attendanceRows: rowsForCompetitionRange(attendanceIndex, classNames, from, to),
+      behaviorRows: rowsForCompetitionRange(behaviorIndex, classNames, from, to),
+      from,
+      to
+    });
+  });
   return calculateRelativeCompetitionScores(metrics);
 }
 async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown) {
@@ -250,12 +275,23 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     if (rosters[className] && studentName && !rosters[className].includes(studentName)) rosters[className].push(studentName);
   }
 
-  const scored = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceRows, behaviorRows, from, to);
-  const dailyProgress = schoolDays.map(day => ({
-    date: day,
-    teams: scoreCompetitionRange(grades, classesByGrade, rosters, attendanceRows, behaviorRows, day, day)
-      .map(team => ({ grade: team.grade, score: team.score, rank: team.rank, complete: team.complete === true }))
-  }));
+  const attendanceIndex = indexCompetitionRows(attendanceRows);
+  const behaviorIndex = indexCompetitionRows(behaviorRows);
+  const scored = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, from, to);
+  const allTeamsComplete = scored.length === grades.length && scored.every(team => team.complete === true);
+  const dailyProgress = schoolDays.map(day => {
+    const dayScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, day, day);
+    const dayComplete = dayScores.length === grades.length && dayScores.every(team => team.complete === true);
+    return {
+      date: day,
+      teams: dayScores.map(team => ({
+        grade: team.grade,
+        score: dayComplete ? team.score : null,
+        rank: dayComplete ? team.rank : null,
+        complete: dayComplete && team.complete === true
+      }))
+    };
+  });
 
   const weeklyWins: Record<string, number> = Object.fromEntries(grades.map(grade => [grade, 0]));
   const weeklyHistory: any[] = [];
@@ -263,7 +299,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   for (let weekStart = firstWeek; shiftCompetitionDate(weekStart, 4) <= to; weekStart = shiftCompetitionDate(weekStart, 7)) {
     const weekEnd = shiftCompetitionDate(weekStart, 4);
     if (weekStart < from) continue;
-    const weekScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceRows, behaviorRows, weekStart, weekEnd);
+    const weekScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, weekStart, weekEnd);
     const winner = weekScores.length && weekScores.every(team => team.complete === true)
       ? weekScores.filter(team => team.rank === 1).map(team => team.grade)
       : [];
@@ -277,7 +313,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     rank: team.rank,
     attendancePoints: team.attendancePoints,
     behaviorPoints: team.behaviorPoints,
-    complete: team.complete === true,
+    complete: allTeamsComplete && team.complete === true,
     ...(admin || ownGrades.includes(team.grade) ? {
       attendanceRate: team.attendanceRate,
       behaviorRate: team.behaviorRate,
@@ -294,8 +330,8 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
         grade,
         classNames: [className],
         rosters,
-        attendanceRows,
-        behaviorRows,
+        attendanceRows: rowsForCompetitionRange(attendanceIndex, [className], from, to),
+        behaviorRows: rowsForCompetitionRange(behaviorIndex, [className], from, to),
         from,
         to
       });
@@ -315,7 +351,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     from,
     to,
     today,
-    status: scored.every(team => team.complete === true) ? "complete" : "incomplete",
+    status: allTeamsComplete ? "complete" : "incomplete",
     teams: publicTeams,
     ownGrades,
     ownClasses,
