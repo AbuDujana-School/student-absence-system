@@ -1005,6 +1005,56 @@
       </div>
 
       <div id="sec-teachers" class="hidden space-y-4">
+        <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-sm">
+          <div class="flex flex-wrap justify-between items-center gap-2">
+             <div>
+               <h5 class="font-bold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-check text-orange-600"></i> توزيع أيام المناوبة حسب المادة/القسم</h5>
+               <p class="text-xs text-slate-500 mt-1">حدد يوم المناوبة لكل مادة/قسم. ويمكن تخصيص يوم مختلف لأي معلم بشكل مستقل.</p>
+             </div>
+          </div>
+          <div id="subjectDutyDaysContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3"></div>
+        </div>
+        
+        <div class="bg-slate-50/80 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-3">
+          <h5 class="font-bold text-xs text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-plus text-emerald-600"></i> إضافة معلم واحد</h5>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <input type="text" id="newTeacherName" placeholder="الاسم (أول + آخر)" class="p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs outline-none">
+            <div class="flex gap-2">
+                <select id="newTeacherCategory" class="flex-grow p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border border-slate-200 rounded-2xl text-xs font-bold outline-none"></select>
+                <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
+            </div>
+          </div>
+          <div class="space-y-1.5"><label for="newTeacherDutyDay" class="block text-xs font-bold">🕒 يوم المناوبة الفردي (اختياري)</label><select id="newTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[10px] text-slate-500">إذا لم تحدد يوماً، سيُعتمد يوم مناوبة المادة تلقائياً.</p></div>
+          <div class="p-3 bg-amber-50 dark:bg-amber-950/40 rounded-2xl border border-amber-200 text-xs font-bold text-amber-800 dark:text-amber-300"><i class="fa-solid fa-key"></i> سيُولَّد رمز سري (4 أرقام) تلقائياً + إجبار التغيير.</div>
+          <button onclick="addNewTeacher()" class="bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-bold px-5 py-3 rounded-2xl shadow-md">حفظ المعلم</button>
+        </div>
+        
+        <div class="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/40 p-5 rounded-3xl border-2 border-emerald-300 dark:border-emerald-800 space-y-3 shadow-md">
+          <div class="flex items-center gap-2">
+            <div class="w-10 h-10 bg-emerald-600 text-white rounded-2xl flex items-center justify-center shadow-md"><i class="fa-solid fa-paste text-sm"></i></div>
+            <div><h5 class="font-black text-sm text-emerald-900 dark:text-emerald-200">إضافة جماعية (نسخ ولصق)</h5><p class="text-[11px] text-emerald-700 dark:text-emerald-400 font-bold">الصق قائمة الأسماء — كل سطر معلم واحد</p></div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-tag"></i> الفئة / المادة:</label>
+            <div class="flex gap-2">
+                <select id="bulkTeacherCategory" class="flex-grow p-3 bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl text-xs font-bold outline-none"></select>
+                <button onclick="addNewCustomCategory()" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 rounded-2xl font-bold text-xl shadow-sm" title="إضافة مادة/قسم جديد">+</button>
+            </div>
+          </div>
+          <div>
+            <label for="bulkTeacherDutyDay" class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1">🕒 يوم المناوبة الفردي للقائمة (اختياري)</label><select id="bulkTeacherDutyDay" class="w-full p-3 bg-white dark:bg-slate-800 border border-emerald-200 rounded-2xl text-xs font-bold"><option value="">حسب يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select>
+          <label class="block text-xs font-bold text-emerald-800 dark:text-emerald-300 mb-1"><i class="fa-solid fa-list-ul"></i> قائمة الأسماء:</label>
+            <textarea id="bulkTeacherNames" rows="7" placeholder="أحمد محمد&#10;خالد عبدالله&#10;سالم علي&#10;فاطمة سالم" class="w-full p-3 text-xs bg-white dark:bg-slate-800 text-slate-800 dark:text-white border-2 border-emerald-200 dark:border-emerald-700 rounded-2xl outline-none custom-scrollbar font-bold leading-relaxed"></textarea>
+          </div>
+          <div class="p-2.5 bg-white/70 dark:bg-slate-900/60 rounded-xl border border-emerald-200 dark:border-emerald-800 text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-start gap-2">
+            <i class="fa-solid fa-info-circle mt-0.5"></i>
+            <span>سيُولّد النظام رمزاً سرياً فريداً (4 أرقام) لكل معلم تلقائياً، وسيُجبر على تغييره عند أول دخول.</span>
+          </div>
+          <button onclick="bulkAddTeachers(event)" class="w-full bg-gradient-to-r from-emerald-700 to-teal-700 hover:from-emerald-800 hover:to-teal-800 text-white text-sm font-black px-5 py-3.5 rounded-2xl shadow-lg flex items-center justify-center gap-2"><i class="fa-solid fa-users"></i> حفظ القائمة الجماعية</button>
+        </div>
+        <div id="teachersList" class="divide-y divide-slate-100 dark:divide-slate-700 border border-slate-200 dark:border-slate-700 rounded-3xl overflow-hidden bg-white dark:bg-slate-800"></div>
+      </div>
+
       <div id="sec-duty" class="hidden space-y-5">
         <div class="bg-slate-50 dark:bg-slate-900/50 p-5 rounded-3xl border border-slate-200/80 space-y-4">
           <h4 class="font-extrabold text-sm flex items-center gap-2"><i class="fa-solid fa-clock text-orange-600"></i> توقيت الحصص</h4>
