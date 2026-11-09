@@ -403,7 +403,6 @@
           <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
         </div>
       </div>
-      <div id="studentAffairsDashboardCard" onclick="openStudentAffairsView()" class="hero-card relative overflow-hidden bg-gradient-to-br from-slate-800 via-blue-900 to-indigo-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-blue-300/30 cursor-pointer flex flex-col justify-between min-h-[240px]"><div><div class="w-16 h-16 bg-white/15 text-blue-100 rounded-3xl flex items-center justify-center text-3xl"><i class="fa-solid fa-user-graduate"></i></div><h4 class="text-3xl font-black mt-6">شؤون الطلاب</h4><p class="text-xs text-blue-100 mt-2">التقارير والتحليلات والطباعة حسب الصلاحيات</p></div><div class="mt-6 pt-4 border-t border-white/15 text-xs font-bold text-blue-200">فتح القسم الآمن ←</div></div>
     </div>
   </div>
 
@@ -675,6 +674,7 @@
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📄 التقارير</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_duty" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة الدائمة</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4"><span class="text-xs font-bold">🔐 الأمان</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-800 col-span-2"><input type="checkbox" id="perm_p_studentAffairs" class="accent-blue-600 w-4 h-4"><span class="text-xs font-bold text-blue-800 dark:text-blue-200">🎓 السماح بدخول شؤون الطلاب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
       </div>
     </div>
@@ -732,7 +732,7 @@
         <span id="roleNoticeText">صلاحية الدخول</span>
         <span id="roleBadge" class="bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm">تحكم كامل</span>
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-11 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80">
         <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm"><i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات</span></button>
         <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-scale-balanced text-teal-600"></i> <span>سلوكيات</span></button>
         <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-user-gear text-blue-600"></i> <span>الأشخاص</span></button>
@@ -743,6 +743,7 @@
         <button onclick="switchAdminTab('reports')" id="tab-reports" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-print text-purple-600"></i> <span>التقارير</span></button>
         <button onclick="switchAdminTab('sync')" id="tab-sync" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-cloud-arrow-up text-cyan-600"></i> <span>المزامنة</span></button>
         <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-shield-halved text-emerald-600"></i> <span>الأمان</span></button>
+        <button onclick="openStudentAffairsView()" id="tab-studentAffairs" style="display:none" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-user-graduate text-blue-600"></i> <span>شؤون الطلاب</span></button>
       </div>
 
       <div id="sec-studstats" class="space-y-6">
@@ -1118,8 +1119,8 @@ const SA_DEV_ANON_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFz
 let saSession=null,saAdminData=null,saLastReport=null;
 const SA_FLAGS=[["can_read_attendance","عرض الغياب والحضور والتأخر والخروج"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحد"]];
 async function saRequest(body){const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;const r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});let d={};try{d=await r.json()}catch(e){}if(!r.ok)throw new Error(d.error||"تعذر تنفيذ الطلب");return d;}
-function openStudentAffairsView(){["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");}
-function closeStudentAffairsView(){document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("dashboardSelectionView").classList.remove("hidden");}
+function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلاب","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");}
+function closeStudentAffairsView(){document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(){const pin=document.getElementById("saPin").value.trim(),btn=document.getElementById("saLoginBtn"),err=document.getElementById("saLoginError");err.classList.add("hidden");if(!/^[0-9]{4,10}$/.test(pin)){err.textContent="أدخل رمزًا من 4 إلى 10 أرقام.";err.classList.remove("hidden");return;}btn.disabled=true;try{const d=await saRequest({action:"login",pin});saSession=d;document.getElementById("saPin").value="";document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;document.getElementById("saAdmin").classList.toggle("hidden",d.principal.type!=="admin");if(d.principal.type==="admin")await saLoadAdmin();saRenderClasses(d.permissions.allowed_classes||[]);const p=d.permissions||{};Array.from(document.getElementById("saMode").options).forEach(o=>{const ok=o.value==="view"?(p.can_read_attendance||p.can_read_behavior):o.value==="analytics"?p.can_view_analytics:o.value==="print_attendance"?p.can_read_attendance&&p.can_print_attendance:o.value==="print_behavior"?p.can_read_behavior&&p.can_print_behavior:o.value==="print_combined"?p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined:true;o.disabled=!ok;});}catch(e){err.textContent=e.message;err.classList.remove("hidden");}finally{btn.disabled=false;}}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();}
 function saLoadPerson(){if(!saAdminData)return;const type=document.getElementById("saType").value,sel=document.getElementById("saPerson");sel.innerHTML="";saAdminData.teachers.filter(t=>(t.role==="custom"?"custom":"teacher")===type).forEach(t=>{const o=document.createElement("option");o.value=t.name;o.textContent=t.name;sel.appendChild(o)});const saved=saAdminData.permissions.find(p=>p.principal_type===type&&p.principal_name===sel.value)||{};document.getElementById("saClasses").innerHTML=saAdminData.classes.map(c=>'<label><input type="checkbox" class="sa-class" value="'+escapeHtml(c.name)+'" '+((saved.allowed_classes||[]).includes(c.name)?"checked":"")+'> '+escapeHtml(c.name)+'</label>').join("");document.getElementById("saFlags").innerHTML=SA_FLAGS.map(([k,l])=>'<label><input type="checkbox" class="sa-flag" data-key="'+k+'" '+(saved[k]?"checked":"")+'> '+l+'</label>').join("");}
@@ -1802,7 +1803,7 @@ async function finalizeLoginState() {
   refreshDutyDashboardCard(); renderDutyTodayRecords();
   await checkAndEnforcePinChange(); await checkAndEnforceAdminPinChange();
 }
-function hasAnyPermission(user) { return user?.permissions ? ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k]) : false; }
+function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k]) || user.permissions.studentAffairs === true) : false; }
 function canAccessAttendance() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.attendance; if (activeUser.type === 'teacher') return activeUser.permissions?.attendance !== false; return false; }
 function canAccessBehavior() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.behavior; if (activeUser.type === 'teacher') return activeUser.permissions?.behavior !== false; return false; }
 
@@ -2613,6 +2614,7 @@ function setupRolePermissions() {
     text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
     badge.textContent = "مدير النظام"; badge.className = "bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
+    const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
     switchAdminTab('studstats');
   } else if (isAdminAuthorized() || activeUser?.permissions?.admin) {
     text.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة";
@@ -2626,6 +2628,7 @@ function setupRolePermissions() {
     badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     let first = null;
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); const allow = !!(activeUser?.permissions?.[id]); if (el) el.style.display = allow ? 'flex' : 'none'; if (allow && !first) first = id; });
+    const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = activeUser?.permissions?.studentAffairs === true ? 'flex' : 'none';
     if (first) switchAdminTab(first);
   }
   initAdminDashboard();
@@ -2846,6 +2849,7 @@ function renderPermBadges(perms) {
   if (perms.attendance !== false) b.push('<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">غياب ✓</span>');
   if (perms.behavior !== false) b.push('<span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-[10px] font-bold">سلوك ✓</span>');
   if (perms.duty) b.push('<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-[10px] font-bold">مناوبة</span>');
+  if (perms.studentAffairs) b.push('<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">شؤون الطلاب</span>');
   if (perms.admin) b.push('<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">إدارة</span>');
   else {
     if (perms.studstats) b.push('<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">إحصاء</span>');
@@ -2858,7 +2862,7 @@ function renderPermBadges(perms) {
   return b.join(' ') || '<span class="text-slate-400 text-[10px]">صلاحيات افتراضية</span>';
 }
 function buildTeacherPermissions(category) {
-  return { category, attendance: true, behavior: true, studstats: false, behaviorstats: false, students: false, teachers: false, users: false, duty: false, alerts: false, reports: false, sync: false, security: false, admin: false };
+  return { category, attendance: true, behavior: true, studstats: false, behaviorstats: false, students: false, teachers: false, users: false, duty: false, alerts: false, reports: false, sync: false, security: false, studentAffairs: false, admin: false };
 }
 async function addNewTeacher() {
   const name = document.getElementById('newTeacherName').value.trim();
@@ -3034,6 +3038,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_reports').checked = !!p.reports;
   document.getElementById('perm_p_duty').checked = !!p.duty;
   document.getElementById('perm_p_security').checked = !!p.security;
+  document.getElementById('perm_p_studentAffairs').checked = p.studentAffairs === true;
   document.getElementById('perm_p_admin').checked = !!p.admin;
   document.getElementById('perm_teacher_duty_day').value = SCHOOL_DAYS.includes(p.dutyDay) ? p.dutyDay : '';
   document.getElementById('teacherPermissionsModal').classList.remove('hidden');
@@ -3051,6 +3056,7 @@ async function saveTeacherPermissions() {
   t.permissions.reports = document.getElementById('perm_p_reports').checked;
   t.permissions.duty = document.getElementById('perm_p_duty').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
+  t.permissions.studentAffairs = document.getElementById('perm_p_studentAffairs').checked;
   t.permissions.admin = document.getElementById('perm_p_admin').checked;
   const chosenDutyDay = document.getElementById('perm_teacher_duty_day').value;
   t.permissions.dutyDay = SCHOOL_DAYS.includes(chosenDutyDay) ? chosenDutyDay : '';
