@@ -148,7 +148,7 @@ async function fetchCompetitionRows(table: "attendance" | "behaviors", className
   for (let offset = 0; ; offset += pageSize) {
     if (offset >= 60000) throw new Error("Competition data range exceeds the safe query limit");
     const { data, error } = await db.from(table)
-      .select("record_key,date_str,class_name,records")
+      .select("record_key,date_str,class_name,period,records")
       .in("class_name", classNames)
       .gte("date_str", from).lte("date_str", to)
       .order("record_key", { ascending: true })
