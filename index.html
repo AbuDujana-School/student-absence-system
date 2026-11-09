@@ -613,6 +613,45 @@
       <div id="saScopeSummary" class="rounded-2xl border border-dashed border-teal-200 bg-teal-50/70 px-4 py-3 text-xs leading-6 text-teal-900 dark:border-teal-900 dark:bg-teal-950/20 dark:text-teal-100" aria-live="polite">تُحدد مسؤولية المعلم تلقائياً من الصفوف المختارة للغياب والسلوك. لا يوجد دور مستقل باسم قائد فريق.</div>
       <div class="flex justify-end"><button onclick="saSavePermissions()" class="w-full rounded-xl bg-indigo-700 px-7 py-3 text-xs font-extrabold text-white shadow-lg transition hover:bg-indigo-800 sm:w-auto"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التكليف والصلاحيات</button></div>
     </div>
+    <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
+      <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div><div class="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200"><i class="fa-solid fa-crown"></i> بطولة الانضباط المدرسية</div><h3 class="text-lg font-black sm:text-xl">سباق التميز بين المراحل</h3><p class="mt-1 text-xs leading-6 text-blue-100">50 نقطة للانضباط في الحضور و50 نقطة للسلوك. تعرض المقارنة نتائج الفرق الإجمالية فقط.</p></div>
+          <div class="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-center"><div class="text-[10px] font-bold text-blue-100">نطاق التقييم</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black">الأسبوع الحالي</div></div>
+        </div>
+      </div>
+      <div class="space-y-5 p-4 sm:p-6">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="saCompetitionWeeklyBtn" type="button" onclick="saSetCompetitionPeriod('weekly')" class="rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-sm">الأسبوع الحالي</button>
+          <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
+          <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">الفصل الدراسي</button>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saCompetitionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saCompetitionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
+          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
+        </div>
+        <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
+        <div id="saCompetitionPodium" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+            <div class="mb-4"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور نقاط الفرق خلال الأسبوع</h4><p class="mt-1 text-[11px] text-slate-500">كل نقطة تظهر بعد اكتمال سجلات الغياب والسلوك لجميع شعب المرحلة في ذلك اليوم.</p></div>
+            <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور نقاط الفرق"></canvas></div>
+          </section>
+          <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+            <h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-trophy ml-1 text-amber-500"></i> سجل انتصارات الفرق</h4>
+            <p class="mt-1 text-[11px] text-slate-500">عدد الأسابيع التي تصدر فيها كل فريق ضمن الفترة المختارة.</p>
+            <div id="saCompetitionWins" class="mt-4 space-y-3"></div>
+          </section>
+        </div>
+        <section class="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 dark:border-teal-900/60 dark:bg-teal-950/20">
+          <div class="flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i><h4 class="text-sm font-black text-slate-800 dark:text-white">توصيات تحسين أداء فريقك</h4></div>
+          <p class="mt-1 text-[11px] text-slate-500">تُعرض توصيات الشعب التابعة لك فقط، اعتماداً على معدلات الفترة المحددة.</p>
+          <div id="saCompetitionRecommendations" class="mt-3 space-y-2"></div>
+        </section>
+        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
+      </div>
+    </section>
     <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
       <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition">الغياب</button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition">السلوكيات</button></div></div>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label><label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label></div>
