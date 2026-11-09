@@ -56,3 +56,8 @@ export function filterBehaviorRecordMap(records: unknown): Record<string, unknow
     return type !== "" && type !== "normal";
   }));
 }
+
+export function areClassesAllowed(requested: string[], allowed: string[]): boolean {
+  const allowedSet = new Set(allowed);
+  return requested.every(className => allowedSet.has(className));
+}
