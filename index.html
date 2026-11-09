@@ -3033,7 +3033,7 @@ function renderAdminOverview() {
       const roster = Array.isArray(schoolRosters[className]) ? schoolRosters[className] : [];
       const uniqueStudents = new Set(roster.map(name => String(name || '').trim()).filter(Boolean));
       totalSchoolStudents += uniqueStudents.size;
-      const match = String(className || '').trim().match(/^(\\d+)\\s*[\\/-]\\s*(\\d+)$/);
+      const match = String(className || '').trim().match(/^(\d+)\s*[\/-]\s*(\d+)$/);
       if (match) {
         const grade = Number(match[2]);
         if (grade >= 1 && grade <= 12) gradeCounts[grade] += uniqueStudents.size;
