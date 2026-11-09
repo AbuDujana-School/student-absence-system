@@ -1656,9 +1656,10 @@ function saRenderCompetition(data){
   }).join(""):'<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا تتوفر نتائج للمراحل الأربع.</div>';
   const wins=document.getElementById("saCompetitionWins");
   const weeklyWins=data?.weeklyWins||{};
+  const maxWins=Math.max(0,...["9","10","11","12"].map(grade=>Number(weeklyWins[grade]||0)));
   wins.innerHTML=["9","10","11","12"].map(grade=>{
-    const count=Number(weeklyWins[grade]||0),own=ownGrades.has(grade);
-    return '<div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/70"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(own?'<i class="fa-solid fa-flag text-teal-600 ml-1"></i>':'')+'فريق '+saCompetitionGradeLabel(grade)+'</span><strong class="text-sm font-black tabular-nums text-amber-600">'+count+' <span class="text-[10px]">أسبوع</span></strong></div>';
+    const count=Number(weeklyWins[grade]||0),own=ownGrades.has(grade),mostWins=maxWins>0&&count===maxWins;
+    return '<div class="flex items-center justify-between gap-3 rounded-xl border '+(mostWins?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-2.5"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(own?'<i class="fa-solid fa-flag text-teal-600 ml-1"></i>':'')+'فريق '+saCompetitionGradeLabel(grade)+(mostWins?' <span class="mr-1 text-amber-600">👑 الأكثر تتويجاً</span>':'')+'</span><strong class="text-sm font-black tabular-nums text-amber-600">'+count+' <span class="text-[10px]">أسبوع</span></strong></div>';
   }).join("");
   const recommendations=document.getElementById("saCompetitionRecommendations");
   const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownGrades.has(String(item.grade)));
