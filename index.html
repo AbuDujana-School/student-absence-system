@@ -845,25 +845,32 @@
 
       <div id="sec-studstats" class="space-y-6">
         <section id="advancedAnalyticsSection" class="space-y-6 mb-8" dir="rtl">
-          <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600"></i> لوحة التحليلات والاتجاهات الزمنية</h2>
-              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">مؤشرات فعلية من سجلات النظام خلال الفترة المحددة، لأيام الدراسة من الأحد إلى الخميس</p>
+          <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mb-2">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-700/60">
+              <div>
+                <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600"></i> اتجاه الغياب، التأخر، التسرب، والخروج</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">مخطط زمني تفاعلي يعرض أعداد الحالات المسجلة فعلياً حسب الفترة المحددة</p>
+              </div>
+              <div class="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+                <label for="analyticsStartDate" class="font-medium text-slate-600 dark:text-slate-300">من:</label>
+                <input type="date" id="analyticsStartDate" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="analyticsEndDate" class="font-medium text-slate-600 dark:text-slate-300">إلى:</label>
+                <input type="date" id="analyticsEndDate" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                <button type="button" onclick="applyAdvancedAnalyticsDateFilter()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"><i class="fa-solid fa-rotate"></i> تحديث المخطط</button>
+              </div>
             </div>
-            <div class="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
-              <label for="analyticsStartDate" class="font-medium text-slate-600 dark:text-slate-300">من:</label>
-              <input type="date" id="analyticsStartDate" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-800 dark:text-white">
-              <label for="analyticsEndDate" class="font-medium text-slate-600 dark:text-slate-300">إلى:</label>
-              <input type="date" id="analyticsEndDate" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-800 dark:text-white">
-              <button type="button" onclick="applyAdvancedAnalyticsDateFilter()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm"><i class="fa-solid fa-filter"></i> تطبيق</button>
+            <div class="flex flex-wrap items-center justify-end gap-3 mb-4 text-xs font-semibold">
+              <span class="flex items-center gap-1.5 text-red-500 bg-red-50 dark:bg-red-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> غياب</span>
+              <span class="flex items-center gap-1.5 text-amber-500 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> تأخر</span>
+              <span class="flex items-center gap-1.5 text-purple-500 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> تسرب</span>
+              <span class="flex items-center gap-1.5 text-blue-500 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> خروج</span>
             </div>
+            <p id="advancedAnalyticsDataNote" class="text-xs text-slate-500 dark:text-slate-400 px-1">تُعرض البيانات المسجلة فعلياً فقط؛ لا تُستخدم أرقام افتراضية.</p>
+            <div class="relative h-80 w-full mt-3"><canvas id="analyticsAttendanceChart"></canvas></div>
           </div>
           <p id="advancedAnalyticsDataNote" class="text-xs text-slate-500 dark:text-slate-400 px-1">تُعرض البيانات المسجلة فعلياً فقط؛ لا تُستخدم أرقام افتراضية.</p>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">اتجاه الغياب والتأخر والتسرب والخروج</h3><p class="text-xs text-slate-400">عدد الطلاب لكل حالة يومياً، مع احتساب الطالب مرة واحدة في الحالة نفسها خلال اليوم</p></div>
-              <div class="relative h-64"><canvas id="analyticsAttendanceChart"></canvas></div>
-            </div>
+
             <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مؤشر تغطية رصد الحصص</h3><p class="text-xs text-slate-400">نسبة الحصص التي تحتوي على رصد فعلي من إجمالي الحصص المتوقعة لكل يوم</p></div>
               <div class="relative h-64"><canvas id="analyticsTeacherChart"></canvas></div>
@@ -3175,16 +3182,16 @@ function updateAdvancedAnalytics() {
   const attendanceConfig = {
     type: 'line',
     data: { labels, datasets: [
-      { label: 'غياب', data: absent, borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2.5, tension: .3, pointRadius: 3 },
-      { label: 'تأخر', data: late, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2.5, tension: .3, pointRadius: 3 },
-      { label: 'تسرب', data: escape, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2.5, tension: .3, pointRadius: 3 },
-      { label: 'خروج', data: outside, borderColor: '#3b82f6', backgroundColor: '#3b82f6', borderWidth: 2.5, tension: .3, pointRadius: 3 }
+      { label: 'غياب', data: absent, borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 },
+      { label: 'تأخر', data: late, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 },
+      { label: 'تسرب', data: escape, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 },
+      { label: 'خروج', data: outside, borderColor: '#3b82f6', backgroundColor: '#3b82f6', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 }
     ] },
-    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: true, position: 'bottom', labels: { font: chartFont(10), usePointStyle: true } } } }
+    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(15,23,42,.9)', titleFont: chartFont(13), bodyFont: chartFont(12), padding: 10, cornerRadius: 8 } } }
   };
   const teacherConfig = {
     type: 'line',
-    data: { labels, datasets: [{ label: 'تغطية رصد الحصص %', data: coverage, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.13)', fill: true, borderWidth: 3, tension: .3, pointRadius: 3 }] },
+    data: { labels, datasets: [{ label: 'تغطية رصد الحصص %', data: coverage, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.13)', fill: true, borderWidth: 3, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 }] },
     options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, min: 0, max: 100, ticks: { font: chartFont(10), callback: value => value + '%' } } } }
   };
   const behaviorConfig = {
