@@ -711,23 +711,27 @@
       <button onclick="closePermissionsModal()" class="text-slate-400 text-base"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 rounded-2xl p-4">
-      <div class="text-xs font-black text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-2"><i class="fa-solid fa-check-circle text-emerald-600"></i> الصلاحيات الافتراضية (مفعّلة تلقائياً)</div>
-      <div class="grid grid-cols-3 gap-2 text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-        <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">📋 رصد الغياب</div>
-        <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">⚖️ رصد السلوكيات</div>
-        <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">🕒 المناوبة (في يومها)</div>
+      <div class="text-xs font-black text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-2"><i class="fa-solid fa-check-circle text-emerald-600"></i> الصلاحيات الأساسية — اختر ما تسمح به لهذا المعلم</div>
+      <div class="grid grid-cols-2 gap-2 text-[11px] font-bold">
+        <label class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-emerald-900 dark:border-emerald-800 dark:bg-slate-800 dark:text-emerald-200"><input type="checkbox" id="perm_p_attendance" class="h-4 w-4 accent-emerald-600"><span>📋 رصد الغياب</span></label>
+        <label class="flex items-center gap-2 rounded-xl border border-emerald-200 bg-white p-3 text-emerald-900 dark:border-emerald-800 dark:bg-slate-800 dark:text-emerald-200"><input type="checkbox" id="perm_p_behavior" class="h-4 w-4 accent-teal-600"><span>⚖️ رصد السلوكيات</span></label>
+        <label class="col-span-2 flex items-center gap-2 rounded-xl border border-orange-200 bg-white p-3 text-orange-900 dark:border-orange-800 dark:bg-slate-800 dark:text-orange-200"><input type="checkbox" id="perm_p_dutyToday" class="h-4 w-4 accent-orange-600"><span>🕒 المناوبة في يوم التكليف فقط</span></label>
       </div>
     </div>
     <div class="space-y-2 border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 rounded-2xl p-4 shadow-sm"><label for="perm_teacher_duty_day" class="block text-sm font-black text-orange-900 dark:text-orange-200">🕒 تغيير يوم المناوبة لهذا المعلم</label><select id="perm_teacher_duty_day" class="w-full p-3 bg-white dark:bg-slate-900 border-2 border-orange-200 dark:border-orange-800 rounded-xl text-sm font-bold"><option value="">استخدم يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[11px] font-semibold text-orange-800 dark:text-orange-200">اختر يوماً مستقلاً لهذا المعلم. اتركه على الخيار الأول للعودة تلقائياً إلى يوم مناوبة المادة/القسم.</p></div>
     <div>
       <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم</div>
       <div class="grid grid-cols-2 gap-2">
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_dashboard" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">🏠 الرئيسية</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_studstats" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📊 الإحصائيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_behaviorstats" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ كشوفات السلوك</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_users" class="accent-violet-600 w-4 h-4"><span class="text-xs font-bold">👥 إدارة المستخدمين</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_students" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🎓 إدارة الطلاب</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_teachers" class="accent-cyan-600 w-4 h-4"><span class="text-xs font-bold">👨‍🏫 إدارة المعلمين</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_alerts" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold">🔔 التنبيهات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📄 التقارير</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_duty" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة الدائمة</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_sync" class="accent-sky-600 w-4 h-4"><span class="text-xs font-bold">🔄 المزامنة</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4"><span class="text-xs font-bold">🔐 الأمان</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-800 col-span-2"><input type="checkbox" id="perm_p_studentAffairs" class="accent-blue-600 w-4 h-4"><span class="text-xs font-bold text-blue-800 dark:text-blue-200">🎓 السماح بدخول شؤون الطلاب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
@@ -2132,7 +2136,7 @@ async function finalizeLoginState() {
   refreshDutyDashboardCard(); renderDutyTodayRecords();
   await checkAndEnforcePinChange(); await checkAndEnforceAdminPinChange();
 }
-function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k]) || user.permissions.studentAffairs === true) : false; }
+function hasAnyPermission(user) { return user?.permissions ? (!!user.permissions.dashboard || ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k]) || user.permissions.studentAffairs === true) : false; }
 function canAccessAttendance() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.attendance; if (activeUser.type === 'teacher') return activeUser.permissions?.attendance !== false; return false; }
 function canAccessBehavior() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.behavior; if (activeUser.type === 'teacher') return activeUser.permissions?.behavior !== false; return false; }
 
@@ -2960,7 +2964,7 @@ function setupRolePermissions() {
     badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     let first = null;
     const dashboardTab = document.getElementById('tab-dashboard');
-    const canDashboard = !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
+    const canDashboard = !!(activeUser?.permissions?.dashboard || activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
     if (dashboardTab) dashboardTab.style.display = canDashboard ? 'flex' : 'none';
     if (canDashboard) first = 'dashboard';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); const allow = !!(activeUser?.permissions?.[id]); if (el) el.style.display = allow ? 'flex' : 'none'; if (allow && !first) first = id; });
@@ -3386,13 +3390,13 @@ function initAdminDashboard() {
     if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
     if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); }
     if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
-    if (isA || has('studstats') || has('teachers')) renderAdminOverview();
+    if (isA || has('dashboard') || has('studstats') || has('teachers')) renderAdminOverview();
   } catch(e) { console.error('initAdminDashboard', e); }
 }
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
-  const canDashboard = isA || !!activeUser?.permissions?.studstats || !!activeUser?.permissions?.teachers;
+  const canDashboard = isA || !!activeUser?.permissions?.dashboard || !!activeUser?.permissions?.studstats || !!activeUser?.permissions?.teachers;
   if (tab === 'dashboard' ? !canDashboard : !has(tab)) return;
   document.getElementById('sec-dashboard')?.classList.add('hidden');
   const dashboardTab = document.getElementById('tab-dashboard');
@@ -3714,6 +3718,11 @@ function renderPermBadges(perms) {
   const b = [];
   if (perms.attendance !== false) b.push('<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">غياب ✓</span>');
   if (perms.behavior !== false) b.push('<span class="bg-teal-100 text-teal-800 px-2 py-0.5 rounded text-[10px] font-bold">سلوك ✓</span>');
+  if (perms.dutyToday !== false) b.push('<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-[10px] font-bold">مناوبة اليوم</span>');
+  if (perms.dashboard) b.push('<span class="bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded text-[10px] font-bold">الرئيسية</span>');
+  if (perms.users) b.push('<span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded text-[10px] font-bold">مستخدمون</span>');
+  if (perms.teachers) b.push('<span class="bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">معلمون</span>');
+  if (perms.sync) b.push('<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-[10px] font-bold">مزامنة</span>');
   if (perms.duty) b.push('<span class="bg-orange-100 text-orange-800 px-2 py-0.5 rounded text-[10px] font-bold">مناوبة</span>');
   if (perms.studentAffairs) b.push('<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">شؤون الطلاب</span>');
   if (perms.admin) b.push('<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">إدارة</span>');
@@ -3728,7 +3737,7 @@ function renderPermBadges(perms) {
   return b.join(' ') || '<span class="text-slate-400 text-[10px]">صلاحيات افتراضية</span>';
 }
 function buildTeacherPermissions(category) {
-  return { category, attendance: true, behavior: true, studstats: false, behaviorstats: false, students: false, teachers: false, users: false, duty: false, alerts: false, reports: false, sync: false, security: false, studentAffairs: false, admin: false };
+  return { category, attendance: false, behavior: false, dutyToday: false, dashboard: false, studstats: false, behaviorstats: false, students: false, teachers: false, users: false, duty: false, alerts: false, reports: false, sync: false, security: false, studentAffairs: false, admin: false };
 }
 async function addNewTeacher() {
   const name = document.getElementById('newTeacherName').value.trim();
@@ -3897,6 +3906,13 @@ function openPermissionsModal(idx) {
   currentEditingTeacherIndex = idx;
   document.getElementById('permTeacherName').textContent = t.name;
   const p = t.permissions || {};
+  document.getElementById('perm_p_attendance').checked = p.attendance !== false;
+  document.getElementById('perm_p_behavior').checked = p.behavior !== false;
+  document.getElementById('perm_p_dutyToday').checked = p.dutyToday !== false;
+  document.getElementById('perm_p_dashboard').checked = !!p.dashboard;
+  document.getElementById('perm_p_users').checked = !!p.users;
+  document.getElementById('perm_p_teachers').checked = !!p.teachers;
+  document.getElementById('perm_p_sync').checked = !!p.sync;
   document.getElementById('perm_p_studstats').checked = !!p.studstats;
   document.getElementById('perm_p_behaviorstats').checked = !!p.behaviorstats;
   document.getElementById('perm_p_students').checked = !!p.students;
@@ -3914,7 +3930,13 @@ async function saveTeacherPermissions() {
   if (currentEditingTeacherIndex === null) return;
   const t = db.teachers[currentEditingTeacherIndex]; if (!t) return;
   if (!t.permissions) t.permissions = {};
-  t.permissions.attendance = true; t.permissions.behavior = true;
+  t.permissions.attendance = document.getElementById('perm_p_attendance').checked;
+  t.permissions.behavior = document.getElementById('perm_p_behavior').checked;
+  t.permissions.dutyToday = document.getElementById('perm_p_dutyToday').checked;
+  t.permissions.dashboard = document.getElementById('perm_p_dashboard').checked;
+  t.permissions.users = document.getElementById('perm_p_users').checked;
+  t.permissions.teachers = document.getElementById('perm_p_teachers').checked;
+  t.permissions.sync = document.getElementById('perm_p_sync').checked;
   t.permissions.studstats = document.getElementById('perm_p_studstats').checked;
   t.permissions.behaviorstats = document.getElementById('perm_p_behaviorstats').checked;
   t.permissions.students = document.getElementById('perm_p_students').checked;
@@ -4055,7 +4077,7 @@ function refreshDutyDashboardCard() {
       return now <= lastEnd + 30; 
   };
 
-  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
+  const isTE = activeUser?.type === 'teacher' && activeUser.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
   const show = isA || hasDutyPerm || isTE;
   
   card.classList.toggle('hidden', !show);
@@ -4084,7 +4106,7 @@ function openDutyView() {
   d.periods.forEach(p => { const e = toMinutes(p.end); if (e !== null && e > lastEnd) lastEnd = e; });
   const isWithinTime = lastEnd === 0 || now <= lastEnd + 30;
   
-  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && isWithinTime;
+  const isTE = activeUser?.type === 'teacher' && activeUser.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && isWithinTime;
 
   if (!isA && !hasDutyPerm && !isTE) { showToast('غير متاح حالياً أو انتهى وقت العمل.', 'error'); return; }
   
