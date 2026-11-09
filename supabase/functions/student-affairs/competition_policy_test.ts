@@ -10,6 +10,11 @@ import {
   getSessionCoverage
 } from "./competition_policy.ts";
 
+const periods = [1, 2, 3, 4, 5, 6, 7, 8];
+function sessions(className, records = {}, date = "2026-11-08") {
+  return periods.map(period => ({ date_str: date, class_name: className, period, records: period === 1 ? records : {} }));
+}
+
 Deno.test("gradeForClassName supports the repository's class/grade format", () => {
   if (gradeForClassName("1/9") !== "9") throw new Error("1/9 must resolve to grade 9");
   if (gradeForClassName("8/12") !== "12") throw new Error("8/12 must resolve to grade 12");
@@ -26,24 +31,26 @@ Deno.test("school week is Sunday through Thursday", () => {
 
 Deno.test("attendance incidents deduplicate the same student and status across periods", () => {
   const rows = [
-    { date_str: "2026-11-08", class_name: "1/9", records: { "طالب أ": "absent", "طالب ب": "late" } },
-    { date_str: "2026-11-08", class_name: "1/9", records: { "طالب أ": "absent", "طالب ب": "escape" } }
+    { date_str: "2026-11-08", class_name: "1/9", period: 1, records: { "طالب أ": "absent", "طالب ب": "late" } },
+    { date_str: "2026-11-08", class_name: "1/9", period: 2, records: { "طالب أ": "absent", "طالب ب": "escape" } }
   ];
   if (countAttendanceIncidents(rows) !== 3) throw new Error("attendance deduplication failed");
 });
 
 Deno.test("behavior incidents deduplicate repeated same-type entries per student per day", () => {
   const rows = [
-    { date_str: "2026-11-08", class_name: "1/9", records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "normal" } } },
-    { date_str: "2026-11-08", class_name: "1/9", records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "sleeping" } } }
+    { date_str: "2026-11-08", class_name: "1/9", period: 1, records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "normal" } } },
+    { date_str: "2026-11-08", class_name: "1/9", period: 2, records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "sleeping" } } }
   ];
   if (countBehaviorIncidents(rows) !== 2) throw new Error("behavior deduplication failed");
 });
 
-Deno.test("team day is incomplete unless every class has attendance and behavior sessions", () => {
-  const attendance = getSessionCoverage([{ date_str: "2026-11-08", class_name: "1/9" }, { date_str: "2026-11-08", class_name: "2/9" }]);
-  const behavior = getSessionCoverage([{ date_str: "2026-11-08", class_name: "1/9" }]);
-  if (isTeamDayComplete(["1/9", "2/9"], "2026-11-08", attendance, behavior)) throw new Error("missing behavior session must not be treated as zero violations");
+Deno.test("a team day requires all eight lesson records for every class and domain", () => {
+  const attendance = getSessionCoverage([...sessions("1/9"), ...sessions("2/9")]);
+  const behavior = getSessionCoverage(sessions("1/9"));
+  if (isTeamDayComplete(["1/9", "2/9"], "2026-11-08", attendance, behavior)) throw new Error("missing class behavior sessions must not be treated as zero violations");
+  const completeBehavior = getSessionCoverage([...sessions("1/9"), ...sessions("2/9")]);
+  if (!isTeamDayComplete(["1/9", "2/9"], "2026-11-08", attendance, completeBehavior)) throw new Error("eight complete sessions per class should qualify");
 });
 
 Deno.test("relative scoring rewards lower rates and preserves ties", () => {
@@ -68,12 +75,12 @@ Deno.test("team rates use only the selected class and requested date range", () 
     from: "2026-11-08",
     to: "2026-11-08",
     attendanceRows: [
-      { date_str: "2026-11-08", class_name: "1/9", records: { "طالب أ": "absent" } },
-      { date_str: "2026-11-09", class_name: "1/9", records: { "طالب ب": "late" } },
-      { date_str: "2026-11-08", class_name: "2/9", records: { "طالب ب": "late" } }
+      ...sessions("1/9", { "طالب أ": "absent" }),
+      { date_str: "2026-11-09", class_name: "1/9", period: 1, records: { "طالب ب": "late" } },
+      { date_str: "2026-11-08", class_name: "2/9", period: 1, records: { "طالب ب": "late" } }
     ],
     behaviorRows: [
-      { date_str: "2026-11-08", class_name: "1/9", records: { "طالب ب": { type: "talking" } } }
+      ...sessions("1/9", { "طالب ب": { type: "talking" } })
     ]
   });
   if (!team.complete || team.attendanceIncidents !== 1 || team.behaviorIncidents !== 1 || team.studentDays !== 2) {
