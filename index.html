@@ -823,7 +823,7 @@
         <div id="dashboardMetricsSection" class="grid grid-cols-1 md:grid-cols-3 gap-5">
           <div class="group p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden">
             <div class="absolute top-0 right-0 w-2 h-full bg-blue-600"></div>
-            <div class="flex items-center justify-between"><div><span class="text-xs font-black text-slate-500 dark:text-slate-400 block mb-1">معدل الحضور اليومي للطلاب</span><strong id="dashAttendanceRate" class="text-3xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors">—</strong><p class="text-xs font-bold text-rose-600 mt-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span>غائب اليوم: <b id="dashAbsentToday" class="font-black">0</b> طالب</span></p></div><div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl shadow-inner"><i class="fa-solid fa-user-check"></i></div></div>
+            <div class="flex items-center justify-between"><div><span class="text-xs font-black text-slate-500 dark:text-slate-400 block mb-1">معدل الحضور اليومي للطلاب</span><strong id="dashAttendanceRate" class="text-3xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors">—</strong><p class="text-xs font-bold text-rose-600 mt-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span>غائب اليوم: <b id="dashAbsentToday" class="font-black">0</b> طالب</span><span class="text-slate-500">من إجمالي <b id="dashTotalSchoolStudents" class="font-black text-slate-700 dark:text-slate-200">0</b> طالب</span></p></div><div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl shadow-inner"><i class="fa-solid fa-user-check"></i></div></div>
           </div>
           <div class="group p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden">
             <div class="absolute top-0 right-0 w-2 h-full bg-amber-500"></div>
@@ -834,6 +834,13 @@
             <div class="flex items-center justify-between"><div><span class="text-xs font-black text-slate-500 dark:text-slate-400 block mb-1">تغطية رصد الحصص اليوم</span><strong id="dashPeriodsRecorded" class="text-3xl font-black text-slate-800 dark:text-white group-hover:text-emerald-500 transition-colors">0 / 0</strong><p class="text-xs font-bold text-emerald-600 mt-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-[10px]"></i><span>حصة مسجلة بالنظام</span></p></div><div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl shadow-inner"><i class="fa-solid fa-clipboard-check"></i></div></div>
           </div>
         </div>
+        <section id="dashboardStudentGradeCounts" class="p-5 sm:p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-800 pb-3">
+            <div><h3 class="font-black text-sm sm:text-base text-slate-800 dark:text-white">إجمالي طلاب المدرسة حسب الصف الدراسي</h3><p class="text-xs text-slate-500 mt-1">عدد الطلاب المسجلين فعلياً في قوائم الصفوف من الأول إلى الثاني عشر</p></div>
+            
+          </div>
+          <div id="dashStudentsByGrade" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5"></div>
+        </section>
         <div id="dashboardUrgentSection" class="p-6 sm:p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-5">
           <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
             <div class="flex items-center gap-3">
@@ -2941,7 +2948,7 @@ function renderUrgentCategoryDetails(type) {
   }
   container.innerHTML = `
     <div class="space-y-3">
-      <div class="flex flex-wrap justify-between items-center gap-2 p-3.5 rounded-2xl ${selected.bg} border border-slate-200/60 dark:border-slate-700"><span class="font-black text-xs ${selected.color}">${selected.title} (مرتبة من الصف الأعلى للأقل)</span><span class="text-[11px] font-black px-3 py-1 rounded-xl bg-white dark:bg-slate-900 shadow-sm">إجمالي السجلات: ${rows.length}</span></div>
+      <div class="flex flex-wrap justify-between items-center gap-2 p-3.5 rounded-2xl ${selected.bg} border border-slate-200/60 dark:border-slate-700"><div class="space-y-1"><span class="font-black text-xs ${selected.color} block">${selected.title}</span><span class="text-[10px] text-slate-500 font-bold">مرتبة من الصف الأعلى إلى الأقل · إجمالي السجلات: ${rows.length}</span></div><button type="button" onclick="printUrgentCategoryReport('${type}')" class="px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-black shadow-md"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة الكشف</button></div>
       <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
         <table class="w-full text-xs text-right">
           <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-black border-b dark:border-slate-700"><tr><th class="p-3 text-center w-10">م</th><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">الحصة</th><th class="p-3">المعلم الراصد</th></tr></thead>
@@ -2951,6 +2958,26 @@ function renderUrgentCategoryDetails(type) {
         </table>
       </div>
     </div>`;
+}
+
+function printUrgentCategoryReport(type) {
+  const allowed = new Set(['absent', 'escape', 'late', 'outside']);
+  if (!allowed.has(type)) return;
+  const rows = getUrgentAttendanceRows(type);
+  if (!rows.length) { showToast('لا توجد بيانات متاحة للطباعة في هذا الكشف.', 'error'); return; }
+  const titles = {
+    absent: 'كشف متابعة حالات الغياب اليومي',
+    escape: 'كشف حالات التسرب من الحصص',
+    late: 'كشف حالات التأخر عن الحصص',
+    outside: 'كشف حالات الخروج من الحصص'
+  };
+  const popup = window.open('', '_blank');
+  if (!popup) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  popup.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>${esc(titles[type])}</title><style>
+    body{font-family:Arial,Tahoma,sans-serif;padding:24px;color:#0f172a}header{text-align:center;border-bottom:3px double #0284c7;padding-bottom:12px;margin-bottom:18px}h1{font-size:20px;color:#0369a1}h2{font-size:16px}p{font-size:12px;color:#475569}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #cbd5e1;padding:8px;font-size:12px}th{background:#f1f5f9}td:first-child,td:nth-child(3),td:nth-child(4){text-align:center}.sign{display:flex;justify-content:space-between;margin-top:40px;font-weight:bold;font-size:12px}@media print{body{padding:0}tr{break-inside:avoid}}
+  </style></head><body><header><h1>${esc(typeof SCHOOL_NAME !== 'undefined' ? SCHOOL_NAME : 'مدرسة أبو دجانة الأنصاري')}</h1><h2>${esc(titles[type])}</h2><p>تاريخ التقرير: ${new Date().toLocaleDateString('ar-OM')} · إجمالي السجلات: ${rows.length}</p></header><table><thead><tr><th>م</th><th>اسم الطالب</th><th>الصف</th><th>الحصة</th><th>المعلم الراصد</th></tr></thead><tbody>${rows.map((row,index)=>`<tr><td>${index+1}</td><td>${esc(row.student)}</td><td>${esc(formatClassName(row.class_name))}</td><td>${esc(row.period)}</td><td>${esc(row.teacher_name)}</td></tr>`).join('')}</tbody></table><div class="sign"><span>مُعد التقرير: إدارة المدرسة ....................</span><span>اعتماد المدير: ....................</span></div><script>window.onload=()=>setTimeout(()=>window.print(),250)<\/script></body></html>`);
+  popup.document.close();
 }
 
 function refreshUrgentCategoryCounts() {
@@ -2998,8 +3025,30 @@ function renderAdminOverview() {
       if (!previous || period > previous.period || (period === previous.period && stamp > previous.stamp)) latestByClass.set(className, { session, period, stamp });
     });
     let present = 0, considered = 0, absentToday = 0;
+    let totalSchoolStudents = 0;
+    const schoolRosters = db.students && typeof db.students === 'object' ? db.students : {};
+    const gradeCounts = Array(13).fill(0);
+    const classNamesForCounts = Array.isArray(db.classes) && db.classes.length ? db.classes : Object.keys(schoolRosters);
+    classNamesForCounts.forEach(className => {
+      const roster = Array.isArray(schoolRosters[className]) ? schoolRosters[className] : [];
+      const uniqueStudents = new Set(roster.map(name => String(name || '').trim()).filter(Boolean));
+      totalSchoolStudents += uniqueStudents.size;
+      const match = String(className || '').trim().match(/^(\d+)\s*[\/-]\s*(\d+)$/);
+      if (match) {
+        const grade = Number(match[2]);
+        if (grade >= 1 && grade <= 12) gradeCounts[grade] += uniqueStudents.size;
+      }
+    });
+    const gradeNames = ['','الأول','الثاني','الثالث','الرابع','الخامس','السادس','السابع','الثامن','التاسع','العاشر','الحادي عشر','الثاني عشر'];
+    const gradeContainer = document.getElementById('dashStudentsByGrade');
+    if (gradeContainer) {
+      gradeContainer.innerHTML = Array.from({length: 12}, (_, index) => {
+        const grade = index + 1;
+        return `<div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 p-3 text-center"><span class="block text-[11px] font-bold text-slate-500 dark:text-slate-400">الصف ${gradeNames[grade]}</span><strong class="block mt-1 text-xl font-black text-slate-800 dark:text-white">${gradeCounts[grade].toLocaleString('en-US')}</strong><span class="text-[10px] text-slate-400">طالب</span></div>`;
+      }).join('');
+    }
     latestByClass.forEach(({ session }, className) => {
-      const roster = Array.isArray(db.students?.[className]) ? db.students[className] : Object.keys(session.records || {});
+      const roster = Array.isArray(schoolRosters[className]) ? schoolRosters[className] : Object.keys(session.records || {});
       roster.forEach(student => {
         const status = session.records?.[student];
         if (!['present', 'absent', 'late', 'escape', 'outside'].includes(status)) return;
@@ -3008,8 +3057,11 @@ function renderAdminOverview() {
         if (status === 'absent') absentToday++;
       });
     });
-    setText('dashAttendanceRate', considered ? Math.round((present / considered) * 100) + '%' : '—');
-    setText('dashAbsentToday', considered ? absentToday.toLocaleString('en-US') : '0');
+    // لا نفترض أن الطالب حاضر إذا لم يُرصد؛ المقام هو إجمالي قوائم الطلاب الفعلية.
+    const attendanceDenominator = totalSchoolStudents || considered;
+    setText('dashTotalSchoolStudents', totalSchoolStudents || considered);
+    setText('dashAttendanceRate', attendanceDenominator ? Math.round((present / attendanceDenominator) * 100) + '%' : '—');
+    setText('dashAbsentToday', absentToday.toLocaleString('en-US'));
     const expectedPeriods = (db.classes || []).length * 8;
     setText('dashPeriodsRecorded', recordedPeriods.toLocaleString('en-US') + ' / ' + expectedPeriods.toLocaleString('en-US'));
     let behaviorCount = 0;
