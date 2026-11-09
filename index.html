@@ -635,7 +635,7 @@
         <div id="saCompetitionPodium" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-            <div class="mb-4"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور نقاط الفرق خلال الأسبوع</h4><p class="mt-1 text-[11px] text-slate-500">كل نقطة تظهر بعد اكتمال سجلات الغياب والسلوك لجميع شعب المرحلة في ذلك اليوم.</p></div>
+            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور نقاط الفرق خلال الفترة</h4><p class="mt-1 text-[11px] text-slate-500">كل نقطة تظهر بعد اكتمال سجلات الغياب والسلوك لجميع شعب المرحلة في ذلك اليوم.</p></div>
             <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور نقاط الفرق"></canvas></div>
           </section>
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
@@ -1605,7 +1605,7 @@ function saSetupCompetitionPanel(){
   if(!panel)return;
   const enabled=saCanViewCompetition();
   panel.classList.toggle("hidden",!enabled);
-  if(enabled&&!panel.dataset.initialized){panel.dataset.initialized="true";saSetCompetitionPeriod("weekly");}
+  if(enabled&&!panel.dataset.initialized){panel.dataset.initialized="true";saSetCompetitionPeriod("weekly");}else if(enabled){saLoadCompetition();}
 }
 function saCompetitionGradeLabel(grade){return ({"9":"التواسع","10":"العواشر","11":"الحادي عشر","12":"الثاني عشر"})[String(grade)]||("المرحلة "+grade);}
 function saCompetitionDayLabel(date){
@@ -1673,6 +1673,8 @@ function saRenderCompetition(data){
     }
     recommendations.innerHTML=lines.length?lines.map((line,index)=>'<div class="flex items-start gap-2 rounded-xl border border-teal-100 bg-white p-3 text-xs leading-6 text-slate-700 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-200"><span class="mt-0.5 text-amber-500">'+(index+1)+'.</span><span>'+line+'</span></div>').join(""):'<div class="rounded-xl bg-white p-3 text-xs font-bold text-teal-800 dark:bg-slate-900 dark:text-teal-200">ممتاز! لم تسجل معدلات مخالفات في الشعب المكتملة ضمن الفترة المحددة.</div>';
   }
+  const chartTitle=document.getElementById("saCompetitionChartTitle");
+  if(chartTitle){const title=saCompetitionPeriod==="weekly"?"تطور نقاط الفرق خلال أيام الأسبوع":saCompetitionPeriod==="monthly"?"تطور نقاط الفرق خلال الشهر":"تطور نقاط الفرق خلال الفصل الدراسي";chartTitle.innerHTML='<i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> '+title;}
   const canvas=document.getElementById("saCompetitionChart");
   if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
   if(canvas&&typeof Chart!=="undefined"){
