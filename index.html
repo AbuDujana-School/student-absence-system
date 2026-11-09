@@ -2855,9 +2855,10 @@ function setupRolePermissions() {
     text.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة";
     badge.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "إداري مؤقت" : "إدارة";
     badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
+    const dashboardTab = document.getElementById('tab-dashboard'); if (dashboardTab) dashboardTab.style.display = 'flex';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
-    switchAdminTab('studstats');
+    switchAdminTab('dashboard');
   } else {
     text.textContent = `صلاحية الدخول: ${activeUser?.name || ''}`;
     badge.textContent = activeUser?.type === 'custom' ? "مستخدم مخصص" : "معلم بصلاحيات";
@@ -2872,6 +2873,89 @@ function setupRolePermissions() {
     if (first) switchAdminTab(first);
   }
   initAdminDashboard();
+}
+function renderAdminOverview() {
+  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin;
+  const canStats = isA || !!activeUser?.permissions?.studstats;
+  const canTeachers = isA || !!activeUser?.permissions?.teachers;
+  const canStudentAffairs = isA || activeUser?.permissions?.studentAffairs === true;
+  const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = String(value); };
+  const toggle = (id, visible) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !visible); };
+  setText('adminDashboardUserName', activeUser?.name || 'أستاذي الفاضل');
+  toggle('dashboardMetricsSection', canStats);
+  toggle('dashboardUrgentSection', canStats);
+  toggle('dashboardTeachersActivity', canTeachers);
+  const saAction = document.getElementById('dashboardStudentAffairsAction');
+  if (saAction) { saAction.classList.toggle('hidden', !canStudentAffairs); saAction.classList.toggle('flex', canStudentAffairs); }
+  if (canStats) {
+    const today = getOmanLocalDate();
+    const attendanceToday = [];
+    const latestByClass = new Map();
+    let recordedPeriods = 0;
+    Object.entries(db.attendance || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      const date = session.date || parsed.date;
+      if (date !== today) return;
+      attendanceToday.push({ key, session, parsed, period: Number(session.period || parsed.period || 0), className: session.className || parsed.className });
+      if (Object.keys(session.records).length) recordedPeriods++;
+      const className = session.className || parsed.className;
+      if (!className) return;
+      const previous = latestByClass.get(className);
+      const period = Number(session.period || parsed.period || 0);
+      const stamp = String(session.timestamp || '');
+      if (!previous || period > previous.period || (period === previous.period && stamp > previous.stamp)) latestByClass.set(className, { session, period, stamp });
+    });
+    let present = 0, considered = 0, absentToday = 0;
+    latestByClass.forEach(({ session }, className) => {
+      const roster = Array.isArray(db.students?.[className]) ? db.students[className] : Object.keys(session.records || {});
+      roster.forEach(student => {
+        const status = session.records?.[student];
+        if (!['present', 'absent', 'late', 'escape', 'outside'].includes(status)) return;
+        considered++;
+        if (status === 'present') present++;
+        if (status === 'absent') absentToday++;
+      });
+    });
+    setText('dashAttendanceRate', considered ? Math.round((present / considered) * 100) + '%' : '—');
+    setText('dashAbsentToday', considered ? absentToday.toLocaleString('en-US') : '0');
+    const expectedPeriods = (db.classes || []).length * 8;
+    setText('dashPeriodsRecorded', recordedPeriods.toLocaleString('en-US') + ' / ' + expectedPeriods.toLocaleString('en-US'));
+    let behaviorCount = 0;
+    Object.entries(db.behaviors || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      if ((session.date || parsed.date) !== today) return;
+      Object.values(session.records).forEach(record => { if (record && typeof record === 'object' && record.type && record.type !== 'normal') behaviorCount++; });
+    });
+    setText('dashBehaviorToday', behaviorCount.toLocaleString('en-US'));
+    const escapeStudents = new Set();
+    const lateDatesByStudent = new Map();
+    const weekDates = new Set();
+    for (let offset = 0; offset < 7; offset++) {
+      const d = new Date(getTrustedDate());
+      d.setDate(d.getDate() - offset);
+      weekDates.add(formatDateOman(d));
+    }
+    Object.entries(db.attendance || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      const date = session.date || parsed.date;
+      const className = session.className || parsed.className;
+      if (date === today) Object.entries(session.records).forEach(([student, status]) => { if (status === 'escape') escapeStudents.add(className + '::' + student); });
+      if (!weekDates.has(date)) return;
+      Object.entries(session.records).forEach(([student, status]) => {
+        if (status !== 'late') return;
+        const keyForStudent = className + '::' + student;
+        if (!lateDatesByStudent.has(keyForStudent)) lateDatesByStudent.set(keyForStudent, new Set());
+        lateDatesByStudent.get(keyForStudent).add(date);
+      });
+    });
+    const repeatedLateStudents = Array.from(lateDatesByStudent.values()).filter(dates => dates.size > 2).length;
+    setText('dashEscapeCount', escapeStudents.size.toLocaleString('en-US') + ' حالات');
+    setText('dashLateCount', repeatedLateStudents.toLocaleString('en-US') + ' طلاب');
+  }
+  if (canTeachers) renderTeachersActivity();
 }
 function initAdminDashboard() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
@@ -2891,25 +2975,34 @@ function initAdminDashboard() {
     if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
     if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); }
     if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
-    if (has('dashboard') || has('studstats') || has('teachers')) renderAdminOverview();
+    if (isA || has('studstats') || has('teachers')) renderAdminOverview();
   } catch(e) { console.error('initAdminDashboard', e); }
 }
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
-  if (!has(tab)) return;
-  ADMIN_TAB_PERMISSIONS.forEach(t => { document.getElementById(`sec-${t}`)?.classList.add('hidden'); const tb = document.getElementById(`tab-${t}`); if (tb) tb.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all'; });
-  document.getElementById(`sec-${tab}`)?.classList.remove('hidden');
-  const ab = document.getElementById(`tab-${tab}`); if (ab) ab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm';
+  const canDashboard = isA || !!activeUser?.permissions?.studstats || !!activeUser?.permissions?.teachers;
+  if (tab === 'dashboard' ? !canDashboard : !has(tab)) return;
+  document.getElementById('sec-dashboard')?.classList.add('hidden');
+  const dashboardTab = document.getElementById('tab-dashboard');
+  if (dashboardTab) dashboardTab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
+  ADMIN_TAB_PERMISSIONS.forEach(t => {
+    document.getElementById('sec-' + t)?.classList.add('hidden');
+    const tb = document.getElementById('tab-' + t);
+    if (tb) tb.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
+  });
+  document.getElementById('sec-' + tab)?.classList.remove('hidden');
+  const ab = document.getElementById('tab-' + tab);
+  if (ab) ab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm';
+  if (tab === 'dashboard') renderAdminOverview();
   if (tab === 'studstats') switchStatsSubTab('absence');
   if (tab === 'behaviorstats') renderBehaviorReportsSection();
   if (tab === 'users') renderCustomUsersList();
-  if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); renderTeachersActivity(); }
+  if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') renderReportsSection();
 }
-
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
 function loadAdminStudentsList() {
