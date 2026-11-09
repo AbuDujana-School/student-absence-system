@@ -130,6 +130,7 @@ async function getSession(req: Request) {
 }
 function asBool(v: unknown) { return v === true; }
 
+function competitionError(status: number, message: string): never { const error = new Error(message); (error as any).status = status; throw error; }
 function getOmanIsoDate() {
   const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
   const values: Record<string, string> = {};
@@ -194,11 +195,11 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const defaultWeek = getSchoolWeekRange(today);
   const from = fromValue == null ? defaultWeek.start : fromValue;
   const to = toValue == null ? defaultWeek.end : toValue;
-  if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) throw new Error("نطاق تاريخ البطولة غير صالح");
+  if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) competitionError(400, "نطاق تاريخ البطولة غير صالح");
   const spanDays = Math.floor((new Date(to + "T12:00:00.000Z").getTime() - new Date(from + "T12:00:00.000Z").getTime()) / 86400000) + 1;
-  if (spanDays > 370) throw new Error("الفترة المطلوبة تتجاوز الحد المسموح للتحليل");
+  if (spanDays > 370) competitionError(400, "الفترة المطلوبة تتجاوز الحد المسموح للتحليل");
   const schoolDays = getSchoolDays(from, to);
-  if (!schoolDays.length) throw new Error("الفترة المحددة لا تحتوي على أيام دراسية");
+  if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
 
   const [{ data: classRows, error: classError }] = await Promise.all([
     db.from("classes").select("name").order("name", { ascending: true })
@@ -222,13 +223,17 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   )];
   if (!admin) {
     if (permissions.can_view_analytics !== true || permissions.can_read_attendance !== true || permissions.can_read_behavior !== true) {
-      throw new Error("تحتاج لوحة المنافسة إلى صلاحيات التحليلات وقراءة الغياب والسلوك معاً.");
+      competitionError(403, "تحتاج لوحة المنافسة إلى صلاحيات التحليلات وقراءة الغياب والسلوك معاً.");
+    }
+    const requiredStatuses = ["absent", "late", "outside", "escape"];
+    if (requiredStatuses.some(status => !(permissions.attendance_statuses || []).includes(status))) {
+      competitionError(403, "يجب السماح بحالات الغياب والتأخر والخروج والتسرب جميعها لاحتساب نقاط المنافسة.");
     }
     if (!ownGrades.length || ownGrades.some(grade => !(classesByGrade[grade] || []).every(name =>
       (permissions.allowed_attendance_classes || []).includes(name) &&
       (permissions.allowed_behavior_classes || []).includes(name)
     ))) {
-      throw new Error("يجب تخصيص جميع شعب مرحلة واحدة على الأقل لقائد الفريق في الغياب والسلوك قبل تفعيل المنافسة.");
+      competitionError(403, "يجب تخصيص جميع شعب مرحلة واحدة على الأقل لقائد الفريق في الغياب والسلوك قبل تفعيل المنافسة.");
     }
   }
 
@@ -398,8 +403,9 @@ async function handle(req: Request) {
       const snapshot = await buildCompetitionSnapshot(p, permissions, body.from, body.to);
       return reply(200, snapshot);
     } catch (e) {
-      const message = e instanceof Error ? e.message : "تعذر إعداد نتائج المنافسة";
-      return reply(403, { error: message });
+      const status = Number((e as any)?.status) || 500;
+      const message = status < 500 && e instanceof Error ? e.message : "تعذر إعداد نتائج المنافسة حالياً.";
+      return reply(status, { error: message });
     }
   }
   if (body?.action === "reports") {
