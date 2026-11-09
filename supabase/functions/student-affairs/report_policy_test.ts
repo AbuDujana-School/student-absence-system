@@ -1,4 +1,4 @@
-import { authorizeReportMode } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
@@ -20,4 +20,11 @@ Deno.test("analytics and view permissions remain separate", () => {
 });
 Deno.test("unknown report mode is rejected", () => {
   if (authorizeReportMode({}, "admin_dump")?.status !== 400) throw new Error("unknown mode accepted");
+});
+
+Deno.test("ISO date validation rejects impossible calendar dates", () => {
+  if (!isValidIsoDate("2024-02-29")) throw new Error("valid leap day rejected");
+  if (isValidIsoDate("2025-02-29")) throw new Error("invalid leap day accepted");
+  if (isValidIsoDate("2026-02-31")) throw new Error("overflow date accepted");
+  if (isValidIsoDate("2026/11/09")) throw new Error("wrong date format accepted");
 });
