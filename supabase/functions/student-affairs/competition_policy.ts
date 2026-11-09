@@ -5,7 +5,7 @@
 
 export const COMPETITION_GRADES = ["9", "10", "11", "12"];
 export const COMPETITION_ATTENDANCE_STATUSES = ["absent", "late", "outside", "escape"];
-export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday through Thursday (Oman school week).
+export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday through Thursday (Oman school week).\nexport const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const ARABIC_GRADE_NAMES = [
   [/التاسع|تاسع/, "9"],
@@ -101,9 +101,13 @@ export function getSessionCoverage(rows) {
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str);
     const className = String(row?.class_name || "").trim();
-    if (!date || !className) continue;
-    if (!coverage.has(date)) coverage.set(date, new Set());
-    coverage.get(date).add(className);
+    const keyPeriod = String(row?.record_key || "").match(/_p?(\\d+)$/)?.[1];
+    const period = Number(row?.period || keyPeriod || 0);
+    if (!date || !className || !COMPETITION_REQUIRED_PERIODS.includes(period)) continue;
+    if (!coverage.has(date)) coverage.set(date, new Map());
+    const byClass = coverage.get(date);
+    if (!byClass.has(className)) byClass.set(className, new Set());
+    byClass.get(className).add(period);
   }
   return coverage;
 }
@@ -114,7 +118,11 @@ export function isTeamDayComplete(classNames, dateValue, attendanceCoverage, beh
   if (!date || !classes.length) return false;
   const attendance = attendanceCoverage instanceof Map ? attendanceCoverage.get(date) : null;
   const behavior = behaviorCoverage instanceof Map ? behaviorCoverage.get(date) : null;
-  return classes.every(name => attendance?.has(name) && behavior?.has(name));
+  const hasAllPeriods = (coverage, className) => {
+    const periods = coverage instanceof Map ? coverage.get(className) : null;
+    return COMPETITION_REQUIRED_PERIODS.every(period => periods?.has(period));
+  };
+  return classes.every(name => hasAllPeriods(attendance, name) && hasAllPeriods(behavior, name));
 }
 
 export function calculateRelativeCompetitionScores(teams) {
