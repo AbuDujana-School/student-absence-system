@@ -3,9 +3,6 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
-const APP_PEPPER = "AbuDujana_School_v3_2024_#Sec!PBKDF2";
-const LEGACY_APP_PEPPER = "AbuDujana_School_v2_2024_#Sec!";
-const PIN_ITERATIONS = 150000;
 const SESSION_HOURS = 8;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
 function reply(status: number, body: Record<string, unknown>) { return new Response(JSON.stringify(body), { status, headers: cors }); }
@@ -30,11 +27,19 @@ async function getPepper() {
 async function verifyNewPin(pin: string, salt: string, expected: string, pepper: string) {
   return equalHex(await pbkdf2(pepper + ":" + salt + ":" + pin, salt, 310000), expected);
 }
+async function getLegacyPeppers(): Promise<{ pbkdf2: string; sha256: string }> {
+  const { data, error } = await db.rpc("student_affairs_get_legacy_pin_peppers");
+  if (error || !data || typeof data.pbkdf2 !== "string" || typeof data.sha256 !== "string") {
+    throw new Error("Legacy PIN compatibility secrets are not configured in Vault");
+  }
+  return data as { pbkdf2: string; sha256: string };
+}
 async function verifyExistingPin(pin: string, salt: string, expected: string) {
   if (!salt || !expected) return false;
-  const modern = await pbkdf2(APP_PEPPER + ":" + salt + ":" + pin, salt, PIN_ITERATIONS);
+  const legacy = await getLegacyPeppers();
+  const modern = await pbkdf2(legacy.pbkdf2 + ":" + salt + ":" + pin, salt, PIN_ITERATIONS);
   if (equalHex(modern, expected)) return true;
-  return equalHex(await sha256(LEGACY_APP_PEPPER + ":" + salt + ":" + pin), expected);
+  return equalHex(await sha256(legacy.sha256 + ":" + salt + ":" + pin), expected);
 }
 function validPin(pin: unknown): pin is string { return typeof pin === "string" && /^[0-9]{4,10}$/.test(pin); }
 async function clientKey(req: Request) {
@@ -148,27 +153,50 @@ async function handle(req: Request) {
     const row = { principal_type: type, principal_name: name, allowed_classes: allowed, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
+    await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
     return reply(200, { ok: true, permissions: row });
   }
   if (body?.action === "reports") {
     const permissions = await permissionsFor(p);
     const allowed = new Set((permissions.allowed_classes || []) as string[]);
-    const requested = Array.isArray(body.classes) ? body.classes.map((x: unknown) => String(x)) : [...allowed];
-    const classes = requested.filter((x: string) => allowed.has(x));
+    const requested = Array.isArray(body.classes) ? [...new Set(body.classes.map((x: unknown) => String(x)))] : [...allowed];
+    if (requested.some((x: string) => !allowed.has(x))) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى الشعب المطلوبة" });
+    const classes = requested;
+    const mode = body.report_mode || "view";
+    const canPrintAttendance = permissions.can_print_attendance === true && permissions.can_read_attendance === true;
+    const canPrintBehavior = permissions.can_print_behavior === true && permissions.can_read_behavior === true;
+    if (mode === "print_attendance" && !canPrintAttendance) return reply(403, { error: "غير مصرح بطباعة تقرير الغياب" });
+    if (mode === "print_behavior" && !canPrintBehavior) return reply(403, { error: "غير مصرح بطباعة تقرير السلوك" });
+    if (mode === "print_combined" && !(permissions.can_print_combined === true && canPrintAttendance && canPrintBehavior)) return reply(403, { error: "غير مصرح بطباعة التقرير الموحد" });
+    if (mode === "view" && !permissions.can_read_attendance && !permissions.can_read_behavior) return reply(403, { error: "لا تملك صلاحية عرض التقارير" });
+    if (mode === "analytics" && permissions.can_view_analytics !== true) return reply(403, { error: "غير مصرح بعرض التحليلات" });
+    if (!["view", "analytics", "print_attendance", "print_behavior", "print_combined"].includes(mode)) return reply(400, { error: "نوع التقرير غير صالح" });
     if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
-    const from = /^\d{4}-\d{2}-\d{2}$/.test(body.from || "") ? body.from : "2000-01-01";
-    const to = /^\d{4}-\d{2}-\d{2}$/.test(body.to || "") ? body.to : "2100-12-31";
+    const validDate = (v: unknown) => typeof v === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + "T00:00:00Z"));
+    const from = body.from == null ? "2000-01-01" : body.from;
+    const to = body.to == null ? "2100-12-31" : body.to;
+    if (!validDate(from) || !validDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
+    if (mode === "analytics") {
+      const analytics: Record<string, unknown> = {};
+      for (const className of classes) {
+        const [a, b] = await Promise.all([
+          db.from("attendance").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", from).lte("date_str", to),
+          db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", from).lte("date_str", to)
+        ]);
+        if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
+        analytics[className] = { attendance_sessions: a.count || 0, behavior_sessions: b.count || 0 };
+      }
+      return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
+    }
+    const includeAttendance = permissions.can_read_attendance && (mode === "view" || mode === "print_attendance" || mode === "print_combined");
+    const includeBehavior = permissions.can_read_behavior && (mode === "view" || mode === "print_behavior" || mode === "print_combined");
     const jobs: Promise<any>[] = [];
-    const attendanceSelect = permissions.can_read_attendance ? "record_key,date_str,class_name,period,teacher_name,records" : "class_name";
-    const behaviorSelect = permissions.can_read_behavior ? "record_key,date_str,class_name,period,teacher_name,records" : "class_name";
-    jobs.push((permissions.can_read_attendance || permissions.can_view_analytics) ? db.from("attendance").select(attendanceSelect).in("class_name", classes).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000) : Promise.resolve({ data: [], error: null }));
-    jobs.push((permissions.can_read_behavior || permissions.can_view_analytics) ? db.from("behaviors").select(behaviorSelect).in("class_name", classes).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000) : Promise.resolve({ data: [], error: null }));
-    jobs.push(permissions.can_read_attendance || permissions.can_read_behavior ? db.from("students").select("class_name,student_name").in("class_name", classes).order("student_name").limit(10000) : Promise.resolve({ data: [], error: null }));
+    jobs.push(includeAttendance ? db.from("attendance").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", classes).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000) : Promise.resolve({ data: [], error: null }));
+    jobs.push(includeBehavior ? db.from("behaviors").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", classes).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000) : Promise.resolve({ data: [], error: null }));
+    jobs.push(includeAttendance || includeBehavior ? db.from("students").select("class_name,student_name").in("class_name", classes).order("student_name").limit(10000) : Promise.resolve({ data: [], error: null }));
     const [attendance, behaviors, students] = await Promise.all(jobs);
     if (attendance.error || behaviors.error || students.error) return reply(500, { error: "تعذر تحميل التقارير" });
-    const analytics: Record<string, unknown> = {};
-    if (permissions.can_view_analytics) for (const c of classes) analytics[c] = { attendance_sessions: (attendance.data || []).filter((x: any) => x.class_name === c).length, behavior_sessions: (behaviors.data || []).filter((x: any) => x.class_name === c).length };
-    return reply(200, { attendance: permissions.can_read_attendance ? attendance.data || [] : [], behaviors: permissions.can_read_behavior ? behaviors.data || [] : [], students: students.data || [], analytics, permissions });
+    return reply(200, { attendance: includeAttendance ? attendance.data || [] : [], behaviors: includeBehavior ? behaviors.data || [] : [], students: students.data || [], analytics: {}, permissions });
   }
   return reply(400, { error: "Unknown action" });
 }
