@@ -710,24 +710,25 @@
       <h3 class="font-extrabold text-sm text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-shield-halved text-emerald-600"></i> صلاحيات: <span id="permTeacherName" class="text-emerald-700"></span></h3>
       <button onclick="closePermissionsModal()" class="text-slate-400 text-base"><i class="fa-solid fa-xmark"></i></button>
     </div>
-    <div class="bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 rounded-2xl p-4">
-      <div class="text-xs font-black text-emerald-900 dark:text-emerald-200 mb-2 flex items-center gap-2"><i class="fa-solid fa-check-circle text-emerald-600"></i> الصلاحيات الافتراضية (مفعّلة تلقائياً)</div>
-      <div class="grid grid-cols-3 gap-2 text-[11px] font-bold text-emerald-800 dark:text-emerald-300">
-        <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">📋 رصد الغياب</div>
-        <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">⚖️ رصد السلوكيات</div>
-        <div class="bg-white dark:bg-slate-800 p-2 rounded-lg text-center border border-emerald-200">🕒 المناوبة (في يومها)</div>
-      </div>
+    <div class="bg-sky-50 dark:bg-sky-950/30 border border-sky-200 dark:border-sky-800 rounded-2xl p-4">
+      <div class="text-xs font-black text-sky-900 dark:text-sky-200 mb-1 flex items-center gap-2"><i class="fa-solid fa-circle-info text-sky-600"></i> صلاحيات الدخول والرصد</div>
+      <p class="text-[11px] leading-6 font-semibold text-sky-800 dark:text-sky-200">حدد بنفسك الصلاحيات التي يحتاجها هذا المعلم. يمكنك تفعيل أو إيقاف رصد الغياب والسلوكيات من الخيارات أدناه، وتبقى المناوبة اليومية مرتبطة بيوم المناوبة المحدد للمعلم.</p>
     </div>
     <div class="space-y-2 border-2 border-orange-300 dark:border-orange-700 bg-orange-50 dark:bg-orange-950/30 rounded-2xl p-4 shadow-sm"><label for="perm_teacher_duty_day" class="block text-sm font-black text-orange-900 dark:text-orange-200">🕒 تغيير يوم المناوبة لهذا المعلم</label><select id="perm_teacher_duty_day" class="w-full p-3 bg-white dark:bg-slate-900 border-2 border-orange-200 dark:border-orange-800 rounded-xl text-sm font-bold"><option value="">استخدم يوم مناوبة المادة/القسم</option><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select><p class="text-[11px] font-semibold text-orange-800 dark:text-orange-200">اختر يوماً مستقلاً لهذا المعلم. اتركه على الخيار الأول للعودة تلقائياً إلى يوم مناوبة المادة/القسم.</p></div>
     <div>
       <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم</div>
       <div class="grid grid-cols-2 gap-2">
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800"><input type="checkbox" id="perm_p_attendance" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📋 رصد الغياب</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-teal-50 dark:bg-teal-950/30 rounded-2xl border border-teal-200 dark:border-teal-800"><input type="checkbox" id="perm_p_behavior" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ رصد السلوكيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_studstats" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📊 الإحصائيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_behaviorstats" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ كشوفات السلوك</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_users" class="accent-sky-600 w-4 h-4"><span class="text-xs font-bold">👥 إدارة المستخدمين</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_teachers" class="accent-cyan-600 w-4 h-4"><span class="text-xs font-bold">👨‍🏫 إدارة المعلمين</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_students" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🎓 إدارة الطلاب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_alerts" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold">🔔 التنبيهات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📄 التقارير</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_duty" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة الدائمة</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_sync" class="accent-violet-600 w-4 h-4"><span class="text-xs font-bold">🔄 المزامنة</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4"><span class="text-xs font-bold">🔐 الأمان</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-blue-50 dark:bg-blue-950/30 rounded-2xl border border-blue-200 dark:border-blue-800 col-span-2"><input type="checkbox" id="perm_p_studentAffairs" class="accent-blue-600 w-4 h-4"><span class="text-xs font-bold text-blue-800 dark:text-blue-200">🎓 السماح بدخول شؤون الطلاب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-red-50 dark:bg-red-950/40 rounded-2xl border-2 border-red-300 dark:border-red-800 col-span-2"><input type="checkbox" id="perm_p_admin" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold text-red-700 dark:text-red-300">👑 الإدارة الكاملة (كل التبويبات)</span></label>
@@ -3720,7 +3721,10 @@ function renderPermBadges(perms) {
   else {
     if (perms.studstats) b.push('<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">إحصاء</span>');
     if (perms.behaviorstats) b.push('<span class="bg-blue-100 text-blue-800 px-2 py-0.5 rounded text-[10px] font-bold">كشوف</span>');
+    if (perms.users) b.push('<span class="bg-sky-100 text-sky-800 px-2 py-0.5 rounded text-[10px] font-bold">مستخدمون</span>');
+    if (perms.teachers) b.push('<span class="bg-cyan-100 text-cyan-800 px-2 py-0.5 rounded text-[10px] font-bold">معلمون</span>');
     if (perms.students) b.push('<span class="bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded text-[10px] font-bold">طلاب</span>');
+    if (perms.sync) b.push('<span class="bg-violet-100 text-violet-800 px-2 py-0.5 rounded text-[10px] font-bold">مزامنة</span>');
     if (perms.alerts) b.push('<span class="bg-red-100 text-red-800 px-2 py-0.5 rounded text-[10px] font-bold">تنبيه</span>');
     if (perms.reports) b.push('<span class="bg-purple-100 text-purple-800 px-2 py-0.5 rounded text-[10px] font-bold">تقارير</span>');
     if (perms.security) b.push('<span class="bg-slate-200 text-slate-800 px-2 py-0.5 rounded text-[10px] font-bold">أمان</span>');
@@ -3897,8 +3901,12 @@ function openPermissionsModal(idx) {
   currentEditingTeacherIndex = idx;
   document.getElementById('permTeacherName').textContent = t.name;
   const p = t.permissions || {};
+  document.getElementById('perm_p_attendance').checked = p.attendance !== false;
+  document.getElementById('perm_p_behavior').checked = p.behavior !== false;
   document.getElementById('perm_p_studstats').checked = !!p.studstats;
   document.getElementById('perm_p_behaviorstats').checked = !!p.behaviorstats;
+  document.getElementById('perm_p_users').checked = !!p.users;
+  document.getElementById('perm_p_teachers').checked = !!p.teachers;
   document.getElementById('perm_p_students').checked = !!p.students;
   document.getElementById('perm_p_alerts').checked = !!p.alerts;
   document.getElementById('perm_p_reports').checked = !!p.reports;
@@ -3914,13 +3922,17 @@ async function saveTeacherPermissions() {
   if (currentEditingTeacherIndex === null) return;
   const t = db.teachers[currentEditingTeacherIndex]; if (!t) return;
   if (!t.permissions) t.permissions = {};
-  t.permissions.attendance = true; t.permissions.behavior = true;
+  t.permissions.attendance = document.getElementById('perm_p_attendance').checked;
+  t.permissions.behavior = document.getElementById('perm_p_behavior').checked;
   t.permissions.studstats = document.getElementById('perm_p_studstats').checked;
   t.permissions.behaviorstats = document.getElementById('perm_p_behaviorstats').checked;
+  t.permissions.users = document.getElementById('perm_p_users').checked;
+  t.permissions.teachers = document.getElementById('perm_p_teachers').checked;
   t.permissions.students = document.getElementById('perm_p_students').checked;
   t.permissions.alerts = document.getElementById('perm_p_alerts').checked;
   t.permissions.reports = document.getElementById('perm_p_reports').checked;
   t.permissions.duty = document.getElementById('perm_p_duty').checked;
+  t.permissions.sync = document.getElementById('perm_p_sync').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
   t.permissions.studentAffairs = document.getElementById('perm_p_studentAffairs').checked;
   t.permissions.admin = document.getElementById('perm_p_admin').checked;
