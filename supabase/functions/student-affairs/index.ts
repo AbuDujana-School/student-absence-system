@@ -221,8 +221,8 @@ async function handle(req: Request) {
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
         const [a, b] = await Promise.all([
-          allowedAttendance.has(className) && permissions.can_read_attendance ? db.from("attendance").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any),
-          allowedBehavior.has(className) && permissions.can_read_behavior ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
+          allowedAttendance.has(className) ? db.from("attendance").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any),
+          allowedBehavior.has(className) ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
         ]);
         if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
         analytics[className] = { attendance_sessions: a.count || 0, behavior_sessions: b.count || 0 };
