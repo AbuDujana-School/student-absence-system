@@ -38,3 +38,21 @@ export function isValidIsoDate(value: unknown): value is string {
   const parsed = new Date(value + "T00:00:00.000Z");
   return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
+
+export const ATTENDANCE_STATUS_KEYS = ["absent", "late", "escape", "outside"] as const;
+export function filterAttendanceRecordMap(records: unknown, allowedStatuses: string[], selectedStatus?: string | null): Record<string, unknown> {
+  if (!records || typeof records !== "object" || Array.isArray(records)) return {};
+  const allowed = new Set(allowedStatuses.filter(x => (ATTENDANCE_STATUS_KEYS as readonly string[]).includes(x)));
+  if (selectedStatus && !allowed.has(selectedStatus)) return {};
+  return Object.fromEntries(Object.entries(records as Record<string, unknown>).filter(([, value]) => {
+    const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
+    return allowed.has(status) && (!selectedStatus || status === selectedStatus);
+  }));
+}
+export function filterBehaviorRecordMap(records: unknown): Record<string, unknown> {
+  if (!records || typeof records !== "object" || Array.isArray(records)) return {};
+  return Object.fromEntries(Object.entries(records as Record<string, unknown>).filter(([, value]) => {
+    const type = value && typeof value === "object" ? String((value as Record<string, unknown>).type || "") : String(value || "");
+    return type !== "" && type !== "normal";
+  }));
+}
