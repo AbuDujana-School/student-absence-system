@@ -169,10 +169,17 @@ export function buildTeamRates({ grade, classNames, rosters, attendanceRows, beh
   const rosterMap = rosters && typeof rosters === "object" ? rosters : {};
   const studentCount = classes.reduce((sum, name) => sum + (Array.isArray(rosterMap[name]) ? new Set(rosterMap[name].map(x => String(x || "").trim()).filter(Boolean)).size : 0), 0);
   const hasEveryRoster = classes.length > 0 && classes.every(name => Array.isArray(rosterMap[name]));
-  const attendanceCoverage = getSessionCoverage(attendanceRows);
-  const behaviorCoverage = getSessionCoverage(behaviorRows);
-  const attendanceCount = countAttendanceIncidents(attendanceRows);
-  const behaviorCount = countBehaviorIncidents(behaviorRows);
+  const classSet = new Set(classes);
+  const inRangeRows = rows => (Array.isArray(rows) ? rows : []).filter(row => {
+    const date = asIsoDate(row?.date_str);
+    return date && date >= from && date <= to && classSet.has(String(row?.class_name || "").trim());
+  });
+  const scopedAttendanceRows = inRangeRows(attendanceRows);
+  const scopedBehaviorRows = inRangeRows(behaviorRows);
+  const attendanceCoverage = getSessionCoverage(scopedAttendanceRows);
+  const behaviorCoverage = getSessionCoverage(scopedBehaviorRows);
+  const attendanceCount = countAttendanceIncidents(scopedAttendanceRows);
+  const behaviorCount = countBehaviorIncidents(scopedBehaviorRows);
   const completeDays = days.filter(day => isTeamDayComplete(classes, day, attendanceCoverage, behaviorCoverage));
   const complete = hasEveryRoster && studentCount > 0 && days.length > 0 && completeDays.length === days.length;
   const studentDays = studentCount * completeDays.length;
