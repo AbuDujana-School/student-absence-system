@@ -835,11 +835,19 @@
           </div>
         </div>
         <div id="dashboardUrgentSection" class="p-6 sm:p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-5">
-          <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800"><div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-bell font-black"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">حالات الطلاب المتكررة (تستدعي التدخل)</h3><p class="text-xs text-slate-500 font-bold">تنبيهات تلقائية للحالات الحرجة لاتخاذ الإجراءات التربوية</p></div></div></div>
-          <div id="urgentCasesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="p-5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between shadow-sm"><div class="space-y-1"><span class="text-xs font-black text-rose-900 dark:text-rose-200 block flex items-center gap-2"><i class="fa-solid fa-person-walking-arrow-right"></i> حالات التسرب المرصودة اليوم</span><p class="text-[11px] text-slate-500 font-bold">يتوجب التواصل وتفريغ ملفات المتابعة</p></div><span id="dashEscapeCount" class="px-4 py-2 bg-rose-600 text-white text-xs font-black rounded-2xl shadow-md">0 حالات</span></div>
-            <div class="p-5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between shadow-sm"><div class="space-y-1"><span class="text-xs font-black text-amber-900 dark:text-amber-200 block flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> التكرار في التأخر الصباحي</span><p class="text-[11px] text-slate-500 font-bold">الطلاب المتأخرون أكثر من مرتين هذا الأسبوع</p></div><span id="dashLateCount" class="px-4 py-2 bg-amber-600 text-white text-xs font-black rounded-2xl shadow-md">0 طلاب</span></div>
+          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-lg"><i class="fa-solid fa-bell"></i></div>
+              <div><h3 class="font-black text-base sm:text-lg text-slate-800 dark:text-white">حالات الحضور والغياب (اضغط على البطاقة للتفاصيل)</h3><p class="text-xs text-slate-500">انقر على أي حالة لعرض كشف الطلاب التفصيلي المرتب من الصف الأعلى للأقل</p></div>
+            </div>
           </div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
+            <button type="button" onclick="toggleUrgentCategory('absent')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/60 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-slate-800 dark:text-slate-200 block">1. حالات الغياب</span><p class="text-[10px] text-slate-500 mt-0.5">حسب الحصص المسجلة اليوم</p></div><span id="dashAbsentCount" class="px-3 py-1.5 bg-slate-800 text-white text-xs font-black rounded-xl">0 حالات</span></button>
+            <button type="button" onclick="toggleUrgentCategory('escape')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-rose-50/70 hover:bg-rose-100/80 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-rose-900 dark:text-rose-200 block">2. حالات التسرب</span><p class="text-[10px] text-rose-600/80 dark:text-rose-400 mt-0.5">انقر للاستعراض</p></div><span id="dashEscapeCount" class="px-3 py-1.5 bg-rose-600 text-white text-xs font-black rounded-xl">0 حالات</span></button>
+            <button type="button" onclick="toggleUrgentCategory('late')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-amber-50/70 hover:bg-amber-100/80 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-amber-900 dark:text-amber-200 block">3. حالات التأخر</span><p class="text-[10px] text-amber-600/80 dark:text-amber-400 mt-0.5">انقر للاستعراض</p></div><span id="dashLateCount" class="px-3 py-1.5 bg-amber-600 text-white text-xs font-black rounded-xl">0 حالات</span></button>
+<button type="button" onclick="toggleUrgentCategory('outside')" aria-controls="urgentCategoryDetailsContainer" class="p-4 rounded-2xl bg-purple-50/70 hover:bg-purple-100/80 dark:bg-purple-950/30 dark:hover:bg-purple-950/50 border border-purple-200/80 dark:border-purple-900/40 flex items-center justify-between text-right transition-all active:scale-95"><div><span class="text-xs font-black text-purple-900 dark:text-purple-200 block">4. حالات الخروج</span><p class="text-[10px] text-purple-600/80 dark:text-purple-400 mt-0.5">انقر للاستعراض</p></div><span id="dashOutsideCount" class="px-3 py-1.5 bg-purple-600 text-white text-xs font-black rounded-xl">0 حالات</span></button>
+          </div>
+          <div id="urgentCategoryDetailsContainer" class="hidden" aria-live="polite"></div>
         </div>
         <div id="dashboardTeachersActivity" class="p-6 sm:p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-6">
           <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
@@ -2874,6 +2882,89 @@ function setupRolePermissions() {
   }
   initAdminDashboard();
 }
+let currentUrgentType = null;
+
+function getUrgentAttendanceRows(type, date = getOmanLocalDate()) {
+  const validTypes = new Set(['absent', 'escape', 'outside', 'late']);
+  if (!validTypes.has(type)) return [];
+  const rows = [];
+  Object.entries(db.attendance || {}).forEach(([key, session]) => {
+    if (!session || !session.records || typeof session.records !== 'object') return;
+    const parsed = parseAttendanceKey(key);
+    const sessionDate = session.date || parsed.date;
+    if (sessionDate !== date) return;
+    const className = session.className || parsed.className || '';
+    Object.entries(session.records).forEach(([student, value]) => {
+      if (String(value) !== type) return;
+      rows.push({ student, class_name: className, period: session.period || parsed.period || '—', teacher_name: session.teacher || session.teacher_name || '—', date_str: sessionDate });
+    });
+  });
+  return sortClassesDescending(rows);
+}
+
+function sortClassesDescending(rowsArray) {
+  return (Array.isArray(rowsArray) ? [...rowsArray] : []).sort((a, b) => {
+    const parseClass = value => {
+      const match = String(value || '').match(/(\d+)\s*\/\s*(\d+)/);
+      return match ? { grade: Number(match[1]), section: Number(match[2]) } : { grade: -1, section: -1 };
+    };
+    const ca = parseClass(a.class_name), cb = parseClass(b.class_name);
+    return (cb.grade - ca.grade) || (cb.section - ca.section) || (Number(a.period) - Number(b.period)) || String(a.student || '').localeCompare(String(b.student || ''), 'ar');
+  });
+}
+
+function toggleUrgentCategory(type) {
+  const container = document.getElementById('urgentCategoryDetailsContainer');
+  if (!container) return;
+  if (currentUrgentType === type && !container.classList.contains('hidden')) {
+    container.classList.add('hidden'); currentUrgentType = null; return;
+  }
+  currentUrgentType = type;
+  container.classList.remove('hidden');
+  renderUrgentCategoryDetails(type);
+}
+
+function renderUrgentCategoryDetails(type) {
+  const container = document.getElementById('urgentCategoryDetailsContainer');
+  if (!container) return;
+  const config = {
+    absent: { title: 'كشف حالات الغياب المسجلة اليوم', color: 'text-slate-800 dark:text-white', bg: 'bg-slate-100 dark:bg-slate-800' },
+    escape: { title: '🚨 كشف تفاصيل حالات التسرب من الحصص اليوم', color: 'text-rose-600', bg: 'bg-rose-50 dark:bg-rose-950/40' },
+    outside: { title: '🚶‍♂️ كشف تفاصيل حالات الخروج المصرح بها اليوم', color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-950/40' },
+    late: { title: '⏰ كشف تفاصيل حالات التأخر عن الحصص اليوم', color: 'text-amber-600', bg: 'bg-amber-50 dark:bg-amber-950/40' }
+  };
+  const selected = config[type] || config.absent;
+  const rows = getUrgentAttendanceRows(type);
+  if (!rows.length) {
+    container.innerHTML = '<div class="p-6 text-center text-xs font-bold text-slate-400 bg-slate-50 dark:bg-slate-800/40 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">لا توجد حالات مسجلة حالياً لهذه الفئة.</div>';
+    return;
+  }
+  container.innerHTML = `
+    <div class="space-y-3">
+      <div class="flex flex-wrap justify-between items-center gap-2 p-3.5 rounded-2xl ${selected.bg} border border-slate-200/60 dark:border-slate-700"><span class="font-black text-xs ${selected.color}">${selected.title} (مرتبة من الصف الأعلى للأقل)</span><span class="text-[11px] font-black px-3 py-1 rounded-xl bg-white dark:bg-slate-900 shadow-sm">إجمالي السجلات: ${rows.length}</span></div>
+      <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+        <table class="w-full text-xs text-right">
+          <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-black border-b dark:border-slate-700"><tr><th class="p-3 text-center w-10">م</th><th class="p-3">اسم الطالب</th><th class="p-3 text-center">الصف</th><th class="p-3 text-center">الحصة</th><th class="p-3">المعلم الراصد</th></tr></thead>
+          <tbody class="divide-y divide-slate-100 dark:divide-slate-800 font-bold">
+            ${rows.map((row, index) => `<tr class="hover:bg-slate-50/60 dark:hover:bg-slate-800/40"><td class="p-3 text-center text-slate-400">${index + 1}</td><td class="p-3 text-slate-800 dark:text-white font-black">${escapeHtml(row.student)}</td><td class="p-3 text-center text-blue-600 font-black" dir="ltr">${escapeHtml(formatClassName(row.class_name))}</td><td class="p-3 text-center font-black">${escapeHtml(row.period)}</td><td class="p-3 text-slate-600 dark:text-slate-300">${escapeHtml(row.teacher_name)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function refreshUrgentCategoryCounts() {
+  const today = getOmanLocalDate();
+  ['absent', 'escape', 'outside', 'late'].forEach(type => {
+    const uniqueStudents = new Set(getUrgentAttendanceRows(type, today).map(row => row.class_name + '::' + row.student));
+    const id = { absent: 'dashAbsentCount', escape: 'dashEscapeCount', outside: 'dashOutsideCount', late: 'dashLateCount' }[type];
+    const el = document.getElementById(id);
+    if (el) el.textContent = uniqueStudents.size.toLocaleString('en-US') + ' حالات';
+  });
+  const panel = document.getElementById('urgentCategoryDetailsContainer');
+  if (currentUrgentType && panel && !panel.classList.contains('hidden')) renderUrgentCategoryDetails(currentUrgentType);
+}
+
 function renderAdminOverview() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin;
   const canStats = isA || !!activeUser?.permissions?.studstats;
@@ -2952,8 +3043,8 @@ function renderAdminOverview() {
       });
     });
     const repeatedLateStudents = Array.from(lateDatesByStudent.values()).filter(dates => dates.size > 2).length;
-    setText('dashEscapeCount', escapeStudents.size.toLocaleString('en-US') + ' حالات');
-    setText('dashLateCount', repeatedLateStudents.toLocaleString('en-US') + ' طلاب');
+    refreshUrgentCategoryCounts();
+    void repeatedLateStudents;
   }
   if (canTeachers) renderTeachersActivity();
 }
