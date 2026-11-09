@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
@@ -27,4 +27,31 @@ Deno.test("ISO date validation rejects impossible calendar dates", () => {
   if (isValidIsoDate("2025-02-29")) throw new Error("invalid leap day accepted");
   if (isValidIsoDate("2026-02-31")) throw new Error("overflow date accepted");
   if (isValidIsoDate("2026/11/09")) throw new Error("wrong date format accepted");
+});
+
+Deno.test("attendance report filtering excludes present and disallowed statuses", () => {
+  const records = { A: "present", B: "absent", C: "late", D: "escape", E: "outside" };
+  const filtered = filterAttendanceRecordMap(records, ["absent", "late"]);
+  if (Object.keys(filtered).join(",") !== "B,C") throw new Error("attendance status permissions leaked");
+});
+Deno.test("attendance report can be narrowed to one permitted status", () => {
+  const records = { A: "absent", B: "late", C: "escape" };
+  const filtered = filterAttendanceRecordMap(records, ["absent", "late"], "late");
+  if (Object.keys(filtered).join(",") !== "B") throw new Error("single status filter failed");
+  if (Object.keys(filterAttendanceRecordMap(records, ["absent"], "late")).length) throw new Error("unpermitted selected status leaked");
+});
+Deno.test("behavior report excludes normal students and keeps violation details", () => {
+  const records = { A: { type: "normal", note: "" }, B: { type: "eating", note: "داخل الفصل" }, C: { type: "homework", note: "لم يحضر الواجب" } };
+  const filtered = filterBehaviorRecordMap(records);
+  if (Object.keys(filtered).join(",") !== "B,C") throw new Error("normal behavior record was not excluded");
+});
+Deno.test("record filters reject malformed record payloads", () => {
+  if (Object.keys(filterAttendanceRecordMap(null, ["absent"])).length) throw new Error("null attendance accepted");
+  if (Object.keys(filterBehaviorRecordMap(["normal"])).length) throw new Error("array behavior payload accepted");
+});
+
+Deno.test("class scope rejects any requested class outside the assignment", () => {
+  if (!areClassesAllowed(["9/1", "9/2"], ["9/1", "9/2", "9/3"])) throw new Error("valid assigned classes rejected");
+  if (areClassesAllowed(["9/1", "10/1"], ["9/1", "9/2"])) throw new Error("unassigned class accepted");
+  if (!areClassesAllowed([], ["9/1"])) throw new Error("empty selection should be allowed");
 });

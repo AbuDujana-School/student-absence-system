@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -92,10 +92,24 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
 async function permissionsFor(p: { type: string; name: string }) {
   if (p.type === "admin") {
     const { data: classes } = await db.from("classes").select("name");
-    return { allowed_classes: (classes || []).map((x: any) => x.name), can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
+    const all = (classes || []).map((x: any) => x.name);
+    return { allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
   }
   const { data } = await db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle();
-  return data || { allowed_classes: [], can_read_attendance: false, can_read_behavior: false, can_view_analytics: false, can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
+  const legacy = Array.isArray(data?.allowed_classes) ? data.allowed_classes : [];
+  return {
+    ...(data || {}),
+    allowed_classes: legacy,
+    allowed_attendance_classes: Array.isArray(data?.allowed_attendance_classes) ? data.allowed_attendance_classes : legacy,
+    allowed_behavior_classes: Array.isArray(data?.allowed_behavior_classes) ? data.allowed_behavior_classes : legacy,
+    attendance_statuses: Array.isArray(data?.attendance_statuses) ? data.attendance_statuses : ["absent", "late", "escape", "outside"],
+    can_read_attendance: data?.can_read_attendance === true,
+    can_read_behavior: data?.can_read_behavior === true,
+    can_view_analytics: data?.can_view_analytics === true,
+    can_print_attendance: data?.can_print_attendance === true,
+    can_print_behavior: data?.can_print_behavior === true,
+    can_print_combined: data?.can_print_combined === true
+  };
 }
 async function hasStudentAffairsAccess(p: { type: string; name: string }) {
   if (p.type === "admin") return true;
@@ -146,10 +160,13 @@ async function handle(req: Request) {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
     return reply(200, { ok: true });
   }
+  if (body?.action === "get_my_permissions") {
+    return reply(200, { permissions: await permissionsFor(p) });
+  }
   if (body?.action === "get_permissions") {
     if (p.type !== "admin") return reply(403, { error: "غير مصرح" });
     const [{ data: teachers }, { data: classes }, { data: perms }] = await Promise.all([
-      db.from("teachers").select("name,role").order("name"),
+      db.from("teachers").select("name,role,permissions").order("name"),
       db.from("classes").select("name").order("name"),
       db.from("student_affairs_permissions").select("*")
     ]);
@@ -159,59 +176,78 @@ async function handle(req: Request) {
     if (p.type !== "admin") return reply(403, { error: "غير مصرح" });
     const type = body.principal_type, name = String(body.principal_name || "").trim();
     if (!["teacher", "custom"].includes(type) || !name) return reply(400, { error: "المعلم غير صالح" });
-    const { data: target } = await db.from("teachers").select("name,role").eq("name", name).maybeSingle();
+    const { data: target } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
     if (!target || (type === "custom" ? target.role !== "custom" : target.role === "custom")) return reply(404, { error: "المعلم غير موجود" });
-    const allowed: string[] = Array.isArray(body.allowed_classes) ? Array.from(new Set((body.allowed_classes as unknown[]).map(String))) : [];
+    const legacyClasses: string[] = Array.isArray(body.allowed_classes) ? Array.from(new Set((body.allowed_classes as unknown[]).map(String))) : [];
+    const attendanceClasses: string[] = Array.isArray(body.allowed_attendance_classes) ? Array.from(new Set((body.allowed_attendance_classes as unknown[]).map(String))) : legacyClasses;
+    const behaviorClasses: string[] = Array.isArray(body.allowed_behavior_classes) ? Array.from(new Set((body.allowed_behavior_classes as unknown[]).map(String))) : legacyClasses;
+    const allowed = Array.from(new Set([...attendanceClasses, ...behaviorClasses]));
+    const statuses: string[] = Array.isArray(body.attendance_statuses) ? Array.from(new Set((body.attendance_statuses as unknown[]).map(String))) : ["absent", "late", "escape", "outside"];
+    const validStatuses = new Set(["absent", "late", "escape", "outside"]);
+    if (statuses.some((x: string) => !validStatuses.has(x))) return reply(400, { error: "توجد حالة غياب غير معتمدة" });
     const { data: classRows } = await db.from("classes").select("name");
     const valid = new Set((classRows || []).map((x: any) => x.name));
     if (allowed.some((x: string) => !valid.has(x))) return reply(400, { error: "توجد شعبة غير معتمدة" });
-    const row = { principal_type: type, principal_name: name, allowed_classes: allowed, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
+    const row = { principal_type: type, principal_name: name, allowed_classes: allowed, allowed_attendance_classes: attendanceClasses, allowed_behavior_classes: behaviorClasses, attendance_statuses: statuses, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
+    if (typeof body.studentAffairs === "boolean") {
+      const mergedPermissions = { ...(target.permissions || {}), studentAffairs: body.studentAffairs };
+      const { error: accessError } = await db.from("teachers").update({ permissions: mergedPermissions }).eq("name", name);
+      if (accessError) throw accessError;
+    }
     const { error: revokeError } = await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
     if (revokeError) throw revokeError;
     return reply(200, { ok: true, permissions: row });
   }
   if (body?.action === "reports") {
     const permissions = await permissionsFor(p);
-    const allowed = new Set((permissions.allowed_classes || []) as string[]);
-    const requested: string[] = Array.isArray(body.classes) ? Array.from(new Set((body.classes as unknown[]).map(String))) : [...allowed];
-    if (requested.some((x: string) => !allowed.has(x))) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى الشعب المطلوبة" });
-    const classes = requested;
+    const allowedAttendance = new Set((permissions.allowed_attendance_classes || []) as string[]);
+    const allowedBehavior = new Set((permissions.allowed_behavior_classes || []) as string[]);
+    const legacyRequested = Array.isArray(body.classes) ? Array.from(new Set((body.classes as unknown[]).map(String))) : null;
+    const requestedAttendance: string[] = Array.isArray(body.attendance_classes) ? Array.from(new Set((body.attendance_classes as unknown[]).map(String))) : legacyRequested || [...allowedAttendance];
+    const requestedBehavior: string[] = Array.isArray(body.behavior_classes) ? Array.from(new Set((body.behavior_classes as unknown[]).map(String))) : legacyRequested || [...allowedBehavior];
+    if (!areClassesAllowed(requestedAttendance, [...allowedAttendance])) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى شعب الغياب المطلوبة" });
+    if (!areClassesAllowed(requestedBehavior, [...allowedBehavior])) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى شعب السلوك المطلوبة" });
     const mode = body.report_mode || "view";
     const authorizationError = authorizeReportMode(permissions, mode);
     if (authorizationError) return reply(authorizationError.status, { error: authorizationError.message });
-    if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? "2100-12-31" : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
     if (mode === "analytics") {
+      const classes = Array.from(new Set([...requestedAttendance, ...requestedBehavior]));
+      if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
         const [a, b] = await Promise.all([
-          db.from("attendance").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", from).lte("date_str", to),
-          db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", from).lte("date_str", to)
+          allowedAttendance.has(className) ? db.from("attendance").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any),
+          allowedBehavior.has(className) ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
         ]);
         if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
         analytics[className] = { attendance_sessions: a.count || 0, behavior_sessions: b.count || 0 };
       }
       return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
     }
-    const includeAttendance = permissions.can_read_attendance && (mode === "view" || mode === "print_attendance" || mode === "print_combined");
-    const includeBehavior = permissions.can_read_behavior && (mode === "view" || mode === "print_behavior" || mode === "print_combined");
-    const [attendance, behaviors, students] = await Promise.all([
-      includeAttendance
-        ? Promise.resolve(db.from("attendance").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", classes).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000))
-        : Promise.resolve({ data: [], error: null }),
-      includeBehavior
-        ? Promise.resolve(db.from("behaviors").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", classes).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000))
-        : Promise.resolve({ data: [], error: null }),
-      includeAttendance || includeBehavior
-        ? Promise.resolve(db.from("students").select("class_name,student_name").in("class_name", classes).order("student_name").limit(10000))
-        : Promise.resolve({ data: [], error: null })
+    const wantsAttendance = mode === "view" || mode === "print_attendance" || mode === "print_combined";
+    const wantsBehavior = mode === "view" || mode === "print_behavior" || mode === "print_combined";
+    if (wantsAttendance && Array.isArray(body.attendance_classes) && requestedAttendance.length && !permissions.can_read_attendance) return reply(403, { error: "غير مصرح بعرض الغياب" });
+    if (wantsBehavior && Array.isArray(body.behavior_classes) && requestedBehavior.length && !permissions.can_read_behavior) return reply(403, { error: "غير مصرح بعرض السلوكيات" });
+    const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
+    const requestedStatus = body.attendance_status_filter == null ? null : String(body.attendance_status_filter);
+    if (requestedStatus && !statusAllow.has(requestedStatus)) return reply(403, { error: "غير مصرح بعرض حالة الغياب المطلوبة" });
+    const filterAttendance = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatus) })).filter(row => Object.keys(row.records).length > 0);
+    const filterBehavior = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterBehaviorRecordMap(row.records) })).filter(row => Object.keys(row.records).length > 0);
+    const [attendance, behaviors] = await Promise.all([
+      wantsAttendance && permissions.can_read_attendance && requestedAttendance.length
+        ? db.from("attendance").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", requestedAttendance).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000)
+        : Promise.resolve({ data: [], error: null } as any),
+      wantsBehavior && permissions.can_read_behavior && requestedBehavior.length
+        ? db.from("behaviors").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", requestedBehavior).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000)
+        : Promise.resolve({ data: [], error: null } as any)
     ]);
-    if (attendance.error || behaviors.error || students.error) return reply(500, { error: "تعذر تحميل التقارير" });
-    return reply(200, { attendance: includeAttendance ? attendance.data || [] : [], behaviors: includeBehavior ? behaviors.data || [] : [], students: students.data || [], analytics: {}, permissions });
+    if (attendance.error || behaviors.error) return reply(500, { error: "تعذر تحميل التقارير" });
+    return reply(200, { attendance: filterAttendance(attendance.data || []), behaviors: filterBehavior(behaviors.data || []), students: [], analytics: {}, permissions });
   }
   return reply(400, { error: "Unknown action" });
 }
