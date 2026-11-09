@@ -455,7 +455,7 @@
   </div>
   <div id="saStatusCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1"></div>
 </div>
-      <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800"><button id="saViewButton" onclick="saLoadReport()" class="flex-1 rounded-xl bg-blue-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-800 sm:flex-none"><i class="fa-solid fa-magnifying-glass ml-1"></i> عرض السجلات</button><button id="saAnalyticsButton" onclick="saLoadAnalytics()" class="hidden flex-1 rounded-xl bg-teal-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-800 sm:flex-none"><i class="fa-solid fa-chart-column ml-1"></i> التحليلات</button><button id="saPrintButton" onclick="saOpenPrintModal()" class="hidden flex-1 rounded-xl bg-slate-800 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-slate-900 sm:flex-none"><i class="fa-solid fa-print ml-1"></i> خيارات الطباعة والتصدير</button></div>
+      <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800"><button id="saViewButton" onclick="saLoadReport()" class="flex-1 rounded-xl bg-blue-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-800 sm:flex-none"><i class="fa-solid fa-magnifying-glass ml-1"></i> عرض السجلات</button><button id="saAnalyticsButton" onclick="saLoadAnalytics()" class="hidden flex-1 rounded-xl bg-teal-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-800 sm:flex-none"><i class="fa-solid fa-chart-column ml-1"></i> التحليلات</button><button id="saPrintButton" onclick="saOpenPrintModal()" class="hidden flex-1 rounded-xl bg-slate-800 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-slate-900 sm:flex-none"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة التقرير / تصدير PDF</button></div>
       <div id="saSummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div><div id="saResults" class="space-y-4"></div>
     </div>
   </div>
@@ -464,26 +464,25 @@
     <div class="w-full max-w-md space-y-5 rounded-[2rem] border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900 sm:p-6">
       <div class="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
         <div class="flex items-center gap-3">
-          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-lg text-blue-700 dark:bg-blue-950 dark:text-blue-300"><i class="fa-solid fa-share-nodes"></i></div>
-          <div><h3 id="saPrintModalTitle" class="text-base font-black text-slate-800 dark:text-white">خيارات الطباعة والتصدير</h3><p class="mt-1 text-[11px] text-slate-500">اختر الطريقة المناسبة للتقرير المعروض</p></div>
+          <div class="flex h-11 w-11 items-center justify-center rounded-2xl bg-blue-50 text-lg text-blue-700 dark:bg-blue-950 dark:text-blue-300"><i class="fa-solid fa-file-pdf"></i></div>
+          <div><h3 id="saPrintModalTitle" class="text-base font-black text-slate-800 dark:text-white">طباعة التقرير أو حفظه PDF</h3><p class="mt-1 text-[11px] text-slate-500">اختر طريقة إخراج الكشف الرسمي</p></div>
         </div>
         <button type="button" onclick="saClosePrintModal()" aria-label="إغلاق" class="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-100 text-slate-500 transition hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700"><i class="fa-solid fa-xmark"></i></button>
       </div>
       <div class="space-y-3">
-        <button type="button" onclick="saExecuteAction('print')" class="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-right transition hover:border-blue-300 hover:bg-blue-50/70 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800">
-          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl text-white shadow-md transition group-hover:scale-105"><i class="fa-solid fa-print"></i></span>
-          <span><b class="block text-sm font-black text-slate-800 dark:text-white">طباعة رسمية / PDF</b><small class="mt-1 block text-[11px] text-slate-500">كشف منسق مع تفاصيل الحالات وخانات الاعتماد</small></span>
+        <button type="button" onclick="saExecuteAction('pdf')" class="group flex w-full items-center gap-4 rounded-2xl border border-blue-200 bg-blue-50/70 p-4 text-right transition hover:border-blue-400 hover:bg-blue-100/70 dark:border-blue-900 dark:bg-blue-950/30 dark:hover:bg-blue-950/60">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-blue-600 text-xl text-white shadow-md transition group-hover:scale-105"><i class="fa-solid fa-file-arrow-down"></i></span>
+          <span><b class="block text-sm font-black text-slate-800 dark:text-white">حفظ التقرير كملف PDF</b><small class="mt-1 block text-[11px] text-slate-500">احفظه على الجهاز دون الحاجة إلى طابعة</small></span>
         </button>
-        <button type="button" onclick="saExecuteAction('whatsapp')" class="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-right transition hover:border-emerald-300 hover:bg-emerald-50/70 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800">
-          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-xl text-white shadow-md transition group-hover:scale-105"><i class="fa-brands fa-whatsapp"></i></span>
-          <span><b class="block text-sm font-black text-slate-800 dark:text-white">مشاركة ملخص التقرير عبر واتساب</b><small class="mt-1 block text-[11px] text-slate-500">إرسال الفترة والصفوف وإجماليات الحالات برسالة مرتبة</small></span>
+        <button type="button" onclick="saExecuteAction('print')" class="group flex w-full items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-right transition hover:border-slate-400 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:bg-slate-800">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-slate-700 text-xl text-white shadow-md transition group-hover:scale-105"><i class="fa-solid fa-print"></i></span>
+          <span><b class="block text-sm font-black text-slate-800 dark:text-white">طباعة ورقية</b><small class="mt-1 block text-[11px] text-slate-500">إرسال الكشف إلى الطابعة المتاحة</small></span>
         </button>
       </div>
-      <p class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-6 text-amber-900 dark:border-amber-900/60 dark:bg-amber-950/30 dark:text-amber-200"><i class="fa-solid fa-shield-halved ml-1"></i> حفاظًا على خصوصية الطلاب، مشاركة واتساب ترسل الملخص والإحصاءات فقط دون أسماء الطلاب أو ملاحظاتهم.</p>
+      <p class="rounded-xl border border-blue-200 bg-blue-50 p-3 text-[11px] leading-6 text-blue-900 dark:border-blue-900/60 dark:bg-blue-950/30 dark:text-blue-200"><i class="fa-solid fa-circle-info ml-1"></i> عند اختيار حفظ PDF، ستفتح نافذة الجهاز؛ اختر «حفظ كملف PDF» أو «Save as PDF» بدل الطابعة، ثم احفظ الملف على جهازك.</p>
       <button type="button" onclick="saClosePrintModal()" class="w-full rounded-2xl bg-slate-100 py-3 text-xs font-bold text-slate-700 transition hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700">إلغاء</button>
     </div>
-  </div>
-</section>
+  </div></section>
 
   <section id="dutyView" class="hidden space-y-5">
     <div class="glass-card p-4 rounded-3xl flex items-center justify-between gap-3 border border-slate-200/60 dark:border-slate-700/60">
@@ -1281,8 +1280,8 @@ function saClosePrintModal(){
 }
 function saExecuteAction(action){
   saClosePrintModal();
-  if(action==="print")return saPrint();
-  if(action==="whatsapp")return saShareWhatsApp();
+  if(action==="print")return saPrint("print");
+  if(action==="pdf")return saPrint("pdf");
   showToast("خيار غير معروف.","error");
 }
 function saFormatRepeatCount(n){
@@ -1368,7 +1367,7 @@ function saBuildPrintHtml(data){
   const statusText=domain==="attendance"?"الحالات المحددة: "+(Array.isArray(statuses)?statuses.map(statusLabel).join("، "):"جميع الحالات المصرح بها"):"تقرير السلوك";
   return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(domain==="attendance"?"كشف متابعة الحضور":"كشف متابعة السلوك")+' - '+esc(schoolName)+'</title><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet"><style>@page{size:A4 landscape;margin:11mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;padding:8px;color:#0f172a;background:#fff;font-size:11px}.header{text-align:center;border-bottom:3px double #0284c7;padding:0 0 12px;margin-bottom:14px}.header h1{font-size:21px;font-weight:900;color:#075985;margin:0}.header h2{font-size:14px;font-weight:800;color:#334155;margin:5px 0 0}.meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:9px 12px;margin-bottom:15px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;font-size:10px;font-weight:700}.category{margin:0 0 18px;break-inside:auto;page-break-inside:auto}.category-title{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 11px;margin-bottom:7px;border:1px solid;border-radius:7px;font-size:12px;break-after:avoid;page-break-after:avoid}.category-title span{font-size:10px;font-weight:800}.behavior-title{background:#f0fdf4;color:#166534;border-color:#bbf7d0}.category table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 5px}.category thead{display:table-header-group}.category th,.category td{border:1px solid #cbd5e1;padding:6px 7px;font-size:9.5px;vertical-align:middle;overflow-wrap:anywhere}.category th{background:#f1f5f9;text-align:center;font-weight:900}.category tbody tr:nth-child(even){background:#f8fafc}.category tr{break-inside:avoid;page-break-inside:avoid}.center{text-align:center}.notes{font-size:9px;white-space:pre-wrap}.empty,.empty-cell{text-align:center;padding:25px;color:#64748b;font-weight:800}.footer{display:flex;justify-content:space-between;gap:25px;margin-top:30px;padding:0 15px;font-size:10px;font-weight:800;break-inside:avoid}.footer span{flex:1}.footer span:last-child{text-align:left}.print-note{margin-top:12px;text-align:center;color:#64748b;font-size:9px}@media print{body{padding:0}.category-title{print-color-adjust:exact;-webkit-print-color-adjust:exact}.category th,.category tbody tr:nth-child(even){print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><header class="header"><h1>'+esc(schoolName)+'</h1><h2>'+esc(domain==="attendance"?"كشف متابعة وتفريغ حالات الغياب والتأخر والتسرب والخروج":"كشف متابعة المخالفات السلوكية للطلاب")+'</h2></header><div class="meta"><span>الصفوف المشمولة: '+esc(classes.map(formatClassName).join("، "))+'</span><span>الفترة: من '+esc(from||"—")+' إلى '+esc(to||"—")+'</span><span>'+esc(statusText)+'</span><span>تاريخ الاستخراج: '+esc(dateLabel)+'</span><span>إجمالي السجلات: '+rows.length+'</span></div>'+sections+'<div class="footer"><span>مُعد الكشف / معلم شؤون الطلاب: ........................................</span><span>اعتماد إدارة المدرسة: ........................................</span></div><div class="print-note">تم استخراج هذا الكشف من نظام شؤون الطلاب وفق الصلاحيات المحددة.</div><script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script></body></html>';
 }
-async function saPrint(){
+async function saPrint(outputMode="print"){
   const p=saReportPermissions||{};
   const domain=saLastReport?.domain||saDomain;
   if(!saLastReport){showToast("يرجى عرض السجلات أولاً قبل الطباعة.","error");return;}
@@ -1380,59 +1379,12 @@ async function saPrint(){
   try{
     const data=await saGetVerifiedPrintRows();
     const html=saBuildPrintHtml(data);
-    w.document.open();w.document.write(html);w.document.close();
+    w.document.open();w.document.write(html);w.document.close();if(outputMode==="pdf"){w.document.title=(w.document.title||"تقرير شؤون الطلاب")+" - PDF";}
   }catch(e){
     try{w.close();}catch(_){}
     showToast(e.message||"تعذر تجهيز التقرير للطباعة.","error");
   }
 }
-async function saShareWhatsApp(){
-  const p=saReportPermissions||{};
-  const domain=saLastReport?.domain||saDomain;
-  if(!saLastReport){showToast("يرجى عرض السجلات أولاً قبل المشاركة.","error");return;}
-  if(!(domain==="attendance"?p.can_print_attendance:p.can_print_behavior)){showToast("ليس لديك صلاحية مشاركة هذا الكشف.","error");return;}
-  const shareWindow=window.open("about:blank","_blank");
-  if(!shareWindow){showToast("تعذر فتح واتساب. يرجى السماح بالنوافذ المنبثقة.","error");return;}
-  try{
-    const data=await saGetVerifiedPrintRows();
-    const lines=[];
-    lines.push("مدرسة أبو دجانة");
-    lines.push(domain==="attendance"?"ملخص تقرير متابعة الحضور":"ملخص تقرير السلوكيات");
-    lines.push("الصفوف: "+data.classes.map(formatClassName).join("، "));
-    lines.push("الفترة: من "+(data.from||"—")+" إلى "+(data.to||"—"));
-    lines.push("");
-    if(domain==="attendance"){
-      ["escape","outside","late","absent"].forEach(key=>{
-        const count=data.rows.filter(r=>r.type===key).length;
-        if(count)lines.push((SA_ATTENDANCE_STATUS.find(x=>x[0]===key)?.[1]||key)+": "+count);
-      });
-    }else{
-      const grouped={};
-      data.rows.forEach(r=>{const label=SA_BEHAVIOR_TYPES[r.type]||r.type;grouped[label]=(grouped[label]||0)+1;});
-      Object.entries(grouped).sort((a,b)=>a[0].localeCompare(b[0],"ar")).forEach(([label,count])=>lines.push(label+": "+count));
-    }
-    lines.push("إجمالي السجلات: "+data.rows.length);
-    lines.push("");
-    lines.push("هذه رسالة إحصائية مختصرة ولا تتضمن أسماء الطلاب أو ملاحظاتهم حفاظًا على الخصوصية.");
-    const url="https://wa.me/?text="+encodeURIComponent(lines.join("\n"));
-    shareWindow.location.href=url;
-  }catch(e){
-    try{shareWindow.close();}catch(_){}
-    showToast(e.message||"تعذرت مشاركة ملخص التقرير.","error");
-  }
-}
-async function saLogout(){try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلاب. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
-
-/* ============ Constants ============ */
-const DEFAULT_CLASSES = ["1/9","2/9","3/9","4/9","5/9","6/9","7/9","8/9","1/10","2/10","3/10","4/10","5/10","6/10","7/10","8/10","1/11","2/11","3/11","4/11","5/11","6/11","7/11","8/11","1/12","2/12","3/12","4/12","5/12","6/12","7/12","8/12"];
-const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-const SCHOOL_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
-const SUBJECTS = ['اللغة العربية','اللغة الإنجليزية','التربية الإسلامية','الرياضيات','مواد العلوم','مواد المهارات الحياتية'];
-const DEPARTMENTS = ['قسم الأخصائيين','قسم الإدارة'];
-const DEFAULT_SUBJECT_DAYS = { 'اللغة العربية':'الأحد','اللغة الإنجليزية':'الاثنين','التربية الإسلامية':'الثلاثاء','الرياضيات':'الأربعاء','مواد العلوم':'الخميس','مواد المهارات الحياتية':'','قسم الأخصائيين':'','قسم الإدارة':'' };
-const periodNamesMap = { 1:'الحصة الأولى',2:'الحصة الثانية',3:'الحصة الثالثة',4:'الحصة الرابعة',5:'الحصة الخامسة',6:'الحصة السادسة',7:'الحصة السابعة',8:'الحصة الثامنة' };
-const ADMIN_TAB_PERMISSIONS = ['studstats','behaviorstats','users','students','teachers','duty','alerts','reports','sync','security'];
-
 function getAllCategories() { return [...SUBJECTS, ...DEPARTMENTS, ...(db.customCategories || [])]; }
 function parseAttendanceKey(key) {
   if (!key) return { date: getOmanLocalDate(), className: 'غير محدد', period: 1 };
