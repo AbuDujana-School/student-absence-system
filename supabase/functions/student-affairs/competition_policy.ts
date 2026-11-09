@@ -5,7 +5,8 @@
 
 export const COMPETITION_GRADES = ["9", "10", "11", "12"];
 export const COMPETITION_ATTENDANCE_STATUSES = ["absent", "late", "outside", "escape"];
-export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday through Thursday (Oman school week).\nexport const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday through Thursday (Oman school week).
+export const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
 const ARABIC_GRADE_NAMES = [
   [/التاسع|تاسع/, "9"],
