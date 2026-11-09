@@ -1,3 +1,4 @@
+import { authorizeReportMode } from "./report_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -163,14 +164,9 @@ async function handle(req: Request) {
     if (requested.some((x: string) => !allowed.has(x))) return reply(403, { error: "لا تملك صلاحية الاطلاع على إحدى الشعب المطلوبة" });
     const classes = requested;
     const mode = body.report_mode || "view";
+    const authorizationError = authorizeReportMode(permissions, mode);
+    if (authorizationError) return reply(authorizationError.status, { error: authorizationError.message });
     const canPrintAttendance = permissions.can_print_attendance === true && permissions.can_read_attendance === true;
-    const canPrintBehavior = permissions.can_print_behavior === true && permissions.can_read_behavior === true;
-    if (mode === "print_attendance" && !canPrintAttendance) return reply(403, { error: "غير مصرح بطباعة تقرير الغياب" });
-    if (mode === "print_behavior" && !canPrintBehavior) return reply(403, { error: "غير مصرح بطباعة تقرير السلوك" });
-    if (mode === "print_combined" && !(permissions.can_print_combined === true && canPrintAttendance && canPrintBehavior)) return reply(403, { error: "غير مصرح بطباعة التقرير الموحد" });
-    if (mode === "view" && !permissions.can_read_attendance && !permissions.can_read_behavior) return reply(403, { error: "لا تملك صلاحية عرض التقارير" });
-    if (mode === "analytics" && permissions.can_view_analytics !== true) return reply(403, { error: "غير مصرح بعرض التحليلات" });
-    if (!["view", "analytics", "print_attendance", "print_behavior", "print_combined"].includes(mode)) return reply(400, { error: "نوع التقرير غير صالح" });
     if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
     const validDate = (v: unknown) => typeof v === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + "T00:00:00Z"));
     const from = body.from == null ? "2000-01-01" : body.from;
