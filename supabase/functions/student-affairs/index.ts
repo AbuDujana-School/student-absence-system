@@ -207,6 +207,9 @@ async function handle(req: Request) {
     const mode = body.report_mode || "view";
     const authorizationError = authorizeReportMode(permissions, mode);
     if (authorizationError) return reply(authorizationError.status, { error: authorizationError.message });
+    const from = body.from == null ? "2000-01-01" : body.from;
+    const to = body.to == null ? "2100-12-31" : body.to;
+    if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
     if (mode === "analytics") {
       const classes = Array.from(new Set([...requestedAttendance, ...requestedBehavior]));
       if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
@@ -221,9 +224,6 @@ async function handle(req: Request) {
       }
       return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
     }
-    const from = body.from == null ? "2000-01-01" : body.from;
-    const to = body.to == null ? "2100-12-31" : body.to;
-    if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
     const wantsAttendance = mode === "view" || mode === "print_attendance" || mode === "print_combined";
     const wantsBehavior = mode === "view" || mode === "print_behavior" || mode === "print_combined";
     if (wantsAttendance && requestedAttendance.length && !permissions.can_read_attendance) return reply(403, { error: "غير مصرح بعرض الغياب" });
