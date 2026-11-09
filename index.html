@@ -878,9 +878,21 @@
               <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مسار المخالفات السلوكية اليومية</h3><p class="text-xs text-slate-400">عدد سجلات السلوك غير الطبيعي المسجلة لكل يوم</p></div>
               <div class="relative h-64"><canvas id="analyticsBehaviorChart"></canvas></div>
             </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مقارنة الحالات حسب الصف الدراسي</h3><p class="text-xs text-slate-400">مجموع حالات الغياب والتأخر والتسرب والخروج والمخالفات السلوكية خلال الفترة</p></div>
-              <div class="relative h-64"><canvas id="analyticsGradeChart"></canvas></div>
+            <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mb-2 lg:col-span-2" dir="rtl">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-700/60">
+                <div>
+                  <h3 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-column text-indigo-600"></i> تحليل تفصيلي للحالات حسب الصف الدراسي</h3>
+                  <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">توزيع الغياب والتأخر والتسرب والخروج لكل صف خلال الفترة المحددة</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5 text-xs font-semibold">
+                  <span class="flex items-center gap-1 text-red-500 bg-red-50 dark:bg-red-950/40 px-2.5 py-1 rounded-md"><span class="w-2.5 h-2.5 rounded-full bg-red-500"></span> غياب</span>
+                  <span class="flex items-center gap-1 text-amber-500 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-md"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> تأخر</span>
+                  <span class="flex items-center gap-1 text-purple-500 bg-purple-50 dark:bg-purple-950/40 px-2.5 py-1 rounded-md"><span class="w-2.5 h-2.5 rounded-full bg-purple-500"></span> تسرب</span>
+                  <span class="flex items-center gap-1 text-blue-500 bg-blue-50 dark:bg-blue-950/40 px-2.5 py-1 rounded-md"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> خروج</span>
+                </div>
+              </div>
+              <p id="analyticsGradeDataNote" class="text-xs text-slate-500 dark:text-slate-400 mb-3">تُعرض الحالات المسجلة فعلياً خلال الفترة المحددة.</p>
+              <div class="relative h-80 w-full"><canvas id="analyticsGradeChart"></canvas></div>
             </div>
           </div>
         </section>
@@ -3117,8 +3129,13 @@ function updateAdvancedAnalytics() {
   const addGradeEvent = (className, eventKey) => {
     const match = String(className || '').match(/^\s*\d+\s*\/\s*(\d+)\s*$/);
     const grade = match ? 'الصف ' + match[1] : 'الشعبة ' + String(className || 'غير محدد');
-    if (!gradeEvents.has(grade)) gradeEvents.set(grade, new Set());
-    gradeEvents.get(grade).add(eventKey);
+    if (!gradeEvents.has(grade)) gradeEvents.set(grade, {
+      absent: new Set(), late: new Set(), escape: new Set(), outside: new Set()
+    });
+    const status = eventKey.slice(eventKey.lastIndexOf('::') + 2);
+    if (['absent', 'late', 'escape', 'outside'].includes(status)) {
+      gradeEvents.get(grade)[status].add(eventKey);
+    }
   };
 
   Object.entries(db.attendance || {}).forEach(([key, session]) => {
@@ -3148,7 +3165,7 @@ function updateAdvancedAnalytics() {
     Object.entries(session.records).forEach(([student, record]) => {
       if (!record || typeof record !== 'object' || !record.type || record.type === 'normal') return;
       daily.get(date).behavior++;
-      addGradeEvent(className, date + '::' + className + '::' + student + '::behavior::' + period + '::' + record.type);
+      // السلوكيات تبقى ضمن مخططها المستقل ولا تدخل في مقارنة حالات الحضور الأربع.
     });
   });
 
@@ -3159,14 +3176,20 @@ function updateAdvancedAnalytics() {
   const outside = dates.map(date => daily.get(date).outside.size);
   const coverage = dates.map(date => expectedPeriods ? Math.round((daily.get(date).recordedPeriods.size / expectedPeriods) * 100) : null);
   const behavior = dates.map(date => daily.get(date).behavior);
-  const grades = Array.from(gradeEvents.entries()).map(([grade, events]) => ({ grade, count: events.size }));
+  const grades = Array.from(gradeEvents.entries()).map(([grade, statuses]) => ({ grade, statuses }));
   grades.sort((a, b) => {
     const na = Number((a.grade.match(/\d+/) || [])[0]);
     const nb = Number((b.grade.match(/\d+/) || [])[0]);
     return na - nb || a.grade.localeCompare(b.grade, 'ar');
   });
   const gradeLabels = grades.map(item => item.grade);
-  const gradeValues = grades.map(item => item.count);
+  const gradeSeries = status => grades.map(item => item.statuses[status].size);
+  const gradeAbsent = gradeSeries('absent');
+  const gradeLate = gradeSeries('late');
+  const gradeEscape = gradeSeries('escape');
+  const gradeOutside = gradeSeries('outside');
+  const gradeNote = document.getElementById('analyticsGradeDataNote');
+  if (gradeNote) gradeNote.textContent = 'الفترة: ' + start + ' إلى ' + end + ' — يُحتسب الطالب مرة واحدة لكل حالة في اليوم، حتى لو تكرر تسجيل الحالة في أكثر من حصة.';
   const note = document.getElementById('advancedAnalyticsDataNote');
   if (note) note.textContent = 'الفترة: ' + start + ' إلى ' + end + ' — البيانات من سجلات الحضور والسلوك الفعلية. تغطية الرصد محسوبة على أساس 8 حصص لكل شعبة في يوم الدراسة.';
 
@@ -3200,8 +3223,20 @@ function updateAdvancedAnalytics() {
   };
   const gradeConfig = {
     type: 'bar',
-    data: { labels: gradeLabels, datasets: [{ label: 'مجموع الحالات', data: gradeValues, backgroundColor: '#6366f1', borderRadius: 6 }] },
-    options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.16)' }, ticks: { font: chartFont(10) } }, y: { grid: { display: false }, ticks: { font: chartFont(10) } } } }
+    data: { labels: gradeLabels, datasets: [
+      { label: 'الغياب', data: gradeAbsent, backgroundColor: '#ef4444', borderRadius: 4, borderSkipped: false },
+      { label: 'التأخر', data: gradeLate, backgroundColor: '#f59e0b', borderRadius: 4, borderSkipped: false },
+      { label: 'التسرب', data: gradeEscape, backgroundColor: '#8b5cf6', borderRadius: 4, borderSkipped: false },
+      { label: 'الخروج', data: gradeOutside, backgroundColor: '#3b82f6', borderRadius: 4, borderSkipped: false }
+    ] },
+    options: {
+      ...commonOptions,
+      plugins: { ...commonOptions.plugins, legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(15,23,42,.95)', titleFont: chartFont(13), bodyFont: chartFont(12), padding: 12, cornerRadius: 8 } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { font: chartFont(10) } },
+        y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(200,200,200,.15)', borderDash: [4,4] }, ticks: { font: chartFont(10) } }
+      }
+    }
   };
   [
     ['analyticsAttendanceChart', attendanceConfig],
