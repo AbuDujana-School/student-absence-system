@@ -1,4 +1,4 @@
-import { authorizeReportMode } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate } from "./report_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -169,10 +169,9 @@ async function handle(req: Request) {
     const authorizationError = authorizeReportMode(permissions, mode);
     if (authorizationError) return reply(authorizationError.status, { error: authorizationError.message });
     if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
-    const validDate = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + "T00:00:00Z"));
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? "2100-12-31" : body.to;
-    if (!validDate(from) || !validDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
+    if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
     if (mode === "analytics") {
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
