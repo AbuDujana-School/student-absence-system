@@ -1200,7 +1200,7 @@ function sortClassesList(classesArray){
   const source=Array.isArray(classesArray)?classesArray:[];
   const parseClass=value=>{
     const raw=String(value??"").trim();
-    const match=raw.match(/^(\\d+)\\s*[\\/\\-]\\s*(\\d+)$/);
+    const match=raw.match(/^(\d+)\s*[\/-]\s*(\d+)$/);
     if(!match)return null;
     return {section:Number(match[1]),grade:Number(match[2])};
   };
