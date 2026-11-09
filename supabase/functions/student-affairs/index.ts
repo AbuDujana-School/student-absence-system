@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap } from "./report_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -230,19 +230,8 @@ async function handle(req: Request) {
     const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
     const requestedStatus = body.attendance_status_filter == null ? null : String(body.attendance_status_filter);
     if (requestedStatus && !statusAllow.has(requestedStatus)) return reply(403, { error: "غير مصرح بعرض حالة الغياب المطلوبة" });
-    const filterAttendance = (rows: any[]) => (rows || []).map(row => {
-      const records = row.records && typeof row.records === "object" ? row.records : {};
-      const filtered = Object.fromEntries(Object.entries(records).filter(([, value]) => statusAllow.has(typeof value === "string" ? value : String((value as any)?.status || "")) && (!requestedStatus || (typeof value === "string" ? value : String((value as any)?.status || "")) === requestedStatus)));
-      return { ...row, records: filtered };
-    }).filter(row => Object.keys(row.records).length > 0);
-    const filterBehavior = (rows: any[]) => (rows || []).map(row => {
-      const records = row.records && typeof row.records === "object" ? row.records : {};
-      const filtered = Object.fromEntries(Object.entries(records).filter(([, value]) => {
-        const type = value && typeof value === "object" ? String((value as any).type || "") : String(value || "");
-        return type !== "" && type !== "normal";
-      }));
-      return { ...row, records: filtered };
-    }).filter(row => Object.keys(row.records).length > 0);
+    const filterAttendance = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatus) })).filter(row => Object.keys(row.records).length > 0);
+    const filterBehavior = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterBehaviorRecordMap(row.records) })).filter(row => Object.keys(row.records).length > 0);
     const [attendance, behaviors] = await Promise.all([
       wantsAttendance && permissions.can_read_attendance && requestedAttendance.length
         ? db.from("attendance").select("record_key,date_str,class_name,period,teacher_name,records").in("class_name", requestedAttendance).gte("date_str", from).lte("date_str", to).order("date_str", { ascending: false }).limit(5000)
