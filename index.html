@@ -839,6 +839,41 @@
           </div>
           <div class="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-inner"><table class="w-full text-xs text-right"><thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-800"><tr><th class="p-4 text-center w-14">#</th><th class="p-4">اسم المعلم</th><th class="p-4 text-center">مرات تسجيل الغياب</th><th class="p-4 text-center">مرات تسجيل السلوكيات</th><th class="p-4 text-center">إجمالي التسجيلات</th><th class="p-4 text-center">حالة النشاط</th></tr></thead><tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"></tbody></table></div>
         </div>
+        <section id="advancedAnalyticsSection" class="space-y-6 mb-8 hidden" dir="rtl">
+          <div class="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 class="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600"></i> لوحة التحليلات والاتجاهات الزمنية</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">مؤشرات فعلية من سجلات النظام خلال الفترة المحددة، لأيام الدراسة من الأحد إلى الخميس</p>
+            </div>
+            <div class="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
+              <label for="analyticsStartDate" class="font-medium text-slate-600 dark:text-slate-300">من:</label>
+              <input type="date" id="analyticsStartDate" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-800 dark:text-white">
+              <label for="analyticsEndDate" class="font-medium text-slate-600 dark:text-slate-300">إلى:</label>
+              <input type="date" id="analyticsEndDate" class="bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 rounded-lg px-2 py-1 text-slate-800 dark:text-white">
+              <button type="button" onclick="applyAdvancedAnalyticsDateFilter()" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-lg transition-colors flex items-center gap-1 shadow-sm"><i class="fa-solid fa-filter"></i> تطبيق</button>
+            </div>
+          </div>
+          <p id="advancedAnalyticsDataNote" class="text-xs text-slate-500 dark:text-slate-400 px-1">تُعرض البيانات المسجلة فعلياً فقط؛ لا تُستخدم أرقام افتراضية.</p>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">اتجاه الغياب والتأخر والتسرب والخروج</h3><p class="text-xs text-slate-400">عدد الطلاب لكل حالة يومياً، مع احتساب الطالب مرة واحدة في الحالة نفسها خلال اليوم</p></div>
+              <div class="relative h-64"><canvas id="analyticsAttendanceChart"></canvas></div>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مؤشر تغطية رصد الحصص</h3><p class="text-xs text-slate-400">نسبة الحصص التي تحتوي على رصد فعلي من إجمالي الحصص المتوقعة لكل يوم</p></div>
+              <div class="relative h-64"><canvas id="analyticsTeacherChart"></canvas></div>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مسار المخالفات السلوكية اليومية</h3><p class="text-xs text-slate-400">عدد سجلات السلوك غير الطبيعي المسجلة لكل يوم</p></div>
+              <div class="relative h-64"><canvas id="analyticsBehaviorChart"></canvas></div>
+            </div>
+            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مقارنة الحالات حسب الصف الدراسي</h3><p class="text-xs text-slate-400">مجموع حالات الغياب والتأخر والتسرب والخروج والمخالفات السلوكية خلال الفترة</p></div>
+              <div class="relative h-64"><canvas id="analyticsGradeChart"></canvas></div>
+            </div>
+          </div>
+        </section>
+
       </section>
 
       <div id="sec-studstats" class="space-y-6">
@@ -3018,6 +3053,163 @@ function refreshUrgentCategoryCounts() {
   if (currentUrgentType && panel && !panel.classList.contains('hidden')) renderUrgentCategoryDetails(currentUrgentType);
 }
 
+/* ============ Advanced real-data analytics ============ */
+function analyticsDateKey(date) {
+  return date.toISOString().slice(0, 10);
+}
+function setDefaultAdvancedAnalyticsRange() {
+  const startInput = document.getElementById('analyticsStartDate');
+  const endInput = document.getElementById('analyticsEndDate');
+  if (!startInput || !endInput || (startInput.value && endInput.value)) return;
+  const today = getOmanLocalDate();
+  const current = new Date(today + 'T00:00:00Z');
+  const weekday = current.getUTCDay();
+  const workdayOffset = Math.min(weekday, 4);
+  const sunday = new Date(current);
+  sunday.setUTCDate(current.getUTCDate() - weekday);
+  const end = new Date(sunday);
+  end.setUTCDate(sunday.getUTCDate() + workdayOffset);
+  startInput.value = analyticsDateKey(sunday);
+  endInput.value = analyticsDateKey(end);
+}
+function applyAdvancedAnalyticsDateFilter() {
+  const start = document.getElementById('analyticsStartDate')?.value;
+  const end = document.getElementById('analyticsEndDate')?.value;
+  if (!start || !end || start > end) {
+    if (typeof showToast === 'function') showToast('يرجى اختيار فترة زمنية صحيحة؛ تاريخ البداية يجب ألا يتجاوز تاريخ النهاية.', 'error');
+    else alert('يرجى اختيار فترة زمنية صحيحة.');
+    return;
+  }
+  updateAdvancedAnalytics();
+}
+function updateAdvancedAnalytics() {
+  const section = document.getElementById('advancedAnalyticsSection');
+  if (!section || typeof Chart === 'undefined') return;
+  setDefaultAdvancedAnalyticsRange();
+  const start = document.getElementById('analyticsStartDate')?.value;
+  const end = document.getElementById('analyticsEndDate')?.value;
+  if (!start || !end || start > end) return;
+
+  const dates = [];
+  const dateCursor = new Date(start + 'T00:00:00Z');
+  const finalDate = new Date(end + 'T00:00:00Z');
+  while (dateCursor <= finalDate) {
+    const day = dateCursor.getUTCDay();
+    if (day >= 0 && day <= 4) dates.push(analyticsDateKey(dateCursor));
+    dateCursor.setUTCDate(dateCursor.getUTCDate() + 1);
+  }
+  const dateSet = new Set(dates);
+  const labels = dates.map(date => new Intl.DateTimeFormat('ar-OM', {
+    weekday: 'short', day: '2-digit', month: '2-digit', timeZone: 'Asia/Muscat'
+  }).format(new Date(date + 'T12:00:00Z')));
+  const daily = new Map(dates.map(date => [date, {
+    absent: new Set(), late: new Set(), escape: new Set(), outside: new Set(),
+    behavior: 0, recordedPeriods: new Set()
+  }]));
+  const gradeEvents = new Map();
+  const addGradeEvent = (className, eventKey) => {
+    const match = String(className || '').match(/^\s*\d+\s*\/\s*(\d+)\s*$/);
+    const grade = match ? 'الصف ' + match[1] : 'الشعبة ' + String(className || 'غير محدد');
+    if (!gradeEvents.has(grade)) gradeEvents.set(grade, new Set());
+    gradeEvents.get(grade).add(eventKey);
+  };
+
+  Object.entries(db.attendance || {}).forEach(([key, session]) => {
+    if (!session || !session.records || typeof session.records !== 'object') return;
+    const parsed = parseAttendanceKey(key);
+    const date = session.date || parsed.date;
+    if (!dateSet.has(date)) return;
+    const className = session.className || parsed.className || 'غير محدد';
+    const dayData = daily.get(date);
+    if (Object.keys(session.records).length) dayData.recordedPeriods.add(className + '::' + Number(session.period || parsed.period || 0));
+    Object.entries(session.records).forEach(([student, rawStatus]) => {
+      const status = String(rawStatus || '');
+      if (!['absent', 'late', 'escape', 'outside'].includes(status)) return;
+      const studentKey = className + '::' + String(student).trim();
+      dayData[status].add(studentKey);
+      addGradeEvent(className, date + '::' + studentKey + '::' + status);
+    });
+  });
+
+  Object.entries(db.behaviors || {}).forEach(([key, session]) => {
+    if (!session || !session.records || typeof session.records !== 'object') return;
+    const parsed = parseAttendanceKey(key);
+    const date = session.date || parsed.date;
+    if (!dateSet.has(date)) return;
+    const className = session.className || parsed.className || 'غير محدد';
+    const period = Number(session.period || parsed.period || 0);
+    Object.entries(session.records).forEach(([student, record]) => {
+      if (!record || typeof record !== 'object' || !record.type || record.type === 'normal') return;
+      daily.get(date).behavior++;
+      addGradeEvent(className, date + '::' + className + '::' + student + '::behavior::' + period + '::' + record.type);
+    });
+  });
+
+  const expectedPeriods = (Array.isArray(db.classes) && db.classes.length ? db.classes.length : Object.keys(db.students || {}).length) * 8;
+  const absent = dates.map(date => daily.get(date).absent.size);
+  const late = dates.map(date => daily.get(date).late.size);
+  const escape = dates.map(date => daily.get(date).escape.size);
+  const outside = dates.map(date => daily.get(date).outside.size);
+  const coverage = dates.map(date => expectedPeriods ? Math.round((daily.get(date).recordedPeriods.size / expectedPeriods) * 100) : null);
+  const behavior = dates.map(date => daily.get(date).behavior);
+  const grades = Array.from(gradeEvents.entries()).map(([grade, events]) => ({ grade, count: events.size }));
+  grades.sort((a, b) => {
+    const na = Number((a.grade.match(/\d+/) || [])[0]);
+    const nb = Number((b.grade.match(/\d+/) || [])[0]);
+    return na - nb || a.grade.localeCompare(b.grade, 'ar');
+  });
+  const gradeLabels = grades.map(item => item.grade);
+  const gradeValues = grades.map(item => item.count);
+  const note = document.getElementById('advancedAnalyticsDataNote');
+  if (note) note.textContent = 'الفترة: ' + start + ' إلى ' + end + ' — البيانات من سجلات الحضور والسلوك الفعلية. تغطية الرصد محسوبة على أساس 8 حصص لكل شعبة في يوم الدراسة.';
+
+  const commonOptions = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { titleFont: chartFont(12), bodyFont: chartFont(11) } },
+    scales: {
+      y: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.16)' }, ticks: { font: chartFont(10) } },
+      x: { grid: { display: false }, ticks: { font: chartFont(10), maxRotation: 45, minRotation: 0 } }
+    }
+  };
+  const attendanceConfig = {
+    type: 'line',
+    data: { labels, datasets: [
+      { label: 'غياب', data: absent, borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2.5, tension: .3, pointRadius: 3 },
+      { label: 'تأخر', data: late, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2.5, tension: .3, pointRadius: 3 },
+      { label: 'تسرب', data: escape, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2.5, tension: .3, pointRadius: 3 },
+      { label: 'خروج', data: outside, borderColor: '#3b82f6', backgroundColor: '#3b82f6', borderWidth: 2.5, tension: .3, pointRadius: 3 }
+    ] },
+    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: true, position: 'bottom', labels: { font: chartFont(10), usePointStyle: true } } } }
+  };
+  const teacherConfig = {
+    type: 'line',
+    data: { labels, datasets: [{ label: 'تغطية رصد الحصص %', data: coverage, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.13)', fill: true, borderWidth: 3, tension: .3, pointRadius: 3 }] },
+    options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, min: 0, max: 100, ticks: { font: chartFont(10), callback: value => value + '%' } } } }
+  };
+  const behaviorConfig = {
+    type: 'bar',
+    data: { labels, datasets: [{ label: 'المخالفات السلوكية', data: behavior, backgroundColor: '#f59e0b', borderRadius: 6 }] },
+    options: commonOptions
+  };
+  const gradeConfig = {
+    type: 'bar',
+    data: { labels: gradeLabels, datasets: [{ label: 'مجموع الحالات', data: gradeValues, backgroundColor: '#6366f1', borderRadius: 6 }] },
+    options: { ...commonOptions, indexAxis: 'y', scales: { x: { beginAtZero: true, grid: { color: 'rgba(148,163,184,.16)' }, ticks: { font: chartFont(10) } }, y: { grid: { display: false }, ticks: { font: chartFont(10) } } } }
+  };
+  [
+    ['analyticsAttendanceChart', attendanceConfig],
+    ['analyticsTeacherChart', teacherConfig],
+    ['analyticsBehaviorChart', behaviorConfig],
+    ['analyticsGradeChart', gradeConfig]
+  ].forEach(([id, config]) => {
+    if (chartInstances[id]) {
+      chartInstances[id].data = config.data;
+      chartInstances[id].options = config.options;
+      chartInstances[id].update();
+    } else createChart(id, config);
+  });
+}
+
 function renderAdminOverview() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin;
   const canStats = isA || !!activeUser?.permissions?.studstats;
@@ -3028,6 +3220,8 @@ function renderAdminOverview() {
   setText('adminDashboardUserName', activeUser?.name || 'أستاذي الفاضل');
   toggle('dashboardMetricsSection', canStats);
   toggle('dashboardUrgentSection', canStats);
+  toggle('advancedAnalyticsSection', canStats);
+  if (canStats) updateAdvancedAnalytics();
   toggle('dashboardTeachersActivity', canTeachers);
   const saAction = document.getElementById('dashboardStudentAffairsAction');
   if (saAction) { saAction.classList.toggle('hidden', !canStudentAffairs); saAction.classList.toggle('flex', canStudentAffairs); }
