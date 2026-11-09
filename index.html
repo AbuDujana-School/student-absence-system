@@ -3681,53 +3681,94 @@ function printTeachersActivityPDF() {
   if (!canViewActivity) { showToast('ليست لديك صلاحية عرض تقرير نشاط المعلمين.', 'error'); return; }
   const data = window.lastTeachersActivityData;
   if (!data || !Array.isArray(data.teachersArray) || data.teachersArray.length === 0) {
-    showToast("لا توجد بيانات معلمين متوفرة حالياً للطباعة.", "error");
+    showToast('لا توجد بيانات معلمين متوفرة حالياً للطباعة.', 'error');
     return;
   }
-  const w = window.open("", "_blank");
-  if (!w) { showToast("يرجى السماح بالنوافذ المنبثقة لفتح كشف PDF.", "error"); return; }
-  const esc = v => String(v ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const w = window.open('', '_blank');
+  if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة لفتح كشف PDF.', 'error'); return; }
+  const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const number = v => Number(v || 0).toLocaleString('en-US');
+  const schoolName = typeof SCHOOL_NAME !== 'undefined' ? SCHOOL_NAME : 'مدرسة أبو دجانة الأنصاري';
   const totalAbsences = data.teachersArray.reduce((sum, t) => sum + Number(t.attendanceCount || 0), 0);
   const totalBehaviors = data.teachersArray.reduce((sum, t) => sum + Number(t.behaviorCount || 0), 0);
+  const totalEntries = totalAbsences + totalBehaviors;
   const threshold = Number(data.threshold || 1);
+  const activeCount = Number(data.activeCount || 0);
+  const inactiveCount = Number(data.inactiveCount || 0);
   const rows = data.teachersArray.map((t, idx) => {
     const total = Number(t.total || 0);
     const isActive = total >= threshold && total > 0;
-    return '<tr><td style="text-align:center;font-weight:bold;">'+(idx+1)+'</td>' +
-      '<td style="text-align:right;"><b>'+esc(t.name)+'</b></td>' +
-      '<td style="text-align:center;font-weight:900;color:#0284c7;">'+number(t.attendanceCount)+'</td>' +
-      '<td style="text-align:center;font-weight:900;color:#d97706;">'+number(t.behaviorCount)+'</td>' +
-      '<td style="text-align:center;font-weight:900;font-size:12px;background:#f1f5f9;">'+number(total)+'</td>' +
-      '<td style="text-align:center;"><span class="'+(isActive?'badge-active':'badge-inactive')+'">'+(isActive?'نشط':'غير نشط')+'</span></td></tr>';
-  }).join("");
-  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8">' +
-    '<title>كشف تقييم ونشاط المعلمين - '+esc(SCHOOL_NAME)+'</title>' +
-    '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">' +
-    '<style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}' +
-    'body{font-family:"Tajawal",Arial,sans-serif;padding:25px;color:#0f172a;background:#fff;direction:rtl;font-size:12px}' +
-    '.school-header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px double #0d9488;padding-bottom:15px;margin-bottom:20px}' +
-    '.school-title h1{margin:0;font-size:22px;color:#0f766e;font-weight:900}.school-title h3{margin:4px 0 0;font-size:14px;color:#334155;font-weight:700}' +
-    '.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.stat-card{background:#f8fafc;border:1px solid #cbd5e1;border-radius:10px;padding:10px;text-align:center}' +
-    '.stat-card span{font-size:11px;color:#475569;font-weight:700;display:block;margin-bottom:3px}.stat-card strong{font-size:18px;font-weight:900}' +
-    'table{width:100%;border-collapse:collapse;margin-top:5px}th,td{border:1px solid #cbd5e1;padding:9px 12px;font-size:11px;vertical-align:middle}' +
-    'th{background:#0f766e!important;color:#fff!important;font-weight:900;text-align:center;white-space:nowrap;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-    'tbody tr:nth-child(even){background:#f0fdf4!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
-    '.badge-active{background:#dcfce7;color:#15803d;border:1px solid #86efac;padding:4px 12px;border-radius:12px;font-weight:900;display:inline-block}' +
-    '.badge-inactive{background:#ffe4e6;color:#be123c;border:1px solid #fca5a5;padding:4px 12px;border-radius:12px;font-weight:900;display:inline-block}' +
-    '.footer{margin-top:40px;display:flex;justify-content:space-between;font-size:12px;font-weight:900;padding:0 20px}' +
-    '@media print{body{padding:0}tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}}</style></head><body>' +
-    '<div class="school-header"><div class="school-title"><h1>'+esc(SCHOOL_NAME)+'</h1><h3>كشف تقييم وتفريغ نشاط المعلمين المعتمد</h3></div>' +
-    '<div style="text-align:left"><div style="font-size:12px;font-weight:900;color:#0f766e">نظام حصر الغياب والسلوك الذكي</div><div style="font-size:10px;color:#64748b">تاريخ الاستخراج: '+esc(new Date().toLocaleDateString('ar-OM'))+'</div></div></div>' +
-    '<div class="stats-grid"><div class="stat-card"><span>المعلمون النشطون</span><strong style="color:#16a34a">'+number(data.activeCount)+' معلم</strong></div>' +
-    '<div class="stat-card"><span>المعلمون غير النشطين</span><strong style="color:#dc2626">'+number(data.inactiveCount)+' معلم</strong></div>' +
-    '<div class="stat-card"><span>مرات تسجيل الغياب</span><strong style="color:#2563eb">'+number(totalAbsences)+'</strong></div>' +
-    '<div class="stat-card"><span>مرات تسجيل السلوكيات</span><strong style="color:#d97706">'+number(totalBehaviors)+'</strong></div></div>' +
-    '<table><thead><tr><th style="width:5%">م</th><th style="width:35%;text-align:right">اسم المعلم</th><th style="width:15%">مرات تسجيل الغياب</th><th style="width:15%">مرات تسجيل السلوكيات</th><th style="width:15%">إجمالي التسجيلات</th><th style="width:15%">حالة النشاط</th></tr></thead><tbody>'+rows+'</tbody></table>' +
-    '<div class="footer"><div>مُعد التقرير / إدارة المدرسة: .......................................</div><div>اعتماد مدير المدرسة: .......................................</div></div>' +
-    '<script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>';
-  w.document.open(); w.document.write(html); w.document.close();
+    return '<tr>' +
+      '<td class="rank">'+(idx+1)+'</td>' +
+      '<td class="teacher-name">'+esc(t.name)+'</td>' +
+      '<td class="count absence">'+number(t.attendanceCount)+'</td>' +
+      '<td class="count behavior">'+number(t.behaviorCount)+'</td>' +
+      '<td class="count total">'+number(total)+'</td>' +
+      '<td class="status-cell"><span class="status '+(isActive?'active':'inactive')+'">'+(isActive?'نشط':'غير نشط')+'</span></td>' +
+      '</tr>';
+  }).join('');
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+    '<title>كشف تقييم ونشاط المعلمين - '+esc(schoolName)+'</title>' +
+    '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
+    '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">' +
+    '<style>' +
+    '@page{size:A4 landscape;margin:11mm}' +
+    '*{box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'body{margin:0;padding:0;background:#fff;color:#172b35;font-family:Tajawal,Arial,sans-serif;direction:rtl;font-size:11px}' +
+    '.report{width:100%;max-width:100%}' +
+    '.header{position:relative;padding:15px 18px 14px;border:1px solid #b7e4dc;border-radius:12px;background:linear-gradient(115deg,#f0fdfa 0%,#fff 68%);border-top:5px solid #0f766e;margin-bottom:13px}' +
+    '.header-main{display:flex;align-items:center;justify-content:space-between;gap:18px}' +
+    '.school{font-size:20px;line-height:1.35;font-weight:900;color:#115e59;margin:0}' +
+    '.report-title{font-size:15px;font-weight:800;color:#334155;margin:4px 0 0}' +
+    '.identity{text-align:left;white-space:nowrap;color:#0f766e;font-size:10px;font-weight:800}' +
+    '.identity strong{display:block;font-size:12px;margin-bottom:4px}' +
+    '.meta{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;border-top:1px solid #d5eee9;margin-top:12px;padding-top:9px;color:#64748b;font-size:10px;font-weight:700}' +
+    '.meta b{color:#334155}' +
+    '.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:9px;margin:0 0 14px}' +
+    '.stat{border:1px solid #dbe5e7;border-radius:10px;padding:10px 12px;background:#fff;min-height:66px}' +
+    '.stat-label{display:block;color:#64748b;font-size:10px;font-weight:700;margin-bottom:5px}' +
+    '.stat-value{display:block;font-size:19px;line-height:1.2;font-weight:900;color:#164e63}' +
+    '.stat.active-stat{background:#f0fdf4;border-color:#bbf7d0}.stat.active-stat .stat-value{color:#15803d}' +
+    '.stat.inactive-stat{background:#fff1f2;border-color:#fecdd3}.stat.inactive-stat .stat-value{color:#be123c}' +
+    '.stat.absence-stat{background:#eff6ff;border-color:#bfdbfe}.stat.absence-stat .stat-value{color:#1d4ed8}' +
+    '.stat.behavior-stat{background:#fffbeb;border-color:#fde68a}.stat.behavior-stat .stat-value{color:#b45309}' +
+    '.table-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0 0 7px}' +
+    '.table-heading strong{font-size:12px;color:#134e4a;font-weight:900}' +
+    '.table-heading span{font-size:9px;color:#64748b;font-weight:700}' +
+    'table{width:100%;border-collapse:separate;border-spacing:0;table-layout:fixed;border:1px solid #cbdedb;border-radius:9px;overflow:hidden}' +
+    'thead{display:table-header-group}th{background:#0f766e;color:#fff;font-size:10px;font-weight:900;padding:9px 7px;text-align:center;border-left:1px solid rgba(255,255,255,.18)}' +
+    'th:nth-child(2){text-align:right;padding-right:12px}' +
+    'td{padding:7px 8px;border-bottom:1px solid #e5eeee;border-left:1px solid #edf2f2;font-size:10px;vertical-align:middle}' +
+    'tbody tr:nth-child(even){background:#f2faf8}tbody tr:last-child td{border-bottom:0}' +
+    '.rank{text-align:center;color:#64748b;font-weight:800;width:6%}' +
+    '.teacher-name{font-weight:800;color:#1e293b;text-align:right;padding-right:12px;width:32%}' +
+    '.count{text-align:center;font-weight:900;font-variant-numeric:tabular-nums}' +
+    '.absence{color:#1d4ed8}.behavior{color:#b45309}.total{color:#0f4c48;background:#eaf7f4;font-size:11px}' +
+    '.status-cell{text-align:center}.status{display:inline-block;min-width:66px;padding:4px 10px;border-radius:20px;font-size:9px;font-weight:900}' +
+    '.status.active{background:#dcfce7;color:#166534;border:1px solid #86efac}.status.inactive{background:#ffe4e6;color:#9f1239;border:1px solid #fda4af}' +
+    '.footer{display:flex;justify-content:space-between;gap:20px;margin-top:24px;padding:0 10px;color:#334155;font-size:10px;font-weight:800}' +
+    '.footer span{flex:1}.footer span:last-child{text-align:left}' +
+    '.note{margin-top:10px;text-align:center;color:#94a3b8;font-size:9px}' +
+    '@media print{body{background:#fff}.header,tbody tr,.stat,th,.total,.status{break-inside:avoid;page-break-inside:avoid}tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}}' +
+    '</style></head><body><main class="report">' +
+    '<header class="header"><div class="header-main"><div><h1 class="school">'+esc(schoolName)+'</h1><div class="report-title">كشف تقييم وتفريغ نشاط المعلمين</div></div>' +
+    '<div class="identity"><strong>نظام حصر الغياب والسلوك الذكي</strong><span>متابعة الأداء والتفاعل مع النظام</span></div></div>' +
+    '<div class="meta"><span><b>تاريخ الاستخراج:</b> '+esc(new Date().toLocaleDateString('ar-OM'))+'</span><span><b>عدد المعلمين:</b> '+number(data.teachersArray.length)+'</span><span><b>إجمالي التسجيلات:</b> '+number(totalEntries)+'</span><span><b>ترتيب الكشف:</b> من الأعلى نشاطاً إلى الأقل</span></div></header>' +
+    '<section class="stats">' +
+    '<div class="stat active-stat"><span class="stat-label">المعلمون النشطون</span><strong class="stat-value">'+number(activeCount)+' <small>معلم</small></strong></div>' +
+    '<div class="stat inactive-stat"><span class="stat-label">المعلمون غير النشطين</span><strong class="stat-value">'+number(inactiveCount)+' <small>معلم</small></strong></div>' +
+    '<div class="stat absence-stat"><span class="stat-label">مرات تسجيل الغياب</span><strong class="stat-value">'+number(totalAbsences)+'</strong></div>' +
+    '<div class="stat behavior-stat"><span class="stat-label">مرات تسجيل السلوكيات</span><strong class="stat-value">'+number(totalBehaviors)+'</strong></div>' +
+    '</section><div class="table-heading"><strong>تفاصيل تقييم ونشاط المعلمين</strong><span>يعرض الجدول أعداد التسجيلات وحالة نشاط كل معلم</span></div>' +
+    '<table><thead><tr><th style="width:6%">م</th><th style="width:32%">اسم المعلم</th><th style="width:15%">مرات تسجيل الغياب</th><th style="width:15%">مرات تسجيل السلوكيات</th><th style="width:16%">إجمالي التسجيلات</th><th style="width:16%">حالة النشاط</th></tr></thead><tbody>'+rows+'</tbody></table>' +
+    '<footer class="footer"><span>مُعد الكشف / إدارة المدرسة: .......................................</span><span>اعتماد مدير المدرسة: .......................................</span></footer>' +
+    '<div class="note">يعكس هذا الكشف السجلات المتاحة في النظام وقت الاستخراج.</div></main>' +
+    '<script>window.onload=()=>setTimeout(()=>window.print(),350);<\/script></body></html>';
+  w.document.open();
+  w.document.write(html);
+  w.document.close();
 }
+
 /* ============ Teachers List Redesign: live search + real system data ============ */
 const teacherSubjectBadgeColors = {
   'اللغة العربية': 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-800/50',
