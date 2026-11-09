@@ -215,8 +215,9 @@ function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, 
   });
   return calculateRelativeCompetitionScores(metrics);
 }
-async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown) {
+async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown, periodValue: unknown) {
   const today = getOmanIsoDate();
+  const period = ["weekly", "monthly", "term"].includes(String(periodValue)) ? String(periodValue) : "weekly";
   const defaultWeek = getSchoolWeekRange(today);
   const from = fromValue == null ? defaultWeek.start : fromValue;
   const to = toValue == null ? defaultWeek.end : toValue;
@@ -224,6 +225,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const spanDays = Math.floor((new Date(to + "T12:00:00.000Z").getTime() - new Date(from + "T12:00:00.000Z").getTime()) / 86400000) + 1;
   if (spanDays > 370) competitionError(400, "الفترة المطلوبة تتجاوز الحد المسموح للتحليل");
   const schoolDays = getSchoolDays(from, to);
+  const dataFrom = period === "monthly" ? getSchoolWeekRange(from).start : from;
   if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
 
   const [{ data: classRows, error: classError }] = await Promise.all([
@@ -264,8 +266,8 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
 
   const [studentRows, attendanceRows, behaviorRows] = await Promise.all([
     fetchCompetitionStudents(competitionClasses),
-    fetchCompetitionRows("attendance", competitionClasses, from, to),
-    fetchCompetitionRows("behaviors", competitionClasses, from, to)
+    fetchCompetitionRows("attendance", competitionClasses, dataFrom, to),
+    fetchCompetitionRows("behaviors", competitionClasses, dataFrom, to)
   ]);
   const rosters: Record<string, string[]> = {};
   for (const className of competitionClasses) rosters[className] = [];
@@ -298,7 +300,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const firstWeek = getSchoolWeekRange(from).start;
   for (let weekStart = firstWeek; shiftCompetitionDate(weekStart, 4) <= to; weekStart = shiftCompetitionDate(weekStart, 7)) {
     const weekEnd = shiftCompetitionDate(weekStart, 4);
-    if (weekStart < from) continue;
+    if (period === "monthly" ? weekEnd < from : weekStart < from) continue;
     const weekScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, weekStart, weekEnd);
     const winner = weekScores.length && weekScores.every(team => team.complete === true)
       ? weekScores.filter(team => team.rank === 1).map(team => team.grade)
@@ -350,6 +352,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   return {
     from,
     to,
+    period,
     today,
     status: allTeamsComplete ? "complete" : "incomplete",
     teams: publicTeams,
@@ -436,7 +439,7 @@ async function handle(req: Request) {
   if (body?.action === "competition") {
     const permissions = await permissionsFor(p);
     try {
-      const snapshot = await buildCompetitionSnapshot(p, permissions, body.from, body.to);
+      const snapshot = await buildCompetitionSnapshot(p, permissions, body.from, body.to, body.period);
       return reply(200, snapshot);
     } catch (e) {
       const status = Number((e as any)?.status) || 500;
