@@ -55,3 +55,11 @@ Deno.test("class scope rejects any requested class outside the assignment", () =
   if (areClassesAllowed(["9/1", "10/1"], ["9/1", "9/2"])) throw new Error("unassigned class accepted");
   if (!areClassesAllowed([], ["9/1"])) throw new Error("empty selection should be allowed");
 });
+
+Deno.test("attendance report filtering supports multiple selected permitted statuses", () => {
+  const records = { A: "absent", B: "late", C: "escape", D: "outside", E: "present" };
+  const filtered = filterAttendanceRecordMap(records, ["absent", "late", "escape"], ["absent", "escape"]);
+  if (Object.keys(filtered).join(",") !== "A,C") throw new Error("multi-status filter failed");
+  if (Object.keys(filterAttendanceRecordMap(records, ["absent"], ["late"])).length) throw new Error("unpermitted multi-status filter leaked");
+  if (Object.keys(filterAttendanceRecordMap(records, ["absent", "late"], [])).length) throw new Error("empty status selection should return no records");
+});
