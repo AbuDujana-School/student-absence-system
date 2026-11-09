@@ -3009,7 +3009,7 @@ function renderAdminOverview() {
     let totalSchoolStudents = 0;
     const classNames = Array.isArray(db.classes) ? db.classes : Object.keys(db.students || {});
     classNames.forEach(className => {
-      const match = String(className || '').trim().match(/^(\\d+)\\s*[\\/-]\\s*(\\d+)$/);
+      const match = String(className || '').trim().match(/^(\d+)\s*[\/-]\s*(\d+)$/);
       if (!match) return;
       const grade = Number(match[2]);
       const roster = Array.isArray(db.students?.[className]) ? db.students[className] : [];
