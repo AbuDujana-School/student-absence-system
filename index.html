@@ -941,6 +941,30 @@
       </div>
 
       <div id="sec-teachers" class="hidden space-y-4">
+<div id="teachersActivityCard" class="glass-card p-6 sm:p-8 rounded-[2rem] border border-slate-200/80 dark:border-slate-700 shadow-xl space-y-6" dir="rtl">
+  <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
+    <div class="flex items-center gap-3.5">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-emerald-600 to-teal-600 text-white flex items-center justify-center text-xl shadow-lg shadow-emerald-500/20"><i class="fa-solid fa-chart-line"></i></div>
+      <div><h3 class="font-black text-base sm:text-lg text-slate-800 dark:text-white">كشف وتقييم نشاط المعلمين</h3><p class="text-xs text-slate-500 mt-0.5">ترتيب المعلمين تلقائياً من الأكثر تسجيلاً إلى الأقل</p></div>
+    </div>
+    <button type="button" onclick="printTeachersActivityPDF()" class="bg-slate-900 hover:bg-slate-800 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-lg active:scale-95 transition-all flex items-center gap-2"><i class="fa-solid fa-file-pdf text-rose-400 text-sm"></i><span>طباعة تقرير النشاط (PDF)</span></button>
+  </div>
+  <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div class="p-4 rounded-2xl bg-emerald-50/60 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50 text-center"><span class="text-[11px] font-bold text-emerald-700 dark:text-emerald-300 block mb-1">المعلمون النشطون</span><strong id="activeTeachersCount" class="text-2xl font-black text-emerald-600">0</strong></div>
+    <div class="p-4 rounded-2xl bg-rose-50/60 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900/50 text-center"><span class="text-[11px] font-bold text-rose-700 dark:text-rose-300 block mb-1">المعلمون غير النشطين</span><strong id="inactiveTeachersCount" class="text-2xl font-black text-rose-600">0</strong></div>
+    <div class="p-4 rounded-2xl bg-blue-50/60 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 text-center"><span class="text-[11px] font-bold text-blue-700 dark:text-blue-300 block mb-1">مرات تسجيل الغياب</span><strong id="totalAttendanceSessions" class="text-2xl font-black text-blue-600">0</strong></div>
+    <div class="p-4 rounded-2xl bg-amber-50/60 dark:bg-amber-950/30 border border-amber-100 dark:border-amber-900/50 text-center"><span class="text-[11px] font-bold text-amber-700 dark:text-amber-300 block mb-1">مرات تسجيل السلوكيات</span><strong id="totalBehaviorLogs" class="text-2xl font-black text-amber-600">0</strong></div>
+  </div>
+  <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900">
+    <table class="w-full text-xs text-right">
+      <thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 font-black border-b dark:border-slate-700"><tr><th class="p-3.5 text-center w-12">#</th><th class="p-3.5">اسم المعلم</th><th class="p-3.5 text-center">مرات تسجيل الغياب</th><th class="p-3.5 text-center">مرات تسجيل السلوكيات</th><th class="p-3.5 text-center">إجمالي التسجيلات</th><th class="p-3.5 text-center">حالة النشاط</th></tr></thead>
+      <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"><tr><td colspan="6" class="p-5 text-center text-slate-400">جارٍ تحميل بيانات النشاط...</td></tr></tbody>
+    </table>
+  </div>
+  <p class="text-[10px] leading-5 text-slate-500">يُحسب الغياب بعدد الطلاب المسجلين بحالة «غائب»، والسلوكيات بعدد سجلات السلوك المسجلة لكل طالب. المعلم نشط إذا كان لديه تسجيل واحد أو أكثر.</p>
+</div>
+
+
         <div class="bg-white dark:bg-slate-800 p-5 rounded-3xl border border-slate-200/80 space-y-4 shadow-sm">
           <div class="flex flex-wrap justify-between items-center gap-2">
              <div>
@@ -2875,7 +2899,7 @@ function initAdminDashboard() {
     if (has('behaviorstats')) { populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); }
     if (has('users')) renderCustomUsersList();
     if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
-    if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); }
+    if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); renderTeachersActivity(); }
     if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
   } catch(e) { console.error('initAdminDashboard', e); }
 }
@@ -2889,7 +2913,7 @@ function switchAdminTab(tab) {
   if (tab === 'studstats') switchStatsSubTab('absence');
   if (tab === 'behaviorstats') renderBehaviorReportsSection();
   if (tab === 'users') renderCustomUsersList();
-  if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
+  if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); renderTeachersActivity(); }
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') renderReportsSection();
@@ -3029,6 +3053,77 @@ async function setCategoryDutyDay(category, day) {
   dutyData(); db.dutyModule.subjectDays[category] = day || ''; dirtySets.duty_module = true;
   const ok = await saveSystemDataToCloud(); renderTeachersList();
   showToast(ok ? `تحديث ${category}` : 'حُفظ محلياً.', ok ? 'success' : 'info');
+}
+
+
+/* ============ Teachers Activity Report ============ */
+function getTeachersActivityRows() {
+  const totals = new Map();
+  const ensure = name => {
+    const clean = String(name || '').trim();
+    if (!clean) return null;
+    if (!totals.has(clean)) totals.set(clean, { name: clean, absences: 0, behaviors: 0, total: 0 });
+    return totals.get(clean);
+  };
+  (db.teachers || []).forEach(t => ensure(t?.name));
+  (db.customUsers || []).forEach(t => ensure(t?.name));
+  Object.values(db.attendance || {}).forEach(session => {
+    const row = ensure(session?.teacher);
+    if (!row) return;
+    Object.values(session.records || {}).forEach(status => {
+      const value = typeof status === 'string' ? status : status?.status;
+      if (value === 'absent') row.absences++;
+    });
+  });
+  Object.values(db.behaviors || {}).forEach(session => {
+    const row = ensure(session?.teacher);
+    if (!row) return;
+    Object.values(session.records || {}).forEach(record => {
+      if (record && typeof record === 'object' && String(record.type || '').trim()) row.behaviors++;
+    });
+  });
+  const rows = Array.from(totals.values());
+  rows.forEach(row => { row.total = row.absences + row.behaviors; row.active = row.total > 0; });
+  return rows.sort((a, b) => b.total - a.total || b.absences - a.absences || a.name.localeCompare(b.name, 'ar'));
+}
+function renderTeachersActivity() {
+  const body = document.getElementById('teachersActivityTableBody');
+  if (!body) return;
+  const rows = getTeachersActivityRows();
+  const active = rows.filter(r => r.active).length;
+  const inactive = rows.length - active;
+  const totalAbsences = rows.reduce((sum, r) => sum + r.absences, 0);
+  const totalBehaviors = rows.reduce((sum, r) => sum + r.behaviors, 0);
+  const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = Number(value).toLocaleString('en-US'); };
+  setText('activeTeachersCount', active);
+  setText('inactiveTeachersCount', inactive);
+  setText('totalAttendanceSessions', totalAbsences);
+  setText('totalBehaviorLogs', totalBehaviors);
+  if (!rows.length) {
+    body.innerHTML = '<tr><td colspan="6" class="p-5 text-center text-slate-400">لا توجد أسماء معلمين أو سجلات نشاط حالياً.</td></tr>';
+    return;
+  }
+  body.innerHTML = rows.map((r, i) => '<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition-colors">' +
+    '<td class="p-3.5 text-center text-slate-400">'+(i+1)+'</td>' +
+    '<td class="p-3.5 text-slate-800 dark:text-slate-100">'+escapeHtml(r.name)+'</td>' +
+    '<td class="p-3.5 text-center text-blue-700 dark:text-blue-300 tabular-nums">'+r.absences.toLocaleString('en-US')+'</td>' +
+    '<td class="p-3.5 text-center text-amber-700 dark:text-amber-300 tabular-nums">'+r.behaviors.toLocaleString('en-US')+'</td>' +
+    '<td class="p-3.5 text-center font-black text-slate-900 dark:text-white tabular-nums">'+r.total.toLocaleString('en-US')+'</td>' +
+    '<td class="p-3.5 text-center"><span class="inline-flex px-3 py-1 rounded-full text-[10px] font-black '+(r.active?'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300':'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300')+'">'+(r.active?'نشط':'غير نشط')+'</span></td></tr>').join('');
+}
+function printTeachersActivityPDF() {
+  const rows = getTeachersActivityRows();
+  const totalAbsences = rows.reduce((sum, r) => sum + r.absences, 0);
+  const totalBehaviors = rows.reduce((sum, r) => sum + r.behaviors, 0);
+  const active = rows.filter(r => r.active).length;
+  const inactive = rows.length - active;
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+  const popup = window.open('', '_blank');
+  if (!popup) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
+  const tableRows = rows.map((r, i) => '<tr><td>'+(i+1)+'</td><td>'+esc(r.name)+'</td><td>'+r.absences+'</td><td>'+r.behaviors+'</td><td><strong>'+r.total+'</strong></td><td>'+(r.active?'نشط':'غير نشط')+'</td></tr>').join('');
+  popup.document.open();
+  popup.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير نشاط المعلمين</title><style>@page{size:A4 landscape;margin:12mm}*{box-sizing:border-box}body{font-family:Tahoma,Arial,sans-serif;color:#172033;margin:0;font-size:12px}.head{text-align:center;border-bottom:2px solid #0f766e;padding:0 0 12px;margin-bottom:14px}.head h1{font-size:20px;margin:0 0 6px}.head p{margin:0;color:#64748b}.stats{display:flex;gap:10px;margin:14px 0}.stat{flex:1;text-align:center;border:1px solid #cbd5e1;border-radius:8px;padding:10px}.stat b{display:block;font-size:19px;margin-top:4px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:9px;text-align:center}th{background:#e2e8f0;color:#1e293b;font-weight:bold}td:nth-child(2){text-align:right}.foot{margin-top:16px;text-align:left;color:#64748b;font-size:10px}@media print{thead{display:table-header-group}tr{break-inside:avoid}}</style></head><body><header class="head"><h1>كشف وتقييم نشاط المعلمين</h1><p>مدرسة أبو دجانة الأنصاري · تاريخ الطباعة: '+esc(new Date().toLocaleDateString('ar-OM'))+'</p></header><div class="stats"><div class="stat">المعلمون النشطون<b>'+active+'</b></div><div class="stat">المعلمون غير النشطين<b>'+inactive+'</b></div><div class="stat">مرات تسجيل الغياب<b>'+totalAbsences+'</b></div><div class="stat">مرات تسجيل السلوكيات<b>'+totalBehaviors+'</b></div></div><table><thead><tr><th>#</th><th>اسم المعلم</th><th>مرات تسجيل الغياب</th><th>مرات تسجيل السلوكيات</th><th>إجمالي التسجيلات</th><th>حالة النشاط</th></tr></thead><tbody>'+tableRows+'</tbody></table><div class="foot">يُحسب الغياب بعدد الطلاب المسجلين بحالة غائب، والسلوكيات بعدد سجلات السلوك المسجلة لكل طالب.</div><script>window.onload=function(){window.print();};<\/script></body></html>');
+  popup.document.close();
 }
 
 /* ============ Teachers List Redesign ============ */
