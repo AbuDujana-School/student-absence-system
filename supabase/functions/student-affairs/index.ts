@@ -168,7 +168,7 @@ async function handle(req: Request) {
     if (authorizationError) return reply(authorizationError.status, { error: authorizationError.message });
     const canPrintAttendance = permissions.can_print_attendance === true && permissions.can_read_attendance === true;
     if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
-    const validDate = (v: unknown) => typeof v === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + "T00:00:00Z"));
+    const validDate = (v: unknown) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v) && !Number.isNaN(Date.parse(v + "T00:00:00Z"));
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? "2100-12-31" : body.to;
     if (!validDate(from) || !validDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
