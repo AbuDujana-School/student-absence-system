@@ -101,7 +101,7 @@ export function getSessionCoverage(rows) {
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str);
     const className = String(row?.class_name || "").trim();
-    const keyPeriod = String(row?.record_key || "").match(/_p?(\\d+)$/)?.[1];
+    const keyPeriod = String(row?.record_key || "").match(/_p?(\d+)$/)?.[1];
     const period = Number(row?.period || keyPeriod || 0);
     if (!date || !className || !COMPETITION_REQUIRED_PERIODS.includes(period)) continue;
     if (!coverage.has(date)) coverage.set(date, new Map());
