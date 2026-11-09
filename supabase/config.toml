@@ -1,0 +1,2 @@
+[functions.student-affairs]
+verify_jwt = false
