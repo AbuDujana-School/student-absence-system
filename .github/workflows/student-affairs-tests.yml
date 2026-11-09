@@ -1,0 +1,26 @@
+name: Student Affairs backend tests
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/student-affairs/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/student-affairs-tests.yml"
+  push:
+    branches:
+      - "feature/student-affairs-secure-preview"
+    paths:
+      - "supabase/functions/student-affairs/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/student-affairs-tests.yml"
+jobs:
+  report-policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Run report authorization tests
+        run: deno test supabase/functions/student-affairs/report_policy_test.ts
+      - name: Type-check Edge Function
+        run: deno check supabase/functions/student-affairs/index.ts
