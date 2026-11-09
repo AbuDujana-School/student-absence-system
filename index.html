@@ -3079,7 +3079,7 @@ function getTeachersActivityRows() {
     const row = ensure(session?.teacher);
     if (!row) return;
     Object.values(session.records || {}).forEach(record => {
-      if (record && typeof record === 'object' && String(record.type || '').trim()) row.behaviors++;
+      if (record && typeof record === 'object' && String(record.type || '').trim() && record.type !== 'normal') row.behaviors++;
     });
   });
   const rows = Array.from(totals.values());
