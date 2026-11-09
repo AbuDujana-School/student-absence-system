@@ -239,7 +239,7 @@ async function handle(req: Request) {
           }
         }
         const selectedAttendanceRecords = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-        analytics[className] = { attendance_sessions: (a.data || []).length, selected_attendance_records: selectedAttendanceRecords, attendance_status_counts: statusCounts, behavior_sessions: b.count || 0 };
+        analytics[className] = { attendance_sessions: a.count || (a.data || []).length, selected_attendance_records: selectedAttendanceRecords, attendance_status_counts: statusCounts, behavior_sessions: b.count || 0 };
       }
       return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
     }
