@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
@@ -48,4 +48,10 @@ Deno.test("behavior report excludes normal students and keeps violation details"
 Deno.test("record filters reject malformed record payloads", () => {
   if (Object.keys(filterAttendanceRecordMap(null, ["absent"])).length) throw new Error("null attendance accepted");
   if (Object.keys(filterBehaviorRecordMap(["normal"])).length) throw new Error("array behavior payload accepted");
+});
+
+Deno.test("class scope rejects any requested class outside the assignment", () => {
+  if (!areClassesAllowed(["9/1", "9/2"], ["9/1", "9/2", "9/3"])) throw new Error("valid assigned classes rejected");
+  if (areClassesAllowed(["9/1", "10/1"], ["9/1", "9/2"])) throw new Error("unassigned class accepted");
+  if (!areClassesAllowed([], ["9/1"])) throw new Error("empty selection should be allowed");
 });
