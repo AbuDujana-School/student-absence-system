@@ -1,0 +1,44 @@
+name: Student Affairs backend tests
+on:
+  pull_request:
+    paths:
+      - "supabase/functions/student-affairs/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/student-affairs-tests.yml"
+      - "index.html"
+  push:
+    branches:
+      - "feature/student-affairs-secure-preview"
+    paths:
+      - "supabase/functions/student-affairs/**"
+      - "supabase/migrations/**"
+      - ".github/workflows/student-affairs-tests.yml"
+      - "index.html"
+jobs:
+  report-policy-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Check inline application JavaScript syntax
+        run: |
+          python - <<'PY'
+          import re, pathlib, subprocess, tempfile
+          html = pathlib.Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r"<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)</script>", html, re.I)
+          if not scripts:
+              raise SystemExit("No inline scripts found")
+          for i, source in enumerate(scripts):
+              if not source.strip():
+                  continue
+              path = pathlib.Path(tempfile.gettempdir()) / f"app-inline-{i}.js"
+              path.write_text(source, encoding="utf-8")
+              subprocess.run(["node", "--check", str(path)], check=True)
+          print(f"Checked {len(scripts)} inline script blocks")
+          PY
+      - name: Run report authorization tests
+        run: deno test supabase/functions/student-affairs/report_policy_test.ts
+      - name: Type-check Edge Function
+        run: deno check supabase/functions/student-affairs/index.ts
