@@ -166,7 +166,7 @@ async function handle(req: Request) {
   if (body?.action === "get_permissions") {
     if (p.type !== "admin") return reply(403, { error: "غير مصرح" });
     const [{ data: teachers }, { data: classes }, { data: perms }] = await Promise.all([
-      db.from("teachers").select("name,role").order("name"),
+      db.from("teachers").select("name,role,permissions").order("name"),
       db.from("classes").select("name").order("name"),
       db.from("student_affairs_permissions").select("*")
     ]);
@@ -176,7 +176,7 @@ async function handle(req: Request) {
     if (p.type !== "admin") return reply(403, { error: "غير مصرح" });
     const type = body.principal_type, name = String(body.principal_name || "").trim();
     if (!["teacher", "custom"].includes(type) || !name) return reply(400, { error: "المعلم غير صالح" });
-    const { data: target } = await db.from("teachers").select("name,role").eq("name", name).maybeSingle();
+    const { data: target } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
     if (!target || (type === "custom" ? target.role !== "custom" : target.role === "custom")) return reply(404, { error: "المعلم غير موجود" });
     const legacyClasses: string[] = Array.isArray(body.allowed_classes) ? Array.from(new Set((body.allowed_classes as unknown[]).map(String))) : [];
     const attendanceClasses: string[] = Array.isArray(body.allowed_attendance_classes) ? Array.from(new Set((body.allowed_attendance_classes as unknown[]).map(String))) : legacyClasses;
@@ -191,6 +191,11 @@ async function handle(req: Request) {
     const row = { principal_type: type, principal_name: name, allowed_classes: allowed, allowed_attendance_classes: attendanceClasses, allowed_behavior_classes: behaviorClasses, attendance_statuses: statuses, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
+    if (typeof body.studentAffairs === "boolean") {
+      const mergedPermissions = { ...(target.permissions || {}), studentAffairs: body.studentAffairs };
+      const { error: accessError } = await db.from("teachers").update({ permissions: mergedPermissions }).eq("name", name);
+      if (accessError) throw accessError;
+    }
     const { error: revokeError } = await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
     if (revokeError) throw revokeError;
     return reply(200, { ok: true, permissions: row });
