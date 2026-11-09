@@ -2621,6 +2621,7 @@ function setupRolePermissions() {
     badge.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "إداري مؤقت" : "إدارة";
     badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
+    const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
     switchAdminTab('studstats');
   } else {
     text.textContent = `صلاحية الدخول: ${activeUser?.name || ''}`;
