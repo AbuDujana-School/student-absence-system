@@ -787,7 +787,8 @@
         <span id="roleNoticeText">صلاحية الدخول</span>
         <span id="roleBadge" class="bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm">تحكم كامل</span>
       </div>
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-11 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-12 gap-2 text-xs font-bold bg-slate-100/80 dark:bg-slate-900/60 p-2.5 rounded-2xl border border-slate-200/80">
+        <button onclick="switchAdminTab('dashboard')" id="tab-dashboard" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm"><i class="fa-solid fa-house text-emerald-600"></i><span>الرئيسية</span></button>
         <button onclick="switchAdminTab('studstats')" id="tab-studstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm"><i class="fa-solid fa-chart-pie text-emerald-600"></i> <span>إحصائيات</span></button>
         <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-scale-balanced text-teal-600"></i> <span>سلوكيات</span></button>
         <button onclick="switchAdminTab('users')" id="tab-users" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-user-gear text-blue-600"></i> <span>الأشخاص</span></button>
@@ -800,6 +801,54 @@
         <button onclick="switchAdminTab('security')" id="tab-security" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-shield-halved text-emerald-600"></i> <span>الأمان</span></button>
         <button onclick="openStudentAffairsView()" id="tab-studentAffairs" style="display:none" class="admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400"><i class="fa-solid fa-user-graduate text-blue-600"></i> <span>شؤون الطلاب</span></button>
       </div>
+
+      <section id="sec-dashboard" class="space-y-8" dir="rtl">
+        <div class="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 p-6 sm:p-8 text-white shadow-2xl border border-blue-500/20">
+          <div class="absolute -left-12 -top-12 w-56 h-56 bg-blue-500/20 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="absolute -right-12 -bottom-12 w-56 h-56 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none"></div>
+          <div class="relative z-10 flex flex-wrap justify-between items-center gap-5">
+            <div class="flex items-center gap-4 sm:gap-5">
+              <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-white/10 backdrop-blur-md border border-white/20 text-white flex items-center justify-center text-3xl shadow-2xl shadow-blue-500/30 ring-4 ring-white/5"><i class="fa-solid fa-crown text-amber-400"></i></div>
+              <div>
+                <div class="flex items-center gap-2 mb-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shadow-sm shadow-emerald-400"></span><span class="text-xs font-black tracking-wide text-blue-300 uppercase">نظام أبو دجانة الذكي • لوحة الإدارة</span></div>
+                <h2 class="font-black text-2xl sm:text-3xl text-white tracking-tight">مرحباً بك، <span id="adminDashboardUserName">أستاذي الفاضل</span></h2>
+                <p class="text-xs sm:text-sm text-slate-300 font-bold mt-1">متابعة دقيقة، قرارات سريعة، وتقييم شامل في واجهة واحدة</p>
+              </div>
+            </div>
+            <div id="dashboardStudentAffairsAction" class="hidden items-center gap-3">
+              <button onclick="openStudentAffairsView()" class="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-6 py-3.5 rounded-2xl text-xs font-black shadow-xl shadow-blue-600/30 active:scale-95 transition-all flex items-center gap-2.5 border border-white/10"><i class="fa-solid fa-user-shield text-base"></i><span>شؤون الطلاب</span></button>
+            </div>
+          </div>
+        </div>
+        <div id="dashboardMetricsSection" class="grid grid-cols-1 md:grid-cols-3 gap-5">
+          <div class="group p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-2 h-full bg-blue-600"></div>
+            <div class="flex items-center justify-between"><div><span class="text-xs font-black text-slate-500 dark:text-slate-400 block mb-1">معدل الحضور اليومي للطلاب</span><strong id="dashAttendanceRate" class="text-3xl font-black text-slate-800 dark:text-white group-hover:text-blue-600 transition-colors">—</strong><p class="text-xs font-bold text-rose-600 mt-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-exclamation text-[10px]"></i><span>غائب اليوم: <b id="dashAbsentToday" class="font-black">0</b> طالب</span></p></div><div class="w-14 h-14 rounded-2xl bg-blue-50 dark:bg-blue-950/80 text-blue-600 dark:text-blue-400 flex items-center justify-center text-2xl shadow-inner"><i class="fa-solid fa-user-check"></i></div></div>
+          </div>
+          <div class="group p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-2 h-full bg-amber-500"></div>
+            <div class="flex items-center justify-between"><div><span class="text-xs font-black text-slate-500 dark:text-slate-400 block mb-1">المخالفات السلوكية اليوم</span><strong id="dashBehaviorToday" class="text-3xl font-black text-slate-800 dark:text-white group-hover:text-amber-500 transition-colors">0</strong><p class="text-xs font-bold text-amber-600 mt-2 flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i><span>تتطلب إشراف وتوجيه من الإدارة</span></p></div><div class="w-14 h-14 rounded-2xl bg-amber-50 dark:bg-amber-950/80 text-amber-600 dark:text-amber-400 flex items-center justify-center text-2xl shadow-inner"><i class="fa-solid fa-shield-cat"></i></div></div>
+          </div>
+          <div class="group p-6 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl hover:shadow-2xl transition-all relative overflow-hidden">
+            <div class="absolute top-0 right-0 w-2 h-full bg-emerald-500"></div>
+            <div class="flex items-center justify-between"><div><span class="text-xs font-black text-slate-500 dark:text-slate-400 block mb-1">تغطية رصد الحصص اليوم</span><strong id="dashPeriodsRecorded" class="text-3xl font-black text-slate-800 dark:text-white group-hover:text-emerald-500 transition-colors">0 / 0</strong><p class="text-xs font-bold text-emerald-600 mt-2 flex items-center gap-1.5"><i class="fa-solid fa-circle-check text-[10px]"></i><span>حصة مسجلة بالنظام</span></p></div><div class="w-14 h-14 rounded-2xl bg-emerald-50 dark:bg-emerald-950/80 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl shadow-inner"><i class="fa-solid fa-clipboard-check"></i></div></div>
+          </div>
+        </div>
+        <div id="dashboardUrgentSection" class="p-6 sm:p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-5">
+          <div class="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800"><div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-rose-50 dark:bg-rose-950/60 text-rose-600 flex items-center justify-center text-xl shadow-inner"><i class="fa-solid fa-bell font-black"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">حالات الطلاب المتكررة (تستدعي التدخل)</h3><p class="text-xs text-slate-500 font-bold">تنبيهات تلقائية للحالات الحرجة لاتخاذ الإجراءات التربوية</p></div></div></div>
+          <div id="urgentCasesContainer" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="p-5 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/80 dark:border-rose-900/40 flex items-center justify-between shadow-sm"><div class="space-y-1"><span class="text-xs font-black text-rose-900 dark:text-rose-200 block flex items-center gap-2"><i class="fa-solid fa-person-walking-arrow-right"></i> حالات التسرب المرصودة اليوم</span><p class="text-[11px] text-slate-500 font-bold">يتوجب التواصل وتفريغ ملفات المتابعة</p></div><span id="dashEscapeCount" class="px-4 py-2 bg-rose-600 text-white text-xs font-black rounded-2xl shadow-md">0 حالات</span></div>
+            <div class="p-5 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/40 flex items-center justify-between shadow-sm"><div class="space-y-1"><span class="text-xs font-black text-amber-900 dark:text-amber-200 block flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left"></i> التكرار في التأخر الصباحي</span><p class="text-[11px] text-slate-500 font-bold">الطلاب المتأخرون أكثر من مرتين هذا الأسبوع</p></div><span id="dashLateCount" class="px-4 py-2 bg-amber-600 text-white text-xs font-black rounded-2xl shadow-md">0 طلاب</span></div>
+          </div>
+        </div>
+        <div id="dashboardTeachersActivity" class="p-6 sm:p-8 rounded-[2.5rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-6">
+          <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-3.5"><div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-500/20"><i class="fa-solid fa-chart-user"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">جدول تقييم ونشاط المعلمين</h3><p class="text-xs text-slate-500 font-bold">مرتب تنازلياً من المعلم الأكثر تفعيلاً للنظام إلى الأقل</p></div></div>
+            <button onclick="printTeachersActivityPDF()" class="bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white px-7 py-3.5 rounded-2xl text-xs font-black shadow-xl shadow-slate-950/20 active:scale-95 transition-all flex items-center gap-2.5"><i class="fa-solid fa-file-pdf text-rose-400 text-base"></i><span>طباعة تقرير النشاط (PDF)</span></button>
+          </div>
+          <div class="overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-inner"><table class="w-full text-xs text-right"><thead class="bg-slate-50 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-800"><tr><th class="p-4 text-center w-14">#</th><th class="p-4">اسم المعلم</th><th class="p-4 text-center">مرات تسجيل الغياب</th><th class="p-4 text-center">مرات تسجيل السلوكيات</th><th class="p-4 text-center">إجمالي التسجيلات</th><th class="p-4 text-center">حالة النشاط</th></tr></thead><tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"></tbody></table></div>
+        </div>
+      </section>
 
       <div id="sec-studstats" class="space-y-6">
         <div class="bg-gradient-to-r from-emerald-900 to-teal-900 text-white p-5 rounded-3xl shadow-lg flex flex-wrap justify-between items-center gap-4">
@@ -1008,36 +1057,7 @@
         </div>
       </div>
 
-      <div id="teachersActivityCard" class="glass-card p-6 sm:p-8 rounded-[2.5rem] border border-slate-200/80 dark:border-slate-700 shadow-xl space-y-6 mt-8" dir="rtl">
-        <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-700">
-          <div class="flex items-center gap-3.5">
-            <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-500/20"><i class="fa-solid fa-chart-line"></i></div>
-            <div>
-              <div class="flex items-center gap-2 mb-0.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span><span class="text-[11px] font-black text-teal-600 dark:text-teal-400">لوحة الإحصاءات العامة</span></div>
-              <h3 class="font-black text-lg text-slate-800 dark:text-white">تقييم ونشاط المعلمين على النظام</h3>
-              <p class="text-xs text-slate-500 mt-0.5">ترتيب المعلمين تلقائياً من الأكثر تسجيلاً إلى الأقل</p>
-            </div>
-          </div>
-          <button type="button" onclick="printTeachersActivityPDF()" class="bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white px-7 py-3 rounded-2xl text-xs font-black shadow-lg shadow-slate-950/20 active:scale-95 transition-all flex items-center gap-2.5">
-            <i class="fa-solid fa-file-pdf text-rose-400 text-base"></i><span>طباعة تقرير النشاط (PDF)</span>
-          </button>
-        </div>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-          <div class="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200/60 dark:border-emerald-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-emerald-800 dark:text-emerald-300 block mb-1">المعلمون النشطون</span><strong id="activeTeachersCount" class="text-2xl font-black text-emerald-600">0</strong></div>
-          <div class="p-4 rounded-2xl bg-rose-50/70 dark:bg-rose-950/30 border border-rose-200/60 dark:border-rose-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-rose-800 dark:text-rose-300 block mb-1">المعلمون غير النشطين</span><strong id="inactiveTeachersCount" class="text-2xl font-black text-rose-600">0</strong></div>
-          <div class="p-4 rounded-2xl bg-blue-50/70 dark:bg-blue-950/30 border border-blue-200/60 dark:border-blue-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-blue-800 dark:text-blue-300 block mb-1">مرات تسجيل الغياب</span><strong id="totalAttendanceSessions" class="text-2xl font-black text-blue-600">0</strong></div>
-          <div class="p-4 rounded-2xl bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/60 dark:border-amber-900/50 text-center shadow-sm"><span class="text-[11px] font-bold text-amber-800 dark:text-amber-300 block mb-1">مرات تسجيل السلوكيات</span><strong id="totalBehaviorLogs" class="text-2xl font-black text-amber-600">0</strong></div>
-        </div>
-        <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-inner">
-          <table class="w-full text-xs text-right">
-            <thead class="bg-slate-100/80 dark:bg-slate-800/80 text-slate-700 dark:text-slate-200 font-black border-b border-slate-200 dark:border-slate-700">
-              <tr><th class="p-3.5 text-center w-12">#</th><th class="p-3.5">اسم المعلم</th><th class="p-3.5 text-center">مرات تسجيل الغياب</th><th class="p-3.5 text-center">مرات تسجيل السلوكيات</th><th class="p-3.5 text-center">إجمالي التسجيلات</th><th class="p-3.5 text-center">حالة النشاط</th></tr>
-            </thead>
-            <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"><tr><td colspan="6" class="p-5 text-center text-slate-400">جارٍ تحميل بيانات النشاط...</td></tr></tbody>
-          </table>
-        </div>
-        <p class="text-[10px] leading-5 text-slate-500">يُحسب الغياب بعدد الطلاب المسجلين بحالة «غائب»، والسلوكيات بعدد سجلات السلوك الفعلية. يُصنّف المعلم نشطاً عند وجود تسجيل واحد أو أكثر.</p>
-      </div>
+      
     </div>
   </div>
 </div>
@@ -2827,57 +2847,162 @@ function setupRolePermissions() {
   if (activeUser?.type === 'admin') {
     text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
     badge.textContent = "مدير النظام"; badge.className = "bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
+    const dashboardTab = document.getElementById('tab-dashboard'); if (dashboardTab) dashboardTab.style.display = 'flex';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
-    switchAdminTab('studstats');
+    switchAdminTab('dashboard');
   } else if (isAdminAuthorized() || activeUser?.permissions?.admin) {
     text.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة";
     badge.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "إداري مؤقت" : "إدارة";
     badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
+    const dashboardTab = document.getElementById('tab-dashboard'); if (dashboardTab) dashboardTab.style.display = 'flex';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
-    switchAdminTab('studstats');
+    switchAdminTab('dashboard');
   } else {
     text.textContent = `صلاحية الدخول: ${activeUser?.name || ''}`;
     badge.textContent = activeUser?.type === 'custom' ? "مستخدم مخصص" : "معلم بصلاحيات";
     badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     let first = null;
+    const dashboardTab = document.getElementById('tab-dashboard');
+    const canDashboard = !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
+    if (dashboardTab) dashboardTab.style.display = canDashboard ? 'flex' : 'none';
+    if (canDashboard) first = 'dashboard';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); const allow = !!(activeUser?.permissions?.[id]); if (el) el.style.display = allow ? 'flex' : 'none'; if (allow && !first) first = id; });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = activeUser?.permissions?.studentAffairs === true ? 'flex' : 'none';
     if (first) switchAdminTab(first);
   }
   initAdminDashboard();
 }
+function renderAdminOverview() {
+  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin;
+  const canStats = isA || !!activeUser?.permissions?.studstats;
+  const canTeachers = isA || !!activeUser?.permissions?.teachers;
+  const canStudentAffairs = isA || activeUser?.permissions?.studentAffairs === true;
+  const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = String(value); };
+  const toggle = (id, visible) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !visible); };
+  setText('adminDashboardUserName', activeUser?.name || 'أستاذي الفاضل');
+  toggle('dashboardMetricsSection', canStats);
+  toggle('dashboardUrgentSection', canStats);
+  toggle('dashboardTeachersActivity', canTeachers);
+  const saAction = document.getElementById('dashboardStudentAffairsAction');
+  if (saAction) { saAction.classList.toggle('hidden', !canStudentAffairs); saAction.classList.toggle('flex', canStudentAffairs); }
+  if (canStats) {
+    const today = getOmanLocalDate();
+    const attendanceToday = [];
+    const latestByClass = new Map();
+    let recordedPeriods = 0;
+    Object.entries(db.attendance || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      const date = session.date || parsed.date;
+      if (date !== today) return;
+      attendanceToday.push({ key, session, parsed, period: Number(session.period || parsed.period || 0), className: session.className || parsed.className });
+      if (Object.keys(session.records).length) recordedPeriods++;
+      const className = session.className || parsed.className;
+      if (!className) return;
+      const previous = latestByClass.get(className);
+      const period = Number(session.period || parsed.period || 0);
+      const stamp = String(session.timestamp || '');
+      if (!previous || period > previous.period || (period === previous.period && stamp > previous.stamp)) latestByClass.set(className, { session, period, stamp });
+    });
+    let present = 0, considered = 0, absentToday = 0;
+    latestByClass.forEach(({ session }, className) => {
+      const roster = Array.isArray(db.students?.[className]) ? db.students[className] : Object.keys(session.records || {});
+      roster.forEach(student => {
+        const status = session.records?.[student];
+        if (!['present', 'absent', 'late', 'escape', 'outside'].includes(status)) return;
+        considered++;
+        if (status === 'present') present++;
+        if (status === 'absent') absentToday++;
+      });
+    });
+    setText('dashAttendanceRate', considered ? Math.round((present / considered) * 100) + '%' : '—');
+    setText('dashAbsentToday', considered ? absentToday.toLocaleString('en-US') : '0');
+    const expectedPeriods = (db.classes || []).length * 8;
+    setText('dashPeriodsRecorded', recordedPeriods.toLocaleString('en-US') + ' / ' + expectedPeriods.toLocaleString('en-US'));
+    let behaviorCount = 0;
+    Object.entries(db.behaviors || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      if ((session.date || parsed.date) !== today) return;
+      Object.values(session.records).forEach(record => { if (record && typeof record === 'object' && record.type && record.type !== 'normal') behaviorCount++; });
+    });
+    setText('dashBehaviorToday', behaviorCount.toLocaleString('en-US'));
+    const escapeStudents = new Set();
+    const lateDatesByStudent = new Map();
+    const weekDates = new Set();
+    for (let offset = 0; offset < 7; offset++) {
+      const d = new Date(getTrustedDate());
+      d.setDate(d.getDate() - offset);
+      weekDates.add(formatDateOman(d));
+    }
+    Object.entries(db.attendance || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      const date = session.date || parsed.date;
+      const className = session.className || parsed.className;
+      if (date === today) Object.entries(session.records).forEach(([student, status]) => { if (status === 'escape') escapeStudents.add(className + '::' + student); });
+      if (!weekDates.has(date)) return;
+      Object.entries(session.records).forEach(([student, status]) => {
+        if (status !== 'late') return;
+        const keyForStudent = className + '::' + student;
+        if (!lateDatesByStudent.has(keyForStudent)) lateDatesByStudent.set(keyForStudent, new Set());
+        lateDatesByStudent.get(keyForStudent).add(date);
+      });
+    });
+    const repeatedLateStudents = Array.from(lateDatesByStudent.values()).filter(dates => dates.size > 2).length;
+    setText('dashEscapeCount', escapeStudents.size.toLocaleString('en-US') + ' حالات');
+    setText('dashLateCount', repeatedLateStudents.toLocaleString('en-US') + ' طلاب');
+  }
+  if (canTeachers) renderTeachersActivity();
+}
 function initAdminDashboard() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
-  const activityCard = document.getElementById('teachersActivityCard');
-  if (activityCard) activityCard.classList.toggle('hidden', !has('teachers'));
+  const activitySection = document.getElementById('dashboardTeachersActivity');
+  if (activitySection) activitySection.classList.toggle('hidden', !has('teachers'));
+  const metricsSection = document.getElementById('dashboardMetricsSection');
+  if (metricsSection) metricsSection.classList.toggle('hidden', !has('studstats'));
+  const urgentSection = document.getElementById('dashboardUrgentSection');
+  if (urgentSection) urgentSection.classList.toggle('hidden', !has('studstats'));
+  const saAction = document.getElementById('dashboardStudentAffairsAction');
+  if (saAction) { const show = !!(isA || activeUser?.permissions?.studentAffairs === true); saAction.classList.toggle('hidden', !show); saAction.classList.toggle('flex', show); }
   try {
     if (has('studstats')) renderStudentStatsDashboard();
     if (has('behaviorstats')) { populateBehaviorReportClassSelect(); renderBehaviorReportsSection(); }
     if (has('users')) renderCustomUsersList();
     if (has('students')) { populateAdminClassSelect(); loadAdminStudentsList(); }
-    if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); renderTeachersActivity(); }
+    if (has('teachers')) { renderTeachersList(); renderSubjectDutyDays(); }
     if (has('reports')) { populateReportClassSelect(); renderReportsSection(); }
+    if (isA || has('studstats') || has('teachers')) renderAdminOverview();
   } catch(e) { console.error('initAdminDashboard', e); }
 }
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
-  if (!has(tab)) return;
-  ADMIN_TAB_PERMISSIONS.forEach(t => { document.getElementById(`sec-${t}`)?.classList.add('hidden'); const tb = document.getElementById(`tab-${t}`); if (tb) tb.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all'; });
-  document.getElementById(`sec-${tab}`)?.classList.remove('hidden');
-  const ab = document.getElementById(`tab-${tab}`); if (ab) ab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm';
+  const canDashboard = isA || !!activeUser?.permissions?.studstats || !!activeUser?.permissions?.teachers;
+  if (tab === 'dashboard' ? !canDashboard : !has(tab)) return;
+  document.getElementById('sec-dashboard')?.classList.add('hidden');
+  const dashboardTab = document.getElementById('tab-dashboard');
+  if (dashboardTab) dashboardTab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
+  ADMIN_TAB_PERMISSIONS.forEach(t => {
+    document.getElementById('sec-' + t)?.classList.add('hidden');
+    const tb = document.getElementById('tab-' + t);
+    if (tb) tb.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-all';
+  });
+  document.getElementById('sec-' + tab)?.classList.remove('hidden');
+  const ab = document.getElementById('tab-' + tab);
+  if (ab) ab.className = 'admin-tab flex items-center justify-center gap-1.5 py-2.5 px-3 rounded-xl bg-white dark:bg-slate-800 text-emerald-900 dark:text-emerald-300 shadow-sm';
+  if (tab === 'dashboard') renderAdminOverview();
   if (tab === 'studstats') switchStatsSubTab('absence');
   if (tab === 'behaviorstats') renderBehaviorReportsSection();
   if (tab === 'users') renderCustomUsersList();
-  if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); renderTeachersActivity(); }
+  if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') renderReportsSection();
 }
-
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
 function loadAdminStudentsList() {
