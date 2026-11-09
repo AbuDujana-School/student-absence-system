@@ -3050,28 +3050,50 @@ function renderAdminOverview() {
       const stamp = String(session.timestamp || '');
       if (!previous || period > previous.period || (period === previous.period && stamp > previous.stamp)) latestByClass.set(className, { session, period, stamp });
     });
-    let present = 0, considered = 0, absentToday = 0;
     let totalSchoolStudents = 0;
     const schoolRosters = db.students && typeof db.students === 'object' ? db.students : {};
     const classNamesForCounts = Array.isArray(db.classes) && db.classes.length ? db.classes : Object.keys(schoolRosters);
+    const registeredStudents = new Set();
     classNamesForCounts.forEach(className => {
       const roster = Array.isArray(schoolRosters[className]) ? schoolRosters[className] : [];
-      const uniqueStudents = new Set(roster.map(name => String(name || '').trim()).filter(Boolean));
-      totalSchoolStudents += uniqueStudents.size;
+      roster.map(name => String(name || '').trim()).filter(Boolean).forEach(name => registeredStudents.add(className + '::' + name));
     });
-    latestByClass.forEach(({ session }, className) => {
-      const roster = Array.isArray(schoolRosters[className]) ? schoolRosters[className] : Object.keys(session.records || {});
-      roster.forEach(student => {
-        const status = session.records?.[student];
-        if (!['present', 'absent', 'late', 'escape', 'outside'].includes(status)) return;
-        considered++;
-        if (status === 'present') present++;
-        if (status === 'absent') absentToday++;
+    totalSchoolStudents = registeredStudents.size;
+
+    // يُحتسب الطالب غائباً طوال اليوم إذا سُجل غيابه في أي حصة من حصص اليوم.
+    // نستخدم Set لمنع تكرار الطالب إذا سُجل غائباً في أكثر من حصة.
+    const absentStudentsToday = new Set();
+    Object.entries(db.attendance || {}).forEach(([key, session]) => {
+      if (!session || !session.records || typeof session.records !== 'object') return;
+      const parsed = parseAttendanceKey(key);
+      if ((session.date || parsed.date) !== today) return;
+      const className = session.className || parsed.className || '';
+      if (!className) return;
+      Object.entries(session.records).forEach(([student, status]) => {
+        if (String(status) !== 'absent') return;
+        const studentName = String(student || '').trim();
+        if (!studentName) return;
+        absentStudentsToday.add(className + '::' + studentName);
       });
     });
-    // لا نفترض أن الطالب حاضر إذا لم يُرصد؛ المقام هو إجمالي قوائم الطلاب الفعلية.
-    const attendanceDenominator = totalSchoolStudents || considered;
-    setText('dashTotalSchoolStudents', totalSchoolStudents || considered);
+
+    // إذا كانت قوائم الطلاب غير متاحة إطلاقاً، نستخدم الطلاب المرصودين كمرجع احتياطي.
+    const observedStudentsToday = new Set();
+    if (!totalSchoolStudents) {
+      Object.entries(db.attendance || {}).forEach(([key, session]) => {
+        if (!session || !session.records || typeof session.records !== 'object') return;
+        const parsed = parseAttendanceKey(key);
+        if ((session.date || parsed.date) !== today) return;
+        const className = session.className || parsed.className || '';
+        Object.keys(session.records).forEach(student => {
+          const studentName = String(student || '').trim();
+          if (className && studentName) observedStudentsToday.add(className + '::' + studentName);
+        });
+      });
+    }
+    const attendanceDenominator = totalSchoolStudents || observedStudentsToday.size;
+    const absentToday = absentStudentsToday.size;
+    setText('dashTotalSchoolStudents', attendanceDenominator);
     setText('dashAttendanceRate', attendanceDenominator ? Math.round((absentToday / attendanceDenominator) * 100) + '%' : '—');
     setText('dashAbsentToday', absentToday.toLocaleString('en-US'));
     const expectedPeriods = (db.classes || []).length * 8;
