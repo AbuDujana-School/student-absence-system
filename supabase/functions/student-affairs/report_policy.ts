@@ -40,13 +40,14 @@ export function isValidIsoDate(value: unknown): value is string {
 }
 
 export const ATTENDANCE_STATUS_KEYS = ["absent", "late", "escape", "outside"] as const;
-export function filterAttendanceRecordMap(records: unknown, allowedStatuses: string[], selectedStatus?: string | null): Record<string, unknown> {
+export function filterAttendanceRecordMap(records: unknown, allowedStatuses: string[], selectedStatuses?: string | string[] | null): Record<string, unknown> {
   if (!records || typeof records !== "object" || Array.isArray(records)) return {};
   const allowed = new Set(allowedStatuses.filter(x => (ATTENDANCE_STATUS_KEYS as readonly string[]).includes(x)));
-  if (selectedStatus && !allowed.has(selectedStatus)) return {};
+  const requested = selectedStatuses == null ? null : new Set(Array.isArray(selectedStatuses) ? selectedStatuses : [selectedStatuses]);
+  if (requested && Array.from(requested).some(status => !allowed.has(status))) return {};
   return Object.fromEntries(Object.entries(records as Record<string, unknown>).filter(([, value]) => {
     const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
-    return allowed.has(status) && (!selectedStatus || status === selectedStatus);
+    return allowed.has(status) && (!requested || requested.has(status));
   }));
 }
 export function filterBehaviorRecordMap(records: unknown): Record<string, unknown> {
