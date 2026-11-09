@@ -97,6 +97,14 @@ async function permissionsFor(p: { type: string; name: string }) {
   const { data } = await db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle();
   return data || { allowed_classes: [], can_read_attendance: false, can_read_behavior: false, can_view_analytics: false, can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
 }
+async function hasStudentAffairsAccess(p: { type: string; name: string }) {
+  if (p.type === "admin") return true;
+  const { data, error } = await db.from("teachers").select("role,permissions").eq("name", p.name).maybeSingle();
+  if (error || !data) return false;
+  const expectedRole = p.type === "custom" ? "custom" : "teacher";
+  return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
+    && data.permissions?.studentAffairs === true;
+}
 async function getSession(req: Request) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[a-f0-9]{64}$/i.test(token)) return null;
@@ -117,6 +125,7 @@ async function handle(req: Request) {
     try {
       const principal = await findPrincipal(body.pin, await getPepper());
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
+      if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلاب" }); }
       await clearFailedLogin(rate.key);
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
       const expires = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
@@ -129,6 +138,10 @@ async function handle(req: Request) {
   const session = await getSession(req);
   if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
   const p = session.principal;
+  if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
+    await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
+    return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلاب لهذا الحساب" });
+  }
   if (body?.action === "logout") {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
     return reply(200, { ok: true });
