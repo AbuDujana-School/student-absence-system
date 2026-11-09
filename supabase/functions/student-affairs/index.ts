@@ -215,17 +215,32 @@ async function handle(req: Request) {
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? "2100-12-31" : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
+    const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
+    if (body.attendance_status_filters != null && !Array.isArray(body.attendance_status_filters)) return reply(400, { error: "قائمة حالات الغياب غير صالحة" });
+    const requestedStatuses = body.attendance_status_filters == null
+      ? (body.attendance_status_filter == null ? null : [String(body.attendance_status_filter)])
+      : Array.from(new Set((body.attendance_status_filters as unknown[]).map(String)));
+    if (requestedStatuses && requestedStatuses.some((status: string) => !statusAllow.has(status))) return reply(403, { error: "غير مصرح بعرض إحدى حالات الغياب المطلوبة" });
     if (mode === "analytics") {
       const classes = Array.from(new Set([...requestedAttendance, ...requestedBehavior]));
       if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
         const [a, b] = await Promise.all([
-          allowedAttendance.has(className) ? db.from("attendance").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any),
+          allowedAttendance.has(className) ? db.from("attendance").select("record_key,records", { count: "exact" }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31").limit(5000) : Promise.resolve({ data: [], error: null } as any),
           allowedBehavior.has(className) ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
         ]);
         if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
-        analytics[className] = { attendance_sessions: a.count || 0, behavior_sessions: b.count || 0 };
+        const statusCounts: Record<string, number> = { absent: 0, late: 0, escape: 0, outside: 0 };
+        for (const session of (a.data || [])) {
+          const records = session.records && typeof session.records === "object" && !Array.isArray(session.records) ? session.records : {};
+          for (const value of Object.values(records as Record<string, unknown>)) {
+            const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
+            if (Object.prototype.hasOwnProperty.call(statusCounts, status) && statusAllow.has(status) && (!requestedStatuses || requestedStatuses.includes(status))) statusCounts[status]++;
+          }
+        }
+        const selectedAttendanceRecords = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+        analytics[className] = { attendance_sessions: a.count || (a.data || []).length, selected_attendance_records: selectedAttendanceRecords, attendance_status_counts: statusCounts, behavior_sessions: b.count || 0 };
       }
       return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
     }
@@ -233,10 +248,7 @@ async function handle(req: Request) {
     const wantsBehavior = mode === "view" || mode === "print_behavior" || mode === "print_combined";
     if (wantsAttendance && Array.isArray(body.attendance_classes) && requestedAttendance.length && !permissions.can_read_attendance) return reply(403, { error: "غير مصرح بعرض الغياب" });
     if (wantsBehavior && Array.isArray(body.behavior_classes) && requestedBehavior.length && !permissions.can_read_behavior) return reply(403, { error: "غير مصرح بعرض السلوكيات" });
-    const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
-    const requestedStatus = body.attendance_status_filter == null ? null : String(body.attendance_status_filter);
-    if (requestedStatus && !statusAllow.has(requestedStatus)) return reply(403, { error: "غير مصرح بعرض حالة الغياب المطلوبة" });
-    const filterAttendance = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatus) })).filter(row => Object.keys(row.records).length > 0);
+    const filterAttendance = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatuses) })).filter(row => Object.keys(row.records).length > 0);
     const filterBehavior = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterBehaviorRecordMap(row.records) })).filter(row => Object.keys(row.records).length > 0);
     const [attendance, behaviors] = await Promise.all([
       wantsAttendance && permissions.can_read_attendance && requestedAttendance.length
