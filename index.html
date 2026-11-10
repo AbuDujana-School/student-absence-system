@@ -645,8 +645,8 @@
           </section>
         </div>
         <section class="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 dark:border-teal-900/60 dark:bg-teal-950/20">
-          <div class="flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i><h4 class="text-sm font-black text-slate-800 dark:text-white">توصيات تحسين أداء فريقك</h4></div>
-          <p class="mt-1 text-[11px] text-slate-500">تُعرض توصيات الشعب التابعة لك فقط، اعتماداً على معدلات الفترة المحددة.</p>
+          <div class="flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i><h4 class="text-sm font-black text-slate-800 dark:text-white">ملاحظات متابعة الأداء</h4></div>
+          <p class="mt-1 text-[11px] text-slate-500">تُعرض تفاصيل الشعب وفق الصلاحيات الممنوحة؛ صلاحية سباق التميز تعرض النتائج الإجمالية للمراحل فقط.</p>
           <div id="saCompetitionRecommendations" class="mt-3 space-y-2"></div>
         </section>
         <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
@@ -1670,7 +1670,7 @@ function saRenderCompetition(data){
   const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownGrades.has(String(item.grade)));
   const completeClasses=ownClasses.filter(item=>item.complete&&Number.isFinite(Number(item.attendanceRate))&&Number.isFinite(Number(item.behaviorRate)));
   if(!completeClasses.length){
-    recommendations.innerHTML='<div class="rounded-xl border border-dashed border-teal-200 bg-white/70 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-300">ستظهر التوصيات بعد اكتمال سجلات الغياب والسلوك لجميع شعب فريقك خلال الفترة المحددة.</div>';
+    recommendations.innerHTML='<div class="rounded-xl border border-dashed border-teal-200 bg-white/70 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-300">'+(ownGrades.size?'ستظهر التوصيات بعد اكتمال سجلات الغياب والسلوك لجميع شعب فريقك خلال الفترة المحددة.':'تعرض صلاحية سباق التميز ترتيب المراحل ونقاطها ومخططاتها الإجمالية فقط، دون تفاصيل الشعب أو الطلاب.')+'</div>';
   }else{
     const lines=[];
     for(const grade of ownGrades){
