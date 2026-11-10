@@ -5519,7 +5519,7 @@ if ("serviceWorker" in navigator) {
     }).join("");
     const totalCols=2+statusCols.length+behaviorCols.length;
     const statItems=statusOrder.map(k=>'<span class="matrix-stat"><b>'+esc(statusName(k))+'</b> '+(stats.att[k]||0)+'</span>').join("")+
-      behaviorKeys.map(k=>'<span class="matrix-stat"><b>'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</b> '+(stats.beh[k]||0)+'</span>').join("");
+      behaviorKeys.filter(k=>!Array.isArray(selectedBehaviors)||selectedBehaviors.includes(k)).map(k=>'<span class="matrix-stat"><b>'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</b> '+(stats.beh[k]||0)+'</span>').join("");
     return '<table class="matrix-table"><thead><tr><th colspan="'+totalCols+'" class="matrix-banner"><div class="matrix-school">'+esc(SCHOOL_NAME||"مدرسة أبو دجانة")+'</div><div class="matrix-subtitle">كشف رصد الغياب والانضباط والسلوكيات</div><div class="matrix-meta"><span>الصف: '+esc(formatClassName(list[0].className))+'</span><span>'+(mode==="daily"?"التاريخ: "+esc(rangeLabel||dataDateLabel(list,mode)):"الفترة: "+esc(rangeLabel||"—"))+'</span><span>الطلاب ذوو الحالات: '+list.length+'</span></div><div class="matrix-stats"><span class="matrix-stat"><b>الغياب والانضباط</b> '+stats.attTotal+'</span><span class="matrix-stat"><b>السلوكيات</b> '+stats.behTotal+'</span>'+statItems+'</div></th></tr><tr class="matrix-head-row">'+headers+'</tr></thead><tbody>'+body+'</tbody></table>';
   }
   function dataDateLabel(list,mode){const dates=[...new Set(list.flatMap(r=>r.attendance.concat(r.behaviors).map(x=>x.date).filter(Boolean)))];return dates[0]||"—";}
