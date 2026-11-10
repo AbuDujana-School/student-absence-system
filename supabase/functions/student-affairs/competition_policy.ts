@@ -64,7 +64,9 @@ export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
   return days;
 }
 
-type CompetitionRow = { date_str?: unknown; class_name?: unknown; period?: unknown; record_key?: unknown; records?: unknown };\ntype CoverageMap = Map<string, Map<string, Set<number>>>;\nfunction recordMap(row: CompetitionRow): Record<string, unknown> {
+type CompetitionRow = { date_str?: unknown; class_name?: unknown; period?: unknown; record_key?: unknown; records?: unknown };
+type CoverageMap = Map<string, Map<string, Set<number>>>;
+function recordMap(row: CompetitionRow): Record<string, unknown> {
   return row?.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
 }
 
@@ -127,7 +129,8 @@ export function isTeamDayComplete(classNames: string[], dateValue: unknown, atte
   return classes.every(name => hasAllPeriods(attendance, name) && hasAllPeriods(behavior, name));
 }
 
-type CompetitionTeam = { grade?: string; complete: boolean; attendanceRate: number | null; behaviorRate: number | null; [key: string]: unknown };\nexport function calculateRelativeCompetitionScores(teams: CompetitionTeam[]): Array<CompetitionTeam & { score: number | null; attendancePoints: number | null; behaviorPoints: number | null; rank: number | null; resultStatus: string }> {
+type CompetitionTeam = { grade?: string; complete: boolean; attendanceRate: number | null; behaviorRate: number | null; [key: string]: unknown };
+export function calculateRelativeCompetitionScores(teams: CompetitionTeam[]): Array<CompetitionTeam & { score: number | null; attendancePoints: number | null; behaviorPoints: number | null; rank: number | null; resultStatus: string }> {
   const list = Array.isArray(teams) ? teams : [];
   if (!list.length || list.some(team => team?.complete !== true)) {
     return list.map(team => ({ ...team, score: null, attendancePoints: null, behaviorPoints: null, rank: null, resultStatus: "incomplete" }));
@@ -173,7 +176,8 @@ type CompetitionTeam = { grade?: string; complete: boolean; attendanceRate: numb
  * and session coverage before marking a team complete; missing sessions are never
  * silently interpreted as zero incidents.
  */
-type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };\nexport function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput) {
+type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
+export function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput) {
   const days = getSchoolDays(from, to);
   const classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
   const rosterMap = rosters && typeof rosters === "object" ? rosters : {};
