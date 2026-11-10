@@ -5,6 +5,7 @@
 
 export const COMPETITION_GRADES = ["9", "10", "11", "12"];
 export const COMPETITION_ATTENDANCE_STATUSES = ["absent", "late", "outside", "escape"];
+export const COMPETITION_BEHAVIOR_TYPES = ["eating", "talking", "tools", "chaos", "sleeping", "homework", "other"];
 export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday through Thursday (Oman school week).
 export const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
@@ -90,7 +91,7 @@ export function countBehaviorIncidents(rows) {
     if (!date || !className) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
       const type = raw && typeof raw === "object" ? String(raw.type || "") : String(raw || "");
-      if (!type || type === "normal") continue;
+      if (!COMPETITION_BEHAVIOR_TYPES.includes(type)) continue;
       unique.add([className, date, String(student), type].join("\u001f"));
     }
   }
