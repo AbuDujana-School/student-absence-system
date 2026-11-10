@@ -1961,8 +1961,8 @@ function saBuildPrintHtml(data){
 }
 async function saPrint(){
   const p=saReportPermissions||{};
-  const domain=saLastReport?.domain||saDomain;
-  if(!saLastReport){showToast("يرجى عرض السجلات أولاً قبل الطباعة.","error");return;}
+  const domain=saDomain;
+  if(!(domain==="attendance"||domain==="behavior")){showToast("نوع التقرير غير صحيح.","error");return;}
   if(!(domain==="attendance"?p.can_print_attendance:p.can_print_behavior)){showToast("ليس لديك صلاحية طباعة هذا الكشف.","error");return;}
   const w=window.open("about:blank","_blank");
   if(!w){showToast("يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.","error");return;}
