@@ -38,7 +38,7 @@ Deno.test("attendance incidents deduplicate the same student and status across p
 });
 
 Deno.test("behavior incidents deduplicate repeated same-type entries per student per day", () => {
-  const rows = [
+  const rows: Array<{date_str: string; class_name: string; period: number; records: Record<string, unknown>}> = [
     { date_str: "2026-11-08", class_name: "1/9", period: 1, records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "normal" } } },
     { date_str: "2026-11-08", class_name: "1/9", period: 2, records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "sleeping" } } }
   ];
