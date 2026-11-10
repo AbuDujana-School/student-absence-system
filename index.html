@@ -1847,8 +1847,10 @@ async function saGetVerifiedPrintRows(){
   const permitted=domain==="attendance"?p.can_print_attendance:p.can_print_behavior;
   if(!permitted)throw new Error("ليس لديك صلاحية تصدير هذا الكشف.");
   const allowedClasses=new Set((saGetAllowedReportClasses(domain)||[]).map(String));
-  const classes=Array.isArray(d.classes)?d.classes.map(String).filter(c=>allowedClasses.has(c)):[];
-  if(!classes.length)throw new Error("لا توجد صفوف مصرح بها ومحددة في هذا التقرير.");
+  const requestedClasses=Array.isArray(d.classes)?d.classes.map(c=>String(c).trim()):[];
+  const classes=[...new Set(requestedClasses)];
+  if(!classes.length)throw new Error("لا توجد صفوف محددة في هذا التقرير.");
+  if(classes.some(c=>!c||!allowedClasses.has(c)))throw new Error("تغير نطاق الصفوف أو يتضمن التقرير صفاً غير مصرح به. أعد تحميل السجلات قبل الطباعة.");
   const statusSelection=Array.isArray(d.statuses)?d.statuses:(d.status&&d.status!=="all"?[d.status]:null);const statusFilters=statusSelection||((p.attendance_statuses||["absent","late","escape","outside"]).slice());
   const verified=await saRequest({
     action:"reports",
@@ -1865,8 +1867,8 @@ async function saGetVerifiedPrintRows(){
   const validStatuses=new Set(["absent","late","escape","outside"]);
   const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
   sessions.forEach(session=>{
-    const className=String(session.class_name||"");
-    if(!classes.includes(className))return;
+    const className=String(session.class_name||"").trim();
+    if(!classes.includes(className))throw new Error("أعاد مصدر البيانات سجلاً من صف غير محدد ("+className+"). أوقفنا الطباعة لمنع خلط كشوف الصفوف.");
     const records=session.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([student,value])=>{
       let type="",note="";
@@ -1903,7 +1905,7 @@ function saBuildPrintHtml(data){
   const tableRows=(list,behavior=false)=>list.map((r,index)=>
     '<tr><td class="center">'+(index+1)+'</td>'+
     '<td><b>'+esc(r.student)+'</b></td>'+
-    '<td class="center" dir="ltr"><b>'+esc(formatClassName(r.className))+'</b></td>'+
+    '<td class="center class-cell"><bdi dir="ltr">'+esc(formatClassName(r.className))+'</bdi></td>'+
     (behavior?'<td class="center behavior-type">'+esc(SA_BEHAVIOR_TYPES[r.type]||r.type)+'</td>':'')+
     '<td class="center">'+esc(r.session.date_str||"—")+'</td>'+
     '<td class="center nowrap strong">'+esc(r.session.period||"—")+'</td>'+
@@ -1918,27 +1920,27 @@ function saBuildPrintHtml(data){
       if(!list.length)return;
       sections+='<section class="category"><div class="category-title" style="background:'+category.bg+';color:'+category.color+';border-color:'+category.color+'"><strong>'+category.title+'</strong><span class="count-badge" style="background:'+category.badge+'">'+list.length+' حالة</span></div>'+
       '<table><thead><tr>'+
-      '<th style="width:4%">م</th><th style="width:25%">اسم الطالب</th><th style="width:9%">الصف</th>'+
-      '<th style="width:12%">التاريخ</th><th style="width:9%;white-space:nowrap">الحصة</th>'+
-      '<th style="width:13%;white-space:nowrap">عدد المرات</th><th style="width:28%">المعلم الراصد</th>'+
+      '<th style="width:4%">م</th><th style="width:22%">اسم الطالب</th><th style="width:15%">الصف</th>'+
+      '<th style="width:11%">التاريخ</th><th style="width:8%;white-space:nowrap">الحصة</th>'+
+      '<th style="width:12%;white-space:nowrap">عدد المرات</th><th style="width:28%">المعلم الراصد</th>'+
       '</tr></thead><tbody>'+tableRows(list,false)+'</tbody></table></section>';
     });
     if(!sections)sections='<div class="empty">لا توجد سجلات مطابقة للصفوف والفترة والحالات المحددة.</div>';
   }else{
     sections='<section class="category"><div class="category-title behavior-title"><strong>📑 كشف المخالفات السلوكية اليومية</strong><span class="count-badge behavior-badge">'+rows.length+' مخالفة</span></div>'+
     '<table><thead><tr>'+
-    '<th style="width:4%">م</th><th style="width:22%">اسم الطالب</th><th style="width:8%">الصف</th>'+
-    '<th style="width:14%">نوع المخالفة</th><th style="width:12%;white-space:nowrap">عدد المرات</th>'+
-    '<th style="width:10%">التاريخ</th><th style="width:7%;white-space:nowrap">الحصة</th>'+
-    '<th style="width:13%">المعلم الراصد</th><th style="width:10%">ملاحظات</th>'+
+    '<th style="width:4%">م</th><th style="width:20%">اسم الطالب</th><th style="width:14%">الصف</th>'+
+    '<th style="width:13%">نوع المخالفة</th><th style="width:11%;white-space:nowrap">عدد المرات</th>'+
+    '<th style="width:9%">التاريخ</th><th style="width:7%;white-space:nowrap">الحصة</th>'+
+    '<th style="width:12%">المعلم الراصد</th><th style="width:10%">ملاحظات</th>'+
     '</tr></thead><tbody>'+(rows.length?tableRows(rows,true):'<tr><td colspan="9" class="empty-cell">لا توجد مخالفات سلوكية مسجلة في الفترة المحددة.</td></tr>')+'</tbody></table></section>';
   }
   const statusText=domain==="attendance"?"الحالات المحددة: "+(Array.isArray(statuses)?statuses.map(statusLabel).join("، "):"جميع الحالات المصرح بها"):"تقرير السلوك";
   return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(domain==="attendance"?"كشف متابعة الحضور":"كشف متابعة السلوك")+' - '+esc(schoolName)+'</title>'+
   '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">'+
-  '<style>@page{size:A4 landscape;margin:11mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;padding:8px;color:#0f172a;background:#fff;font-size:11px;direction:rtl}.header{text-align:center;border-bottom:3px double #0284c7;padding:0 0 12px;margin-bottom:14px}.header h1{font-size:22px;font-weight:900;color:#0369a1;margin:0}.header h2{font-size:15px;font-weight:800;color:#334155;margin:5px 0 0}.meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;margin-bottom:18px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;font-size:10px;font-weight:800}.category{margin:0 0 22px;break-inside:auto;page-break-inside:auto}.category-title{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;margin-bottom:8px;border:1px solid;border-radius:8px;font-size:13px;font-weight:900;break-after:avoid;page-break-after:avoid}.category-title .count-badge{color:#fff;padding:3px 11px;border-radius:14px;font-size:10px;white-space:nowrap}.behavior-title{background:#f0fdf4;color:#166534;border-color:#bbf7d0}.behavior-badge{background:#16a34a}.category table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 6px}.category thead{display:table-header-group}.category th,.category td{border:1px solid #cbd5e1;padding:7px 8px;font-size:10px;vertical-align:middle;overflow-wrap:anywhere}.category th{background:#f1f5f9;color:#0f172a;text-align:center;font-weight:900;white-space:nowrap}.category tbody tr:nth-child(even){background:#f8fafc}.category tr{break-inside:avoid;page-break-inside:avoid}.center{text-align:center}.nowrap{white-space:nowrap}.strong{font-weight:900;font-size:12px}.repeat-color{color:#1e293b}.repeat-blue{color:#2563eb}.behavior-type{color:#991b1b;font-weight:900}.notes{font-size:9px;white-space:pre-wrap}.empty,.empty-cell{text-align:center;padding:28px;color:#64748b;font-weight:800}.footer{display:flex;justify-content:space-between;gap:25px;margin-top:35px;padding:0 20px;font-size:11px;font-weight:900;break-inside:avoid}.footer span{flex:1}.footer span:last-child{text-align:left}.print-note{margin-top:12px;text-align:center;color:#64748b;font-size:9px}@media print{body{padding:0}.category-title,.category th,.category tbody tr:nth-child(even){print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body>'+
+  '<style>@page{size:A4 landscape;margin:11mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;padding:8px;color:#0f172a;background:#fff;font-size:11px;direction:rtl}.header{text-align:center;border-bottom:3px double #0284c7;padding:0 0 12px;margin-bottom:14px}.header h1{font-size:22px;font-weight:900;color:#0369a1;margin:0}.header h2{font-size:15px;font-weight:800;color:#334155;margin:5px 0 0} .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;margin-bottom:18px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;font-size:10px;font-weight:800}.class-label{display:inline-block;min-width:58px;padding:2px 5px;text-align:center;direction:ltr;unicode-bidi:isolate;white-space:nowrap}.category{margin:0 0 22px;break-inside:auto;page-break-inside:auto}.category-title{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;margin-bottom:8px;border:1px solid;border-radius:8px;font-size:13px;font-weight:900;break-after:avoid;page-break-after:avoid}.category-title .count-badge{color:#fff;padding:3px 11px;border-radius:14px;font-size:10px;white-space:nowrap}.behavior-title{background:#f0fdf4;color:#166534;border-color:#bbf7d0}.behavior-badge{background:#16a34a} .category table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 6px}.category .class-cell{min-width:96px;width:15%;white-space:nowrap;text-align:center;direction:ltr;unicode-bidi:isolate;font-weight:900;font-size:11px}.category thead{display:table-header-group}.category th,.category td{border:1px solid #cbd5e1;padding:7px 8px;font-size:10px;vertical-align:middle;overflow-wrap:anywhere}.category th{background:#f1f5f9;color:#0f172a;text-align:center;font-weight:900;white-space:nowrap}.category tbody tr:nth-child(even){background:#f8fafc}.category tr{break-inside:avoid;page-break-inside:avoid}.center{text-align:center}.nowrap{white-space:nowrap}.strong{font-weight:900;font-size:12px}.repeat-color{color:#1e293b}.repeat-blue{color:#2563eb}.behavior-type{color:#991b1b;font-weight:900}.notes{font-size:9px;white-space:pre-wrap}.empty,.empty-cell{text-align:center;padding:28px;color:#64748b;font-weight:800}.footer{display:flex;justify-content:space-between;gap:25px;margin-top:35px;padding:0 20px;font-size:11px;font-weight:900;break-inside:avoid}.footer span{flex:1}.footer span:last-child{text-align:left}.print-note{margin-top:12px;text-align:center;color:#64748b;font-size:9px}@media print{body{padding:0}.category-title,.category th,.category tbody tr:nth-child(even){print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body>'+
   '<header class="header"><h1>'+esc(schoolName)+'</h1><h2>'+esc(domain==="attendance"?"كشف متابعة وتفريغ حالات الغياب والتأخر والتسرب والخروج":"كشف متابعة المخالفات السلوكية للطلاب")+'</h2></header>'+
-  '<div class="meta"><span><b>الصفوف المشمولة:</b> '+esc(classes.map(formatClassName).join("، "))+'</span><span><b>الفترة الزمنية:</b> من '+esc(from||"—")+' إلى '+esc(to||"—")+'</span><span>'+esc(statusText)+'</span><span><b>تاريخ الاستخراج:</b> '+esc(dateLabel)+'</span><span><b>إجمالي السجلات:</b> '+rows.length+'</span></div>'+
+  '<div class="meta"><span><b>الصفوف المشمولة:</b> '+classes.map(c=>'<bdi dir="ltr" class="class-label">'+esc(formatClassName(c))+'</bdi>').join("، ")+'</span><span><b>الفترة الزمنية:</b> من '+esc(from||"—")+' إلى '+esc(to||"—")+'</span><span>'+esc(statusText)+'</span><span><b>تاريخ الاستخراج:</b> '+esc(dateLabel)+'</span><span><b>إجمالي السجلات:</b> '+rows.length+'</span></div>'+
   sections+
   '<div class="footer"><span>مُعد الكشف / معلم شؤون الطلاب: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div>'+
   '<div class="print-note">تم استخراج هذا الكشف وفق الصلاحيات المحددة. لحفظه دون طباعة ورقية، اختر «حفظ بتنسيق PDF» من خيارات الطباعة.</div>'+
