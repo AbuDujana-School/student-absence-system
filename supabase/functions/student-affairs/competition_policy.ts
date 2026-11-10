@@ -157,12 +157,12 @@ export function awardWeeklyCompetitionPoints(teams: any[]): Record<string, numbe
 }
 
 /**
- * Rates are calculated per 1,000 student-days. Callers must provide roster counts
- * and session coverage before marking a team complete; missing sessions are never
- * silently interpreted as zero incidents.
+ * Team rates are the arithmetic mean of each assigned class's incident count per school day.
+ * Every class contributes equally; student enrollment does not weight the team result.
+ * Missing session records never count as zero incidents.
  */
 type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters?: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
-undefinedexport function buildTeamRates({ grade, classNames, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
+export function buildTeamRates({ grade, classNames, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
   const days = getSchoolDays(from, to), classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
   const classSet = new Set(classes);
   const inRangeRows = (rows: CompetitionRow[]): CompetitionRow[] => (Array.isArray(rows) ? rows : []).filter((row: CompetitionRow) => {
