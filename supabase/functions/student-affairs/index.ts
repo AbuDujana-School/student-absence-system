@@ -300,7 +300,16 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
         from,
         to
       });
-      const classItem = { teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName, className, complete: metric.complete, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate, attendanceIncidents: metric.attendanceIncidents, behaviorIncidents: metric.behaviorIncidents };
+      const classMetrics = metric.classMetrics?.[0] || {};
+      const classItem = {
+        teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName, className,
+        complete: metric.complete, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate,
+        attendanceIncidents: metric.attendanceIncidents, behaviorIncidents: metric.behaviorIncidents,
+        attendanceStatusCounts: classMetrics.attendanceStatusCounts || null,
+        behaviorTypeCounts: classMetrics.behaviorTypeCounts || null,
+        repeatAttendanceStudents: classMetrics.repeatAttendanceStudents ?? null,
+        repeatBehaviorStudents: classMetrics.repeatBehaviorStudents ?? null
+      };
       classComparison.push(classItem);
       if (ownTeamIds.includes(team.teamId)) ownClasses.push(classItem);
     }
