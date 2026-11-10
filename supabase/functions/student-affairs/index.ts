@@ -251,7 +251,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       const metric = buildTeamRates({
         grade: team.teamName,
         classNames: team.classNames,
-        rosters,
+
         attendanceRows: rowsForCompetitionRange(attendanceIndex, team.classNames, rangeFrom, rangeTo),
         behaviorRows: rowsForCompetitionRange(behaviorIndex, team.classNames, rangeFrom, rangeTo),
         from: rangeFrom,
@@ -301,7 +301,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       const metric = buildTeamRates({
         grade: team.teamName,
         classNames: [className],
-        rosters,
+
         attendanceRows: rowsForCompetitionRange(attendanceIndex, [className], from, to),
         behaviorRows: rowsForCompetitionRange(behaviorIndex, [className], from, to),
         from,
