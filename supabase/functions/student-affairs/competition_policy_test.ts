@@ -42,7 +42,13 @@ Deno.test("behavior incidents deduplicate repeated same-type entries per student
     { date_str: "2026-11-08", class_name: "1/9", period: 1, records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "normal" } } },
     { date_str: "2026-11-08", class_name: "1/9", period: 2, records: { "طالب أ": { type: "talking" }, "طالب ب": { type: "sleeping" } } }
   ];
-  if (countBehaviorIncidents(rows) !== 2) throw new Error("behavior deduplication failed");
+  rows.push({
+    date_str: "2026-11-08",
+    class_name: "1/9",
+    period: 3,
+    records: { "طالب ج": { type: "unexpected-value" }, "طالب د": { type: "normal" } }
+  });
+  if (countBehaviorIncidents(rows) !== 2) throw new Error("behavior deduplication or approved-type filtering failed");
 });
 
 Deno.test("a team day requires all eight lesson records for every class and domain", () => {
