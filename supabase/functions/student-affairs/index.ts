@@ -2,6 +2,7 @@ import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterB
 import { authorizeCompetitionAccess } from "./competition_authorization.ts";
 import { projectCompetitionTeams } from "./competition_response_policy.ts";
 import { buildTeamRates, calculateRelativeCompetitionScores, gradeForClassName, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
+import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -113,6 +114,9 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     can_read_behavior: data?.can_read_behavior === true,
     can_view_analytics: data?.can_view_analytics === true,
     can_view_competition: teacher?.permissions?.can_view_competition === true,
+    competition_participant: teacher?.permissions?.competition_participant === true,
+    competition_team_name: typeof teacher?.permissions?.competition_team_name === "string" ? teacher.permissions.competition_team_name : "",
+    competition_team_classes: Array.isArray(teacher?.permissions?.competition_team_classes) ? teacher.permissions.competition_team_classes : [],
     can_print_attendance: data?.can_print_attendance === true,
     can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
@@ -405,6 +409,34 @@ async function handle(req: Request) {
       const mergedPermissions = { ...(target.permissions || {}) };
       if (typeof body.studentAffairs === "boolean") mergedPermissions.studentAffairs = body.studentAffairs;
       if (typeof body.can_view_competition === "boolean") mergedPermissions.can_view_competition = body.can_view_competition;
+      if (typeof body.competition_participant === "boolean") {
+        if (body.competition_participant && type !== "teacher") return reply(400, { error: "المشاركة في سباق التميز مخصصة لحسابات المعلمين." });
+        const { data: configuredClasses, error: configuredClassesError } = await db.from("classes").select("name");
+        if (configuredClassesError) throw configuredClassesError;
+        const validCompetitionClasses = new Set((configuredClasses || []).map((item: any) => String(item.name || "").trim()));
+        const teamName = String(body.competition_team_name || "").trim();
+        const teamClasses = Array.isArray(body.competition_team_classes)
+          ? Array.from(new Set((body.competition_team_classes as unknown[]).map(value => String(value || "").trim()).filter(Boolean)))
+          : [];
+        if (body.competition_participant && !teamName) return reply(400, { error: "اكتب اسم الفريق قبل تفعيل المشاركة." });
+        if (body.competition_participant && !teamClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل للفريق." });
+        if (teamClasses.some(className => !validCompetitionClasses.has(className))) return reply(400, { error: "توجد صفوف غير معتمدة ضمن الفريق." });
+        if (body.competition_participant) {
+          const { data: participantRows, error: participantError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
+          if (participantError) throw participantError;
+          const assigned = new Map<string, string>();
+          for (const participant of participantRows || []) {
+            const pp = participant.permissions || {};
+            if (pp.competition_participant !== true) continue;
+            for (const className of Array.isArray(pp.competition_team_classes) ? pp.competition_team_classes : []) assigned.set(String(className), String(participant.name));
+          }
+          const conflict = teamClasses.find(className => assigned.has(className));
+          if (conflict) return reply(409, { error: "الصف " + conflict + " مسند بالفعل إلى فريق المعلم " + assigned.get(conflict) + "." });
+        }
+        mergedPermissions.competition_participant = body.competition_participant;
+        mergedPermissions.competition_team_name = body.competition_participant ? teamName : "";
+        mergedPermissions.competition_team_classes = body.competition_participant ? teamClasses : [];
+      }
       const { data: updatedTeacher, error: accessError } = await db
         .from("teachers")
         .update({ permissions: mergedPermissions })
@@ -418,6 +450,11 @@ async function handle(req: Request) {
       if (typeof body.can_view_competition === "boolean" &&
           updatedTeacher.permissions?.can_view_competition !== body.can_view_competition) {
         throw new Error("لم يتم تأكيد حفظ صلاحية مشاهدة سباق التميز في سجل المعلم.");
+      }
+      if (typeof body.competition_participant === "boolean" &&
+          (updatedTeacher.permissions?.competition_participant !== body.competition_participant ||
+           (body.competition_participant && updatedTeacher.permissions?.competition_team_name !== String(body.competition_team_name || "").trim()))) {
+        throw new Error("لم يتم تأكيد حفظ إعدادات فريق سباق التميز.");
       }
     }
     const { error: revokeError } = await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
