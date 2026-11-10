@@ -112,3 +112,14 @@ Deno.test("coaching metrics count real attendance and behavior types without exp
   if (countRepeatStudents(attendanceRows, "attendance") !== 1) throw new Error("repeat attendance students must require multiple days");
   if (countRepeatStudents(behaviorRows, "behavior") !== 1) throw new Error("repeat behavior students must require multiple days");
 });
+
+Deno.test("competition behavior metrics count every selected type in array records", () => {
+  const rows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{types:["eating","talking"],type:"eating"},"طالب ب":{types:[],type:"normal"}} },
+    { date_str:"2026-11-09", class_name:"1/9", period:1, records:{"طالب أ":{types:["talking","chaos"],type:"talking"}} }
+  ];
+  const counts = countBehaviorByType(rows);
+  if (countBehaviorIncidents(rows) !== 3) throw new Error("all selected behavior types must count as incidents");
+  if (counts.eating !== 1 || counts.talking !== 2 || counts.chaos !== 1) throw new Error("array behavior type breakdown failed");
+  if (countRepeatStudents(rows,"behavior") !== 1) throw new Error("repeat behavior students must recognize array records");
+});
