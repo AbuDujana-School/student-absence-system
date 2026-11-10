@@ -122,7 +122,7 @@ export function isTeamDayComplete(classNames: string[], dateValue: unknown, atte
   if (!date || !classes.length) return false;
   const attendance = attendanceCoverage instanceof Map ? attendanceCoverage.get(date) : null;
   const behavior = behaviorCoverage instanceof Map ? behaviorCoverage.get(date) : null;
-  const hasAllPeriods = (coverage: CoverageMap | null, className: string): boolean => {
+  const hasAllPeriods = (coverage: Map<string, Set<number>> | null | undefined, className: string): boolean => {
     const periods = coverage instanceof Map ? coverage.get(className) : null;
     return COMPETITION_REQUIRED_PERIODS.every(period => periods?.has(period));
   };
