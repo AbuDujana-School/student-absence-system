@@ -386,6 +386,26 @@ async function handle(req: Request) {
     const { data: classRows } = await db.from("classes").select("name");
     const valid = new Set((classRows || []).map((x: any) => x.name));
     if (allowed.some((x: string) => !valid.has(x))) return reply(400, { error: "توجد شعبة غير معتمدة" });
+    if (body.competition_participant === true) {
+      if (type !== "teacher") return reply(400, { error: "المشاركة في سباق التميز مخصصة لحسابات المعلمين." });
+      const teamName = String(body.competition_team_name || "").trim();
+      const teamClasses = Array.isArray(body.competition_team_classes)
+        ? Array.from(new Set((body.competition_team_classes as unknown[]).map(value => String(value || "").trim()).filter(Boolean)))
+        : [];
+      if (!teamName) return reply(400, { error: "اكتب اسم الفريق قبل تفعيل المشاركة." });
+      if (!teamClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل للفريق." });
+      if (teamClasses.some(className => !valid.has(className))) return reply(400, { error: "توجد صفوف غير معتمدة ضمن الفريق." });
+      const { data: participantRows, error: participantError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
+      if (participantError) throw participantError;
+      const assigned = new Map<string, string>();
+      for (const participant of participantRows || []) {
+        const pp = participant.permissions || {};
+        if (pp.competition_participant !== true) continue;
+        for (const className of Array.isArray(pp.competition_team_classes) ? pp.competition_team_classes : []) assigned.set(String(className), String(participant.name));
+      }
+      const conflict = teamClasses.find(className => assigned.has(className));
+      if (conflict) return reply(409, { error: "الصف " + conflict + " مسند بالفعل إلى فريق المعلم " + assigned.get(conflict) + "." });
+    }
     const row = { principal_type: type, principal_name: name, allowed_classes: allowed, allowed_attendance_classes: attendanceClasses, allowed_behavior_classes: behaviorClasses, attendance_statuses: statuses, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
