@@ -1508,7 +1508,7 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
 const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
-let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly";
+let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0;
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
 function sortClassesList(classesArray){
@@ -1570,6 +1570,7 @@ function saSetDomain(domain){const p=saReportPermissions||{};const att=saGetAllo
 function saCanViewCompetition(){const p=saReportPermissions||{};return !!p.can_view_analytics&&!!p.can_read_attendance&&!!p.can_read_behavior;}
 function saDateShift(value,days){const d=new Date(value+"T12:00:00.000Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
 function saSetCompetitionPeriod(period){
+  saCompetitionLoadSequence++;
   saCompetitionPeriod=period;
   const today=getOmanLocalDate();
   const from=document.getElementById("saCompetitionFrom"),to=document.getElementById("saCompetitionTo");
@@ -1616,17 +1617,21 @@ function saCompetitionDayLabel(date){
   return (days[weekday]||"")+" "+date.slice(5);
 }
 async function saLoadCompetition(){
+  const requestId=++saCompetitionLoadSequence;
   if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة المراحل.","error");return;}
+  const requestPeriod=saCompetitionPeriod;
   const from=document.getElementById("saCompetitionFrom")?.value||"",to=document.getElementById("saCompetitionTo")?.value||"";
   if(!from||!to||from>to){const status=document.getElementById("saCompetitionStatus");if(status){status.textContent="يرجى تحديد بداية الفترة ونهايتها بصورة صحيحة.";status.classList.remove("hidden");}return;}
   const status=document.getElementById("saCompetitionStatus");
   if(status){status.textContent="جارٍ احتساب النتائج والتحقق من اكتمال سجلات الفرق...";status.classList.remove("hidden");}
   document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
   try{
-    const data=await saRequest({action:"competition",from,to,period:saCompetitionPeriod});
+    const data=await saRequest({action:"competition",from,to,period:requestPeriod});
+    if(requestId!==saCompetitionLoadSequence||!saCanViewCompetition())return;
     saCompetitionData=data;
     saRenderCompetition(data);
   }catch(error){
+    if(requestId!==saCompetitionLoadSequence)return;
     if(status){status.textContent=error?.message||"تعذر تحميل نتائج البطولة.";status.classList.remove("hidden");}
     document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
     document.getElementById("saCompetitionRecommendations").innerHTML="";
@@ -1693,7 +1698,7 @@ function saRenderCompetition(data){
   }
 }
 async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلاب","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلاب. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";document.getElementById("saAdmin").classList.toggle("hidden",!isAdmin);if(isAdmin)await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");saSetupCompetitionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلاب. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلاب مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلاب","error");}}
-function closeStudentAffairsView(){document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
+function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};document.getElementById("saAdmin").classList.toggle("hidden",d.principal.type!=="admin");if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");saSetupCompetitionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();}
 function saChecks(container,items,cls,selected){document.getElementById(container).innerHTML=items.map(([value,label])=>'<label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700"><input type="checkbox" class="'+cls+'" value="'+escapeHtml(value)+'" '+(selected.includes(value)?"checked":"")+(cls==="sa-status"?' onchange="saSyncAllAttendanceStatuses()"':'')+'><span>'+escapeHtml(label)+'</span></label>').join("");}
@@ -1831,7 +1836,7 @@ async function saPrint(){
     showToast(e.message||"تعذر تجهيز التقرير للطباعة.","error");
   }
 }
-async function saLogout(){try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلاب. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
+async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلاب. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
 
 /* ============ Constants ============ */
 const DEFAULT_CLASSES = ["1/9","2/9","3/9","4/9","5/9","6/9","7/9","8/9","1/10","2/10","3/10","4/10","5/10","6/10","7/10","8/10","1/11","2/11","3/11","4/11","5/11","6/11","7/11","8/11","1/12","2/12","3/12","4/12","5/12","6/12","7/12","8/12"];

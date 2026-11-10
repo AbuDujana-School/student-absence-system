@@ -8,6 +8,7 @@ on:
       - "index.html"
   push:
     branches:
+      - "main"
       - "feature/student-affairs-secure-preview"
     paths:
       - "supabase/functions/student-affairs/**"
