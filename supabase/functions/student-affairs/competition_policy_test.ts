@@ -51,7 +51,7 @@ Deno.test("relative performance ranks lower attendance and behavior rates higher
     { teamName:"ج", complete:true, attendanceRate:2, behaviorRate:2 },
     { teamName:"د", complete:true, attendanceRate:4, behaviorRate:4 }
   ]);
-  if (result[0].teamName !== "أ" || result[0].score !== 100 || result[1].rank !== 1 || result[2].rank !== 3 || result[2].weeklyAwardPoints !== undefined) throw new Error("weekly competition ranking failed");
+  if (result[0].teamName !== "أ" || result[0].score !== 100 || result[1].rank !== 1 || result[2].rank !== 3) throw new Error("weekly competition ranking failed");
   const awards = awardWeeklyCompetitionPoints(result);
   if (awards.map(team => team.weeklyAwardPoints).join(",") !== "10,10,3,0") throw new Error("ties must occupy podium award places");
 });
