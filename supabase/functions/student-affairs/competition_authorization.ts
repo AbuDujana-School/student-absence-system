@@ -4,6 +4,13 @@ export const COMPETITION_REQUIRED_ATTENDANCE_STATUSES = ["absent", "late", "outs
 
 export type CompetitionPermissions = {
   can_view_competition?: boolean;
+  // Retained in the type for compatibility; competition authorization does not depend on them.
+  can_view_analytics?: boolean;
+  can_read_attendance?: boolean;
+  can_read_behavior?: boolean;
+  attendance_statuses?: unknown;
+  allowed_attendance_classes?: unknown;
+  allowed_behavior_classes?: unknown;
 };
 
 export type CompetitionAuthorization = {
