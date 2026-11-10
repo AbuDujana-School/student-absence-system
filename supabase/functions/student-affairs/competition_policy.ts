@@ -110,7 +110,13 @@ export function calculateRelativeCompetitionScores(teams: any[]): any[] {
   });
   scored.sort((x, y) => y.score - x.score || String(x.teamName || x.grade || "").localeCompare(String(y.teamName || y.grade || ""), "ar"));
   let rank = 0, previous: number | null = null;
-  for (const team of scored) { if (previous === null || team.score !== previous) rank++; team.rank = rank; previous = team.score; }
+  for (let index = 0; index < scored.length; index++) {
+    const team = scored[index];
+    // Competition ranking: a tie occupies each tied place in the top-three award slots.
+    if (previous === null || team.score !== previous) rank = index + 1;
+    team.rank = rank;
+    previous = team.score;
+  }
   return scored;
 }
 /** Ranks monthly/term standings by accumulated weekly podium points, not by a fresh period score. */
@@ -122,9 +128,9 @@ export function rankCompetitionTeamsByAccumulatedPoints(teams: any[], pointTotal
   );
   let rank = 0;
   let previousPoints: number | null = null;
-  return ordered.map(team => {
+  return ordered.map((team, index) => {
     const points = Number(pointTotals?.[String(team.teamId || "")] || 0);
-    if (previousPoints === null || points !== previousPoints) rank += 1;
+    if (previousPoints === null || points !== previousPoints) rank = index + 1;
     previousPoints = points;
     return { ...team, rank };
   });
