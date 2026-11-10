@@ -1,6 +1,7 @@
 import {
   buildTeamRates,
   calculateRelativeCompetitionScores,
+  awardWeeklyCompetitionPoints,
   countAttendanceIncidents,
   countBehaviorIncidents,
   getSchoolDays,
@@ -89,8 +90,8 @@ Deno.test("team rates use only the selected class and requested date range", () 
       ...sessions("1/9", { "طالب ب": { type: "talking" } })
     ]
   });
-  if (!team.complete || team.attendanceIncidents !== 1 || team.behaviorIncidents !== 1 || team.studentDays !== 2) {
-    throw new Error("team metrics must be scoped to class and date");
+  if (!team.complete || team.attendanceIncidents !== 1 || team.behaviorIncidents !== 1 || team.classCount !== 1 || team.attendanceRate !== 1 || team.behaviorRate !== 1) {
+    throw new Error("class-based rates must be scoped to the selected class and date without student weighting");
   }
 });
 
@@ -135,17 +136,34 @@ Deno.test("invalid rates are rejected instead of silently ranked", () => {
   if (!rejected) throw new Error("negative incident rates must be rejected");
 });
 
-Deno.test("empty rosters cannot produce a complete team result", () => {
+Deno.test("class weighting does not depend on the number of students in each class", () => {
   const team = buildTeamRates({
     grade: "9",
-    classNames: ["1/9"],
-    rosters: { "1/9": [] },
+    classNames: ["1/9", "2/9"],
     from: "2026-11-08",
     to: "2026-11-08",
-    attendanceRows: sessions("1/9"),
-    behaviorRows: sessions("1/9")
+    attendanceRows: [...sessions("1/9", { "طالب أ": "absent" }), ...sessions("2/9")],
+    behaviorRows: [...sessions("1/9"), ...sessions("2/9")]
   });
-  if (team.complete || team.attendanceRate !== null || team.behaviorRate !== null) {
-    throw new Error("empty rosters must not be treated as zero-rate winners");
+  if (!team.complete || team.classCount !== 2 || team.attendanceRate !== 0.5 || team.behaviorRate !== 0) {
+    throw new Error("each class must contribute equally to the team rate, regardless of its student count");
   }
+});
+
+Deno.test("weekly award points are 10, 6, 3 and zero after third place", () => {
+  const awards = awardWeeklyCompetitionPoints([
+    { teamId: "a", rank: 1, complete: true },
+    { teamId: "b", rank: 2, complete: true },
+    { teamId: "c", rank: 3, complete: true },
+    { teamId: "d", rank: 4, complete: true },
+    { teamId: "e", rank: 5, complete: true }
+  ]);
+  if (awards.a !== 10 || awards.b !== 6 || awards.c !== 3 || awards.d !== 0 || awards.e !== 0) {
+    throw new Error("weekly podium awards must be 10, 6, 3, then zero");
+  }
+  const incomplete = awardWeeklyCompetitionPoints([
+    { teamId: "a", rank: 1, complete: true },
+    { teamId: "b", rank: null, complete: false }
+  ]);
+  if (incomplete.a !== 0 || incomplete.b !== 0) throw new Error("incomplete weeks must award no points");
 });
