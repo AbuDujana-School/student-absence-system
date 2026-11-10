@@ -2008,142 +2008,6 @@ function saBuildPrintHtml(data){
   '<div class="footer"><span>مُعد الكشف / معلم شؤون الطلاب: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div>'+
   '<div class="print-note">تم استخراج هذا الكشف وفق الصلاحيات المحددة. لحفظه دون طباعة ورقية، اختر «حفظ بتنسيق PDF» من خيارات الطباعة.</div>'+
   '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script>
-<script>
-/* Combined attendance + behavior report: isolated from the two existing report flows. */
-(function(){
-  const modes={sa:false,rep:false};
-  const cfg={
-    sa:{prefix:"sa",getP:()=>saReportPermissions||{},getAllowed:d=>saGetAllowedReportClasses(d),getSelected:()=>saGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>saGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#saReportClassesContainer .sa-report-class-chk"),results:"saResults",summary:"saSummary",from:"saFrom",to:"saTo",button:"saPrintButton",readBtn:"saViewButton",tabs:["saAttendanceTab","saBehaviorTab"],container:"saReportClassesContainer",statusWrap:"saStatusFilterWrap",domainSetter:d=>saSetDomain(d),load:()=>saLoadReport(),print:()=>saPrint()},
-    rep:{prefix:"rep",getP:()=>repPermissions||{},getAllowed:d=>repGetAllowedReportClasses(d),getSelected:()=>repGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>repGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#repClassesGrid .rep-report-class-chk"),results:"repResults",summary:"repSummary",from:"repFrom",to:"repTo",button:"repPrintButton",readBtn:"repRecordsButton",tabs:["repAttendanceTab","repBehaviorTab"],container:"repClassesGrid",statusWrap:"repStatusFilterWrap",domainSetter:d=>repSetDomain(d),load:()=>repLoadReport(),print:()=>repPrint()}
-  };
-  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-  const validStatus=["absent","late","escape","outside"];
-  const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
-  function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
-  function buildFilter(prefix){
-    const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
-    const host=document.createElement("section");host.id=id;host.className="hidden space-y-3 rounded-2xl border border-teal-200 bg-teal-50/40 p-4 dark:border-teal-900 dark:bg-teal-950/20";
-    host.innerHTML='<div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-sm">مرشحات التقرير الموحّد</strong><span class="text-[11px] text-slate-500">تُطبّق على الجهتين معاً</span></div><div><div class="mb-2 text-xs font-black">حالات الغياب والانضباط</div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div><div><div class="mb-2 text-xs font-black">أنواع السلوكيات</div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>';
-    const anchor=document.getElementById(prefix==="sa"?"saStatusFilterWrap":"repBehaviorFilterWrap");
-    (anchor||document.getElementById(prefix==="sa"?"saReportClassPicker":"repClassesGrid")?.parentElement)?.insertAdjacentElement("afterend",host);
-    const p=cfg[prefix].getP(),allowed=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
-    document.getElementById(prefix+"CombinedStatuses").innerHTML=SA_ATTENDANCE_STATUS.filter(x=>allowed.includes(x[0])).map(([k,l])=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-status" value="'+k+'" checked><span>'+esc(l)+'</span></label>').join("");
-    document.getElementById(prefix+"CombinedBehaviors").innerHTML=behaviorKeys.map(k=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-behavior" value="'+k+'" checked><span>'+esc(SA_BEHAVIOR_TYPES[k])+'</span></label>').join("");
-  }
-  function selected(prefix,kind){return Array.from(document.querySelectorAll("."+prefix+"-combined-"+kind+":checked")).map(x=>x.value);}
-  function mount(prefix){
-    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){const p=c.getP();existing.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));buildFilter(prefix);return;}
-    const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
-    buildFilter(prefix);
-    const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));
-  }
-  function setClassIntersection(prefix){
-    const c=cfg[prefix],allowed=new Set(intersection(c));
-    c.classes().forEach(el=>{const label=el.closest("label");const ok=allowed.has(String(el.value));if(label)label.classList.toggle("hidden",!ok);el.checked=ok;});
-    const count=document.getElementById(prefix==="sa"?"saSelectedClassesCount":"repSelectedClassesCount");
-    if(count)count.textContent=allowed.size+" صفوف مشتركة";
-  }
-  function activate(prefix){
-    const c=cfg[prefix],p=c.getP();
-    if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
-    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);setClassIntersection(prefix);
-    document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
-    c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
-    document.getElementById(c.statusWrap)?.classList.add("hidden");
-    document.getElementById(prefix==="sa"?"saBehaviorFilterWrap":"repBehaviorFilterWrap")?.classList.add("hidden");
-    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");
-    document.getElementById(c.readBtn).classList.remove("hidden");
-    document.getElementById(c.button).classList.remove("hidden");
-    document.getElementById(c.readBtn).textContent="عرض التقرير الموحّد";
-    document.getElementById(c.button).textContent="طباعة التقرير الموحّد";
-    load(prefix);
-  }
-  function classes(prefix){return cfg[prefix].getSelected().filter(x=>intersection(cfg[prefix]).includes(x));}
-  async function getData(prefix){
-    const c=cfg[prefix],p=c.getP(),cls=classes(prefix);
-    if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_combined))throw new Error("لا تتوفر صلاحية التقرير الموحّد.");
-    if(!cls.length)throw new Error("اختر صفاً واحداً على الأقل مشتركاً بين صلاحيات الغياب والسلوكيات.");
-    const from=document.getElementById(c.from).value||"2000-01-01",to=document.getElementById(c.to).value||"2100-12-31";
-    if(from>to)throw new Error("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.");
-    const statuses=selected(prefix,"status"),behaviors=selected(prefix,"behavior");
-    const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
-    if(!statuses.length||statuses.some(x=>!allowedStatuses.includes(x)))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
-    if(!behaviors.length)throw new Error("اختر نوع سلوك واحداً على الأقل.");
-    const d=await c.request({action:"reports",report_mode:"print_combined",attendance_classes:cls,behavior_classes:cls,from,to,attendance_status_filters:statuses});
-    return {d,cls,from,to,statuses,behaviors,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة")};
-  }
-  function merge(data){
-    const students=new Map(),key=(cl,st)=>cl+"\u001f"+st;
-    const get=(cl,st)=>{const k=key(cl,st);if(!students.has(k))students.set(k,{className:cl,student:st,attendance:[],behaviors:[]});return students.get(k);};
-    const seenAbsent=new Set();
-    (data.d.attendance||[]).forEach(s=>{
-      const cl=String(s.class_name||"").trim();if(!data.cls.includes(cl))throw new Error("وصل سجل غياب من صف خارج التحديد.");
-      Object.entries(s.records||{}).forEach(([student,value])=>{
-        const status=String(value&&typeof value==="object"?value.status||"":value);
-        if(!data.statuses.includes(status))return;
-        const date=String(s.date_str||"");
-        if(status==="absent"){const k=[cl,student,date].join("\u001f");if(seenAbsent.has(k))return;seenAbsent.add(k);}
-        get(cl,String(student)).attendance.push({type:status,date,period:s.period,teacher:s.teacher_name,note:value&&typeof value==="object"?value.note||"":"",});
-      });
-    });
-    (data.d.behaviors||[]).forEach(s=>{
-      const cl=String(s.class_name||"").trim();if(!data.cls.includes(cl))throw new Error("وصل سجل سلوك من صف خارج التحديد.");
-      Object.entries(s.records||{}).forEach(([student,value])=>{
-        const item=value&&typeof value==="object"?value:{type:String(value),note:""};
-        get(cl,String(student)).behaviors.push(...getBehaviorTypesFromRecord(item).filter(t=>data.behaviors.includes(t)).map(type=>({type,date:s.date_str,period:s.period,teacher:s.teacher_name,note:item.note||""})));
-      });
-    });
-    return [...students.values()].sort((a,b)=>a.className.localeCompare(b.className,"ar",{numeric:true})||a.student.localeCompare(b.student,"ar"));
-  }
-  const statusName=k=>SA_ATTENDANCE_STATUS.find(x=>x[0]===k)?.[1]||k;
-  function detail(list,behavior){
-    if(!list.length)return '<span class="muted">لا توجد تسجيلات</span>';
-    const counts={};list.forEach(x=>counts[x.type]=(counts[x.type]||0)+1);
-    return '<div class="totals">'+Object.entries(counts).map(([k,n])=>'<b>'+esc(behavior?(SA_BEHAVIOR_TYPES[k]||k):statusName(k))+' ('+n+')</b>').join(" · ")+'</div>'+
-      list.map(x=>'<div class="entry"><b>'+esc(behavior?(SA_BEHAVIOR_TYPES[x.type]||x.type):statusName(x.type))+'</b> — '+esc(x.date||"—")+' · الحصة '+esc(x.period||"—")+' · '+esc(x.teacher||"—")+'<div class="note">'+esc(x.note||"لا توجد ملاحظة")+'</div></div>').join("");
-  }
-  function render(prefix,rows){
-    const c=cfg[prefix],box=document.getElementById(c.results),summary=document.getElementById(c.summary);
-    const att=rows.reduce((n,r)=>n+r.attendance.length,0),beh=rows.reduce((n,r)=>n+r.behaviors.length,0);
-    summary.innerHTML='<div class="rounded-xl border bg-white p-3 text-center"><small>الطلاب</small><b class="block text-xl">'+rows.length+'</b></div><div class="rounded-xl border bg-white p-3 text-center"><small>سجلات الغياب والانضباط</small><b class="block text-xl">'+att+'</b></div><div class="rounded-xl border bg-white p-3 text-center"><small>المخالفات السلوكية</small><b class="block text-xl">'+beh+'</b></div>';
-    if(!rows.length){box.innerHTML='<div class="rounded-2xl border border-dashed p-8 text-center text-sm">لا توجد تسجيلات مطابقة للفترة والمرشحات المحددة.</div>';return;}
-    box.innerHTML='<div class="overflow-x-auto rounded-2xl border bg-white"><table class="w-full min-w-[850px] text-right text-xs"><thead class="bg-slate-100"><tr><th class="p-3">الصف</th><th class="p-3">اسم الطالب</th><th class="p-3">الغياب والانضباط</th><th class="p-3">السلوكيات</th></tr></thead><tbody>'+rows.map((r,i)=>'<tr class="'+(i%2?'bg-slate-100/80':'bg-white')+' border-t"><td class="p-3 font-bold"><bdi dir="ltr">'+esc(formatClassName(r.className))+'</bdi></td><td class="p-3 font-black">'+esc(r.student)+'</td><td class="p-3">'+detail(r.attendance,false)+'</td><td class="p-3">'+detail(r.behaviors,true)+'</td></tr>').join("")+'</tbody></table></div>';
-  }
-  async function load(prefix){
-    const c=cfg[prefix],box=document.getElementById(c.results);
-    box.innerHTML='<div class="rounded-xl border p-8 text-center">جارٍ جلب بيانات الجهتين والتحقق منها...</div>';
-    try{const data=await getData(prefix),rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);}
-    catch(e){box.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">'+esc(e.message)+'</div>';showToast(e.message,"error");}
-  }
-  function printHtml(data){
-    const rows=data.rows,attCount=rows.reduce((n,r)=>n+r.attendance.length,0),behCount=rows.reduce((n,r)=>n+r.behaviors.length,0);
-    const cell=(list,behavior)=>detail(list,behavior);
-    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقرير الموحّد</title><style>@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}body{font-family:Arial,Tahoma,sans-serif;color:#172033;font-size:9px}header{text-align:center;border-bottom:3px double #0f766e;padding:0 0 9px;margin-bottom:10px}h1{font-size:19px;margin:0;color:#115e59}h2{font-size:12px;margin:5px 0}.meta{display:flex;justify-content:space-between;gap:8px;background:#f1f5f9;border:1px solid #cbd5e1;padding:8px;margin-bottom:10px;font-weight:bold}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th,td{border:1px solid #cbd5e1;padding:6px;vertical-align:top;overflow-wrap:anywhere}th{background:#e2e8f0;text-align:center;font-size:10px}tbody tr:nth-child(even){background:#f1f5f9}tr{break-inside:avoid;page-break-inside:avoid}.name{font-weight:bold;width:17%}.class{width:8%;text-align:center}.att,.beh{width:37.5%}.entry{padding:3px 0;border-bottom:1px dotted #cbd5e1;line-height:1.5}.entry:last-child{border:0}.totals{font-weight:bold;color:#0f766e;margin-bottom:4px}.note{color:#475569;white-space:pre-wrap}.muted{color:#94a3b8}.foot{margin-top:16px;display:flex;justify-content:space-between;font-weight:bold}@media print{tbody tr:nth-child(even),th{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><header><h1>'+esc(data.schoolName)+'</h1><h2>التقرير الموحّد للغياب والانضباط والسلوكيات</h2></header><div class="meta"><span>الصفوف: '+esc(data.cls.map(formatClassName).join("، "))+'</span><span>من '+esc(data.from)+' إلى '+esc(data.to)+'</span><span>عدد الطلاب: '+rows.length+'</span><span>الغياب والانضباط: '+attCount+'</span><span>السلوكيات: '+behCount+'</span></div><table><thead><tr><th class="class">الصف</th><th class="name">اسم الطالب</th><th class="att">الغياب والانضباط — الجهة اليمنى</th><th class="beh">السلوكيات — الجهة اليسرى</th></tr></thead><tbody>'+rows.map(r=>'<tr><td class="class">'+esc(formatClassName(r.className))+'</td><td class="name">'+esc(r.student)+'</td><td>'+cell(r.attendance,false)+'</td><td>'+cell(r.behaviors,true)+'</td></tr>').join("")+'</tbody></table><div class="foot"><span>إعداد الكشف: ................................</span><span>اعتماد الإدارة: ................................</span></div><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),500));<\/script></body></html>';
-  }
-  async function print(prefix){
-    const c=cfg[prefix],p=c.getP();
-    if(!(p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية طباعة الغياب والسلوكيات والتقرير الموحّد.","error");return;}
-    const w=window.open("about:blank","_blank");if(!w){showToast("يرجى السماح بالنوافذ المنبثقة للطباعة.","error");return;}
-    w.document.write('<!doctype html><meta charset="utf-8"><p style="font-family:Arial;text-align:center;padding:40px">جارٍ التحقق من البيانات وتجهيز التقرير...</p>');w.document.close();
-    try{const data=await getData(prefix);data.rows=merge(data);w.document.open();w.document.write(printHtml(data));w.document.close();}
-    catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
-  }
-  const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
-  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldSaSet(d);mount("sa");};
-  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldRepSet(d);mount("rep");};
-  saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
-  repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
-  saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
-  repPrint=function(){if(modes.rep)return print("rep");return oldRepPrint();};
-  const oldSaDate=saOnReportDateChanged,oldRepDate=repOnReportDateChanged;
-  if(typeof oldSaDate==="function")saOnReportDateChanged=function(){if(modes.sa)return load("sa");return oldSaDate();};
-  if(typeof oldRepDate==="function")repOnReportDateChanged=function(){if(modes.rep)return load("rep");return oldRepDate();};
-  document.addEventListener("change",e=>{if(e.target?.classList?.contains("sa-combined-status")||e.target?.classList?.contains("sa-combined-behavior")){if(modes.sa)load("sa");}if(e.target?.classList?.contains("rep-combined-status")||e.target?.classList?.contains("rep-combined-behavior")){if(modes.rep)load("rep");}});
-  document.addEventListener("DOMContentLoaded",()=>{mount("sa");mount("rep");});
-  const timer=setInterval(()=>{mount("sa");mount("rep");if(document.getElementById("saCombinedTab")&&document.getElementById("repCombinedTab"))clearInterval(timer);},500);
-})();
-</script>
-
 </body></html>';
 }
 async function saPrint(){
@@ -5527,5 +5391,141 @@ if ("serviceWorker" in navigator) {
 })();
 </script>
 
+
+<script>
+/* Combined attendance + behavior report: isolated from the two existing report flows. */
+(function(){
+  const modes={sa:false,rep:false};
+  const cfg={
+    sa:{prefix:"sa",getP:()=>saReportPermissions||{},getAllowed:d=>saGetAllowedReportClasses(d),getSelected:()=>saGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>saGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#saReportClassesContainer .sa-report-class-chk"),results:"saResults",summary:"saSummary",from:"saFrom",to:"saTo",button:"saPrintButton",readBtn:"saViewButton",tabs:["saAttendanceTab","saBehaviorTab"],container:"saReportClassesContainer",statusWrap:"saStatusFilterWrap",domainSetter:d=>saSetDomain(d),load:()=>saLoadReport(),print:()=>saPrint()},
+    rep:{prefix:"rep",getP:()=>repPermissions||{},getAllowed:d=>repGetAllowedReportClasses(d),getSelected:()=>repGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>repGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#repClassesGrid .rep-report-class-chk"),results:"repResults",summary:"repSummary",from:"repFrom",to:"repTo",button:"repPrintButton",readBtn:"repRecordsButton",tabs:["repAttendanceTab","repBehaviorTab"],container:"repClassesGrid",statusWrap:"repStatusFilterWrap",domainSetter:d=>repSetDomain(d),load:()=>repLoadReport(),print:()=>repPrint()}
+  };
+  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const validStatus=["absent","late","escape","outside"];
+  const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
+  function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
+  function buildFilter(prefix){
+    const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
+    const host=document.createElement("section");host.id=id;host.className="hidden space-y-3 rounded-2xl border border-teal-200 bg-teal-50/40 p-4 dark:border-teal-900 dark:bg-teal-950/20";
+    host.innerHTML='<div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-sm">مرشحات التقرير الموحّد</strong><span class="text-[11px] text-slate-500">تُطبّق على الجهتين معاً</span></div><div><div class="mb-2 text-xs font-black">حالات الغياب والانضباط</div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div><div><div class="mb-2 text-xs font-black">أنواع السلوكيات</div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>';
+    const anchor=document.getElementById(prefix==="sa"?"saStatusFilterWrap":"repBehaviorFilterWrap");
+    (anchor||document.getElementById(prefix==="sa"?"saReportClassPicker":"repClassesGrid")?.parentElement)?.insertAdjacentElement("afterend",host);
+    const p=cfg[prefix].getP(),allowed=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
+    document.getElementById(prefix+"CombinedStatuses").innerHTML=SA_ATTENDANCE_STATUS.filter(x=>allowed.includes(x[0])).map(([k,l])=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-status" value="'+k+'" checked><span>'+esc(l)+'</span></label>').join("");
+    document.getElementById(prefix+"CombinedBehaviors").innerHTML=behaviorKeys.map(k=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-behavior" value="'+k+'" checked><span>'+esc(SA_BEHAVIOR_TYPES[k])+'</span></label>').join("");
+  }
+  function selected(prefix,kind){return Array.from(document.querySelectorAll("."+prefix+"-combined-"+kind+":checked")).map(x=>x.value);}
+  function mount(prefix){
+    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){const p=c.getP();existing.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));buildFilter(prefix);return;}
+    const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
+    buildFilter(prefix);
+    const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));
+  }
+  function setClassIntersection(prefix){
+    const c=cfg[prefix],allowed=new Set(intersection(c));
+    c.classes().forEach(el=>{const label=el.closest("label");const ok=allowed.has(String(el.value));if(label)label.classList.toggle("hidden",!ok);el.checked=ok;});
+    const count=document.getElementById(prefix==="sa"?"saSelectedClassesCount":"repSelectedClassesCount");
+    if(count)count.textContent=allowed.size+" صفوف مشتركة";
+  }
+  function activate(prefix){
+    const c=cfg[prefix],p=c.getP();
+    if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
+    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);setClassIntersection(prefix);
+    document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
+    c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
+    document.getElementById(c.statusWrap)?.classList.add("hidden");
+    document.getElementById(prefix==="sa"?"saBehaviorFilterWrap":"repBehaviorFilterWrap")?.classList.add("hidden");
+    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");
+    document.getElementById(c.readBtn).classList.remove("hidden");
+    document.getElementById(c.button).classList.remove("hidden");
+    document.getElementById(c.readBtn).textContent="عرض التقرير الموحّد";
+    document.getElementById(c.button).textContent="طباعة التقرير الموحّد";
+    load(prefix);
+  }
+  function classes(prefix){return cfg[prefix].getSelected().filter(x=>intersection(cfg[prefix]).includes(x));}
+  async function getData(prefix){
+    const c=cfg[prefix],p=c.getP(),cls=classes(prefix);
+    if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_combined))throw new Error("لا تتوفر صلاحية التقرير الموحّد.");
+    if(!cls.length)throw new Error("اختر صفاً واحداً على الأقل مشتركاً بين صلاحيات الغياب والسلوكيات.");
+    const from=document.getElementById(c.from).value||"2000-01-01",to=document.getElementById(c.to).value||"2100-12-31";
+    if(from>to)throw new Error("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.");
+    const statuses=selected(prefix,"status"),behaviors=selected(prefix,"behavior");
+    const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
+    if(!statuses.length||statuses.some(x=>!allowedStatuses.includes(x)))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
+    if(!behaviors.length)throw new Error("اختر نوع سلوك واحداً على الأقل.");
+    const d=await c.request({action:"reports",report_mode:"print_combined",attendance_classes:cls,behavior_classes:cls,from,to,attendance_status_filters:statuses});
+    return {d,cls,from,to,statuses,behaviors,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة")};
+  }
+  function merge(data){
+    const students=new Map(),key=(cl,st)=>cl+"\u001f"+st;
+    const get=(cl,st)=>{const k=key(cl,st);if(!students.has(k))students.set(k,{className:cl,student:st,attendance:[],behaviors:[]});return students.get(k);};
+    const seenAbsent=new Set();
+    (data.d.attendance||[]).forEach(s=>{
+      const cl=String(s.class_name||"").trim();if(!data.cls.includes(cl))throw new Error("وصل سجل غياب من صف خارج التحديد.");
+      Object.entries(s.records||{}).forEach(([student,value])=>{
+        const status=String(value&&typeof value==="object"?value.status||"":value);
+        if(!data.statuses.includes(status))return;
+        const date=String(s.date_str||"");
+        if(status==="absent"){const k=[cl,student,date].join("\u001f");if(seenAbsent.has(k))return;seenAbsent.add(k);}
+        get(cl,String(student)).attendance.push({type:status,date,period:s.period,teacher:s.teacher_name,note:value&&typeof value==="object"?value.note||"":"",});
+      });
+    });
+    (data.d.behaviors||[]).forEach(s=>{
+      const cl=String(s.class_name||"").trim();if(!data.cls.includes(cl))throw new Error("وصل سجل سلوك من صف خارج التحديد.");
+      Object.entries(s.records||{}).forEach(([student,value])=>{
+        const item=value&&typeof value==="object"?value:{type:String(value),note:""};
+        get(cl,String(student)).behaviors.push(...getBehaviorTypesFromRecord(item).filter(t=>data.behaviors.includes(t)).map(type=>({type,date:s.date_str,period:s.period,teacher:s.teacher_name,note:item.note||""})));
+      });
+    });
+    return [...students.values()].sort((a,b)=>a.className.localeCompare(b.className,"ar",{numeric:true})||a.student.localeCompare(b.student,"ar"));
+  }
+  const statusName=k=>SA_ATTENDANCE_STATUS.find(x=>x[0]===k)?.[1]||k;
+  function detail(list,behavior){
+    if(!list.length)return '<span class="muted">لا توجد تسجيلات</span>';
+    const counts={};list.forEach(x=>counts[x.type]=(counts[x.type]||0)+1);
+    return '<div class="totals">'+Object.entries(counts).map(([k,n])=>'<b>'+esc(behavior?(SA_BEHAVIOR_TYPES[k]||k):statusName(k))+' ('+n+')</b>').join(" · ")+'</div>'+
+      list.map(x=>'<div class="entry"><b>'+esc(behavior?(SA_BEHAVIOR_TYPES[x.type]||x.type):statusName(x.type))+'</b> — '+esc(x.date||"—")+' · الحصة '+esc(x.period||"—")+' · '+esc(x.teacher||"—")+'<div class="note">'+esc(x.note||"لا توجد ملاحظة")+'</div></div>').join("");
+  }
+  function render(prefix,rows){
+    const c=cfg[prefix],box=document.getElementById(c.results),summary=document.getElementById(c.summary);
+    const att=rows.reduce((n,r)=>n+r.attendance.length,0),beh=rows.reduce((n,r)=>n+r.behaviors.length,0);
+    summary.innerHTML='<div class="rounded-xl border bg-white p-3 text-center"><small>الطلاب</small><b class="block text-xl">'+rows.length+'</b></div><div class="rounded-xl border bg-white p-3 text-center"><small>سجلات الغياب والانضباط</small><b class="block text-xl">'+att+'</b></div><div class="rounded-xl border bg-white p-3 text-center"><small>المخالفات السلوكية</small><b class="block text-xl">'+beh+'</b></div>';
+    if(!rows.length){box.innerHTML='<div class="rounded-2xl border border-dashed p-8 text-center text-sm">لا توجد تسجيلات مطابقة للفترة والمرشحات المحددة.</div>';return;}
+    box.innerHTML='<div class="overflow-x-auto rounded-2xl border bg-white"><table class="w-full min-w-[850px] text-right text-xs"><thead class="bg-slate-100"><tr><th class="p-3">الصف</th><th class="p-3">اسم الطالب</th><th class="p-3">الغياب والانضباط</th><th class="p-3">السلوكيات</th></tr></thead><tbody>'+rows.map((r,i)=>'<tr class="'+(i%2?'bg-slate-100/80':'bg-white')+' border-t"><td class="p-3 font-bold"><bdi dir="ltr">'+esc(formatClassName(r.className))+'</bdi></td><td class="p-3 font-black">'+esc(r.student)+'</td><td class="p-3">'+detail(r.attendance,false)+'</td><td class="p-3">'+detail(r.behaviors,true)+'</td></tr>').join("")+'</tbody></table></div>';
+  }
+  async function load(prefix){
+    const c=cfg[prefix],box=document.getElementById(c.results);
+    box.innerHTML='<div class="rounded-xl border p-8 text-center">جارٍ جلب بيانات الجهتين والتحقق منها...</div>';
+    try{const data=await getData(prefix),rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);}
+    catch(e){box.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">'+esc(e.message)+'</div>';showToast(e.message,"error");}
+  }
+  function printHtml(data){
+    const rows=data.rows,attCount=rows.reduce((n,r)=>n+r.attendance.length,0),behCount=rows.reduce((n,r)=>n+r.behaviors.length,0);
+    const cell=(list,behavior)=>detail(list,behavior);
+    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>التقرير الموحّد</title><style>@page{size:A4 landscape;margin:9mm}*{box-sizing:border-box}body{font-family:Arial,Tahoma,sans-serif;color:#172033;font-size:9px}header{text-align:center;border-bottom:3px double #0f766e;padding:0 0 9px;margin-bottom:10px}h1{font-size:19px;margin:0;color:#115e59}h2{font-size:12px;margin:5px 0}.meta{display:flex;justify-content:space-between;gap:8px;background:#f1f5f9;border:1px solid #cbd5e1;padding:8px;margin-bottom:10px;font-weight:bold}table{width:100%;border-collapse:collapse;table-layout:fixed}thead{display:table-header-group}th,td{border:1px solid #cbd5e1;padding:6px;vertical-align:top;overflow-wrap:anywhere}th{background:#e2e8f0;text-align:center;font-size:10px}tbody tr:nth-child(even){background:#f1f5f9}tr{break-inside:avoid;page-break-inside:avoid}.name{font-weight:bold;width:17%}.class{width:8%;text-align:center}.att,.beh{width:37.5%}.entry{padding:3px 0;border-bottom:1px dotted #cbd5e1;line-height:1.5}.entry:last-child{border:0}.totals{font-weight:bold;color:#0f766e;margin-bottom:4px}.note{color:#475569;white-space:pre-wrap}.muted{color:#94a3b8}.foot{margin-top:16px;display:flex;justify-content:space-between;font-weight:bold}@media print{tbody tr:nth-child(even),th{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body><header><h1>'+esc(data.schoolName)+'</h1><h2>التقرير الموحّد للغياب والانضباط والسلوكيات</h2></header><div class="meta"><span>الصفوف: '+esc(data.cls.map(formatClassName).join("، "))+'</span><span>من '+esc(data.from)+' إلى '+esc(data.to)+'</span><span>عدد الطلاب: '+rows.length+'</span><span>الغياب والانضباط: '+attCount+'</span><span>السلوكيات: '+behCount+'</span></div><table><thead><tr><th class="class">الصف</th><th class="name">اسم الطالب</th><th class="att">الغياب والانضباط — الجهة اليمنى</th><th class="beh">السلوكيات — الجهة اليسرى</th></tr></thead><tbody>'+rows.map(r=>'<tr><td class="class">'+esc(formatClassName(r.className))+'</td><td class="name">'+esc(r.student)+'</td><td>'+cell(r.attendance,false)+'</td><td>'+cell(r.behaviors,true)+'</td></tr>').join("")+'</tbody></table><div class="foot"><span>إعداد الكشف: ................................</span><span>اعتماد الإدارة: ................................</span></div><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),500));<\/script></body></html>';
+  }
+  async function print(prefix){
+    const c=cfg[prefix],p=c.getP();
+    if(!(p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية طباعة الغياب والسلوكيات والتقرير الموحّد.","error");return;}
+    const w=window.open("about:blank","_blank");if(!w){showToast("يرجى السماح بالنوافذ المنبثقة للطباعة.","error");return;}
+    w.document.write('<!doctype html><meta charset="utf-8"><p style="font-family:Arial;text-align:center;padding:40px">جارٍ التحقق من البيانات وتجهيز التقرير...</p>');w.document.close();
+    try{const data=await getData(prefix);data.rows=merge(data);w.document.open();w.document.write(printHtml(data));w.document.close();}
+    catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
+  }
+  const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
+  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldSaSet(d);mount("sa");};
+  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldRepSet(d);mount("rep");};
+  saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
+  repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
+  saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
+  repPrint=function(){if(modes.rep)return print("rep");return oldRepPrint();};
+  const oldSaDate=saOnReportDateChanged,oldRepDate=repOnReportDateChanged;
+  if(typeof oldSaDate==="function")saOnReportDateChanged=function(){if(modes.sa)return load("sa");return oldSaDate();};
+  if(typeof oldRepDate==="function")repOnReportDateChanged=function(){if(modes.rep)return load("rep");return oldRepDate();};
+  document.addEventListener("change",e=>{if(e.target?.classList?.contains("sa-combined-status")||e.target?.classList?.contains("sa-combined-behavior")){if(modes.sa)load("sa");}if(e.target?.classList?.contains("rep-combined-status")||e.target?.classList?.contains("rep-combined-behavior")){if(modes.rep)load("rep");}});
+  document.addEventListener("DOMContentLoaded",()=>{mount("sa");mount("rep");});
+  const timer=setInterval(()=>{mount("sa");mount("rep");if(document.getElementById("saCombinedTab")&&document.getElementById("repCombinedTab"))clearInterval(timer);},500);
+})();
+</script>
 </body>
 </html>
