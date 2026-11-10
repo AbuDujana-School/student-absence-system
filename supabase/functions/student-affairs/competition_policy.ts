@@ -61,6 +61,54 @@ export function countBehaviorIncidents(rows: CompetitionRow[]): number {
   }
   return unique.size;
 }
+export function countAttendanceByStatus(rows: CompetitionRow[]): Record<string, number> {
+  const unique = new Map<string, string>();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
+    if (!date || !cls) continue;
+    for (const [student, raw] of Object.entries(recordMap(row))) {
+      const status = typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || "");
+      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.set([cls, date, student, status].join("\u001f"), status);
+    }
+  }
+  const counts: Record<string, number> = { absent: 0, late: 0, outside: 0, escape: 0 };
+  for (const status of unique.values()) counts[status] = (counts[status] || 0) + 1;
+  return counts;
+}
+export function countBehaviorByType(rows: CompetitionRow[]): Record<string, number> {
+  const unique = new Map<string, string>();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
+    if (!date || !cls) continue;
+    for (const [student, raw] of Object.entries(recordMap(row))) {
+      const type = raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || "");
+      if (COMPETITION_BEHAVIOR_TYPES.includes(type)) unique.set([cls, date, student, type].join("\u001f"), type);
+    }
+  }
+  const counts: Record<string, number> = {};
+  for (const type of COMPETITION_BEHAVIOR_TYPES) counts[type] = 0;
+  for (const type of unique.values()) counts[type] = (counts[type] || 0) + 1;
+  return counts;
+}
+/** Counts students with incidents on at least two distinct school days; names never leave this policy layer. */
+export function countRepeatStudents(rows: CompetitionRow[], domain: "attendance" | "behavior"): number {
+  const datesByStudent = new Map<string, Set<string>>();
+  for (const row of Array.isArray(rows) ? rows : []) {
+    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
+    if (!date || !cls) continue;
+    for (const [student, raw] of Object.entries(recordMap(row))) {
+      const type = domain === "attendance"
+        ? (typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || ""))
+        : (raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || ""));
+      const valid = domain === "attendance" ? COMPETITION_ATTENDANCE_STATUSES.includes(type) : COMPETITION_BEHAVIOR_TYPES.includes(type);
+      if (!valid) continue;
+      const key = [cls, student].join("\u001f");
+      if (!datesByStudent.has(key)) datesByStudent.set(key, new Set());
+      datesByStudent.get(key)!.add(date);
+    }
+  }
+  return [...datesByStudent.values()].filter(dates => dates.size >= 2).length;
+}
 export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
   const coverage: CoverageMap = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {
@@ -89,7 +137,15 @@ export function buildTeamRates({ grade, classNames, attendanceRows, behaviorRows
     const aRows = attendance.filter(row => String(row.class_name || "").trim() === className), bRows = behavior.filter(row => String(row.class_name || "").trim() === className);
     const complete = days.length > 0 && days.every(day => isTeamDayComplete([className], day, aCoverage, bCoverage));
     const attendanceIncidents = countAttendanceIncidents(aRows), behaviorIncidents = countBehaviorIncidents(bRows);
-    return { className, complete, attendanceIncidents, behaviorIncidents, attendanceRate: days.length ? attendanceIncidents / days.length : null, behaviorRate: days.length ? behaviorIncidents / days.length : null };
+    return {
+      className, complete, attendanceIncidents, behaviorIncidents,
+      attendanceStatusCounts: countAttendanceByStatus(aRows),
+      behaviorTypeCounts: countBehaviorByType(bRows),
+      repeatAttendanceStudents: countRepeatStudents(aRows, "attendance"),
+      repeatBehaviorStudents: countRepeatStudents(bRows, "behavior"),
+      attendanceRate: days.length ? attendanceIncidents / days.length : null,
+      behaviorRate: days.length ? behaviorIncidents / days.length : null
+    };
   });
   const complete = classes.length > 0 && days.length > 0 && classMetrics.every(item => item.complete);
   const mean = (key: "attendanceRate" | "behaviorRate") => complete ? classMetrics.reduce((sum, item) => sum + Number(item[key]), 0) / classMetrics.length : null;

@@ -60,7 +60,7 @@ Deno.test("competition-only teacher receives aggregate points for all stages wit
 
 Deno.test("class comparison exposes only the leader's assigned classes to teachers", () => {
   const rows = [
-    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1, attendanceIncidents: 9 },
+    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1, attendanceIncidents: 9, attendanceStatusCounts: { absent: 2, late: 3 }, behaviorTypeCounts: { talking: 4 }, repeatAttendanceStudents: 2, repeatBehaviorStudents: 1 },
     { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4, attendanceIncidents: 30 }
   ];
   const result = projectCompetitionClassComparison(rows, false, ["A"]);
@@ -75,4 +75,27 @@ Deno.test("administrator may compare class rates across all teams", () => {
     { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4 }
   ];
   assertEquals(projectCompetitionClassComparison(rows, true, []).length, 2);
+});
+
+Deno.test("class coaching projection returns only safe aggregate counts for the leader's own team", () => {
+  const rows = [
+    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1, attendanceStatusCounts: { absent: 2, late: 3 }, behaviorTypeCounts: { talking: 4 }, repeatAttendanceStudents: 2, repeatBehaviorStudents: 1 },
+    { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4, attendanceStatusCounts: { absent: 20 }, behaviorTypeCounts: { chaos: 10 }, repeatAttendanceStudents: 7, repeatBehaviorStudents: 5 }
+  ];
+  const result = projectCompetitionClassComparison(rows, false, ["A"]);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].attendanceStatusCounts, { absent: 2, late: 3 });
+  assertEquals(result[0].behaviorTypeCounts, { talking: 4 });
+  assertEquals(result[0].repeatAttendanceStudents, 2);
+  assertEquals(result[0].repeatBehaviorStudents, 1);
+  assertEquals("studentNames" in result[0], false);
+});
+Deno.test("incomplete classes do not receive recommendation metrics", () => {
+  const result = projectCompetitionClassComparison([
+    { teamId: "A", teamName: "فريق أ", className: "1/9", complete: false, attendanceRate: null, behaviorRate: null, attendanceStatusCounts: { absent: 4 }, behaviorTypeCounts: { talking: 3 }, repeatAttendanceStudents: 2, repeatBehaviorStudents: 1 }
+  ], false, ["A"]);
+  assertEquals(result[0].attendanceStatusCounts, null);
+  assertEquals(result[0].behaviorTypeCounts, null);
+  assertEquals(result[0].repeatAttendanceStudents, null);
+  assertEquals(result[0].repeatBehaviorStudents, null);
 });

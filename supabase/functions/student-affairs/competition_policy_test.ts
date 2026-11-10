@@ -1,6 +1,6 @@
 import {
   awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores,
-  countAttendanceIncidents, countBehaviorIncidents, getSchoolDays, getSchoolWeekRange,
+  countAttendanceIncidents, countBehaviorIncidents, countAttendanceByStatus, countBehaviorByType, countRepeatStudents, getSchoolDays, getSchoolWeekRange,
   gradeForClassName, isTeamDayComplete, getSessionCoverage
 } from "./competition_policy.ts";
 
@@ -92,4 +92,23 @@ Deno.test("invalid rates are rejected", () => {
   let rejected=false;
   try { calculateRelativeCompetitionScores([{complete:true,attendanceRate:-1,behaviorRate:0},{complete:true,attendanceRate:1,behaviorRate:1}]); } catch { rejected=true; }
   if (!rejected) throw new Error("negative rates accepted");
+});
+
+Deno.test("coaching metrics count real attendance and behavior types without exposing student identities", () => {
+  const attendanceRows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"late","طالب ب":"absent"} },
+    { date_str:"2026-11-09", class_name:"1/9", period:1, records:{"طالب أ":"late","طالب ج":"escape"} },
+    { date_str:"2026-11-09", class_name:"1/9", period:2, records:{"طالب أ":"late"} }
+  ];
+  const behaviorRows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"tools"}} },
+    { date_str:"2026-11-09", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ج":{type:"sleeping"}} },
+    { date_str:"2026-11-09", class_name:"1/9", period:2, records:{"طالب أ":{type:"talking"}} }
+  ];
+  const a = countAttendanceByStatus(attendanceRows);
+  const b = countBehaviorByType(behaviorRows);
+  if (a.late !== 2 || a.absent !== 1 || a.escape !== 1) throw new Error("attendance coaching breakdown must deduplicate repeated periods");
+  if (b.talking !== 2 || b.tools !== 1 || b.sleeping !== 1) throw new Error("behavior coaching breakdown must deduplicate repeated periods");
+  if (countRepeatStudents(attendanceRows, "attendance") !== 1) throw new Error("repeat attendance students must require multiple days");
+  if (countRepeatStudents(behaviorRows, "behavior") !== 1) throw new Error("repeat behavior students must require multiple days");
 });

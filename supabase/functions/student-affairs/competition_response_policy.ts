@@ -52,6 +52,10 @@ export function projectCompetitionClassComparison(
       className: String(item.className || ""),
       complete: item.complete === true,
       attendanceRate: item.complete === true && Number.isFinite(Number(item.attendanceRate)) ? Number(item.attendanceRate) : null,
-      behaviorRate: item.complete === true && Number.isFinite(Number(item.behaviorRate)) ? Number(item.behaviorRate) : null
+      behaviorRate: item.complete === true && Number.isFinite(Number(item.behaviorRate)) ? Number(item.behaviorRate) : null,
+      attendanceStatusCounts: item.complete === true && item.attendanceStatusCounts && typeof item.attendanceStatusCounts === "object" ? item.attendanceStatusCounts : null,
+      behaviorTypeCounts: item.complete === true && item.behaviorTypeCounts && typeof item.behaviorTypeCounts === "object" ? item.behaviorTypeCounts : null,
+      repeatAttendanceStudents: item.complete === true && Number.isFinite(Number(item.repeatAttendanceStudents)) ? Number(item.repeatAttendanceStudents) : null,
+      repeatBehaviorStudents: item.complete === true && Number.isFinite(Number(item.repeatBehaviorStudents)) ? Number(item.repeatBehaviorStudents) : null
     }));
 }
