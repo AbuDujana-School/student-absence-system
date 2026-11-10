@@ -41,6 +41,13 @@ Deno.test("missing attendance status permission is rejected", () => {
   assertEquals(result.reason, "missing_statuses");
 });
 
+Deno.test("missing explicit attendance status configuration is rejected", () => {
+  const { attendance_statuses: _ignored, ...legacyPermissions } = fullPermissions;
+  const result = authorizeCompetitionAccess("teacher", legacyPermissions, classesByGrade);
+  assertEquals(result.allowed, false);
+  assertEquals(result.reason, "missing_statuses");
+});
+
 Deno.test("partial stage coverage cannot unlock that stage", () => {
   const result = authorizeCompetitionAccess("teacher", {
     ...fullPermissions,
