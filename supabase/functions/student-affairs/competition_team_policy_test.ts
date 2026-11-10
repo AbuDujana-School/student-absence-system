@@ -1,0 +1,40 @@
+import { buildCompetitionTeams } from "./competition_team_policy.ts";
+
+Deno.test("only explicitly enrolled teachers become competition teams", () => {
+  const teams = buildCompetitionTeams([
+    { name: "Teacher A", permissions: { competition_participant: true, competition_team_name: "فريق الأمل", competition_team_classes: ["1/9", "2/9"] } },
+    { name: "Counselor", role: "custom", permissions: { competition_participant: false } },
+    { name: "Teacher B", permissions: { competition_participant: false, competition_team_name: "ignored", competition_team_classes: ["3/9"] } }
+  ], ["1/9", "2/9", "3/9"]);
+  if (teams.length !== 1 || teams[0].leaderName !== "Teacher A" || teams[0].classNames.length !== 2) throw new Error("non-participants must not enter the competition");
+});
+
+Deno.test("team name and assigned classes are mandatory", () => {
+  for (const permissions of [
+    { competition_participant: true, competition_team_name: "", competition_team_classes: ["1/9"] },
+    { competition_participant: true, competition_team_name: "فريق", competition_team_classes: [] }
+  ]) {
+    let rejected = false;
+    try { buildCompetitionTeams([{ name: "Teacher", permissions }], ["1/9"]); } catch { rejected = true; }
+    if (!rejected) throw new Error("invalid team configuration must be rejected");
+  }
+});
+
+Deno.test("a class cannot be assigned to more than one team", () => {
+  let rejected = false;
+  try {
+    buildCompetitionTeams([
+      { name: "A", permissions: { competition_participant: true, competition_team_name: "A", competition_team_classes: ["1/9"] } },
+      { name: "B", permissions: { competition_participant: true, competition_team_name: "B", competition_team_classes: ["1/9"] } }
+    ], ["1/9"]);
+  } catch { rejected = true; }
+  if (!rejected) throw new Error("duplicate class assignments must be rejected");
+});
+
+Deno.test("custom users cannot become competition participants", () => {
+  let rejected = false;
+  try {
+    buildCompetitionTeams([{ name: "Counselor", role: "custom", permissions: { competition_participant: true, competition_team_name: "Team", competition_team_classes: ["1/9"] } }], ["1/9"]);
+  } catch { rejected = true; }
+  if (!rejected) throw new Error("custom users must remain outside the competition");
+});

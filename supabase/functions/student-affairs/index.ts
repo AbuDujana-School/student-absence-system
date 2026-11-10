@@ -1,7 +1,6 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
-import { authorizeCompetitionAccess } from "./competition_authorization.ts";
-import { projectCompetitionTeams } from "./competition_response_policy.ts";
-import { buildTeamRates, calculateRelativeCompetitionScores, gradeForClassName, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
+import { buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
+import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -113,6 +112,9 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     can_read_behavior: data?.can_read_behavior === true,
     can_view_analytics: data?.can_view_analytics === true,
     can_view_competition: teacher?.permissions?.can_view_competition === true,
+    competition_participant: teacher?.permissions?.competition_participant === true,
+    competition_team_name: typeof teacher?.permissions?.competition_team_name === "string" ? teacher.permissions.competition_team_name : "",
+    competition_team_classes: Array.isArray(teacher?.permissions?.competition_team_classes) ? teacher.permissions.competition_team_classes : [],
     can_print_attendance: data?.can_print_attendance === true,
     can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
@@ -222,6 +224,7 @@ function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, 
   return calculateRelativeCompetitionScores(metrics);
 }
 async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown, periodValue: unknown) {
+  if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
   const today = getOmanIsoDate();
   const period = ["weekly", "monthly", "term"].includes(String(periodValue)) ? String(periodValue) : "weekly";
   const defaultWeek = getSchoolWeekRange(today);
@@ -234,24 +237,24 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const dataFrom = period === "monthly" ? getSchoolWeekRange(from).start : from;
   if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
 
-  const [{ data: classRows, error: classError }] = await Promise.all([
-    db.from("classes").select("name").order("name", { ascending: true })
+  const [{ data: classRows, error: classError }, { data: teacherRows, error: teacherError }] = await Promise.all([
+    db.from("classes").select("name").order("name", { ascending: true }),
+    db.from("teachers").select("name,role,permissions").order("name", { ascending: true })
   ]);
   if (classError) throw classError;
+  if (teacherError) throw teacherError;
   const allClasses = (classRows || []).map((row: any) => String(row.name || "").trim()).filter(Boolean);
-  const grades = ["9", "10", "11", "12"];
-  const classesByGrade: Record<string, string[]> = {};
-  for (const grade of grades) classesByGrade[grade] = allClasses.filter(name => gradeForClassName(name) === grade);
-  const competitionClasses = [...new Set(grades.flatMap(grade => classesByGrade[grade]))];
-  if (grades.some(grade => !classesByGrade[grade].length)) {
-    return { from, to, today, status: "configuration_incomplete", message: "لم يتم العثور على شعب جميع المراحل الأربع في إعدادات الصفوف." };
+  let teams: any[];
+  try {
+    teams = buildCompetitionTeams(teacherRows || [], allClasses);
+  } catch (error) {
+    competitionError(409, error instanceof Error ? error.message : "إعدادات فرق سباق التميز غير مكتملة.");
   }
-
-  const admin = principal.type === "admin";
-  const authorization = authorizeCompetitionAccess(principal.type, permissions, classesByGrade, grades);
-  if (!authorization.allowed) competitionError(403, authorization.message || "غير مصرح بلوحة المنافسة.");
-  const ownGrades = authorization.ownGrades;
-
+  if (!teams.length) {
+    return { from, to, today, period, status: "configuration_incomplete", message: "لم تتم إضافة أي معلم إلى سباق التميز بعد.", teams: [], ownGrades: [], ownClasses: [], dailyProgress: [], weeklyWins: {}, weeklyHistory: [] };
+  }
+  const competitionClasses = [...new Set(teams.flatMap((team: any) => team.classNames))];
+  const ownTeamIds = teams.filter((team: any) => team.leaderName === principal.name).map((team: any) => team.teamId);
   const [studentRows, attendanceRows, behaviorRows] = await Promise.all([
     fetchCompetitionStudents(competitionClasses),
     fetchCompetitionRows("attendance", competitionClasses, dataFrom, to),
@@ -264,46 +267,51 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     const studentName = String(row.student_name || "").trim();
     if (rosters[className] && studentName && !rosters[className].includes(studentName)) rosters[className].push(studentName);
   }
-
   const attendanceIndex = indexCompetitionRows(attendanceRows);
   const behaviorIndex = indexCompetitionRows(behaviorRows);
-  const scored = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, from, to);
-  const allTeamsComplete = scored.length === grades.length && scored.every(team => team.complete === true);
+  const scoreTeamsRange = (rangeFrom: string, rangeTo: string) => {
+    const metrics = teams.map((team: any) => {
+      const metric = buildTeamRates({
+        grade: team.teamName,
+        classNames: team.classNames,
+        rosters,
+        attendanceRows: rowsForCompetitionRange(attendanceIndex, team.classNames, rangeFrom, rangeTo),
+        behaviorRows: rowsForCompetitionRange(behaviorIndex, team.classNames, rangeFrom, rangeTo),
+        from: rangeFrom,
+        to: rangeTo
+      });
+      return { ...metric, grade: team.teamName, teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName, classNames: team.classNames };
+    });
+    return calculateRelativeCompetitionScores(metrics).map((metric: any) => {
+      const team = teams.find((item: any) => item.teamId === metric.teamId);
+      return projectCompetitionTeam(team, metric);
+    });
+  };
+  const scored = scoreTeamsRange(from, to);
+  const allTeamsComplete = scored.length === teams.length && scored.every((team: any) => team.complete === true);
   const dailyProgress = schoolDays.map(day => {
-    const dayScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, day, day);
-    const dayComplete = dayScores.length === grades.length && dayScores.every(team => team.complete === true);
-    return {
-      date: day,
-      teams: dayScores.map(team => ({
-        grade: team.grade,
-        score: dayComplete ? team.score : null,
-        rank: dayComplete ? team.rank : null,
-        complete: dayComplete && team.complete === true
-      }))
-    };
+    const dayScores = scoreTeamsRange(day, day);
+    const dayComplete = dayScores.length === teams.length && dayScores.every((team: any) => team.complete === true);
+    return { date: day, teams: dayScores.map((team: any) => ({ grade: team.teamName, teamId: team.teamId, teamName: team.teamName, score: dayComplete ? team.score : null, rank: dayComplete ? team.rank : null, complete: dayComplete && team.complete === true })) };
   });
-
-  const weeklyWins: Record<string, number> = Object.fromEntries(grades.map(grade => [grade, 0]));
+  const weeklyWins: Record<string, number> = Object.fromEntries(teams.map((team: any) => [team.teamId, 0]));
   const weeklyHistory: any[] = [];
   const firstWeek = getSchoolWeekRange(from).start;
   for (let weekStart = firstWeek; shiftCompetitionDate(weekStart, 4) <= to; weekStart = shiftCompetitionDate(weekStart, 7)) {
     const weekEnd = shiftCompetitionDate(weekStart, 4);
     if (period === "monthly" ? weekEnd < from : weekStart < from) continue;
-    const weekScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, weekStart, weekEnd);
-    const winner = weekScores.length && weekScores.every(team => team.complete === true)
-      ? weekScores.filter(team => team.rank === 1).map(team => team.grade)
+    const weekScores = scoreTeamsRange(weekStart, weekEnd);
+    const winners = weekScores.length && weekScores.every((team: any) => team.complete === true)
+      ? weekScores.filter((team: any) => team.rank === 1).map((team: any) => team.teamId)
       : [];
-    winner.forEach(grade => { weeklyWins[grade] = (weeklyWins[grade] || 0) + 1; });
-    weeklyHistory.push({ start: weekStart, end: weekEnd, complete: winner.length > 0, winners: winner });
+    winners.forEach((id: string) => { weeklyWins[id] = (weeklyWins[id] || 0) + 1; });
+    weeklyHistory.push({ start: weekStart, end: weekEnd, complete: winners.length > 0, winners });
   }
-
-  const publicTeams = projectCompetitionTeams(scored, admin, ownGrades, allTeamsComplete);
-
   const ownClasses: any[] = [];
-  for (const grade of ownGrades) {
-    for (const className of classesByGrade[grade] || []) {
+  for (const team of teams.filter((item: any) => ownTeamIds.includes(item.teamId))) {
+    for (const className of team.classNames) {
       const metric = buildTeamRates({
-        grade,
+        grade: team.teamName,
         classNames: [className],
         rosters,
         attendanceRows: rowsForCompetitionRange(attendanceIndex, [className], from, to),
@@ -311,31 +319,10 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
         from,
         to
       });
-      ownClasses.push({
-        grade,
-        className,
-        complete: metric.complete,
-        attendanceRate: metric.attendanceRate,
-        behaviorRate: metric.behaviorRate,
-        attendanceIncidents: metric.attendanceIncidents,
-        behaviorIncidents: metric.behaviorIncidents
-      });
+      ownClasses.push({ grade: team.teamName, className, complete: metric.complete, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate, attendanceIncidents: metric.attendanceIncidents, behaviorIncidents: metric.behaviorIncidents });
     }
   }
-
-  return {
-    from,
-    to,
-    period,
-    today,
-    status: allTeamsComplete ? "complete" : "incomplete",
-    teams: publicTeams,
-    ownGrades,
-    ownClasses,
-    dailyProgress,
-    weeklyWins,
-    weeklyHistory
-  };
+  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: scored, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, dailyProgress, weeklyWins, weeklyHistory };
 }
 
 async function handle(req: Request) {
@@ -398,6 +385,26 @@ async function handle(req: Request) {
     const { data: classRows } = await db.from("classes").select("name");
     const valid = new Set((classRows || []).map((x: any) => x.name));
     if (allowed.some((x: string) => !valid.has(x))) return reply(400, { error: "توجد شعبة غير معتمدة" });
+    if (body.competition_participant === true) {
+      if (type !== "teacher") return reply(400, { error: "المشاركة في سباق التميز مخصصة لحسابات المعلمين." });
+      const teamName = String(body.competition_team_name || "").trim();
+      const teamClasses = Array.isArray(body.competition_team_classes)
+        ? Array.from(new Set((body.competition_team_classes as unknown[]).map(value => String(value || "").trim()).filter(Boolean)))
+        : [];
+      if (!teamName) return reply(400, { error: "اكتب اسم الفريق قبل تفعيل المشاركة." });
+      if (!teamClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل للفريق." });
+      if (teamClasses.some(className => !valid.has(className))) return reply(400, { error: "توجد صفوف غير معتمدة ضمن الفريق." });
+      const { data: participantRows, error: participantError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
+      if (participantError) throw participantError;
+      const assigned = new Map<string, string>();
+      for (const participant of participantRows || []) {
+        const pp = participant.permissions || {};
+        if (pp.competition_participant !== true) continue;
+        for (const className of Array.isArray(pp.competition_team_classes) ? pp.competition_team_classes : []) assigned.set(String(className), String(participant.name));
+      }
+      const conflict = teamClasses.find(className => assigned.has(className));
+      if (conflict) return reply(409, { error: "الصف " + conflict + " مسند بالفعل إلى فريق المعلم " + assigned.get(conflict) + "." });
+    }
     const row = { principal_type: type, principal_name: name, allowed_classes: allowed, allowed_attendance_classes: attendanceClasses, allowed_behavior_classes: behaviorClasses, attendance_statuses: statuses, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
@@ -405,6 +412,34 @@ async function handle(req: Request) {
       const mergedPermissions = { ...(target.permissions || {}) };
       if (typeof body.studentAffairs === "boolean") mergedPermissions.studentAffairs = body.studentAffairs;
       if (typeof body.can_view_competition === "boolean") mergedPermissions.can_view_competition = body.can_view_competition;
+      if (typeof body.competition_participant === "boolean") {
+        if (body.competition_participant && type !== "teacher") return reply(400, { error: "المشاركة في سباق التميز مخصصة لحسابات المعلمين." });
+        const { data: configuredClasses, error: configuredClassesError } = await db.from("classes").select("name");
+        if (configuredClassesError) throw configuredClassesError;
+        const validCompetitionClasses = new Set((configuredClasses || []).map((item: any) => String(item.name || "").trim()));
+        const teamName = String(body.competition_team_name || "").trim();
+        const teamClasses = Array.isArray(body.competition_team_classes)
+          ? Array.from(new Set((body.competition_team_classes as unknown[]).map(value => String(value || "").trim()).filter(Boolean)))
+          : [];
+        if (body.competition_participant && !teamName) return reply(400, { error: "اكتب اسم الفريق قبل تفعيل المشاركة." });
+        if (body.competition_participant && !teamClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل للفريق." });
+        if (teamClasses.some(className => !validCompetitionClasses.has(className))) return reply(400, { error: "توجد صفوف غير معتمدة ضمن الفريق." });
+        if (body.competition_participant) {
+          const { data: participantRows, error: participantError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
+          if (participantError) throw participantError;
+          const assigned = new Map<string, string>();
+          for (const participant of participantRows || []) {
+            const pp = participant.permissions || {};
+            if (pp.competition_participant !== true) continue;
+            for (const className of Array.isArray(pp.competition_team_classes) ? pp.competition_team_classes : []) assigned.set(String(className), String(participant.name));
+          }
+          const conflict = teamClasses.find(className => assigned.has(className));
+          if (conflict) return reply(409, { error: "الصف " + conflict + " مسند بالفعل إلى فريق المعلم " + assigned.get(conflict) + "." });
+        }
+        mergedPermissions.competition_participant = body.competition_participant;
+        mergedPermissions.competition_team_name = body.competition_participant ? teamName : "";
+        mergedPermissions.competition_team_classes = body.competition_participant ? teamClasses : [];
+      }
       const { data: updatedTeacher, error: accessError } = await db
         .from("teachers")
         .update({ permissions: mergedPermissions })
@@ -418,6 +453,11 @@ async function handle(req: Request) {
       if (typeof body.can_view_competition === "boolean" &&
           updatedTeacher.permissions?.can_view_competition !== body.can_view_competition) {
         throw new Error("لم يتم تأكيد حفظ صلاحية مشاهدة سباق التميز في سجل المعلم.");
+      }
+      if (typeof body.competition_participant === "boolean" &&
+          (updatedTeacher.permissions?.competition_participant !== body.competition_participant ||
+           (body.competition_participant && updatedTeacher.permissions?.competition_team_name !== String(body.competition_team_name || "").trim()))) {
+        throw new Error("لم يتم تأكيد حفظ إعدادات فريق سباق التميز.");
       }
     }
     const { error: revokeError } = await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
