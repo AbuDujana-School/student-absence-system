@@ -405,8 +405,20 @@ async function handle(req: Request) {
       const mergedPermissions = { ...(target.permissions || {}) };
       if (typeof body.studentAffairs === "boolean") mergedPermissions.studentAffairs = body.studentAffairs;
       if (typeof body.can_view_competition === "boolean") mergedPermissions.can_view_competition = body.can_view_competition;
-      const { error: accessError } = await db.from("teachers").update({ permissions: mergedPermissions }).eq("name", name);
+      const { data: updatedTeacher, error: accessError } = await db
+        .from("teachers")
+        .update({ permissions: mergedPermissions })
+        .eq("name", target.name)
+        .select("name,permissions")
+        .maybeSingle();
       if (accessError) throw accessError;
+      if (!updatedTeacher) {
+        throw new Error("تعذر حفظ صلاحية سباق التميز: لم يتم تحديث سجل المعلم.");
+      }
+      if (typeof body.can_view_competition === "boolean" &&
+          updatedTeacher.permissions?.can_view_competition !== body.can_view_competition) {
+        throw new Error("لم يتم تأكيد حفظ صلاحية مشاهدة سباق التميز في سجل المعلم.");
+      }
     }
     const { error: revokeError } = await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
     if (revokeError) throw revokeError;
