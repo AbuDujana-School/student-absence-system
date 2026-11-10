@@ -1,12 +1,8 @@
-/** Pure server-side authorization policy for the stage competition. */
+/** Independent server-side authorization for aggregate stage competition viewing. */
 export const COMPETITION_GRADES = ["9", "10", "11", "12"] as const;
-export const COMPETITION_REQUIRED_ATTENDANCE_STATUSES = ["absent", "late", "outside", "escape"] as const;
 
 export type CompetitionPermissions = {
-  can_view_analytics?: boolean;
-  can_read_attendance?: boolean;
-  can_read_behavior?: boolean;
-  attendance_statuses?: unknown;
+  can_view_competition?: boolean;
   allowed_attendance_classes?: unknown;
   allowed_behavior_classes?: unknown;
 };
@@ -14,7 +10,7 @@ export type CompetitionPermissions = {
 export type CompetitionAuthorization = {
   allowed: boolean;
   ownGrades: string[];
-  reason?: "missing_permissions" | "missing_statuses" | "incomplete_grade_scope";
+  reason?: "missing_competition_permission";
   message?: string;
 };
 
@@ -26,56 +22,25 @@ export function authorizeCompetitionAccess(
 ): CompetitionAuthorization {
   if (principalType === "admin") return { allowed: true, ownGrades: [...grades] };
 
-  if (
-    permissions?.can_view_analytics !== true ||
-    permissions?.can_read_attendance !== true ||
-    permissions?.can_read_behavior !== true
-  ) {
+  if (permissions?.can_view_competition !== true) {
     return {
       allowed: false,
       ownGrades: [],
-      reason: "missing_permissions",
-      message: "تحتاج لوحة المنافسة إلى صلاحيات التحليلات وقراءة الغياب والسلوك معاً."
+      reason: "missing_competition_permission",
+      message: "ليست لديك صلاحية مشاهدة سباق التميز بين المراحل."
     };
   }
 
-  const statuses = Array.isArray(permissions.attendance_statuses)
-    ? permissions.attendance_statuses
-    : [];
-  if (COMPETITION_REQUIRED_ATTENDANCE_STATUSES.some(status => !statuses.includes(status))) {
-    return {
-      allowed: false,
-      ownGrades: [],
-      reason: "missing_statuses",
-      message: "يجب السماح بحالات الغياب والتأخر والخروج والتسرب جميعها لاحتساب نقاط المنافسة."
-    };
-  }
-
-  const attendance = Array.isArray(permissions.allowed_attendance_classes)
-    ? permissions.allowed_attendance_classes
-    : [];
-  const behavior = Array.isArray(permissions.allowed_behavior_classes)
-    ? permissions.allowed_behavior_classes
-    : [];
+  // Aggregate team rankings are visible to authorized viewers. Detailed class
+  // insights remain limited to grades fully assigned in both attendance and behavior.
+  const attendance = Array.isArray(permissions.allowed_attendance_classes) ? permissions.allowed_attendance_classes : [];
+  const behavior = Array.isArray(permissions.allowed_behavior_classes) ? permissions.allowed_behavior_classes : [];
   const jointlyAllowed = new Set(attendance.filter(name => behavior.includes(name)));
   const ownGrades = [...new Set(
     Object.entries(classesByGrade)
-      .filter(([grade, classNames]) =>
-        grades.includes(grade) &&
-        classNames.length > 0 &&
-        classNames.every(name => jointlyAllowed.has(name))
-      )
+      .filter(([grade, classNames]) => grades.includes(grade) && classNames.length > 0 && classNames.every(name => jointlyAllowed.has(name)))
       .map(([grade]) => grade)
   )].sort((a, b) => grades.indexOf(a) - grades.indexOf(b));
-
-  if (!ownGrades.length) {
-    return {
-      allowed: false,
-      ownGrades: [],
-      reason: "incomplete_grade_scope",
-      message: "يجب تخصيص جميع شعب مرحلة واحدة على الأقل لقائد الفريق في الغياب والسلوك قبل تفعيل المنافسة."
-    };
-  }
 
   return { allowed: true, ownGrades };
 }
