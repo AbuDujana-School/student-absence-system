@@ -153,10 +153,9 @@ export function calculateRelativeCompetitionScores(teams: any[]): any[] {
   });
   scored.sort((a: any, b: any) => b.score - a.score || String(a.grade || "").localeCompare(String(b.grade || ""), "ar"));
   let rank = 0, previousScore: number | null = null;
-  for (let index = 0; index < scored.length; index++) {
-    const team = scored[index];
-    // Competition ranking: ties share a place and occupy its following places.
-    if (previousScore === null || team.score !== previousScore) rank = index + 1;
+  for (const team of scored) {
+    // Dense ranking: tied teams share a place; the next distinct score gets the next place.
+    if (previousScore === null || team.score !== previousScore) rank += 1;
     team.rank = rank;
     team.weeklyPoints = rank === 1 ? 10 : rank === 2 ? 6 : rank === 3 ? 3 : 0;
     previousScore = team.score;
