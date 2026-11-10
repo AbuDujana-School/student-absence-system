@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { projectCompetitionTeams } from "./competition_response_policy.ts";
+import { projectCompetitionTeams, projectCompetitionClassComparison } from "./competition_response_policy.ts";
 
 const teams = [
   { grade: "9", score: 91, rank: 1, attendancePoints: 46, behaviorPoints: 45, complete: true, attendanceRate: 2.5, behaviorRate: 1.2, attendanceIncidents: 5, behaviorIncidents: 3, studentDays: 2000 },
@@ -56,4 +56,12 @@ Deno.test("competition-only teacher receives aggregate points for all stages wit
   assertEquals(result.map(team => team.attendancePoints), [46, 40, 35, 30]);
   assertEquals(result.map(team => team.behaviorPoints), [45, 40, 35, 30]);
   for (const team of result) for (const key of ["attendanceRate", "behaviorRate", "attendanceIncidents", "behaviorIncidents", "studentDays", "studentNames", "attendanceRows", "behaviorRows"]) assertEquals(key in team, false);
+});
+
+Deno.test("class comparison exposes only the leader's assigned classes to teachers", () => {
+  const rows = [
+    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1, attendanceIncidents: 9 },
+    { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4, attendanceIncidents: 30 }
+  ];
+  const result = projectCompetitionClassComparison(rows, false, ["A"]);\n  assertEquals(result.length, 1);\n  assertEquals(result[0].className, "1/9");\n  assertEquals("attendanceIncidents" in result[0], false);\n});\n\nDeno.test("administrator may compare class rates across all teams", () => {\n  const rows = [\n    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1 },\n    { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4 }\n  ];\n  assertEquals(projectCompetitionClassComparison(rows, true, []).length, 2);\n});
 });
