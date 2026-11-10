@@ -293,7 +293,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const dailyProgress = schoolDays.map(day => {
     const dayScores = scoreTeamsRange(day, day);
     const dayComplete = dayScores.length === teams.length && dayScores.every((team: any) => team.complete === true);
-    return { date: day, teams: dayScores.map((team: any) => ({ teamId: team.teamId, teamName: team.teamName, score: dayComplete ? team.score : null, rank: dayComplete ? team.rank : null, complete: dayComplete && team.complete === true })) };
+    return { date: day, teams: dayScores.map((team: any) => ({ grade: team.teamName, teamId: team.teamId, teamName: team.teamName, score: dayComplete ? team.score : null, rank: dayComplete ? team.rank : null, complete: dayComplete && team.complete === true })) };
   });
   const weeklyWins: Record<string, number> = Object.fromEntries(teams.map((team: any) => [team.teamId, 0]));
   const weeklyHistory: any[] = [];
@@ -323,7 +323,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       ownClasses.push({ grade: team.teamName, className, complete: metric.complete, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate, attendanceIncidents: metric.attendanceIncidents, behaviorIncidents: metric.behaviorIncidents });
     }
   }
-  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: scored, ownGrades: ownTeamIds, ownClasses, dailyProgress, weeklyWins, weeklyHistory };
+  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: scored, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, dailyProgress, weeklyWins, weeklyHistory };
 }
 
 async function handle(req: Request) {
