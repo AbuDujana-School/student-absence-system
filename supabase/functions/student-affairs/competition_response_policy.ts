@@ -13,7 +13,7 @@ export function projectCompetitionTeams(teams: ScoredTeam[], isAdmin: boolean, o
     classNames: Array.isArray(team.classNames) ? [...team.classNames] : [],
     score: allTeamsComplete ? team.score : null, rank: allTeamsComplete ? team.rank : null,
     weeklyPoints: allTeamsComplete ? team.weeklyPoints : null,
-    totalPoints: allTeamsComplete ? Number(team.totalPoints || 0) : null,
+    totalPoints: allTeamsComplete && team.totalPoints != null ? Number(team.totalPoints) : null,
     attendancePoints: allTeamsComplete ? team.attendancePoints : null,
     behaviorPoints: allTeamsComplete ? team.behaviorPoints : null,
     complete: allTeamsComplete && team.complete === true,
