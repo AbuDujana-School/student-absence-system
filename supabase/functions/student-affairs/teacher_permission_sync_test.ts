@@ -6,7 +6,7 @@ function assert(condition: boolean, message: string) {
 
 Deno.test("server-managed teacher permissions override stale local values", () => {
   const match = html.match(/function saMergeServerManagedTeacherPermissions\(localPermissions,serverPermissions\)\{[\s\S]*?\n\}/);
-  assert(!!match, "Permission merge helper must exist in index.html");
+  if (!match) throw new Error("Permission merge helper must exist in index.html");
   const merge = new Function(`${match[0]}; return saMergeServerManagedTeacherPermissions;`)() as
     (local: Record<string, unknown>, server: Record<string, unknown>) => Record<string, unknown>;
 
