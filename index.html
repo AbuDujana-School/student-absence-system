@@ -1920,19 +1920,19 @@ function saBuildPrintHtml(data){
       if(!list.length)return;
       sections+='<section class="category"><div class="category-title" style="background:'+category.bg+';color:'+category.color+';border-color:'+category.color+'"><strong>'+category.title+'</strong><span class="count-badge" style="background:'+category.badge+'">'+list.length+' حالة</span></div>'+
       '<table><thead><tr>'+
-      '<th style="width:4%">م</th><th style="width:25%">اسم الطالب</th><th style="width:15%">الصف</th>'+
-      '<th style="width:12%">التاريخ</th><th style="width:9%;white-space:nowrap">الحصة</th>'+
-      '<th style="width:13%;white-space:nowrap">عدد المرات</th><th style="width:28%">المعلم الراصد</th>'+
+      '<th style="width:4%">م</th><th style="width:22%">اسم الطالب</th><th style="width:15%">الصف</th>'+
+      '<th style="width:11%">التاريخ</th><th style="width:8%;white-space:nowrap">الحصة</th>'+
+      '<th style="width:12%;white-space:nowrap">عدد المرات</th><th style="width:28%">المعلم الراصد</th>'+
       '</tr></thead><tbody>'+tableRows(list,false)+'</tbody></table></section>';
     });
     if(!sections)sections='<div class="empty">لا توجد سجلات مطابقة للصفوف والفترة والحالات المحددة.</div>';
   }else{
     sections='<section class="category"><div class="category-title behavior-title"><strong>📑 كشف المخالفات السلوكية اليومية</strong><span class="count-badge behavior-badge">'+rows.length+' مخالفة</span></div>'+
     '<table><thead><tr>'+
-    '<th style="width:4%">م</th><th style="width:22%">اسم الطالب</th><th style="width:14%">الصف</th>'+
-    '<th style="width:14%">نوع المخالفة</th><th style="width:12%;white-space:nowrap">عدد المرات</th>'+
-    '<th style="width:10%">التاريخ</th><th style="width:7%;white-space:nowrap">الحصة</th>'+
-    '<th style="width:13%">المعلم الراصد</th><th style="width:10%">ملاحظات</th>'+
+    '<th style="width:4%">م</th><th style="width:20%">اسم الطالب</th><th style="width:14%">الصف</th>'+
+    '<th style="width:13%">نوع المخالفة</th><th style="width:11%;white-space:nowrap">عدد المرات</th>'+
+    '<th style="width:9%">التاريخ</th><th style="width:7%;white-space:nowrap">الحصة</th>'+
+    '<th style="width:12%">المعلم الراصد</th><th style="width:10%">ملاحظات</th>'+
     '</tr></thead><tbody>'+(rows.length?tableRows(rows,true):'<tr><td colspan="9" class="empty-cell">لا توجد مخالفات سلوكية مسجلة في الفترة المحددة.</td></tr>')+'</tbody></table></section>';
   }
   const statusText=domain==="attendance"?"الحالات المحددة: "+(Array.isArray(statuses)?statuses.map(statusLabel).join("، "):"جميع الحالات المصرح بها"):"تقرير السلوك";
