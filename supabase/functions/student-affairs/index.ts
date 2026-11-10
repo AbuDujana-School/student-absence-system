@@ -1,5 +1,6 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
 import { authorizeCompetitionAccess } from "./competition_authorization.ts";
+import { projectCompetitionTeams } from "./competition_response_policy.ts";
 import { buildTeamRates, calculateRelativeCompetitionScores, gradeForClassName, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -292,21 +293,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     weeklyHistory.push({ start: weekStart, end: weekEnd, complete: winner.length > 0, winners: winner });
   }
 
-  const publicTeams = scored.map(team => ({
-    grade: team.grade,
-    score: team.score,
-    rank: team.rank,
-    attendancePoints: team.attendancePoints,
-    behaviorPoints: team.behaviorPoints,
-    complete: allTeamsComplete && team.complete === true,
-    ...(admin || ownGrades.includes(team.grade) ? {
-      attendanceRate: team.attendanceRate,
-      behaviorRate: team.behaviorRate,
-      attendanceIncidents: team.attendanceIncidents,
-      behaviorIncidents: team.behaviorIncidents,
-      studentDays: team.studentDays
-    } : {})
-  }));
+  const publicTeams = projectCompetitionTeams(scored, admin, ownGrades, allTeamsComplete);
 
   const ownClasses: any[] = [];
   for (const grade of ownGrades) {
