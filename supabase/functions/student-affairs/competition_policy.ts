@@ -39,6 +39,12 @@ export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
 type CompetitionRow = { date_str?: unknown; class_name?: unknown; period?: unknown; record_key?: unknown; records?: unknown };
 type CoverageMap = Map<string, Map<string, Set<number>>>;
 function recordMap(row: CompetitionRow): Record<string, any> { return row?.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {}; }
+function behaviorTypes(raw: unknown): string[] {
+  if (!raw || typeof raw !== "object") return raw && raw !== "normal" ? [String(raw)] : [];
+  const record = raw as { types?: unknown; type?: unknown };
+  const values = Array.isArray(record.types) ? record.types : Array.isArray(record.type) ? record.type : [record.type];
+  return [...new Set(values.map(value => String(value || "")).filter(type => COMPETITION_BEHAVIOR_TYPES.includes(type)))];
+}
 export function countAttendanceIncidents(rows: CompetitionRow[]): number {
   const unique = new Set<string>();
   for (const row of Array.isArray(rows) ? rows : []) {
@@ -55,8 +61,7 @@ export function countBehaviorIncidents(rows: CompetitionRow[]): number {
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      const type = raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || "");
-      if (COMPETITION_BEHAVIOR_TYPES.includes(type)) unique.add([cls, date, student, type].join("\u001f"));
+      for (const type of behaviorTypes(raw)) unique.add([cls, date, student, type].join("\u001f"));
     }
   }
   return unique.size;
@@ -81,8 +86,7 @@ export function countBehaviorByType(rows: CompetitionRow[]): Record<string, numb
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
     if (!date || !cls) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      const type = raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || "");
-      if (COMPETITION_BEHAVIOR_TYPES.includes(type)) unique.set([cls, date, student, type].join("\u001f"), type);
+      for (const type of behaviorTypes(raw)) unique.set([cls, date, student, type].join("\u001f"), type);
     }
   }
   const counts: Record<string, number> = {};
@@ -97,10 +101,9 @@ export function countRepeatStudents(rows: CompetitionRow[], domain: "attendance"
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
     if (!date || !cls) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      const type = domain === "attendance"
-        ? (typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || ""))
-        : (raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || ""));
-      const valid = domain === "attendance" ? COMPETITION_ATTENDANCE_STATUSES.includes(type) : COMPETITION_BEHAVIOR_TYPES.includes(type);
+      const valid = domain === "attendance"
+        ? COMPETITION_ATTENDANCE_STATUSES.includes(typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || ""))
+        : behaviorTypes(raw).length > 0;
       if (!valid) continue;
       const key = [cls, student].join("\u001f");
       if (!datesByStudent.has(key)) datesByStudent.set(key, new Set());
