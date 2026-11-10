@@ -1667,7 +1667,8 @@ function saRenderCompetition(data){
   const ownTeamNames=new Set(Array.isArray(data?.ownGrades)?data.ownGrades.map(String):[]);
   const complete=data?.status==="complete"&&teams.length>0&&teams.every(team=>team.complete&&Number.isFinite(Number(team.score)));
   const weekEnd=data?.from?saDateShift(data.from,4):"";
-  const provisionalWeek=data?.period==="weekly"&&data?.to<weekEnd;
+  const selectedWeekStart=data?.from?saDateShift(data.from,-new Date(data.from+"T12:00:00.000Z").getUTCDay()):"";
+  const provisionalWeek=data?.period==="weekly"&&(data?.to<weekEnd||data?.from!==selectedWeekStart);
   if(status){
     status.textContent=complete?(provisionalWeek?"الترتيب الحالي مؤقت حتى اكتمال أيام الأسبوع؛ لا تُعتمد نقاط الأسبوع قبل اكتمال الخميس.":"اكتملت بيانات الفترة. الترتيب مبني على متوسط الصفوف المتساوي في الوزن."):(data?.message||"لا تُعلن النتائج النهائية ولا تُمنح النقاط قبل اكتمال رصد الغياب والسلوك لجميع الصفوف المشاركة.");
     status.classList.toggle("hidden",complete&&!provisionalWeek);
