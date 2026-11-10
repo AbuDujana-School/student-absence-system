@@ -5492,12 +5492,9 @@ if ("serviceWorker" in navigator) {
     return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'<span class="cr-breakdown-chip">'+esc(labels[k]||k)+' <b>'+n+'</b></span>').join("")||'<span class="cr-muted">لا توجد تسجيلات</span>';
   }
   const statusOrder=["absent","escape","late","outside"];
-  const statusColors={absent:"#0f172a",escape:"#e11d48",late:"#f59e0b",outside:"#7c3aed"};
-  const behaviorColors={eating:"#f59e0b",talking:"#f97316",tools:"#ca8a04",chaos:"#ef4444",sleeping:"#4f46e5",homework:"#2563eb",other:"#be123c"};
-  const statusOrder=["absent","escape","late","outside"];
-  // الألوان مأخوذة من ألوان شارات الحالات المعتمدة في واجهة شؤون الطلاب.
+  // ألوان الحالات مطابقة لشارات شؤون الطلاب.
   const statusColors={absent:"#0f172a",late:"#f59e0b",outside:"#7c3aed",escape:"#e11d48"};
-  // السلوكيات تستخدم لون المخالفات السلوكية المعتمد في التقارير الأصلية.
+  // لون المخالفات السلوكية كما في التقرير الأصلي.
   const behaviorColors={eating:"#be123c",talking:"#be123c",tools:"#be123c",chaos:"#be123c",sleeping:"#be123c",homework:"#be123c",other:"#be123c"};
   function shortStudentName(name){return String(name||"").replace(/\s+/g," ").trim()||"اسم غير متوفر";}
   function cellContent(list,mode){
