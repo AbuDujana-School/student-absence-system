@@ -96,9 +96,12 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
   if (p.type === "admin") {
     const { data: classes } = await db.from("classes").select("name");
     const all = (classes || []).map((x: any) => x.name);
-    return { allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
+    return { allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_view_competition: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
   }
-  const { data } = await db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle();
+  const [{ data }, { data: teacher }] = await Promise.all([
+    db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle(),
+    db.from("teachers").select("permissions").eq("name", p.name).maybeSingle()
+  ]);
   const legacy = Array.isArray(data?.allowed_classes) ? data.allowed_classes : [];
   return {
     ...(data || {}),
@@ -109,6 +112,7 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     can_read_attendance: data?.can_read_attendance === true,
     can_read_behavior: data?.can_read_behavior === true,
     can_view_analytics: data?.can_view_analytics === true,
+    can_view_competition: teacher?.permissions?.studentAffairsCompetition === true,
     can_print_attendance: data?.can_print_attendance === true,
     can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
@@ -397,8 +401,12 @@ async function handle(req: Request) {
     const row = { principal_type: type, principal_name: name, allowed_classes: allowed, allowed_attendance_classes: attendanceClasses, allowed_behavior_classes: behaviorClasses, attendance_statuses: statuses, can_read_attendance: asBool(body.can_read_attendance), can_read_behavior: asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: asBool(body.can_print_attendance), can_print_behavior: asBool(body.can_print_behavior), can_print_combined: asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
-    if (typeof body.studentAffairs === "boolean") {
-      const mergedPermissions = { ...(target.permissions || {}), studentAffairs: body.studentAffairs };
+    if (typeof body.studentAffairs === "boolean" || typeof body.studentAffairsCompetition === "boolean") {
+      const mergedPermissions = {
+        ...(target.permissions || {}),
+        ...(typeof body.studentAffairs === "boolean" ? { studentAffairs: body.studentAffairs } : {}),
+        ...(typeof body.studentAffairsCompetition === "boolean" ? { studentAffairsCompetition: body.studentAffairsCompetition } : {})
+      };
       const { error: accessError } = await db.from("teachers").update({ permissions: mergedPermissions }).eq("name", name);
       if (accessError) throw accessError;
     }
