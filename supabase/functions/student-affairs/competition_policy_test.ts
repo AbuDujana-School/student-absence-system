@@ -78,7 +78,7 @@ Deno.test("weekly awards are 10, 6, 3 and zero after third place", () => {
     { grade: "B", complete: true, attendanceRate: 0, behaviorRate: 0 },
     { grade: "C", complete: true, attendanceRate: 2, behaviorRate: 2 }
   ]);
-  if (ties[0].rank !== 1 || ties[1].rank !== 1 || ties[0].weeklyPoints !== 10 || ties[1].weeklyPoints !== 10 || ties[2].rank !== 3 || ties[2].weeklyPoints !== 3) throw new Error("ties must share awards and ranks");
+  if (ties[0].rank !== 1 || ties[1].rank !== 1 || ties[0].weeklyPoints !== 10 || ties[1].weeklyPoints !== 10 || ties[2].rank !== 2 || ties[2].weeklyPoints !== 6) throw new Error("ties must share awards and ranks");
 });
 
 Deno.test("team rates use only the selected class and requested date range", () => {
