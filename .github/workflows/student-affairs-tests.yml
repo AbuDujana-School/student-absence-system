@@ -42,5 +42,7 @@ jobs:
         run: deno test supabase/functions/student-affairs/report_policy_test.ts
       - name: Run competition policy tests
         run: deno test supabase/functions/student-affairs/competition_policy_test.ts
+      - name: Run competition authorization tests
+        run: deno test supabase/functions/student-affairs/competition_authorization_test.ts
       - name: Type-check Edge Function
         run: deno check supabase/functions/student-affairs/index.ts
