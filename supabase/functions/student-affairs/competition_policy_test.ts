@@ -93,3 +93,59 @@ Deno.test("team rates use only the selected class and requested date range", () 
     throw new Error("team metrics must be scoped to class and date");
   }
 });
+
+Deno.test("attendance scoring ignores unknown statuses and malformed dates", () => {
+  const rows = [
+    { date_str: "2026-11-08", class_name: "1/9", period: 1, records: { "طالب أ": "absent", "طالب ب": "present", "طالب ج": "unknown" } },
+    { date_str: "2026-02-30", class_name: "1/9", period: 2, records: { "طالب د": "late" } }
+  ];
+  if (countAttendanceIncidents(rows) !== 1) throw new Error("only approved incidents on valid dates should count");
+});
+
+Deno.test("session coverage rejects missing periods and ignores out-of-range periods", () => {
+  const rows = sessions("1/9").filter(row => row.period !== 6);
+  rows.push({ date_str: "2026-11-08", class_name: "1/9", period: 9, records: {} });
+  const coverage = getSessionCoverage(rows);
+  const attendance = getSessionCoverage(sessions("1/9"));
+  if (isTeamDayComplete(["1/9"], "2026-11-08", coverage, attendance)) {
+    throw new Error("a ninth period must not replace a missing required period");
+  }
+});
+
+Deno.test("incomplete teams never receive provisional points or ranks", () => {
+  const result = calculateRelativeCompetitionScores([
+    { grade: "9", complete: true, attendanceRate: 1, behaviorRate: 1 },
+    { grade: "10", complete: false, attendanceRate: null, behaviorRate: null }
+  ]);
+  if (result.some(team => team.score !== null || team.rank !== null || team.resultStatus !== "incomplete")) {
+    throw new Error("incomplete competition must not publish scores or ranks");
+  }
+});
+
+Deno.test("invalid rates are rejected instead of silently ranked", () => {
+  let rejected = false;
+  try {
+    calculateRelativeCompetitionScores([
+      { grade: "9", complete: true, attendanceRate: -1, behaviorRate: 0 },
+      { grade: "10", complete: true, attendanceRate: 1, behaviorRate: 1 }
+    ]);
+  } catch {
+    rejected = true;
+  }
+  if (!rejected) throw new Error("negative incident rates must be rejected");
+});
+
+Deno.test("empty rosters cannot produce a complete team result", () => {
+  const team = buildTeamRates({
+    grade: "9",
+    classNames: ["1/9"],
+    rosters: { "1/9": [] },
+    from: "2026-11-08",
+    to: "2026-11-08",
+    attendanceRows: sessions("1/9"),
+    behaviorRows: sessions("1/9")
+  });
+  if (team.complete || team.attendanceRate !== null || team.behaviorRate !== null) {
+    throw new Error("empty rosters must not be treated as zero-rate winners");
+  }
+});
