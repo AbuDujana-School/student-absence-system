@@ -2504,6 +2504,7 @@ async function refreshActiveUserPermissions() {
 }
 
 async function finalizeLoginState() {
+  await refreshActiveUserPermissions();
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
