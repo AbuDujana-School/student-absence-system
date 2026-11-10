@@ -63,5 +63,16 @@ Deno.test("class comparison exposes only the leader's assigned classes to teache
     { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1, attendanceIncidents: 9 },
     { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4, attendanceIncidents: 30 }
   ];
-  const result = projectCompetitionClassComparison(rows, false, ["A"]);\n  assertEquals(result.length, 1);\n  assertEquals(result[0].className, "1/9");\n  assertEquals("attendanceIncidents" in result[0], false);\n});\n\nDeno.test("administrator may compare class rates across all teams", () => {\n  const rows = [\n    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1 },\n    { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4 }\n  ];\n  assertEquals(projectCompetitionClassComparison(rows, true, []).length, 2);\n});
+  const result = projectCompetitionClassComparison(rows, false, ["A"]);
+  assertEquals(result.length, 1);
+  assertEquals(result[0].className, "1/9");
+  assertEquals("attendanceIncidents" in result[0], false);
+});
+
+Deno.test("administrator may compare class rates across all teams", () => {
+  const rows = [
+    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1 },
+    { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4 }
+  ];
+  assertEquals(projectCompetitionClassComparison(rows, true, []).length, 2);
 });
