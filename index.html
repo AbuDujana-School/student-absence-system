@@ -2032,7 +2032,7 @@ function saBuildPrintHtml(data){
   }
   function selected(prefix,kind){return Array.from(document.querySelectorAll("."+prefix+"-combined-"+kind+":checked")).map(x=>x.value);}
   function mount(prefix){
-    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior||document.getElementById(prefix+"CombinedTab"))return;
+    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){const p=c.getP();existing.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));buildFilter(prefix);return;}
     const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
     buildFilter(prefix);
     const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));
@@ -2129,8 +2129,8 @@ function saBuildPrintHtml(data){
     catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
   }
   const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
-  saSetDomain=function(d){modes.sa=false;oldSaSet(d);mount("sa");};
-  repSetDomain=function(d){modes.rep=false;oldRepSet(d);mount("rep");};
+  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldSaSet(d);mount("sa");};
+  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldRepSet(d);mount("rep");};
   saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
   repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
   saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
