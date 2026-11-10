@@ -52,6 +52,13 @@ export function getSchoolWeekRange(dateValue: unknown): { start: string; end: st
   return { start, end: shiftIsoDate(start, 4), key: start };
 }
 
+export function isCompleteSchoolWeekRange(fromValue: unknown, toValue: unknown): boolean {
+  const from = asIsoDate(fromValue), to = asIsoDate(toValue);
+  if (!from || !to || from > to) return false;
+  const range = getSchoolWeekRange(from);
+  return range.start === from && range.end === to;
+}
+
 export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
   const from = asIsoDate(fromValue);
   const to = asIsoDate(toValue);
