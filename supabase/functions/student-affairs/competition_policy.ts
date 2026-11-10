@@ -132,43 +132,28 @@ export function isTeamDayComplete(classNames: string[], dateValue: unknown, atte
 type CompetitionTeam = { grade?: string; complete: boolean; attendanceRate: number | null; behaviorRate: number | null; [key: string]: unknown };
 export function calculateRelativeCompetitionScores(teams: any[]): any[] {
   const list = Array.isArray(teams) ? teams : [];
-  if (!list.length || list.some(team => team?.complete !== true)) {
-    return list.map(team => ({ ...team, score: null, attendancePoints: null, behaviorPoints: null, rank: null, resultStatus: "incomplete" }));
-  }
-
-  const attendanceRates = list.map((team: CompetitionTeam) => Number(team.attendanceRate));
-  const behaviorRates = list.map((team: CompetitionTeam) => Number(team.behaviorRate));
-  if ([...attendanceRates, ...behaviorRates].some(rate => !Number.isFinite(rate) || rate < 0)) {
-    throw new Error("معدلات المنافسة غير صالحة");
-  }
-
-  const attendanceWorst = Math.max(...attendanceRates);
-  const attendanceBest = Math.min(...attendanceRates);
-  const behaviorWorst = Math.max(...behaviorRates);
-  const behaviorBest = Math.min(...behaviorRates);
-
-  const pointsFor = (rate: number, best: number, worst: number): number => worst === best ? 50 : 50 * (worst - rate) / (worst - best);
-  const scored: any[] = list.map((team: CompetitionTeam) => {
-    const attendancePoints = pointsFor(Number(team.attendanceRate), attendanceBest, attendanceWorst);
-    const behaviorPoints = pointsFor(Number(team.behaviorRate), behaviorBest, behaviorWorst);
-    return {
-      ...team,
-      attendancePoints: Number(attendancePoints.toFixed(2)),
-      behaviorPoints: Number(behaviorPoints.toFixed(2)),
-      score: Number((attendancePoints + behaviorPoints).toFixed(2)),
-      resultStatus: "complete"
-    };
+  if (!list.length || list.some(team => team?.complete !== true)) return list.map(team => ({ ...team, score: null, attendancePoints: null, behaviorPoints: null, rank: null, resultStatus: "incomplete" }));
+  const attendanceRates = list.map((team: any) => Number(team.attendanceRate)), behaviorRates = list.map((team: any) => Number(team.behaviorRate));
+  if ([...attendanceRates, ...behaviorRates].some(rate => !Number.isFinite(rate) || rate < 0)) throw new Error("معدلات المنافسة غير صالحة");
+  const relativePoints = (rate: number, rates: number[]) => { const best = Math.min(...rates), worst = Math.max(...rates); return best === worst ? 50 : 50 * (worst - rate) / (worst - best); };
+  const scored = list.map((team: any) => {
+    const attendancePoints = relativePoints(Number(team.attendanceRate), attendanceRates), behaviorPoints = relativePoints(Number(team.behaviorRate), behaviorRates);
+    return { ...team, attendancePoints: Number(attendancePoints.toFixed(2)), behaviorPoints: Number(behaviorPoints.toFixed(2)), score: Number((attendancePoints + behaviorPoints).toFixed(2)), resultStatus: "complete" };
   });
-
-  scored.sort((a: any, b: any) => b.score - a.score || String(a.grade || "").localeCompare(String(b.grade || ""), "en"));
-  let rank = 0;
-  let previousScore = null;
-  for (const team of scored) {
-    if (previousScore === null || team.score !== previousScore) rank += 1;
-    team.rank = rank;
-    previousScore = team.score;
-  }
+  scored.sort((a: any, b: any) => b.score - a.score || String(a.teamName || a.grade || "").localeCompare(String(b.teamName || b.grade || ""), "ar"));
+  let rank = 0, previousScore: number | null = null;
+  for (const team of scored) { if (previousScore === null || team.score !== previousScore) rank += 1; team.rank = rank; previousScore = team.score; }
   return scored;
+}
+export function awardWeeklyCompetitionPoints(teams: any[]): Record<string, number> {
+  const list = Array.isArray(teams) ? teams : [], awards: Record<string, number> = {};
+  if (!list.length || list.some(team => team?.complete !== true || !Number.isFinite(Number(team.rank)))) {
+    for (const team of list) if (team?.teamId) awards[String(team.teamId)] = 0;
+    return awards;
+  }
+  const pointsByRank: Record<number, number> = { 1: 10, 2: 6, 3: 3 };
+  for (const team of list) { const id = String(team.teamId || team.grade || ""); if (id) awards[id] = pointsByRank[Number(team.rank)] || 0; }
+  return awards;
 }
 
 /**
@@ -176,39 +161,27 @@ export function calculateRelativeCompetitionScores(teams: any[]): any[] {
  * and session coverage before marking a team complete; missing sessions are never
  * silently interpreted as zero incidents.
  */
-type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
-export function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
-  const days = getSchoolDays(from, to);
-  const classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
-  const rosterMap = rosters && typeof rosters === "object" ? rosters : {};
-  const studentCount = classes.reduce((sum: number, name: string) => sum + (Array.isArray(rosterMap[name]) ? new Set(rosterMap[name].map(x => String(x || "").trim()).filter(Boolean)).size : 0), 0);
-  const hasEveryRoster = classes.length > 0 && classes.every(name => Array.isArray(rosterMap[name]));
+type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters?: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
+undefinedexport function buildTeamRates({ grade, classNames, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
+  const days = getSchoolDays(from, to), classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
   const classSet = new Set(classes);
-  const inRangeRows = (rows: CompetitionRow[]): CompetitionRow[] => rows.filter((row: CompetitionRow) => {
-    const date = asIsoDate(row?.date_str);
-    return date && date >= from && date <= to && classSet.has(String(row?.class_name || "").trim());
+  const inRangeRows = (rows: CompetitionRow[]): CompetitionRow[] => (Array.isArray(rows) ? rows : []).filter((row: CompetitionRow) => {
+    const date = asIsoDate(row?.date_str); return date && date >= from && date <= to && classSet.has(String(row?.class_name || "").trim());
   });
-  const scopedAttendanceRows = inRangeRows(attendanceRows);
-  const scopedBehaviorRows = inRangeRows(behaviorRows);
-  const attendanceCoverage = getSessionCoverage(scopedAttendanceRows);
-  const behaviorCoverage = getSessionCoverage(scopedBehaviorRows);
-  const attendanceCount = countAttendanceIncidents(scopedAttendanceRows);
-  const behaviorCount = countBehaviorIncidents(scopedBehaviorRows);
+  const scopedAttendanceRows = inRangeRows(attendanceRows), scopedBehaviorRows = inRangeRows(behaviorRows);
+  const attendanceCoverage = getSessionCoverage(scopedAttendanceRows), behaviorCoverage = getSessionCoverage(scopedBehaviorRows);
   const completeDays = days.filter(day => isTeamDayComplete(classes, day, attendanceCoverage, behaviorCoverage));
-  const complete = hasEveryRoster && studentCount > 0 && days.length > 0 && completeDays.length === days.length;
-  const studentDays = studentCount * completeDays.length;
-
-  return {
-    grade: String(grade || ""),
-    classNames: classes,
-    studentCount,
-    schoolDays: days,
-    completeDays,
-    attendanceIncidents: attendanceCount,
-    behaviorIncidents: behaviorCount,
-    studentDays,
-    attendanceRate: complete && studentDays ? attendanceCount * 1000 / studentDays : null,
-    behaviorRate: complete && studentDays ? behaviorCount * 1000 / studentDays : null,
-    complete
-  };
+  const complete = classes.length > 0 && days.length > 0 && completeDays.length === days.length;
+  const classMetrics = classes.map(className => {
+    const attendance = scopedAttendanceRows.filter(row => String(row.class_name || "").trim() === className);
+    const behavior = scopedBehaviorRows.filter(row => String(row.class_name || "").trim() === className);
+    const attendanceIncidents = countAttendanceIncidents(attendance), behaviorIncidents = countBehaviorIncidents(behavior);
+    return { className, attendanceIncidents, behaviorIncidents,
+      attendanceRate: complete ? attendanceIncidents / days.length : null, behaviorRate: complete ? behaviorIncidents / days.length : null,
+      complete: complete && days.every(day => isTeamDayComplete([className], day, attendanceCoverage, behaviorCoverage)) };
+  });
+  const average = (key: "attendanceRate" | "behaviorRate") => complete && classMetrics.length ? classMetrics.reduce((sum, item) => sum + Number(item[key] || 0), 0) / classMetrics.length : null;
+  return { grade: String(grade || ""), classNames: classes, classCount: classes.length, schoolDays: days, completeDays,
+    attendanceIncidents: classMetrics.reduce((sum, item) => sum + item.attendanceIncidents, 0), behaviorIncidents: classMetrics.reduce((sum, item) => sum + item.behaviorIncidents, 0),
+    attendanceRate: average("attendanceRate"), behaviorRate: average("behaviorRate"), classMetrics, complete };
 }
