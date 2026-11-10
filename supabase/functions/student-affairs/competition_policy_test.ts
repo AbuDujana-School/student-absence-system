@@ -44,13 +44,16 @@ Deno.test("team rates are the unweighted average of class rates, not student-wei
   if (!team.complete || team.classCount !== 2 || team.attendanceRate !== 2 || team.behaviorRate !== 1.5) throw new Error("class-equal mean is incorrect");
   if (team.classMetrics.length !== 2 || team.classMetrics[0].attendanceRate !== 1 || team.classMetrics[1].attendanceRate !== 3) throw new Error("class metrics missing");
 });
-Deno.test("relative performance ranks lower attendance and behavior rates higher", () => {
+Deno.test("weekly podium ties share places without giving away a skipped award", () => {
   const result = calculateRelativeCompetitionScores([
-    { teamName:"أ", complete:true, attendanceRate:1, behaviorRate:2 },
-    { teamName:"ب", complete:true, attendanceRate:2, behaviorRate:4 },
-    { teamName:"ج", complete:true, attendanceRate:3, behaviorRate:6 }
+    { teamName:"أ", complete:true, attendanceRate:0, behaviorRate:0 },
+    { teamName:"ب", complete:true, attendanceRate:0, behaviorRate:0 },
+    { teamName:"ج", complete:true, attendanceRate:2, behaviorRate:2 },
+    { teamName:"د", complete:true, attendanceRate:4, behaviorRate:4 }
   ]);
-  if (result[0].teamName !== "أ" || result[0].score !== 100 || result[2].score !== 0) throw new Error("relative ranking failed");
+  if (result[0].score !== 100 || result[1].rank !== 1 || result[2].rank !== 3) throw new Error("weekly competition ranking failed");
+  const awards = awardWeeklyCompetitionPoints(result);
+  if (awards.map(team => team.weeklyAwardPoints).join(",") !== "10,10,3,0") throw new Error("tied first place must skip second-place award");
 });
 Deno.test("monthly and term standings rank by accumulated weekly points", () => {
   const ranked = rankCompetitionTeamsByAccumulatedPoints([
@@ -60,7 +63,7 @@ Deno.test("monthly and term standings rank by accumulated weekly points", () => 
     { teamId: "D", teamName: "د", score: 10 }
   ], { A: 16, B: 10, C: 16, D: 0 });
   const byId = Object.fromEntries(ranked.map(team => [team.teamId, team.rank]));
-  if (byId.A !== 1 || byId.C !== 1 || byId.B !== 2 || byId.D !== 3) {
+  if (byId.A !== 1 || byId.C !== 1 || byId.B !== 3 || byId.D !== 4) {
     throw new Error("cumulative points must determine standings; ties share a rank");
   }
 });
