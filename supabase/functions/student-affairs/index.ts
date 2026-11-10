@@ -238,24 +238,24 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const dataFrom = period === "monthly" ? getSchoolWeekRange(from).start : from;
   if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
 
-  const [{ data: classRows, error: classError }] = await Promise.all([
-    db.from("classes").select("name").order("name", { ascending: true })
+  const [{ data: classRows, error: classError }, { data: teacherRows, error: teacherError }] = await Promise.all([
+    db.from("classes").select("name").order("name", { ascending: true }),
+    db.from("teachers").select("name,role,permissions").order("name", { ascending: true })
   ]);
   if (classError) throw classError;
+  if (teacherError) throw teacherError;
   const allClasses = (classRows || []).map((row: any) => String(row.name || "").trim()).filter(Boolean);
-  const grades = ["9", "10", "11", "12"];
-  const classesByGrade: Record<string, string[]> = {};
-  for (const grade of grades) classesByGrade[grade] = allClasses.filter(name => gradeForClassName(name) === grade);
-  const competitionClasses = [...new Set(grades.flatMap(grade => classesByGrade[grade]))];
-  if (grades.some(grade => !classesByGrade[grade].length)) {
-    return { from, to, today, status: "configuration_incomplete", message: "لم يتم العثور على شعب جميع المراحل الأربع في إعدادات الصفوف." };
+  let teams: any[];
+  try {
+    teams = buildCompetitionTeams(teacherRows || [], allClasses);
+  } catch (error) {
+    competitionError(409, error instanceof Error ? error.message : "إعدادات فرق سباق التميز غير مكتملة.");
   }
-
-  const admin = principal.type === "admin";
-  const authorization = authorizeCompetitionAccess(principal.type, permissions, classesByGrade, grades);
-  if (!authorization.allowed) competitionError(403, authorization.message || "غير مصرح بلوحة المنافسة.");
-  const ownGrades = authorization.ownGrades;
-
+  if (!teams.length) {
+    return { from, to, today, period, status: "configuration_incomplete", message: "لم تتم إضافة أي معلم إلى سباق التميز بعد.", teams: [], ownGrades: [], ownClasses: [], dailyProgress: [], weeklyWins: {}, weeklyHistory: [] };
+  }
+  const competitionClasses = [...new Set(teams.flatMap((team: any) => team.classNames))];
+  const ownTeamIds = teams.filter((team: any) => team.leaderName === principal.name).map((team: any) => team.teamId);
   const [studentRows, attendanceRows, behaviorRows] = await Promise.all([
     fetchCompetitionStudents(competitionClasses),
     fetchCompetitionRows("attendance", competitionClasses, dataFrom, to),
@@ -268,46 +268,51 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     const studentName = String(row.student_name || "").trim();
     if (rosters[className] && studentName && !rosters[className].includes(studentName)) rosters[className].push(studentName);
   }
-
   const attendanceIndex = indexCompetitionRows(attendanceRows);
   const behaviorIndex = indexCompetitionRows(behaviorRows);
-  const scored = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, from, to);
-  const allTeamsComplete = scored.length === grades.length && scored.every(team => team.complete === true);
+  const scoreTeamsRange = (rangeFrom: string, rangeTo: string) => {
+    const metrics = teams.map((team: any) => {
+      const metric = buildTeamRates({
+        grade: team.teamName,
+        classNames: team.classNames,
+        rosters,
+        attendanceRows: rowsForCompetitionRange(attendanceIndex, team.classNames, rangeFrom, rangeTo),
+        behaviorRows: rowsForCompetitionRange(behaviorIndex, team.classNames, rangeFrom, rangeTo),
+        from: rangeFrom,
+        to: rangeTo
+      });
+      return { ...metric, grade: team.teamName, teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName, classNames: team.classNames };
+    });
+    return calculateRelativeCompetitionScores(metrics).map((metric: any) => {
+      const team = teams.find((item: any) => item.teamId === metric.teamId);
+      return projectCompetitionTeam(team, metric);
+    });
+  };
+  const scored = scoreTeamsRange(from, to);
+  const allTeamsComplete = scored.length === teams.length && scored.every((team: any) => team.complete === true);
   const dailyProgress = schoolDays.map(day => {
-    const dayScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, day, day);
-    const dayComplete = dayScores.length === grades.length && dayScores.every(team => team.complete === true);
-    return {
-      date: day,
-      teams: dayScores.map(team => ({
-        grade: team.grade,
-        score: dayComplete ? team.score : null,
-        rank: dayComplete ? team.rank : null,
-        complete: dayComplete && team.complete === true
-      }))
-    };
+    const dayScores = scoreTeamsRange(day, day);
+    const dayComplete = dayScores.length === teams.length && dayScores.every((team: any) => team.complete === true);
+    return { date: day, teams: dayScores.map((team: any) => ({ teamId: team.teamId, teamName: team.teamName, score: dayComplete ? team.score : null, rank: dayComplete ? team.rank : null, complete: dayComplete && team.complete === true })) };
   });
-
-  const weeklyWins: Record<string, number> = Object.fromEntries(grades.map(grade => [grade, 0]));
+  const weeklyWins: Record<string, number> = Object.fromEntries(teams.map((team: any) => [team.teamId, 0]));
   const weeklyHistory: any[] = [];
   const firstWeek = getSchoolWeekRange(from).start;
   for (let weekStart = firstWeek; shiftCompetitionDate(weekStart, 4) <= to; weekStart = shiftCompetitionDate(weekStart, 7)) {
     const weekEnd = shiftCompetitionDate(weekStart, 4);
     if (period === "monthly" ? weekEnd < from : weekStart < from) continue;
-    const weekScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, weekStart, weekEnd);
-    const winner = weekScores.length && weekScores.every(team => team.complete === true)
-      ? weekScores.filter(team => team.rank === 1).map(team => team.grade)
+    const weekScores = scoreTeamsRange(weekStart, weekEnd);
+    const winners = weekScores.length && weekScores.every((team: any) => team.complete === true)
+      ? weekScores.filter((team: any) => team.rank === 1).map((team: any) => team.teamId)
       : [];
-    winner.forEach(grade => { weeklyWins[grade] = (weeklyWins[grade] || 0) + 1; });
-    weeklyHistory.push({ start: weekStart, end: weekEnd, complete: winner.length > 0, winners: winner });
+    winners.forEach((id: string) => { weeklyWins[id] = (weeklyWins[id] || 0) + 1; });
+    weeklyHistory.push({ start: weekStart, end: weekEnd, complete: winners.length > 0, winners });
   }
-
-  const publicTeams = projectCompetitionTeams(scored, admin, ownGrades, allTeamsComplete);
-
   const ownClasses: any[] = [];
-  for (const grade of ownGrades) {
-    for (const className of classesByGrade[grade] || []) {
+  for (const team of teams.filter((item: any) => ownTeamIds.includes(item.teamId))) {
+    for (const className of team.classNames) {
       const metric = buildTeamRates({
-        grade,
+        grade: team.teamName,
         classNames: [className],
         rosters,
         attendanceRows: rowsForCompetitionRange(attendanceIndex, [className], from, to),
@@ -315,31 +320,10 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
         from,
         to
       });
-      ownClasses.push({
-        grade,
-        className,
-        complete: metric.complete,
-        attendanceRate: metric.attendanceRate,
-        behaviorRate: metric.behaviorRate,
-        attendanceIncidents: metric.attendanceIncidents,
-        behaviorIncidents: metric.behaviorIncidents
-      });
+      ownClasses.push({ grade: team.teamName, className, complete: metric.complete, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate, attendanceIncidents: metric.attendanceIncidents, behaviorIncidents: metric.behaviorIncidents });
     }
   }
-
-  return {
-    from,
-    to,
-    period,
-    today,
-    status: allTeamsComplete ? "complete" : "incomplete",
-    teams: publicTeams,
-    ownGrades,
-    ownClasses,
-    dailyProgress,
-    weeklyWins,
-    weeklyHistory
-  };
+  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: scored, ownGrades: ownTeamIds, ownClasses, dailyProgress, weeklyWins, weeklyHistory };
 }
 
 async function handle(req: Request) {
