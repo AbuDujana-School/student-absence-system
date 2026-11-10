@@ -63,7 +63,7 @@ Deno.test("tied ranks share the same award and incomplete teams receive no point
   const awards = awardWeeklyCompetitionPoints([
     {rank:1,complete:true},{rank:1,complete:true},{rank:3,complete:true},{rank:4,complete:false}
   ]);
-  if (awards.map(item=>item.weeklyAwardPoints).join(",") !== "10,10,3,null") throw new Error("tie or incomplete award handling failed");
+  if (awards[0].weeklyAwardPoints !== 10 || awards[1].weeklyAwardPoints !== 10 || awards[2].weeklyAwardPoints !== 3 || awards[3].weeklyAwardPoints !== null) throw new Error("tie or incomplete award handling failed");
 });
 Deno.test("incomplete competition never publishes rank or score", () => {
   const result = calculateRelativeCompetitionScores([
