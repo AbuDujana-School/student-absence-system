@@ -168,24 +168,6 @@ async function fetchCompetitionRows(table: "attendance" | "behaviors", className
   }
   return rows;
 }
-async function fetchCompetitionStudents(classNames: string[]) {
-  const rows: any[] = [];
-  const pageSize = 1000;
-  for (let offset = 0; ; offset += pageSize) {
-    if (offset >= 20000) throw new Error("Student roster exceeds the safe query limit");
-    const { data, error } = await db.from("students")
-      .select("class_name,student_name")
-      .in("class_name", classNames)
-      .order("class_name", { ascending: true })
-      .order("student_name", { ascending: true })
-      .range(offset, offset + pageSize - 1);
-    if (error) throw error;
-    const page = data || [];
-    rows.push(...page);
-    if (page.length < pageSize) break;
-  }
-  return rows;
-}
 function indexCompetitionRows(rows: any[]) {
   const index = new Map<string, Map<string, any[]>>();
   for (const row of rows || []) {
@@ -280,7 +262,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const firstWeek = getSchoolWeekRange(from).start;
   for (let weekStart = firstWeek; shiftCompetitionDate(weekStart, 4) <= to; weekStart = shiftCompetitionDate(weekStart, 7)) {
     const weekEnd = shiftCompetitionDate(weekStart, 4);
-    if (period === "monthly" ? weekEnd < from : weekStart < from) continue;
+    if (weekStart < from || weekEnd > to) continue;
     const weekScores = scoreTeamsRange(weekStart, weekEnd);
     const weekComplete = weekScores.length === teams.length && weekScores.every((team: any) => team.complete === true);
     const awarded = weekComplete ? awardWeeklyCompetitionPoints(weekScores) : [];
