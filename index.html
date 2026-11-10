@@ -5499,7 +5499,7 @@ if ("serviceWorker" in navigator) {
   const statusColors={absent:"#0f172a",late:"#f59e0b",outside:"#7c3aed",escape:"#e11d48"};
   // السلوكيات تستخدم لون المخالفات السلوكية المعتمد في التقارير الأصلية.
   const behaviorColors={eating:"#be123c",talking:"#be123c",tools:"#be123c",chaos:"#be123c",sleeping:"#be123c",homework:"#be123c",other:"#be123c"};
-  function shortStudentName(name){return String(name||"").replace(/\\s+/g," ").trim()||"اسم غير متوفر";}
+  function shortStudentName(name){return String(name||"").replace(/\s+/g," ").trim()||"اسم غير متوفر";}
   function cellContent(list,mode){
     if(!list.length)return '<span class="matrix-empty">—</span>';
     const periods=list.map(x=>{const p=x.period?("ح"+String(x.period)):"";if(!p)return "";return mode==="range"?(String(x.date||"")+" "+p):p;}).filter(Boolean);
