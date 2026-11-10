@@ -2035,7 +2035,7 @@ function saBuildPrintHtml(data){
     const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior||document.getElementById(prefix+"CombinedTab"))return;
     const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
     buildFilter(prefix);
-    const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_combined));
+    const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));
   }
   function setClassIntersection(prefix){
     const c=cfg[prefix],allowed=new Set(intersection(c));
@@ -2122,7 +2122,7 @@ function saBuildPrintHtml(data){
   }
   async function print(prefix){
     const c=cfg[prefix],p=c.getP();
-    if(!p.can_print_combined){showToast("ليس لديك صلاحية طباعة التقرير الموحّد.","error");return;}
+    if(!(p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية طباعة الغياب والسلوكيات والتقرير الموحّد.","error");return;}
     const w=window.open("about:blank","_blank");if(!w){showToast("يرجى السماح بالنوافذ المنبثقة للطباعة.","error");return;}
     w.document.write('<!doctype html><meta charset="utf-8"><p style="font-family:Arial;text-align:center;padding:40px">جارٍ التحقق من البيانات وتجهيز التقرير...</p>');w.document.close();
     try{const data=await getData(prefix);data.rows=merge(data);w.document.open();w.document.write(printHtml(data));w.document.close();}
