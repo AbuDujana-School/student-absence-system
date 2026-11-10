@@ -2046,7 +2046,7 @@ function saBuildPrintHtml(data){
   function activate(prefix){
     const c=cfg[prefix],p=c.getP();
     if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
-    modes[prefix]=true;c.domainSetter("attendance");mount(prefix);setClassIntersection(prefix);
+    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);setClassIntersection(prefix);
     document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
     c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
     document.getElementById(c.statusWrap)?.classList.add("hidden");
