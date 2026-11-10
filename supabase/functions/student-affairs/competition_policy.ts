@@ -111,7 +111,7 @@ export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
     if (!coverage.has(date)) coverage.set(date, new Map());
     const byClass = coverage.get(date)!;
     if (!byClass.has(className)) byClass.set(className, new Set());
-    byClass.get(className).add(period);
+    byClass.get(className)!.add(period);
   }
   return coverage;
 }
@@ -148,7 +148,7 @@ export function calculateRelativeCompetitionScores(teams: any[]): any[] {
   const behaviorBest = Math.min(...behaviorRates);
 
   const pointsFor = (rate: number, best: number, worst: number): number => worst === best ? 50 : 50 * (worst - rate) / (worst - best);
-  const scored = list.map((team: CompetitionTeam) => {
+  const scored: any[] = list.map((team: CompetitionTeam) => {
     const attendancePoints = pointsFor(Number(team.attendanceRate), attendanceBest, attendanceWorst);
     const behaviorPoints = pointsFor(Number(team.behaviorRate), behaviorBest, behaviorWorst);
     return {
