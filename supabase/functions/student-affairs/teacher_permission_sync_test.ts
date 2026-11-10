@@ -11,18 +11,20 @@ Deno.test("server-managed teacher permissions override stale local values", () =
     (local: Record<string, unknown>, server: Record<string, unknown>) => Record<string, unknown>;
 
   const merged = merge(
-    { attendance: true, studentAffairs: false, can_view_competition: false, duty: true },
-    { studentAffairs: true, can_view_competition: true }
+    { attendance: true, studentAffairs: false, can_view_competition: false, competition_participant: false, competition_team_name: "stale", competition_team_classes: ["old"], duty: true },
+    { studentAffairs: true, can_view_competition: true, competition_participant: true, competition_team_name: "فريق النخبة", competition_team_classes: ["1/9", "2/9"] }
   );
   assert(merged.studentAffairs === true, "Server Student Affairs access must win");
   assert(merged.can_view_competition === true, "Server competition permission must win");
+  assert(merged.competition_participant === true && merged.competition_team_name === "فريق النخبة", "Server competition team membership must win");
+  assert(JSON.stringify(merged.competition_team_classes) === JSON.stringify(["1/9", "2/9"]), "Server team classes must win");
   assert(merged.attendance === true && merged.duty === true, "Unrelated local permissions must remain unchanged");
 
   const absent = merge(
-    { studentAffairs: true, can_view_competition: true, attendance: true },
+    { studentAffairs: true, can_view_competition: true, competition_participant: true, competition_team_name: "old", competition_team_classes: ["1/9"], attendance: true },
     {}
   );
-  assert(!("studentAffairs" in absent) && !("can_view_competition" in absent), "Missing server-managed keys must not be resurrected from stale local state");
+  assert(!("studentAffairs" in absent) && !("can_view_competition" in absent) && !("competition_participant" in absent) && !("competition_team_name" in absent) && !("competition_team_classes" in absent), "Missing server-managed keys must not be resurrected from stale local state");
   assert(absent.attendance === true, "Unrelated permissions must remain unchanged");
 });
 
