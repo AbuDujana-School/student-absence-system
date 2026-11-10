@@ -1384,6 +1384,41 @@
 <div class="flex flex-wrap justify-between items-center gap-3"><div class="flex gap-2 text-xs font-bold"><span class="rounded-xl bg-amber-50 text-amber-800 px-3 py-2">إجمالي حالات التأخر: <strong id="lateReportTotal">0</strong></span><span class="rounded-xl bg-blue-50 text-blue-800 px-3 py-2">عدد الطلاب: <strong id="lateReportStudents">0</strong></span></div><button type="button" onclick="printLateFollowupReport()" class="bg-sky-800 hover:bg-sky-900 text-white px-5 py-2.5 rounded-xl text-xs font-bold"><i class="fa-solid fa-print ml-1"></i> طباعة الكشف / PDF</button></div>
 <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="w-full min-w-[780px] text-sm text-center"><thead class="bg-slate-100 dark:bg-slate-900"><tr><th class="p-3 border">م</th><th class="p-3 border text-right">اسم الطالب</th><th class="p-3 border">الصف</th><th class="p-3 border">الحصة</th><th class="p-3 border">تاريخ التأخر</th><th class="p-3 border">المعلم الراصد</th></tr></thead><tbody id="lateFollowupReportBody"><tr><td colspan="6" class="p-8 text-slate-400 text-xs">جارٍ تجهيز الكشف...</td></tr></tbody></table></div>
 <p class="text-[11px] text-slate-400">يظهر الطالب أكثر من مرة إذا تكرر تأخره في حصص أو أيام مختلفة.</p></div>
+
+        <section id="repStudentAffairsPanel" class="space-y-5 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6" dir="rtl">
+          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-file-circle-check ml-1 text-blue-600"></i> لوحة تقارير شؤون الطلاب</h3><p class="mt-1 text-xs text-slate-500">نسخة مستقلة من لوحة الفلترة والعرض والتحليلات والطباعة، باستخدام سجلات شؤون الطلاب الفعلية.</p></div><span id="repAccessBadge" class="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">جارٍ التحقق</span></div>
+          <div id="repAccessMessage" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status"></div>
+          <div id="repControls" class="hidden space-y-4">
+            <div class="flex flex-wrap items-center gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800"><button id="repAttendanceTab" type="button" onclick="repSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black">الغياب والانضباط</button><button id="repBehaviorTab" type="button" onclick="repSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black">السلوكيات</button></div>
+            <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="repFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label><label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="repTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label></div>
+            <div class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-4 dark:border-slate-700 dark:bg-slate-950/50"><div class="flex flex-wrap items-center justify-between gap-2"><div><h4 class="text-sm font-black text-slate-800 dark:text-white">الصفوف المشمولة بالتقرير</h4><p class="mt-1 text-[11px] text-slate-500">تظهر جميع الصفوف المصرح بها لهذا الحساب فقط.</p></div><span id="repSelectedClassesCount" class="rounded-full bg-blue-100 px-3 py-1 text-[11px] font-black text-blue-800 dark:bg-blue-950 dark:text-blue-200">0 صفوف</span></div>
+              <div class="flex flex-wrap gap-2"><button type="button" onclick="repSelectAllClasses(true)" class="rounded-lg bg-blue-600 px-3 py-2 text-[11px] font-bold text-white">تحديد الكل</button><button type="button" onclick="repSelectAllClasses(false)" class="rounded-lg bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200">إلغاء التحديد</button><button type="button" onclick="repQuickSelectClass('9')" class="rounded-lg bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200">التاسع</button><button type="button" onclick="repQuickSelectClass('10')" class="rounded-lg bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200">العاشر</button><button type="button" onclick="repQuickSelectClass('11')" class="rounded-lg bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200">الحادي عشر</button><button type="button" onclick="repQuickSelectClass('12')" class="rounded-lg bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200">الثاني عشر</button></div>
+              <div id="repClassesGrid" class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-4"></div>
+            </div>
+            <div id="repStatusFilterWrap" class="space-y-2 rounded-2xl border border-slate-200 p-4 dark:border-slate-700"><label class="text-xs font-black text-slate-700 dark:text-slate-300"><i class="fa-solid fa-filter text-blue-600"></i> تصفية حالات الغياب والانضباط (اختيار متعدد)</label><div id="repStatusesGrid" class="grid grid-cols-2 gap-2 sm:grid-cols-5"></div></div>
+            <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800"><button id="repRecordsButton" type="button" onclick="repLoadReport()" class="flex-1 rounded-xl bg-blue-700 px-5 py-3 text-xs font-extrabold text-white">عرض السجلات</button><button id="repAnalyticsButton" type="button" onclick="repLoadAnalytics()" class="flex-1 rounded-xl bg-teal-700 px-5 py-3 text-xs font-extrabold text-white">التحليلات</button><button id="repPrintButton" type="button" onclick="repPrint()" class="flex-1 rounded-xl bg-slate-800 px-5 py-3 text-xs font-extrabold text-white">طباعة / حفظ PDF</button></div>
+            <div id="repSummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div><div id="repResults" class="space-y-4"></div>
+          </div>
+        <style id="repPanelStyles">
+#repClassesGrid{gap:9px}
+#repClassesGrid label{min-height:44px;border-radius:13px!important;border-color:#dfe8ef!important;background:#fff!important;padding:9px 11px;transition:border-color .18s,box-shadow .18s,background .18s}
+#repClassesGrid label:has(input:checked){border-color:#168c85!important;background:#eaf6f4!important;box-shadow:inset 0 0 0 1px rgba(22,140,133,.12)}
+#repStatusesGrid label{min-height:46px;border-radius:13px!important;border-width:1px!important;box-shadow:0 3px 10px -8px rgba(24,54,83,.3)!important}
+#repStudentAffairsPanel input[type=checkbox]{accent-color:#168c85}
+#repRecordsButton,#repAnalyticsButton,#repPrintButton{min-height:46px;border-radius:14px!important;box-shadow:0 8px 18px -12px rgba(15,23,42,.55);transition:transform .18s,box-shadow .18s,filter .18s}
+#repRecordsButton:hover,#repAnalyticsButton:hover,#repPrintButton:hover{transform:translateY(-1px);filter:brightness(1.04)}
+#repSummary>div{min-height:102px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:18px!important;border-color:#e1e9ef!important;background:linear-gradient(155deg,#fff,#f7fafc)!important;box-shadow:0 8px 22px -18px rgba(24,54,83,.45)!important}
+#repSummary>div b{font-variant-numeric:tabular-nums;line-height:1.2}
+#repResults>section{border-radius:20px!important;border-color:#dce6ee!important;box-shadow:0 12px 28px -24px rgba(24,54,83,.5)!important}
+#repResults>section>div:first-child{background:linear-gradient(90deg,#f2f7fa,#f9fbfc)!important}
+#repResults table{min-width:680px}#repResults th{font-size:11px;letter-spacing:.01em;white-space:nowrap}#repResults td{line-height:1.7}
+#repResults tbody tr:nth-child(even){background:rgba(244,248,251,.72)}#repResults tbody tr:hover{background:#edf7f6}
+.dark #repClassesGrid label{background:#0f172a!important;border-color:#334155!important;color:#e2e8f0!important}
+.dark #repClassesGrid label:has(input:checked){background:#123c39!important;border-color:#168c85!important}
+.dark #repSummary>div{background:linear-gradient(155deg,#0f172a,#111c2e)!important;border-color:#334155!important}
+.dark #repResults>section>div:first-child{background:linear-gradient(90deg,#172536,#101b2a)!important}
+</style></section>
+
       </div>
 
       <div id="sec-sync" class="hidden space-y-4">
@@ -3983,6 +4018,169 @@ function initAdminDashboard() {
     if (isA || has('studstats') || has('teachers')) renderAdminOverview();
   } catch(e) { console.error('initAdminDashboard', e); }
 }
+
+/* Independent copy of Student Affairs report tools inside Reports */
+
+let repPermissions=null,repDomain="attendance",repLastReport=null,repReportsInitialized=false,repReportsInitPromise=null;
+async function repInitStudentAffairsReports(){
+ const panel=document.getElementById("repStudentAffairsPanel");if(!panel)return;
+ if(repReportsInitialized){repRefreshReportsVisibility();return;}
+ if(repReportsInitPromise)return repReportsInitPromise;
+ repReportsInitPromise=(async()=>{
+  const badge=document.getElementById("repAccessBadge"),message=document.getElementById("repAccessMessage");
+  if(!saSession?.token){badge.textContent="الجلسة غير مفعّلة";message.textContent="تتطلب اللوحة جلسة شؤون الطلاب. افتح شؤون الطلاب وسجّل الدخول بحساب مخوّل، ثم عُد إلى التقارير.";message.classList.remove("hidden");return;}
+  try{
+   const result=await saRequest({action:"get_my_permissions"});
+   repPermissions=result.permissions||{};repReportsInitialized=true;
+   const today=getOmanLocalDate(),from=document.getElementById("repFrom"),to=document.getElementById("repTo");
+   if(from&&!from.value)from.value=today.slice(0,8)+"01";if(to&&!to.value)to.value=today;
+   badge.textContent="تم التحقق من الصلاحيات";message.classList.add("hidden");
+   document.getElementById("repControls").classList.remove("hidden");
+   repSetDomain(repPermissions.can_read_attendance||repPermissions.can_print_attendance?"attendance":"behavior");
+  }catch(error){badge.textContent="تعذر التحقق";message.textContent=error?.message||"تعذر التحقق من صلاحيات شؤون الطلاب.";message.classList.remove("hidden");}
+ })().finally(()=>{repReportsInitPromise=null;});
+ return repReportsInitPromise;
+}
+function repRefreshReportsVisibility(){
+ if(!repReportsInitialized)return;
+ if(!repGetAllowedReportClasses("attendance").length&&!repGetAllowedReportClasses("behavior").length){
+  document.getElementById("repControls").classList.add("hidden");
+  const message=document.getElementById("repAccessMessage");message.textContent="لا توجد صفوف أو صلاحيات تقارير مخصصة لهذا الحساب.";message.classList.remove("hidden");
+ }
+}
+
+function repGetSelectedStatusFilters(){
+  const allChk=document.querySelector('.rep-status-filter-chk[value="all"]');
+  if(allChk?.checked)return "all";
+  return Array.from(document.querySelectorAll(".rep-status-filter-chk:not([value=all]):checked")).map(el=>String(el.value));
+}
+
+function repGetAllowedReportClasses(domain=repDomain){const p=repPermissions||{};const list=domain==="attendance"?(p.allowed_attendance_classes||p.allowed_classes||[]):(p.allowed_behavior_classes||p.allowed_classes||[]);return Array.isArray(list)?sortClassesList(list.map(String)):[];}
+
+function repGetSelectedReportClasses(domain=repDomain){
+  const allowed=repGetAllowedReportClasses(domain);
+  const container=document.getElementById("repClassesGrid");
+  if(container){
+    const checks=Array.from(container.querySelectorAll(".rep-report-class-chk:checked")).map(el=>String(el.value||"").trim());
+    return [...new Set(checks)].filter(c=>allowed.includes(c));
+  }
+  const legacy=document.getElementById("repReportClass")?.value;
+  return legacy==="all"?allowed:allowed.filter(c=>c===legacy);
+}
+
+function repPopulateStatusFilter(){
+  const container=document.getElementById("repStatusesGrid");
+  if(!container)return;
+  const p=repPermissions||{};
+  const validStatuses=new Set(["absent","late","escape","outside"]);
+  const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
+  const permitted=SA_ATTENDANCE_STATUS.filter(([key])=>validStatuses.has(key)&&allowedStatuses.includes(key));
+  if(!permitted.length){container.innerHTML='<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-3 text-center text-xs font-bold text-slate-400 dark:border-slate-700">لا توجد حالات غياب مصرح بها لحسابك.</div>';return;}
+  const items=[["all","الجميع","text-slate-800 dark:text-white"],...permitted.map(([key,label])=>[key,label,key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-purple-600"])];
+  container.innerHTML=items.map(([id,label,color])=>'<label class="relative flex items-center justify-between p-3 rounded-2xl bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 cursor-pointer select-none transition-all hover:border-blue-400 has-[:checked]:border-blue-600 has-[:checked]:bg-blue-50/50 dark:has-[:checked]:bg-blue-950/40 shadow-sm"><span class="font-black text-xs '+color+'">'+escapeHtml(label)+'</span><input type="checkbox" value="'+id+'" class="sa-status-filter-chk h-4 w-4 accent-blue-600 rounded" onchange="repOnStatusFilterChange(\''+id+'\')" checked></label>').join("");
+}
+
+function repOnStatusFilterChange(changedId){
+  const allChk=document.querySelector('.rep-status-filter-chk[value="all"]');
+  const otherChks=document.querySelectorAll('.rep-status-filter-chk:not([value="all"])');
+  if(changedId==="all"){
+    if(allChk)otherChks.forEach(chk=>{chk.checked=allChk.checked;});
+  }else if(allChk){
+    allChk.checked=Array.from(otherChks).length>0&&Array.from(otherChks).every(chk=>chk.checked);
+  }
+}
+
+function repUpdateSelectedClassCount(){const count=repGetSelectedReportClasses().length;const el=document.getElementById("repSelectedClassesCount");if(el)el.textContent=count+" صفوف";}
+
+function repSelectAllClasses(check){document.querySelectorAll(".rep-report-class-chk").forEach(el=>{el.checked=!!check;});repUpdateSelectedClassCount();}
+
+function repQuickSelectClass(grade){const target=String(grade);document.querySelectorAll(".rep-report-class-chk").forEach(el=>{const raw=String(el.value||"").trim();const slash=raw.split("/").pop().trim().match(/^(9|10|11|12)$/);const dash=raw.match(/^(?:.*[- ])(9|10|11|12)$/);const arabic=raw.match(/التاسع|العاشر|الحادي عشر|الثاني عشر/);const map={"التاسع":"9","العاشر":"10","الحادي عشر":"11","الثاني عشر":"12"};const parsed=slash?.[1]||dash?.[1]||map[arabic?.[0]]||"";el.checked=parsed===target;});repUpdateSelectedClassCount();}
+
+function repPopulateReportClasses(){const allowed=repGetAllowedReportClasses();const container=document.getElementById("repClassesGrid");if(container){if(!allowed.length){container.innerHTML='<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700">لا توجد صفوف مخصصة لك في هذا القسم.</div>';}else{container.innerHTML=sortClassesList(allowed).map(c=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"><input type="checkbox" class="sa-report-class-chk h-4 w-4 accent-blue-600" value="'+escapeHtml(c)+'" checked onchange="repUpdateSelectedClassCount()"><span dir="ltr">'+escapeHtml(formatClassName(c))+'</span></label>').join("");}}const legacy=document.getElementById("repReportClass");if(legacy){legacy.innerHTML='<option value="all">جميع الصفوف المصرح بها</option>'+sortClassesList(allowed).map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");legacy.value="all";}repUpdateSelectedClassCount();}
+
+function repSetDomain(domain){const p=repPermissions||{};const att=repGetAllowedReportClasses("attendance"),beh=repGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["repAttendanceTab","repBehaviorTab","repRecordsButton","repPrintButton","repAnalyticsButton","repStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("repSummary").innerHTML="";document.getElementById("repResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';repLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";repDomain=domain;document.getElementById("repAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("repBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("repAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("repBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("repStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("repRecordsButton").classList.toggle("hidden",!canRead);document.getElementById("repPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("repAnalyticsButton").classList.toggle("hidden",!canAnalytics);repLastReport=null;repPopulateReportClasses();repPopulateStatusFilter();if(canRead)repLoadReport();else{document.getElementById("repSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("repResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}}
+
+function repRenderReport(d,classes){const domain=repDomain;const allowed=new Set(repGetAllowedReportClasses(domain));const selected=new Set(classes.filter(c=>allowed.has(c)));const p=repPermissions||{};const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const statusFilters=new Set(domain==="attendance"?(Array.isArray(repLastReport?.statuses)?repLastReport.statuses:(repGetSelectedStatusFilters()==="all"?allowedStatuses:repGetSelectedStatusFilters())):[]);const records=domain==="attendance"?(d.attendance||[]):(d.behaviors||[]);const counts={absent:0,late:0,escape:0,outside:0,behavior:0};const rows=[];records.forEach(session=>{const cls=String(session.class_name||"");if(!selected.has(cls))return;Object.entries(session.records||{}).forEach(([student,value])=>{if(domain==="attendance"){const status=String(value&&typeof value==="object"?value.status||"":value);if(!["absent","late","escape","outside"].includes(status)||!allowedStatuses.includes(status)||(!statusFilters.has(status)))return;counts[status]++;rows.push({session,student,status,note:""});}else{const data=value&&typeof value==="object"?value:{type:String(value),note:""};if(!data.type||data.type==="normal")return;counts.behavior++;rows.push({session,student,behavior:String(data.type),note:data.note||""});}});});const summary=document.getElementById("repSummary");if(domain==="attendance"){summary.innerHTML=SA_ATTENDANCE_STATUS.filter(([key])=>allowedStatuses.includes(key)&&statusFilters.has(key)).map(([key,label])=>'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-violet-600")+'">'+counts[key]+'</b></div>').join("")+'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}else{summary.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">إجمالي المخالفات السلوكية</div><b class="text-2xl font-black text-teal-600">'+counts.behavior+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}const results=document.getElementById("repResults");if(!rows.length){results.innerHTML='<div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950">لا توجد حالات مسجلة في الصفوف والفترة الزمنية والحالات المحددة.</div>';return;}const groups={};rows.forEach(row=>{const cls=String(row.session.class_name);(groups[cls]||(groups[cls]=[])).push(row);});results.innerHTML=Object.entries(groups).map(([cls,list])=>'<section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><span class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-graduation-cap text-blue-600"></i> الصف <b dir="ltr">'+escapeHtml(formatClassName(cls))+'</b></span><span class="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">'+list.length+' حالة</span></div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead class="bg-slate-50 text-slate-500 dark:bg-slate-950"><tr><th class="p-3.5">اسم الطالب</th><th class="p-3.5">'+(domain==="attendance"?"حالة الحضور":"نوع المخالفة")+'</th><th class="p-3.5">التاريخ</th><th class="p-3.5">الحصة</th><th class="p-3.5">المعلم الراصد</th><th class="p-3.5">ملاحظات</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">'+list.map(r=>'<tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="p-3.5 font-bold text-slate-800 dark:text-white">'+escapeHtml(r.student)+'</td><td class="p-3.5">'+(domain==="attendance"?( '<span class="inline-block rounded-xl px-3 py-1 text-[11px] font-black '+(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[2]||"bg-slate-200 text-slate-800")+'">'+escapeHtml(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[1]||r.status)+'</span>'):'<span class="inline-block rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">'+escapeHtml(SA_BEHAVIOR_TYPES[r.behavior]||r.behavior)+'</span>')+'</td><td class="whitespace-nowrap p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.date_str||"—")+'</td><td class="p-3.5 text-slate-700 dark:text-slate-300">'+escapeHtml(r.session.period||"—")+'</td><td class="p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.teacher_name||"—")+'</td><td class="whitespace-pre-wrap p-3.5 text-slate-500">'+escapeHtml(r.note||"—")+'</td></tr>').join("")+'</tbody></table></div></section>').join("");}
+
+async function repLoadReport(){const p=repPermissions||{};const domain=repDomain;const canRead=domain==="attendance"?p.can_read_attendance:p.can_read_behavior;if(!canRead){showToast("ليس لديك صلاحية عرض السجلات التفصيلية.","error");return;}const allowed=repGetAllowedReportClasses(domain);const classes=repGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){repLastReport=null;showToast("يرجى اختيار صف واحد على الأقل لعرض التقرير.","error");return;}const from=document.getElementById("repFrom").value||"2000-01-01";const to=document.getElementById("repTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}const statusSelection=domain==="attendance"?repGetSelectedStatusFilters():"all";const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const selectedStatuses=domain!=="attendance"||statusSelection==="all"?allowedStatuses:statusSelection;if(domain==="attendance"&&(!Array.isArray(selectedStatuses)||selectedStatuses.some(status=>!allowedStatuses.includes(status)))){showToast("توجد حالة غير مصرح بها ضمن التحديد.","error");return;}if(domain==="attendance"&&!selectedStatuses.length){repLastReport=null;showToast("اختر حالة واحدة على الأقل لعرض التقرير.","error");return;}const body={action:"reports",report_mode:"view",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=selectedStatuses;const box=document.getElementById("repResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ جلب السجلات وتحليلها...</div>';try{const d=await saRequest(body);if(domain!==repDomain)return;repLastReport={...d,domain,classes:[...classes],from,to,statuses:domain==="attendance"?selectedStatuses:[]};repRenderReport(d,classes);}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}
+
+async function repLoadAnalytics(){const p=repPermissions||{};if(!p.can_view_analytics){showToast("ليس لديك صلاحية عرض التحليلات.","error");return;}const domain=repDomain;const allowed=repGetAllowedReportClasses(domain);const classes=repGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){showToast("يرجى اختيار صف واحد على الأقل للتحليل.","error");return;}const from=document.getElementById("repFrom").value||"2000-01-01";const to=document.getElementById("repTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}repLastReport=null;document.getElementById("repPrintButton").classList.add("hidden");const analyticsStatusSelection=domain==="attendance"?repGetSelectedStatusFilters():"all";const analyticsAllowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const analyticsStatuses=domain!=="attendance"||analyticsStatusSelection==="all"?analyticsAllowedStatuses:analyticsStatusSelection;if(domain==="attendance"&&!analyticsStatuses.length){showToast("اختر حالة واحدة على الأقل للتحليل.","error");return;}const body={action:"reports",report_mode:"analytics",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=analyticsStatuses;const box=document.getElementById("repResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد التحليلات...</div>';try{const d=await saRequest(body);if(domain!==repDomain)return;const rows=classes.map(c=>({className:c,count:domain==="attendance"?(d.analytics?.[c]?.selected_attendance_records||0):(d.analytics?.[c]?.behavior_sessions||0)}));const total=rows.reduce((n,x)=>n+(Number(x.count)||0),0);const label=domain==="attendance"?"حالات الغياب المحددة":"حصص متابعة السلوك";document.getElementById("repSummary").innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+classes.length+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(domain==="attendance"?"text-blue-700":"text-teal-700")+'">'+total+'</b></div>';box.innerHTML=rows.length?'<section class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"><div class="bg-slate-50 p-4 text-sm font-black dark:bg-slate-800">ملخص '+label+' حسب الصف</div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead><tr><th class="p-3">الصف</th><th class="p-3">عدد الحصص</th></tr></thead><tbody>'+rows.map(x=>'<tr class="border-t border-slate-100 dark:border-slate-700"><td class="p-3 font-bold">'+escapeHtml(formatClassName(x.className))+'</td><td class="p-3 font-bold">'+(Number(x.count)||0)+'</td></tr>').join("")+'</tbody></table></div></section>':'<div class="rounded-2xl bg-slate-50 p-8 text-center text-xs text-slate-500 dark:bg-slate-800">لا توجد صفوف مخصصة للتحليل.</div>';}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}
+
+async function repGetVerifiedPrintRows(){
+  const domain=repDomain;
+  if(domain!=="attendance"&&domain!=="behavior")throw new Error("نوع التقرير غير صحيح.");
+  const p=repPermissions||{};
+  const permitted=domain==="attendance"?p.can_print_attendance:p.can_print_behavior;
+  if(!permitted)throw new Error("ليس لديك صلاحية تصدير هذا الكشف.");
+  const allowedClasses=new Set((repGetAllowedReportClasses(domain)||[]).map(c=>String(c).trim()));
+  const classes=[...new Set(repGetSelectedReportClasses(domain).map(c=>String(c).trim()))];
+  if(!classes.length)throw new Error("حدد صفاً واحداً على الأقل من مربعات الصفوف قبل الطباعة.");
+  if(classes.some(c=>!c||!allowedClasses.has(c)))throw new Error("يتضمن التحديد صفاً غير مصرح به. حدّث الصفحة وأعد اختيار الصفوف.");
+  const from=document.getElementById("repFrom")?.value||"2000-01-01";
+  const to=document.getElementById("repTo")?.value||"2100-12-31";
+  if(from>to)throw new Error("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.");
+  const statusSelection=domain==="attendance"?repGetSelectedStatusFilters():"all";
+  const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
+  const statusFilters=domain!=="attendance"||statusSelection==="all"?allowedStatuses:(Array.isArray(statusSelection)?statusSelection:[statusSelection]);
+  if(domain==="attendance"&&(!statusFilters.length||statusFilters.some(status=>!allowedStatuses.includes(status))))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
+  const verified=await saRequest({
+    action:"reports",
+    report_mode:domain==="attendance"?"print_attendance":"print_behavior",
+    attendance_classes:domain==="attendance"?classes:[],
+    behavior_classes:domain==="behavior"?classes:[],
+    from,
+    to,
+    attendance_status_filters:domain==="attendance"?statusFilters:undefined
+  });
+  const sessions=domain==="attendance"?(verified.attendance||[]):(verified.behaviors||[]);
+  const rows=[];
+  const repeatCounts=new Map();
+  const validStatuses=new Set(["absent","late","escape","outside"]);
+  sessions.forEach(session=>{
+    const className=String(session.class_name||"").trim();
+    if(!classes.includes(className))throw new Error("أعاد مصدر البيانات سجلاً من صف غير محدد ("+className+"). أوقفنا الطباعة لمنع خلط كشوف الصفوف.");
+    const records=session.records&&typeof session.records==="object"?session.records:{};
+    Object.entries(records).forEach(([student,value])=>{
+      let type="",note="";
+      if(domain==="attendance"){
+        type=String(value&&typeof value==="object"?value.status||"":value);
+        if(!validStatuses.has(type)||!allowedStatuses.includes(type)||!statusFilters.includes(type))return;
+      }else{
+        const item=value&&typeof value==="object"?value:{type:String(value),note:""};
+        type=String(item.type||"");
+        if(!type||type==="normal")return;
+        note=String(item.note||"");
+      }
+      const date=String(session.date_str||"");
+      const countKey=[className,String(student),date,type].join("\u001f");
+      repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
+      rows.push({student:String(student),className,type,note,session,countKey});
+    });
+  });
+  rows.forEach(row=>row.count=repeatCounts.get(row.countKey)||1);
+  rows.sort((a,b)=>String(a.session.date_str||"").localeCompare(String(b.session.date_str||""))||a.className.localeCompare(b.className,"ar")||a.student.localeCompare(b.student,"ar"));
+  return {domain,classes,from,to,statuses:statusFilters,rows,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة"),permissions:p};
+}
+
+async function repPrint(){
+  const p=repPermissions||{};
+  const domain=repDomain;
+  if(!(domain==="attendance"||domain==="behavior")){showToast("نوع التقرير غير صحيح.","error");return;}
+  if(!(domain==="attendance"?p.can_print_attendance:p.can_print_behavior)){showToast("ليس لديك صلاحية طباعة هذا الكشف.","error");return;}
+  const w=window.open("about:blank","_blank");
+  if(!w){showToast("يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.","error");return;}
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><meta charset="utf-8"><body style="font-family:Arial;padding:24px;text-align:center">جارٍ التحقق من التقرير وتجهيزه. بعد فتح نافذة الطباعة اختر «حفظ بتنسيق PDF» لحفظه دون طباعة ورقية...</body></html>');
+  w.document.close();
+  try{
+    const data=await repGetVerifiedPrintRows();
+    const html=saBuildPrintHtml(data);
+    w.document.open();w.document.write(html);w.document.close();
+  }catch(e){
+    try{w.close();}catch(_){}
+    showToast(e.message||"تعذر تجهيز التقرير للطباعة.","error");
+  }
+}
+
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
@@ -4007,7 +4205,7 @@ function switchAdminTab(tab) {
   if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
-  if (tab === 'reports') renderReportsSection();
+  if (tab === 'reports') { renderReportsSection(); repInitStudentAffairsReports(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
