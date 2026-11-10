@@ -5390,5 +5390,192 @@ if ("serviceWorker" in navigator) {
 })();
 </script>
 
+
+<script>
+/* Combined attendance + behavior report: isolated from the two existing report flows. */
+(function(){
+  const modes={sa:false,rep:false};
+  const cfg={
+    sa:{prefix:"sa",getP:()=>saReportPermissions||{},getAllowed:d=>saGetAllowedReportClasses(d),getSelected:()=>saGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>saGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#saReportClassesContainer .sa-report-class-chk"),results:"saResults",summary:"saSummary",from:"saFrom",to:"saTo",button:"saPrintButton",readBtn:"saViewButton",tabs:["saAttendanceTab","saBehaviorTab"],container:"saReportClassesContainer",statusWrap:"saStatusFilterWrap",domainSetter:d=>saSetDomain(d),load:()=>saLoadReport(),print:()=>saPrint()},
+    rep:{prefix:"rep",getP:()=>repPermissions||{},getAllowed:d=>repGetAllowedReportClasses(d),getSelected:()=>repGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>repGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#repClassesGrid .rep-report-class-chk"),results:"repResults",summary:"repSummary",from:"repFrom",to:"repTo",button:"repPrintButton",readBtn:"repRecordsButton",tabs:["repAttendanceTab","repBehaviorTab"],container:"repClassesGrid",statusWrap:"repStatusFilterWrap",domainSetter:d=>repSetDomain(d),load:()=>repLoadReport(),print:()=>repPrint()}
+  };
+  const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const validStatus=["absent","late","escape","outside"];
+  const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
+  function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
+  function buildFilter(prefix){
+    const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
+    const host=document.createElement("section");host.id=id;host.className="hidden space-y-3 rounded-2xl border border-teal-200 bg-teal-50/40 p-4 dark:border-teal-900 dark:bg-teal-950/20";
+    host.innerHTML='<div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-sm">إعداد التقرير الموحّد</strong><span class="text-[11px] text-slate-500">يومي أو تراكمي حسب اختيارك</span></div><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-black">طريقة التقرير<select id="'+prefix+'CombinedPeriodMode" class="mt-1 w-full rounded-xl border border-teal-200 bg-white p-2.5 text-xs dark:bg-slate-900"><option value="daily">يوم واحد</option><option value="range">تراكمي خلال فترة</option></select></label><div class="self-end text-[11px] leading-5 text-slate-600">اليومي يعرض تاريخاً واحداً. والتراكمي يجمع التسجيلات بين تاريخ البداية والنهاية مع توضيح تواريخ الحصص.</div></div><div><div class="mb-2 text-xs font-black">حالات الغياب والانضباط</div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div><div><div class="mb-2 text-xs font-black">أنواع السلوكيات</div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>';
+    const anchor=document.getElementById(prefix==="sa"?"saStatusFilterWrap":"repBehaviorFilterWrap");
+    (anchor||document.getElementById(prefix==="sa"?"saReportClassPicker":"repClassesGrid")?.parentElement)?.insertAdjacentElement("afterend",host);
+    const p=cfg[prefix].getP(),allowed=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
+    document.getElementById(prefix+"CombinedStatuses").innerHTML=SA_ATTENDANCE_STATUS.filter(x=>allowed.includes(x[0])).map(([k,l])=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-status" value="'+k+'" checked><span>'+esc(l)+'</span></label>').join("");
+    document.getElementById(prefix+"CombinedBehaviors").innerHTML=behaviorKeys.map(k=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-behavior" value="'+k+'" checked><span>'+esc(SA_BEHAVIOR_TYPES[k])+'</span></label>').join("");
+  }
+  function selected(prefix,kind){return Array.from(document.querySelectorAll("."+prefix+"-combined-"+kind+":checked")).map(x=>x.value);}
+  function syncPeriodMode(prefix){const c=cfg[prefix],mode=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily",to=document.getElementById(c.to),from=document.getElementById(c.from);const toLabel=to?.closest("label");if(mode==="daily"){if(to&&from)to.value=from.value;if(toLabel)toLabel.style.display="none";}else{if(toLabel)toLabel.style.display="";}}
+  function mount(prefix){
+    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){const p=c.getP();existing.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));buildFilter(prefix);return;}
+    const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
+    buildFilter(prefix);
+    const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));
+  }
+  function setClassIntersection(prefix){
+    const c=cfg[prefix],allowed=new Set(intersection(c));
+    c.classes().forEach(el=>{const label=el.closest("label");const ok=allowed.has(String(el.value));if(label)label.classList.toggle("hidden",!ok);el.checked=ok;});
+    const count=document.getElementById(prefix==="sa"?"saSelectedClassesCount":"repSelectedClassesCount");
+    if(count)count.textContent=allowed.size+" صفوف مشتركة";
+  }
+  function activate(prefix){
+    const c=cfg[prefix],p=c.getP();
+    if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحيات قراءة وطباعة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
+    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);setClassIntersection(prefix);
+    document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
+    c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
+    document.getElementById(c.statusWrap)?.classList.add("hidden");
+    document.getElementById(prefix==="sa"?"saBehaviorFilterWrap":"repBehaviorFilterWrap")?.classList.add("hidden");
+    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");syncPeriodMode(prefix);
+    document.getElementById(c.readBtn).classList.remove("hidden");
+    document.getElementById(c.button).classList.remove("hidden");
+    document.getElementById(c.readBtn).textContent="عرض التقرير الموحّد";
+    document.getElementById(c.button).textContent="طباعة التقرير الموحّد";
+    load(prefix);
+  }
+  function classes(prefix){return cfg[prefix].getSelected().filter(x=>intersection(cfg[prefix]).includes(x));}
+  async function getData(prefix){
+    const c=cfg[prefix],p=c.getP(),cls=classes(prefix);
+    if(!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined))throw new Error("لا تتوفر جميع صلاحيات قراءة وطباعة التقرير الموحّد.");
+    if(!cls.length)throw new Error("اختر صفاً واحداً على الأقل مشتركاً بين صلاحيات الغياب والسلوكيات.");
+    const mode=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily";const from=document.getElementById(c.from).value||"2000-01-01",to=mode==="daily"?from:(document.getElementById(c.to).value||"2100-12-31");
+    if(from>to)throw new Error("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.");
+    const statuses=selected(prefix,"status"),behaviors=selected(prefix,"behavior");
+    const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
+    if(!statuses.length||statuses.some(x=>!allowedStatuses.includes(x)))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
+    if(!behaviors.length)throw new Error("اختر نوع سلوك واحداً على الأقل.");
+    const d=await c.request({action:"reports",report_mode:"print_combined",attendance_classes:cls,behavior_classes:cls,from,to,attendance_status_filters:statuses});
+    return {d,cls,from,to,mode,statuses,behaviors,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة")};
+  }
+  function merge(data){
+    const students=new Map(),key=(cl,st)=>cl+"\u001f"+st;
+    const get=(cl,st)=>{const k=key(cl,st);if(!students.has(k))students.set(k,{className:cl,student:st,attendance:[],behaviors:[]});return students.get(k);};
+    const seenAbsent=new Set();
+    (data.d.attendance||[]).forEach(s=>{
+      const cl=String(s.class_name||"").trim();if(!data.cls.includes(cl))throw new Error("وصل سجل غياب من صف خارج التحديد.");
+      Object.entries(s.records||{}).forEach(([student,value])=>{
+        const status=String(value&&typeof value==="object"?value.status||"":value);
+        if(!data.statuses.includes(status))return;
+        const date=String(s.date_str||"");
+        if(status==="absent"){const k=[cl,student,date].join("\u001f");if(seenAbsent.has(k))return;seenAbsent.add(k);}
+        get(cl,String(student)).attendance.push({type:status,date,period:s.period,teacher:s.teacher_name,note:value&&typeof value==="object"?value.note||"":"",});
+      });
+    });
+    (data.d.behaviors||[]).forEach(s=>{
+      const cl=String(s.class_name||"").trim();if(!data.cls.includes(cl))throw new Error("وصل سجل سلوك من صف خارج التحديد.");
+      Object.entries(s.records||{}).forEach(([student,value])=>{
+        const item=value&&typeof value==="object"?value:{type:String(value),note:""};
+        get(cl,String(student)).behaviors.push(...getBehaviorTypesFromRecord(item).filter(t=>data.behaviors.includes(t)).map(type=>({type,date:s.date_str,period:s.period,teacher:s.teacher_name,note:item.note||""})));
+      });
+    });
+    return [...students.values()].sort((a,b)=>a.className.localeCompare(b.className,"ar",{numeric:true})||a.student.localeCompare(b.student,"ar"));
+  }
+  const statusName=k=>SA_ATTENDANCE_STATUS.find(x=>x[0]===k)?.[1]||k;
+  function detail(list,behavior){
+    if(!list.length)return '<div class="cr-empty">لا توجد تسجيلات</div>';
+    const counts={};list.forEach(x=>counts[x.type]=(counts[x.type]||0)+1);
+    const total='<div class="cr-type-totals">'+Object.entries(counts).map(([k,n])=>'<span class="cr-type-chip">'+esc(behavior?(SA_BEHAVIOR_TYPES[k]||k):statusName(k))+' <b>'+n+'</b></span>').join("")+'</div>';
+    const entries=list.map(x=>'<article class="cr-event"><div class="cr-event-meta"><span class="cr-event-type">'+esc(behavior?(SA_BEHAVIOR_TYPES[x.type]||x.type):statusName(x.type))+'</span><span>'+esc(x.date||"—")+'</span><span>الحصة '+esc(x.period||"—")+'</span><span>المعلم: '+esc(x.teacher||"—")+'</span></div><div class="cr-event-note"><b>ملاحظة:</b> '+esc(x.note||"لا توجد ملاحظة مسجلة")+'</div></article>').join("");
+    return total+'<div class="cr-events">'+entries+'</div>';
+  }
+  function tally(rows,field,labels){
+    const counts={};rows.forEach(r=>r[field].forEach(x=>counts[x.type]=(counts[x.type]||0)+1));
+    return Object.entries(counts).sort((a,b)=>b[1]-a[1]).map(([k,n])=>'<span class="cr-breakdown-chip">'+esc(labels[k]||k)+' <b>'+n+'</b></span>').join("")||'<span class="cr-muted">لا توجد تسجيلات</span>';
+  }
+  const statusOrder=["absent","escape","late","outside"];
+  // ألوان الحالات مطابقة لشارات شؤون الطلاب.
+  const statusColors={absent:"#eaf4ff",late:"#fef3c7",outside:"#ede9fe",escape:"#ffe4e6"};
+  const statusTextColors={absent:"#334155",late:"#92400e",outside:"#5b21b6",escape:"#9f1239"};
+  // لون المخالفات السلوكية كما في التقرير الأصلي.
+  const behaviorColors={eating:"#fef3c7",talking:"#ffedd5",tools:"#fef9c3",chaos:"#fee2e2",sleeping:"#e0e7ff",homework:"#dbeafe",other:"#ffe4e6"};
+  const behaviorTextColors={eating:"#92400e",talking:"#9a3412",tools:"#854d0e",chaos:"#991b1b",sleeping:"#3730a3",homework:"#1e40af",other:"#9f1239"};
+  function shortStudentName(name){return String(name||"").replace(/\s+/g," ").trim()||"اسم غير متوفر";}
+  function cellContent(list,mode){
+    if(!list.length)return '<span class="matrix-empty">—</span>';
+    const periods=list.map(x=>{const p=x.period?("ح"+String(x.period)):"";if(!p)return "";return mode==="range"?(String(x.date||"")+" "+p):p;}).filter(Boolean);
+    const unique=[...new Set(periods)];
+    return '<strong class="matrix-count">'+list.length+'</strong><small class="matrix-periods">'+esc(unique.join("، ")||"—")+'</small>';
+  }
+  function classStats(rows){
+    const att={},beh={};rows.forEach(r=>{r.attendance.forEach(x=>att[x.type]=(att[x.type]||0)+1);r.behaviors.forEach(x=>beh[x.type]=(beh[x.type]||0)+1);});
+    return {att,beh,attTotal:Object.values(att).reduce((a,b)=>a+b,0),behTotal:Object.values(beh).reduce((a,b)=>a+b,0)};
+  }
+  function matrixTable(list,mode,forPrint,rangeLabel,selectedBehaviors){
+    const statusCols=statusOrder;
+    const behaviorCols=behaviorKeys.filter(k=>!Array.isArray(selectedBehaviors)||selectedBehaviors.includes(k));
+    const stats=classStats(list),totalCols=3+statusCols.length+behaviorCols.length;
+    const groupHead='<tr class="matrix-groups"><th class="matrix-num" rowspan="2">م</th><th class="matrix-name" rowspan="2">اسم الطالب</th><th class="matrix-group-att" colspan="'+statusCols.length+'">الغياب والانضباط</th><th class="matrix-group-beh" colspan="'+behaviorCols.length+'">السلوكيات</th><th class="matrix-notes-head" rowspan="2">تفاصيل أخرى / ملاحظات المعلم</th></tr>';
+    const headers='<tr class="matrix-head-row">'+statusCols.map(k=>'<th class="matrix-status-head matrix-status-'+k+'">'+esc(statusName(k))+'</th>').join("")+behaviorCols.map((k,i)=>'<th class="matrix-beh-head matrix-beh-'+k+(i===0?' matrix-beh-divider':'')+'">'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</th>').join("")+'</tr>';
+    const body=list.map((r,i)=>{
+      const otherNotes=[...new Set(r.behaviors.filter(x=>x.type==="other"&&String(x.note||"").trim()).map(x=>(x.period?"الحصة "+x.period+": ":"")+String(x.note).trim()))];
+      const notesCell=otherNotes.length?'<td class="matrix-notes-cell">'+otherNotes.map(note=>'<div class="matrix-note-line">'+esc(note)+'</div>').join("")+'</td>':'<td class="matrix-notes-cell"><span class="matrix-empty">—</span></td>';
+      const cells=statusCols.map(k=>{const items=r.attendance.filter(x=>x.type===k);return '<td>'+ (items.length?'<div class="matrix-cell" style="--cell-color:'+statusColors[k]+';--cell-text:'+statusTextColors[k]+'">'+cellContent(items,mode)+'</div>':'<span class="matrix-empty">—</span>')+'</td>';}).join("")+
+        behaviorCols.map((k,bi)=>{const items=r.behaviors.filter(x=>x.type===k);return '<td class="matrix-beh-cell'+(bi===0?' matrix-beh-divider':'')+'">'+ (items.length?'<div class="matrix-cell" style="--cell-color:'+behaviorColors[k]+';--cell-text:'+behaviorTextColors[k]+'">'+cellContent(items,mode)+'</div>':'<span class="matrix-empty">—</span>')+'</td>';}).join("")+notesCell;
+      return '<tr class="matrix-student-row"><td class="matrix-num">'+(i+1)+'</td><td class="matrix-name" title="'+esc(r.student)+'">'+esc(shortStudentName(r.student))+'</td>'+cells+'</tr>';
+    }).join("");
+    const statItems=statusOrder.map(k=>'<span class="matrix-stat"><b>'+esc(statusName(k))+'</b> '+(stats.att[k]||0)+'</span>').join("")+
+      behaviorCols.map(k=>'<span class="matrix-stat"><b>'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</b> '+(stats.beh[k]||0)+'</span>').join("");
+    const dataColCount=statusCols.length+behaviorCols.length;
+    const colgroup='<colgroup><col class="matrix-col-num"><col class="matrix-col-name">'+Array.from({length:dataColCount},()=>'<col class="matrix-col-data">').join("")+'<col class="matrix-col-notes"></colgroup>';
+    const banner=forPrint?"":'<tr><th colspan="'+totalCols+'" class="matrix-banner"><div class="matrix-school">'+esc(SCHOOL_NAME||"مدرسة أبو دجانة")+'</div><div class="matrix-subtitle">كشف رصد الغياب والانضباط والسلوكيات</div><div class="matrix-meta"><span>الصف: '+esc(formatClassName(list[0].className))+'</span><span>'+(mode==="daily"?"التاريخ: "+esc(rangeLabel||dataDateLabel(list,mode)):"الفترة: "+esc(rangeLabel||"—"))+'</span><span>الطلاب ذوو الحالات: '+list.length+'</span></div><div class="matrix-stats"><span class="matrix-stat"><b>إجمالي الغياب والانضباط</b> '+stats.attTotal+'</span><span class="matrix-stat"><b>إجمالي السلوكيات</b> '+stats.behTotal+'</span>'+statItems+'</div></th></tr>';
+    return '<table class="matrix-table">'+colgroup+'<thead>'+banner+groupHead+headers+'</thead><tbody>'+body+'</tbody></table>';
+  }
+  function dataDateLabel(list,mode){const dates=[...new Set(list.flatMap(r=>r.attendance.concat(r.behaviors).map(x=>x.date).filter(Boolean)))];return dates[0]||"—";}
+  function render(prefix,rows){
+    const c=cfg[prefix],box=document.getElementById(c.results),summary=document.getElementById(c.summary),data=window[prefix+"CombinedReport"]||{};
+    if(!rows.length){summary.innerHTML="";box.innerHTML='<div class="rounded-xl border border-dashed p-8 text-center text-sm text-slate-500">لا توجد تسجيلات مطابقة للتاريخ أو الفترة والمرشحات المحددة.</div>';return;}
+    const groups=new Map();rows.forEach(r=>{if(!groups.has(r.className))groups.set(r.className,[]);groups.get(r.className).push(r);});
+    const css='<style>.matrix-preview{overflow-x:auto;border:1px solid #cbd5e1;border-radius:14px;background:#fff}.matrix-table{width:100%;min-width:980px;border-collapse:collapse;table-layout:fixed;direction:rtl;color:#183653;font-size:11px}.matrix-table th,.matrix-table td{border:1px solid #94a3b8;text-align:center;padding:5px 3px;vertical-align:middle}.matrix-table thead{display:table-header-group}.matrix-banner{background:#183653;color:#fff;padding:9px!important}.matrix-school{font-size:16px;font-weight:900}.matrix-subtitle{font-size:11px;margin:2px 0 5px;color:#e2e8f0}.matrix-meta,.matrix-stats{display:flex;justify-content:center;gap:7px;flex-wrap:wrap;font-size:10px}.matrix-meta span{padding:3px 8px;background:#ffffff20;border-radius:5px}.matrix-stats{margin-top:6px}.matrix-stat{display:inline-block;padding:3px 7px;border-radius:5px;background:#f1f5f9;color:#183653;font-size:9px}.matrix-head-row th{background:#dbe5ef;font-weight:900;line-height:1.3}.matrix-col-num{width:28px}.matrix-col-name{width:210px}.matrix-col-data{width:auto}.matrix-num{width:28px;font-weight:900}.matrix-name{width:210px;min-width:210px;text-align:right!important;padding:3px 6px!important;font-weight:900;white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.35;direction:rtl;unicode-bidi:plaintext;font-size:9px}.matrix-groups th{padding:5px 2px;font-size:10px;font-weight:900;color:#183653}.matrix-group-att{background:#fff1e6}.matrix-group-beh{background:#e6f4f2;border-right:3px solid #64748b!important}.matrix-beh-divider{border-right:3px solid #64748b!important}.matrix-notes-head{background:#eaf1f8;font-weight:900;font-size:7pt}.matrix-notes-cell{text-align:right!important;vertical-align:top!important;padding:1mm 1.5mm!important;font-size:6.2pt;line-height:1.35;white-space:normal;overflow-wrap:anywhere;word-break:break-word}.matrix-note-line+.matrix-note-line{border-top:1px dotted #cbd5e1;margin-top:.7mm;padding-top:.7mm}.matrix-head-row th{padding:3px 1px;font-size:9px;background:#f8fafc}.matrix-status-absent{background:#eaf4ff!important;color:#1e40af}.matrix-status-late{background:#fef3c7!important;color:#92400e}.matrix-status-outside{background:#ede9fe!important;color:#5b21b6}.matrix-status-escape{background:#ffe4e6!important;color:#9f1239}.matrix-beh-eating{background:#fef3c7!important;color:#92400e}.matrix-beh-talking{background:#ffedd5!important;color:#9a3412}.matrix-beh-tools{background:#fef9c3!important;color:#854d0e}.matrix-beh-chaos{background:#fee2e2!important;color:#991b1b}.matrix-beh-sleeping{background:#e0e7ff!important;color:#3730a3}.matrix-beh-homework{background:#dbeafe!important;color:#1e40af}.matrix-beh-other{background:#ffe4e6!important;color:#9f1239}.matrix-student-row:nth-child(odd)>td{background:#fff}.matrix-student-row:nth-child(even)>td{background:#f3f7fb}.matrix-cell{background:var(--cell-color)!important;color:var(--cell-text)!important;border-radius:3px;min-height:27px;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:1px}.matrix-count{font-size:12px;line-height:1}.matrix-periods{font-size:7px;line-height:1.15;margin-top:1px;overflow-wrap:anywhere}.matrix-empty{color:#94a3b8;font-weight:700}.matrix-class{margin:12px 0}.matrix-class-title{background:#183653;color:white;padding:8px 10px;border-radius:8px;font-weight:900;margin-bottom:6px}.matrix-legend{font-size:10px;color:#64748b;margin:6px 0}.matrix-preview .matrix-table{min-width:1050px}</style>';
+    const html=[...groups.entries()].map(([cl,list])=>'<section class="matrix-class"><div class="matrix-class-title">الصف '+esc(formatClassName(cl))+' — '+list.length+' طالب لديهم تسجيلات</div>'+matrixTable(list,data.mode||"daily",false,(data.from===data.to?data.from:(data.from+" إلى "+data.to)),data.behaviors)+'</section>').join("");
+    summary.innerHTML="";
+    box.innerHTML=css+'<div class="matrix-legend">الألوان مطابقة لترميز الحالات والسلوكيات المعتمد في النظام. الرقم يوضح عدد التسجيلات والحصص تظهر أسفله.</div><div class="matrix-preview">'+html+'</div>';
+  }
+  async function load(prefix){
+    const c=cfg[prefix],box=document.getElementById(c.results);
+    box.innerHTML='<div class="rounded-xl border p-8 text-center">جارٍ جلب بيانات الجهتين والتحقق منها...</div>';
+    try{const data=await getData(prefix),rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);}
+    catch(e){box.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">'+esc(e.message)+'</div>';showToast(e.message,"error");}
+  }
+  function printHtml(data){
+    const groups=new Map();data.rows.forEach(r=>{if(!groups.has(r.className))groups.set(r.className,[]);groups.get(r.className).push(r);});
+    const css='<style>@page{size:A4 landscape;margin:7mm 7mm 9mm}@page{@bottom-left{content:"صفحة " counter(page) " من " counter(pages);font-family:Arial;font-size:7pt;color:#64748b}}*{box-sizing:border-box}html,body{margin:0;padding:0}body{font-family:Arial,"Tahoma",sans-serif;color:#183653;direction:rtl;-webkit-print-color-adjust:exact;print-color-adjust:exact}.class-sheet{margin:0 0 3mm;page-break-after:auto;break-after:auto;break-inside:avoid;page-break-inside:avoid}.class-sheet+.class-sheet{break-before:auto;page-break-before:auto}.class-sheet-title{background:#eaf1f8;color:#183653;border-right:3px solid #d97706;padding:1.5mm 2mm;margin:2mm 0 1.5mm;font-size:8pt;font-weight:900;break-after:avoid;page-break-after:avoid}.class-sheet-title,.class-sheet-stats{break-after:avoid;page-break-after:avoid}.class-sheet-stats{display:flex;flex-wrap:wrap;gap:1mm;margin:0 0 1.5mm}.class-sheet-stats .matrix-stat{padding:.7mm 1.2mm;font-size:6pt}.class-sheet:last-child{page-break-after:auto;break-after:auto}.matrix-table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;font-size:7pt;break-inside:avoid;page-break-inside:avoid}.matrix-table th,.matrix-table td{border:1px solid #64748b;text-align:center;padding:2.1mm 1mm;vertical-align:middle;overflow-wrap:anywhere}.matrix-table thead{display:table-header-group}.matrix-table tr{break-inside:avoid;page-break-inside:avoid}.matrix-banner{background:#183653;color:#fff;padding:2.2mm!important}.print-masthead{background:#183653;color:#fff;padding:3mm 4mm;margin:0 0 3mm;text-align:center;break-after:avoid;page-break-after:avoid}.print-masthead .matrix-school{font-size:14pt}.print-masthead .matrix-subtitle{font-size:8pt;margin:1mm 0;color:#e2e8f0}.print-masthead .print-meta{font-size:7pt;color:#fff}.matrix-school{font-size:14pt;font-weight:900}.matrix-subtitle{font-size:8pt;margin:1mm 0;color:#e2e8f0}.matrix-meta,.matrix-stats{display:flex;justify-content:center;gap:2mm;flex-wrap:wrap;font-size:7pt}.matrix-meta span{padding:1mm 2mm;background:#ffffff20;border-radius:1mm}.matrix-stats{margin-top:1.5mm}.matrix-stat{display:inline-block;padding:1mm 1.5mm;border-radius:1mm;background:#f1f5f9;color:#183653;font-size:6.5pt}.matrix-head-row th{background:#dbe5ef;font-weight:900;font-size:7pt;line-height:1.2;padding:2mm 0.7mm}.matrix-col-num{width:5mm}.matrix-col-name{width:48mm}.matrix-col-data{width:auto}.matrix-col-notes{width:58mm}.matrix-num{width:5mm;font-weight:900}.matrix-name{width:54mm;min-width:54mm;text-align:right!important;padding:1mm 1.2mm!important;font-weight:900;font-size:6.4pt;white-space:normal;overflow-wrap:anywhere;word-break:normal;line-height:1.3;direction:rtl;unicode-bidi:plaintext}.matrix-groups th{padding:1.2mm .5mm;font-size:7pt;font-weight:900;color:#183653}.matrix-group-att{background:#fff1e6}.matrix-group-beh{background:#e6f4f2;border-right:3px solid #64748b!important}.matrix-beh-divider{border-right:3px solid #64748b!important}.matrix-notes-head{background:#eaf1f8;font-weight:900;font-size:7pt}.matrix-notes-cell{text-align:right!important;vertical-align:top!important;padding:1mm 1.5mm!important;font-size:6.2pt;line-height:1.35;white-space:normal;overflow-wrap:anywhere;word-break:break-word}.matrix-note-line+.matrix-note-line{border-top:1px dotted #cbd5e1;margin-top:.7mm;padding-top:.7mm}.matrix-head-row th{padding:1mm .4mm;font-size:6.5pt;background:#f8fafc}.matrix-status-absent{background:#eaf4ff!important;color:#1e40af}.matrix-status-late{background:#fef3c7!important;color:#92400e}.matrix-status-outside{background:#ede9fe!important;color:#5b21b6}.matrix-status-escape{background:#ffe4e6!important;color:#9f1239}.matrix-beh-eating{background:#fef3c7!important;color:#92400e}.matrix-beh-talking{background:#ffedd5!important;color:#9a3412}.matrix-beh-tools{background:#fef9c3!important;color:#854d0e}.matrix-beh-chaos{background:#fee2e2!important;color:#991b1b}.matrix-beh-sleeping{background:#e0e7ff!important;color:#3730a3}.matrix-beh-homework{background:#dbeafe!important;color:#1e40af}.matrix-beh-other{background:#ffe4e6!important;color:#9f1239}.matrix-student-row:nth-child(odd)>td{background:#fff}.matrix-student-row:nth-child(even)>td{background:#f3f7fb}.matrix-cell{background:var(--cell-color)!important;color:var(--cell-text)!important;min-height:7mm;display:flex;flex-direction:column;justify-content:center;align-items:center;padding:.45mm .25mm;border-radius:.5mm}.matrix-count{font-size:9pt;line-height:1;font-weight:900}.matrix-periods{font-size:5pt;line-height:1.1;margin-top:.4mm;overflow-wrap:anywhere}.matrix-empty{color:#94a3b8;font-weight:700}.empty{padding:12mm;text-align:center;border:1px dashed #cbd5e1;color:#64748b;font-weight:800}@media print{.matrix-banner,.matrix-group-att,.matrix-group-beh,.matrix-head-row th,.matrix-status-head,.matrix-beh-head,.matrix-cell,.matrix-stat,.matrix-student-row>td{print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style>';
+    const printStamp=new Date();
+    const masthead='<header class="print-masthead"><div class="matrix-school">'+esc(SCHOOL_NAME||"مدرسة أبو دجانة")+'</div><div class="matrix-subtitle">كشف رصد الغياب والانضباط والسلوكيات</div><div class="print-meta">'+(data.mode==="daily"?"تاريخ الرصد: "+esc(data.from||"—"):"الفترة: "+esc((data.from||"—")+" إلى "+(data.to||"—")))+' · تاريخ ووقت الطباعة: '+esc(printStamp.toLocaleString("ar-OM"))+'</div></header>';
+    const sheets=[...groups.entries()].map(([cl,list])=>{const st=classStats(list);const fitScale=Math.min(1,Math.max(.62,23/Math.max(list.length,23)));const fitWidth=(100/fitScale).toFixed(1);const items=statusOrder.map(k=>'<span class="matrix-stat"><b>'+esc(statusName(k))+'</b> '+(st.att[k]||0)+'</span>').join("")+behaviorKeys.filter(k=>!Array.isArray(data.behaviors)||data.behaviors.includes(k)).map(k=>'<span class="matrix-stat"><b>'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</b> '+(st.beh[k]||0)+'</span>').join("");return '<section class="class-sheet" style="zoom:'+fitScale.toFixed(3)+';width:'+fitWidth+'%"><div class="class-sheet-title">الصف '+esc(formatClassName(cl))+' — '+list.length+' طالباً</div><div class="class-sheet-stats"><span class="matrix-stat"><b>إجمالي الغياب والانضباط:</b> '+st.attTotal+'</span><span class="matrix-stat"><b>إجمالي السلوكيات:</b> '+st.behTotal+'</span>'+items+'</div>'+matrixTable(list,data.mode||"daily",true,(data.from===data.to?data.from:(data.from+" إلى "+data.to)),data.behaviors)+'</section>';}).join("");
+    const noData='<div class="empty">لا توجد تسجيلات مطابقة للفترة والمرشحات المحددة.</div>';
+    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>كشف الرصد - '+esc(data.schoolName)+'</title>'+css+'</head><body>'+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
+  }
+  async function print(prefix){
+    const c=cfg[prefix],p=c.getP();
+    if(!(p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined)){showToast("يتطلب التقرير الموحّد صلاحية طباعة الغياب والسلوكيات والتقرير الموحّد.","error");return;}
+    const w=window.open("about:blank","_blank");if(!w){showToast("يرجى السماح بالنوافذ المنبثقة للطباعة.","error");return;}
+    w.document.write('<!doctype html><meta charset="utf-8"><p style="font-family:Arial;text-align:center;padding:40px">جارٍ التحقق من البيانات وتجهيز التقرير...</p>');w.document.close();
+    try{const data=await getData(prefix);data.rows=merge(data);w.document.open();w.document.write(printHtml(data));w.document.close();}
+    catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
+  }
+  const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
+  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldSaSet(d);mount("sa");};
+  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldRepSet(d);mount("rep");};
+  saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
+  repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
+  saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
+  repPrint=function(){if(modes.rep)return print("rep");return oldRepPrint();};
+  const oldSaDate=saOnReportDateChanged,oldRepDate=repOnReportDateChanged;
+  if(typeof oldSaDate==="function")saOnReportDateChanged=function(){if(modes.sa)return load("sa");return oldSaDate();};
+  if(typeof oldRepDate==="function")repOnReportDateChanged=function(){if(modes.rep)return load("rep");return oldRepDate();};
+  document.addEventListener("change",e=>{if(e.target?.id==="saCombinedPeriodMode"){syncPeriodMode("sa");if(modes.sa)load("sa");}if(e.target?.id==="repCombinedPeriodMode"){syncPeriodMode("rep");if(modes.rep)load("rep");}if(e.target?.classList?.contains("sa-combined-status")||e.target?.classList?.contains("sa-combined-behavior")){if(modes.sa)load("sa");}if(e.target?.classList?.contains("rep-combined-status")||e.target?.classList?.contains("rep-combined-behavior")){if(modes.rep)load("rep");}});
+  document.addEventListener("DOMContentLoaded",()=>{mount("sa");mount("rep");});
+  const timer=setInterval(()=>{mount("sa");mount("rep");if(document.getElementById("saCombinedTab")&&document.getElementById("repCombinedTab"))clearInterval(timer);},500);
+})();
+</script>
 </body>
 </html>
