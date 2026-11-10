@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
@@ -62,4 +62,16 @@ Deno.test("attendance report filtering supports multiple selected permitted stat
   if (Object.keys(filtered).join(",") !== "A,C") throw new Error("multi-status filter failed");
   if (Object.keys(filterAttendanceRecordMap(records, ["absent"], ["late"])).length) throw new Error("unpermitted multi-status filter leaked");
   if (Object.keys(filterAttendanceRecordMap(records, ["absent", "late"], [])).length) throw new Error("empty status selection should return no records");
+});
+
+Deno.test("behavior reports preserve and expand multiple violation types while supporting legacy records", () => {
+  const records = {
+    A: { types: ["eating", "talking"], type: "eating", note: "" },
+    B: { type: "sleeping", note: "" },
+    C: { types: [], type: "normal", note: "" }
+  };
+  const filtered = filterBehaviorRecordMap(records);
+  if (Object.keys(filtered).join(",") !== "A,B") throw new Error("multi behavior filtering failed");
+  if (behaviorTypesFromRecord(filtered.A).join(",") !== "eating,talking") throw new Error("multiple types were not preserved");
+  if (behaviorTypesFromRecord(filtered.B).join(",") !== "sleeping") throw new Error("legacy behavior record was not preserved");
 });

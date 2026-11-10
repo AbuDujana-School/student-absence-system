@@ -50,12 +50,15 @@ export function filterAttendanceRecordMap(records: unknown, allowedStatuses: str
     return allowed.has(status) && (!requested || requested.has(status));
   }));
 }
+export function behaviorTypesFromRecord(value: unknown): string[] {
+  if (!value || typeof value !== "object") return value && value !== "normal" ? [String(value)] : [];
+  const record = value as Record<string, unknown>;
+  const raw = Array.isArray(record.types) ? record.types : Array.isArray(record.type) ? record.type : [record.type];
+  return [...new Set(raw.map(String).filter(type => type && type !== "normal"))];
+}
 export function filterBehaviorRecordMap(records: unknown): Record<string, unknown> {
   if (!records || typeof records !== "object" || Array.isArray(records)) return {};
-  return Object.fromEntries(Object.entries(records as Record<string, unknown>).filter(([, value]) => {
-    const type = value && typeof value === "object" ? String((value as Record<string, unknown>).type || "") : String(value || "");
-    return type !== "" && type !== "normal";
-  }));
+  return Object.fromEntries(Object.entries(records as Record<string, unknown>).filter(([, value]) => behaviorTypesFromRecord(value).length > 0));
 }
 
 export function areClassesAllowed(requested: string[], allowed: string[]): boolean {
