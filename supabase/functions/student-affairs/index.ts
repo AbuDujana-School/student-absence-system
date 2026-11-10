@@ -304,7 +304,10 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       if (ownTeamIds.includes(team.teamId)) ownClasses.push(classItem);
     }
   }
-  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
+  const visibleClassComparison = principal.type === "admin"
+    ? classComparison
+    : classComparison.filter((item: any) => ownTeamIds.includes(item.teamId));
+  return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison: visibleClassComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
 async function handle(req: Request) {
