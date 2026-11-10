@@ -209,21 +209,6 @@ function rowsForCompetitionRange(index: Map<string, Map<string, any[]>>, classNa
   }
   return rows;
 }
-function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, string[]>, rosters: Record<string, string[]>, attendanceIndex: Map<string, Map<string, any[]>>, behaviorIndex: Map<string, Map<string, any[]>>, from: string, to: string) {
-  const metrics = grades.map(grade => {
-    const classNames = classesByGrade[grade] || [];
-    return buildTeamRates({
-      grade,
-      classNames,
-      rosters,
-      attendanceRows: rowsForCompetitionRange(attendanceIndex, classNames, from, to),
-      behaviorRows: rowsForCompetitionRange(behaviorIndex, classNames, from, to),
-      from,
-      to
-    });
-  });
-  return calculateRelativeCompetitionScores(metrics);
-}
 async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown, periodValue: unknown) {
   if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
   const today = getOmanIsoDate(), period = ["weekly", "monthly", "term"].includes(String(periodValue)) ? String(periodValue) : "weekly";
@@ -252,7 +237,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     fetchCompetitionRows("behaviors", competitionClasses, dataFrom, to)
   ]);
   const attendanceIndex = indexCompetitionRows(attendanceRows), behaviorIndex = indexCompetitionRows(behaviorRows);
-  const scoreTeamsRange = (rangeFrom: string, rangeTo: string) => {
+  const scoreTeamsRange = (rangeFrom: string, rangeTo: string): any[] => {
     const metrics = teams.map((team: any) => {
       const metric = buildTeamRates({
         grade: team.teamName, classNames: team.classNames,
