@@ -607,7 +607,7 @@
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div class="space-y-3 rounded-2xl border border-blue-200 p-4 dark:border-blue-900">
           <div class="flex items-center gap-2 text-blue-800 dark:text-blue-200"><i class="fa-solid fa-clipboard-list"></i><b class="text-sm">تكليف متابعة الغياب</b></div><p class="text-[11px] text-slate-500">حدد الصفوف المخصصة لمتابعة الغياب.</p>
-          <div class="flex flex-wrap gap-2"><button type="button" onclick="saToggleAllClasses('att',true)" class="rounded-lg bg-blue-50 px-3 py-1.5 text-[11px] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">تحديد جميع الصفوف</button><button type="button" onclick="saToggleAllClasses('att',false)" class="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">إلغاء التحديد</button></div>
+          <div class="flex flex-wrap gap-2"><button type="button" onclick="saToggleAllClasses('att',true)" class="rounded-lg bg-blue-50 px-3 py-1.5 text-[11px] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">تحديد الكل</button><button type="button" onclick="saToggleAllClasses('att',false)" class="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">إلغاء التحديد</button></div>
           <div id="saAttendanceClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div>
           <div class="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700"><b class="text-xs text-slate-700 dark:text-slate-200">الحالات المسموح بمشاهدتها</b><label class="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-2 text-xs font-extrabold dark:border-blue-900 dark:bg-blue-950/30"><input id="saAllAttendanceStatuses" type="checkbox" onchange="saToggleAllAttendanceStatuses(this.checked)" class="h-4 w-4 accent-blue-700"> جميع الحالات</label><div id="saAttendanceStatuses" class="grid grid-cols-2 gap-2 text-xs"></div></div>
         </div>
@@ -4260,7 +4260,7 @@ function switchAdminTab(tab) {
   if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
-  if (tab === 'reports') { renderLateFollowupReport(); repInitStudentAffairsReports(); }
+  if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
