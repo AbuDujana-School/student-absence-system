@@ -45,6 +45,8 @@ jobs:
         run: deno test supabase/functions/student-affairs/competition_policy_test.ts
       - name: Run competition authorization tests
         run: deno test supabase/functions/student-affairs/competition_authorization_test.ts
+      - name: Run teacher-led competition team tests
+        run: deno test supabase/functions/student-affairs/competition_team_policy_test.ts
       - name: Run competition response privacy tests
         run: deno test supabase/functions/student-affairs/competition_response_policy_test.ts
       - name: Run teacher permission sync regression tests
