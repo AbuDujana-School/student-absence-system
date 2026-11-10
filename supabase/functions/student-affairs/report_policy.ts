@@ -53,8 +53,9 @@ export function filterAttendanceRecordMap(records: unknown, allowedStatuses: str
 export function filterBehaviorRecordMap(records: unknown): Record<string, unknown> {
   if (!records || typeof records !== "object" || Array.isArray(records)) return {};
   return Object.fromEntries(Object.entries(records as Record<string, unknown>).filter(([, value]) => {
-    const type = value && typeof value === "object" ? String((value as Record<string, unknown>).type || "") : String(value || "");
-    return type !== "" && type !== "normal";
+    const item = value && typeof value === "object" ? value as Record<string, unknown> : { type: value };
+    const types = Array.isArray(item.types) ? item.types : Array.isArray(item.type) ? item.type : (item.type ? [item.type] : []);
+    return types.some(type => String(type || "") !== "" && String(type) !== "normal");
   }));
 }
 

@@ -1883,7 +1883,7 @@ function saMergeServerManagedTeacherPermissions(localPermissions,serverPermissio
   return merged;
 }
 async function saSavePermissions(){const name=document.getElementById("saPerson").value,type=document.getElementById("saType").value;if(!name){showToast("اختر معلماً أولاً","error");return;}const p={action:"set_permissions",principal_type:type,principal_name:name,studentAffairs:document.getElementById("saEntryAccess").checked,allowed_attendance_classes:Array.from(document.querySelectorAll(".sa-att-class:checked")).map(x=>x.value),allowed_behavior_classes:Array.from(document.querySelectorAll(".sa-beh-class:checked")).map(x=>x.value),attendance_statuses:Array.from(document.querySelectorAll(".sa-status:checked")).map(x=>x.value),competition_participant:type==="teacher"&&document.getElementById("saCompetitionParticipant").checked,competition_team_name:document.getElementById("saCompetitionTeamName")?.value.trim()||"",competition_team_classes:Array.from(document.querySelectorAll(".sa-competition-class:checked")).map(x=>x.value)};document.querySelectorAll(".sa-flag").forEach(x=>p[x.dataset.key]=x.checked);try{await saRequest(p);const localTeacher=(db.teachers||[]).find(t=>t.name===name);if(localTeacher){localTeacher.permissions=saMergeServerManagedTeacherPermissions(localTeacher.permissions,{studentAffairs:p.studentAffairs,can_view_competition:p.can_view_competition,competition_participant:p.competition_participant,competition_team_name:p.competition_team_name,competition_team_classes:p.competition_team_classes});saveToLocalStorageSafe();}await saLoadAdmin();const verifiedTeacher=(saAdminData?.teachers||[]).find(t=>t.name===name);if(typeof p.can_view_competition==="boolean"&&verifiedTeacher?.permissions?.can_view_competition!==p.can_view_competition){throw new Error("لم يتم تأكيد حفظ صلاحية سباق التميز. أعد المحاولة وتحقق من اتصال النظام.");}if(verifiedTeacher?.permissions?.competition_participant!==p.competition_participant||(p.competition_participant&&(verifiedTeacher?.permissions?.competition_team_name!==p.competition_team_name||JSON.stringify(verifiedTeacher?.permissions?.competition_team_classes||[])!==JSON.stringify(p.competition_team_classes)))){throw new Error("لم يتم تأكيد حفظ إعدادات فريق سباق التميز.");}if(localTeacher&&verifiedTeacher?.permissions){localTeacher.permissions={...verifiedTeacher.permissions};saveToLocalStorageSafe();}showToast("تم حفظ الصلاحيات والتحقق منها، وأُبطلت جلسة المعلم السابقة","success");}catch(e){showToast(e.message,"error");}}
-async function saLoadReport(){const p=saReportPermissions||{};const domain=saDomain;const canRead=domain==="attendance"?p.can_read_attendance:p.can_read_behavior;if(!canRead){showToast("ليس لديك صلاحية عرض السجلات التفصيلية.","error");return;}const allowed=saGetAllowedReportClasses(domain);const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){saLastReport=null;showToast("يرجى اختيار صف واحد على الأقل لعرض التقرير.","error");return;}const from=document.getElementById("saFrom").value||"2000-01-01";const to=document.getElementById("saTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}const statusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const selectedStatuses=domain!=="attendance"||statusSelection==="all"?allowedStatuses:statusSelection;if(domain==="attendance"&&(!Array.isArray(selectedStatuses)||selectedStatuses.some(status=>!allowedStatuses.includes(status)))){showToast("توجد حالة غير مصرح بها ضمن التحديد.","error");return;}if(domain==="attendance"&&!selectedStatuses.length){saLastReport=null;showToast("اختر حالة واحدة على الأقل لعرض التقرير.","error");return;}const body={action:"reports",report_mode:"view",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=selectedStatuses;const box=document.getElementById("saResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ جلب السجلات وتحليلها...</div>';try{const d=await saRequest(body);if(domain!==saDomain)return;saLastReport={...d,domain,classes:[...classes],from,to,statuses:domain==="attendance"?selectedStatuses:[]};saRenderReport(d,classes);}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}async function saLoadAnalytics(){const p=saReportPermissions||{};if(!p.can_view_analytics){showToast("ليس لديك صلاحية عرض التحليلات.","error");return;}const domain=saDomain;const allowed=saGetAllowedReportClasses(domain);const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){showToast("يرجى اختيار صف واحد على الأقل للتحليل.","error");return;}const from=document.getElementById("saFrom").value||"2000-01-01";const to=document.getElementById("saTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}saLastReport=null;document.getElementById("saPrintButton").classList.add("hidden");const analyticsStatusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";const analyticsAllowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const analyticsStatuses=domain!=="attendance"||analyticsStatusSelection==="all"?analyticsAllowedStatuses:analyticsStatusSelection;if(domain==="attendance"&&!analyticsStatuses.length){showToast("اختر حالة واحدة على الأقل للتحليل.","error");return;}const body={action:"reports",report_mode:"analytics",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=analyticsStatuses;const box=document.getElementById("saResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد التحليلات...</div>';try{const d=await saRequest(body);if(domain!==saDomain)return;const rows=classes.map(c=>({className:c,count:domain==="attendance"?(d.analytics?.[c]?.selected_attendance_records||0):(d.analytics?.[c]?.behavior_sessions||0)}));const total=rows.reduce((n,x)=>n+(Number(x.count)||0),0);const label=domain==="attendance"?"حالات الغياب المحددة":"حصص متابعة السلوك";document.getElementById("saSummary").innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+classes.length+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(domain==="attendance"?"text-blue-700":"text-teal-700")+'">'+total+'</b></div>';box.innerHTML=rows.length?'<section class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"><div class="bg-slate-50 p-4 text-sm font-black dark:bg-slate-800">ملخص '+label+' حسب الصف</div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead><tr><th class="p-3">الصف</th><th class="p-3">عدد الحصص</th></tr></thead><tbody>'+rows.map(x=>'<tr class="border-t border-slate-100 dark:border-slate-700"><td class="p-3 font-bold">'+escapeHtml(formatClassName(x.className))+'</td><td class="p-3 font-bold">'+(Number(x.count)||0)+'</td></tr>').join("")+'</tbody></table></div></section>':'<div class="rounded-2xl bg-slate-50 p-8 text-center text-xs text-slate-500 dark:bg-slate-800">لا توجد صفوف مخصصة للتحليل.</div>';}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}function saRenderReport(d,classes){const domain=saDomain;const allowed=new Set(saGetAllowedReportClasses(domain));const selected=new Set(classes.filter(c=>allowed.has(c)));const p=saReportPermissions||{};const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const statusFilters=new Set(domain==="attendance"?(Array.isArray(saLastReport?.statuses)?saLastReport.statuses:(saGetSelectedStatusFilters()==="all"?allowedStatuses:saGetSelectedStatusFilters())):[]);const records=domain==="attendance"?(d.attendance||[]):(d.behaviors||[]);const counts={absent:0,late:0,escape:0,outside:0,behavior:0};const rows=[];const seenAbsent=new Set();records.forEach(session=>{const cls=String(session.class_name||"");if(!selected.has(cls))return;Object.entries(session.records||{}).forEach(([student,value])=>{if(domain==="attendance"){const status=String(value);if(!["absent","late","escape","outside"].includes(status)||!allowedStatuses.includes(status)||(!statusFilters.has(status)))return;if(status==="absent"){const absenceKey=[cls,String(student),String(session.date_str||"")].join("\u001f");if(seenAbsent.has(absenceKey))return;seenAbsent.add(absenceKey);}counts[status]++;rows.push({session,student,status,note:""});}else{const data=value&&typeof value==="object"?value:{type:String(value),note:""};if(!data.type||data.type==="normal")return;counts.behavior++;rows.push({session,student,behavior:String(data.type),note:data.note||""});}});});const summary=document.getElementById("saSummary");if(domain==="attendance"){summary.innerHTML=SA_ATTENDANCE_STATUS.filter(([key])=>allowedStatuses.includes(key)&&statusFilters.has(key)).map(([key,label])=>'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-violet-600")+'">'+counts[key]+'</b></div>').join("")+'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}else{summary.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">إجمالي المخالفات السلوكية</div><b class="text-2xl font-black text-teal-600">'+counts.behavior+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}const results=document.getElementById("saResults");if(!rows.length){results.innerHTML='<div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950">لا توجد حالات مسجلة في الصفوف والفترة الزمنية والحالات المحددة.</div>';return;}const groups={};rows.forEach(row=>{const cls=String(row.session.class_name);(groups[cls]||(groups[cls]=[])).push(row);});results.innerHTML=Object.entries(groups).map(([cls,list])=>'<section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><span class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-graduation-cap text-blue-600"></i> الصف <b dir="ltr">'+escapeHtml(formatClassName(cls))+'</b></span><span class="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">'+list.length+' حالة</span></div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead class="bg-slate-50 text-slate-500 dark:bg-slate-950"><tr><th class="p-3.5">اسم الطالب</th><th class="p-3.5">'+(domain==="attendance"?"حالة الحضور":"نوع المخالفة")+'</th><th class="p-3.5">التاريخ</th><th class="p-3.5">الحصة</th><th class="p-3.5">المعلم الراصد</th><th class="p-3.5">ملاحظات</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">'+list.map(r=>'<tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="p-3.5 font-bold text-slate-800 dark:text-white">'+escapeHtml(r.student)+'</td><td class="p-3.5">'+(domain==="attendance"?( '<span class="inline-block rounded-xl px-3 py-1 text-[11px] font-black '+(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[2]||"bg-slate-200 text-slate-800")+'">'+escapeHtml(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[1]||r.status)+'</span>'):'<span class="inline-block rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">'+escapeHtml(SA_BEHAVIOR_TYPES[r.behavior]||r.behavior)+'</span>')+'</td><td class="whitespace-nowrap p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.date_str||"—")+'</td><td class="p-3.5 text-slate-700 dark:text-slate-300">'+escapeHtml(r.session.period||"—")+'</td><td class="p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.teacher_name||"—")+'</td><td class="whitespace-pre-wrap p-3.5 text-slate-500">'+escapeHtml(r.note||"—")+'</td></tr>').join("")+'</tbody></table></div></section>').join("");}function saFormatRepeatCount(n){
+async function saLoadReport(){const p=saReportPermissions||{};const domain=saDomain;const canRead=domain==="attendance"?p.can_read_attendance:p.can_read_behavior;if(!canRead){showToast("ليس لديك صلاحية عرض السجلات التفصيلية.","error");return;}const allowed=saGetAllowedReportClasses(domain);const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){saLastReport=null;showToast("يرجى اختيار صف واحد على الأقل لعرض التقرير.","error");return;}const from=document.getElementById("saFrom").value||"2000-01-01";const to=document.getElementById("saTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}const statusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const selectedStatuses=domain!=="attendance"||statusSelection==="all"?allowedStatuses:statusSelection;if(domain==="attendance"&&(!Array.isArray(selectedStatuses)||selectedStatuses.some(status=>!allowedStatuses.includes(status)))){showToast("توجد حالة غير مصرح بها ضمن التحديد.","error");return;}if(domain==="attendance"&&!selectedStatuses.length){saLastReport=null;showToast("اختر حالة واحدة على الأقل لعرض التقرير.","error");return;}const body={action:"reports",report_mode:"view",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=selectedStatuses;const box=document.getElementById("saResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ جلب السجلات وتحليلها...</div>';try{const d=await saRequest(body);if(domain!==saDomain)return;saLastReport={...d,domain,classes:[...classes],from,to,statuses:domain==="attendance"?selectedStatuses:[]};saRenderReport(d,classes);}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}async function saLoadAnalytics(){const p=saReportPermissions||{};if(!p.can_view_analytics){showToast("ليس لديك صلاحية عرض التحليلات.","error");return;}const domain=saDomain;const allowed=saGetAllowedReportClasses(domain);const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){showToast("يرجى اختيار صف واحد على الأقل للتحليل.","error");return;}const from=document.getElementById("saFrom").value||"2000-01-01";const to=document.getElementById("saTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}saLastReport=null;document.getElementById("saPrintButton").classList.add("hidden");const analyticsStatusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";const analyticsAllowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const analyticsStatuses=domain!=="attendance"||analyticsStatusSelection==="all"?analyticsAllowedStatuses:analyticsStatusSelection;if(domain==="attendance"&&!analyticsStatuses.length){showToast("اختر حالة واحدة على الأقل للتحليل.","error");return;}const body={action:"reports",report_mode:"analytics",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=analyticsStatuses;const box=document.getElementById("saResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد التحليلات...</div>';try{const d=await saRequest(body);if(domain!==saDomain)return;const rows=classes.map(c=>({className:c,count:domain==="attendance"?(d.analytics?.[c]?.selected_attendance_records||0):(d.analytics?.[c]?.behavior_sessions||0)}));const total=rows.reduce((n,x)=>n+(Number(x.count)||0),0);const label=domain==="attendance"?"حالات الغياب المحددة":"حصص متابعة السلوك";document.getElementById("saSummary").innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+classes.length+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(domain==="attendance"?"text-blue-700":"text-teal-700")+'">'+total+'</b></div>';box.innerHTML=rows.length?'<section class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"><div class="bg-slate-50 p-4 text-sm font-black dark:bg-slate-800">ملخص '+label+' حسب الصف</div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead><tr><th class="p-3">الصف</th><th class="p-3">عدد الحصص</th></tr></thead><tbody>'+rows.map(x=>'<tr class="border-t border-slate-100 dark:border-slate-700"><td class="p-3 font-bold">'+escapeHtml(formatClassName(x.className))+'</td><td class="p-3 font-bold">'+(Number(x.count)||0)+'</td></tr>').join("")+'</tbody></table></div></section>':'<div class="rounded-2xl bg-slate-50 p-8 text-center text-xs text-slate-500 dark:bg-slate-800">لا توجد صفوف مخصصة للتحليل.</div>';}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}function saRenderReport(d,classes){const domain=saDomain;const allowed=new Set(saGetAllowedReportClasses(domain));const selected=new Set(classes.filter(c=>allowed.has(c)));const p=saReportPermissions||{};const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const statusFilters=new Set(domain==="attendance"?(Array.isArray(saLastReport?.statuses)?saLastReport.statuses:(saGetSelectedStatusFilters()==="all"?allowedStatuses:saGetSelectedStatusFilters())):[]);const records=domain==="attendance"?(d.attendance||[]):(d.behaviors||[]);const counts={absent:0,late:0,escape:0,outside:0,behavior:0};const rows=[];const seenAbsent=new Set();records.forEach(session=>{const cls=String(session.class_name||"");if(!selected.has(cls))return;Object.entries(session.records||{}).forEach(([student,value])=>{if(domain==="attendance"){const status=String(value);if(!["absent","late","escape","outside"].includes(status)||!allowedStatuses.includes(status)||(!statusFilters.has(status)))return;if(status==="absent"){const absenceKey=[cls,String(student),String(session.date_str||"")].join("\u001f");if(seenAbsent.has(absenceKey))return;seenAbsent.add(absenceKey);}counts[status]++;rows.push({session,student,status,note:""});}else{const data=value&&typeof value==="object"?value:{type:String(value),note:""};getBehaviorTypes(data).forEach(behavior=>{counts.behavior++;rows.push({session,student,behavior,note:behavior==="other"?(data.note||""):""});});}});});const summary=document.getElementById("saSummary");if(domain==="attendance"){summary.innerHTML=SA_ATTENDANCE_STATUS.filter(([key])=>allowedStatuses.includes(key)&&statusFilters.has(key)).map(([key,label])=>'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-violet-600")+'">'+counts[key]+'</b></div>').join("")+'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}else{summary.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">إجمالي المخالفات السلوكية</div><b class="text-2xl font-black text-teal-600">'+counts.behavior+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}const results=document.getElementById("saResults");if(!rows.length){results.innerHTML='<div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950">لا توجد حالات مسجلة في الصفوف والفترة الزمنية والحالات المحددة.</div>';return;}const groups={};rows.forEach(row=>{const cls=String(row.session.class_name);(groups[cls]||(groups[cls]=[])).push(row);});results.innerHTML=Object.entries(groups).map(([cls,list])=>'<section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><span class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-graduation-cap text-blue-600"></i> الصف <b dir="ltr">'+escapeHtml(formatClassName(cls))+'</b></span><span class="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">'+list.length+' حالة</span></div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead class="bg-slate-50 text-slate-500 dark:bg-slate-950"><tr><th class="p-3.5">اسم الطالب</th><th class="p-3.5">'+(domain==="attendance"?"حالة الحضور":"نوع المخالفة")+'</th><th class="p-3.5">التاريخ</th><th class="p-3.5">الحصة</th><th class="p-3.5">المعلم الراصد</th><th class="p-3.5">ملاحظات</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">'+list.map(r=>'<tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="p-3.5 font-bold text-slate-800 dark:text-white">'+escapeHtml(r.student)+'</td><td class="p-3.5">'+(domain==="attendance"?( '<span class="inline-block rounded-xl px-3 py-1 text-[11px] font-black '+(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[2]||"bg-slate-200 text-slate-800")+'">'+escapeHtml(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[1]||r.status)+'</span>'):'<span class="inline-block rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">'+escapeHtml(SA_BEHAVIOR_TYPES[r.behavior]||r.behavior)+'</span>')+'</td><td class="whitespace-nowrap p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.date_str||"—")+'</td><td class="p-3.5 text-slate-700 dark:text-slate-300">'+escapeHtml(r.session.period||"—")+'</td><td class="p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.teacher_name||"—")+'</td><td class="whitespace-pre-wrap p-3.5 text-slate-500">'+escapeHtml(r.note||"—")+'</td></tr>').join("")+'</tbody></table></div></section>').join("");}function saFormatRepeatCount(n){
   const count=Math.max(1,Number(n)||1);
   if(count===1)return "مرة واحدة";
   if(count===2)return "مرتان";
@@ -1892,7 +1892,7 @@ async function saLoadReport(){const p=saReportPermissions||{};const domain=saDom
 async function saGetVerifiedPrintRows(){
   const domain=saDomain;
   if(domain!=="attendance"&&domain!=="behavior")throw new Error("نوع التقرير غير صحيح.");
-  const p=saReportPermissions||{};
+  const p=saPermissions||{};
   const permitted=domain==="attendance"?p.can_print_attendance:p.can_print_behavior;
   if(!permitted)throw new Error("ليس لديك صلاحية تصدير هذا الكشف.");
   const allowedClasses=new Set((saGetAllowedReportClasses(domain)||[]).map(c=>String(c).trim()));
@@ -1906,44 +1906,36 @@ async function saGetVerifiedPrintRows(){
   const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
   const statusFilters=domain!=="attendance"||statusSelection==="all"?allowedStatuses:(Array.isArray(statusSelection)?statusSelection:[statusSelection]);
   if(domain==="attendance"&&(!statusFilters.length||statusFilters.some(status=>!allowedStatuses.includes(status))))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
-  const verified=await saRequest({
-    action:"reports",
-    report_mode:domain==="attendance"?"print_attendance":"print_behavior",
-    attendance_classes:domain==="attendance"?classes:[],
-    behavior_classes:domain==="behavior"?classes:[],
-    from,
-    to,
-    attendance_status_filters:domain==="attendance"?statusFilters:undefined
-  });
+  
+  const verified=await saRequest({action:"reports",report_mode:domain==="attendance"?"print_attendance":"print_behavior",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to,attendance_status_filters:domain==="attendance"?statusFilters:undefined});
   const sessions=domain==="attendance"?(verified.attendance||[]):(verified.behaviors||[]);
-  const rows=[];
-  const repeatCounts=new Map();
-  const seenAbsences=new Set();
-  const validStatuses=new Set(["absent","late","escape","outside"]);
+  const rows=[],repeatCounts=new Map(),seenAbsences=new Set(),validStatuses=new Set(["absent","late","escape","outside"]);
   sessions.forEach(session=>{
     const className=String(session.class_name||"").trim();
     if(!classes.includes(className))throw new Error("أعاد مصدر البيانات سجلاً من صف غير محدد ("+className+"). أوقفنا الطباعة لمنع خلط كشوف الصفوف.");
     const records=session.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([student,value])=>{
-      let type="",note="";
+      const date=String(session.date_str||"");
       if(domain==="attendance"){
-        type=String(value);
+        const type=String(value&&typeof value==="object"?value.status||"":value);
         if(!validStatuses.has(type)||!allowedStatuses.includes(type)||!statusFilters.includes(type))return;
+        if(type==="absent"){
+          const absenceKey=[className,String(student),date].join("\u001f");
+          if(seenAbsences.has(absenceKey))return;
+          seenAbsences.add(absenceKey);
+        }
+        const countKey=[className,String(student),date,type].join("\u001f");
+        repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
+        rows.push({student:String(student),className,type,note:"",session,countKey});
       }else{
         const item=value&&typeof value==="object"?value:{type:String(value),note:""};
-        type=String(item.type||"");
-        if(!type||type==="normal")return;
-        note=String(item.note||"");
+        const selectedTypes=getBehaviorTypes(item);
+        selectedTypes.forEach(type=>{
+          const countKey=[className,String(student),date,type].join("\u001f");
+          repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
+          rows.push({student:String(student),className,type,note:type==="other"?String(item.note||""):"",session,countKey});
+        });
       }
-      const date=String(session.date_str||"");
-      if(domain==="attendance"&&type==="absent"){
-        const absenceKey=[className,String(student),date].join("\u001f");
-        if(seenAbsences.has(absenceKey))return;
-        seenAbsences.add(absenceKey);
-      }
-      const countKey=[className,String(student),date,type].join("\u001f");
-      repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
-      rows.push({student:String(student),className,type,note,session,countKey});
     });
   });
   rows.forEach(row=>row.count=repeatCounts.get(row.countKey)||1);
@@ -3007,6 +2999,17 @@ async function saveAttendanceSession() {
 }
 
 /* ============ Behavior ============ */
+const BEHAVIOR_TYPE_KEYS = ['eating','talking','tools','chaos','sleeping','homework','other'];
+function getBehaviorTypes(record) {
+  const raw = record && typeof record === 'object'
+    ? (Array.isArray(record.types) ? record.types : (Array.isArray(record.type) ? record.type : (record.type ? [record.type] : [])))
+    : (record ? [record] : []);
+  return [...new Set(raw.map(value => String(value || '').trim()).filter(value => BEHAVIOR_TYPE_KEYS.includes(value)))];
+}
+function buildBehaviorRecord(record, types) {
+  const selected = [...new Set((Array.isArray(types) ? types : []).map(value => String(value || '').trim()).filter(value => BEHAVIOR_TYPE_KEYS.includes(value)))];
+  return { types: selected, type: selected[0] || 'normal', note: String(record?.note || '') };
+}
 function renderBehaviorClassesGrid() {
   const container = document.getElementById('behaviorClassesGrid'); if (!container) return;
   container.innerHTML = '';
@@ -3045,8 +3048,10 @@ function loadSessionBehavior() {
     { key: 'other', label: 'أخرى ⚠️', cls: 'bg-rose-700 text-white border-rose-700 shadow-md' }
   ];
   list.forEach(student => {
-    if (!currentBehaviorRecord[student]) currentBehaviorRecord[student] = { type: 'normal', note: '' };
-    const sData = currentBehaviorRecord[student];
+    const existingBehavior = currentBehaviorRecord[student];
+    const sData = buildBehaviorRecord(existingBehavior, getBehaviorTypes(existingBehavior));
+    currentBehaviorRecord[student] = sData;
+    const selectedTypes = sData.types;
     const row = document.createElement('div'); row.className = 'student-row flex flex-col p-4 hover:bg-slate-50 dark:hover:bg-slate-900/40 rounded-2xl gap-3 border-b border-slate-100 dark:border-slate-700/50';
     row.dataset.student = student;
     const top = document.createElement('div'); top.className = 'flex flex-wrap items-center justify-between gap-2';
@@ -3061,36 +3066,72 @@ function loadSessionBehavior() {
     const acts = document.createElement('div'); acts.className = 'flex flex-wrap items-center gap-1 sm:gap-1.5';
     btns.forEach(beh => {
       const btn = document.createElement('button'); btn.type = 'button'; btn.dataset.behavior = beh.key;
-      const a = sData.type === beh.key;
+      const a = beh.key === 'normal' ? selectedTypes.length === 0 : selectedTypes.includes(beh.key);
       btn.className = `status-btn px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border whitespace-nowrap ${a ? beh.cls : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`;
       btn.textContent = beh.label; btn.onclick = () => setStudentBehaviorType(student, beh.key);
       acts.appendChild(btn);
     });
     top.appendChild(acts); row.appendChild(top);
     const nc = document.createElement('div');
-    nc.className = 'behavior-note-wrapper mt-2' + (sData.type === 'other' ? '' : ' hidden');
+    nc.className = 'behavior-note-wrapper mt-2' + (selectedTypes.includes('other') ? '' : ' hidden');
     nc.innerHTML = `<input type="text" placeholder="وصف السلوك..." value="${escapeHtml(sData.note || '')}" data-student="${escapeHtml(student)}" oninput="updateBehaviorNoteFromInput(this)" class="w-full text-xs p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl outline-none font-bold">`;
     row.appendChild(nc); container.appendChild(row);
   });
   document.getElementById('undoBehaviorBtn').disabled = true;
 }
-function setStudentBehaviorType(student, type, skipUndo = false) {
-  if (!currentBehaviorRecord[student]) currentBehaviorRecord[student] = { type: 'normal', note: '' };
-  const prev = currentBehaviorRecord[student].type;
-  if (!skipUndo && prev !== type) { behaviorUndoStack.push({ student, prevType: prev }); if (behaviorUndoStack.length > 50) behaviorUndoStack.shift(); document.getElementById('undoBehaviorBtn').disabled = false; }
-  currentBehaviorRecord[student].type = type;
+function setStudentBehaviorType(student, type, skipUndo = false, restoredTypes = null) {
+  const current = buildBehaviorRecord(currentBehaviorRecord[student], getBehaviorTypes(currentBehaviorRecord[student]));
+  const previousTypes = [...current.types];
+  let nextTypes;
+  if (Array.isArray(restoredTypes)) nextTypes = [...restoredTypes];
+  else if (type === 'normal') nextTypes = [];
+  else nextTypes = previousTypes.includes(type) ? previousTypes.filter(item => item !== type) : [...previousTypes, type];
+  nextTypes = [...new Set(nextTypes.filter(item => BEHAVIOR_TYPE_KEYS.includes(item)))];
+  const changed = previousTypes.length !== nextTypes.length || previousTypes.some((item, index) => item !== nextTypes[index]);
+  if (!skipUndo && changed) {
+    behaviorUndoStack.push({ student, prevTypes: previousTypes, prevNote: current.note });
+    if (behaviorUndoStack.length > 50) behaviorUndoStack.shift();
+    document.getElementById('undoBehaviorBtn').disabled = false;
+  }
+  const next = buildBehaviorRecord(current, nextTypes);
+  currentBehaviorRecord[student] = next;
   const row = document.querySelector(`#behaviorStudentsListContainer .student-row[data-student="${CSS.escape(student)}"]`);
   if (row) {
     const cm = { normal: 'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25', eating: 'bg-amber-500 text-white border-amber-500 shadow-md', talking: 'bg-orange-500 text-white border-orange-500 shadow-md', tools: 'bg-yellow-600 text-white border-yellow-600 shadow-md', chaos: 'bg-red-500 text-white border-red-500 shadow-md shadow-red-500/25', sleeping: 'bg-indigo-600 text-white border-indigo-600 shadow-md', homework: 'bg-blue-600 text-white border-blue-600 shadow-md', other: 'bg-rose-700 text-white border-rose-700 shadow-md' };
-    row.querySelectorAll('.status-btn').forEach(b => { const a = b.dataset.behavior === type; b.className = `status-btn px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border whitespace-nowrap ${a ? cm[type] : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`; });
-    const nw = row.querySelector('.behavior-note-wrapper');
-    if (nw) { if (type === 'other') { nw.classList.remove('hidden'); nw.querySelector('input')?.focus(); } else nw.classList.add('hidden'); }
+    row.querySelectorAll('.status-btn').forEach(button => {
+      const key = button.dataset.behavior;
+      const selected = key === 'normal' ? next.types.length === 0 : next.types.includes(key);
+      button.className = `status-btn px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border whitespace-nowrap ${selected ? cm[key] : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`;
+    });
+    const noteWrap = row.querySelector('.behavior-note-wrapper');
+    if (noteWrap) {
+      if (next.types.includes('other')) noteWrap.classList.remove('hidden');
+      else noteWrap.classList.add('hidden');
+    }
   }
   behaviorDirty = true;
   document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ تغييرات غير محفوظة";
 }
-function undoLastBehaviorChange() { const l = behaviorUndoStack.pop(); if (!l) return; setStudentBehaviorType(l.student, l.prevType, true); if (behaviorUndoStack.length === 0) document.getElementById('undoBehaviorBtn').disabled = true; }
-function updateBehaviorNoteFromInput(input) { const s = input.dataset.student; if (!s) return; if (!currentBehaviorRecord[s]) currentBehaviorRecord[s] = { type: 'other', note: '' }; currentBehaviorRecord[s].note = input.value; behaviorDirty = true; document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ تغييرات غير محفوظة"; }
+function undoLastBehaviorChange() {
+  const item = behaviorUndoStack.pop();
+  if (!item) return;
+  setStudentBehaviorType(item.student, 'normal', true, item.prevTypes);
+  const record = currentBehaviorRecord[item.student];
+  if (record) record.note = item.prevNote || '';
+  const row = document.querySelector(`#behaviorStudentsListContainer .student-row[data-student="${CSS.escape(item.student)}"]`);
+  const noteInput = row?.querySelector('.behavior-note-wrapper input');
+  if (noteInput) noteInput.value = record?.note || '';
+  if (behaviorUndoStack.length === 0) document.getElementById('undoBehaviorBtn').disabled = true;
+}
+function updateBehaviorNoteFromInput(input) {
+  const student = input.dataset.student;
+  if (!student) return;
+  const current = buildBehaviorRecord(currentBehaviorRecord[student], getBehaviorTypes(currentBehaviorRecord[student]));
+  current.note = input.value;
+  currentBehaviorRecord[student] = current;
+  behaviorDirty = true;
+  document.getElementById('unsavedBehaviorStatusIndicator').textContent = "⚠️ تغييرات غير محفوظة";
+}
 async function saveBehaviorSession() {
   if (!selectedBehaviorClass || !activeUser) return;
   if ((db.students[selectedBehaviorClass] || []).length === 0) { showToast('لا يوجد طلاب.', 'error'); return; }
@@ -3101,7 +3142,8 @@ async function saveBehaviorSession() {
     const today = getOmanLocalDate();
     const key = `${today}_${selectedBehaviorClass}_p${period}`;
     if (!db.behaviors) db.behaviors = {};
-    db.behaviors[key] = { teacher: activeUser.name, className: selectedBehaviorClass, period: parseInt(period), records: { ...currentBehaviorRecord }, timestamp: getTrustedDate().toISOString() };
+    const normalizedBehaviorRecords = Object.fromEntries(Object.entries(currentBehaviorRecord).map(([student, record]) => [student, buildBehaviorRecord(record, getBehaviorTypes(record))]));
+    db.behaviors[key] = { teacher: activeUser.name, className: selectedBehaviorClass, period: parseInt(period), records: normalizedBehaviorRecords, timestamp: getTrustedDate().toISOString() };
     dirtySets.behaviors.add(key);
     const success = await saveSystemDataToCloud();
     if (success) { behaviorDirty = false; behaviorUndoStack = []; document.getElementById('unsavedBehaviorStatusIndicator').textContent = "تم الحفظ"; showToast("تم حفظ السلوكيات!", 'success'); renderBehaviorClassesGrid(); loadSessionBehavior(); }
@@ -3276,7 +3318,7 @@ function renderBehaviorStatsDashboard() {
   const typeCounts = {};
   Object.keys(lbl).forEach(k => typeCounts[k] = 0);
 
-  sessions.forEach(s => { Object.entries(s.records).forEach(([n, o]) => { if (o && o.type && o.type !== 'normal') { typeCounts[o.type] = (typeCounts[o.type] || 0) + 1; const k = `${s.className}::${n}`; if (!map[k]) map[k] = { name: n, className: s.className, totalViolations: 0, typesCount: {}, teachersSet: new Set(), history: [] }; map[k].totalViolations++; map[k].teachersSet.add(s.teacher); const tl = lbl[o.type] || o.type; map[k].typesCount[tl] = (map[k].typesCount[tl] || 0) + 1; map[k].history.push({ date: s.date, period: s.period, teacher: s.teacher, type: tl, note: o.note || '' }); } }); });
+  sessions.forEach(s => { Object.entries(s.records).forEach(([n, record]) => { getBehaviorTypes(record).forEach(type => { typeCounts[type] = (typeCounts[type] || 0) + 1; const k = `${s.className}::${n}`; if (!map[k]) map[k] = { name: n, className: s.className, totalViolations: 0, typesCount: {}, teachersSet: new Set(), history: [] }; map[k].totalViolations++; map[k].teachersSet.add(s.teacher); const tl = lbl[type] || type; map[k].typesCount[tl] = (map[k].typesCount[tl] || 0) + 1; map[k].history.push({ date: s.date, period: s.period, teacher: s.teacher, type: tl, note: type === 'other' ? (record.note || '') : '' }); }); }); });
 
   const behaviorCanvas = document.getElementById('behaviorDistChart');
   if (behaviorCanvas) {
@@ -3378,7 +3420,7 @@ function openStudentBehaviorProfileModal(className, studentName) {
   document.getElementById('modalStudentTitle').innerHTML = `<i class="fa-solid fa-scale-balanced text-teal-400"></i> الملف السلوكي: ${escapeHtml(studentName)}`;
   document.getElementById('modalStudentSubtitle').innerHTML = `الصف: ${ltrHtml(rc)}`;
   const logs = [];
-  if (db.behaviors) Object.entries(db.behaviors).forEach(([k, s]) => { const p = parseAttendanceKey(k); if ((s.className || p.className) !== rc) return; if (s.records && s.records[studentName]) { const o = s.records[studentName]; if (o && o.type && o.type !== 'normal') logs.push({ date: s.date || p.date, period: s.period || p.period, type: o.type, note: o.note || '', teacher: s.teacher || 'معلم', className: rc }); } });
+  if (db.behaviors) Object.entries(db.behaviors).forEach(([k, s]) => { const p = parseAttendanceKey(k); if ((s.className || p.className) !== rc) return; if (s.records && s.records[studentName]) { const o = s.records[studentName]; getBehaviorTypes(o).forEach(type => logs.push({ date: s.date || p.date, period: s.period || p.period, type, note: type === 'other' ? (o.note || '') : '', teacher: s.teacher || 'معلم', className: rc })); } });
   logs.sort((a, b) => new Date(b.date) - new Date(a.date) || b.period - a.period);
   const lbl = { eating: 'الأكل 🍔', talking: 'كلام 🗣️', tools: 'أدوات 🎒', chaos: 'فوضى ⚡', sleeping: 'نوم 💤', homework: 'واجب 📚', other: 'أخرى ⚠️' };
   let html = `<div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-center mb-3"><div class="bg-teal-50 p-3.5 rounded-2xl border border-teal-200"><span class="text-xs font-bold text-teal-700 block">إجمالي المخالفات</span><span class="text-xl font-extrabold">${logs.length}</span></div></div><div class="space-y-2 pt-2"><h5 class="font-extrabold text-xs">السجل:</h5>`;
@@ -3525,12 +3567,12 @@ function renderBehaviorReportsSection() {
     for (let p = 1; p <= 8; p++) {
       const sd = db.behaviors ? db.behaviors[`${td}_${cn}_p${p}`] : null;
       const tn = sd?.teacher || '(غير مسجل)';
-      const iss = Object.entries(sd?.records || {}).filter(([st, o]) => o && o.type && o.type !== 'normal').sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
+      const iss = Object.entries(sd?.records || {}).filter(([st, record]) => getBehaviorTypes(record).length > 0).sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar'));
       const pc = document.createElement('div'); pc.className = 'border border-slate-200 rounded-2xl p-2 bg-slate-50/50 flex flex-col min-h-[150px]';
       pc.innerHTML = `<div class="mb-2 pb-1 border-b text-center bg-teal-50 rounded-xl p-1"><div class="text-[11px] font-extrabold">الحصة ${p}</div><div class="text-[9px] text-slate-500 truncate">(${escapeHtml(tn)})</div></div><div class="flex-grow space-y-1.5 pt-1"></div>`;
       const cd = pc.querySelector('.flex-grow');
       if (iss.length === 0) cd.innerHTML = `<div class="text-[10px] text-slate-400 py-3 text-center">الجميع منضبط 🟢</div>`;
-      else iss.forEach(([n, o]) => { const tl = lbl[o.type] || o.type; const nt = (o.type === 'other' && o.note) ? ` (${o.note})` : ''; cd.innerHTML += `<div class="text-[9.5px] font-bold text-red-600 bg-red-50 p-1.5 rounded-xl border border-red-200/50">• ${escapeHtml(n)}<br><span class="text-[8.5px] text-slate-700 font-normal">[${escapeHtml(tl + nt)}]</span></div>`; });
+      else iss.forEach(([n, record]) => { const labels = getBehaviorTypes(record).map(type => (lbl[type] || type) + (type === 'other' && record.note ? ` (${record.note})` : '')); cd.innerHTML += `<div class="text-[9.5px] font-bold text-red-600 bg-red-50 p-1.5 rounded-xl border border-red-200/50">• ${escapeHtml(n)}<br><span class="text-[8.5px] text-slate-700 font-normal">[${escapeHtml(labels.join('، '))}]</span></div>`; });
       g.appendChild(pc);
     }
   });
@@ -3541,7 +3583,7 @@ function printHorizontalBehaviorReport() {
   const classes = cf === 'all' ? db.classes : [cf];
   const lbl = { normal: 'منضبط', eating: 'الأكل', talking: 'كلام', tools: 'أدوات', chaos: 'فوضى', sleeping: 'نوم', homework: 'واجب', other: 'أخرى' };
   let printHTML = `<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>سلوكيات ${escapeHtml(td)}</title><style>@page{size:A4 landscape;margin:6mm}body{font-family:'Tajawal',sans-serif;direction:rtl;font-size:10px;padding:10px}.header-title{text-align:center;margin-bottom:12px;border-bottom:2px solid #0d9488;padding-bottom:6px}.class-row-card{page-break-inside:avoid;border:2px solid #0d9488;border-radius:8px;margin-bottom:12px;background:#fff}.class-header-bar{padding:6px 12px;background:#0f766e;color:#fff;display:flex;justify-content:space-between;font-weight:bold;font-size:11px}.periods-horizontal-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;padding:6px}.period-cell{border:1.5px solid #ccc;border-radius:6px;padding:4px;min-height:120px;background:#fafafa}.period-title{text-align:center;border-bottom:1px solid #ddd;padding-bottom:3px;margin-bottom:4px;background:#e6fffa;font-weight:bold}.item-violation{font-size:8.5px;font-weight:bold;color:#b91c1c;margin-bottom:3px;padding:2px;border-bottom:1px dashed #fca5a5}</style></head><body><div class="header-title"><h2 style="margin:0;font-size:16px;color:#0f766e">${SCHOOL_NAME} - سلوكيات الطلاب</h2><p style="margin:2px 0 0 0;font-size:11px;color:#555">التاريخ: ${escapeHtml(td)}</p></div>`;
-  classes.forEach(cn => { printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: <span dir="ltr" style="display:inline-block">${escapeHtml(formatClassName(cn))}</span></span><span>التاريخ: ${escapeHtml(td)}</span></div><div class="periods-horizontal-grid">`; for (let p = 1; p <= 8; p++) { const sd = db.behaviors ? db.behaviors[`${td}_${cn}_p${p}`] : null; printHTML += `<div class="period-cell"><div class="period-title">الحصة ${p}<br><small>(${escapeHtml(sd?.teacher || 'غير مسجل')})</small></div>`; const iss = Object.entries(sd?.records || {}).filter(([st, o]) => o && o.type && o.type !== 'normal').sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar')); if (iss.length === 0) printHTML += `<div style="text-align:center;color:#888;font-size:8px;margin-top:15px">منضبطون</div>`; else iss.forEach(([n, o]) => { const lb = lbl[o.type] || o.type; const nt = (o.type === 'other' && o.note) ? ` - ${o.note}` : ''; printHTML += `<div class="item-violation">• ${escapeHtml(n)}<br><span style="color:#333;font-weight:normal">[${escapeHtml(lb + nt)}]</span></div>`; }); printHTML += `</div>`; } printHTML += `</div></div>`; });
+  classes.forEach(cn => { printHTML += `<div class="class-row-card"><div class="class-header-bar"><span>الصف: <span dir="ltr" style="display:inline-block">${escapeHtml(formatClassName(cn))}</span></span><span>التاريخ: ${escapeHtml(td)}</span></div><div class="periods-horizontal-grid">`; for (let p = 1; p <= 8; p++) { const sd = db.behaviors ? db.behaviors[`${td}_${cn}_p${p}`] : null; printHTML += `<div class="period-cell"><div class="period-title">الحصة ${p}<br><small>(${escapeHtml(sd?.teacher || 'غير مسجل')})</small></div>`; const iss = Object.entries(sd?.records || {}).filter(([st, record]) => getBehaviorTypes(record).length > 0).sort((a, b) => String(a[0]).localeCompare(String(b[0]), 'ar')); if (iss.length === 0) printHTML += `<div style="text-align:center;color:#888;font-size:8px;margin-top:15px">منضبطون</div>`; else iss.forEach(([n, record]) => { const labels = getBehaviorTypes(record).map(type => (lbl[type] || type) + (type === 'other' && record.note ? ` - ${record.note}` : '')); printHTML += `<div class="item-violation">• ${escapeHtml(n)}<br><span style="color:#333;font-weight:normal">[${escapeHtml(labels.join('، '))}]</span></div>`; }); printHTML += `</div>`; } printHTML += `</div></div>`; });
   printHTML += `</body></html>`;
   const w = window.open('', '_blank'); if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة.', 'error'); return; }
   w.document.write(printHTML); w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
@@ -3805,8 +3847,8 @@ function updateAdvancedAnalytics() {
     const className = session.className || parsed.className || 'غير محدد';
     const period = Number(session.period || parsed.period || 0);
     Object.entries(session.records).forEach(([student, record]) => {
-      if (!record || typeof record !== 'object' || !record.type || record.type === 'normal') return;
-      daily.get(date).behavior++;
+      if (!record || typeof record !== 'object') return;
+      daily.get(date).behavior += getBehaviorTypes(record).length;
       // السلوكيات تبقى ضمن مخططها المستقل ولا تدخل في مقارنة حالات الحضور الأربع.
     });
   });
@@ -3979,7 +4021,7 @@ function renderAdminOverview() {
       if (!session || !session.records || typeof session.records !== 'object') return;
       const parsed = parseAttendanceKey(key);
       if ((session.date || parsed.date) !== today) return;
-      Object.values(session.records).forEach(record => { if (record && typeof record === 'object' && record.type && record.type !== 'normal') behaviorCount++; });
+      Object.values(session.records).forEach(record => { behaviorCount += getBehaviorTypes(record).length; });
     });
     setText('dashBehaviorToday', behaviorCount.toLocaleString('en-US'));
     const escapeStudents = new Set();
@@ -4162,7 +4204,7 @@ function repSetDomain(domain){
  }
 }
 
-function repRenderReport(d,classes){const domain=repDomain;const allowed=new Set(repGetAllowedReportClasses(domain));const selected=new Set(classes.filter(c=>allowed.has(c)));const p=repPermissions||{};const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const statusFilters=new Set(domain==="attendance"?(Array.isArray(repLastReport?.statuses)?repLastReport.statuses:(repGetSelectedStatusFilters()==="all"?allowedStatuses:repGetSelectedStatusFilters())):[]);const records=domain==="attendance"?(d.attendance||[]):(d.behaviors||[]);const counts={absent:0,late:0,escape:0,outside:0,behavior:0};const rows=[];const seenAbsent=new Set();records.forEach(session=>{const cls=String(session.class_name||"");if(!selected.has(cls))return;Object.entries(session.records||{}).forEach(([student,value])=>{if(domain==="attendance"){const status=String(value&&typeof value==="object"?value.status||"":value);if(!["absent","late","escape","outside"].includes(status)||!allowedStatuses.includes(status)||(!statusFilters.has(status)))return;if(status==="absent"){const absenceKey=[cls,String(student),String(session.date_str||"")].join("\u001f");if(seenAbsent.has(absenceKey))return;seenAbsent.add(absenceKey);}counts[status]++;rows.push({session,student,status,note:""});}else{const data=value&&typeof value==="object"?value:{type:String(value),note:""};if(!data.type||data.type==="normal"||!repGetSelectedBehaviorTypes().includes(String(data.type)))return;counts.behavior++;rows.push({session,student,behavior:String(data.type),note:data.note||""});}});});const summary=document.getElementById("repSummary");if(domain==="attendance"){summary.innerHTML=SA_ATTENDANCE_STATUS.filter(([key])=>allowedStatuses.includes(key)&&statusFilters.has(key)).map(([key,label])=>'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-violet-600")+'">'+counts[key]+'</b></div>').join("")+'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}else{summary.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">إجمالي المخالفات السلوكية</div><b class="text-2xl font-black text-teal-600">'+counts.behavior+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}const results=document.getElementById("repResults");if(!rows.length){results.innerHTML='<div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950">لا توجد حالات مسجلة في الصفوف والفترة الزمنية والحالات المحددة.</div>';return;}const groups={};rows.forEach(row=>{const cls=String(row.session.class_name);(groups[cls]||(groups[cls]=[])).push(row);});results.innerHTML=Object.entries(groups).map(([cls,list])=>'<section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><span class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-graduation-cap text-blue-600"></i> الصف <b dir="ltr">'+escapeHtml(formatClassName(cls))+'</b></span><span class="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">'+list.length+' حالة</span></div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead class="bg-slate-50 text-slate-500 dark:bg-slate-950"><tr><th class="p-3.5">اسم الطالب</th><th class="p-3.5">'+(domain==="attendance"?"حالة الحضور":"نوع المخالفة")+'</th><th class="p-3.5">التاريخ</th><th class="p-3.5">الحصة</th><th class="p-3.5">المعلم الراصد</th><th class="p-3.5">ملاحظات</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">'+list.map(r=>'<tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="p-3.5 font-bold text-slate-800 dark:text-white">'+escapeHtml(r.student)+'</td><td class="p-3.5">'+(domain==="attendance"?( '<span class="inline-block rounded-xl px-3 py-1 text-[11px] font-black '+(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[2]||"bg-slate-200 text-slate-800")+'">'+escapeHtml(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[1]||r.status)+'</span>'):'<span class="inline-block rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">'+escapeHtml(SA_BEHAVIOR_TYPES[r.behavior]||r.behavior)+'</span>')+'</td><td class="whitespace-nowrap p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.date_str||"—")+'</td><td class="p-3.5 text-slate-700 dark:text-slate-300">'+escapeHtml(r.session.period||"—")+'</td><td class="p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.teacher_name||"—")+'</td><td class="whitespace-pre-wrap p-3.5 text-slate-500">'+escapeHtml(r.note||"—")+'</td></tr>').join("")+'</tbody></table></div></section>').join("");}
+function repRenderReport(d,classes){const domain=repDomain;const allowed=new Set(repGetAllowedReportClasses(domain));const selected=new Set(classes.filter(c=>allowed.has(c)));const p=repPermissions||{};const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const statusFilters=new Set(domain==="attendance"?(Array.isArray(repLastReport?.statuses)?repLastReport.statuses:(repGetSelectedStatusFilters()==="all"?allowedStatuses:repGetSelectedStatusFilters())):[]);const records=domain==="attendance"?(d.attendance||[]):(d.behaviors||[]);const counts={absent:0,late:0,escape:0,outside:0,behavior:0};const rows=[];const seenAbsent=new Set();records.forEach(session=>{const cls=String(session.class_name||"");if(!selected.has(cls))return;Object.entries(session.records||{}).forEach(([student,value])=>{if(domain==="attendance"){const status=String(value&&typeof value==="object"?value.status||"":value);if(!["absent","late","escape","outside"].includes(status)||!allowedStatuses.includes(status)||(!statusFilters.has(status)))return;if(status==="absent"){const absenceKey=[cls,String(student),String(session.date_str||"")].join("\u001f");if(seenAbsent.has(absenceKey))return;seenAbsent.add(absenceKey);}counts[status]++;rows.push({session,student,status,note:""});}else{const data=value&&typeof value==="object"?value:{type:String(value),note:""};getBehaviorTypes(data).filter(behavior=>repGetSelectedBehaviorTypes().includes(behavior)).forEach(behavior=>{counts.behavior++;rows.push({session,student,behavior,note:behavior==="other"?(data.note||""):""});});}});});const summary=document.getElementById("repSummary");if(domain==="attendance"){summary.innerHTML=SA_ATTENDANCE_STATUS.filter(([key])=>allowedStatuses.includes(key)&&statusFilters.has(key)).map(([key,label])=>'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-violet-600")+'">'+counts[key]+'</b></div>').join("")+'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}else{summary.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">إجمالي المخالفات السلوكية</div><b class="text-2xl font-black text-teal-600">'+counts.behavior+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}const results=document.getElementById("repResults");if(!rows.length){results.innerHTML='<div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950">لا توجد حالات مسجلة في الصفوف والفترة الزمنية والحالات المحددة.</div>';return;}const groups={};rows.forEach(row=>{const cls=String(row.session.class_name);(groups[cls]||(groups[cls]=[])).push(row);});results.innerHTML=Object.entries(groups).map(([cls,list])=>'<section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><span class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-graduation-cap text-blue-600"></i> الصف <b dir="ltr">'+escapeHtml(formatClassName(cls))+'</b></span><span class="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">'+list.length+' حالة</span></div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead class="bg-slate-50 text-slate-500 dark:bg-slate-950"><tr><th class="p-3.5">اسم الطالب</th><th class="p-3.5">'+(domain==="attendance"?"حالة الحضور":"نوع المخالفة")+'</th><th class="p-3.5">التاريخ</th><th class="p-3.5">الحصة</th><th class="p-3.5">المعلم الراصد</th><th class="p-3.5">ملاحظات</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">'+list.map(r=>'<tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="p-3.5 font-bold text-slate-800 dark:text-white">'+escapeHtml(r.student)+'</td><td class="p-3.5">'+(domain==="attendance"?( '<span class="inline-block rounded-xl px-3 py-1 text-[11px] font-black '+(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[2]||"bg-slate-200 text-slate-800")+'">'+escapeHtml(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[1]||r.status)+'</span>'):'<span class="inline-block rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">'+escapeHtml(SA_BEHAVIOR_TYPES[r.behavior]||r.behavior)+'</span>')+'</td><td class="whitespace-nowrap p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.date_str||"—")+'</td><td class="p-3.5 text-slate-700 dark:text-slate-300">'+escapeHtml(r.session.period||"—")+'</td><td class="p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.teacher_name||"—")+'</td><td class="whitespace-pre-wrap p-3.5 text-slate-500">'+escapeHtml(r.note||"—")+'</td></tr>').join("")+'</tbody></table></div></section>').join("");}
 
 async function repLoadReport(){const p=repPermissions||{};const domain=repDomain;const canRead=domain==="attendance"?p.can_read_attendance:p.can_read_behavior;if(!canRead){showToast("ليس لديك صلاحية عرض السجلات التفصيلية.","error");return;}const allowed=repGetAllowedReportClasses(domain);const classes=repGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){repLastReport=null;showToast("يرجى اختيار صف واحد على الأقل لعرض التقرير.","error");return;}const from=document.getElementById("repFrom").value||"2000-01-01";const to=document.getElementById("repTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}const statusSelection=domain==="attendance"?repGetSelectedStatusFilters():"all";const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const selectedStatuses=domain!=="attendance"||statusSelection==="all"?allowedStatuses:statusSelection;if(domain==="attendance"&&(!Array.isArray(selectedStatuses)||selectedStatuses.some(status=>!allowedStatuses.includes(status)))){showToast("توجد حالة غير مصرح بها ضمن التحديد.","error");return;}if(domain==="attendance"&&!selectedStatuses.length){repLastReport=null;showToast("اختر حالة واحدة على الأقل لعرض التقرير.","error");return;}const body={action:"reports",report_mode:"view",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=selectedStatuses;const box=document.getElementById("repResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ جلب السجلات وتحليلها...</div>';try{const d=await saRequest(body);if(domain!==repDomain)return;repLastReport={...d,domain,classes:[...classes],from,to,statuses:domain==="attendance"?selectedStatuses:[]};repRenderReport(d,classes);}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}
 
@@ -4184,44 +4226,35 @@ async function repGetVerifiedPrintRows(){
   const statusFilters=domain!=="attendance"||statusSelection==="all"?allowedStatuses:(Array.isArray(statusSelection)?statusSelection:[statusSelection]);
   if(domain==="attendance"&&(!statusFilters.length||statusFilters.some(status=>!allowedStatuses.includes(status))))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
   if(domain==="behavior"&&!repGetSelectedBehaviorTypes().length)throw new Error("اختر نوع سلوك واحداً على الأقل.");
-  const verified=await saRequest({
-    action:"reports",
-    report_mode:domain==="attendance"?"print_attendance":"print_behavior",
-    attendance_classes:domain==="attendance"?classes:[],
-    behavior_classes:domain==="behavior"?classes:[],
-    from,
-    to,
-    attendance_status_filters:domain==="attendance"?statusFilters:undefined
-  });
+  const verified=await saRequest({action:"reports",report_mode:domain==="attendance"?"print_attendance":"print_behavior",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to,attendance_status_filters:domain==="attendance"?statusFilters:undefined});
   const sessions=domain==="attendance"?(verified.attendance||[]):(verified.behaviors||[]);
-  const rows=[];
-  const repeatCounts=new Map();
-  const seenAbsences=new Set();
-  const validStatuses=new Set(["absent","late","escape","outside"]);
+  const rows=[],repeatCounts=new Map(),seenAbsences=new Set(),validStatuses=new Set(["absent","late","escape","outside"]);
   sessions.forEach(session=>{
     const className=String(session.class_name||"").trim();
     if(!classes.includes(className))throw new Error("أعاد مصدر البيانات سجلاً من صف غير محدد ("+className+"). أوقفنا الطباعة لمنع خلط كشوف الصفوف.");
     const records=session.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([student,value])=>{
-      let type="",note="";
+      const date=String(session.date_str||"");
       if(domain==="attendance"){
-        type=String(value&&typeof value==="object"?value.status||"":value);
+        const type=String(value&&typeof value==="object"?value.status||"":value);
         if(!validStatuses.has(type)||!allowedStatuses.includes(type)||!statusFilters.includes(type))return;
+        if(type==="absent"){
+          const absenceKey=[className,String(student),date].join("\u001f");
+          if(seenAbsences.has(absenceKey))return;
+          seenAbsences.add(absenceKey);
+        }
+        const countKey=[className,String(student),date,type].join("\u001f");
+        repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
+        rows.push({student:String(student),className,type,note:"",session,countKey});
       }else{
         const item=value&&typeof value==="object"?value:{type:String(value),note:""};
-        type=String(item.type||"");
-        if(!type||type==="normal"||!repGetSelectedBehaviorTypes().includes(type))return;
-        note=String(item.note||"");
+        const selectedTypes=getBehaviorTypes(item).filter(type=>repGetSelectedBehaviorTypes().includes(type));
+        selectedTypes.forEach(type=>{
+          const countKey=[className,String(student),date,type].join("\u001f");
+          repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
+          rows.push({student:String(student),className,type,note:type==="other"?String(item.note||""):"",session,countKey});
+        });
       }
-      const date=String(session.date_str||"");
-      if(domain==="attendance"&&type==="absent"){
-        const absenceKey=[className,String(student),date].join("\u001f");
-        if(seenAbsences.has(absenceKey))return;
-        seenAbsences.add(absenceKey);
-      }
-      const countKey=[className,String(student),date,type].join("\u001f");
-      repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);
-      rows.push({student:String(student),className,type,note,session,countKey});
     });
   });
   rows.forEach(row=>row.count=repeatCounts.get(row.countKey)||1);
@@ -4434,7 +4467,7 @@ function getTeachersActivityRows() {
     const row = ensure(session?.teacher);
     if (!row) return;
     Object.values(session.records || {}).forEach(record => {
-      if (record && typeof record === 'object' && String(record.type || '').trim() && record.type !== 'normal') row.behaviors++;
+      if (record && typeof record === 'object') row.behaviors += getBehaviorTypes(record).length;
     });
   });
   const rows = Array.from(totals.values());

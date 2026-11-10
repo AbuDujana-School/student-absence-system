@@ -40,10 +40,16 @@ Deno.test("attendance report can be narrowed to one permitted status", () => {
   if (Object.keys(filtered).join(",") !== "B") throw new Error("single status filter failed");
   if (Object.keys(filterAttendanceRecordMap(records, ["absent"], "late")).length) throw new Error("unpermitted selected status leaked");
 });
-Deno.test("behavior report excludes normal students and keeps violation details", () => {
-  const records = { A: { type: "normal", note: "" }, B: { type: "eating", note: "داخل الفصل" }, C: { type: "homework", note: "لم يحضر الواجب" } };
+Deno.test("behavior report excludes normal students and keeps legacy and multi-type violations", () => {
+  const records = {
+    A: { type: "normal", types: [], note: "" },
+    B: { type: "eating", note: "داخل الفصل" },
+    C: { type: "homework", note: "لم يحضر الواجب" },
+    D: { type: "eating", types: ["eating", "talking"], note: "" },
+    E: { type: "normal", types: ["chaos"], note: "" }
+  };
   const filtered = filterBehaviorRecordMap(records);
-  if (Object.keys(filtered).join(",") !== "B,C") throw new Error("normal behavior record was not excluded");
+  if (Object.keys(filtered).join(",") !== "B,C,D,E") throw new Error("normal exclusion or multi-type behavior retention failed");
 });
 Deno.test("record filters reject malformed record payloads", () => {
   if (Object.keys(filterAttendanceRecordMap(null, ["absent"])).length) throw new Error("null attendance accepted");

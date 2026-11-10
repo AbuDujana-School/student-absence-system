@@ -21,12 +21,15 @@ Deno.test("attendance events are deduplicated per student, class, date and statu
   ];
   if (countAttendanceIncidents(rows) !== 3) throw new Error("attendance deduplication failed");
 });
-Deno.test("behavior events are deduplicated per student, class, date and type", () => {
+Deno.test("behavior events support multiple types and deduplicate each type per student, class and date", () => {
   const rows = [
-    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"normal"}} },
-    { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"sleeping"}} }
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{types:["eating","talking"],type:"eating"},"طالب ب":{types:[],type:"normal"}} },
+    { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":{types:["eating","talking"],type:"eating"},"طالب ب":{types:["sleeping"],type:"sleeping"}} }
   ];
-  if (countBehaviorIncidents(rows) !== 2) throw new Error("behavior deduplication failed");
+  if (countBehaviorIncidents(rows) !== 3) throw new Error("multiple behavior types were not counted independently");
+  const counts = countBehaviorByType(rows);
+  if (counts.eating !== 1 || counts.talking !== 1 || counts.sleeping !== 1) throw new Error("multi-type behavior breakdown failed");
+  if (countRepeatStudents(rows, "behavior") !== 0) throw new Error("same-day behavior types must not imply a repeat student");
 });
 Deno.test("a team day requires all eight periods for every assigned class in both domains", () => {
   const attendance = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
@@ -101,14 +104,14 @@ Deno.test("coaching metrics count real attendance and behavior types without exp
     { date_str:"2026-11-09", class_name:"1/9", period:2, records:{"طالب أ":"late"} }
   ];
   const behaviorRows = [
-    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"tools"}} },
-    { date_str:"2026-11-09", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ج":{type:"sleeping"}} },
-    { date_str:"2026-11-09", class_name:"1/9", period:2, records:{"طالب أ":{type:"talking"}} }
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{types:["talking","eating"],type:"talking"},"طالب ب":{type:"tools"}} },
+    { date_str:"2026-11-09", class_name:"1/9", period:1, records:{"طالب أ":{types:["talking","eating"],type:"talking"},"طالب ج":{type:"sleeping"}} },
+    { date_str:"2026-11-09", class_name:"1/9", period:2, records:{"طالب أ":{types:["talking","eating"],type:"talking"}} }
   ];
   const a = countAttendanceByStatus(attendanceRows);
   const b = countBehaviorByType(behaviorRows);
   if (a.late !== 2 || a.absent !== 1 || a.escape !== 1) throw new Error("attendance coaching breakdown must deduplicate repeated periods");
-  if (b.talking !== 2 || b.tools !== 1 || b.sleeping !== 1) throw new Error("behavior coaching breakdown must deduplicate repeated periods");
+  if (b.talking !== 2 || b.eating !== 2 || b.tools !== 1 || b.sleeping !== 1) throw new Error("behavior coaching breakdown must count every selected type and deduplicate repeated periods");
   if (countRepeatStudents(attendanceRows, "attendance") !== 1) throw new Error("repeat attendance students must require multiple days");
   if (countRepeatStudents(behaviorRows, "behavior") !== 1) throw new Error("repeat behavior students must require multiple days");
 });
