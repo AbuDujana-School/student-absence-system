@@ -8,10 +8,10 @@ export const COMPETITION_BEHAVIOR_TYPES = ["eating", "talking", "tools", "chaos"
 export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4];
 export const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 const ARABIC_GRADE_NAMES: Array<[RegExp, string]> = [
-  [/التاسع|تاسع/, "9"], [/العاشر|عاشر/, "10"], [/الحادي\\s*عشر|حادي\\s*عشر/, "11"], [/الثاني\\s*عشر|ثاني\\s*عشر/, "12"]
+  [/التاسع|تاسع/, "9"], [/العاشر|عاشر/, "10"], [/الحادي\s*عشر|حادي\s*عشر/, "11"], [/الثاني\s*عشر|ثاني\s*عشر/, "12"]
 ];
 function asIsoDate(value: unknown): string | null {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return null;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(value + "T12:00:00.000Z");
   return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : value;
 }
@@ -21,7 +21,7 @@ function shiftIsoDate(value: string, days: number): string {
 export function gradeForClassName(className: unknown): string | null {
   const value = String(className || "").trim(); if (!value) return null;
   for (const [pattern, grade] of ARABIC_GRADE_NAMES) if (pattern.test(value)) return grade;
-  const parts = value.split(/[\\/_\\s-]+/).filter(Boolean), numericGrades = parts.filter(part => COMPETITION_GRADES.includes(part));
+  const parts = value.split(/[\/_\s-]+/).filter(Boolean), numericGrades = parts.filter(part => COMPETITION_GRADES.includes(part));
   if (numericGrades.length === 1) return numericGrades[0]; if (numericGrades.length > 1) return null;
   return COMPETITION_GRADES.includes(value) ? value : null;
 }
@@ -45,7 +45,7 @@ export function countAttendanceIncidents(rows: CompetitionRow[]): number {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
       const status = typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || "");
-      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.add([cls, date, student, status].join("\\u001f"));
+      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.add([cls, date, student, status].join("\u001f"));
     }
   }
   return unique.size;
@@ -56,7 +56,7 @@ export function countBehaviorIncidents(rows: CompetitionRow[]): number {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
       const type = raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || "");
-      if (COMPETITION_BEHAVIOR_TYPES.includes(type)) unique.add([cls, date, student, type].join("\\u001f"));
+      if (COMPETITION_BEHAVIOR_TYPES.includes(type)) unique.add([cls, date, student, type].join("\u001f"));
     }
   }
   return unique.size;
@@ -65,7 +65,7 @@ export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
   const coverage: CoverageMap = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
-    const keyPeriod = String(row?.record_key || "").match(/_p?(\\d+)$/)?.[1], period = Number(row?.period || keyPeriod || 0);
+    const keyPeriod = String(row?.record_key || "").match(/_p?(\d+)$/)?.[1], period = Number(row?.period || keyPeriod || 0);
     if (!date || !cls || !COMPETITION_REQUIRED_PERIODS.includes(period)) continue;
     if (!coverage.has(date)) coverage.set(date, new Map());
     const byClass = coverage.get(date)!; if (!byClass.has(cls)) byClass.set(cls, new Set()); byClass.get(cls)!.add(period);
