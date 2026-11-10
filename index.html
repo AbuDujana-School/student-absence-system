@@ -2476,6 +2476,33 @@ async function findUserByPinWithRecord(pin) {
   return null;
 }
 
+async function refreshActiveUserPermissions() {
+  const user = activeUser;
+  if (!user || user.type === 'admin') return;
+  try {
+    // Permissions may have changed on another device since this page loaded.
+    // Refresh only the permissions field; never fetch or replace PIN credentials.
+    const { data, error } = await sb.from('teachers')
+      .select('role,permissions')
+      .eq('name', user.name)
+      .maybeSingle();
+    if (error) throw error;
+    if (!data) return;
+    if (user.type === 'custom' ? data.role !== 'custom' : data.role === 'custom') return;
+    const freshPermissions = data.permissions && typeof data.permissions === 'object'
+      ? data.permissions : {};
+    user.permissions = freshPermissions;
+    const localRecord = user.type === 'custom'
+      ? (db.customUsers || []).find(x => x.name === user.name)
+      : (db.teachers || []).find(x => x.name === user.name);
+    if (localRecord) localRecord.permissions = freshPermissions;
+  } catch (error) {
+    // Keep the cached permissions for offline sign-in; server-side Student Affairs
+    // authorization still independently validates access before opening its session.
+    console.warn('Unable to refresh login permissions:', error);
+  }
+}
+
 async function finalizeLoginState() {
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
