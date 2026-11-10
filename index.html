@@ -1901,7 +1901,7 @@ async function saGetVerifiedPrintRows(){
   });
   rows.forEach(row=>row.count=repeatCounts.get(row.countKey)||1);
   rows.sort((a,b)=>String(a.session.date_str||"").localeCompare(String(b.session.date_str||""))||a.className.localeCompare(b.className,"ar")||a.student.localeCompare(b.student,"ar"));
-  return {domain,classes,from:d.from,to:d.to,statuses:statusFilters,rows,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة"),permissions:p};
+  return {domain,classes,from,to,statuses:statusFilters,rows,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة"),permissions:p};
 }
 function saBuildPrintHtml(data){
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
