@@ -5,6 +5,7 @@ import {
   countBehaviorIncidents,
   getSchoolDays,
   getSchoolWeekRange,
+  isCompleteSchoolWeekRange,
   gradeForClassName,
   isTeamDayComplete,
   getSessionCoverage
@@ -27,6 +28,11 @@ Deno.test("school week is Sunday through Thursday", () => {
   if (range.start !== "2026-11-08" || range.end !== "2026-11-12") throw new Error("incorrect school week range");
   const days = getSchoolDays(range.start, range.end);
   if (days.length !== 5 || days[0] !== range.start || days[4] !== range.end) throw new Error("school days must contain five weekdays");
+});
+Deno.test("weekly awards finalize only after the complete Sunday-to-Thursday week", () => {
+  if (!isCompleteSchoolWeekRange("2026-11-08", "2026-11-12")) throw new Error("full school week should finalize");
+  if (isCompleteSchoolWeekRange("2026-11-08", "2026-11-10")) throw new Error("partial week must not award final points");
+  if (isCompleteSchoolWeekRange("2026-11-09", "2026-11-12")) throw new Error("partial start week must not award final points");
 });
 
 Deno.test("attendance incidents deduplicate the same student and status across periods", () => {
