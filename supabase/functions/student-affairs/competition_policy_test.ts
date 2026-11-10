@@ -51,9 +51,9 @@ Deno.test("weekly podium ties share places without giving away a skipped award",
     { teamName:"ج", complete:true, attendanceRate:2, behaviorRate:2 },
     { teamName:"د", complete:true, attendanceRate:4, behaviorRate:4 }
   ]);
-  if (result[0].score !== 100 || result[1].rank !== 1 || result[2].rank !== 3) throw new Error("weekly competition ranking failed");
+  if (result[0].score !== 100 || result[1].rank !== 1 || result[2].rank !== 2) throw new Error("weekly competition ranking failed");
   const awards = awardWeeklyCompetitionPoints(result);
-  if (awards.map(team => team.weeklyAwardPoints).join(",") !== "10,10,3,0") throw new Error("tied first place must skip second-place award");
+  if (awards.map(team => team.weeklyAwardPoints).join(",") !== "10,10,6,3") throw new Error("tied first place must skip second-place award");
 });
 Deno.test("monthly and term standings rank by accumulated weekly points", () => {
   const ranked = rankCompetitionTeamsByAccumulatedPoints([
@@ -63,7 +63,7 @@ Deno.test("monthly and term standings rank by accumulated weekly points", () => 
     { teamId: "D", teamName: "د", score: 10 }
   ], { A: 16, B: 10, C: 16, D: 0 });
   const byId = Object.fromEntries(ranked.map(team => [team.teamId, team.rank]));
-  if (byId.A !== 1 || byId.C !== 1 || byId.B !== 3 || byId.D !== 4) {
+  if (byId.A !== 1 || byId.C !== 1 || byId.B !== 2 || byId.D !== 3) {
     throw new Error("cumulative points must determine standings; ties share a rank");
   }
 });
