@@ -2007,8 +2007,7 @@ function saBuildPrintHtml(data){
   sections+
   '<div class="footer"><span>مُعد الكشف / معلم شؤون الطلاب: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div>'+
   '<div class="print-note">تم استخراج هذا الكشف وفق الصلاحيات المحددة. لحفظه دون طباعة ورقية، اختر «حفظ بتنسيق PDF» من خيارات الطباعة.</div>'+
-  '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script>
-</body></html>';
+  '<script>let __printed=false;function __startPrint(){if(__printed)return;__printed=true;try{window.focus();window.print();}catch(e){}}window.addEventListener("load",function(){const fonts=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1400))]).then(()=>setTimeout(__startPrint,150));});setTimeout(__startPrint,2200);<\/script></body></html>';
 }
 async function saPrint(){
   const p=saReportPermissions||{};
