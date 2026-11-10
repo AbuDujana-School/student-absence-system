@@ -1892,7 +1892,7 @@ async function saLoadReport(){const p=saReportPermissions||{};const domain=saDom
 async function saGetVerifiedPrintRows(){
   const domain=saDomain;
   if(domain!=="attendance"&&domain!=="behavior")throw new Error("نوع التقرير غير صحيح.");
-  const p=saPermissions||{};
+  const p=saReportPermissions||{};
   const permitted=domain==="attendance"?p.can_print_attendance:p.can_print_behavior;
   if(!permitted)throw new Error("ليس لديك صلاحية تصدير هذا الكشف.");
   const allowedClasses=new Set((saGetAllowedReportClasses(domain)||[]).map(c=>String(c).trim()));
