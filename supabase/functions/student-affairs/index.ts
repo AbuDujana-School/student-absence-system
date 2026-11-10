@@ -283,10 +283,9 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   if (period !== "weekly" && allTeamsComplete && finalizedWeekCount > 0) {
     const ordered = [...scored].sort((a: any, b: any) => Number(totalPoints[b.teamId] || 0) - Number(totalPoints[a.teamId] || 0) || Number(b.score || 0) - Number(a.score || 0));
     let rank = 0, previousPoints: number | null = null;
-    for (let index = 0; index < ordered.length; index++) {
-      const team = ordered[index];
+    for (const team of ordered) {
       const points = Number(totalPoints[team.teamId] || 0);
-      if (previousPoints === null || points !== previousPoints) rank = index + 1;
+      if (previousPoints === null || points !== previousPoints) rank += 1;
       team.rank = rank; previousPoints = points;
     }
   }
