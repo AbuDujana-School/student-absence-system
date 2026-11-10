@@ -639,18 +639,29 @@
           <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
-        <div id="saCompetitionPodium" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
+        <div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
+        <section id="saCompetitionOtherRanksSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">المراكز الرابعة وما بعدها؛ لا تُمنح نقاطاً في هذا الأسبوع.</p></div>
+          <div id="saCompetitionOtherRanks" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+        </section>
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور نقاط الفرق خلال الفترة</h4><p class="mt-1 text-[11px] text-slate-500">كل نقطة تظهر بعد اكتمال سجلات الغياب والسلوك لجميع الصفوف التابعة للفريق في ذلك اليوم.</p></div>
-            <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور نقاط الفرق"></canvas></div>
+            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور مؤشر الأداء النسبي</h4><p class="mt-1 text-[11px] text-slate-500">مؤشر للمقارنة بين الفرق خلال أيام الدراسة، وليس رصيد النقاط التراكمي.</p></div>
+            <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور الأداء النسبي للفرق"></canvas></div>
           </section>
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-            <h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-trophy ml-1 text-amber-500"></i> سجل انتصارات الفرق</h4>
-            <p class="mt-1 text-[11px] text-slate-500">عدد الأسابيع التي تصدر فيها كل فريق ضمن الفترة المختارة.</p>
+            <h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-trophy ml-1 text-amber-500"></i> رصيد نقاط التميز</h4>
+            <p class="mt-1 text-[11px] text-slate-500">النقاط المتراكمة من المراكز الأسبوعية: الأول 10، الثاني 6، الثالث 3.</p>
             <div id="saCompetitionWins" class="mt-4 space-y-3"></div>
           </section>
         </div>
+        <section class="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><h4 class="text-sm font-black text-slate-800 dark:text-white">مقارنة أداء الصفوف</h4><p class="mt-1 text-[11px] text-slate-500">متوسط الحالات لكل صف في اليوم الدراسي؛ كل صف له الوزن نفسه دون ترجيح بعدد الطلاب.</p></div>
+            <div class="flex gap-2"><button id="saCompetitionCompareAllBtn" onclick="saSetCompetitionCompareScope('all')" class="rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white">جميع الصفوف</button><button id="saCompetitionCompareOwnBtn" onclick="saSetCompetitionCompareScope('own')" class="rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">صفوف فريقي</button></div>
+          </div>
+          <div id="saCompetitionClassComparison" class="mt-4 space-y-3"></div>
+        </section>
         <section class="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 dark:border-teal-900/60 dark:bg-teal-950/20">
           <div class="flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i><h4 class="text-sm font-black text-slate-800 dark:text-white">ملاحظات متابعة الأداء</h4></div>
           <p class="mt-1 text-[11px] text-slate-500">تُعرض نتائج الفرق المشاركة واسم قائد كل فريق والصفوف التابعة له، دون أسماء الطلاب.</p>
@@ -1607,6 +1618,9 @@ function saSetCompetitionPeriod(period){
     document.getElementById("saCompetitionPodium").innerHTML="";
     document.getElementById("saCompetitionRecommendations").innerHTML="";
     document.getElementById("saCompetitionWins").innerHTML="";
+    document.getElementById("saCompetitionOtherRanksSection")?.classList.add("hidden");
+    document.getElementById("saCompetitionOtherRanks").innerHTML="";
+    document.getElementById("saCompetitionClassComparison").innerHTML="";
     if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
   }
 }
@@ -1646,52 +1660,79 @@ async function saLoadCompetition(){
     if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
   }
 }
+function saSetCompetitionCompareScope(scope){
+  window.saCompetitionCompareScope=scope==="own"?"own":"all";
+  if(saCompetitionData)saRenderCompetition(saCompetitionData);
+}
 function saRenderCompetition(data){
   const status=document.getElementById("saCompetitionStatus");
   const teams=Array.isArray(data?.teams)?data.teams:[];
-  const ownGrades=new Set(Array.isArray(data?.ownGrades)?data.ownGrades.map(String):[]);
+  const ownTeamNames=new Set(Array.isArray(data?.ownGrades)?data.ownGrades.map(String):[]);
   const complete=data?.status==="complete"&&teams.length>0&&teams.every(team=>team.complete&&Number.isFinite(Number(team.score)));
   const weekEnd=data?.from?saDateShift(data.from,4):"";
-  const provisionalWeek=data?.period==="weekly"&&data?.to<weekEnd;
+  const selectedWeekStart=data?.from?saDateShift(data.from,-new Date(data.from+"T12:00:00.000Z").getUTCDay()):"";
+  const provisionalWeek=data?.period==="weekly"&&(data?.to<weekEnd||data?.from!==selectedWeekStart);
   if(status){
-    status.textContent=complete?(provisionalWeek?"اكتملت سجلات الفرق حتى "+data.to+"؛ الترتيب الحالي مؤقت ويتجدد مع تسجيل بقية أيام الأسبوع.":"اكتملت بيانات الفترة المحددة. الترتيب والنقاط مبنيان على السجلات الفعلية."):(data?.message||"النتائج مؤقتة أو غير مكتملة. لن يُعلن ترتيب تنافسي حتى تكتمل سجلات الغياب والسلوك لجميع الصفوف التابعة للفرق المشاركة.");
-    status.classList.toggle("hidden",complete);
-    status.className="rounded-xl border px-4 py-3 text-xs font-bold leading-6 "+(complete?"hidden":"border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200");
+    status.textContent=complete?(provisionalWeek?"الترتيب الحالي مؤقت حتى اكتمال أيام الأسبوع؛ لا تُعتمد نقاط الأسبوع قبل اكتمال الخميس.":"اكتملت بيانات الفترة. الترتيب مبني على متوسط الصفوف المتساوي في الوزن."):(data?.message||"لا تُعلن النتائج النهائية ولا تُمنح النقاط قبل اكتمال رصد الغياب والسلوك لجميع الصفوف المشاركة.");
+    status.classList.toggle("hidden",complete&&!provisionalWeek);
+    status.className="rounded-xl border px-4 py-3 text-xs font-bold leading-6 "+(complete&&!provisionalWeek?"hidden":"border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200");
   }
+  const sorted=[...teams].sort((a,b)=>(Number(a.rank)||999)-(Number(b.rank)||999));
+  const topThree=sorted.filter(team=>Number(team.rank)>=1&&Number(team.rank)<=3);
   const podium=document.getElementById("saCompetitionPodium");
-  podium.innerHTML=teams.length?teams.map(team=>{
-    const rank=Number(team.rank)||0,own=ownGrades.has(String(team.grade));
-    const medal=rank===1?"👑":rank===2?"🥈":rank===3?"🥉":"🏅";
-    const rankText=rank===1?(provisionalWeek?"المتصدر الحالي":"المتصدر"):rank===2?"المركز الثاني":rank===3?"المركز الثالث":rank===4?"المركز الرابع":"بانتظار اكتمال البيانات";
-    const theme=rank===1?"border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30":rank===2?"border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800/70":rank===3?"border-orange-200 bg-orange-50/70 dark:border-orange-900 dark:bg-orange-950/20":"border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900";
-    return '<article class="relative overflow-hidden rounded-2xl border p-4 '+theme+'"><div class="flex items-center justify-between gap-2"><span class="text-[11px] font-black '+(rank===1?"text-amber-700 dark:text-amber-200":"text-slate-600 dark:text-slate-300")+'">'+rankText+'</span><span class="text-2xl">'+medal+'</span></div><h5 class="mt-3 text-base font-black text-slate-900 dark:text-white">'+escapeHtml(team.teamName||team.grade||"فريق")+'</h5><p class="mt-1 text-xs font-bold text-slate-600 dark:text-slate-300">قائد الفريق: '+escapeHtml(team.leaderName||"")+'</p><p class="mt-1 text-[11px] leading-5 text-slate-500">الصفوف: '+(Array.isArray(team.classNames)?team.classNames.map(escapeHtml).join("، "):"—")+'</p>'+(own?'<span class="mt-1 inline-flex rounded-full bg-teal-100 px-2 py-1 text-[10px] font-black text-teal-800 dark:bg-teal-950 dark:text-teal-200">فريقك</span>':'')+'<div class="mt-3 flex items-end justify-between gap-2"><div><div class="text-[10px] font-bold text-slate-500">مجموع النقاط</div><strong class="text-2xl font-black tabular-nums text-slate-900 dark:text-white">'+(team.score!==null&&team.score!==undefined&&Number.isFinite(Number(team.score))?Number(team.score).toFixed(1):"—")+'</strong><span class="text-[10px] text-slate-500"> / 100</span></div><div class="text-left text-[10px] leading-5 text-slate-500">'+(team.complete?('حضور '+Number(team.attendancePoints||0).toFixed(1)+' / 50<br>سلوك '+Number(team.behaviorPoints||0).toFixed(1)+' / 50'):"بيانات غير مكتملة")+'</div></div></article>';
-  }).join(""):'<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لم تتم إضافة فرق إلى سباق التميز بعد.</div>';
-  const wins=document.getElementById("saCompetitionWins");
-  const weeklyWins=data?.weeklyWins||{};
-  const maxWins=Math.max(0,...teams.map(team=>Number(weeklyWins[team.teamId]||0)));
-  wins.innerHTML=teams.map(team=>{
-    const count=Number(weeklyWins[team.teamId]||0),own=ownGrades.has(String(team.grade)),mostWins=maxWins>0&&count===maxWins;
-    return '<div class="flex items-center justify-between gap-3 rounded-xl border '+(mostWins?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-2.5"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(own?'<i class="fa-solid fa-flag text-teal-600 ml-1"></i>':'')+escapeHtml(team.teamName||team.grade)+(mostWins?' <span class="mr-1 text-amber-600">👑 الأكثر تتويجاً</span>':'')+'</span><strong class="text-sm font-black tabular-nums text-amber-600">'+count+' <span class="text-[10px]">أسبوع</span></strong></div>';
+  const podiumOrder=[topThree.find(t=>Number(t.rank)===2),topThree.find(t=>Number(t.rank)===1),topThree.find(t=>Number(t.rank)===3)].filter(Boolean);
+  const podiumStyle={1:{height:"md:min-h-[300px]",border:"border-amber-300 bg-gradient-to-b from-amber-50 to-white dark:from-amber-950/40 dark:to-slate-900",medal:"👑",label:"المركز الأول",text:"text-amber-700 dark:text-amber-200",order:"md:order-2"},2:{height:"md:min-h-[260px]",border:"border-slate-300 bg-gradient-to-b from-slate-100 to-white dark:from-slate-800 dark:to-slate-900",medal:"🥈",label:"المركز الثاني",text:"text-slate-600 dark:text-slate-200",order:"md:order-1"},3:{height:"md:min-h-[230px]",border:"border-orange-200 bg-gradient-to-b from-orange-50 to-white dark:from-orange-950/30 dark:to-slate-900",medal:"🥉",label:"المركز الثالث",text:"text-orange-700 dark:text-orange-200",order:"md:order-3"}};
+  podium.innerHTML=podiumOrder.length?podiumOrder.map(team=>{
+    const rank=Number(team.rank),style=podiumStyle[rank],own=ownTeamNames.has(String(team.teamName||team.grade));
+    const points=data.period==="weekly"?team.weeklyAwardPoints:(data.weeklyPoints?.[team.teamId]||0);
+    const pointLabel=data.period==="weekly"?"نقاط هذا الأسبوع":"نقاط التميز في الفترة";
+    const classes=(Array.isArray(team.classNames)?team.classNames:[]);
+    return '<article class="relative flex flex-col justify-between overflow-hidden rounded-[1.6rem] border-2 p-5 shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-xl '+style.height+' '+style.border+' '+style.order+'">'+
+      '<div><div class="flex items-center justify-between"><span class="rounded-full bg-white/80 px-3 py-1.5 text-[11px] font-black '+style.text+' dark:bg-slate-900/70">'+style.label+'</span><span class="text-4xl">'+style.medal+'</span></div>'+
+      '<div class="mt-4 text-center"><h3 class="text-xl font-black leading-tight text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||"قائد الفريق")+'</h3><p class="mt-1 text-xs font-bold text-slate-500">قائد '+escapeHtml(team.teamName||"الفريق")+'</p>'+
+      (own?'<span class="mt-2 inline-flex rounded-full bg-teal-100 px-3 py-1 text-[10px] font-black text-teal-800 dark:bg-teal-950 dark:text-teal-200">فريقك</span>':"")+'</div>'+
+      '<div class="mt-4 border-t border-slate-200/70 pt-3 dark:border-slate-700"><div class="mb-2 text-center text-[10px] font-black text-slate-500">الصفوف التي يشرف عليها</div><div class="flex flex-wrap justify-center gap-1.5">'+(classes.length?classes.map(c=>'<span class="rounded-lg bg-white/90 px-2.5 py-1.5 text-[11px] font-black text-slate-700 shadow-sm dark:bg-slate-800 dark:text-slate-100">'+escapeHtml(formatClassName(c))+'</span>').join(""):'<span class="text-xs text-slate-400">—</span>')+'</div></div></div>'+
+      '<div class="mt-5 rounded-2xl bg-white/80 p-3 text-center shadow-sm dark:bg-slate-950/50"><div class="text-[10px] font-bold text-slate-500">'+pointLabel+'</div><div class="mt-1 text-3xl font-black tabular-nums '+style.text+'">'+(points===null||points===undefined?"—":Number(points))+'</div><div class="mt-1 text-[10px] font-bold text-slate-400">'+(data.period==="weekly"&&points===null?"تعتمد بعد اكتمال الأسبوع":"نقطة")+'</div></div></article>';
+  }).join(""):'<div class="col-span-full rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500">لا توجد نتائج مكتملة للعرض على منصة التتويج حالياً.</div>';
+  const other=sorted.filter(team=>!topThree.includes(team));
+  const otherSection=document.getElementById("saCompetitionOtherRanksSection"),otherContainer=document.getElementById("saCompetitionOtherRanks");
+  otherSection.classList.toggle("hidden",other.length===0);
+  otherContainer.innerHTML=other.map(team=>{
+    const rank=Number(team.rank)||0,classes=(Array.isArray(team.classNames)?team.classNames:[]),otherPoints=data.period==="weekly"?0:Number(data.weeklyPoints?.[team.teamId]||0);
+    return '<div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3"><div class="min-w-0 flex-1"><div class="flex flex-wrap items-center gap-2"><span class="rounded-lg bg-slate-100 px-2.5 py-1 text-[11px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-200">'+(rank?"المركز "+rank:"بانتظار اكتمال البيانات")+'</span><strong class="text-sm font-black text-slate-800 dark:text-white">'+escapeHtml(team.leaderName||"—")+'</strong><span class="text-[11px] font-bold text-slate-500">'+escapeHtml(team.teamName||"")+'</span></div><p class="mt-1 text-[11px] text-slate-500">الصفوف: '+classes.map(c=>escapeHtml(formatClassName(c))).join("، ")+'</p></div><div class="min-w-[70px] text-center"><strong class="text-lg font-black tabular-nums text-slate-500">'+otherPoints+'</strong><div class="text-[10px] text-slate-400">'+(data.period==="weekly"?"نقطة هذا الأسبوع":"نقاط الفترة") +'</div></div></div>';
   }).join("");
+  const wins=document.getElementById("saCompetitionWins"),pointsMap=data?.weeklyPoints||{},winsMap=data?.weeklyWins||{};
+  wins.innerHTML=sorted.map(team=>{
+    const points=Number(pointsMap[team.teamId]||0),winsCount=Number(winsMap[team.teamId]||0);
+    const max=Math.max(0,...Object.values(pointsMap).map(Number)),leader=max>0&&points===max;
+    return '<div class="rounded-xl border '+(leader?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-3"><div class="flex items-center justify-between gap-2"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(leader?'👑 ':"")+escapeHtml(team.leaderName||team.teamName)+'</span><strong class="text-lg font-black tabular-nums text-amber-600">'+points+' <span class="text-[10px]">نقطة</span></strong></div><div class="mt-1 text-[10px] text-slate-500">'+escapeHtml(team.teamName||"")+' · '+winsCount+' مرات في المركز الأول</div></div>';
+  }).join("");
+  const compareAll=document.getElementById("saCompetitionCompareAllBtn"),compareOwn=document.getElementById("saCompetitionCompareOwnBtn");
+  const scope=window.saCompetitionCompareScope||"all";
+  if(compareAll&&compareOwn){compareAll.className=scope==="all"?"rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white":"rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700";compareOwn.className=scope==="own"?"rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white":"rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700";}
+  const classRows=(Array.isArray(data?.classComparison)?data.classComparison:[]).filter(item=>scope==="all"||ownTeamNames.has(String(item.teamName)));
+  const comparison=document.getElementById("saCompetitionClassComparison");
+  const maxAttendance=Math.max(1,...classRows.map(x=>Number(x.attendanceRate)||0)),maxBehavior=Math.max(1,...classRows.map(x=>Number(x.behaviorRate)||0));
+  comparison.innerHTML=classRows.length?classRows.map(item=>{
+    const a=Number(item.attendanceRate)||0,b=Number(item.behaviorRate)||0;
+    const aWidth=Math.min(100,a/maxAttendance*100),bWidth=Math.min(100,b/maxBehavior*100);
+    return '<article class="rounded-xl border border-white bg-white/90 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><strong class="text-sm font-black text-slate-800 dark:text-white">صف '+escapeHtml(formatClassName(item.className))+'</strong><div class="mt-0.5 text-[10px] text-slate-500">'+escapeHtml(item.teamName||"")+' · '+escapeHtml(item.leaderName||"")+'</div></div><span class="rounded-lg '+(item.complete?'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200':'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200')+' px-2 py-1 text-[10px] font-black">'+(item.complete?'مكتمل':'غير مكتمل')+'</span></div>'+
+      '<div class="space-y-2"><div><div class="mb-1 flex justify-between text-[10px] font-bold"><span class="text-rose-600">الغياب والانضباط</span><span class="tabular-nums text-slate-600 dark:text-slate-300">'+(item.complete?a.toFixed(2):"—")+' حالة / صف / يوم</span></div><div class="h-2 overflow-hidden rounded-full bg-rose-100 dark:bg-rose-950"><div class="h-full rounded-full bg-rose-500 transition-all duration-700" style="width:'+(item.complete?aWidth:0)+'%"></div></div></div>'+
+      '<div><div class="mb-1 flex justify-between text-[10px] font-bold"><span class="text-violet-600">السلوكيات السلبية</span><span class="tabular-nums text-slate-600 dark:text-slate-300">'+(item.complete?b.toFixed(2):"—")+' حالة / صف / يوم</span></div><div class="h-2 overflow-hidden rounded-full bg-violet-100 dark:bg-violet-950"><div class="h-full rounded-full bg-violet-500 transition-all duration-700" style="width:'+(item.complete?bWidth:0)+'%"></div></div></div></div></article>';
+  }).join(""):'<div class="rounded-xl border border-dashed border-indigo-200 bg-white/70 p-5 text-center text-xs font-bold text-slate-500 dark:border-indigo-900 dark:bg-slate-900">لا توجد بيانات صفوف مكتملة للمقارنة في الفترة المحددة.</div>';
   const recommendations=document.getElementById("saCompetitionRecommendations");
-  const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownGrades.has(String(item.grade)));
-  const completeClasses=ownClasses.filter(item=>item.complete&&Number.isFinite(Number(item.attendanceRate))&&Number.isFinite(Number(item.behaviorRate)));
-  if(!completeClasses.length){
-    recommendations.innerHTML='<div class="rounded-xl border border-dashed border-teal-200 bg-white/70 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-300">'+(ownGrades.size?'ستظهر التوصيات بعد اكتمال سجلات الغياب والسلوك لجميع شعب فريقك خلال الفترة المحددة.':'تعرض صلاحية سباق التميز ترتيب المراحل ونقاطها ومخططاتها الإجمالية فقط، دون تفاصيل الشعب أو الطلاب.')+'</div>';
-  }else{
-    const lines=[];
-    for(const grade of ownGrades){
-      const group=completeClasses.filter(item=>String(item.grade)===grade);
-      if(!group.length)continue;
-      const worstAttendance=[...group].sort((a,b)=>b.attendanceRate-a.attendanceRate)[0];
-      const worstBehavior=[...group].sort((a,b)=>b.behaviorRate-a.behaviorRate)[0];
-      if(worstAttendance&&Number(worstAttendance.attendanceRate)>0)lines.push('راجع شعبة <b dir="ltr">'+escapeHtml(formatClassName(worstAttendance.className))+'</b>؛ لديها أعلى معدل لمخالفات الحضور في فريق '+saCompetitionGradeLabel(grade)+' ('+Number(worstAttendance.attendanceRate).toFixed(1)+' لكل 1000 يوم-طالب).');
-      if(worstBehavior&&Number(worstBehavior.behaviorRate)>0)lines.push('امنح متابعة إضافية لشعبة <b dir="ltr">'+escapeHtml(formatClassName(worstBehavior.className))+'</b>؛ لديها أعلى معدل للمخالفات السلوكية ('+Number(worstBehavior.behaviorRate).toFixed(1)+' لكل 1000 يوم-طالب).');
-    }
-    recommendations.innerHTML=lines.length?lines.map((line,index)=>'<div class="flex items-start gap-2 rounded-xl border border-teal-100 bg-white p-3 text-xs leading-6 text-slate-700 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-200"><span class="mt-0.5 text-amber-500">'+(index+1)+'.</span><span>'+line+'</span></div>').join(""):'<div class="rounded-xl bg-white p-3 text-xs font-bold text-teal-800 dark:bg-slate-900 dark:text-teal-200">ممتاز! لم تسجل معدلات مخالفات في الشعب المكتملة ضمن الفترة المحددة.</div>';
+  const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownTeamNames.has(String(item.teamName||item.grade)));
+  const ready=ownClasses.filter(item=>item.complete&&Number.isFinite(Number(item.attendanceRate))&&Number.isFinite(Number(item.behaviorRate)));
+  if(!ready.length)recommendations.innerHTML='<div class="rounded-xl border border-dashed border-teal-200 bg-white/70 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-300">'+(ownTeamNames.size?'ستظهر قراءة أداء صفوف فريقك بعد اكتمال الرصد لجميع الأيام والحصص.':'هذه صلاحية مشاهدة إجمالية؛ لا يوجد فريق مشارك مرتبط بحسابك.')+'</div>';
+  else{
+    const highestA=[...ready].sort((a,b)=>b.attendanceRate-a.attendanceRate)[0],highestB=[...ready].sort((a,b)=>b.behaviorRate-a.behaviorRate)[0];
+    const notes=[];
+    if(highestA&&Number(highestA.attendanceRate)>0)notes.push('يحتاج صف <b dir="ltr">'+escapeHtml(formatClassName(highestA.className))+'</b> إلى متابعة أكبر في الغياب والانضباط.');
+    if(highestB&&Number(highestB.behaviorRate)>0)notes.push('يحتاج صف <b dir="ltr">'+escapeHtml(formatClassName(highestB.className))+'</b> إلى متابعة أكبر في السلوكيات.');
+    recommendations.innerHTML=notes.length?notes.map((line,i)=>'<div class="rounded-xl border border-teal-100 bg-white p-3 text-xs leading-6 text-slate-700 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-200">'+(i+1)+'. '+line+'</div>').join(""):'<div class="rounded-xl bg-white p-3 text-xs font-bold text-teal-800 dark:bg-slate-900 dark:text-teal-200">أداء ممتاز؛ لا توجد حالات مسجلة في صفوف فريقك ضمن الفترة المكتملة.</div>';
   }
   const chartTitle=document.getElementById("saCompetitionChartTitle");
-  if(chartTitle){const title=saCompetitionPeriod==="weekly"?"تطور نقاط الفرق خلال أيام الأسبوع":saCompetitionPeriod==="monthly"?"تطور نقاط الفرق خلال الشهر":"تطور نقاط الفرق خلال الفصل الدراسي";chartTitle.innerHTML='<i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> '+title;}
+  if(chartTitle){const title=saCompetitionPeriod==="weekly"?"تطور مؤشر الأداء النسبي خلال الأسبوع":saCompetitionPeriod==="monthly"?"تطور مؤشر الأداء النسبي خلال الشهر":"تطور مؤشر الأداء النسبي خلال الفصل";chartTitle.innerHTML='<i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> '+title;}
   const canvas=document.getElementById("saCompetitionChart");
   if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
   if(canvas&&typeof Chart!=="undefined"){
