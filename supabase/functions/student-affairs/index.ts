@@ -92,7 +92,7 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   }
   return null;
 }
-async function permissionsFor(p: { type: string; name: string }) {
+async function permissionsFor(p: { type: string; name: string }, strictCompetition = false) {
   if (p.type === "admin") {
     const { data: classes } = await db.from("classes").select("name");
     const all = (classes || []).map((x: any) => x.name);
@@ -105,7 +105,7 @@ async function permissionsFor(p: { type: string; name: string }) {
     allowed_classes: legacy,
     allowed_attendance_classes: Array.isArray(data?.allowed_attendance_classes) ? data.allowed_attendance_classes : legacy,
     allowed_behavior_classes: Array.isArray(data?.allowed_behavior_classes) ? data.allowed_behavior_classes : legacy,
-    attendance_statuses: Array.isArray(data?.attendance_statuses) ? data.attendance_statuses : ["absent", "late", "escape", "outside"],
+    attendance_statuses: Array.isArray(data?.attendance_statuses) ? data.attendance_statuses : (strictCompetition ? [] : ["absent", "late", "escape", "outside"]),
     can_read_attendance: data?.can_read_attendance === true,
     can_read_behavior: data?.can_read_behavior === true,
     can_view_analytics: data?.can_view_analytics === true,
@@ -407,7 +407,7 @@ async function handle(req: Request) {
     return reply(200, { ok: true, permissions: row });
   }
   if (body?.action === "competition") {
-    const permissions = await permissionsFor(p);
+    const permissions = await permissionsFor(p, true);
     try {
       const snapshot = await buildCompetitionSnapshot(p, permissions, body.from, body.to, body.period);
       return reply(200, snapshot);
