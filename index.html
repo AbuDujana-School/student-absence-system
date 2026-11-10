@@ -1582,7 +1582,16 @@ function saSelectAllReportClasses(check){document.querySelectorAll(".sa-report-c
 function saQuickSelectClass(grade){const target=String(grade);document.querySelectorAll(".sa-report-class-chk").forEach(el=>{const raw=String(el.value||"").trim();const slash=raw.split("/").pop().trim().match(/^(9|10|11|12)$/);const dash=raw.match(/^(?:.*[- ])(9|10|11|12)$/);const arabic=raw.match(/التاسع|العاشر|الحادي عشر|الثاني عشر/);const map={"التاسع":"9","العاشر":"10","الحادي عشر":"11","الثاني عشر":"12"};const parsed=slash?.[1]||dash?.[1]||map[arabic?.[0]]||"";el.checked=parsed===target;});saUpdateSelectedClassCount();}
 function saUpdateSelectedClassCount(){const count=saGetSelectedReportClasses().length;const el=document.getElementById("saSelectedClassesCount");if(el)el.textContent=count+" صفوف";}
 function saGetAllowedReportClasses(domain=saDomain){const p=saReportPermissions||{};const list=domain==="attendance"?(p.allowed_attendance_classes||p.allowed_classes||[]):(p.allowed_behavior_classes||p.allowed_classes||[]);return Array.isArray(list)?sortClassesList(list.map(String)):[];}
-function saGetSelectedReportClasses(){const allowed=saGetAllowedReportClasses();const checks=Array.from(document.querySelectorAll(".sa-report-class-chk:checked")).map(el=>String(el.value));if(document.getElementById("saReportClassesContainer"))return [...new Set(checks)].filter(c=>allowed.includes(c));const legacy=document.getElementById("saReportClass")?.value;return legacy==="all"?allowed:allowed.filter(c=>c===legacy);}
+function saGetSelectedReportClasses(domain=saDomain){
+  const allowed=saGetAllowedReportClasses(domain);
+  const container=document.getElementById("saReportClassesContainer");
+  if(container){
+    const checks=Array.from(container.querySelectorAll(".sa-report-class-chk:checked")).map(el=>String(el.value||"").trim());
+    return [...new Set(checks)].filter(c=>allowed.includes(c));
+  }
+  const legacy=document.getElementById("saReportClass")?.value;
+  return legacy==="all"?allowed:allowed.filter(c=>c===legacy);
+}
 function saPopulateReportClasses(){const allowed=saGetAllowedReportClasses();const container=document.getElementById("saReportClassesContainer");if(container){if(!allowed.length){container.innerHTML='<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700">لا توجد صفوف مخصصة لك في هذا القسم.</div>';}else{container.innerHTML=sortClassesList(allowed).map(c=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"><input type="checkbox" class="sa-report-class-chk h-4 w-4 accent-blue-600" value="'+escapeHtml(c)+'" checked onchange="saUpdateSelectedClassCount()"><span dir="ltr">'+escapeHtml(formatClassName(c))+'</span></label>').join("");}}const legacy=document.getElementById("saReportClass");if(legacy){legacy.innerHTML='<option value="all">جميع الصفوف المصرح بها</option>'+sortClassesList(allowed).map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");legacy.value="all";}saUpdateSelectedClassCount();}
 function saSetDomain(domain){const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();if(canRead)saLoadReport();else{document.getElementById("saSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}} 
 function saCanViewCompetition(){const p=saReportPermissions||{};return saSession?.principal?.type==="admin"||p.can_view_competition===true;}
@@ -1839,33 +1848,35 @@ async function saLoadReport(){const p=saReportPermissions||{};const domain=saDom
   return count+" مرات";
 }
 async function saGetVerifiedPrintRows(){
-  const d=saLastReport;
-  if(!d)throw new Error("يرجى عرض السجلات أولاً.");
-  const domain=d.domain||saDomain;
+  const domain=saDomain;
   if(domain!=="attendance"&&domain!=="behavior")throw new Error("نوع التقرير غير صحيح.");
   const p=saReportPermissions||{};
   const permitted=domain==="attendance"?p.can_print_attendance:p.can_print_behavior;
   if(!permitted)throw new Error("ليس لديك صلاحية تصدير هذا الكشف.");
-  const allowedClasses=new Set((saGetAllowedReportClasses(domain)||[]).map(String));
-  const requestedClasses=Array.isArray(d.classes)?d.classes.map(c=>String(c).trim()):[];
-  const classes=[...new Set(requestedClasses)];
-  if(!classes.length)throw new Error("لا توجد صفوف محددة في هذا التقرير.");
-  if(classes.some(c=>!c||!allowedClasses.has(c)))throw new Error("تغير نطاق الصفوف أو يتضمن التقرير صفاً غير مصرح به. أعد تحميل السجلات قبل الطباعة.");
-  const statusSelection=Array.isArray(d.statuses)?d.statuses:(d.status&&d.status!=="all"?[d.status]:null);const statusFilters=statusSelection||((p.attendance_statuses||["absent","late","escape","outside"]).slice());
+  const allowedClasses=new Set((saGetAllowedReportClasses(domain)||[]).map(c=>String(c).trim()));
+  const classes=[...new Set(saGetSelectedReportClasses(domain).map(c=>String(c).trim()))];
+  if(!classes.length)throw new Error("حدد صفاً واحداً على الأقل من مربعات الصفوف قبل الطباعة.");
+  if(classes.some(c=>!c||!allowedClasses.has(c)))throw new Error("يتضمن التحديد صفاً غير مصرح به. حدّث الصفحة وأعد اختيار الصفوف.");
+  const from=document.getElementById("saFrom")?.value||"2000-01-01";
+  const to=document.getElementById("saTo")?.value||"2100-12-31";
+  if(from>to)throw new Error("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.");
+  const statusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";
+  const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
+  const statusFilters=domain!=="attendance"||statusSelection==="all"?allowedStatuses:(Array.isArray(statusSelection)?statusSelection:[statusSelection]);
+  if(domain==="attendance"&&(!statusFilters.length||statusFilters.some(status=>!allowedStatuses.includes(status))))throw new Error("اختر حالة غياب مصرحاً بها واحدة على الأقل.");
   const verified=await saRequest({
     action:"reports",
     report_mode:domain==="attendance"?"print_attendance":"print_behavior",
     attendance_classes:domain==="attendance"?classes:[],
     behavior_classes:domain==="behavior"?classes:[],
-    from:d.from,
-    to:d.to,
+    from,
+    to,
     attendance_status_filters:domain==="attendance"?statusFilters:undefined
   });
   const sessions=domain==="attendance"?(verified.attendance||[]):(verified.behaviors||[]);
   const rows=[];
   const repeatCounts=new Map();
   const validStatuses=new Set(["absent","late","escape","outside"]);
-  const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
   sessions.forEach(session=>{
     const className=String(session.class_name||"").trim();
     if(!classes.includes(className))throw new Error("أعاد مصدر البيانات سجلاً من صف غير محدد ("+className+"). أوقفنا الطباعة لمنع خلط كشوف الصفوف.");
@@ -1889,11 +1900,12 @@ async function saGetVerifiedPrintRows(){
   });
   rows.forEach(row=>row.count=repeatCounts.get(row.countKey)||1);
   rows.sort((a,b)=>String(a.session.date_str||"").localeCompare(String(b.session.date_str||""))||a.className.localeCompare(b.className,"ar")||a.student.localeCompare(b.student,"ar"));
-  return {domain,classes,from:d.from,to:d.to,statuses:statusFilters,rows,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة"),permissions:p};
+  return {domain,classes,from,to,statuses:statusFilters,rows,schoolName:String(SCHOOL_NAME||"مدرسة أبو دجانة"),permissions:p};
 }
 function saBuildPrintHtml(data){
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const {domain,classes,from,to,statuses,rows,schoolName}=data;
+  const classLabel=classes.length===1?"الصف: "+formatClassName(classes[0]):"الصفوف: "+classes.map(formatClassName).join("، ");
   const dateLabel=new Date().toLocaleDateString("ar-OM");
   const attendanceOrder=[
     {key:"escape",title:"🚨 كشف حالات التسرب",bg:"#ffe4e6",color:"#9f1239",badge:"#f43f5e"},
@@ -1940,7 +1952,7 @@ function saBuildPrintHtml(data){
   '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">'+
   '<style>@page{size:A4 landscape;margin:11mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;padding:8px;color:#0f172a;background:#fff;font-size:11px;direction:rtl}.header{text-align:center;border-bottom:3px double #0284c7;padding:0 0 12px;margin-bottom:14px}.header h1{font-size:22px;font-weight:900;color:#0369a1;margin:0}.header h2{font-size:15px;font-weight:800;color:#334155;margin:5px 0 0} .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:10px 14px;margin-bottom:18px;border:1px solid #cbd5e1;border-radius:9px;background:#f8fafc;font-size:10px;font-weight:800}.class-label{display:inline-block;min-width:58px;padding:2px 5px;text-align:center;direction:ltr;unicode-bidi:isolate;white-space:nowrap}.category{margin:0 0 22px;break-inside:auto;page-break-inside:auto}.category-title{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;margin-bottom:8px;border:1px solid;border-radius:8px;font-size:13px;font-weight:900;break-after:avoid;page-break-after:avoid}.category-title .count-badge{color:#fff;padding:3px 11px;border-radius:14px;font-size:10px;white-space:nowrap}.behavior-title{background:#f0fdf4;color:#166534;border-color:#bbf7d0}.behavior-badge{background:#16a34a} .category table{width:100%;border-collapse:collapse;table-layout:fixed;margin:0 0 6px}.category .class-cell{min-width:96px;width:15%;white-space:nowrap;text-align:center;direction:ltr;unicode-bidi:isolate;font-weight:900;font-size:11px}.category thead{display:table-header-group}.category th,.category td{border:1px solid #cbd5e1;padding:7px 8px;font-size:10px;vertical-align:middle;overflow-wrap:anywhere}.category th{background:#f1f5f9;color:#0f172a;text-align:center;font-weight:900;white-space:nowrap}.category tbody tr:nth-child(even){background:#f8fafc}.category tr{break-inside:avoid;page-break-inside:avoid}.center{text-align:center}.nowrap{white-space:nowrap}.strong{font-weight:900;font-size:12px}.repeat-color{color:#1e293b}.repeat-blue{color:#2563eb}.behavior-type{color:#991b1b;font-weight:900}.notes{font-size:9px;white-space:pre-wrap}.empty,.empty-cell{text-align:center;padding:28px;color:#64748b;font-weight:800}.footer{display:flex;justify-content:space-between;gap:25px;margin-top:35px;padding:0 20px;font-size:11px;font-weight:900;break-inside:avoid}.footer span{flex:1}.footer span:last-child{text-align:left}.print-note{margin-top:12px;text-align:center;color:#64748b;font-size:9px}@media print{body{padding:0}.category-title,.category th,.category tbody tr:nth-child(even){print-color-adjust:exact;-webkit-print-color-adjust:exact}}</style></head><body>'+
   '<header class="header"><h1>'+esc(schoolName)+'</h1><h2>'+esc(domain==="attendance"?"كشف متابعة وتفريغ حالات الغياب والتأخر والتسرب والخروج":"كشف متابعة المخالفات السلوكية للطلاب")+'</h2></header>'+
-  '<div class="meta"><span><b>الصفوف المشمولة:</b> '+classes.map(c=>'<bdi dir="ltr" class="class-label">'+esc(formatClassName(c))+'</bdi>').join("، ")+'</span><span><b>الفترة الزمنية:</b> من '+esc(from||"—")+' إلى '+esc(to||"—")+'</span><span>'+esc(statusText)+'</span><span><b>تاريخ الاستخراج:</b> '+esc(dateLabel)+'</span><span><b>إجمالي السجلات:</b> '+rows.length+'</span></div>'+
+  '<div class="meta"><span><b>الصفوف المشمولة:</b> '+esc(classLabel)+'</span><span><b>الفترة الزمنية:</b> من '+esc(from||"—")+' إلى '+esc(to||"—")+'</span><span>'+esc(statusText)+'</span><span><b>تاريخ الاستخراج:</b> '+esc(dateLabel)+'</span><span><b>إجمالي السجلات:</b> '+rows.length+'</span></div>'+
   sections+
   '<div class="footer"><span>مُعد الكشف / معلم شؤون الطلاب: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div>'+
   '<div class="print-note">تم استخراج هذا الكشف وفق الصلاحيات المحددة. لحفظه دون طباعة ورقية، اختر «حفظ بتنسيق PDF» من خيارات الطباعة.</div>'+
@@ -1948,8 +1960,8 @@ function saBuildPrintHtml(data){
 }
 async function saPrint(){
   const p=saReportPermissions||{};
-  const domain=saLastReport?.domain||saDomain;
-  if(!saLastReport){showToast("يرجى عرض السجلات أولاً قبل الطباعة.","error");return;}
+  const domain=saDomain;
+  if(!(domain==="attendance"||domain==="behavior")){showToast("نوع التقرير غير صحيح.","error");return;}
   if(!(domain==="attendance"?p.can_print_attendance:p.can_print_behavior)){showToast("ليس لديك صلاحية طباعة هذا الكشف.","error");return;}
   const w=window.open("about:blank","_blank");
   if(!w){showToast("يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.","error");return;}
