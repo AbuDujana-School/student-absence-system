@@ -1,7 +1,5 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
-import { authorizeCompetitionAccess } from "./competition_authorization.ts";
-import { projectCompetitionTeams } from "./competition_response_policy.ts";
-import { buildTeamRates, calculateRelativeCompetitionScores, gradeForClassName, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
+import { buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -226,6 +224,7 @@ function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, 
   return calculateRelativeCompetitionScores(metrics);
 }
 async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown, periodValue: unknown) {
+  if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
   const today = getOmanIsoDate();
   const period = ["weekly", "monthly", "term"].includes(String(periodValue)) ? String(periodValue) : "weekly";
   const defaultWeek = getSchoolWeekRange(today);
