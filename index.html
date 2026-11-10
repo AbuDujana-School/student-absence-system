@@ -1618,6 +1618,9 @@ function saSetCompetitionPeriod(period){
     document.getElementById("saCompetitionPodium").innerHTML="";
     document.getElementById("saCompetitionRecommendations").innerHTML="";
     document.getElementById("saCompetitionWins").innerHTML="";
+    document.getElementById("saCompetitionOtherRanksSection")?.classList.add("hidden");
+    document.getElementById("saCompetitionOtherRanks").innerHTML="";
+    document.getElementById("saCompetitionClassComparison").innerHTML="";
     if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
   }
 }
