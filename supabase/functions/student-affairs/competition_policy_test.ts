@@ -59,25 +59,26 @@ Deno.test("a team day requires all eight lesson records for every class and doma
   if (!isTeamDayComplete(["1/9", "2/9"], "2026-11-08", attendance, completeBehavior)) throw new Error("eight complete sessions per class should qualify");
 });
 
-Deno.test("relative scoring rewards lower rates and preserves ties", () => {
+Deno.test("weekly awards are 10, 6, 3 and zero after third place", () => {
   const result = calculateRelativeCompetitionScores([
-    { grade: "9", complete: true, attendanceRate: 1, behaviorRate: 2 },
-    { grade: "10", complete: true, attendanceRate: 2, behaviorRate: 4 },
-    { grade: "11", complete: true, attendanceRate: 3, behaviorRate: 6 }
+    { grade: "A", complete: true, attendanceRate: 1, behaviorRate: 1 },
+    { grade: "B", complete: true, attendanceRate: 2, behaviorRate: 2 },
+    { grade: "C", complete: true, attendanceRate: 3, behaviorRate: 3 },
+    { grade: "D", complete: true, attendanceRate: 4, behaviorRate: 4 }
   ]);
-  if (result[0].grade !== "9" || result[0].score !== 100 || result[2].score !== 0) throw new Error("relative score ordering failed");
+  if (result.map(team => team.weeklyPoints).join(",") !== "10,6,3,0") throw new Error("weekly awards incorrect");
   const ties = calculateRelativeCompetitionScores([
-    { grade: "9", complete: true, attendanceRate: 0, behaviorRate: 0 },
-    { grade: "10", complete: true, attendanceRate: 0, behaviorRate: 0 }
+    { grade: "A", complete: true, attendanceRate: 0, behaviorRate: 0 },
+    { grade: "B", complete: true, attendanceRate: 0, behaviorRate: 0 },
+    { grade: "C", complete: true, attendanceRate: 2, behaviorRate: 2 }
   ]);
-  if (ties.some(team => team.score !== 100 || team.rank !== 1)) throw new Error("equal zero-rate teams must tie at 100 points");
+  if (ties[0].rank !== 1 || ties[1].rank !== 1 || ties[0].weeklyPoints !== 10 || ties[1].weeklyPoints !== 10 || ties[2].rank !== 3 || ties[2].weeklyPoints !== 3) throw new Error("ties must share awards and ranks");
 });
 
 Deno.test("team rates use only the selected class and requested date range", () => {
   const team = buildTeamRates({
     grade: "9",
     classNames: ["1/9"],
-    rosters: { "1/9": ["طالب أ", "طالب ب"] },
     from: "2026-11-08",
     to: "2026-11-08",
     attendanceRows: [
@@ -89,7 +90,7 @@ Deno.test("team rates use only the selected class and requested date range", () 
       ...sessions("1/9", { "طالب ب": { type: "talking" } })
     ]
   });
-  if (!team.complete || team.attendanceIncidents !== 1 || team.behaviorIncidents !== 1 || team.studentDays !== 2) {
+  if (!team.complete || team.attendanceIncidents !== 1 || team.behaviorIncidents !== 1 || team.attendanceRate !== 1 || team.behaviorRate !== 1 || team.classCount !== 1) {
     throw new Error("team metrics must be scoped to class and date");
   }
 });
@@ -135,17 +136,12 @@ Deno.test("invalid rates are rejected instead of silently ranked", () => {
   if (!rejected) throw new Error("negative incident rates must be rejected");
 });
 
-Deno.test("empty rosters cannot produce a complete team result", () => {
+Deno.test("each assigned class has equal weight and enrolment is not used", () => {
   const team = buildTeamRates({
-    grade: "9",
-    classNames: ["1/9"],
-    rosters: { "1/9": [] },
-    from: "2026-11-08",
-    to: "2026-11-08",
-    attendanceRows: sessions("1/9"),
-    behaviorRows: sessions("1/9")
+    grade: "فريق", classNames: ["1/9", "2/9"], from: "2026-11-08", to: "2026-11-08",
+    attendanceRows: [...sessions("1/9", { "طالب أ": "absent", "طالب ب": "late", "طالب ج": "escape", "طالب د": "outside" }), ...sessions("2/9", { "طالب هـ": "absent" })],
+    behaviorRows: [...sessions("1/9", { "طالب أ": { type: "talking" }, "طالب ب": { type: "sleeping" } }), ...sessions("2/9")]
   });
-  if (team.complete || team.attendanceRate !== null || team.behaviorRate !== null) {
-    throw new Error("empty rosters must not be treated as zero-rate winners");
-  }
+  if (!team.complete || team.classCount !== 2 || team.attendanceRate !== 2.5 || team.behaviorRate !== 1) throw new Error("team rate must average class rates equally");
+  if (team.classMetrics[0].attendanceRate !== 4 || team.classMetrics[1].attendanceRate !== 1) throw new Error("class rates should remain separately available");
 });
