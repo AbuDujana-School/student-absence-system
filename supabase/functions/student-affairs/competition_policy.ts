@@ -113,6 +113,23 @@ export function calculateRelativeCompetitionScores(teams: any[]): any[] {
   for (const team of scored) { if (previous === null || team.score !== previous) rank++; team.rank = rank; previous = team.score; }
   return scored;
 }
+/** Ranks monthly/term standings by accumulated weekly podium points, not by a fresh period score. */
+export function rankCompetitionTeamsByAccumulatedPoints(teams: any[], pointTotals: Record<string, number>): any[] {
+  const ordered = [...(Array.isArray(teams) ? teams : [])].sort((a, b) =>
+    Number(pointTotals?.[String(b.teamId || "")] || 0) - Number(pointTotals?.[String(a.teamId || "")] || 0) ||
+    Number(b.score || 0) - Number(a.score || 0) ||
+    String(a.teamName || a.grade || "").localeCompare(String(b.teamName || b.grade || ""), "ar")
+  );
+  let rank = 0;
+  let previousPoints: number | null = null;
+  return ordered.map(team => {
+    const points = Number(pointTotals?.[String(team.teamId || "")] || 0);
+    if (previousPoints === null || points !== previousPoints) rank += 1;
+    previousPoints = points;
+    return { ...team, rank };
+  });
+}
+
 /** Weekly awards: 10, 6, 3 for the first three ranks; all remaining ranks get zero. */
 export function awardWeeklyCompetitionPoints(teams: any[]): any[] {
   return (Array.isArray(teams) ? teams : []).map(team => ({ ...team, weeklyAwardPoints: team?.complete === true ? (team.rank === 1 ? 10 : team.rank === 2 ? 6 : team.rank === 3 ? 3 : 0) : null }));
