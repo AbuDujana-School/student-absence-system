@@ -1,5 +1,5 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
-import { awardWeeklyCompetitionPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
+import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -250,7 +250,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const allTeamsComplete = scored.length === teams.length && scored.every((team: any) => team.complete === true);
   const selectedWeek = getSchoolWeekRange(from);
   const fullSelectedWeek = period === "weekly" && from <= selectedWeek.start && to >= selectedWeek.end;
-  const currentWeekAwards = fullSelectedWeek && allTeamsComplete ? awardWeeklyCompetitionPoints(scored) : scored.map((team: any) => ({ ...team, weeklyAwardPoints: null }));
+  let currentWeekAwards = fullSelectedWeek && allTeamsComplete ? awardWeeklyCompetitionPoints(scored) : scored.map((team: any) => ({ ...team, weeklyAwardPoints: null }));
   const dailyProgress = schoolDays.map(day => {
     const dayScores = scoreTeamsRange(day, day);
     const dayComplete = dayScores.length === teams.length && dayScores.every((team: any) => team.complete === true);
@@ -276,6 +276,16 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     });
     weeklyHistory.push({ start: weekStart, end: weekEnd, complete: weekComplete, winners, points });
   }
+  const completedWeeks = weeklyHistory.filter((week: any) => week.complete === true).length;
+  if (period !== "weekly") {
+    if (completedWeeks > 0) {
+      const accumulatedRanks = rankCompetitionTeamsByAccumulatedPoints(scored, weeklyPoints);
+      const rankByTeam = Object.fromEntries(accumulatedRanks.map((team: any) => [team.teamId, team.rank]));
+      currentWeekAwards = currentWeekAwards.map((team: any) => ({ ...team, rank: rankByTeam[team.teamId] ?? null }));
+    } else {
+      currentWeekAwards = currentWeekAwards.map((team: any) => ({ ...team, rank: null }));
+    }
+  }
   const ownClasses: any[] = [];
   const classComparison: any[] = [];
   for (const team of teams) {
@@ -294,7 +304,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       if (ownTeamIds.includes(team.teamId)) ownClasses.push(classItem);
     }
   }
-  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory };
+  return { from, to, period, today, status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
 async function handle(req: Request) {
