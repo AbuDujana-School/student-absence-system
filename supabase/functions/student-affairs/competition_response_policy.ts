@@ -36,3 +36,22 @@ export function projectCompetitionTeams(
     } : {})
   }));
 }
+
+/** Projects class comparison rates without exposing other teams' class assignments or metrics. */
+export function projectCompetitionClassComparison(
+  items: Array<Record<string, unknown>>,
+  isAdmin: boolean,
+  ownTeamIds: string[]
+) {
+  const visibleTeamIds = new Set((Array.isArray(ownTeamIds) ? ownTeamIds : []).map(String));
+  return (Array.isArray(items) ? items : [])
+    .filter(item => isAdmin || visibleTeamIds.has(String(item.teamId || "")))
+    .map(item => ({
+      teamName: String(item.teamName || ""),
+      leaderName: String(item.leaderName || ""),
+      className: String(item.className || ""),
+      complete: item.complete === true,
+      attendanceRate: item.complete === true && Number.isFinite(Number(item.attendanceRate)) ? Number(item.attendanceRate) : null,
+      behaviorRate: item.complete === true && Number.isFinite(Number(item.behaviorRate)) ? Number(item.behaviorRate) : null
+    }));
+}
