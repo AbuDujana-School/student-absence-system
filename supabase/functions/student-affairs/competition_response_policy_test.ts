@@ -48,3 +48,12 @@ Deno.test("response never includes student names or raw attendance and behavior 
     assertEquals("behaviorRows" in team, false);
   }
 });
+
+Deno.test("competition-only teacher receives aggregate points for all stages without detailed metrics", () => {
+  const result = projectCompetitionTeams(teams, false, [], true);
+  assertEquals(result.map(team => team.score), [91, 80, 70, 60]);
+  assertEquals(result.map(team => team.rank), [1, 2, 3, 4]);
+  assertEquals(result.map(team => team.attendancePoints), [46, 40, 35, 30]);
+  assertEquals(result.map(team => team.behaviorPoints), [45, 40, 35, 30]);
+  for (const team of result) for (const key of ["attendanceRate", "behaviorRate", "attendanceIncidents", "behaviorIncidents", "studentDays", "studentNames", "attendanceRows", "behaviorRows"]) assertEquals(key in team, false);
+});
