@@ -1877,7 +1877,6 @@ async function saGetVerifiedPrintRows(){
   const rows=[];
   const repeatCounts=new Map();
   const validStatuses=new Set(["absent","late","escape","outside"]);
-  const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];
   sessions.forEach(session=>{
     const className=String(session.class_name||"").trim();
     if(!classes.includes(className))throw new Error("أعاد مصدر البيانات سجلاً من صف غير محدد ("+className+"). أوقفنا الطباعة لمنع خلط كشوف الصفوف.");
