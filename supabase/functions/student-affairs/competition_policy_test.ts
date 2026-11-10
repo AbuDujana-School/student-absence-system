@@ -11,7 +11,7 @@ import {
 } from "./competition_policy.ts";
 
 const periods = [1, 2, 3, 4, 5, 6, 7, 8];
-function sessions(className, records = {}, date = "2026-11-08") {
+function sessions(className: string, records: Record<string, unknown> = {}, date: string = "2026-11-08") {
   return periods.map(period => ({ date_str: date, class_name: className, period, records: period === 1 ? records : {} }));
 }
 
