@@ -5415,7 +5415,7 @@ if ("serviceWorker" in navigator) {
   }
   function selected(prefix,kind){return Array.from(document.querySelectorAll("."+prefix+"-combined-"+kind+":checked")).map(x=>x.value);}
   function mount(prefix){
-    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){const p=c.getP();existing.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));buildFilter(prefix);return;}
+    const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){const p=c.getP();existing.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));document.getElementById(prefix+"CombinedFilters")?.remove();buildFilter(prefix);return;}
     const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
     buildFilter(prefix);
     const p=c.getP();b.classList.toggle("hidden",!(p.can_read_attendance&&p.can_read_behavior&&p.can_print_attendance&&p.can_print_behavior&&p.can_print_combined));
