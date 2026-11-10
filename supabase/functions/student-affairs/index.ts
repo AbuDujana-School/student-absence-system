@@ -1,6 +1,7 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
-import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";\nimport { projectCompetitionClassComparison } from "./competition_response_policy.ts";
+import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
+import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
