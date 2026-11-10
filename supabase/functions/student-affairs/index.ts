@@ -1,4 +1,7 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
+import { authorizeCompetitionAccess } from "./competition_authorization.ts";
+import { projectCompetitionTeams } from "./competition_response_policy.ts";
+import { buildTeamRates, calculateRelativeCompetitionScores, gradeForClassName, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -128,6 +131,209 @@ async function getSession(req: Request) {
   return { tokenHash, principal: { type: data.principal_type, name: data.principal_name } };
 }
 function asBool(v: unknown) { return v === true; }
+
+function competitionError(status: number, message: string): never { const error = new Error(message); (error as any).status = status; throw error; }
+function getOmanIsoDate() {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit" }).formatToParts(new Date());
+  const values: Record<string, string> = {};
+  for (const part of parts) if (part.type !== "literal") values[part.type] = part.value;
+  return values.year + "-" + values.month + "-" + values.day;
+}
+function shiftCompetitionDate(value: string, days: number) {
+  const date = new Date(value + "T12:00:00.000Z");
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+async function fetchCompetitionRows(table: "attendance" | "behaviors", classNames: string[], from: string, to: string) {
+  const rows: any[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    if (offset >= 60000) throw new Error("Competition data range exceeds the safe query limit");
+    const { data, error } = await db.from(table)
+      .select("record_key,date_str,class_name,period,records")
+      .in("class_name", classNames)
+      .gte("date_str", from).lte("date_str", to)
+      .order("record_key", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+async function fetchCompetitionStudents(classNames: string[]) {
+  const rows: any[] = [];
+  const pageSize = 1000;
+  for (let offset = 0; ; offset += pageSize) {
+    if (offset >= 20000) throw new Error("Student roster exceeds the safe query limit");
+    const { data, error } = await db.from("students")
+      .select("class_name,student_name")
+      .in("class_name", classNames)
+      .order("class_name", { ascending: true })
+      .order("student_name", { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const page = data || [];
+    rows.push(...page);
+    if (page.length < pageSize) break;
+  }
+  return rows;
+}
+function indexCompetitionRows(rows: any[]) {
+  const index = new Map<string, Map<string, any[]>>();
+  for (const row of rows || []) {
+    const date = String(row.date_str || "");
+    const className = String(row.class_name || "");
+    if (!date || !className) continue;
+    if (!index.has(date)) index.set(date, new Map());
+    const byClass = index.get(date)!;
+    if (!byClass.has(className)) byClass.set(className, []);
+    byClass.get(className)!.push(row);
+  }
+  return index;
+}
+function rowsForCompetitionRange(index: Map<string, Map<string, any[]>>, classNames: string[], from: string, to: string) {
+  const rows: any[] = [];
+  for (const day of getSchoolDays(from, to)) {
+    const byClass = index.get(day);
+    if (!byClass) continue;
+    for (const className of classNames) rows.push(...(byClass.get(className) || []));
+  }
+  return rows;
+}
+function scoreCompetitionRange(grades: string[], classesByGrade: Record<string, string[]>, rosters: Record<string, string[]>, attendanceIndex: Map<string, Map<string, any[]>>, behaviorIndex: Map<string, Map<string, any[]>>, from: string, to: string) {
+  const metrics = grades.map(grade => {
+    const classNames = classesByGrade[grade] || [];
+    return buildTeamRates({
+      grade,
+      classNames,
+      rosters,
+      attendanceRows: rowsForCompetitionRange(attendanceIndex, classNames, from, to),
+      behaviorRows: rowsForCompetitionRange(behaviorIndex, classNames, from, to),
+      from,
+      to
+    });
+  });
+  return calculateRelativeCompetitionScores(metrics);
+}
+async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown, periodValue: unknown) {
+  const today = getOmanIsoDate();
+  const period = ["weekly", "monthly", "term"].includes(String(periodValue)) ? String(periodValue) : "weekly";
+  const defaultWeek = getSchoolWeekRange(today);
+  const from = fromValue == null ? defaultWeek.start : fromValue;
+  const to = toValue == null ? defaultWeek.end : toValue;
+  if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) competitionError(400, "نطاق تاريخ البطولة غير صالح");
+  const spanDays = Math.floor((new Date(to + "T12:00:00.000Z").getTime() - new Date(from + "T12:00:00.000Z").getTime()) / 86400000) + 1;
+  if (spanDays > 370) competitionError(400, "الفترة المطلوبة تتجاوز الحد المسموح للتحليل");
+  const schoolDays = getSchoolDays(from, to);
+  const dataFrom = period === "monthly" ? getSchoolWeekRange(from).start : from;
+  if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
+
+  const [{ data: classRows, error: classError }] = await Promise.all([
+    db.from("classes").select("name").order("name", { ascending: true })
+  ]);
+  if (classError) throw classError;
+  const allClasses = (classRows || []).map((row: any) => String(row.name || "").trim()).filter(Boolean);
+  const grades = ["9", "10", "11", "12"];
+  const classesByGrade: Record<string, string[]> = {};
+  for (const grade of grades) classesByGrade[grade] = allClasses.filter(name => gradeForClassName(name) === grade);
+  const competitionClasses = [...new Set(grades.flatMap(grade => classesByGrade[grade]))];
+  if (grades.some(grade => !classesByGrade[grade].length)) {
+    return { from, to, today, status: "configuration_incomplete", message: "لم يتم العثور على شعب جميع المراحل الأربع في إعدادات الصفوف." };
+  }
+
+  const admin = principal.type === "admin";
+  const authorization = authorizeCompetitionAccess(principal.type, permissions, classesByGrade, grades);
+  if (!authorization.allowed) competitionError(403, authorization.message || "غير مصرح بلوحة المنافسة.");
+  const ownGrades = authorization.ownGrades;
+
+  const [studentRows, attendanceRows, behaviorRows] = await Promise.all([
+    fetchCompetitionStudents(competitionClasses),
+    fetchCompetitionRows("attendance", competitionClasses, dataFrom, to),
+    fetchCompetitionRows("behaviors", competitionClasses, dataFrom, to)
+  ]);
+  const rosters: Record<string, string[]> = {};
+  for (const className of competitionClasses) rosters[className] = [];
+  for (const row of studentRows) {
+    const className = String(row.class_name || "").trim();
+    const studentName = String(row.student_name || "").trim();
+    if (rosters[className] && studentName && !rosters[className].includes(studentName)) rosters[className].push(studentName);
+  }
+
+  const attendanceIndex = indexCompetitionRows(attendanceRows);
+  const behaviorIndex = indexCompetitionRows(behaviorRows);
+  const scored = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, from, to);
+  const allTeamsComplete = scored.length === grades.length && scored.every(team => team.complete === true);
+  const dailyProgress = schoolDays.map(day => {
+    const dayScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, day, day);
+    const dayComplete = dayScores.length === grades.length && dayScores.every(team => team.complete === true);
+    return {
+      date: day,
+      teams: dayScores.map(team => ({
+        grade: team.grade,
+        score: dayComplete ? team.score : null,
+        rank: dayComplete ? team.rank : null,
+        complete: dayComplete && team.complete === true
+      }))
+    };
+  });
+
+  const weeklyWins: Record<string, number> = Object.fromEntries(grades.map(grade => [grade, 0]));
+  const weeklyHistory: any[] = [];
+  const firstWeek = getSchoolWeekRange(from).start;
+  for (let weekStart = firstWeek; shiftCompetitionDate(weekStart, 4) <= to; weekStart = shiftCompetitionDate(weekStart, 7)) {
+    const weekEnd = shiftCompetitionDate(weekStart, 4);
+    if (period === "monthly" ? weekEnd < from : weekStart < from) continue;
+    const weekScores = scoreCompetitionRange(grades, classesByGrade, rosters, attendanceIndex, behaviorIndex, weekStart, weekEnd);
+    const winner = weekScores.length && weekScores.every(team => team.complete === true)
+      ? weekScores.filter(team => team.rank === 1).map(team => team.grade)
+      : [];
+    winner.forEach(grade => { weeklyWins[grade] = (weeklyWins[grade] || 0) + 1; });
+    weeklyHistory.push({ start: weekStart, end: weekEnd, complete: winner.length > 0, winners: winner });
+  }
+
+  const publicTeams = projectCompetitionTeams(scored, admin, ownGrades, allTeamsComplete);
+
+  const ownClasses: any[] = [];
+  for (const grade of ownGrades) {
+    for (const className of classesByGrade[grade] || []) {
+      const metric = buildTeamRates({
+        grade,
+        classNames: [className],
+        rosters,
+        attendanceRows: rowsForCompetitionRange(attendanceIndex, [className], from, to),
+        behaviorRows: rowsForCompetitionRange(behaviorIndex, [className], from, to),
+        from,
+        to
+      });
+      ownClasses.push({
+        grade,
+        className,
+        complete: metric.complete,
+        attendanceRate: metric.attendanceRate,
+        behaviorRate: metric.behaviorRate,
+        attendanceIncidents: metric.attendanceIncidents,
+        behaviorIncidents: metric.behaviorIncidents
+      });
+    }
+  }
+
+  return {
+    from,
+    to,
+    period,
+    today,
+    status: allTeamsComplete ? "complete" : "incomplete",
+    teams: publicTeams,
+    ownGrades,
+    ownClasses,
+    dailyProgress,
+    weeklyWins,
+    weeklyHistory
+  };
+}
+
 async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
@@ -199,6 +405,17 @@ async function handle(req: Request) {
     const { error: revokeError } = await db.from("student_affairs_sessions").delete().eq("principal_type", type).eq("principal_name", name);
     if (revokeError) throw revokeError;
     return reply(200, { ok: true, permissions: row });
+  }
+  if (body?.action === "competition") {
+    const permissions = await permissionsFor(p);
+    try {
+      const snapshot = await buildCompetitionSnapshot(p, permissions, body.from, body.to, body.period);
+      return reply(200, snapshot);
+    } catch (e) {
+      const status = Number((e as any)?.status) || 500;
+      const message = status < 500 && e instanceof Error ? e.message : "تعذر إعداد نتائج المنافسة حالياً.";
+      return reply(status, { error: message });
+    }
   }
   if (body?.action === "reports") {
     const permissions = await permissionsFor(p);

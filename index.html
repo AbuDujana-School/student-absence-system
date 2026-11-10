@@ -291,7 +291,181 @@
 #pwaInstallHelp.pwa-help-visible{display:block}
 @media(max-width:360px){#pwaInstallSheet{left:8px;right:8px;max-width:calc(100vw - 16px);padding:13px;border-radius:17px}#pwaInstallSheet .pwa-install-top{gap:9px;padding-inline-end:31px}#pwaInstallSheet .pwa-install-icon{width:40px;height:40px;flex-basis:40px}#pwaInstallSheet .pwa-install-actions{gap:7px}#pwaInstallSheet .pwa-install-button{font-size:12px;padding:10px 7px}#pwaInstallSheet .pwa-later-button{padding:9px 10px}}
 @media(prefers-reduced-motion:reduce){#pwaInstallSheet{transition:none}}
-</style></head>
+</style>
+<style id="student-affairs-premium-ui">
+/* Student Affairs — focused visual system. Keeps existing IDs, handlers and data flow intact. */
+#studentAffairsView{
+  --sa-ink:#183653;--sa-muted:#647b91;--sa-line:#dce6ee;--sa-soft:#f4f8fb;
+  --sa-teal:#168c85;--sa-teal-dark:#0f6e69;--sa-gold:#d5a64a;
+  color:var(--sa-ink);isolation:isolate
+}
+#studentAffairsView *{box-sizing:border-box}
+#studentAffairsView>div:first-child{
+  min-height:150px;border:1px solid rgba(213,166,74,.28);
+  background:
+    radial-gradient(circle at 12% 12%,rgba(56,189,180,.20),transparent 28%),
+    radial-gradient(circle at 88% 90%,rgba(213,166,74,.16),transparent 25%),
+    linear-gradient(120deg,#0a1a2a 0%,#183653 55%,#0d5551 100%)!important;
+  box-shadow:0 22px 44px -25px rgba(10,26,42,.65)
+}
+#studentAffairsView>div:first-child:after{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.14;
+  background-image:linear-gradient(rgba(255,255,255,.14) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.14) 1px,transparent 1px);
+  background-size:34px 34px;mask-image:linear-gradient(110deg,#000,transparent 78%)
+}
+#studentAffairsView>div:first-child .relative{z-index:1}
+#studentAffairsView>div:first-child .h-14{
+  border-color:rgba(213,166,74,.55)!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.17),rgba(255,255,255,.06))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 10px 24px rgba(0,0,0,.16)
+}
+#saBadge{backdrop-filter:blur(10px);border-color:rgba(255,255,255,.24)!important;letter-spacing:.01em}
+#studentAffairsView button{touch-action:manipulation}
+#studentAffairsView button:focus-visible,
+#studentAffairsView input:focus-visible,
+#studentAffairsView select:focus-visible{
+  outline:3px solid rgba(22,140,133,.32)!important;outline-offset:2px
+}
+#saLogin{
+  border-radius:20px!important;box-shadow:0 12px 28px -20px rgba(24,54,83,.25)
+}
+#saContent{gap:1.25rem}
+#saAdmin{
+  position:relative;overflow:hidden;border-radius:26px!important;
+  border-color:#d9e4ee!important;
+  background:linear-gradient(145deg,#fff 0%,#f7fafc 100%)!important;
+  box-shadow:0 16px 38px -28px rgba(24,54,83,.45)!important
+}
+#saAdmin:before{
+  content:"";position:absolute;inset:0 0 auto;height:4px;
+  background:linear-gradient(90deg,#d5a64a,#168c85,#183653)
+}
+#saAdmin>div:first-child{padding-bottom:14px;border-bottom:1px solid #e6edf3}
+#saAdmin>div:first-child>div:first-child{
+  background:linear-gradient(145deg,#e6f4f2,#d9e9f2)!important;
+  color:#176b78!important;border:1px solid #cde4e5
+}
+#saAdmin label{line-height:1.65}
+#saAdmin select,#saContent input[type="date"]{
+  min-height:46px;border-color:#d8e3ec!important;border-radius:13px!important;
+  box-shadow:0 2px 7px rgba(24,54,83,.035);transition:border-color .18s,box-shadow .18s
+}
+#saAdmin select:focus,#saContent input[type="date"]:focus{
+  border-color:#168c85!important;box-shadow:0 0 0 4px rgba(22,140,133,.10)!important
+}
+#saEntryAccess{
+  accent-color:#168c85;width:18px;height:18px;flex:0 0 auto
+}
+#saAdmin>div:nth-of-type(3)>div{
+  border-radius:20px!important;background:linear-gradient(180deg,#fbfdff,#f7fafc)
+}
+#saAttendanceClasses,#saBehaviorClasses,#saAttendanceStatuses,#saFlags{gap:9px}
+#saAdmin #saAttendanceClasses label,#saAdmin #saBehaviorClasses label,
+#saAdmin #saAttendanceStatuses label,#saAdmin #saFlags label{
+  min-height:40px;border-radius:12px!important;border-color:#e2eaf1!important;
+  background:#fff!important;padding:9px 11px;transition:border-color .18s,background .18s,transform .18s
+}
+#saAdmin #saAttendanceClasses label:has(input:checked),
+#saAdmin #saBehaviorClasses label:has(input:checked),
+#saAdmin #saAttendanceStatuses label:has(input:checked),
+#saAdmin #saFlags label:has(input:checked){
+  border-color:#168c85!important;background:#eaf6f4!important;color:#145e5a
+}
+#saAdmin input[type="checkbox"],#saContent input[type="checkbox"]{accent-color:#168c85}
+#saAdmin>div:last-child button{
+  min-height:46px;border-radius:14px!important;
+  background:linear-gradient(120deg,#168c85,#0f6e69)!important;
+  box-shadow:0 10px 22px -12px rgba(15,110,105,.7)!important
+}
+#saContent>div:last-child{
+  border-radius:26px!important;border-color:#dce6ee!important;
+  box-shadow:0 18px 42px -30px rgba(24,54,83,.4)!important
+}
+#saContent>div:last-child>div:first-child{
+  padding-bottom:16px;border-bottom:1px solid #e8eef3
+}
+#saAttendanceTab,#saBehaviorTab{
+  min-width:104px;min-height:42px;border-radius:12px!important
+}
+#saContent>div:last-child>div:nth-child(2){
+  max-width:720px
+}
+#saReportClassPicker{
+  border-radius:20px!important;border-color:#dce6ee!important;
+  background:linear-gradient(145deg,#f8fbfd,#f2f7fa)!important
+}
+#saReportClassesContainer label{
+  min-height:44px;border-radius:13px!important;border-color:#dfe8ef!important;
+  background:#fff!important;transition:border-color .18s,box-shadow .18s,background .18s
+}
+#saReportClassesContainer label:has(input:checked){
+  border-color:#168c85!important;background:#eaf6f4!important;
+  box-shadow:inset 0 0 0 1px rgba(22,140,133,.12)
+}
+#saStatusCheckboxesContainer label{
+  min-height:46px;border-radius:13px!important;border-width:1px!important;
+  box-shadow:0 3px 10px -8px rgba(24,54,83,.3)!important
+}
+#saViewButton,#saAnalyticsButton,#saPrintButton{
+  min-height:46px;border-radius:14px!important;box-shadow:0 8px 18px -12px rgba(15,23,42,.55);
+  transition:transform .18s,box-shadow .18s,filter .18s
+}
+#saViewButton:hover,#saAnalyticsButton:hover,#saPrintButton:hover{transform:translateY(-1px);filter:brightness(1.04)}
+#saSummary>div{
+  min-height:102px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border-radius:18px!important;border-color:#e1e9ef!important;
+  background:linear-gradient(155deg,#fff,#f7fafc)!important;
+  box-shadow:0 8px 22px -18px rgba(24,54,83,.45)!important
+}
+#saSummary>div b{font-variant-numeric:tabular-nums;line-height:1.2}
+#saResults>section{
+  border-radius:20px!important;border-color:#dce6ee!important;
+  box-shadow:0 12px 28px -24px rgba(24,54,83,.5)!important
+}
+#saResults>section>div:first-child{
+  background:linear-gradient(90deg,#f2f7fa,#f9fbfc)!important
+}
+#saResults table{min-width:680px}
+#saResults th{font-size:11px;letter-spacing:.01em;white-space:nowrap}
+#saResults td{line-height:1.7}
+#saResults tbody tr:nth-child(even){background:rgba(244,248,251,.72)}
+#saResults tbody tr:hover{background:#edf7f6}
+.dark #saAdmin,.dark #saContent>div:last-child{background:#0d1b2b!important;border-color:#26394d!important}
+.dark #saAdmin>div:nth-of-type(3)>div{background:#101f30!important}
+.dark #saAdmin #saAttendanceClasses label,.dark #saAdmin #saBehaviorClasses label,
+.dark #saAdmin #saAttendanceStatuses label,.dark #saAdmin #saFlags label{background:#132438!important;border-color:#2a4055!important;color:#dbe7f1}
+.dark #saAdmin #saAttendanceClasses label:has(input:checked),
+.dark #saAdmin #saBehaviorClasses label:has(input:checked),
+.dark #saAdmin #saAttendanceStatuses label:has(input:checked),
+.dark #saAdmin #saFlags label:has(input:checked){background:rgba(22,140,133,.18)!important;border-color:#168c85!important}
+.dark #saReportClassPicker{background:#101f30!important;border-color:#2a4055!important}
+.dark #saReportClassesContainer label{background:#132438!important;border-color:#2a4055!important;color:#dbe7f1}
+.dark #saReportClassesContainer label:has(input:checked){background:rgba(22,140,133,.18)!important;border-color:#168c85!important}
+.dark #saSummary>div{background:linear-gradient(155deg,#132438,#0f1d2c)!important;border-color:#2a4055!important}
+.dark #saResults>section>div:first-child{background:#132438!important}
+.dark #saResults tbody tr:nth-child(even){background:rgba(19,36,56,.55)}
+.dark #saResults tbody tr:hover{background:rgba(22,140,133,.12)}
+@media(max-width:640px){
+  #studentAffairsView{gap:14px}
+  #studentAffairsView>div:first-child{padding:18px!important;border-radius:22px!important}
+  #studentAffairsView>div:first-child .h-14{width:48px;height:48px;border-radius:15px}
+  #saAdmin,#saContent>div:last-child{padding:15px!important;border-radius:21px!important}
+  #saAdmin>div:nth-of-type(3)>div{padding:13px!important}
+  #saAttendanceTab,#saBehaviorTab{min-width:0;flex:1;padding-inline:13px}
+  #saReportClassPicker{padding:13px!important}
+  #saReportClassesContainer{grid-template-columns:repeat(2,minmax(0,1fr))}
+  #saSummary{gap:8px}
+  #saSummary>div{min-height:88px;padding:12px!important}
+  #saResults>section>div:first-child{padding:12px!important}
+  #saResults th,#saResults td{padding:10px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  #studentAffairsView *,#studentAffairsView *:before,#studentAffairsView *:after{
+    scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important;animation-iteration-count:1!important
+  }
+}
+</style>
+</head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
 
@@ -436,8 +610,48 @@
           <div id="saBehaviorClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div><div id="saFlags" class="grid grid-cols-1 gap-2 border-t border-slate-200 pt-3 text-xs dark:border-slate-700 sm:grid-cols-2"></div>
         </div>
       </div>
+      <div id="saScopeSummary" class="rounded-2xl border border-dashed border-teal-200 bg-teal-50/70 px-4 py-3 text-xs leading-6 text-teal-900 dark:border-teal-900 dark:bg-teal-950/20 dark:text-teal-100" aria-live="polite">تُحدد مسؤولية المعلم تلقائياً من الصفوف المختارة للغياب والسلوك. لا يوجد دور مستقل باسم قائد فريق.</div>
       <div class="flex justify-end"><button onclick="saSavePermissions()" class="w-full rounded-xl bg-indigo-700 px-7 py-3 text-xs font-extrabold text-white shadow-lg transition hover:bg-indigo-800 sm:w-auto"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التكليف والصلاحيات</button></div>
     </div>
+    <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
+      <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+          <div><div class="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200"><i class="fa-solid fa-crown"></i> بطولة الانضباط المدرسية</div><h3 class="text-lg font-black sm:text-xl">سباق التميز بين المراحل</h3><p class="mt-1 text-xs leading-6 text-blue-100">50 نقطة للانضباط في الحضور و50 نقطة للسلوك. تعرض المقارنة نتائج الفرق الإجمالية فقط.</p></div>
+          <div class="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-center"><div class="text-[10px] font-bold text-blue-100">نطاق التقييم</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black">الأسبوع الحالي</div></div>
+        </div>
+      </div>
+      <div class="space-y-5 p-4 sm:p-6">
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="saCompetitionWeeklyBtn" type="button" onclick="saSetCompetitionPeriod('weekly')" class="rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-sm">الأسبوع الحالي</button>
+          <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
+          <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">الفصل الدراسي</button>
+        </div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saCompetitionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
+          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saCompetitionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
+          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
+        </div>
+        <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
+        <div id="saCompetitionPodium" class="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"></div>
+        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+          <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور نقاط الفرق خلال الفترة</h4><p class="mt-1 text-[11px] text-slate-500">كل نقطة تظهر بعد اكتمال سجلات الغياب والسلوك لجميع شعب المرحلة في ذلك اليوم.</p></div>
+            <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور نقاط الفرق"></canvas></div>
+          </section>
+          <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+            <h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-trophy ml-1 text-amber-500"></i> سجل انتصارات الفرق</h4>
+            <p class="mt-1 text-[11px] text-slate-500">عدد الأسابيع التي تصدر فيها كل فريق ضمن الفترة المختارة.</p>
+            <div id="saCompetitionWins" class="mt-4 space-y-3"></div>
+          </section>
+        </div>
+        <section class="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 dark:border-teal-900/60 dark:bg-teal-950/20">
+          <div class="flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i><h4 class="text-sm font-black text-slate-800 dark:text-white">توصيات تحسين أداء فريقك</h4></div>
+          <p class="mt-1 text-[11px] text-slate-500">تُعرض توصيات الشعب التابعة لك فقط، اعتماداً على معدلات الفترة المحددة.</p>
+          <div id="saCompetitionRecommendations" class="mt-3 space-y-2"></div>
+        </section>
+        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
+      </div>
+    </section>
     <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
       <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition">الغياب</button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition">السلوكيات</button></div></div>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label><label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label></div>
@@ -1294,9 +1508,9 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
 const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
-let saSession=null,saAdminData=null,saLastReport=null;
+let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
-const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"]];
+const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
 function sortClassesList(classesArray){
   const source=Array.isArray(classesArray)?classesArray:[];
   const parseClass=value=>{
@@ -1344,7 +1558,7 @@ function saGetSelectedStatusFilters(){
   const allChk=document.querySelector('.sa-status-filter-chk[value="all"]');
   if(allChk?.checked)return "all";
   return Array.from(document.querySelectorAll(".sa-status-filter-chk:not([value=all]):checked")).map(el=>String(el.value));
-}function saToggleAllClasses(type,check){const selector=type==="att"?".sa-att-class":".sa-beh-class";document.querySelectorAll(selector).forEach(el=>{el.checked=!!check;});}
+}function saUpdateScopeSummary(){const a=document.querySelectorAll(".sa-att-class:checked").length,b=document.querySelectorAll(".sa-beh-class:checked").length,el=document.getElementById("saScopeSummary");if(el)el.textContent="نطاق مسؤولية المعلم: "+a+" صفوف للغياب و"+b+" صفوف للسلوك. يمكن إسناد أكثر من مرحلة للمعلم نفسه دون إنشاء دور أو حساب مستقل لقائد فريق.";}document.addEventListener("change",function(event){const target=event.target;if(target&&(target.classList.contains("sa-att-class")||target.classList.contains("sa-beh-class")))saUpdateScopeSummary();});function saToggleAllClasses(type,check){const selector=type==="att"?".sa-att-class":".sa-beh-class";document.querySelectorAll(selector).forEach(el=>{el.checked=!!check;});saUpdateScopeSummary();}
 function saToggleAllStatuses(check){saToggleAllAttendanceStatuses(check);const all=document.getElementById("saAllAttendanceStatuses");if(all)all.checked=!!check;}
 function saSelectAllReportClasses(check){document.querySelectorAll(".sa-report-class-chk").forEach(el=>{el.checked=!!check;});saUpdateSelectedClassCount();}
 function saQuickSelectClass(grade){const target=String(grade);document.querySelectorAll(".sa-report-class-chk").forEach(el=>{const raw=String(el.value||"").trim();const slash=raw.split("/").pop().trim().match(/^(9|10|11|12)$/);const dash=raw.match(/^(?:.*[- ])(9|10|11|12)$/);const arabic=raw.match(/التاسع|العاشر|الحادي عشر|الثاني عشر/);const map={"التاسع":"9","العاشر":"10","الحادي عشر":"11","الثاني عشر":"12"};const parsed=slash?.[1]||dash?.[1]||map[arabic?.[0]]||"";el.checked=parsed===target;});saUpdateSelectedClassCount();}
@@ -1353,14 +1567,139 @@ function saGetAllowedReportClasses(domain=saDomain){const p=saReportPermissions|
 function saGetSelectedReportClasses(){const allowed=saGetAllowedReportClasses();const checks=Array.from(document.querySelectorAll(".sa-report-class-chk:checked")).map(el=>String(el.value));if(document.getElementById("saReportClassesContainer"))return [...new Set(checks)].filter(c=>allowed.includes(c));const legacy=document.getElementById("saReportClass")?.value;return legacy==="all"?allowed:allowed.filter(c=>c===legacy);}
 function saPopulateReportClasses(){const allowed=saGetAllowedReportClasses();const container=document.getElementById("saReportClassesContainer");if(container){if(!allowed.length){container.innerHTML='<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700">لا توجد صفوف مخصصة لك في هذا القسم.</div>';}else{container.innerHTML=sortClassesList(allowed).map(c=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"><input type="checkbox" class="sa-report-class-chk h-4 w-4 accent-blue-600" value="'+escapeHtml(c)+'" checked onchange="saUpdateSelectedClassCount()"><span dir="ltr">'+escapeHtml(formatClassName(c))+'</span></label>').join("");}}const legacy=document.getElementById("saReportClass");if(legacy){legacy.innerHTML='<option value="all">جميع الصفوف المصرح بها</option>'+sortClassesList(allowed).map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");legacy.value="all";}saUpdateSelectedClassCount();}
 function saSetDomain(domain){const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();if(canRead)saLoadReport();else{document.getElementById("saSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}} 
-async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلاب","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلاب. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";document.getElementById("saAdmin").classList.toggle("hidden",!isAdmin);if(isAdmin)await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلاب. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلاب مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلاب","error");}}
+function saCanViewCompetition(){const p=saReportPermissions||{};return !!p.can_view_analytics&&!!p.can_read_attendance&&!!p.can_read_behavior;}
+function saDateShift(value,days){const d=new Date(value+"T12:00:00.000Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
+function saSetCompetitionPeriod(period){
+  saCompetitionPeriod=period;
+  const today=getOmanLocalDate();
+  const from=document.getElementById("saCompetitionFrom"),to=document.getElementById("saCompetitionTo");
+  if(period==="weekly"){
+    const weekday=new Date(today+"T12:00:00.000Z").getUTCDay();
+    const weekStart=saDateShift(today,-weekday);
+    const lastSchoolDay=weekday<=4?today:saDateShift(today,4-weekday);
+    if(from)from.value=weekStart;
+    if(to)to.value=lastSchoolDay;
+  }else if(period==="monthly"){
+    const monthStart=today.slice(0,7)+"-01";
+    const yesterday=saDateShift(today,-1);
+    if(from)from.value=monthStart;
+    if(to)to.value=yesterday<monthStart?today:yesterday;
+  }else if(period==="term"){
+    if(from)from.value="";
+    if(to)to.value="";
+  }
+  const labels={weekly:"الأسبوع الحالي",monthly:"حصاد الشهر",term:"الفصل الدراسي"};
+  const active="rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-sm";
+  const idle="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200";
+  [["weekly","saCompetitionWeeklyBtn"],["monthly","saCompetitionMonthlyBtn"],["term","saCompetitionTermBtn"]].forEach(([key,id])=>{const el=document.getElementById(id);if(el)el.className=period===key?active:idle;});
+  const rangeLabel=document.getElementById("saCompetitionRangeLabel");if(rangeLabel)rangeLabel.textContent=labels[period]||"فترة مخصصة";
+  if(period!=="term")saLoadCompetition();
+  else{
+    const status=document.getElementById("saCompetitionStatus");if(status){status.textContent="حدد تاريخ بداية الفصل الدراسي ونهايته، ثم اضغط تحديث النتائج.";status.classList.remove("hidden");}
+    document.getElementById("saCompetitionPodium").innerHTML="";
+    document.getElementById("saCompetitionRecommendations").innerHTML="";
+    document.getElementById("saCompetitionWins").innerHTML="";
+    if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
+  }
+}
+function saSetupCompetitionPanel(){
+  const panel=document.getElementById("saCompetitionPanel");
+  if(!panel)return;
+  const enabled=saCanViewCompetition();
+  panel.classList.toggle("hidden",!enabled);
+  if(enabled&&!panel.dataset.initialized){panel.dataset.initialized="true";saSetCompetitionPeriod("weekly");}else if(enabled){saLoadCompetition();}
+}
+function saCompetitionGradeLabel(grade){return ({"9":"التواسع","10":"العواشر","11":"الحادي عشر","12":"الثاني عشر"})[String(grade)]||("المرحلة "+grade);}
+function saCompetitionDayLabel(date){
+  const weekday=new Date(date+"T12:00:00.000Z").getUTCDay();
+  const days=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  return (days[weekday]||"")+" "+date.slice(5);
+}
+async function saLoadCompetition(){
+  if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة المراحل.","error");return;}
+  const from=document.getElementById("saCompetitionFrom")?.value||"",to=document.getElementById("saCompetitionTo")?.value||"";
+  if(!from||!to||from>to){const status=document.getElementById("saCompetitionStatus");if(status){status.textContent="يرجى تحديد بداية الفترة ونهايتها بصورة صحيحة.";status.classList.remove("hidden");}return;}
+  const status=document.getElementById("saCompetitionStatus");
+  if(status){status.textContent="جارٍ احتساب النتائج والتحقق من اكتمال سجلات الفرق...";status.classList.remove("hidden");}
+  document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
+  try{
+    const data=await saRequest({action:"competition",from,to,period:saCompetitionPeriod});
+    saCompetitionData=data;
+    saRenderCompetition(data);
+  }catch(error){
+    if(status){status.textContent=error?.message||"تعذر تحميل نتائج البطولة.";status.classList.remove("hidden");}
+    document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
+    document.getElementById("saCompetitionRecommendations").innerHTML="";
+    document.getElementById("saCompetitionWins").innerHTML="";
+    if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
+  }
+}
+function saRenderCompetition(data){
+  const status=document.getElementById("saCompetitionStatus");
+  const teams=Array.isArray(data?.teams)?data.teams:[];
+  const ownGrades=new Set(Array.isArray(data?.ownGrades)?data.ownGrades.map(String):[]);
+  const complete=data?.status==="complete"&&teams.length===4&&teams.every(team=>team.complete&&Number.isFinite(Number(team.score)));
+  const weekEnd=data?.from?saDateShift(data.from,4):"";
+  const provisionalWeek=data?.period==="weekly"&&data?.to<weekEnd;
+  if(status){
+    status.textContent=complete?(provisionalWeek?"اكتملت سجلات الفرق حتى "+data.to+"؛ الترتيب الحالي مؤقت ويتجدد مع تسجيل بقية أيام الأسبوع.":"اكتملت بيانات الفترة المحددة. الترتيب والنقاط مبنيان على السجلات الفعلية."):(data?.message||"النتائج مؤقتة أو غير مكتملة. لن يُعلن ترتيب تنافسي حتى تكتمل سجلات الغياب والسلوك لجميع شعب المراحل.");
+    status.classList.toggle("hidden",complete);
+    status.className="rounded-xl border px-4 py-3 text-xs font-bold leading-6 "+(complete?"hidden":"border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200");
+  }
+  const podium=document.getElementById("saCompetitionPodium");
+  podium.innerHTML=teams.length?teams.map(team=>{
+    const rank=Number(team.rank)||0,own=ownGrades.has(String(team.grade));
+    const medal=rank===1?"👑":rank===2?"🥈":rank===3?"🥉":"🏅";
+    const rankText=rank===1?(provisionalWeek?"المتصدر الحالي":"المتصدر"):rank===2?"المركز الثاني":rank===3?"المركز الثالث":rank===4?"المركز الرابع":"بانتظار اكتمال البيانات";
+    const theme=rank===1?"border-amber-300 bg-amber-50 dark:border-amber-700 dark:bg-amber-950/30":rank===2?"border-slate-300 bg-slate-50 dark:border-slate-600 dark:bg-slate-800/70":rank===3?"border-orange-200 bg-orange-50/70 dark:border-orange-900 dark:bg-orange-950/20":"border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900";
+    return '<article class="relative overflow-hidden rounded-2xl border p-4 '+theme+'"><div class="flex items-center justify-between gap-2"><span class="text-[11px] font-black '+(rank===1?"text-amber-700 dark:text-amber-200":"text-slate-600 dark:text-slate-300")+'">'+rankText+'</span><span class="text-2xl">'+medal+'</span></div><h5 class="mt-3 text-base font-black text-slate-900 dark:text-white">فريق '+saCompetitionGradeLabel(team.grade)+'</h5>'+(own?'<span class="mt-1 inline-flex rounded-full bg-teal-100 px-2 py-1 text-[10px] font-black text-teal-800 dark:bg-teal-950 dark:text-teal-200">فريقك</span>':'')+'<div class="mt-3 flex items-end justify-between gap-2"><div><div class="text-[10px] font-bold text-slate-500">مجموع النقاط</div><strong class="text-2xl font-black tabular-nums text-slate-900 dark:text-white">'+(team.score!==null&&team.score!==undefined&&Number.isFinite(Number(team.score))?Number(team.score).toFixed(1):"—")+'</strong><span class="text-[10px] text-slate-500"> / 100</span></div><div class="text-left text-[10px] leading-5 text-slate-500">'+(team.complete?('حضور '+Number(team.attendancePoints||0).toFixed(1)+' / 50<br>سلوك '+Number(team.behaviorPoints||0).toFixed(1)+' / 50'):"بيانات غير مكتملة")+'</div></div></article>';
+  }).join(""):'<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا تتوفر نتائج للمراحل الأربع.</div>';
+  const wins=document.getElementById("saCompetitionWins");
+  const weeklyWins=data?.weeklyWins||{};
+  const maxWins=Math.max(0,...["9","10","11","12"].map(grade=>Number(weeklyWins[grade]||0)));
+  wins.innerHTML=["9","10","11","12"].map(grade=>{
+    const count=Number(weeklyWins[grade]||0),own=ownGrades.has(grade),mostWins=maxWins>0&&count===maxWins;
+    return '<div class="flex items-center justify-between gap-3 rounded-xl border '+(mostWins?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-2.5"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(own?'<i class="fa-solid fa-flag text-teal-600 ml-1"></i>':'')+'فريق '+saCompetitionGradeLabel(grade)+(mostWins?' <span class="mr-1 text-amber-600">👑 الأكثر تتويجاً</span>':'')+'</span><strong class="text-sm font-black tabular-nums text-amber-600">'+count+' <span class="text-[10px]">أسبوع</span></strong></div>';
+  }).join("");
+  const recommendations=document.getElementById("saCompetitionRecommendations");
+  const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownGrades.has(String(item.grade)));
+  const completeClasses=ownClasses.filter(item=>item.complete&&Number.isFinite(Number(item.attendanceRate))&&Number.isFinite(Number(item.behaviorRate)));
+  if(!completeClasses.length){
+    recommendations.innerHTML='<div class="rounded-xl border border-dashed border-teal-200 bg-white/70 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-300">ستظهر التوصيات بعد اكتمال سجلات الغياب والسلوك لجميع شعب فريقك خلال الفترة المحددة.</div>';
+  }else{
+    const lines=[];
+    for(const grade of ownGrades){
+      const group=completeClasses.filter(item=>String(item.grade)===grade);
+      if(!group.length)continue;
+      const worstAttendance=[...group].sort((a,b)=>b.attendanceRate-a.attendanceRate)[0];
+      const worstBehavior=[...group].sort((a,b)=>b.behaviorRate-a.behaviorRate)[0];
+      if(worstAttendance&&Number(worstAttendance.attendanceRate)>0)lines.push('راجع شعبة <b dir="ltr">'+escapeHtml(formatClassName(worstAttendance.className))+'</b>؛ لديها أعلى معدل لمخالفات الحضور في فريق '+saCompetitionGradeLabel(grade)+' ('+Number(worstAttendance.attendanceRate).toFixed(1)+' لكل 1000 يوم-طالب).');
+      if(worstBehavior&&Number(worstBehavior.behaviorRate)>0)lines.push('امنح متابعة إضافية لشعبة <b dir="ltr">'+escapeHtml(formatClassName(worstBehavior.className))+'</b>؛ لديها أعلى معدل للمخالفات السلوكية ('+Number(worstBehavior.behaviorRate).toFixed(1)+' لكل 1000 يوم-طالب).');
+    }
+    recommendations.innerHTML=lines.length?lines.map((line,index)=>'<div class="flex items-start gap-2 rounded-xl border border-teal-100 bg-white p-3 text-xs leading-6 text-slate-700 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-200"><span class="mt-0.5 text-amber-500">'+(index+1)+'.</span><span>'+line+'</span></div>').join(""):'<div class="rounded-xl bg-white p-3 text-xs font-bold text-teal-800 dark:bg-slate-900 dark:text-teal-200">ممتاز! لم تسجل معدلات مخالفات في الشعب المكتملة ضمن الفترة المحددة.</div>';
+  }
+  const chartTitle=document.getElementById("saCompetitionChartTitle");
+  if(chartTitle){const title=saCompetitionPeriod==="weekly"?"تطور نقاط الفرق خلال أيام الأسبوع":saCompetitionPeriod==="monthly"?"تطور نقاط الفرق خلال الشهر":"تطور نقاط الفرق خلال الفصل الدراسي";chartTitle.innerHTML='<i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> '+title;}
+  const canvas=document.getElementById("saCompetitionChart");
+  if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
+  if(canvas&&typeof Chart!=="undefined"){
+    const days=Array.isArray(data?.dailyProgress)?data.dailyProgress:[];
+    const colors={"9":"#168C85","10":"#D5A64A","11":"#7C3AED","12":"#E11D48"};
+    saCompetitionChart=new Chart(canvas.getContext("2d"),{
+      type:"line",
+      data:{labels:days.map(day=>saCompetitionDayLabel(day.date)),datasets:["9","10","11","12"].map(grade=>({label:"فريق "+saCompetitionGradeLabel(grade),data:days.map(day=>{const team=(day.teams||[]).find(item=>String(item.grade)===grade);return team?.complete&&Number.isFinite(Number(team.score))?Number(team.score):null;}),borderColor:colors[grade],backgroundColor:colors[grade],borderWidth:2.5,tension:.28,spanGaps:false,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:colors[grade]}))},
+      options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:8,font:{family:"Tajawal",size:11}}},tooltip:{titleFont:{family:"Tajawal"},bodyFont:{family:"Tajawal"}}},scales:{y:{min:0,max:100,ticks:{font:{family:"Tajawal"}},grid:{color:"rgba(148,163,184,.16)"}},x:{ticks:{font:{family:"Tajawal",size:10},maxRotation:0,autoSkip:true},grid:{display:false}}}}
+    });
+  }
+}
+async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلاب","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلاب. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";document.getElementById("saAdmin").classList.toggle("hidden",!isAdmin);if(isAdmin)await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");saSetupCompetitionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلاب. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلاب مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلاب","error");}}
 function closeStudentAffairsView(){document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
-async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};document.getElementById("saAdmin").classList.toggle("hidden",d.principal.type!=="admin");if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");return d;}
+async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};document.getElementById("saAdmin").classList.toggle("hidden",d.principal.type!=="admin");if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");saSetupCompetitionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();}
 function saChecks(container,items,cls,selected){document.getElementById(container).innerHTML=items.map(([value,label])=>'<label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700"><input type="checkbox" class="'+cls+'" value="'+escapeHtml(value)+'" '+(selected.includes(value)?"checked":"")+(cls==="sa-status"?' onchange="saSyncAllAttendanceStatuses()"':'')+'><span>'+escapeHtml(label)+'</span></label>').join("");}
 function saSyncAllAttendanceStatuses(){const boxes=Array.from(document.querySelectorAll(".sa-status"));document.getElementById("saAllAttendanceStatuses").checked=boxes.length>0&&boxes.every(x=>x.checked);}
 function saToggleAllAttendanceStatuses(checked){document.querySelectorAll(".sa-status").forEach(x=>x.checked=checked);}
-function saLoadPerson(){if(!saAdminData)return;const type=document.getElementById("saType").value,sel=document.getElementById("saPerson"),old=sel.value;sel.innerHTML="";saAdminData.teachers.filter(t=>(t.role==="custom"?"custom":"teacher")===type).forEach(t=>{const o=document.createElement("option");o.value=t.name;o.textContent=t.name;sel.appendChild(o)});if([...sel.options].some(o=>o.value===old))sel.value=old;const saved=saAdminData.permissions.find(p=>p.principal_type===type&&p.principal_name===sel.value)||{};const person=saAdminData.teachers.find(t=>t.name===sel.value);document.getElementById("saEntryAccess").checked=person?.permissions?.studentAffairs===true;const ac=saved.allowed_attendance_classes??saved.allowed_classes??[],bc=saved.allowed_behavior_classes??saved.allowed_classes??[],st=saved.attendance_statuses??["absent","late","escape","outside"];saChecks("saAttendanceClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-att-class",ac);saChecks("saBehaviorClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-beh-class",bc);saChecks("saAttendanceStatuses",SA_ATTENDANCE_STATUS.map(x=>[x[0],x[1]]),"sa-status",st);saSyncAllAttendanceStatuses();document.getElementById("saFlags").innerHTML=SA_FLAGS.map(([k,l])=>'<label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700"><input type="checkbox" class="sa-flag" data-key="'+k+'" '+(saved[k]?"checked":"")+'><span>'+l+'</span></label>').join("");}
+function saLoadPerson(){if(!saAdminData)return;const type=document.getElementById("saType").value,sel=document.getElementById("saPerson"),old=sel.value;sel.innerHTML="";saAdminData.teachers.filter(t=>(t.role==="custom"?"custom":"teacher")===type).forEach(t=>{const o=document.createElement("option");o.value=t.name;o.textContent=t.name;sel.appendChild(o)});if([...sel.options].some(o=>o.value===old))sel.value=old;const saved=saAdminData.permissions.find(p=>p.principal_type===type&&p.principal_name===sel.value)||{};const person=saAdminData.teachers.find(t=>t.name===sel.value);document.getElementById("saEntryAccess").checked=person?.permissions?.studentAffairs===true;const ac=saved.allowed_attendance_classes??saved.allowed_classes??[],bc=saved.allowed_behavior_classes??saved.allowed_classes??[],st=saved.attendance_statuses??["absent","late","escape","outside"];saChecks("saAttendanceClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-att-class",ac);saChecks("saBehaviorClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-beh-class",bc);saChecks("saAttendanceStatuses",SA_ATTENDANCE_STATUS.map(x=>[x[0],x[1]]),"sa-status",st);saSyncAllAttendanceStatuses();document.getElementById("saFlags").innerHTML=SA_FLAGS.map(([k,l])=>'<label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700"><input type="checkbox" class="sa-flag" data-key="'+k+'" '+(saved[k]?"checked":"")+'><span>'+l+'</span></label>').join("");saUpdateScopeSummary();}
 async function saSavePermissions(){const name=document.getElementById("saPerson").value,type=document.getElementById("saType").value;if(!name){showToast("اختر معلماً أولاً","error");return;}const p={action:"set_permissions",principal_type:type,principal_name:name,studentAffairs:document.getElementById("saEntryAccess").checked,allowed_attendance_classes:Array.from(document.querySelectorAll(".sa-att-class:checked")).map(x=>x.value),allowed_behavior_classes:Array.from(document.querySelectorAll(".sa-beh-class:checked")).map(x=>x.value),attendance_statuses:Array.from(document.querySelectorAll(".sa-status:checked")).map(x=>x.value)};document.querySelectorAll(".sa-flag").forEach(x=>p[x.dataset.key]=x.checked);try{await saRequest(p);const localTeacher=(db.teachers||[]).find(t=>t.name===name);if(localTeacher){localTeacher.permissions={...(localTeacher.permissions||{}),studentAffairs:p.studentAffairs};dirtySets.teachers.add(name);saveToLocalStorageSafe();}showToast("تم حفظ التكليف والصلاحيات وإبطال جلسة المعلم السابقة","success");await saLoadAdmin();}catch(e){showToast(e.message,"error");}}
 async function saLoadReport(){const p=saReportPermissions||{};const domain=saDomain;const canRead=domain==="attendance"?p.can_read_attendance:p.can_read_behavior;if(!canRead){showToast("ليس لديك صلاحية عرض السجلات التفصيلية.","error");return;}const allowed=saGetAllowedReportClasses(domain);const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){saLastReport=null;showToast("يرجى اختيار صف واحد على الأقل لعرض التقرير.","error");return;}const from=document.getElementById("saFrom").value||"2000-01-01";const to=document.getElementById("saTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}const statusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const selectedStatuses=domain!=="attendance"||statusSelection==="all"?allowedStatuses:statusSelection;if(domain==="attendance"&&(!Array.isArray(selectedStatuses)||selectedStatuses.some(status=>!allowedStatuses.includes(status)))){showToast("توجد حالة غير مصرح بها ضمن التحديد.","error");return;}if(domain==="attendance"&&!selectedStatuses.length){saLastReport=null;showToast("اختر حالة واحدة على الأقل لعرض التقرير.","error");return;}const body={action:"reports",report_mode:"view",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=selectedStatuses;const box=document.getElementById("saResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ جلب السجلات وتحليلها...</div>';try{const d=await saRequest(body);if(domain!==saDomain)return;saLastReport={...d,domain,classes:[...classes],from,to,statuses:domain==="attendance"?selectedStatuses:[]};saRenderReport(d,classes);}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}async function saLoadAnalytics(){const p=saReportPermissions||{};if(!p.can_view_analytics){showToast("ليس لديك صلاحية عرض التحليلات.","error");return;}const domain=saDomain;const allowed=saGetAllowedReportClasses(domain);const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));if(!classes.length){showToast("يرجى اختيار صف واحد على الأقل للتحليل.","error");return;}const from=document.getElementById("saFrom").value||"2000-01-01";const to=document.getElementById("saTo").value||"2100-12-31";if(from>to){showToast("تاريخ البداية يجب ألا يكون بعد تاريخ النهاية.","error");return;}saLastReport=null;document.getElementById("saPrintButton").classList.add("hidden");const analyticsStatusSelection=domain==="attendance"?saGetSelectedStatusFilters():"all";const analyticsAllowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const analyticsStatuses=domain!=="attendance"||analyticsStatusSelection==="all"?analyticsAllowedStatuses:analyticsStatusSelection;if(domain==="attendance"&&!analyticsStatuses.length){showToast("اختر حالة واحدة على الأقل للتحليل.","error");return;}const body={action:"reports",report_mode:"analytics",attendance_classes:domain==="attendance"?classes:[],behavior_classes:domain==="behavior"?classes:[],from,to};if(domain==="attendance")body.attendance_status_filters=analyticsStatuses;const box=document.getElementById("saResults");box.innerHTML='<div class="rounded-2xl border border-slate-200 p-10 text-center text-xs font-bold text-slate-400 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد التحليلات...</div>';try{const d=await saRequest(body);if(domain!==saDomain)return;const rows=classes.map(c=>({className:c,count:domain==="attendance"?(d.analytics?.[c]?.selected_attendance_records||0):(d.analytics?.[c]?.behavior_sessions||0)}));const total=rows.reduce((n,x)=>n+(Number(x.count)||0),0);const label=domain==="attendance"?"حالات الغياب المحددة":"حصص متابعة السلوك";document.getElementById("saSummary").innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+classes.length+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center dark:border-slate-700 dark:bg-slate-900"><div class="text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(domain==="attendance"?"text-blue-700":"text-teal-700")+'">'+total+'</b></div>';box.innerHTML=rows.length?'<section class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"><div class="bg-slate-50 p-4 text-sm font-black dark:bg-slate-800">ملخص '+label+' حسب الصف</div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead><tr><th class="p-3">الصف</th><th class="p-3">عدد الحصص</th></tr></thead><tbody>'+rows.map(x=>'<tr class="border-t border-slate-100 dark:border-slate-700"><td class="p-3 font-bold">'+escapeHtml(formatClassName(x.className))+'</td><td class="p-3 font-bold">'+(Number(x.count)||0)+'</td></tr>').join("")+'</tbody></table></div></section>':'<div class="rounded-2xl bg-slate-50 p-8 text-center text-xs text-slate-500 dark:bg-slate-800">لا توجد صفوف مخصصة للتحليل.</div>';}catch(e){box.innerHTML='<div class="rounded-2xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">'+escapeHtml(e.message)+'</div>';showToast(e.message,"error");}}function saRenderReport(d,classes){const domain=saDomain;const allowed=new Set(saGetAllowedReportClasses(domain));const selected=new Set(classes.filter(c=>allowed.has(c)));const p=saReportPermissions||{};const allowedStatuses=Array.isArray(p.attendance_statuses)?p.attendance_statuses:["absent","late","escape","outside"];const statusFilters=new Set(domain==="attendance"?(Array.isArray(saLastReport?.statuses)?saLastReport.statuses:(saGetSelectedStatusFilters()==="all"?allowedStatuses:saGetSelectedStatusFilters())):[]);const records=domain==="attendance"?(d.attendance||[]):(d.behaviors||[]);const counts={absent:0,late:0,escape:0,outside:0,behavior:0};const rows=[];records.forEach(session=>{const cls=String(session.class_name||"");if(!selected.has(cls))return;Object.entries(session.records||{}).forEach(([student,value])=>{if(domain==="attendance"){const status=String(value);if(!["absent","late","escape","outside"].includes(status)||!allowedStatuses.includes(status)||(!statusFilters.has(status)))return;counts[status]++;rows.push({session,student,status,note:""});}else{const data=value&&typeof value==="object"?value:{type:String(value),note:""};if(!data.type||data.type==="normal")return;counts.behavior++;rows.push({session,student,behavior:String(data.type),note:data.note||""});}});});const summary=document.getElementById("saSummary");if(domain==="attendance"){summary.innerHTML=SA_ATTENDANCE_STATUS.filter(([key])=>allowedStatuses.includes(key)&&statusFilters.has(key)).map(([key,label])=>'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">'+label+'</div><b class="text-2xl font-black '+(key==="absent"?"text-slate-800 dark:text-white":key==="late"?"text-amber-600":key==="escape"?"text-rose-600":"text-violet-600")+'">'+counts[key]+'</b></div>').join("")+'<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}else{summary.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">إجمالي المخالفات السلوكية</div><b class="text-2xl font-black text-teal-600">'+counts.behavior+'</b></div><div class="rounded-2xl border border-slate-200 bg-white p-4 text-center shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-1 text-[11px] font-bold text-slate-500">الصفوف المحددة</div><b class="text-2xl font-black text-blue-600">'+selected.size+'</b></div>';}const results=document.getElementById("saResults");if(!rows.length){results.innerHTML='<div class="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-12 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-950">لا توجد حالات مسجلة في الصفوف والفترة الزمنية والحالات المحددة.</div>';return;}const groups={};rows.forEach(row=>{const cls=String(row.session.class_name);(groups[cls]||(groups[cls]=[])).push(row);});results.innerHTML=Object.entries(groups).map(([cls,list])=>'<section class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800"><span class="flex items-center gap-2 text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-graduation-cap text-blue-600"></i> الصف <b dir="ltr">'+escapeHtml(formatClassName(cls))+'</b></span><span class="rounded-full bg-white px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-900 dark:text-slate-300">'+list.length+' حالة</span></div><div class="overflow-x-auto"><table class="w-full text-right text-xs"><thead class="bg-slate-50 text-slate-500 dark:bg-slate-950"><tr><th class="p-3.5">اسم الطالب</th><th class="p-3.5">'+(domain==="attendance"?"حالة الحضور":"نوع المخالفة")+'</th><th class="p-3.5">التاريخ</th><th class="p-3.5">الحصة</th><th class="p-3.5">المعلم الراصد</th><th class="p-3.5">ملاحظات</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">'+list.map(r=>'<tr class="transition hover:bg-slate-50 dark:hover:bg-slate-800/50"><td class="p-3.5 font-bold text-slate-800 dark:text-white">'+escapeHtml(r.student)+'</td><td class="p-3.5">'+(domain==="attendance"?( '<span class="inline-block rounded-xl px-3 py-1 text-[11px] font-black '+(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[2]||"bg-slate-200 text-slate-800")+'">'+escapeHtml(SA_ATTENDANCE_STATUS.find(x=>x[0]===r.status)?.[1]||r.status)+'</span>'):'<span class="inline-block rounded-xl border border-rose-200 bg-rose-50 px-3 py-1 text-[11px] font-black text-rose-700 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-200">'+escapeHtml(SA_BEHAVIOR_TYPES[r.behavior]||r.behavior)+'</span>')+'</td><td class="whitespace-nowrap p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.date_str||"—")+'</td><td class="p-3.5 text-slate-700 dark:text-slate-300">'+escapeHtml(r.session.period||"—")+'</td><td class="p-3.5 text-slate-600 dark:text-slate-300">'+escapeHtml(r.session.teacher_name||"—")+'</td><td class="whitespace-pre-wrap p-3.5 text-slate-500">'+escapeHtml(r.note||"—")+'</td></tr>').join("")+'</tbody></table></div></section>').join("");}function saFormatRepeatCount(n){
   const count=Math.max(1,Number(n)||1);
