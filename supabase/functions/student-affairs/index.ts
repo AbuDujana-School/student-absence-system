@@ -1,4 +1,5 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, areClassesAllowed } from "./report_policy.ts";
+import { authorizeCompetitionAccess } from "./competition_authorization.ts";
 import { buildTeamRates, calculateRelativeCompetitionScores, gradeForClassName, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -242,27 +243,9 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   }
 
   const admin = principal.type === "admin";
-  const ownGrades = admin ? grades : [...new Set(
-    allClasses
-      .filter(name => (permissions.allowed_attendance_classes || []).includes(name) && (permissions.allowed_behavior_classes || []).includes(name))
-      .map(name => gradeForClassName(name))
-      .filter((grade): grade is string => !!grade)
-  )];
-  if (!admin) {
-    if (permissions.can_view_analytics !== true || permissions.can_read_attendance !== true || permissions.can_read_behavior !== true) {
-      competitionError(403, "تحتاج لوحة المنافسة إلى صلاحيات التحليلات وقراءة الغياب والسلوك معاً.");
-    }
-    const requiredStatuses = ["absent", "late", "outside", "escape"];
-    if (requiredStatuses.some(status => !(permissions.attendance_statuses || []).includes(status))) {
-      competitionError(403, "يجب السماح بحالات الغياب والتأخر والخروج والتسرب جميعها لاحتساب نقاط المنافسة.");
-    }
-    if (!ownGrades.length || ownGrades.some(grade => !(classesByGrade[grade] || []).every(name =>
-      (permissions.allowed_attendance_classes || []).includes(name) &&
-      (permissions.allowed_behavior_classes || []).includes(name)
-    ))) {
-      competitionError(403, "يجب تخصيص جميع شعب مرحلة واحدة على الأقل لقائد الفريق في الغياب والسلوك قبل تفعيل المنافسة.");
-    }
-  }
+  const authorization = authorizeCompetitionAccess(principal.type, permissions, classesByGrade, grades);
+  if (!authorization.allowed) competitionError(403, authorization.message || "غير مصرح بلوحة المنافسة.");
+  const ownGrades = authorization.ownGrades;
 
   const [studentRows, attendanceRows, behaviorRows] = await Promise.all([
     fetchCompetitionStudents(competitionClasses),
