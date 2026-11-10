@@ -56,7 +56,7 @@ export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
   const from = asIsoDate(fromValue);
   const to = asIsoDate(toValue);
   if (!from || !to || from > to) throw new Error("نطاق التاريخ غير صالح");
-  const days = [];
+  const days: string[] = [];
   for (let cursor = from; cursor <= to; cursor = shiftIsoDate(cursor, 1)) {
     const weekday = new Date(cursor + "T12:00:00.000Z").getUTCDay();
     if (COMPETITION_WEEKDAYS.includes(weekday)) days.push(cursor);
@@ -66,7 +66,7 @@ export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
 
 type CompetitionRow = { date_str?: unknown; class_name?: unknown; period?: unknown; record_key?: unknown; records?: unknown };
 type CoverageMap = Map<string, Map<string, Set<number>>>;
-function recordMap(row: CompetitionRow): Record<string, unknown> {
+function recordMap(row: CompetitionRow): Record<string, any> {
   return row?.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
 }
 
@@ -101,7 +101,7 @@ export function countBehaviorIncidents(rows: CompetitionRow[]): number {
 }
 
 export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
-  const coverage = new Map();
+  const coverage = new Map<string, Map<string, Set<number>>>();
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str);
     const className = String(row?.class_name || "").trim();
@@ -109,7 +109,7 @@ export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
     const period = Number(row?.period || keyPeriod || 0);
     if (!date || !className || !COMPETITION_REQUIRED_PERIODS.includes(period)) continue;
     if (!coverage.has(date)) coverage.set(date, new Map());
-    const byClass = coverage.get(date);
+    const byClass = coverage.get(date)!;
     if (!byClass.has(className)) byClass.set(className, new Set());
     byClass.get(className).add(period);
   }
@@ -130,7 +130,7 @@ export function isTeamDayComplete(classNames: string[], dateValue: unknown, atte
 }
 
 type CompetitionTeam = { grade?: string; complete: boolean; attendanceRate: number | null; behaviorRate: number | null; [key: string]: unknown };
-export function calculateRelativeCompetitionScores(teams: CompetitionTeam[]): Array<CompetitionTeam & { score: number | null; attendancePoints: number | null; behaviorPoints: number | null; rank: number | null; resultStatus: string }> {
+export function calculateRelativeCompetitionScores(teams: any[]): any[] {
   const list = Array.isArray(teams) ? teams : [];
   if (!list.length || list.some(team => team?.complete !== true)) {
     return list.map(team => ({ ...team, score: null, attendancePoints: null, behaviorPoints: null, rank: null, resultStatus: "incomplete" }));
@@ -177,7 +177,7 @@ export function calculateRelativeCompetitionScores(teams: CompetitionTeam[]): Ar
  * silently interpreted as zero incidents.
  */
 type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
-export function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput) {
+export function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
   const days = getSchoolDays(from, to);
   const classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
   const rosterMap = rosters && typeof rosters === "object" ? rosters : {};
