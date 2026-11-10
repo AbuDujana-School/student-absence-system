@@ -1668,10 +1668,10 @@ function saRenderCompetition(data){
   }).join(""):'<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا تتوفر نتائج للمراحل الأربع.</div>';
   const wins=document.getElementById("saCompetitionWins");
   const weeklyWins=data?.weeklyWins||{};
-  const maxWins=Math.max(0,...["9","10","11","12"].map(grade=>Number(weeklyWins[grade]||0)));
-  wins.innerHTML=["9","10","11","12"].map(grade=>{
-    const count=Number(weeklyWins[grade]||0),own=ownGrades.has(grade),mostWins=maxWins>0&&count===maxWins;
-    return '<div class="flex items-center justify-between gap-3 rounded-xl border '+(mostWins?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-2.5"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(own?'<i class="fa-solid fa-flag text-teal-600 ml-1"></i>':'')+'فريق '+saCompetitionGradeLabel(grade)+(mostWins?' <span class="mr-1 text-amber-600">👑 الأكثر تتويجاً</span>':'')+'</span><strong class="text-sm font-black tabular-nums text-amber-600">'+count+' <span class="text-[10px]">أسبوع</span></strong></div>';
+  const maxWins=Math.max(0,...teams.map(team=>Number(weeklyWins[team.teamId]||0)));
+  wins.innerHTML=teams.map(team=>{
+    const count=Number(weeklyWins[team.teamId]||0),own=ownGrades.has(String(team.grade)),mostWins=maxWins>0&&count===maxWins;
+    return '<div class="flex items-center justify-between gap-3 rounded-xl border '+(mostWins?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-2.5"><span class="text-xs font-black text-slate-700 dark:text-slate-200">'+(own?'<i class="fa-solid fa-flag text-teal-600 ml-1"></i>':'')+escapeHtml(team.teamName||team.grade)+(mostWins?' <span class="mr-1 text-amber-600">👑 الأكثر تتويجاً</span>':'')+'</span><strong class="text-sm font-black tabular-nums text-amber-600">'+count+' <span class="text-[10px]">أسبوع</span></strong></div>';
   }).join("");
   const recommendations=document.getElementById("saCompetitionRecommendations");
   const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownGrades.has(String(item.grade)));
@@ -1696,10 +1696,10 @@ function saRenderCompetition(data){
   if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
   if(canvas&&typeof Chart!=="undefined"){
     const days=Array.isArray(data?.dailyProgress)?data.dailyProgress:[];
-    const colors={"9":"#168C85","10":"#D5A64A","11":"#7C3AED","12":"#E11D48"};
+    const palette=["#168C85","#D5A64A","#7C3AED","#E11D48","#2563EB","#0891B2","#65A30D","#9333EA","#C2410C","#0F766E"];
     saCompetitionChart=new Chart(canvas.getContext("2d"),{
       type:"line",
-      data:{labels:days.map(day=>saCompetitionDayLabel(day.date)),datasets:["9","10","11","12"].map(grade=>({label:"فريق "+saCompetitionGradeLabel(grade),data:days.map(day=>{const team=(day.teams||[]).find(item=>String(item.grade)===grade);return team?.complete&&Number.isFinite(Number(team.score))?Number(team.score):null;}),borderColor:colors[grade],backgroundColor:colors[grade],borderWidth:2.5,tension:.28,spanGaps:false,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:colors[grade]}))},
+      data:{labels:days.map(day=>saCompetitionDayLabel(day.date)),datasets:teams.map((team,index)=>{const color=palette[index%palette.length];return {label:team.teamName||team.grade,data:days.map(day=>{const item=(day.teams||[]).find(entry=>String(entry.teamId)===String(team.teamId));return item?.complete&&Number.isFinite(Number(item.score))?Number(item.score):null; }),borderColor:color,backgroundColor:color,borderWidth:2.5,tension:.28,spanGaps:false,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:color};})},
       options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:8,font:{family:"Tajawal",size:11}}},tooltip:{titleFont:{family:"Tajawal"},bodyFont:{family:"Tajawal"}}},scales:{y:{min:0,max:100,ticks:{font:{family:"Tajawal"}},grid:{color:"rgba(148,163,184,.16)"}},x:{ticks:{font:{family:"Tajawal",size:10},maxRotation:0,autoSkip:true},grid:{display:false}}}}
     });
   }
