@@ -1,5 +1,5 @@
 import {
-  awardWeeklyCompetitionPoints, buildTeamRates, calculateRelativeCompetitionScores,
+  awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores,
   countAttendanceIncidents, countBehaviorIncidents, getSchoolDays, getSchoolWeekRange,
   gradeForClassName, isTeamDayComplete, getSessionCoverage
 } from "./competition_policy.ts";
@@ -52,6 +52,19 @@ Deno.test("relative performance ranks lower attendance and behavior rates higher
   ]);
   if (result[0].teamName !== "أ" || result[0].score !== 100 || result[2].score !== 0) throw new Error("relative ranking failed");
 });
+Deno.test("monthly and term standings rank by accumulated weekly points", () => {
+  const ranked = rankCompetitionTeamsByAccumulatedPoints([
+    { teamId: "A", teamName: "أ", score: 20 },
+    { teamId: "B", teamName: "ب", score: 100 },
+    { teamId: "C", teamName: "ج", score: 50 },
+    { teamId: "D", teamName: "د", score: 10 }
+  ], { A: 16, B: 10, C: 16, D: 0 });
+  const byId = Object.fromEntries(ranked.map(team => [team.teamId, team.rank]));
+  if (byId.A !== 1 || byId.C !== 1 || byId.B !== 2 || byId.D !== 3) {
+    throw new Error("cumulative points must determine standings; ties share a rank");
+  }
+});
+
 Deno.test("only first, second and third places receive unequal weekly points", () => {
   const awards = awardWeeklyCompetitionPoints([
     {rank:1,complete:true},{rank:2,complete:true},{rank:3,complete:true},{rank:4,complete:true},{rank:5,complete:true}
