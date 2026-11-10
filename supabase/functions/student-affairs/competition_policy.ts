@@ -9,26 +9,26 @@ export const COMPETITION_BEHAVIOR_TYPES = ["eating", "talking", "tools", "chaos"
 export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4]; // Sunday through Thursday (Oman school week).
 export const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
 
-const ARABIC_GRADE_NAMES = [
+const ARABIC_GRADE_NAMES: Array<[RegExp, string]> = [
   [/التاسع|تاسع/, "9"],
   [/العاشر|عاشر/, "10"],
   [/الحادي\s*عشر|حادي\s*عشر/, "11"],
   [/الثاني\s*عشر|ثاني\s*عشر/, "12"]
 ];
 
-function asIsoDate(value) {
+function asIsoDate(value: unknown): string | null {
   if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return null;
   const date = new Date(value + "T12:00:00.000Z");
   return Number.isNaN(date.getTime()) || date.toISOString().slice(0, 10) !== value ? null : value;
 }
 
-function shiftIsoDate(value, days) {
+function shiftIsoDate(value: string, days: number): string {
   const date = new Date(value + "T12:00:00.000Z");
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
 }
 
-export function gradeForClassName(className) {
+export function gradeForClassName(className: unknown): string | null {
   const value = String(className || "").trim();
   if (!value) return null;
 
@@ -44,7 +44,7 @@ export function gradeForClassName(className) {
   return COMPETITION_GRADES.includes(value) ? value : null;
 }
 
-export function getSchoolWeekRange(dateValue) {
+export function getSchoolWeekRange(dateValue: unknown): { start: string; end: string; key: string } {
   const date = asIsoDate(dateValue);
   if (!date) throw new Error("تاريخ الأسبوع غير صالح");
   const weekday = new Date(date + "T12:00:00.000Z").getUTCDay();
@@ -52,7 +52,7 @@ export function getSchoolWeekRange(dateValue) {
   return { start, end: shiftIsoDate(start, 4), key: start };
 }
 
-export function getSchoolDays(fromValue, toValue) {
+export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
   const from = asIsoDate(fromValue);
   const to = asIsoDate(toValue);
   if (!from || !to || from > to) throw new Error("نطاق التاريخ غير صالح");
@@ -64,18 +64,18 @@ export function getSchoolDays(fromValue, toValue) {
   return days;
 }
 
-function recordMap(row) {
+type CompetitionRow = { date_str?: unknown; class_name?: unknown; period?: unknown; record_key?: unknown; records?: unknown };\ntype CoverageMap = Map<string, Map<string, Set<number>>>;\nfunction recordMap(row: CompetitionRow): Record<string, unknown> {
   return row?.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
 }
 
-export function countAttendanceIncidents(rows) {
+export function countAttendanceIncidents(rows: CompetitionRow[]): number {
   const unique = new Set();
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str);
     const className = String(row?.class_name || "").trim();
     if (!date || !className) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      const status = typeof raw === "string" ? raw : String(raw?.status || "");
+      const status = typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || "");
       if (!COMPETITION_ATTENDANCE_STATUSES.includes(status)) continue;
       unique.add([className, date, String(student), status].join("\u001f"));
     }
@@ -83,14 +83,14 @@ export function countAttendanceIncidents(rows) {
   return unique.size;
 }
 
-export function countBehaviorIncidents(rows) {
+export function countBehaviorIncidents(rows: CompetitionRow[]): number {
   const unique = new Set();
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str);
     const className = String(row?.class_name || "").trim();
     if (!date || !className) continue;
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      const type = raw && typeof raw === "object" ? String(raw.type || "") : String(raw || "");
+      const type = raw && typeof raw === "object" ? String((raw as {type?: unknown}).type || "") : String(raw || "");
       if (!COMPETITION_BEHAVIOR_TYPES.includes(type)) continue;
       unique.add([className, date, String(student), type].join("\u001f"));
     }
@@ -98,7 +98,7 @@ export function countBehaviorIncidents(rows) {
   return unique.size;
 }
 
-export function getSessionCoverage(rows) {
+export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
   const coverage = new Map();
   for (const row of Array.isArray(rows) ? rows : []) {
     const date = asIsoDate(row?.date_str);
@@ -114,27 +114,27 @@ export function getSessionCoverage(rows) {
   return coverage;
 }
 
-export function isTeamDayComplete(classNames, dateValue, attendanceCoverage, behaviorCoverage) {
+export function isTeamDayComplete(classNames: string[], dateValue: unknown, attendanceCoverage: CoverageMap, behaviorCoverage: CoverageMap): boolean {
   const date = asIsoDate(dateValue);
   const classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
   if (!date || !classes.length) return false;
   const attendance = attendanceCoverage instanceof Map ? attendanceCoverage.get(date) : null;
   const behavior = behaviorCoverage instanceof Map ? behaviorCoverage.get(date) : null;
-  const hasAllPeriods = (coverage, className) => {
+  const hasAllPeriods = (coverage: CoverageMap | null, className: string): boolean => {
     const periods = coverage instanceof Map ? coverage.get(className) : null;
     return COMPETITION_REQUIRED_PERIODS.every(period => periods?.has(period));
   };
   return classes.every(name => hasAllPeriods(attendance, name) && hasAllPeriods(behavior, name));
 }
 
-export function calculateRelativeCompetitionScores(teams) {
+type CompetitionTeam = { grade?: string; complete: boolean; attendanceRate: number | null; behaviorRate: number | null; [key: string]: unknown };\nexport function calculateRelativeCompetitionScores(teams: CompetitionTeam[]): Array<CompetitionTeam & { score: number | null; attendancePoints: number | null; behaviorPoints: number | null; rank: number | null; resultStatus: string }> {
   const list = Array.isArray(teams) ? teams : [];
   if (!list.length || list.some(team => team?.complete !== true)) {
     return list.map(team => ({ ...team, score: null, attendancePoints: null, behaviorPoints: null, rank: null, resultStatus: "incomplete" }));
   }
 
-  const attendanceRates = list.map(team => Number(team.attendanceRate));
-  const behaviorRates = list.map(team => Number(team.behaviorRate));
+  const attendanceRates = list.map((team: CompetitionTeam) => Number(team.attendanceRate));
+  const behaviorRates = list.map((team: CompetitionTeam) => Number(team.behaviorRate));
   if ([...attendanceRates, ...behaviorRates].some(rate => !Number.isFinite(rate) || rate < 0)) {
     throw new Error("معدلات المنافسة غير صالحة");
   }
@@ -144,8 +144,8 @@ export function calculateRelativeCompetitionScores(teams) {
   const behaviorWorst = Math.max(...behaviorRates);
   const behaviorBest = Math.min(...behaviorRates);
 
-  const pointsFor = (rate, best, worst) => worst === best ? 50 : 50 * (worst - rate) / (worst - best);
-  const scored = list.map(team => {
+  const pointsFor = (rate: number, best: number, worst: number): number => worst === best ? 50 : 50 * (worst - rate) / (worst - best);
+  const scored = list.map((team: CompetitionTeam) => {
     const attendancePoints = pointsFor(Number(team.attendanceRate), attendanceBest, attendanceWorst);
     const behaviorPoints = pointsFor(Number(team.behaviorRate), behaviorBest, behaviorWorst);
     return {
@@ -157,7 +157,7 @@ export function calculateRelativeCompetitionScores(teams) {
     };
   });
 
-  scored.sort((a, b) => b.score - a.score || String(a.grade || "").localeCompare(String(b.grade || ""), "en"));
+  scored.sort((a: any, b: any) => b.score - a.score || String(a.grade || "").localeCompare(String(b.grade || ""), "en"));
   let rank = 0;
   let previousScore = null;
   for (const team of scored) {
@@ -173,14 +173,14 @@ export function calculateRelativeCompetitionScores(teams) {
  * and session coverage before marking a team complete; missing sessions are never
  * silently interpreted as zero incidents.
  */
-export function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }) {
+type BuildTeamRatesInput = { grade: string; classNames: string[]; rosters: Record<string, string[]>; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };\nexport function buildTeamRates({ grade, classNames, rosters, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput) {
   const days = getSchoolDays(from, to);
   const classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))];
   const rosterMap = rosters && typeof rosters === "object" ? rosters : {};
-  const studentCount = classes.reduce((sum, name) => sum + (Array.isArray(rosterMap[name]) ? new Set(rosterMap[name].map(x => String(x || "").trim()).filter(Boolean)).size : 0), 0);
+  const studentCount = classes.reduce((sum: number, name: string) => sum + (Array.isArray(rosterMap[name]) ? new Set(rosterMap[name].map(x => String(x || "").trim()).filter(Boolean)).size : 0), 0);
   const hasEveryRoster = classes.length > 0 && classes.every(name => Array.isArray(rosterMap[name]));
   const classSet = new Set(classes);
-  const inRangeRows = rows => (Array.isArray(rows) ? rows : []).filter(row => {
+  const inRangeRows = (rows: CompetitionRow[]): CompetitionRow[] => rows.filter((row: CompetitionRow) => {
     const date = asIsoDate(row?.date_str);
     return date && date >= from && date <= to && classSet.has(String(row?.class_name || "").trim());
   });
