@@ -3019,8 +3019,15 @@ function renderBehaviorClassesGrid() {
     container.appendChild(btn);
   });
 }
-function getBehaviorTypesFromRecord(record){if(!record||typeof record!=="object")return record&&record!=="normal"?[String(record)]:[];const raw=Array.isArray(record.types)?record.types:Array.isArray(record.type)?record.type:[record.type];return [...new Set(raw.map(x=>String(x||"")).filter(x=>x&&x!=="normal"&&Object.prototype.hasOwnProperty.call(SA_BEHAVIOR_TYPES,x)))];}
-function normalizeBehaviorRecord(record){const types=getBehaviorTypesFromRecord(record);return {types,type:types[0]||"normal",note:String(record&&typeof record==="object"?record.note||"":"")};}
+function getBehaviorTypesFromRecord(record){
+  if(!record||typeof record!=="object")return record&&record!=="normal"?[String(record)]:[];
+  const raw=Array.isArray(record.types)?record.types:Array.isArray(record.type)?record.type:[record.type];
+  return [...new Set(raw.map(value=>String(value||"")).filter(value=>value&&value!=="normal"&&Object.prototype.hasOwnProperty.call(SA_BEHAVIOR_TYPES,value)))];
+}
+function normalizeBehaviorRecord(record){
+  const types=getBehaviorTypesFromRecord(record);
+  return {types,type:types[0]||"normal",note:String(record&&typeof record==="object"?record.note||"":"")};
+}
 function loadSessionBehavior() {
   const period = document.getElementById('behaviorPeriodSelect').value;
   const today = getOmanLocalDate();
@@ -3092,7 +3099,6 @@ function setStudentBehaviorType(student,type,skipUndo=false){
 }
 function undoLastBehaviorChange(){const item=behaviorUndoStack.pop();if(!item)return;const prev=item.previous||{types:item.prevType&&item.prevType!=="normal"?[item.prevType]:[],note:""};currentBehaviorRecord[item.student]={types:[...prev.types],type:prev.types[0]||"normal",note:prev.note||""};const row=document.querySelector(`#behaviorStudentsListContainer .student-row[data-student="${CSS.escape(item.student)}"]`);if(row){const cm={normal:'bg-emerald-600 text-white border-emerald-600 shadow-md shadow-emerald-500/25',eating:'bg-amber-500 text-white border-amber-500 shadow-md',talking:'bg-orange-500 text-white border-orange-500 shadow-md',tools:'bg-yellow-600 text-white border-yellow-600 shadow-md',chaos:'bg-red-500 text-white border-red-500 shadow-md shadow-red-500/25',sleeping:'bg-indigo-600 text-white border-indigo-600 shadow-md',homework:'bg-blue-600 text-white border-blue-600 shadow-md',other:'bg-rose-700 text-white border-rose-700 shadow-md'},selected=new Set(prev.types);row.querySelectorAll('.status-btn').forEach(b=>{const key=b.dataset.behavior,active=key==="normal"?!selected.size:selected.has(key);b.className=`status-btn px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl text-[10px] sm:text-xs font-bold border whitespace-nowrap ${active?cm[key]:'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-slate-400'}`;});const wrap=row.querySelector('.behavior-note-wrapper');if(wrap)wrap.classList.toggle('hidden',!selected.has('other'));const input=wrap?.querySelector('input');if(input)input.value=prev.note||"";}behaviorDirty=true;document.getElementById('unsavedBehaviorStatusIndicator').textContent="⚠️ تغييرات غير محفوظة";if(!behaviorUndoStack.length)document.getElementById('undoBehaviorBtn').disabled=true;}
 function updateBehaviorNoteFromInput(input){const student=input.dataset.student;if(!student)return;const current=normalizeBehaviorRecord(currentBehaviorRecord[student]);current.note=input.value;if(!current.types.includes("other"))current.types.push("other");currentBehaviorRecord[student]={...current,type:current.types[0]||"normal"};behaviorDirty=true;document.getElementById('unsavedBehaviorStatusIndicator').textContent="⚠️ تغييرات غير محفوظة";}
-
 async function saveBehaviorSession() {
   if (!selectedBehaviorClass || !activeUser) return;
   if ((db.students[selectedBehaviorClass] || []).length === 0) { showToast('لا يوجد طلاب.', 'error'); return; }
@@ -4211,7 +4217,7 @@ async function repGetVerifiedPrintRows(){
         if(!validStatuses.has(type)||!allowedStatuses.includes(type)||!statusFilters.includes(type))return;
       }else{
         const item=value&&typeof value==="object"?value:{type:String(value),note:""};
-        const types=getBehaviorTypesFromRecord(item).filter(type=>repGetSelectedBehaviorTypes().includes(type));if(!types.length)return;note=String(item.note||"");
+        const types=getBehaviorTypesFromRecord(item).filter(behaviorType=>repGetSelectedBehaviorTypes().includes(behaviorType));if(!types.length)return;note=String(item.note||"");
         types.forEach(behaviorType=>{const countKey=[className,String(student),String(session.date_str||""),behaviorType].join("\u001f");repeatCounts.set(countKey,(repeatCounts.get(countKey)||0)+1);rows.push({student:String(student),className,type:behaviorType,note,session,countKey});});return;
       }
       const date=String(session.date_str||"");
