@@ -6217,7 +6217,8 @@ if ("serviceWorker" in navigator) {
     const host=document.createElement("section");host.id=id;host.className="sa-glass-panel hidden space-y-4";
     host.innerHTML='<div class="sa-glass-heading"><div><span class="sa-glass-eyebrow">ABU DUJANA SCHOOL</span><strong>إعداد التقرير الموحّد</strong><p>اختر حالات الغياب وأنواع السلوكيات المطلوبة</p></div><span class="sa-glass-chip"><i class="fa-solid fa-layer-group"></i> الغياب والسلوكيات</span></div>'+
       '<div class="sa-glass-filter-grid"><div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-user-clock"></i><span>الغياب</span></div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>'+
-      '<div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-clipboard-check"></i><span>أنواع السلوكيات</span></div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div></div>';
+      '<div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-clipboard-check"></i><span>أنواع السلوكيات</span></div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div></div>'+
+      '<p class="sa-glass-hint">العرض اليومي يوضح تفاصيل كل يوم، أما التراكمي فيجمع إجمالي حالات الغياب والسلوكيات خلال الفترة المحددة.</p>';
     const controls=document.createElement("div");
     controls.id=prefix+"CombinedControls";
     controls.className="hidden space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40";
