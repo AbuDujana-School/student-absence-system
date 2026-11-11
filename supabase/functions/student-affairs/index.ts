@@ -169,40 +169,60 @@ async function getCompetitionCronSecret() {
   if (error || typeof data !== "string" || data.length < 32) throw new Error("Competition scheduler secret unavailable");
   return data;
 }
-function projectCompetitionResponse(snapshot: any, principal: { type: string; name: string }) {
+function projectCompetitionResponse(snapshot: any, principal: { type: string; name: string }, permissions: any = {}) {
   const isAdmin = principal.type === "admin";
   const sourceTeams = Array.isArray(snapshot?.teams) ? snapshot.teams : [];
-  const ownTeams = sourceTeams.filter((team: any) => String(team.teamId || "") === principal.name || String(team.leaderName || "") === principal.name);
+  const rawClasses = Array.isArray(snapshot?.classComparison) ? snapshot.classComparison : [];
+  const ownClassNames = new Set<string>((Array.isArray(permissions?.competition_team_classes) ? permissions.competition_team_classes : []).map((name: unknown) => String(name)));
+  const ownTeams = isAdmin ? [] : permissions?.competition_participant === true
+    ? sourceTeams.filter((team: any) => String(team.teamId || "") === principal.name || String(team.leaderName || "") === principal.name)
+    : [];
   const ownTeamIds = new Set<string>(ownTeams.map((team: any) => String(team.teamId || "")));
+  const ownClassRows = rawClasses.filter((item: any) => ownTeamIds.has(String(item.teamId || "")) && ownClassNames.has(String(item.className || "")));
+  const average = (rows: any[], key: string) => {
+    const values = rows.map((item: any) => Number(item[key])).filter((value: number) => Number.isFinite(value));
+    return values.length ? values.reduce((sum: number, value: number) => sum + value, 0) / values.length : null;
+  };
+  const sum = (rows: any[], key: string) => rows.reduce((total: number, item: any) => total + (Number(item[key]) || 0), 0);
   const teams = sourceTeams.map((team: any) => {
+    const isOwn = ownTeamIds.has(String(team.teamId || ""));
     const projected: any = {
       teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName,
-      classNames: Array.isArray(team.classNames) ? team.classNames : [],
+      classNames: isOwn ? Array.from(ownClassNames) : (Array.isArray(team.classNames) ? team.classNames : []),
       grade: team.grade, score: team.score, rank: team.rank,
       attendancePoints: team.attendancePoints, behaviorPoints: team.behaviorPoints,
       weeklyAwardPoints: team.weeklyAwardPoints, complete: team.complete,
       resultStatus: team.resultStatus
     };
-    if (isAdmin || ownTeamIds.has(String(team.teamId || ""))) {
+    if (isAdmin) {
       Object.assign(projected, {
         attendanceRate: team.attendanceRate, behaviorRate: team.behaviorRate,
         attendanceIncidents: team.attendanceIncidents, behaviorIncidents: team.behaviorIncidents,
         classMetrics: team.classMetrics
       });
+    } else if (isOwn) {
+      const ownMetrics = ownClassRows.filter((item: any) => String(item.teamId || "") === String(team.teamId || ""));
+      Object.assign(projected, {
+        attendanceRate: average(ownMetrics, "attendanceRate"),
+        behaviorRate: average(ownMetrics, "behaviorRate"),
+        attendanceIncidents: sum(ownMetrics, "attendanceIncidents"),
+        behaviorIncidents: sum(ownMetrics, "behaviorIncidents"),
+        classMetrics: ownMetrics
+      });
     }
     return projected;
   });
-  const rawClasses = Array.isArray(snapshot?.classComparison) ? snapshot.classComparison : [];
+  const visibleClasses = isAdmin ? rawClasses : ownClassRows;
   return {
     ...snapshot,
     isAdmin,
     teams,
     ownGrades: ownTeams.map((team: any) => team.teamName || team.grade),
-    ownClasses: rawClasses.filter((item: any) => isAdmin || ownTeamIds.has(String(item.teamId || ""))),
-    classComparison: projectCompetitionClassComparison(rawClasses, isAdmin, Array.from(ownTeamIds))
+    ownClasses: visibleClasses,
+    classComparison: projectCompetitionClassComparison(visibleClasses, isAdmin, Array.from(ownTeamIds))
   };
 }
-async function getLatestWeeklyCompetition(principal: { type: string; name: string }) {
+async function getLatestWeeklyCompetition(principal: { type: string; name: string }, permissions: any) {
   const today = getOmanIsoDate();
   const week = getSchoolWeekRange(today);
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
@@ -225,7 +245,7 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
       ...(latestComplete.snapshot || {}),
       from: latestComplete.week_start, to: latestComplete.week_end, today, period: "weekly",
       snapshotStatus: latestComplete.status, finalizedAt: latestComplete.finalized_at, pendingWeek
-    }, principal);
+    }, principal, permissions);
   }
   if (latestAttempt) {
     return projectCompetitionResponse({
@@ -233,7 +253,7 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
       from: latestAttempt.week_start, to: latestAttempt.week_end, today, period: "weekly",
       status: "incomplete", snapshotStatus: latestAttempt.status,
       finalizedAt: latestAttempt.finalized_at, pendingWeek: null
-    }, principal);
+    }, principal, permissions);
   }
   return {
     from: latestClosedWeekStart, to: shiftCompetitionDate(latestClosedWeekStart, 4), today,
@@ -342,7 +362,7 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
     dailyProgress: [], weeklyWins, weeklyPoints, weeklyHistory,
     completedWeeks: completed.length
   };
-  return projectCompetitionResponse(raw, principal);
+  return projectCompetitionResponse(raw, principal, permissions);
 }
 async function finalizeCompetitionWeek() {
   const today = getOmanIsoDate();
@@ -697,11 +717,11 @@ async function handle(req: Request) {
     try {
       let snapshot: any;
       const period = String(body.period || "weekly");
-      if (period === "weekly") snapshot = await getLatestWeeklyCompetition(p);
+      if (period === "weekly") snapshot = await getLatestWeeklyCompetition(p, permissions);
       else if (period === "term") snapshot = await buildTermCompetitionSnapshot(p, permissions);
       else {
         const live = await buildCompetitionSnapshot(p, permissions, body.from, body.to, period);
-        snapshot = projectCompetitionResponse(live, p);
+        snapshot = projectCompetitionResponse(live, p, permissions);
       }
       return reply(200, snapshot);
     } catch (e) {
