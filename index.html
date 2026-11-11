@@ -989,6 +989,97 @@
 }
 </style>
 
+
+<style id="combined-summary-card-grid-fix">
+  /* Match combined-report totals to the individual attendance summary cards. */
+  .combined-summary-totals {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    align-items: stretch;
+    min-width: 0;
+  }
+  .combined-summary .summary-total-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-width: 0;
+    min-height: 102px;
+    padding: 12px;
+    text-align: center;
+    border: 1px solid #e1e9ef;
+    border-radius: 18px;
+    background: linear-gradient(155deg, #fff, #f7fafc);
+    box-shadow: 0 8px 22px -18px rgba(24,54,83,.45);
+  }
+  .combined-summary .summary-total-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-width: 0;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+  .combined-summary .summary-total-label {
+    font-size: 11px;
+    line-height: 1.45;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .combined-summary .summary-total-value {
+    font-size: 23px;
+    line-height: 1.2;
+    font-variant-numeric: tabular-nums;
+    overflow-wrap: anywhere;
+  }
+  .combined-summary .summary-total-icon {
+    order: -1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    border-radius: 11px;
+    font-size: 19px;
+    line-height: 1;
+    background: rgba(22,140,133,.10);
+    color: #168c85;
+  }
+  .combined-summary .summary-total-card.summary-behavior .summary-total-icon {
+    background: rgba(213,166,74,.16);
+    color: #a87922;
+  }
+  .dark .combined-summary .summary-total-card {
+    border-color: #2a4055;
+    background: linear-gradient(155deg, #132438, #0f1d2c);
+    box-shadow: 0 8px 22px -18px rgba(0,0,0,.65);
+  }
+  .dark .combined-summary .summary-total-icon {
+    background: rgba(31,168,159,.16);
+    color: #55c8bf;
+  }
+  .dark .combined-summary .summary-total-card.summary-behavior .summary-total-icon {
+    background: rgba(213,166,74,.18);
+    color: #e0b864;
+  }
+  @media (max-width: 640px) {
+    .combined-summary-totals {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+    .combined-summary .summary-total-card {
+      min-height: 102px;
+      padding: 10px 8px;
+    }
+  }
+</style>
+
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
