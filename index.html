@@ -609,8 +609,8 @@
   position:relative!important;display:flex!important;align-items:center!important;gap:9px!important;
   min-height:58px!important;padding:9px 10px!important;overflow:hidden!important;
   border:1px solid var(--tile-border,#dbe4ed)!important;border-radius:15px!important;
-  background:linear-gradient(145deg,var(--tile-top,#fff),var(--tile-bottom,#f5f8fc))!important;
-  color:var(--tile-text,#26384c)!important;
+  background:linear-gradient(145deg,color-mix(in srgb,var(--tile-top,#fff) 82%,#fff),color-mix(in srgb,var(--tile-bottom,#f5f8fc) 78%,#fff))!important;
+  color:color-mix(in srgb,var(--tile-text,#26384c) 82%,#102238)!important;
   box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 7px 18px -15px var(--tile-shadow,rgba(15,23,42,.5))!important;
   transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,filter .2s ease!important;
 }
@@ -633,7 +633,7 @@
 #repStudentAffairsPanel #repStatusesGrid label span,
 #repStudentAffairsPanel #repBehaviorTypesGrid label span,
 #repStudentAffairsPanel #repCombinedStatuses label span,
-#repStudentAffairsPanel #repCombinedBehaviors label span{flex:1;min-width:0;font-size:11px!important;font-weight:900!important;line-height:1.45}
+#repStudentAffairsPanel #repCombinedBehaviors label span{flex:1;min-width:0;font-size:12.5px!important;font-weight:900!important;line-height:1.5}
 #studentAffairsView #saStatusCheckboxesContainer label input,
 #studentAffairsView #saCombinedStatuses label input,
 #studentAffairsView #saCombinedBehaviors label input,
@@ -715,11 +715,13 @@
  --tile-border:#c0cad5;--tile-accent:#64748b;--tile-icon-top:#94a3b8;--tile-icon-bottom:#475569;--tile-shadow:rgba(71,85,105,.28);--tile-text:#39485b;--tile-icon:"\f141";
 }
 .dark #studentAffairsView label:has(input[value]),.dark #repStudentAffairsPanel label:has(input[value]){
- background:linear-gradient(145deg,color-mix(in srgb,var(--tile-top) 32%,#132438),color-mix(in srgb,var(--tile-bottom) 30%,#0c1928))!important;
- color:color-mix(in srgb,var(--tile-text) 65%,#f8fafc)!important;border-color:color-mix(in srgb,var(--tile-accent) 55%,#334155)!important;
+ background:linear-gradient(145deg,color-mix(in srgb,var(--tile-top) 86%,#fff),color-mix(in srgb,var(--tile-bottom) 82%,#fff))!important;
+ color:color-mix(in srgb,var(--tile-text) 88%,#101f32)!important;
+ border-color:color-mix(in srgb,var(--tile-accent) 42%,#fff)!important;
 }
 .dark #studentAffairsView label:has(input:checked),.dark #repStudentAffairsPanel label:has(input:checked){
- background:linear-gradient(145deg,color-mix(in srgb,var(--tile-selected-top) 38%,#172b40),color-mix(in srgb,var(--tile-selected-bottom) 34%,#102337))!important;
+ background:linear-gradient(145deg,color-mix(in srgb,var(--tile-selected-top) 88%,#fff),color-mix(in srgb,var(--tile-selected-bottom) 84%,#fff))!important;
+ color:color-mix(in srgb,var(--tile-text) 90%,#101f32)!important;
 }
 @media(max-width:430px){
  #studentAffairsView #saStatusCheckboxesContainer label,#studentAffairsView #saCombinedStatuses label,#studentAffairsView #saCombinedBehaviors label,
