@@ -83,6 +83,7 @@ jobs:
           END $do$;
           DELETE FROM public.app_sessions WHERE token_hash = repeat('a', 64);
           RESET ROLE;
+          SET ROLE anon;
           DO $do$
           BEGIN
             BEGIN
@@ -92,6 +93,22 @@ jobs:
             EXCEPTION WHEN insufficient_privilege THEN
               NULL;
             END;
+          END $do$;
+          RESET ROLE;
+          SET ROLE authenticated;
+          DO $do$
+          BEGIN
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES (repeat('d', 64), 'teacher', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'authenticated insert unexpectedly succeeded';
+            EXCEPTION WHEN insufficient_privilege THEN
+              NULL;
+            END;
+          END $do$;
+          RESET ROLE;
+          DO $do$
+          BEGIN
             BEGIN
               INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
               VALUES (repeat('c', 64), 'invalid-role', 'must-be-denied', now() + interval '1 hour');
