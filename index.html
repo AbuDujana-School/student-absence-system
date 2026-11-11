@@ -503,6 +503,19 @@
 @media(min-width:768px){#studentAffairsView .sa-glass-filter-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:420px){#studentAffairsView .sa-glass-chip{display:none}#studentAffairsView .sa-glass-choice{font-size:11px;padding:9px 6px}}
 </style>
+<style id="sa-glass-report-polish">
+#studentAffairsView div:has(> #saAttendanceTab){display:grid!important;grid-template-columns:repeat(auto-fit,minmax(105px,1fr));gap:7px!important;padding:6px!important;border:1px solid #dce9ec;border-radius:17px!important;background:rgba(226,239,242,.7)!important}
+#studentAffairsView #saAttendanceTab,#studentAffairsView #saBehaviorTab,#studentAffairsView #saCombinedTab{display:flex;align-items:center;justify-content:center;min-width:0!important;min-height:44px!important;padding:10px 9px!important;border:1px solid transparent!important;border-radius:12px!important;background:rgba(255,255,255,.86)!important;color:#53677c!important;font-size:12px!important;font-weight:900!important;box-shadow:none!important;transition:all .2s ease}
+#studentAffairsView #saAttendanceTab.bg-blue-600,#studentAffairsView #saBehaviorTab.bg-teal-600,#studentAffairsView #saCombinedTab.bg-teal-700{border-color:rgba(213,166,74,.6)!important;background:linear-gradient(135deg,#183653,#234a6b)!important;color:#fff!important;box-shadow:0 7px 18px -8px rgba(24,54,83,.65)!important}
+#studentAffairsView #saAttendanceTab:hover,#studentAffairsView #saBehaviorTab:hover,#studentAffairsView #saCombinedTab:hover{border-color:#a8d8d3!important;transform:translateY(-1px)}
+#studentAffairsView #saDatePreset{min-height:46px;border:1px solid #dce7ed!important;border-radius:13px!important;background:rgba(255,255,255,.9)!important;color:#183653!important;font-size:12px;font-weight:800;box-shadow:0 3px 12px -9px rgba(24,54,83,.4)}
+#studentAffairsView #saFrom,#studentAffairsView #saTo{min-height:44px;border-radius:12px!important;border-color:#dce7ed!important}
+.dark #studentAffairsView div:has(> #saAttendanceTab){background:rgba(7,20,32,.65)!important;border-color:#29495b!important}
+.dark #studentAffairsView #saAttendanceTab,.dark #studentAffairsView #saBehaviorTab,.dark #studentAffairsView #saCombinedTab{background:#162a3c!important;color:#c8d8e3!important}
+.dark #studentAffairsView #saAttendanceTab.bg-blue-600,.dark #studentAffairsView #saBehaviorTab.bg-teal-600,.dark #studentAffairsView #saCombinedTab.bg-teal-700{background:linear-gradient(135deg,#168c85,#0f6e69)!important;color:#fff!important}
+.dark #studentAffairsView #saDatePreset{background:#15283a!important;color:#d4e2eb!important;border-color:#2d485c!important}
+@media(max-width:420px){#studentAffairsView #saAttendanceTab,#studentAffairsView #saBehaviorTab,#studentAffairsView #saCombinedTab{font-size:11px!important;padding:9px 5px!important}}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
