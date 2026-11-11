@@ -10,6 +10,7 @@ on:
     branches:
       - "main"
       - "feature/student-affairs-secure-preview"
+      - "feature/student-affairs-supervision-roles"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
@@ -39,6 +40,8 @@ jobs:
               subprocess.run(["node", "--check", str(path)], check=True)
           print(f"Checked {len(scripts)} inline script blocks")
           PY
+      - name: Run general app auth policy tests
+        run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
       - name: Run report authorization tests
         run: deno test supabase/functions/student-affairs/report_policy_test.ts
       - name: Run competition policy tests
