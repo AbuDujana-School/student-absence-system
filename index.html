@@ -6223,12 +6223,12 @@ if ("serviceWorker" in navigator) {
     controls.className="hidden space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40";
     controls.innerHTML='<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">'+
       '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-regular fa-calendar-days"></i><span>الفترة الزمنية</span></div><div class="sa-glass-option-box" role="group" aria-label="اختيار الفترة">'+
-      '<button type="button" id="'+prefix+'PeriodTodayBtn" class="sa-glass-choice is-active" onclick="setCombinedPeriodMode(\\''+prefix+'\\',\\'daily\\')"><i class="fa-solid fa-calendar-day"></i><span>اليوم</span></button>'+
-      '<button type="button" id="'+prefix+'PeriodCustomBtn" class="sa-glass-choice" onclick="setCombinedPeriodMode(\\''+prefix+'\\',\\'custom\\')"><i class="fa-solid fa-calendar-range"></i><span>مخصص</span></button></div>'+
+      '<button type="button" id="'+prefix+'PeriodTodayBtn" class="sa-glass-choice is-active" onclick="setCombinedPeriodMode(\''+prefix+'\',\'daily\')"><i class="fa-solid fa-calendar-day"></i><span>اليوم</span></button>'+
+      '<button type="button" id="'+prefix+'PeriodCustomBtn" class="sa-glass-choice" onclick="setCombinedPeriodMode(\''+prefix+'\',\'custom\')"><i class="fa-solid fa-calendar-range"></i><span>مخصص</span></button></div>'+
       '<select id="'+prefix+'CombinedPeriodMode" class="hidden" aria-hidden="true"><option value="daily">اليوم</option><option value="custom">مخصص</option></select></div>'+
       '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-solid fa-chart-column"></i><span>طريقة عرض النتائج</span></div><div class="sa-glass-option-box" role="group" aria-label="طريقة عرض التقرير">'+
-      '<button type="button" id="'+prefix+'ModeDailyBtn" class="sa-glass-choice is-active" onclick="setCombinedOutputMode(\\''+prefix+'\\',false)"><i class="fa-solid fa-list-ul"></i><span>عرض يومي تفصيلي</span></button>'+
-      '<button type="button" id="'+prefix+'ModeCumulativeBtn" class="sa-glass-choice" onclick="setCombinedOutputMode(\\''+prefix+'\\',true)"><i class="fa-solid fa-chart-pie"></i><span>عرض تراكمي</span></button></div>'+
+      '<button type="button" id="'+prefix+'ModeDailyBtn" class="sa-glass-choice is-active" onclick="setCombinedOutputMode(\''+prefix+'\',false)"><i class="fa-solid fa-list-ul"></i><span>عرض يومي تفصيلي</span></button>'+
+      '<button type="button" id="'+prefix+'ModeCumulativeBtn" class="sa-glass-choice" onclick="setCombinedOutputMode(\''+prefix+'\',true)"><i class="fa-solid fa-chart-pie"></i><span>عرض تراكمي</span></button></div>'+
       '<input id="'+prefix+'CombinedCumulative" type="checkbox" class="hidden" aria-hidden="true"></div></div>';
     const behaviorTab=document.getElementById(cfg[prefix].tabs[1]);
     const tabRow=prefix==="sa"?behaviorTab?.parentElement?.parentElement:behaviorTab?.parentElement;
