@@ -582,8 +582,7 @@
 #repStudentAffairsPanel .sa-glass-filter-card{min-width:0;padding:13px;border:1px solid #dce7ed;border-radius:16px;background:rgba(255,255,255,.78)}
 #repStudentAffairsPanel .sa-glass-check{display:flex;align-items:center;gap:7px;min-height:38px;padding:8px 10px;border:1px solid #e1e9ef;border-radius:11px;background:#fff;color:#40566d;font-size:11px;font-weight:800}
 #repStudentAffairsPanel .sa-glass-check input{width:16px;height:16px;flex:0 0 auto;accent-color:#168c85}
-#repStudentAffairsPanel label:has(#repFrom:disabled),#repStudentAffairsPanel label:has(#repTo:disabled){display:none!important}
-#repStudentAffairsPanel #repDatePreset{display:none!important}
+#repStudentAffairsPanel.rep-combined-active label:has(#repFrom:disabled),#repStudentAffairsPanel.rep-combined-active label:has(#repTo:disabled){display:none!important}
 #repStudentAffairsPanel #repFrom,#repStudentAffairsPanel #repTo{min-height:46px;border-radius:13px;border:1px solid #d5e2eb;background:#fff}
 .dark #repStudentAffairsPanel .sa-glass-panel{background:linear-gradient(145deg,rgba(15,26,43,.98),rgba(17,44,57,.96));border-color:rgba(56,189,180,.22)}
 .dark #repStudentAffairsPanel .sa-glass-heading strong,.dark #repStudentAffairsPanel .sa-glass-label{color:#e2f1f2}
@@ -5589,7 +5588,7 @@ if ("serviceWorker" in navigator) {
   function activate(prefix){
     const c=cfg[prefix],p=c.getP();
     if(!canUseCombined(prefix)){showToast("يتطلب التقرير الموحّد صلاحيات قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
-    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);const datePreset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");setClassIntersection(prefix);
+    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);const datePreset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");if(prefix==="rep")document.getElementById("repStudentAffairsPanel")?.classList.add("rep-combined-active");setClassIntersection(prefix);
     document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
     c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
     document.getElementById(c.statusWrap)?.classList.add("hidden");
@@ -5727,7 +5726,7 @@ if ("serviceWorker" in navigator) {
   }
   const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
   saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
-  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
+  repSetDomain=function(d){modes.rep=false;document.getElementById("repStudentAffairsPanel")?.classList.remove("rep-combined-active");document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
   saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
   repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
   saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
