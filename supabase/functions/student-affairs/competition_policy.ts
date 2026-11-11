@@ -30,6 +30,12 @@ export function getSchoolWeekRange(dateValue: unknown): { start: string; end: st
   const start = shiftIsoDate(date, -new Date(date + "T12:00:00.000Z").getUTCDay());
   return { start, end: shiftIsoDate(start, 4), key: start };
 }
+export function isCompleteSchoolWeekRange(fromValue: unknown, toValue: unknown): boolean {
+  const from = asIsoDate(fromValue), to = asIsoDate(toValue);
+  if (!from || !to || from > to) return false;
+  const week = getSchoolWeekRange(from);
+  return from === week.start && to === week.end;
+}
 export function getSchoolDays(fromValue: unknown, toValue: unknown): string[] {
   const from = asIsoDate(fromValue), to = asIsoDate(toValue); if (!from || !to || from > to) throw new Error("نطاق التاريخ غير صالح");
   const days: string[] = [];

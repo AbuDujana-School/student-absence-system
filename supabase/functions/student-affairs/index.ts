@@ -1,5 +1,5 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed } from "./report_policy.ts";
-import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
+import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import {
@@ -577,8 +577,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   };
   const scored = scoreTeamsRange(from, to);
   const allTeamsComplete = scored.length === teams.length && scored.every((team: any) => team.complete === true);
-  const selectedWeek = getSchoolWeekRange(from);
-  const fullSelectedWeek = period === "weekly" && from <= selectedWeek.start && to >= selectedWeek.end;
+  const fullSelectedWeek = period === "weekly" && isCompleteSchoolWeekRange(from, to);
   let currentWeekAwards = fullSelectedWeek && allTeamsComplete ? awardWeeklyCompetitionPoints(scored) : scored.map((team: any) => ({ ...team, weeklyAwardPoints: null }));
   const dailyProgress = schoolDays.map(day => {
     const dayScores = scoreTeamsRange(day, day);
