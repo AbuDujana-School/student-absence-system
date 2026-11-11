@@ -140,3 +140,18 @@ Begin with Stage 1 tests and the server-side identity design. Do not modify RLS,
 - GitHub Actions ran these new policy tests successfully, along with the existing report/competition/permission tests and inline JavaScript syntax check.
 - The same run exposed an existing TypeScript inference issue in the supervision trend code (the inferred status Set element type was `unknown`). A type annotation fix was committed to the feature branch after that run; a new CI run against that later commit has not yet been confirmed.
 - These policy primitives are not yet wired into login or runtime. They do not change the production application or database.
+
+### Exact synchronization contract captured from the current frontend
+- Pagination: `fetchAllPaginated` reads in ordered numeric ranges of 1,000 rows until a short/empty page is returned; no server-side order is currently specified.
+- Current upsert conflict keys:
+  - `classes`: `name`
+  - `students`: `class_name,student_name`
+  - `teachers`: `name`
+  - `attendance`: `record_key`
+  - `behaviors`: `record_key`
+  - `duty_reports`: `id`
+  - `school_settings`: `key`
+- Upserts are chunked (typically 100–500 rows depending on table). On an upsert error, the client falls back row-by-row to a select by conflict fields followed by update or insert. The server replacement must preserve atomicity/idempotency rather than reproducing this unsafe race-prone fallback blindly.
+- Queued deletes are stored in localStorage as table + equality filters + timestamp, de-duplicated by exact JSON filter equality, retried on reconnect, and retained when a request fails. Current delete paths include student/class/teacher removal, attendance/behavior key cleanup, duty-report cleanup, and legacy class-name normalization.
+- The sync routine clears each dirty set only after the corresponding write succeeds. It persists the local snapshot and dirty sets before attempting cloud writes, and retains offline state after a cloud failure.
+- The current `robustUpsert` fallback logs the full row on failure. The server migration must avoid logging student records, teacher credential data, or other personal data.
