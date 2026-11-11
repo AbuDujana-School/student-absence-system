@@ -830,9 +830,9 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: .7rem;
-    min-height: 112px;
-    padding: 1rem .65rem;
+    gap: .45rem;
+    min-height: 92px;
+    padding: .7rem .55rem;
     overflow: hidden;
     border: 1px solid rgba(var(--tile-rgb), .24) !important;
     border-radius: 1.35rem !important;
@@ -862,15 +862,15 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 47px;
-    height: 47px;
-    flex: 0 0 47px;
+    width: 35px;
+    height: 35px;
+    flex: 0 0 35px;
     margin: 0;
-    border-radius: 16px;
+    border-radius: 11px;
     color: #fff !important;
-    background: linear-gradient(145deg, var(--tile-accent), rgba(var(--tile-rgb), .78)) !important;
-    box-shadow: 0 8px 18px -7px rgba(var(--tile-rgb), .72), inset 0 1px 0 rgba(255,255,255,.3);
-    font-size: 1.12rem;
+    background: linear-gradient(145deg, rgba(255,255,255,.34), transparent 38%), linear-gradient(145deg, var(--tile-accent), rgba(var(--tile-rgb), .82)) !important;
+    box-shadow: 0 5px 12px -6px rgba(var(--tile-rgb), .78), inset 0 1px 0 rgba(255,255,255,.48), inset 0 -2px 3px rgba(0,0,0,.12);
+    font-size: .92rem;
     transition: transform .24s ease, box-shadow .24s ease;
   }
   #adminModal .admin-tab.menu-tab-btn > span {
@@ -907,7 +907,7 @@
     transform: scale(1.04);
     box-shadow: 0 10px 22px -7px rgba(var(--tile-rgb), .78), inset 0 1px 0 rgba(255,255,255,.35);
   }
-  #tab-dashboard { --tile-accent:#0f9b8e; --tile-rgb:15,155,142; }
+  #tab-dashboard { --tile-accent:#4f46e5; --tile-rgb:79,70,229; }
   #tab-studstats { --tile-accent:#3979d8; --tile-rgb:57,121,216; }
   #tab-behaviorstats { --tile-accent:#7955c7; --tile-rgb:121,85,199; }
   #tab-users { --tile-accent:#2686b8; --tile-rgb:38,134,184; }
@@ -918,8 +918,8 @@
   #tab-alerts { --tile-accent:#d64f68; --tile-rgb:214,79,104; }
   #tab-reports { --tile-accent:#7657bd; --tile-rgb:118,87,189; }
   #tab-sync { --tile-accent:#168eb7; --tile-rgb:22,142,183; }
-  #tab-security { --tile-accent:#16866f; --tile-rgb:22,134,111; }
-  #tab-studentAffairs { --tile-accent:#0c9b9a; --tile-rgb:12,155,154; }
+  #tab-security { --tile-accent:#475569; --tile-rgb:71,85,105; }
+  #tab-studentAffairs { --tile-accent:#7c3aed; --tile-rgb:124,58,237; }
   #tab-beneficiaries.ring-1 {
     border-color: rgba(211,154,46,.78) !important;
     background: linear-gradient(145deg, rgba(255,255,255,.98), rgba(211,154,46,.19)) !important;
@@ -936,8 +936,8 @@
     border-color: rgba(var(--tile-rgb), .75) !important;
   }
   @media (max-width: 640px) {
-    #adminModal .admin-tab.menu-tab-btn { min-height: 102px; padding: .8rem .45rem; gap: .55rem; }
-    #adminModal .admin-tab.menu-tab-btn > i { width: 42px; height: 42px; flex-basis: 42px; border-radius: 14px; }
+    #adminModal .admin-tab.menu-tab-btn { min-height: 86px; padding: .65rem .4rem; gap: .4rem; }
+    #adminModal .admin-tab.menu-tab-btn > i { width: 33px; height: 33px; flex-basis: 33px; border-radius: 10px; }
     #adminModal .admin-tab.menu-tab-btn > span { font-size: .72rem; }
   }
   @media (prefers-reduced-motion: reduce) {
