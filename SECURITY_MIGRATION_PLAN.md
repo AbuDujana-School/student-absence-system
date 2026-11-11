@@ -117,3 +117,26 @@ No application rows were selected or exported during this audit. No database wri
 ## Next implementation unit
 
 Begin with Stage 1 tests and the server-side identity design. Do not modify RLS, grants, tables, columns, or existing credentials as part of that work.
+
+## Additional findings from the first implementation pass
+
+### Authentication and startup order
+- The application currently calls `loadSystemDataFromCloud()` during `DOMContentLoaded`, before checking whether a user has logged in. This means the general application data is loaded before the login screen is authenticated.
+- The browser currently contains the general-app PBKDF2/legacy PIN pepper constants and verifies teacher/admin PIN records locally.
+- Existing general sessions are signed and checked by browser-side logic; the current Student Affairs bearer session is separate and must not be treated as a general-app session.
+- The general login lookup order is admin, then custom users, then teachers. The server migration must preserve this precedence or explicitly detect duplicate PINs without silently changing which account is selected.
+- The admin PIN is stored in `school_settings` under `admin_pin`; teacher and custom-user credentials are stored in `teachers`. A secure server login must support both without sending either credential record to the browser.
+- Forced PIN-change flows, admin PIN changes, teacher PIN resets, and duplicate-PIN checks currently depend on local credential records. They need dedicated authenticated server actions before browser-side credential reads can be removed.
+
+### Offline and synchronization constraints
+- The application restores localStorage and IndexedDB snapshots, including locally cached user/teacher records, before and during cloud synchronization.
+- Offline changes are tracked in dirty sets and queued deletes; the current save path retries queued deletions and uses chunked upserts with a per-row update/insert fallback.
+- Teacher permission writes first read current server permissions to preserve Student Affairs-managed fields. This merge behavior must be preserved in the server write contract.
+- The class-name normalization path can queue deletes for legacy class names and matching student rows. This behavior must be tested against synthetic data before any server-side replacement.
+- Therefore, changing only the login function is insufficient: startup ordering, local snapshots, queued writes/deletes, and each module's permission checks must be migrated as a coordinated sequence.
+
+### First code unit and CI result
+- Added `app_auth_policy.ts` and `app_auth_policy_test.ts` as isolated server-side policy primitives. The tests cover PIN shape, allowed principal types, safe profile projection (including nested credential-shaped fields), session token shape, and expiry.
+- GitHub Actions ran these new policy tests successfully, along with the existing report/competition/permission tests and inline JavaScript syntax check.
+- The same run exposed an existing TypeScript inference issue in the supervision trend code (the inferred status Set element type was `unknown`). A type annotation fix was committed to the feature branch after that run; a new CI run against that later commit has not yet been confirmed.
+- These policy primitives are not yet wired into login or runtime. They do not change the production application or database.
