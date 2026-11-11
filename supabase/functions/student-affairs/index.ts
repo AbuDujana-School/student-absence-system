@@ -2,6 +2,11 @@ import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterB
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
+import {
+  resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
+  type AppLoginCandidate, type AppPrincipal,
+} from "./app_auth_policy.ts";
+import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -47,6 +52,63 @@ async function verifyExistingPin(pin: string, salt: string, expected: string) {
   return equalHex(await sha256(legacy.sha256 + ":" + salt + ":" + pin), expected);
 }
 function validPin(pin: unknown): pin is string { return typeof pin === "string" && /^[0-9]{4,10}$/.test(pin); }
+
+const appSessionStore = createSupabaseAppSessionStore(db as unknown as AppSessionDatabaseClient);
+
+async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincipal | null> {
+  const [{ data: adminSetting, error: adminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+    db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
+    db.from("teachers").select("name,role,pin_hash,pin_salt,pin,permissions,must_change_pin"),
+    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt"),
+  ]);
+  if (adminError || usersError || upgradedError) throw new Error("Unable to load login records");
+  const candidates: AppLoginCandidate[] = [];
+  const adminRecord = adminSetting?.value;
+  if (adminRecord?.hash && adminRecord?.salt) {
+    candidates.push({
+      type: "admin", name: "مدير النظام العام",
+      hash: adminRecord.hash, salt: adminRecord.salt,
+      permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
+    });
+  }
+  for (const user of users || []) {
+    const type = user.role === "custom" ? "custom" : "teacher";
+    if (!user.pin_hash || !user.pin_salt) continue;
+    candidates.push({
+      type, name: user.name, hash: user.pin_hash, salt: user.pin_salt,
+      permissions: user.permissions || {},
+      mustChangePin: user.must_change_pin === true || user.permissions?.mustChangePin === true,
+    });
+  }
+  const secureMap = new Map((upgraded || []).map((item: any) => [item.principal_type + "|" + item.principal_name, item]));
+  const legacy = await getLegacyPeppers();
+  return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
+    const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
+    if (!candidate) return false;
+    const secure = secureMap.get(candidate.type + "|" + candidate.name) as any;
+    if (secure && secure.source_hash === hash && secure.source_salt === salt) {
+      return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
+    }
+    return await verifyExistingPin(candidatePin, salt, hash);
+  });
+}
+
+async function currentAppPrincipal(type: string, name: string): Promise<AppPrincipal | null> {
+  if (type === "admin") {
+    const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
+    if (error || !data?.value?.hash || !data?.value?.salt) return null;
+    return { type: "admin", name, permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true }, mustChangePin: false };
+  }
+  const { data, error } = await db.from("teachers").select("name,role,permissions,must_change_pin").eq("name", name).maybeSingle();
+  if (error || !data || (type === "custom" ? data.role !== "custom" : data.role === "custom")) return null;
+  return {
+    type: type as "teacher" | "custom",
+    name: data.name,
+    permissions: data.permissions && typeof data.permissions === "object" ? data.permissions : {},
+    mustChangePin: data.must_change_pin === true || data.permissions?.mustChangePin === true,
+  };
+}
+
 async function clientKey(req: Request) {
   const ip = req.headers.get("cf-connecting-ip") || req.headers.get("x-real-ip") || req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   return await sha256(ip + "|" + (req.headers.get("user-agent") || "unknown"));
@@ -587,6 +649,45 @@ async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any; try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
+  if (body?.action === "app_login") {
+    if (!validPin(body.pin)) return reply(400, { error: "بيانات الدخول غير صحيحة" });
+    const rate = await rateLimit(req);
+    if (rate.blocked) return reply(429, { error: "محاولات كثيرة. حاول بعد 15 دقيقة." });
+    try {
+      const principal = await findAppPrincipal(body.pin, await getPepper());
+      if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
+      const issued = await issueAppSession(appSessionStore, principal, Date.now(), SESSION_HOURS);
+      await clearFailedLogin(rate.key);
+      return reply(200, { ...issued, principal });
+    } catch (error) {
+      console.error("General application login failed:", error);
+      return reply(500, { error: "تعذر إتمام تسجيل الدخول حالياً" });
+    }
+  }
+  if (body?.action === "app_session") {
+    try {
+      const session = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const principal = await currentAppPrincipal(session.principal.type, session.principal.name);
+      if (!principal) {
+        await revokeAppSession(appSessionStore, req.headers.get("authorization"));
+        return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      }
+      return reply(200, { principal, expires_at: session.expiresAt });
+    } catch (error) {
+      console.error("General application session validation failed:", error);
+      return reply(500, { error: "تعذر التحقق من الجلسة حالياً" });
+    }
+  }
+  if (body?.action === "app_logout") {
+    try {
+      const revoked = await revokeAppSession(appSessionStore, req.headers.get("authorization"));
+      return reply(revoked ? 200 : 400, { ok: revoked });
+    } catch (error) {
+      console.error("General application logout failed:", error);
+      return reply(500, { error: "تعذر إنهاء الجلسة حالياً" });
+    }
+  }
   if (body?.action === "login") {
     if (!validPin(body.pin)) return reply(400, { error: "بيانات الدخول غير صحيحة" });
     const rate = await rateLimit(req);
