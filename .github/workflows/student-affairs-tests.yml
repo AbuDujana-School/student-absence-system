@@ -55,7 +55,7 @@ jobs:
       - name: Verify RLS, grants, and session lifecycle
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
-          DO $
+          DO $do$
           BEGIN
             IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.app_sessions'::regclass) THEN
               RAISE EXCEPTION 'RLS is not enabled';
@@ -71,19 +71,19 @@ jobs:
               OR NOT has_table_privilege('service_role', 'public.app_sessions', 'DELETE') THEN
               RAISE EXCEPTION 'service_role is missing required privileges';
             END IF;
-          END $;
+          END $do$;
           SET ROLE service_role;
           INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
           VALUES (repeat('a', 64), 'teacher', 'synthetic-teacher', now() + interval '1 hour');
-          DO $
+          DO $do$
           BEGIN
             IF (SELECT count(*) FROM public.app_sessions WHERE token_hash = repeat('a', 64)) <> 1 THEN
               RAISE EXCEPTION 'service_role cannot read its synthetic session';
             END IF;
-          END $;
+          END $do$;
           DELETE FROM public.app_sessions WHERE token_hash = repeat('a', 64);
           RESET ROLE;
-          DO $
+          DO $do$
           BEGIN
             BEGIN
               INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
@@ -106,7 +106,7 @@ jobs:
             EXCEPTION WHEN check_violation THEN
               NULL;
             END;
-          END $;
+          END $do$;
           SELECT 'isolated app_sessions migration integration checks passed' AS result;
           SQL
   report-policy-tests:
