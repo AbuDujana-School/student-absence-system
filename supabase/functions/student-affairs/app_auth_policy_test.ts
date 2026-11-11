@@ -1,10 +1,15 @@
 import {
   createAppSessionToken,
+  type AppSessionRecord,
+  type AppSessionStore,
   extractAppBearerToken,
   hashAppSessionToken,
   isAppSessionActive,
   isValidAppPin,
   isValidAppSessionToken,
+  issueAppSession,
+  readAppSession,
+  revokeAppSession,
   projectAppPrincipal,
   resolveAppPrincipal,
 } from "./app_auth_policy.ts";
@@ -98,4 +103,45 @@ Deno.test("general app principal resolution rejects malformed PIN and missing ve
   const malformed = await resolveAppPrincipal("12x4", candidates, async () => { calls++; return true; });
   const missing = await resolveAppPrincipal("1234", candidates.slice(1), async () => { calls++; return true; });
   if (malformed !== null || missing !== null || calls !== 0) throw new Error("Invalid login input reached verifier");
+});
+
+
+Deno.test("general app session lifecycle stores only a digest and supports expiry/revocation", async () => {
+  const records = new Map<string, AppSessionRecord>();
+  const store: AppSessionStore = {
+    async deleteExpired(beforeIso) {
+      for (const [key, record] of records) if (Date.parse(record.expires_at) <= Date.parse(beforeIso)) records.delete(key);
+    },
+    async insert(record) {
+      if (records.has(record.token_hash)) throw new Error("duplicate token digest");
+      records.set(record.token_hash, record);
+    },
+    async findByTokenHash(tokenHash) { return records.get(tokenHash) || null; },
+    async deleteByTokenHash(tokenHash) { records.delete(tokenHash); },
+  };
+  const now = Date.parse("2026-01-01T00:00:00.000Z");
+  const issued = await issueAppSession(store, { type: "teacher", name: "Teacher A", permissions: { attendance: true }, mustChangePin: false }, now, 2);
+  const saved = [...records.values()][0];
+  if (!saved || saved.token_hash === issued.token || "token" in saved) throw new Error("Raw bearer token was stored");
+  if (records.size !== 1) throw new Error("Session was not persisted");
+  const active = await readAppSession(store, "Bearer " + issued.token, now + 1000);
+  if (active?.principal.name !== "Teacher A" || active.principal.type !== "teacher") throw new Error("Valid general app session rejected");
+  if (await readAppSession(store, "Bearer " + issued.token, now + 2 * 60 * 60 * 1000) !== null) throw new Error("Expired session accepted");
+  if (!await revokeAppSession(store, "Bearer " + issued.token)) throw new Error("Valid session was not revoked");
+  if (records.size !== 0) throw new Error("Revoked session remains stored");
+});
+
+Deno.test("general app session refuses invalid identities and invalid TTLs", async () => {
+  const store: AppSessionStore = {
+    async deleteExpired() {},
+    async insert() { throw new Error("Should not insert"); },
+    async findByTokenHash() { return null; },
+    async deleteByTokenHash() {},
+  };
+  let rejected = false;
+  try { await issueAppSession(store, { type: "teacher", name: "", permissions: {}, mustChangePin: false }); } catch { rejected = true; }
+  if (!rejected) throw new Error("Invalid principal accepted");
+  rejected = false;
+  try { await issueAppSession(store, { type: "admin", name: "Admin", permissions: {}, mustChangePin: false }, Date.now(), 48); } catch { rejected = true; }
+  if (!rejected) throw new Error("Excessive TTL accepted");
 });
