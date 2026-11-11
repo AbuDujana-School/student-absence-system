@@ -2059,10 +2059,10 @@ async function saSetupSupervisionPanel(){
   const enabled=saSession?.principal?.type==="admin"||p.can_view_analytics===true;panel.classList.toggle("hidden",!enabled);if(!enabled)return;
   const today=getOmanLocalDate(),from=today.slice(0,8)+"01",fromInput=document.getElementById("saSupervisionFrom"),toInput=document.getElementById("saSupervisionTo");
   if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;
-  const isLeader=p.role==="team_leader"||saSession?.principal?.type==="admin";document.getElementById("saSupervisionTeamBtn")?.classList.toggle("hidden",!isLeader);
+  const isLeader=p.role==="team_leader";document.getElementById("saSupervisionTeamBtn")?.classList.toggle("hidden",!isLeader);
   const select=document.getElementById("saSupervisionTeacherSelect");
-  if(isLeader&&saSession?.principal?.type!=="admin"){try{const d=await saRequest({action:"supervision_team"});saSupervisionTeamData=d;if(select)select.innerHTML='<option value="">اختر معلماً من الفريق</option>'+(d.teachers||[]).map(t=>'<option value="'+escapeHtml(t.name)+'">'+escapeHtml(t.name)+'</option>').join("");}catch(e){if(select)select.innerHTML='<option value="">تعذر تحميل المعلمين</option>';}}
-  else if(select)select.innerHTML='<option value="">اختر معلماً</option>';
+  if(isLeader){try{const d=await saRequest({action:"supervision_team"});saSupervisionTeamData=d;if(select){select.innerHTML='<option value="">اختر معلماً من الفريق</option>'+(d.teachers||[]).map(t=>'<option value="'+escapeHtml(t.name)+'">'+escapeHtml(t.name)+'</option>').join("");select.classList.toggle("hidden",!(d.teachers||[]).length);}}catch(e){if(select){select.innerHTML='<option value="">تعذر تحميل المعلمين</option>';select.classList.add("hidden");}}}
+  else if(select){select.innerHTML='<option value="">اختر معلماً</option>';select.classList.add("hidden");}
   await saLoadSupervisionTrend("own");
 }
 async function saLoadSupervisionTrend(scope="own",teacherName=""){
