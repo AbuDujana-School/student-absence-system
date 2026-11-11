@@ -169,6 +169,7 @@ async function getCompetitionCronSecret() {
   if (error || typeof data !== "string" || data.length < 32) throw new Error("Competition scheduler secret unavailable");
   return data;
 }
+// Current teacher class access is projected from live assignment permissions.
 function projectCompetitionResponse(snapshot: any, principal: { type: string; name: string }, permissions: any = {}) {
   const isAdmin = principal.type === "admin";
   const sourceTeams = Array.isArray(snapshot?.teams) ? snapshot.teams : [];
