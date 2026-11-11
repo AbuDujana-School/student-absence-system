@@ -50,3 +50,27 @@ export function isAppSessionActive(expiresAt: unknown, now = Date.now()): boolea
   const expiry = Date.parse(expiresAt);
   return Number.isFinite(expiry) && expiry > now;
 }
+
+
+/** Create an opaque 256-bit bearer token. Store only its SHA-256 digest server-side. */
+export function createAppSessionToken(): string {
+  return Array.from(crypto.getRandomValues(new Uint8Array(32)))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** Hash a validated bearer token before looking it up in a session store. */
+export async function hashAppSessionToken(token: unknown): Promise<string> {
+  if (!isValidAppSessionToken(token)) throw new TypeError("Invalid application session token");
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token));
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+/** Accept only a single well-formed Bearer token; never treat the public API key as a session. */
+export function extractAppBearerToken(header: unknown): string | null {
+  if (typeof header !== "string") return null;
+  const match = /^Bearer ([a-f0-9]{64})$/i.exec(header.trim());
+  return match ? match[1].toLowerCase() : null;
+}
