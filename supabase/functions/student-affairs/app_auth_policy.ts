@@ -109,3 +109,71 @@ export async function resolveAppPrincipal(
   }
   return null;
 }
+
+
+export interface AppSessionRecord {
+  token_hash: string;
+  principal_type: AppPrincipalType;
+  principal_name: string;
+  expires_at: string;
+}
+
+export interface AppSessionStore {
+  deleteExpired(beforeIso: string): Promise<void>;
+  insert(record: AppSessionRecord): Promise<void>;
+  findByTokenHash(tokenHash: string): Promise<AppSessionRecord | null>;
+  deleteByTokenHash(tokenHash: string): Promise<void>;
+}
+
+export interface ActiveAppSession {
+  tokenHash: string;
+  principal: { type: AppPrincipalType; name: string };
+  expiresAt: string;
+}
+
+/** Issue an app-only session. Store only the token digest, never the bearer token. */
+export async function issueAppSession(
+  store: AppSessionStore,
+  principal: AppPrincipal,
+  now = Date.now(),
+  ttlHours = 8,
+): Promise<{ token: string; expires_at: string }> {
+  if (!projectAppPrincipal(principal) || !Number.isFinite(now) || !Number.isFinite(ttlHours) || ttlHours <= 0 || ttlHours > 24) {
+    throw new TypeError("Invalid application session parameters");
+  }
+  const token = createAppSessionToken();
+  const tokenHash = await hashAppSessionToken(token);
+  const expiresAt = new Date(now + ttlHours * 60 * 60 * 1000).toISOString();
+  await store.deleteExpired(new Date(now).toISOString());
+  await store.insert({
+    token_hash: tokenHash,
+    principal_type: principal.type,
+    principal_name: principal.name,
+    expires_at: expiresAt,
+  });
+  return { token, expires_at: expiresAt };
+}
+
+/** Validate a general-app bearer session without applying Student Affairs authorization. */
+export async function readAppSession(
+  store: AppSessionStore,
+  authorization: unknown,
+  now = Date.now(),
+): Promise<ActiveAppSession | null> {
+  const token = extractAppBearerToken(authorization);
+  if (!token || !Number.isFinite(now)) return null;
+  const tokenHash = await hashAppSessionToken(token);
+  const record = await store.findByTokenHash(tokenHash);
+  if (!record || !isAppSessionActive(record.expires_at, now)) return null;
+  const principal = projectAppPrincipal({ type: record.principal_type, name: record.principal_name });
+  if (!principal) return null;
+  return { tokenHash, principal: { type: principal.type, name: principal.name }, expiresAt: record.expires_at };
+}
+
+/** Revoke exactly the session represented by the supplied bearer header. */
+export async function revokeAppSession(store: AppSessionStore, authorization: unknown): Promise<boolean> {
+  const token = extractAppBearerToken(authorization);
+  if (!token) return false;
+  await store.deleteByTokenHash(await hashAppSessionToken(token));
+  return true;
+}
