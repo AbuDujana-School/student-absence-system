@@ -58,7 +58,7 @@ const appSessionStore = createSupabaseAppSessionStore(db as unknown as AppSessio
 async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincipal | null> {
   const [{ data: adminSetting, error: adminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
     db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
-    db.from("teachers").select("name,role,pin_hash,pin_salt,pin,permissions,must_change_pin"),
+    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
     db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt"),
   ]);
   if (adminError || usersError || upgradedError) throw new Error("Unable to load login records");
