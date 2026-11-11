@@ -14,10 +14,20 @@ export interface AppPrincipal {
   mustChangePin: boolean;
 }
 
-const SECRET_FIELD = /(pin|hash|salt|token|secret|password|credential)/i;
+const SECRET_FIELD = /(pin|hash|salt|token|secret|password|credential|api.?key|private.?key)/i;
 
 export function isValidAppPin(value: unknown): value is string {
   return typeof value === "string" && /^[0-9]{4,10}$/.test(value);
+}
+
+function removeSecretFields(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(removeSecretFields);
+  if (!value || typeof value !== "object") return value;
+  const clean: Record<string, unknown> = {};
+  for (const [key, nested] of Object.entries(value as Record<string, unknown>)) {
+    if (!SECRET_FIELD.test(key)) clean[key] = removeSecretFields(nested);
+  }
+  return clean;
 }
 
 export function projectAppPrincipal(input: AppPrincipalInput): AppPrincipal | null {
@@ -25,12 +35,9 @@ export function projectAppPrincipal(input: AppPrincipalInput): AppPrincipal | nu
   const name = typeof input.name === "string" ? input.name.trim() : "";
   if ((type !== "admin" && type !== "teacher" && type !== "custom") || !name) return null;
   const source = input.permissions && typeof input.permissions === "object" && !Array.isArray(input.permissions)
-    ? input.permissions as Record<string, unknown>
+    ? input.permissions
     : {};
-  const permissions: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(source)) {
-    if (!SECRET_FIELD.test(key)) permissions[key] = value;
-  }
+  const permissions = removeSecretFields(source) as Record<string, unknown>;
   return { type, name, permissions, mustChangePin: input.mustChangePin === true };
 }
 
