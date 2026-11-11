@@ -596,6 +596,138 @@
 @media(min-width:768px){#repStudentAffairsPanel .sa-glass-filter-grid{grid-template-columns:1fr 1fr}}
 @media(max-width:430px){#repStudentAffairsPanel .sa-glass-chip{display:none}#repStudentAffairsPanel .sa-glass-choice{font-size:11px;padding:9px 6px}}
 </style>
+
+<style id="sa-report-colored-glass-tiles">
+/* Distinct glass identity for attendance statuses and behavior types */
+#studentAffairsView #saStatusCheckboxesContainer label,
+#studentAffairsView #saCombinedStatuses label,
+#studentAffairsView #saCombinedBehaviors label,
+#repStudentAffairsPanel #repStatusesGrid label,
+#repStudentAffairsPanel #repBehaviorTypesGrid label,
+#repStudentAffairsPanel #repCombinedStatuses label,
+#repStudentAffairsPanel #repCombinedBehaviors label{
+  position:relative!important;display:flex!important;align-items:center!important;gap:9px!important;
+  min-height:58px!important;padding:9px 10px!important;overflow:hidden!important;
+  border:1px solid var(--tile-border,#dbe4ed)!important;border-radius:15px!important;
+  background:linear-gradient(145deg,var(--tile-top,#fff),var(--tile-bottom,#f5f8fc))!important;
+  color:var(--tile-text,#26384c)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.92),0 7px 18px -15px var(--tile-shadow,rgba(15,23,42,.5))!important;
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease,filter .2s ease!important;
+}
+#studentAffairsView #saStatusCheckboxesContainer label:before,
+#studentAffairsView #saCombinedStatuses label:before,
+#studentAffairsView #saCombinedBehaviors label:before,
+#repStudentAffairsPanel #repStatusesGrid label:before,
+#repStudentAffairsPanel #repBehaviorTypesGrid label:before,
+#repStudentAffairsPanel #repCombinedStatuses label:before,
+#repStudentAffairsPanel #repCombinedBehaviors label:before{
+  content:var(--tile-icon,"\f00c");font-family:"Font Awesome 6 Free";font-weight:900;
+  display:grid;place-items:center;flex:0 0 34px;width:34px;height:34px;border-radius:11px;
+  color:#fff;background:linear-gradient(145deg,var(--tile-icon-top,#64748b),var(--tile-icon-bottom,#334155));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 5px 12px -7px var(--tile-shadow,rgba(15,23,42,.7));
+  font-size:14px;text-shadow:0 1px 2px rgba(0,0,0,.2);
+}
+#studentAffairsView #saStatusCheckboxesContainer label span,
+#studentAffairsView #saCombinedStatuses label span,
+#studentAffairsView #saCombinedBehaviors label span,
+#repStudentAffairsPanel #repStatusesGrid label span,
+#repStudentAffairsPanel #repBehaviorTypesGrid label span,
+#repStudentAffairsPanel #repCombinedStatuses label span,
+#repStudentAffairsPanel #repCombinedBehaviors label span{flex:1;min-width:0;font-size:11px!important;font-weight:900!important;line-height:1.45}
+#studentAffairsView #saStatusCheckboxesContainer label input,
+#studentAffairsView #saCombinedStatuses label input,
+#studentAffairsView #saCombinedBehaviors label input,
+#repStudentAffairsPanel #repStatusesGrid label input,
+#repStudentAffairsPanel #repBehaviorTypesGrid label input,
+#repStudentAffairsPanel #repCombinedStatuses label input,
+#repStudentAffairsPanel #repCombinedBehaviors label input{flex:0 0 16px;width:16px;height:16px;margin:0!important;accent-color:var(--tile-accent,#475569)}
+#studentAffairsView #saStatusCheckboxesContainer label:hover,
+#studentAffairsView #saCombinedStatuses label:hover,
+#studentAffairsView #saCombinedBehaviors label:hover,
+#repStudentAffairsPanel #repStatusesGrid label:hover,
+#repStudentAffairsPanel #repBehaviorTypesGrid label:hover,
+#repStudentAffairsPanel #repCombinedStatuses label:hover,
+#repStudentAffairsPanel #repCombinedBehaviors label:hover{transform:translateY(-2px);filter:saturate(1.12);box-shadow:inset 0 1px 0 rgba(255,255,255,.95),0 12px 22px -15px var(--tile-shadow)!important}
+#studentAffairsView #saStatusCheckboxesContainer label:has(input:checked),
+#studentAffairsView #saCombinedStatuses label:has(input:checked),
+#studentAffairsView #saCombinedBehaviors label:has(input:checked),
+#repStudentAffairsPanel #repStatusesGrid label:has(input:checked),
+#repStudentAffairsPanel #repBehaviorTypesGrid label:has(input:checked),
+#repStudentAffairsPanel #repCombinedStatuses label:has(input:checked),
+#repStudentAffairsPanel #repCombinedBehaviors label:has(input:checked){
+  border-color:var(--tile-accent)!important;
+  background:linear-gradient(145deg,var(--tile-selected-top),var(--tile-selected-bottom))!important;
+  color:var(--tile-text)!important;
+  box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tile-accent) 25%,transparent),0 9px 20px -15px var(--tile-shadow)!important;
+}
+#studentAffairsView #saStatusCheckboxesContainer label:focus-within,
+#studentAffairsView #saCombinedStatuses label:focus-within,
+#studentAffairsView #saCombinedBehaviors label:focus-within,
+#repStudentAffairsPanel #repStatusesGrid label:focus-within,
+#repStudentAffairsPanel #repBehaviorTypesGrid label:focus-within,
+#repStudentAffairsPanel #repCombinedStatuses label:focus-within,
+#repStudentAffairsPanel #repCombinedBehaviors label:focus-within{outline:2px solid var(--tile-accent);outline-offset:2px}
+
+/* Attendance: absent charcoal, late amber, outside violet, escape rose */
+#studentAffairsView label:has(input[value="absent"]),#repStudentAffairsPanel label:has(input[value="absent"]){
+ --tile-top:#f1f4f7;--tile-bottom:#dce3eb;--tile-selected-top:#e1e7ef;--tile-selected-bottom:#cbd5e1;
+ --tile-border:#aebbc9;--tile-accent:#27364a;--tile-icon-top:#475569;--tile-icon-bottom:#111827;--tile-shadow:rgba(15,23,42,.42);--tile-text:#172334;--tile-icon:"\f05e";
+}
+#studentAffairsView label:has(input[value="late"]),#repStudentAffairsPanel label:has(input[value="late"]){
+ --tile-top:#fff8e8;--tile-bottom:#ffedc2;--tile-selected-top:#ffefc7;--tile-selected-bottom:#ffdfa0;
+ --tile-border:#f2cd78;--tile-accent:#c47a08;--tile-icon-top:#fbbf24;--tile-icon-bottom:#b45309;--tile-shadow:rgba(180,83,9,.35);--tile-text:#75420b;--tile-icon:"\f017";
+}
+#studentAffairsView label:has(input[value="outside"]),#repStudentAffairsPanel label:has(input[value="outside"]){
+ --tile-top:#f5f0ff;--tile-bottom:#e5d9ff;--tile-selected-top:#e9ddff;--tile-selected-bottom:#d5c3ff;
+ --tile-border:#c5b2f4;--tile-accent:#7542c5;--tile-icon-top:#a78bfa;--tile-icon-bottom:#6d28d9;--tile-shadow:rgba(109,40,217,.34);--tile-text:#4c2a83;--tile-icon:"\f52b";
+}
+#studentAffairsView label:has(input[value="escape"]),#repStudentAffairsPanel label:has(input[value="escape"]){
+ --tile-top:#fff0f2;--tile-bottom:#ffd8df;--tile-selected-top:#ffe0e5;--tile-selected-bottom:#ffc4d0;
+ --tile-border:#f3a6b6;--tile-accent:#d12f58;--tile-icon-top:#fb7185;--tile-icon-bottom:#be123c;--tile-shadow:rgba(190,18,60,.34);--tile-text:#881b39;--tile-icon:"\f071";
+}
+/* Behavior: every category has its own meaningful color */
+#studentAffairsView label:has(input[value="eating"]),#repStudentAffairsPanel label:has(input[value="eating"]){
+ --tile-top:#fff4e9;--tile-bottom:#ffdfc2;--tile-selected-top:#ffe7d1;--tile-selected-bottom:#ffd0a6;
+ --tile-border:#f5bd8d;--tile-accent:#d66a18;--tile-icon-top:#fb923c;--tile-icon-bottom:#c2410c;--tile-shadow:rgba(194,65,12,.32);--tile-text:#873b12;--tile-icon:"\f2e7";
+}
+#studentAffairsView label:has(input[value="talking"]),#repStudentAffairsPanel label:has(input[value="talking"]){
+ --tile-top:#eafaff;--tile-bottom:#c9f0fa;--tile-selected-top:#d7f5fc;--tile-selected-bottom:#b5eaf7;
+ --tile-border:#8dd9e9;--tile-accent:#0784a5;--tile-icon-top:#38bdf8;--tile-icon-bottom:#0369a1;--tile-shadow:rgba(3,105,161,.3);--tile-text:#07546b;--tile-icon:"\f086";
+}
+#studentAffairsView label:has(input[value="tools"]),#repStudentAffairsPanel label:has(input[value="tools"]){
+ --tile-top:#edf4ff;--tile-bottom:#d3e3ff;--tile-selected-top:#dce9ff;--tile-selected-bottom:#bfd5ff;
+ --tile-border:#a9c4f4;--tile-accent:#356acb;--tile-icon-top:#60a5fa;--tile-icon-bottom:#1d4ed8;--tile-shadow:rgba(29,78,216,.3);--tile-text:#244a91;--tile-icon:"\f0ad";
+}
+#studentAffairsView label:has(input[value="chaos"]),#repStudentAffairsPanel label:has(input[value="chaos"]){
+ --tile-top:#fff0fb;--tile-bottom:#f7d8f1;--tile-selected-top:#fbe2f7;--tile-selected-bottom:#f2c5eb;
+ --tile-border:#e9a9db;--tile-accent:#b83291;--tile-icon-top:#e879cf;--tile-icon-bottom:#a21caf;--tile-shadow:rgba(162,28,175,.3);--tile-text:#79246c;--tile-icon:"\f0c4";
+}
+#studentAffairsView label:has(input[value="sleeping"]),#repStudentAffairsPanel label:has(input[value="sleeping"]){
+ --tile-top:#f0f0ff;--tile-bottom:#dcdcff;--tile-selected-top:#e3e3ff;--tile-selected-bottom:#c9c9ff;
+ --tile-border:#b7b7f2;--tile-accent:#5b55c7;--tile-icon-top:#818cf8;--tile-icon-bottom:#4338ca;--tile-shadow:rgba(67,56,202,.3);--tile-text:#37358b;--tile-icon:"\f186";
+}
+#studentAffairsView label:has(input[value="homework"]),#repStudentAffairsPanel label:has(input[value="homework"]){
+ --tile-top:#effcf5;--tile-bottom:#d1f5df;--tile-selected-top:#dcf9e8;--tile-selected-bottom:#b9edce;
+ --tile-border:#9bdab2;--tile-accent:#21834d;--tile-icon-top:#4ade80;--tile-icon-bottom:#15803d;--tile-shadow:rgba(21,128,61,.28);--tile-text:#185b37;--tile-icon:"\f518";
+}
+#studentAffairsView label:has(input[value="other"]),#repStudentAffairsPanel label:has(input[value="other"]){
+ --tile-top:#f3f5f8;--tile-bottom:#e0e5eb;--tile-selected-top:#e8edf2;--tile-selected-bottom:#d2dbe5;
+ --tile-border:#c0cad5;--tile-accent:#64748b;--tile-icon-top:#94a3b8;--tile-icon-bottom:#475569;--tile-shadow:rgba(71,85,105,.28);--tile-text:#39485b;--tile-icon:"\f141";
+}
+.dark #studentAffairsView label:has(input[value]),.dark #repStudentAffairsPanel label:has(input[value]){
+ background:linear-gradient(145deg,color-mix(in srgb,var(--tile-top) 32%,#132438),color-mix(in srgb,var(--tile-bottom) 30%,#0c1928))!important;
+ color:color-mix(in srgb,var(--tile-text) 65%,#f8fafc)!important;border-color:color-mix(in srgb,var(--tile-accent) 55%,#334155)!important;
+}
+.dark #studentAffairsView label:has(input:checked),.dark #repStudentAffairsPanel label:has(input:checked){
+ background:linear-gradient(145deg,color-mix(in srgb,var(--tile-selected-top) 38%,#172b40),color-mix(in srgb,var(--tile-selected-bottom) 34%,#102337))!important;
+}
+@media(max-width:430px){
+ #studentAffairsView #saStatusCheckboxesContainer label,#studentAffairsView #saCombinedStatuses label,#studentAffairsView #saCombinedBehaviors label,
+ #repStudentAffairsPanel #repStatusesGrid label,#repStudentAffairsPanel #repBehaviorTypesGrid label,#repStudentAffairsPanel #repCombinedStatuses label,#repStudentAffairsPanel #repCombinedBehaviors label{min-height:54px!important;padding:8px!important;gap:7px!important}
+ #studentAffairsView #saStatusCheckboxesContainer label:before,#studentAffairsView #saCombinedStatuses label:before,#studentAffairsView #saCombinedBehaviors label:before,
+ #repStudentAffairsPanel #repStatusesGrid label:before,#repStudentAffairsPanel #repBehaviorTypesGrid label:before,#repStudentAffairsPanel #repCombinedStatuses label:before,#repStudentAffairsPanel #repCombinedBehaviors label:before{width:30px;height:30px;flex-basis:30px;font-size:12px}
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
