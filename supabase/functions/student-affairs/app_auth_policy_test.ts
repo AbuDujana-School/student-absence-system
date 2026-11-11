@@ -44,3 +44,25 @@ Deno.test("session expiry must be a valid future timestamp", () => {
   if (isAppSessionActive("not-a-date", now)) throw new Error("Invalid date accepted");
   if (isAppSessionActive(null, now)) throw new Error("Missing expiry accepted");
 });
+
+
+Deno.test("server session tokens are opaque 256-bit hex values and hash deterministically", async () => {
+  const first = createAppSessionToken();
+  const second = createAppSessionToken();
+  if (!isValidAppSessionToken(first) || !isValidAppSessionToken(second)) throw new Error("Generated token has invalid shape");
+  if (first === second) throw new Error("Session token collision");
+  const digest = await hashAppSessionToken(first);
+  if (!/^[a-f0-9]{64}$/.test(digest) || digest === first) throw new Error("Token digest is invalid");
+  let rejected = false;
+  try { await hashAppSessionToken("not-a-token"); } catch { rejected = true; }
+  if (!rejected) throw new Error("Invalid token was hashed");
+});
+
+Deno.test("Bearer extraction rejects missing, malformed, and public-key-like values", () => {
+  const token = "a".repeat(64);
+  if (extractAppBearerToken("Bearer " + token) !== token) throw new Error("Valid bearer token rejected");
+  if (extractAppBearerToken("bearer " + token.toUpperCase()) !== token) throw new Error("Case normalization failed");
+  for (const value of [null, "", "Bearer anon-key", "Basic " + token, "Bearer " + token + " extra", "Bearer " + "g".repeat(64)]) {
+    if (extractAppBearerToken(value) !== null) throw new Error("Malformed authorization header accepted");
+  }
+});
