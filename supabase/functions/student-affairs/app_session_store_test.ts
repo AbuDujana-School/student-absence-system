@@ -72,10 +72,10 @@ Deno.test("Supabase app session adapter uses only the dedicated table and minima
 });
 
 Deno.test("Supabase app session adapter rejects malformed rows and ignores malformed digests", async () => {
-  let queryCount = 0;
+  const lookups: string[] = [];
   const client = {
     from() {
-      queryCount++;
+      lookups.push("from");
       return {
         delete() {
           return { async lte() { return { error: null }; }, async eq() { return { error: null }; } };
@@ -92,9 +92,9 @@ Deno.test("Supabase app session adapter rejects malformed rows and ignores malfo
 
   const store = createSupabaseAppSessionStore(client);
   assert(await store.findByTokenHash("bad-digest") === null, "Malformed digest should not be queried");
-  assert(queryCount === 0, "Malformed digest reached the database");
+  assert(lookups.length === 0, "Malformed digest reached the database");
   assert(await store.findByTokenHash("b".repeat(64)) === null, "Malformed database row was accepted");
-  assert(queryCount === 1, "Valid digest did not perform exactly one lookup");
+  assert(lookups.length === 1, "Valid digest did not perform exactly one lookup");
 });
 
 Deno.test("Supabase app session adapter does not expose database error details", async () => {
