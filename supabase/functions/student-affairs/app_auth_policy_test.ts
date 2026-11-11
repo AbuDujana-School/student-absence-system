@@ -128,7 +128,8 @@ Deno.test("general app session lifecycle stores only a digest and supports expir
   if (active?.principal.name !== "Teacher A" || active.principal.type !== "teacher") throw new Error("Valid general app session rejected");
   if (await readAppSession(store, "Bearer " + issued.token, now + 2 * 60 * 60 * 1000) !== null) throw new Error("Expired session accepted");
   if (!await revokeAppSession(store, "Bearer " + issued.token)) throw new Error("Valid session was not revoked");
-  if (records.size !== 0) throw new Error("Revoked session remains stored");
+  const remainingRecords = [...records.keys()].length;
+  if (remainingRecords !== 0) throw new Error("Revoked session remains stored");
 });
 
 Deno.test("general app session refuses invalid identities and invalid TTLs", async () => {
