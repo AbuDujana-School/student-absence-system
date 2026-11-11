@@ -209,3 +209,13 @@ A safe first production cutover cannot simply replace the PIN check or remove `s
 - Next dependency before runtime wiring: create and review a dedicated `app_sessions` migration on a disposable/non-production database branch, with service-role-only access and indexes/constraints for token digest and expiry. Do not apply it to production. Then add an isolated Edge Function action and tests against the branch schema.
 - The current Vercel check remains failed due to the reported build-rate limit. No successful Deno test result has yet been retrieved for the latest commit; the new tests are committed but must be run before any runtime integration.
 - No production database, data, credentials, grants, RLS policies, Edge Function deployment, or production URL were changed.
+
+
+### General application session table — prepared, not applied
+
+- Added `supabase/migrations/20261111140000_general_app_sessions.sql` on the feature branch. It defines a separate `public.app_sessions` table for general application sessions, storing only a lowercase SHA-256 token digest, principal type/name, expiry, and creation time.
+- The migration enables RLS, revokes table privileges from `public`, `anon`, and `authenticated`, and grants access only to `service_role`. It adds a digest format constraint and expiry index.
+- Added CI checks that statically verify the migration's required safeguards and reject destructive or unrelated statements. CI also type-checks the isolated authentication and Supabase adapter modules.
+- The migration has **not** been applied to any Supabase database. Static CI checks do not replace applying it to a disposable local/test database and verifying the effective grants, RLS state, insert/select/delete behavior, and expiry cleanup.
+- No paid Supabase branch was created because the user declined the hourly cost. Do not use the production project for this test.
+- The Supabase adapter remains unwired to the live Edge Function; no login route, frontend behavior, credentials, existing sessions, production schema, or production deployment has changed.
