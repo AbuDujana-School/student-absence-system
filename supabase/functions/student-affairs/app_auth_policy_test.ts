@@ -1,4 +1,7 @@
 import {
+  createAppSessionToken,
+  extractAppBearerToken,
+  hashAppSessionToken,
   isAppSessionActive,
   isValidAppPin,
   isValidAppSessionToken,
