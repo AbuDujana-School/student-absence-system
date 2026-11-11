@@ -173,7 +173,7 @@ function projectCompetitionResponse(snapshot: any, principal: { type: string; na
   const isAdmin = principal.type === "admin";
   const sourceTeams = Array.isArray(snapshot?.teams) ? snapshot.teams : [];
   const ownTeams = sourceTeams.filter((team: any) => String(team.teamId || "") === principal.name || String(team.leaderName || "") === principal.name);
-  const ownTeamIds = new Set(ownTeams.map((team: any) => String(team.teamId || "")));
+  const ownTeamIds = new Set<string>(ownTeams.map((team: any) => String(team.teamId || "")));
   const teams = sourceTeams.map((team: any) => {
     const projected: any = {
       teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName,
@@ -199,7 +199,7 @@ function projectCompetitionResponse(snapshot: any, principal: { type: string; na
     teams,
     ownGrades: ownTeams.map((team: any) => team.teamName || team.grade),
     ownClasses: rawClasses.filter((item: any) => isAdmin || ownTeamIds.has(String(item.teamId || ""))),
-    classComparison: projectCompetitionClassComparison(rawClasses, isAdmin, [...ownTeamIds])
+    classComparison: projectCompetitionClassComparison(rawClasses, isAdmin, Array.from(ownTeamIds))
   };
 }
 async function getLatestWeeklyCompetition(principal: { type: string; name: string }) {
