@@ -6215,18 +6215,24 @@ if ("serviceWorker" in navigator) {
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
     const host=document.createElement("section");host.id=id;host.className="sa-glass-panel hidden space-y-4";
-    host.innerHTML='<div class="sa-glass-heading"><div><span class="sa-glass-eyebrow">ABU DUJANA SCHOOL</span><strong>إعداد التقرير الموحّد</strong><p>اختر الفترة وطريقة عرض النتائج والحالات المطلوبة</p></div><span class="sa-glass-chip"><i class="fa-solid fa-layer-group"></i> الغياب والسلوكيات</span></div>'+
-      '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-regular fa-calendar-days"></i><span>الفترة الزمنية</span></div><div class="sa-glass-option-box" role="group" aria-label="اختيار الفترة">'+
-      '<button type="button" id="'+prefix+'PeriodTodayBtn" class="sa-glass-choice is-active" onclick="setCombinedPeriodMode(\''+prefix+'\',\'daily\')"><i class="fa-solid fa-calendar-day"></i><span>اليوم</span></button>'+
-      '<button type="button" id="'+prefix+'PeriodCustomBtn" class="sa-glass-choice" onclick="setCombinedPeriodMode(\''+prefix+'\',\'custom\')"><i class="fa-solid fa-calendar-range"></i><span>مخصص</span></button></div>'+
-      '<select id="'+prefix+'CombinedPeriodMode" class="hidden" aria-hidden="true"><option value="daily">اليوم</option><option value="custom">مخصص</option></select></div>'+
-      '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-solid fa-chart-column"></i><span>طريقة عرض النتائج</span></div><div class="sa-glass-option-box" role="group" aria-label="طريقة عرض التقرير">'+
-      '<button type="button" id="'+prefix+'ModeDailyBtn" class="sa-glass-choice is-active" onclick="setCombinedOutputMode(\''+prefix+'\',false)"><i class="fa-solid fa-list-ul"></i><span>عرض يومي تفصيلي</span></button>'+
-      '<button type="button" id="'+prefix+'ModeCumulativeBtn" class="sa-glass-choice" onclick="setCombinedOutputMode(\''+prefix+'\',true)"><i class="fa-solid fa-chart-pie"></i><span>عرض تراكمي</span></button></div>'+
-      '<input id="'+prefix+'CombinedCumulative" type="checkbox" class="hidden" aria-hidden="true">'+
-      '<p class="sa-glass-hint">العرض اليومي يوضح تفاصيل كل يوم، أما التراكمي فيجمع إجمالي حالات الغياب والسلوكيات خلال الفترة المحددة.</p></div>'+
+    host.innerHTML='<div class="sa-glass-heading"><div><span class="sa-glass-eyebrow">ABU DUJANA SCHOOL</span><strong>إعداد التقرير الموحّد</strong><p>اختر حالات الغياب وأنواع السلوكيات المطلوبة</p></div><span class="sa-glass-chip"><i class="fa-solid fa-layer-group"></i> الغياب والسلوكيات</span></div>'+
       '<div class="sa-glass-filter-grid"><div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-user-clock"></i><span>الغياب</span></div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>'+
       '<div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-clipboard-check"></i><span>أنواع السلوكيات</span></div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div></div>';
+    const controls=document.createElement("div");
+    controls.id=prefix+"CombinedControls";
+    controls.className="hidden space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40";
+    controls.innerHTML='<div class="grid grid-cols-1 gap-3 sm:grid-cols-2">'+
+      '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-regular fa-calendar-days"></i><span>الفترة الزمنية</span></div><div class="sa-glass-option-box" role="group" aria-label="اختيار الفترة">'+
+      '<button type="button" id="'+prefix+'PeriodTodayBtn" class="sa-glass-choice is-active" onclick="setCombinedPeriodMode(\\''+prefix+'\\',\\'daily\\')"><i class="fa-solid fa-calendar-day"></i><span>اليوم</span></button>'+
+      '<button type="button" id="'+prefix+'PeriodCustomBtn" class="sa-glass-choice" onclick="setCombinedPeriodMode(\\''+prefix+'\\',\\'custom\\')"><i class="fa-solid fa-calendar-range"></i><span>مخصص</span></button></div>'+
+      '<select id="'+prefix+'CombinedPeriodMode" class="hidden" aria-hidden="true"><option value="daily">اليوم</option><option value="custom">مخصص</option></select></div>'+
+      '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-solid fa-chart-column"></i><span>طريقة عرض النتائج</span></div><div class="sa-glass-option-box" role="group" aria-label="طريقة عرض التقرير">'+
+      '<button type="button" id="'+prefix+'ModeDailyBtn" class="sa-glass-choice is-active" onclick="setCombinedOutputMode(\\''+prefix+'\\',false)"><i class="fa-solid fa-list-ul"></i><span>عرض يومي تفصيلي</span></button>'+
+      '<button type="button" id="'+prefix+'ModeCumulativeBtn" class="sa-glass-choice" onclick="setCombinedOutputMode(\\''+prefix+'\\',true)"><i class="fa-solid fa-chart-pie"></i><span>عرض تراكمي</span></button></div>'+
+      '<input id="'+prefix+'CombinedCumulative" type="checkbox" class="hidden" aria-hidden="true"></div></div>';
+    const behaviorTab=document.getElementById(cfg[prefix].tabs[1]);
+    const tabRow=prefix==="sa"?behaviorTab?.parentElement?.parentElement:behaviorTab?.parentElement;
+    if(tabRow)tabRow.insertAdjacentElement("afterend",controls);
     const anchor=document.getElementById(prefix==="sa"?"saStatusFilterWrap":"repBehaviorFilterWrap");
     (anchor||document.getElementById(prefix==="sa"?"saReportClassPicker":"repClassesGrid")?.parentElement)?.insertAdjacentElement("afterend",host);
     const p=cfg[prefix].getP(),allowed=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
@@ -6244,12 +6250,12 @@ if ("serviceWorker" in navigator) {
     const from=document.getElementById(c.from),to=document.getElementById(c.to),preset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset");
     if(mode==="daily"){const today=getOmanLocalDate();if(from)from.value=today;if(to)to.value=today;if(from)from.disabled=true;if(to)to.disabled=true;if(preset)preset.value="today";}
     else{if(from&&!from.value)from.value=getOmanLocalDate();if(to&&!to.value)to.value=from?.value||getOmanLocalDate();if(from)from.disabled=false;if(to)to.disabled=false;if(preset)preset.value="custom";}
-    syncPeriodMode(prefix);syncCombinedChoiceButtons(prefix);if(modes[prefix])load(prefix);
+    syncPeriodMode(prefix);syncCombinedChoiceButtons(prefix);if(mode==="custom"){try{if(typeof from?.showPicker==="function")from.showPicker();else from?.focus();}catch(_){from?.focus();}}if(modes[prefix])load(prefix);
   }
   function setCombinedOutputMode(prefix,cumulative){
     const input=document.getElementById(prefix+"CombinedCumulative");if(!input)return;input.checked=!!cumulative;syncCombinedChoiceButtons(prefix);if(modes[prefix])load(prefix);
   }
-  function syncPeriodMode(prefix){const c=cfg[prefix],mode=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily",to=document.getElementById(c.to),from=document.getElementById(c.from);const toLabel=to?.closest("label");if(mode==="daily"){if(to&&from)to.value=from.value;if(toLabel)toLabel.style.display="none";}else{if(toLabel)toLabel.style.display="";}syncCombinedChoiceButtons(prefix);}
+  function syncPeriodMode(prefix){const c=cfg[prefix],mode=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily",to=document.getElementById(c.to),from=document.getElementById(c.from),toLabel=to?.closest("label"),fromLabel=from?.closest("label");if(mode==="daily"){if(to&&from)to.value=from.value;if(fromLabel)fromLabel.style.display="none";if(toLabel)toLabel.style.display="none";}else{if(fromLabel)fromLabel.style.display="";if(toLabel)toLabel.style.display="";}syncCombinedChoiceButtons(prefix);}
   function mount(prefix){
     const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){existing.classList.toggle("hidden",!canUseCombined(prefix));buildFilter(prefix);return;}
     const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.innerHTML="<i class=\"fa-solid fa-layer-group ml-1.5\"></i><span>كلاهما</span>";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
@@ -6270,7 +6276,7 @@ if ("serviceWorker" in navigator) {
     c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
     document.getElementById(c.statusWrap)?.classList.add("hidden");
     document.getElementById(prefix==="sa"?"saBehaviorFilterWrap":"repBehaviorFilterWrap")?.classList.add("hidden");
-    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");syncPeriodMode(prefix);syncCombinedChoiceButtons(prefix);
+    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");document.getElementById(prefix+"CombinedControls")?.classList.remove("hidden");syncPeriodMode(prefix);syncCombinedChoiceButtons(prefix);
     document.getElementById(c.readBtn).classList.remove("hidden");
     document.getElementById(c.button).classList.remove("hidden");
     document.getElementById(c.readBtn).textContent="عرض التقرير الموحّد";
@@ -6393,8 +6399,8 @@ if ("serviceWorker" in navigator) {
     catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
   }
   const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
-  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
-  repSetDomain=function(d){modes.rep=false;document.getElementById("repStudentAffairsPanel")?.classList.remove("rep-combined-active");document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
+  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedControls")?.classList.add("hidden");document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saFrom")?.closest("label")?.style.removeProperty("display");document.getElementById("saTo")?.closest("label")?.style.removeProperty("display");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
+  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedControls")?.classList.add("hidden");document.getElementById("repStudentAffairsPanel")?.classList.remove("rep-combined-active");document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repFrom")?.closest("label")?.style.removeProperty("display");document.getElementById("repTo")?.closest("label")?.style.removeProperty("display");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
   saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
   repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
   saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
