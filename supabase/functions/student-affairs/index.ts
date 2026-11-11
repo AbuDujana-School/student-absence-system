@@ -106,7 +106,7 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
   const ownAttendance = Array.isArray(data?.allowed_attendance_classes) ? data.allowed_attendance_classes : legacy;
   const ownBehavior = Array.isArray(data?.allowed_behavior_classes) ? data.allowed_behavior_classes : legacy;
   const tp = teacher?.permissions && typeof teacher.permissions === "object" ? teacher.permissions : {};
-  const role = ["team_leader", "supervisor", "visitor"].includes(String(tp.student_affairs_role || "")) ? String(tp.student_affairs_role) : "supervisor";
+  const role = ["team_leader", "supervisor", "visitor"].includes(String(tp.student_affairs_role || "")) ? String(tp.student_affairs_role) : "unassigned";
   const teamName = String(tp.student_affairs_team_name || "").trim();
   let teamMembers: any[] = [], teamAttendance: string[] = [], teamBehavior: string[] = [];
   if (role === "team_leader" && teamName) {
@@ -663,7 +663,12 @@ async function handle(req: Request) {
     if (scope === "team" || scope === "teacher") {
       for (const member of selectedMembers) {
         const statuses = new Set((member.attendance_statuses || ["absent", "late", "escape", "outside"]).map(String));
-        for (const className of member.allowed_attendance_classes || []) classStatusSets.set(String(className), statuses);
+        for (const className of member.allowed_attendance_classes || []) {
+          const key = String(className);
+          const combined = classStatusSets.get(key) || new Set<string>();
+          for (const status of statuses) combined.add(status);
+          classStatusSets.set(key, combined);
+        }
       }
     }
     const fetchAll = async (table: "attendance" | "behaviors", classes: string[]) => {
