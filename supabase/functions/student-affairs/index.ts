@@ -9,7 +9,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const PIN_ITERATIONS = 150000;
 const SESSION_HOURS = 8;
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info", "Access-Control-Allow-Methods": "POST, OPTIONS", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-cron-secret", "Access-Control-Allow-Methods": "POST, OPTIONS", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
 function reply(status: number, body: Record<string, unknown>) { return new Response(JSON.stringify(body), { status, headers: cors }); }
 const enc = new TextEncoder();
 function hex(bytes: Uint8Array) { return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(""); }
@@ -150,6 +150,225 @@ function shiftCompetitionDate(value: string, days: number) {
   const date = new Date(value + "T12:00:00.000Z");
   date.setUTCDate(date.getUTCDate() + days);
   return date.toISOString().slice(0, 10);
+}
+
+function getOmanClockMinutes() {
+  const parts = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Muscat", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).formatToParts(new Date());
+  const values: Record<string, string> = {};
+  for (const part of parts) if (part.type !== "literal") values[part.type] = part.value;
+  return Number(values.hour || 0) * 60 + Number(values.minute || 0);
+}
+function secureStringEquals(a: string, b: string) {
+  if (!a || !b || a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  return diff === 0;
+}
+async function getCompetitionCronSecret() {
+  const { data, error } = await db.rpc("student_affairs_get_competition_cron_secret");
+  if (error || typeof data !== "string" || data.length < 32) throw new Error("Competition scheduler secret unavailable");
+  return data;
+}
+function projectCompetitionResponse(snapshot: any, principal: { type: string; name: string }) {
+  const isAdmin = principal.type === "admin";
+  const sourceTeams = Array.isArray(snapshot?.teams) ? snapshot.teams : [];
+  const ownTeams = sourceTeams.filter((team: any) => String(team.teamId || "") === principal.name || String(team.leaderName || "") === principal.name);
+  const ownTeamIds = new Set<string>(ownTeams.map((team: any) => String(team.teamId || "")));
+  const teams = sourceTeams.map((team: any) => {
+    const projected: any = {
+      teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName,
+      classNames: Array.isArray(team.classNames) ? team.classNames : [],
+      grade: team.grade, score: team.score, rank: team.rank,
+      attendancePoints: team.attendancePoints, behaviorPoints: team.behaviorPoints,
+      weeklyAwardPoints: team.weeklyAwardPoints, complete: team.complete,
+      resultStatus: team.resultStatus
+    };
+    if (isAdmin || ownTeamIds.has(String(team.teamId || ""))) {
+      Object.assign(projected, {
+        attendanceRate: team.attendanceRate, behaviorRate: team.behaviorRate,
+        attendanceIncidents: team.attendanceIncidents, behaviorIncidents: team.behaviorIncidents,
+        classMetrics: team.classMetrics
+      });
+    }
+    return projected;
+  });
+  const rawClasses = Array.isArray(snapshot?.classComparison) ? snapshot.classComparison : [];
+  return {
+    ...snapshot,
+    isAdmin,
+    teams,
+    ownGrades: ownTeams.map((team: any) => team.teamName || team.grade),
+    ownClasses: rawClasses.filter((item: any) => isAdmin || ownTeamIds.has(String(item.teamId || ""))),
+    classComparison: projectCompetitionClassComparison(rawClasses, isAdmin, Array.from(ownTeamIds))
+  };
+}
+async function getLatestWeeklyCompetition(principal: { type: string; name: string }) {
+  const today = getOmanIsoDate();
+  const week = getSchoolWeekRange(today);
+  const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
+  const afterCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
+  const latestClosedWeekStart = afterCutoff ? week.start : shiftCompetitionDate(week.start, -7);
+  const baseQuery = () => db.from("competition_weekly_results")
+    .select("week_start,week_end,status,finalized_at,snapshot")
+    .lte("week_start", latestClosedWeekStart);
+  const [{ data: latestComplete, error: completeError }, { data: latestAttempt, error: attemptError }] = await Promise.all([
+    baseQuery().eq("status", "complete").order("week_start", { ascending: false }).limit(1).maybeSingle(),
+    baseQuery().order("week_start", { ascending: false }).limit(1).maybeSingle()
+  ]);
+  if (completeError) throw completeError;
+  if (attemptError) throw attemptError;
+  if (latestComplete) {
+    const pendingWeek = latestAttempt?.status === "incomplete" && latestAttempt.week_start > latestComplete.week_start
+      ? { from: latestAttempt.week_start, to: latestAttempt.week_end, status: "incomplete" }
+      : null;
+    return projectCompetitionResponse({
+      ...(latestComplete.snapshot || {}),
+      from: latestComplete.week_start, to: latestComplete.week_end, today, period: "weekly",
+      snapshotStatus: latestComplete.status, finalizedAt: latestComplete.finalized_at, pendingWeek
+    }, principal);
+  }
+  if (latestAttempt) {
+    return projectCompetitionResponse({
+      ...(latestAttempt.snapshot || {}),
+      from: latestAttempt.week_start, to: latestAttempt.week_end, today, period: "weekly",
+      status: "incomplete", snapshotStatus: latestAttempt.status,
+      finalizedAt: latestAttempt.finalized_at, pendingWeek: null
+    }, principal);
+  }
+  return {
+    from: latestClosedWeekStart, to: shiftCompetitionDate(latestClosedWeekStart, 4), today,
+    period: "weekly", status: "awaiting_first_result", finalizedAt: null, pendingWeek: null,
+    teams: [], ownGrades: [], ownClasses: [], classComparison: [],
+    weeklyWins: {}, weeklyPoints: {}, weeklyHistory: [], completedWeeks: 0
+  };
+}
+async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any) {
+  if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
+  const today = getOmanIsoDate();
+  const { data: setting, error: settingError } = await db.from("school_settings").select("value").eq("key", "competition_term_calendar").maybeSingle();
+  if (settingError) throw settingError;
+  const terms = Array.isArray(setting?.value) ? setting.value : [];
+  const activeTerm = terms.find((term: any) => typeof term?.start === "string" && typeof term?.end === "string" && term.start <= today && today <= term.end)
+    || terms.filter((term: any) => typeof term?.start === "string" && term.start <= today).sort((a: any, b: any) => String(b.start).localeCompare(String(a.start)))[0];
+  if (!activeTerm || !isValidIsoDate(activeTerm.start) || !isValidIsoDate(activeTerm.end)) {
+    competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
+  }
+  const termTo = today > activeTerm.end ? activeTerm.end : today;
+  const { data: history, error } = await db.from("competition_weekly_results")
+    .select("week_start,week_end,status,finalized_at,snapshot")
+    .gte("week_start", activeTerm.start)
+    .lte("week_start", termTo)
+    .order("week_start", { ascending: true });
+  if (error) throw error;
+  const completed = (history || []).filter((row: any) => row.status === "complete" && Array.isArray(row.snapshot?.teams));
+  const teamTotals = new Map<string, any>();
+  const classTotals = new Map<string, any>();
+  const weeklyHistory: any[] = [];
+  for (const row of completed) {
+    const snap = row.snapshot || {};
+    const points: Record<string, number> = {};
+    for (const team of Array.isArray(snap.teams) ? snap.teams : []) {
+      const id = String(team.teamId || "");
+      if (!id) continue;
+      const total = teamTotals.get(id) || {
+        teamId: id, points: 0, wins: 0, weeks: 0, scoreTotal: 0,
+        attendancePointsTotal: 0, behaviorPointsTotal: 0, latest: team
+      };
+      total.latest = team;
+      total.points += Number(team.weeklyAwardPoints) || 0;
+      total.wins += Number(team.rank) === 1 ? 1 : 0;
+      total.weeks += 1;
+      total.scoreTotal += Number(team.score) || 0;
+      total.attendancePointsTotal += Number(team.attendancePoints) || 0;
+      total.behaviorPointsTotal += Number(team.behaviorPoints) || 0;
+      teamTotals.set(id, total);
+      points[id] = Number(team.weeklyAwardPoints) || 0;
+    }
+    for (const item of Array.isArray(snap.classComparison) ? snap.classComparison : []) {
+      const teamId = String(item.teamId || ""), className = String(item.className || "");
+      if (!teamId || !className || item.complete !== true) continue;
+      const key = teamId + "\u001f" + className;
+      const total = classTotals.get(key) || {
+        teamId, teamName: item.teamName, leaderName: item.leaderName, className,
+        days: 0, attendanceIncidents: 0, behaviorIncidents: 0,
+        attendanceStatusCounts: {}, behaviorTypeCounts: {}
+      };
+      total.days += Number(item.schoolDaysCount) || 5;
+      total.attendanceIncidents += Number(item.attendanceIncidents) || 0;
+      total.behaviorIncidents += Number(item.behaviorIncidents) || 0;
+      for (const [key, value] of Object.entries(item.attendanceStatusCounts || {})) total.attendanceStatusCounts[key] = (Number(total.attendanceStatusCounts[key]) || 0) + (Number(value) || 0);
+      for (const [key, value] of Object.entries(item.behaviorTypeCounts || {})) total.behaviorTypeCounts[key] = (Number(total.behaviorTypeCounts[key]) || 0) + (Number(value) || 0);
+      classTotals.set(key, total);
+    }
+    weeklyHistory.push({
+      start: row.week_start, end: row.week_end, complete: true,
+      finalizedAt: row.finalized_at, winners: Array.isArray(snap.weeklyHistory?.[0]?.winners) ? snap.weeklyHistory[0].winners : [],
+      points
+    });
+  }
+  const weeklyPoints: Record<string, number> = {};
+  const weeklyWins: Record<string, number> = {};
+  const teamRows: any[] = [];
+  for (const [id, total] of teamTotals.entries()) {
+    const latest = total.latest || {};
+    const ownClasses = [...classTotals.values()].filter((item: any) => item.teamId === id);
+    const mean = (key: string) => ownClasses.length ? ownClasses.reduce((sum: number, item: any) => sum + (item.days ? Number(item[key]) / item.days : 0), 0) / ownClasses.length : null;
+    const attendanceRate = mean("attendanceIncidents");
+    const behaviorRate = mean("behaviorIncidents");
+    weeklyPoints[id] = total.points;
+    weeklyWins[id] = total.wins;
+    teamRows.push({
+      ...latest, teamId: id, weeklyAwardPoints: total.points,
+      score: Number((total.scoreTotal / Math.max(1, total.weeks)).toFixed(2)),
+      attendancePoints: Number((total.attendancePointsTotal / Math.max(1, total.weeks)).toFixed(2)),
+      behaviorPoints: Number((total.behaviorPointsTotal / Math.max(1, total.weeks)).toFixed(2)),
+      attendanceRate, behaviorRate, complete: true, weeksCounted: total.weeks
+    });
+  }
+  const rankedTeams = rankCompetitionTeamsByAccumulatedPoints(teamRows, weeklyPoints);
+  const allClasses = [...classTotals.values()].map((item: any) => ({
+    ...item, complete: true,
+    attendanceRate: item.days ? item.attendanceIncidents / item.days : null,
+    behaviorRate: item.days ? item.behaviorIncidents / item.days : null,
+    repeatAttendanceStudents: null, repeatBehaviorStudents: null,
+    schoolDaysCount: item.days
+  }));
+  const earliestWeek = completed.length ? completed[0].week_start : null;
+  const raw = {
+    from: activeTerm.start, to: termTo, termStart: activeTerm.start, termEnd: activeTerm.end,
+    termLabel: String(activeTerm.label || "الفصل الدراسي"), dataAvailableFrom: earliestWeek,
+    today, period: "term", status: completed.length ? "complete" : "no_completed_weeks",
+    teams: rankedTeams, ownGrades: [], ownClasses: [], classComparison: allClasses,
+    dailyProgress: [], weeklyWins, weeklyPoints, weeklyHistory,
+    completedWeeks: completed.length
+  };
+  return projectCompetitionResponse(raw, principal);
+}
+async function finalizeCompetitionWeek() {
+  const today = getOmanIsoDate();
+  const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
+  if (weekday !== 4 || getOmanClockMinutes() < 13 * 60 + 50) {
+    competitionError(400, "لم يحن موعد اعتماد نتيجة الأسبوع بعد.");
+  }
+  const range = getSchoolWeekRange(today);
+  const { data: existing, error: existingError } = await db.from("competition_weekly_results")
+    .select("status").eq("week_start", range.start).maybeSingle();
+  if (existingError) throw existingError;
+  if (existing?.status === "complete") {
+    return { ok: true, alreadyFinalized: true, weekStart: range.start, status: "complete" };
+  }
+  const principal = { type: "admin" as const, name: "مدير النظام العام" };
+  const permissions = await permissionsFor(principal, true);
+  const snapshot = await buildCompetitionSnapshot(principal, permissions, range.start, range.end, "weekly");
+  if (snapshot.status === "configuration_incomplete") return { ok: true, status: "configuration_incomplete", weekStart: range.start };
+  const finalizedAt = new Date().toISOString();
+  const { error: saveError } = await db.from("competition_weekly_results").upsert({
+    week_start: range.start, week_end: range.end,
+    status: snapshot.status === "complete" ? "complete" : "incomplete",
+    finalized_at: finalizedAt, snapshot
+  }, { onConflict: "week_start" });
+  if (saveError) throw saveError;
+  return { ok: true, status: snapshot.status, weekStart: range.start, finalizedAt };
 }
 async function fetchCompetitionRows(table: "attendance" | "behaviors", classNames: string[], from: string, to: string) {
   const rows: any[] = [];
@@ -303,7 +522,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       const classMetrics = metric.classMetrics?.[0] || {};
       const classItem = {
         teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName, className,
-        complete: metric.complete, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate,
+        complete: metric.complete, schoolDaysCount: metric.schoolDays?.length || 0, attendanceRate: metric.attendanceRate, behaviorRate: metric.behaviorRate,
         attendanceIncidents: metric.attendanceIncidents, behaviorIncidents: metric.behaviorIncidents,
         attendanceStatusCounts: classMetrics.attendanceStatusCounts || null,
         behaviorTypeCounts: classMetrics.behaviorTypeCounts || null,
@@ -314,8 +533,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       if (ownTeamIds.includes(team.teamId)) ownClasses.push(classItem);
     }
   }
-  const visibleClassComparison = projectCompetitionClassComparison(classComparison, principal.type === "admin", ownTeamIds);
-  return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison: visibleClassComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
+  return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
 async function handle(req: Request) {
@@ -329,7 +547,7 @@ async function handle(req: Request) {
     try {
       const principal = await findPrincipal(body.pin, await getPepper());
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
-      if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلاب" }); }
+      if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة" }); }
       await clearFailedLogin(rate.key);
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
       const expires = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
@@ -339,12 +557,26 @@ async function handle(req: Request) {
       return reply(200, { token, expires_at: expires, principal: { type: principal.type, name: principal.name }, permissions: await permissionsFor(principal) });
     } catch (e) { console.error("Student affairs login failed:", e); return reply(500, { error: "تعذر إتمام التحقق الآمن حالياً" }); }
   }
+  if (body?.action === "competition_finalize") {
+    try {
+      const expected = await getCompetitionCronSecret();
+      const provided = req.headers.get("x-cron-secret") || "";
+      if (!secureStringEquals(expected, provided)) return reply(403, { error: "غير مصرح" });
+      const result = await finalizeCompetitionWeek();
+      return reply(200, result);
+    } catch (e) {
+      const status = Number((e as any)?.status) || 500;
+      const message = status < 500 && e instanceof Error ? e.message : "تعذر اعتماد نتيجة سباق التميز آلياً.";
+      if (status >= 500) console.error("Competition finalization failed:", e);
+      return reply(status, { error: message });
+    }
+  }
   const session = await getSession(req);
   if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
   const p = session.principal;
   if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
-    return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلاب لهذا الحساب" });
+    return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
   }
   if (body?.action === "logout") {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
@@ -459,8 +691,18 @@ async function handle(req: Request) {
   }
   if (body?.action === "competition") {
     const permissions = await permissionsFor(p, true);
+    if (p.type !== "admin" && permissions?.can_view_competition !== true) {
+      return reply(403, { error: "لا تملك صلاحية مشاهدة لوحة سباق التميز." });
+    }
     try {
-      const snapshot = await buildCompetitionSnapshot(p, permissions, body.from, body.to, body.period);
+      let snapshot: any;
+      const period = String(body.period || "weekly");
+      if (period === "weekly") snapshot = await getLatestWeeklyCompetition(p);
+      else if (period === "term") snapshot = await buildTermCompetitionSnapshot(p, permissions);
+      else {
+        const live = await buildCompetitionSnapshot(p, permissions, body.from, body.to, period);
+        snapshot = projectCompetitionResponse(live, p);
+      }
       return reply(200, snapshot);
     } catch (e) {
       const status = Number((e as any)?.status) || 500;
