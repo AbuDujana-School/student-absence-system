@@ -662,7 +662,7 @@ async function handle(req: Request) {
     const classStatusSets = new Map<string, Set<string>>();
     if (scope === "team" || scope === "teacher") {
       for (const member of selectedMembers) {
-        const statuses = new Set((member.attendance_statuses || ["absent", "late", "escape", "outside"]).map(String));
+        const statuses = new Set<string>((member.attendance_statuses || ["absent", "late", "escape", "outside"]).map(String));
         for (const className of member.allowed_attendance_classes || []) {
           const key = String(className);
           const combined = classStatusSets.get(key) || new Set<string>();
