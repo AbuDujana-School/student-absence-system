@@ -257,7 +257,7 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
   const { data: history, error } = await db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
     .gte("week_start", activeTerm.start)
-    .lte("week_start", termTo)
+    .lte("week_end", termTo)
     .order("week_start", { ascending: true });
   if (error) throw error;
   const completed = (history || []).filter((row: any) => row.status === "complete" && Array.isArray(row.snapshot?.teams));
