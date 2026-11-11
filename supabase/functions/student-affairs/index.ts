@@ -533,8 +533,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       if (ownTeamIds.includes(team.teamId)) ownClasses.push(classItem);
     }
   }
-  const visibleClassComparison = projectCompetitionClassComparison(classComparison, principal.type === "admin", ownTeamIds);
-  return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison: visibleClassComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
+  return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
 async function handle(req: Request) {
@@ -692,6 +691,9 @@ async function handle(req: Request) {
   }
   if (body?.action === "competition") {
     const permissions = await permissionsFor(p, true);
+    if (p.type !== "admin" && permissions?.can_view_competition !== true) {
+      return reply(403, { error: "لا تملك صلاحية مشاهدة لوحة سباق التميز." });
+    }
     try {
       let snapshot: any;
       const period = String(body.period || "weekly");
