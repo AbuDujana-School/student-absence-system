@@ -155,3 +155,37 @@ Begin with Stage 1 tests and the server-side identity design. Do not modify RLS,
 - Queued deletes are stored in localStorage as table + equality filters + timestamp, de-duplicated by exact JSON filter equality, retried on reconnect, and retained when a request fails. Current delete paths include student/class/teacher removal, attendance/behavior key cleanup, duty-report cleanup, and legacy class-name normalization.
 - The sync routine clears each dirty set only after the corresponding write succeeds. It persists the local snapshot and dirty sets before attempting cloud writes, and retains offline state after a cloud failure.
 - The current `robustUpsert` fallback logs the full row on failure. The server migration must avoid logging student records, teacher credential data, or other personal data.
+
+
+## Detailed general-app authentication and sync trace (follow-up audit)
+
+The current general-app login path is still browser-side:
+- `handleUserLogin()` calls `findUserByPinWithRecord(pin)` after the application has loaded the database into the browser.
+- `findUserByPinWithRecord()` checks the administrator PIN and then iterates through custom users and teachers, verifying their stored hashes in the browser.
+- `checkExistingSession()` validates a locally stored HMAC-style session and reconstructs the active user's permissions from the locally cached teacher/custom-user objects. It does not ask the server to validate a general-app session.
+- `createSignedSession()` stores the session payload in localStorage and its derived session secret in sessionStorage. This is a client-side continuity mechanism, not a server-revocable authenticated session.
+- The general-app login path may subsequently call the separate Student Affairs login for eligible users. That Student Affairs session does not replace general-app authentication.
+
+Credential exposure and offline implications:
+- `loadSystemDataFromCloud()` currently requests `teachers` with `select('*')`, then places `pin_hash` and `pin_salt` on the in-memory teacher/custom-user objects.
+- The local offline snapshot serializes the application database object. Because the teacher/custom-user objects include PIN verifier fields, the snapshot can persist those verifiers locally as well.
+- `school_settings` is currently loaded with `select('*')`; the administrator PIN verifier is then copied into the in-memory database.
+- The frontend's PIN compatibility and session derivation code includes client-side cryptographic material. Any value shipped in browser code must be treated as public and cannot serve as a server-side secret.
+
+Sync and deletion contract that must be preserved:
+- `fetchAllPaginated()` reads all pages from the browser client.
+- `robustUpsert()` first attempts chunked upsert, then falls back per row to select/update/insert using the supplied conflict columns. This fallback affects duplicate handling and must be replicated or intentionally replaced with tested semantics.
+- `saveSystemDataToCloud()` flushes dirty sets for classes, teachers, students, attendance, behaviors, admin PIN, custom categories, duty module, and duty reports. Teacher writes also fetch current server permissions and merge Student Affairs-owned permission fields before upsert.
+- `queueCloudDelete()` attempts a direct delete and queues failures in localStorage; `flushPendingDeletes()` retries those queued table/filter deletes during the next load. These queues are part of offline behavior and cannot be dropped during migration.
+- IndexedDB snapshots, localStorage fallback snapshots, dirty-set tracking, and online/pageshow/visibility retry handlers form one combined offline-sync contract.
+
+Important implementation consequence:
+A safe first production cutover cannot simply replace the PIN check or remove `select('*')`. The server must return a non-secret, minimum application profile; the frontend must stop storing PIN verifiers in offline snapshots; and every CRUD/delete operation must have an authenticated server replacement with equivalent conflict, merge, pagination, and offline retry behavior before any anon grants or permissive RLS policies are changed.
+
+## Current implementation checkpoint (follow-up audit)
+
+- A pure helper module `app_auth_policy.ts` and `app_auth_policy_test.ts` are present on the feature branch. They validate PIN shape, session-token shape/expiry, and strip credential-shaped fields from a projected profile.
+- The CI workflow invokes those policy tests.
+- These helpers are not yet wired into `student-affairs/index.ts` as a general-app login/session API. The Edge Function's existing `login` action is explicitly gated by Student Affairs access and stores sessions in `student_affairs_sessions`; it must not be reused as unrestricted general-app login.
+- No `app_sessions` table, general-app login endpoint, general-app session validation endpoint, or frontend migration to server authentication was confirmed in this audit.
+- No production schema, data, RLS, grants, Supabase function deployment, Vercel deployment, or production application changes were made.
