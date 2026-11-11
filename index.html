@@ -2116,7 +2116,8 @@ function saRenderCompetition(data){
   const period=data?.period||"weekly";
   const completedWeeks=Number(data?.completedWeeks||0);
   const weeklyAwardsReady=teams.length>0&&teams.every(team=>team.weeklyAwardPoints!==null&&team.weeklyAwardPoints!==undefined);
-  const rankingsReady=period==="weekly"?weeklyAwardsReady:completedWeeks>0&&teams.length>0&&teams.every(team=>Number.isFinite(Number(team.rank)));
+  const hasTermPoints=Object.values(data?.weeklyPoints||{}).some(value=>Number(value)>0);
+  const rankingsReady=period==="weekly"?weeklyAwardsReady:completedWeeks>0&&teams.length>0&&teams.every(team=>Number.isFinite(Number(team.rank)))&&(period!=="term"||hasTermPoints);
   if(status){
     if(period==="weekly"){
       status.textContent=data.status==="awaiting_first_result"
@@ -2129,7 +2130,7 @@ function saRenderCompetition(data){
         ?" تنبيه: لا تتوفر نتائج أسبوعية معتمدة قبل "+data.dataAvailableFrom+"؛ لذلك يبدأ جمع النقاط من أول أسبوع معتمد في النظام."
         :"";
       status.textContent=completedWeeks>0
-        ?"الترتيب حسب مجموع نقاط المراكز الأسبوعية المعتمدة منذ بداية الفصل. عدد الأسابيع المحتسبة: "+completedWeeks+"."+available
+        ?(hasTermPoints?"الترتيب حسب مجموع نقاط المراكز الأسبوعية المعتمدة منذ بداية الفصل. عدد الأسابيع المحتسبة: "+completedWeeks+"."+available:"اكتملت أسابيع احتساب البيانات، لكن لم يحصل أي فريق على نقاط مراكز حتى الآن."+available)
         :"لم تُعتمد نتائج أسبوعية لهذا الفصل بعد؛ سيبدأ الرصيد التراكمي بعد اعتماد أول نتيجة أسبوعية."+available;
     }else{
       status.textContent=completedWeeks>0
@@ -2143,7 +2144,7 @@ function saRenderCompetition(data){
   if(rangeTo&&data.to){rangeTo.value=data.to;rangeTo.disabled=period!=="monthly";}
   const rangeLabel=document.getElementById("saCompetitionRangeLabel");
   if(rangeLabel){
-    if(period==="weekly")rangeLabel.textContent=data.from&&data.to?"نتيجة "+saCompetitionDayLabel(data.from)+" – "+saCompetitionDayLabel(data.to):"آخر نتيجة أسبوعية معتمدة";
+    if(period==="weekly")rangeLabel.textContent=data.status==="awaiting_first_result"?"بانتظار أول نتيجة معتمدة":data.from&&data.to?"نتيجة "+saCompetitionDayLabel(data.from)+" – "+saCompetitionDayLabel(data.to):"آخر نتيجة أسبوعية معتمدة";
     else if(period==="term")rangeLabel.textContent=(data.termLabel||"الفصل الدراسي")+" · "+(data.termStart||"")+" إلى "+(data.to||data.today||"");
     else rangeLabel.textContent="حصاد الشهر";
   }
@@ -2193,6 +2194,7 @@ function saRenderCompetition(data){
   const classRows=(Array.isArray(data?.classComparison)?data.classComparison:[])
     .filter(item=>isAdmin?(scope==="all"||ownTeamNames.has(String(item.teamName))):ownTeamNames.has(String(item.teamName)))
     .sort((a,b)=>(teacherRank.get(String(a.teamName))||999)-(teacherRank.get(String(b.teamName))||999)
+      ||(a.complete===b.complete?0:a.complete?-1:1)
       ||((Number(a.attendanceRate)||0)+(Number(a.behaviorRate)||0))-((Number(b.attendanceRate)||0)+(Number(b.behaviorRate)||0))
       ||String(a.className||"").localeCompare(String(b.className||""),"ar"));
   const classRankByTeacher=new Map();
