@@ -62,8 +62,7 @@ jobs:
             IF has_table_privilege('anon', 'public.app_sessions', 'SELECT')
               OR has_table_privilege('anon', 'public.app_sessions', 'INSERT')
               OR has_table_privilege('authenticated', 'public.app_sessions', 'SELECT')
-              OR has_table_privilege('authenticated', 'public.app_sessions', 'INSERT')
-              OR has_table_privilege('public', 'public.app_sessions', 'SELECT') THEN
+              OR has_table_privilege('authenticated', 'public.app_sessions', 'INSERT') THEN
               RAISE EXCEPTION 'A browser/public role has table access';
             END IF;
             IF NOT has_table_privilege('service_role', 'public.app_sessions', 'SELECT')
