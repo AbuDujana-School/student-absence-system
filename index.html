@@ -292,6 +292,13 @@
 @media(max-width:360px){#pwaInstallSheet{left:8px;right:8px;max-width:calc(100vw - 16px);padding:13px;border-radius:17px}#pwaInstallSheet .pwa-install-top{gap:9px;padding-inline-end:31px}#pwaInstallSheet .pwa-install-icon{width:40px;height:40px;flex-basis:40px}#pwaInstallSheet .pwa-install-actions{gap:7px}#pwaInstallSheet .pwa-install-button{font-size:12px;padding:10px 7px}#pwaInstallSheet .pwa-later-button{padding:9px 10px}}
 @media(prefers-reduced-motion:reduce){#pwaInstallSheet{transition:none}}
 </style>
+<style id="beneficiary-management-navigation">
+#tab-teachers,#tab-students{display:none!important}
+#sec-beneficiaries .beneficiary-card{min-height:245px;cursor:pointer;text-align:right}
+#sec-beneficiaries .beneficiary-card:active{transform:scale(.985)}
+.dark #sec-beneficiaries .beneficiary-card{border-color:rgba(255,255,255,.12)}
+@media(prefers-reduced-motion:reduce){#sec-beneficiaries .beneficiary-card{transition:none}}
+</style>
 <style id="student-affairs-premium-ui">
 /* Student Affairs — focused visual system. Keeps existing IDs, handlers and data flow intact. */
 #studentAffairsView{
@@ -1372,6 +1379,7 @@
         <button onclick="switchAdminTab('studstats')" id="tab-studstats" data-permission="studstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-chart-pie text-emerald-600"></i><span>إحصائيات</span></button>
         <button onclick="switchAdminTab('behaviorstats')" id="tab-behaviorstats" data-permission="behaviorstats" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-scale-balanced text-emerald-600"></i><span>سلوكيات</span></button>
         <button onclick="switchAdminTab('users')" id="tab-users" data-permission="users" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-user-gear text-blue-500"></i><span>الأشخاص</span></button>
+        <button onclick="switchAdminTab('beneficiaries')" id="tab-beneficiaries" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-slate-800 dark:to-slate-900 shadow-sm font-black text-slate-800 dark:text-amber-200 hover:border-amber-400 transition-all"><i class="fa-solid fa-users-viewfinder text-amber-600"></i><span>إدارة المستفيدين</span></button>
         <button onclick="switchAdminTab('students')" id="tab-students" data-permission="students" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-user-graduate text-purple-600"></i><span>الطلاب</span></button>
         <button onclick="switchAdminTab('teachers')" id="tab-teachers" data-permission="teachers" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-chalkboard-user text-amber-500"></i><span>المعلمين</span></button>
         <button onclick="switchAdminTab('duty')" id="tab-duty" data-permission="duty" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-user-clock text-orange-500"></i><span>المناوبة</span></button>
@@ -1381,6 +1389,26 @@
         <button onclick="switchAdminTab('security')" id="tab-security" data-permission="security" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-shield-halved text-emerald-500"></i><span>الأمان</span></button>
         <button onclick="openStudentAffairsView()" id="tab-studentAffairs" data-permission="studentAffairs" style="display:none" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-graduation-cap text-indigo-500"></i><span>شؤون الطلاب</span></button>
       </div>
+
+      <section id="sec-beneficiaries" class="hidden space-y-6" dir="rtl">
+        <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl overflow-hidden relative">
+          <div class="absolute -left-12 -top-12 h-44 w-44 rounded-full bg-amber-300/10 blur-3xl pointer-events-none"></div>
+          <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
+            <div><span class="text-[10px] font-black tracking-widest text-amber-200">إدارة البيانات الأساسية</span><h2 class="mt-1 text-2xl sm:text-3xl font-black">إدارة المستفيدين</h2><p class="mt-2 text-xs text-blue-100">اختر الفئة للوصول إلى أدواتها وإعداداتها الحالية.</p></div>
+            <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl text-amber-200"><i class="fa-solid fa-users"></i></div>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+          <button type="button" data-beneficiary-card="teachers" onclick="switchAdminTab('teachers')" class="beneficiary-card group relative overflow-hidden rounded-3xl border border-amber-200 dark:border-amber-800 bg-gradient-to-br from-white via-amber-50 to-orange-100 dark:from-slate-900 dark:via-slate-800 dark:to-amber-950 p-6 sm:p-8 text-right shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-amber-300/40">
+            <span class="absolute -left-8 -top-8 h-36 w-36 rounded-full bg-amber-400/15 blur-2xl transition-transform group-hover:scale-125"></span><span class="relative flex items-center justify-between"><span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-amber-500 to-orange-700 text-3xl text-white shadow-lg"><i class="fa-solid fa-chalkboard-user"></i></span><i class="fa-solid fa-arrow-left text-xl text-amber-700 transition-transform group-hover:-translate-x-2 dark:text-amber-300"></i></span>
+            <span class="relative mt-6 block text-2xl font-black text-slate-900 dark:text-white">المعلمون</span><span class="relative mt-2 block text-xs leading-6 text-slate-600 dark:text-slate-300">إدارة حسابات المعلمين، الصلاحيات، الرموز، والتصنيفات.</span><span class="relative mt-5 inline-flex rounded-xl bg-amber-600 px-4 py-2 text-xs font-black text-white shadow">فتح إدارة المعلمين</span>
+          </button>
+          <button type="button" data-beneficiary-card="students" onclick="switchAdminTab('students')" class="beneficiary-card group relative overflow-hidden rounded-3xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-white via-indigo-50 to-blue-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 p-6 sm:p-8 text-right shadow-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-indigo-300/40">
+            <span class="absolute -left-8 -top-8 h-36 w-36 rounded-full bg-indigo-400/15 blur-2xl transition-transform group-hover:scale-125"></span><span class="relative flex items-center justify-between"><span class="flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-600 to-blue-800 text-3xl text-white shadow-lg"><i class="fa-solid fa-user-graduate"></i></span><i class="fa-solid fa-arrow-left text-xl text-indigo-700 transition-transform group-hover:-translate-x-2 dark:text-indigo-300"></i></span>
+            <span class="relative mt-6 block text-2xl font-black text-slate-900 dark:text-white">الطلاب</span><span class="relative mt-2 block text-xs leading-6 text-slate-600 dark:text-slate-300">إدارة قوائم الطلاب والصفوف والإضافة والاستيراد والتحديث.</span><span class="relative mt-5 inline-flex rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white shadow">فتح إدارة الطلاب</span>
+          </button>
+        </div>
+      </section>
 
       <section id="sec-dashboard" class="space-y-8" dir="rtl">
         <div id="dashboardMetricsSection" class="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -3967,6 +3995,16 @@ function setupRolePermissions() {
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = activeUser?.permissions?.studentAffairs === true ? 'flex' : 'none';
     if (first) switchAdminTab(first);
   }
+  const beneficiaryTab = document.getElementById('tab-beneficiaries');
+  if (beneficiaryTab) {
+    const canOpenBeneficiaries = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
+    beneficiaryTab.style.display = canOpenBeneficiaries ? 'flex' : 'none';
+  }
+  document.querySelectorAll('[data-beneficiary-card]').forEach(card => {
+    const kind = card.getAttribute('data-beneficiary-card');
+    const allowed = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.[kind];
+    card.classList.toggle('hidden', !allowed);
+  });
   initAdminDashboard();
 }
 let currentUrgentType = null;
@@ -4616,8 +4654,12 @@ function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
   const canDashboard = isA || !!activeUser?.permissions?.studstats || !!activeUser?.permissions?.teachers;
-  if (tab === 'dashboard' ? !canDashboard : !has(tab)) return;
+  const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
+  if (tab === 'dashboard' ? !canDashboard : tab === 'beneficiaries' ? !canBeneficiaries : !has(tab)) return;
   document.getElementById('sec-dashboard')?.classList.add('hidden');
+  document.getElementById('sec-beneficiaries')?.classList.add('hidden');
+  const beneficiaryTab = document.getElementById('tab-beneficiaries');
+  if (beneficiaryTab) beneficiaryTab.className = 'admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-amber-200 dark:border-amber-800 bg-gradient-to-l from-amber-50 to-white dark:from-slate-800 dark:to-slate-900 shadow-sm font-black text-slate-800 dark:text-amber-200 hover:border-amber-400 transition-all';
   const dashboardTab = document.getElementById('tab-dashboard');
   if (dashboardTab) dashboardTab.className = 'admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all';
   ADMIN_TAB_PERMISSIONS.forEach(t => {
@@ -4626,6 +4668,7 @@ function switchAdminTab(tab) {
     if (tb) tb.className = 'admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all';
   });
   document.getElementById('sec-' + tab)?.classList.remove('hidden');
+  if (tab === 'beneficiaries' && beneficiaryTab) beneficiaryTab.className = 'admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-amber-400 dark:border-amber-500 bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 shadow-sm font-black ring-1 ring-amber-200 dark:ring-amber-900 transition-all';
   const ab = document.getElementById('tab-' + tab);
   if (ab) ab.className = 'admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-emerald-300 dark:border-emerald-700 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 shadow-sm font-bold ring-1 ring-emerald-200 dark:ring-emerald-900 transition-all';
   if (tab === 'dashboard') renderAdminOverview();
