@@ -465,6 +465,42 @@
   }
 }
 </style>
+<style id="student-affairs-glass-controls">
+#studentAffairsView .sa-glass-panel{position:relative;overflow:hidden;padding:clamp(16px,3vw,24px);border:1px solid rgba(22,140,133,.2);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,248,249,.94));box-shadow:0 16px 42px -24px rgba(24,54,83,.28),inset 0 1px 0 rgba(255,255,255,.9)}
+#studentAffairsView .sa-glass-panel:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#d5a64a,#168c85,#183653)}
+#studentAffairsView .sa-glass-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#studentAffairsView .sa-glass-heading strong{display:block;color:#183653;font-size:16px;font-weight:900}
+#studentAffairsView .sa-glass-heading p{margin-top:5px;color:#64748b;font-size:11px;font-weight:600}
+#studentAffairsView .sa-glass-eyebrow{display:block;margin-bottom:5px;color:#168c85;font-size:9px;font-weight:900;letter-spacing:1.5px}
+#studentAffairsView .sa-glass-chip{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid #d5e9e7;border-radius:999px;background:#f0f8f7;color:#0f6e69;font-size:10px;font-weight:900}
+#studentAffairsView .sa-glass-section{display:grid;gap:9px}
+#studentAffairsView .sa-glass-label{display:flex;align-items:center;gap:8px;color:#183653;font-size:12px;font-weight:900}
+#studentAffairsView .sa-glass-label i{color:#168c85}
+#studentAffairsView .sa-glass-option-box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:6px;border:1px solid #dce9ec;border-radius:17px;background:rgba(226,239,242,.7)}
+#studentAffairsView .sa-glass-choice{display:flex;align-items:center;justify-content:center;gap:9px;min-height:46px;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:rgba(255,255,255,.8);color:#53677c;font-size:12px;font-weight:900;transition:all .2s ease}
+#studentAffairsView .sa-glass-choice i{font-size:13px}
+#studentAffairsView .sa-glass-choice:hover{border-color:#a8d8d3;background:#fff;transform:translateY(-1px)}
+#studentAffairsView .sa-glass-choice.is-active{border-color:rgba(213,166,74,.6);background:linear-gradient(135deg,#183653,#234a6b);color:#fff;box-shadow:0 7px 18px -8px rgba(24,54,83,.65),inset 0 1px 0 rgba(255,255,255,.18)}
+#studentAffairsView .sa-glass-hint{color:#64748b;font-size:10px;line-height:1.8}
+#studentAffairsView .sa-glass-filter-grid{display:grid;grid-template-columns:1fr;gap:12px}
+#studentAffairsView .sa-glass-filter-card{padding:13px;border:1px solid #dce7ed;border-radius:16px;background:rgba(255,255,255,.78)}
+#studentAffairsView .sa-glass-check{display:flex;align-items:center;gap:7px;min-height:38px;padding:8px 10px;border:1px solid #e1e9ef;border-radius:11px;background:#fff;color:#40566d;font-size:11px;font-weight:800}
+#studentAffairsView .sa-glass-check input{width:16px;height:16px;flex:0 0 auto;accent-color:#168c85}
+#studentAffairsView #saAttendanceTab,#studentAffairsView #saBehaviorTab,#studentAffairsView #saCombinedTab{min-height:42px;border:1px solid #dce7ed;border-radius:12px;font-weight:900;transition:all .2s ease}
+#studentAffairsView #saAttendanceTab:not(.hidden),#studentAffairsView #saBehaviorTab:not(.hidden){background:#fff}
+#studentAffairsView #saCombinedTab:not(.hidden){border-color:#d5e9e7;background:#edf7f6;color:#0f6e69}
+#studentAffairsView #saCombinedTab.bg-teal-700{background:linear-gradient(135deg,#183653,#234a6b)!important;color:#fff!important;border-color:rgba(213,166,74,.6)!important}
+.dark #studentAffairsView .sa-glass-panel{background:linear-gradient(145deg,rgba(15,26,43,.98),rgba(17,44,57,.96));border-color:rgba(56,189,180,.22)}
+.dark #studentAffairsView .sa-glass-heading strong,.dark #studentAffairsView .sa-glass-label{color:#e2f1f2}
+.dark #studentAffairsView .sa-glass-heading p,.dark #studentAffairsView .sa-glass-hint{color:#a9bdca}
+.dark #studentAffairsView .sa-glass-option-box{background:rgba(7,20,32,.65);border-color:#29495b}
+.dark #studentAffairsView .sa-glass-choice{background:#162a3c;color:#c8d8e3}
+.dark #studentAffairsView .sa-glass-choice.is-active{background:linear-gradient(135deg,#168c85,#0f6e69);color:#fff}
+.dark #studentAffairsView .sa-glass-filter-card{background:rgba(12,27,42,.75);border-color:#29495b}
+.dark #studentAffairsView .sa-glass-check{background:#15283a;border-color:#2d485c;color:#d4e2eb}
+@media(min-width:768px){#studentAffairsView .sa-glass-filter-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:420px){#studentAffairsView .sa-glass-chip{display:none}#studentAffairsView .sa-glass-choice{font-size:11px;padding:9px 6px}}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -5406,16 +5442,42 @@ if ("serviceWorker" in navigator) {
   function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
-    const host=document.createElement("section");host.id=id;host.className="hidden space-y-3 rounded-2xl border border-teal-200 bg-teal-50/40 p-4 dark:border-teal-900 dark:bg-teal-950/20";
-    host.innerHTML='<div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-sm">إعداد التقرير الموحّد</strong><span class="text-[11px] text-slate-500">العرض اليومي هو الوضع الافتراضي</span></div><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-black">الفترة<select id="'+prefix+'CombinedPeriodMode" class="mt-1 w-full rounded-xl border border-teal-200 bg-white p-2.5 text-xs dark:bg-slate-900"><option value="daily">اليوم</option><option value="custom">مخصص</option></select></label><label class="flex items-center gap-3 self-end rounded-xl border-2 border-teal-200 bg-white p-3 text-xs font-black text-slate-800 dark:bg-slate-900 dark:text-slate-100"><input id="'+prefix+'CombinedCumulative" type="checkbox" class="h-5 w-5 accent-teal-700"><span>عرض تراكمي لمخالفات السلوكيات والغياب خلال الفترة المحددة</span></label></div><div class="text-[11px] leading-5 text-slate-600">اختر «مخصص» لتحديد تاريخ البداية والنهاية. دون تفعيل التراكمي تظهر تفاصيل كل يوم على حدة.</div><div><div class="mb-2 text-xs font-black">حالات الغياب والانضباط</div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div><div><div class="mb-2 text-xs font-black">أنواع السلوكيات</div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>';
+    const host=document.createElement("section");host.id=id;host.className="sa-glass-panel hidden space-y-4";
+    host.innerHTML='<div class="sa-glass-heading"><div><span class="sa-glass-eyebrow">ABU DUJANA SCHOOL</span><strong>إعداد التقرير الموحّد</strong><p>اختر الفترة وطريقة عرض النتائج والحالات المطلوبة</p></div><span class="sa-glass-chip"><i class="fa-solid fa-layer-group"></i> الغياب والسلوكيات</span></div>'+
+      '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-regular fa-calendar-days"></i><span>الفترة الزمنية</span></div><div class="sa-glass-option-box" role="group" aria-label="اختيار الفترة">'+
+      '<button type="button" id="'+prefix+'PeriodTodayBtn" class="sa-glass-choice is-active" onclick="setCombinedPeriodMode(\''+prefix+'\',\'daily\')"><i class="fa-solid fa-calendar-day"></i><span>اليوم</span></button>'+
+      '<button type="button" id="'+prefix+'PeriodCustomBtn" class="sa-glass-choice" onclick="setCombinedPeriodMode(\''+prefix+'\',\'custom\')"><i class="fa-solid fa-calendar-range"></i><span>مخصص</span></button></div>'+
+      '<select id="'+prefix+'CombinedPeriodMode" class="hidden" aria-hidden="true"><option value="daily">اليوم</option><option value="custom">مخصص</option></select></div>'+
+      '<div class="sa-glass-section"><div class="sa-glass-label"><i class="fa-solid fa-chart-column"></i><span>طريقة عرض النتائج</span></div><div class="sa-glass-option-box" role="group" aria-label="طريقة عرض التقرير">'+
+      '<button type="button" id="'+prefix+'ModeDailyBtn" class="sa-glass-choice is-active" onclick="setCombinedOutputMode(\''+prefix+'\',false)"><i class="fa-solid fa-list-ul"></i><span>عرض يومي تفصيلي</span></button>'+
+      '<button type="button" id="'+prefix+'ModeCumulativeBtn" class="sa-glass-choice" onclick="setCombinedOutputMode(\''+prefix+'\',true)"><i class="fa-solid fa-chart-pie"></i><span>عرض تراكمي</span></button></div>'+
+      '<input id="'+prefix+'CombinedCumulative" type="checkbox" class="hidden" aria-hidden="true">'+
+      '<p class="sa-glass-hint">العرض اليومي يوضح تفاصيل كل يوم، أما التراكمي فيجمع إجمالي حالات الغياب والسلوكيات خلال الفترة المحددة.</p></div>'+
+      '<div class="sa-glass-filter-grid"><div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-user-clock"></i><span>حالات الغياب والانضباط</span></div><div id="'+prefix+'CombinedStatuses" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div>'+
+      '<div class="sa-glass-filter-card"><div class="sa-glass-label"><i class="fa-solid fa-clipboard-check"></i><span>أنواع السلوكيات</span></div><div id="'+prefix+'CombinedBehaviors" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div></div></div>';
     const anchor=document.getElementById(prefix==="sa"?"saStatusFilterWrap":"repBehaviorFilterWrap");
     (anchor||document.getElementById(prefix==="sa"?"saReportClassPicker":"repClassesGrid")?.parentElement)?.insertAdjacentElement("afterend",host);
     const p=cfg[prefix].getP(),allowed=Array.isArray(p.attendance_statuses)?p.attendance_statuses:validStatus;
-    document.getElementById(prefix+"CombinedStatuses").innerHTML=SA_ATTENDANCE_STATUS.filter(x=>allowed.includes(x[0])).map(([k,l])=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-status" value="'+k+'" checked><span>'+esc(l)+'</span></label>').join("");
-    document.getElementById(prefix+"CombinedBehaviors").innerHTML=behaviorKeys.map(k=>'<label class="flex items-center gap-2 rounded-xl border bg-white p-2 text-xs dark:bg-slate-900"><input type="checkbox" class="'+prefix+'-combined-behavior" value="'+k+'" checked><span>'+esc(SA_BEHAVIOR_TYPES[k])+'</span></label>').join("");
+    document.getElementById(prefix+"CombinedStatuses").innerHTML=SA_ATTENDANCE_STATUS.filter(x=>allowed.includes(x[0])).map(([k,l])=>'<label class="sa-glass-check"><input type="checkbox" class="'+prefix+'-combined-status" value="'+k+'" checked><span>'+esc(l)+'</span></label>').join("");
+    document.getElementById(prefix+"CombinedBehaviors").innerHTML=behaviorKeys.map(k=>'<label class="sa-glass-check"><input type="checkbox" class="'+prefix+'-combined-behavior" value="'+k+'" checked><span>'+esc(SA_BEHAVIOR_TYPES[k])+'</span></label>').join("");
+    syncCombinedChoiceButtons(prefix);
   }
   function selected(prefix,kind){return Array.from(document.querySelectorAll("."+prefix+"-combined-"+kind+":checked")).map(x=>x.value);}
-  function syncPeriodMode(prefix){const c=cfg[prefix],mode=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily",to=document.getElementById(c.to),from=document.getElementById(c.from);const toLabel=to?.closest("label");if(mode==="daily"){if(to&&from)to.value=from.value;if(toLabel)toLabel.style.display="none";}else{if(toLabel)toLabel.style.display="";}}
+  function syncCombinedChoiceButtons(prefix){
+    const period=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily",cumulative=!!document.getElementById(prefix+"CombinedCumulative")?.checked;
+    [[prefix+"PeriodTodayBtn",period==="daily"],[prefix+"PeriodCustomBtn",period==="custom"],[prefix+"ModeDailyBtn",!cumulative],[prefix+"ModeCumulativeBtn",cumulative]].forEach(([id,on])=>{const el=document.getElementById(id);if(el)el.classList.toggle("is-active",on);});
+  }
+  function setCombinedPeriodMode(prefix,mode){
+    const select=document.getElementById(prefix+"CombinedPeriodMode"),c=cfg[prefix];if(!select)return;select.value=mode;
+    const from=document.getElementById(c.from),to=document.getElementById(c.to),preset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset");
+    if(mode==="daily"){const today=getOmanLocalDate();if(from)from.value=today;if(to)to.value=today;if(from)from.disabled=true;if(to)to.disabled=true;if(preset)preset.value="today";}
+    else{if(from&&!from.value)from.value=getOmanLocalDate();if(to&&!to.value)to.value=from?.value||getOmanLocalDate();if(from)from.disabled=false;if(to)to.disabled=false;if(preset)preset.value="custom";}
+    syncPeriodMode(prefix);syncCombinedChoiceButtons(prefix);if(modes[prefix])load(prefix);
+  }
+  function setCombinedOutputMode(prefix,cumulative){
+    const input=document.getElementById(prefix+"CombinedCumulative");if(!input)return;input.checked=!!cumulative;syncCombinedChoiceButtons(prefix);if(modes[prefix])load(prefix);
+  }
+  function syncPeriodMode(prefix){const c=cfg[prefix],mode=document.getElementById(prefix+"CombinedPeriodMode")?.value||"daily",to=document.getElementById(c.to),from=document.getElementById(c.from);const toLabel=to?.closest("label");if(mode==="daily"){if(to&&from)to.value=from.value;if(toLabel)toLabel.style.display="none";}else{if(toLabel)toLabel.style.display="";}syncCombinedChoiceButtons(prefix);}
   function mount(prefix){
     const c=cfg[prefix],behavior=document.getElementById(c.tabs[1]);if(!behavior)return;const existing=document.getElementById(prefix+"CombinedTab");if(existing){existing.classList.toggle("hidden",!canUseCombined(prefix));buildFilter(prefix);return;}
     const b=document.createElement("button");b.type="button";b.id=prefix+"CombinedTab";b.className="rounded-xl px-5 py-2.5 text-xs font-black transition text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700";b.textContent="كلاهما";b.addEventListener("click",()=>activate(prefix));behavior.insertAdjacentElement("afterend",b);
@@ -5431,12 +5493,12 @@ if ("serviceWorker" in navigator) {
   function activate(prefix){
     const c=cfg[prefix],p=c.getP();
     if(!canUseCombined(prefix)){showToast("يتطلب التقرير الموحّد صلاحيات قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
-    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);setClassIntersection(prefix);
+    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);if(prefix==="sa"){const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");}setClassIntersection(prefix);
     document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
     c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
     document.getElementById(c.statusWrap)?.classList.add("hidden");
     document.getElementById(prefix==="sa"?"saBehaviorFilterWrap":"repBehaviorFilterWrap")?.classList.add("hidden");
-    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");syncPeriodMode(prefix);
+    document.getElementById(prefix+"CombinedFilters").classList.remove("hidden");syncPeriodMode(prefix);syncCombinedChoiceButtons(prefix);
     document.getElementById(c.readBtn).classList.remove("hidden");
     document.getElementById(c.button).classList.remove("hidden");
     document.getElementById(c.readBtn).textContent="عرض التقرير الموحّد";
@@ -5568,7 +5630,7 @@ if ("serviceWorker" in navigator) {
     catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
   }
   const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
-  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldSaSet(d);mount("sa");};
+  saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
   repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldRepSet(d);mount("rep");};
   saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
   repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
