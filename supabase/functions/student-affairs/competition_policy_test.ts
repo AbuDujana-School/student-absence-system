@@ -1,6 +1,6 @@
 import {
   awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores,
-  countAttendanceIncidents, countBehaviorIncidents, countAttendanceByStatus, countBehaviorByType, countRepeatStudents, getSchoolDays, getSchoolWeekRange,
+  countAttendanceIncidents, countBehaviorIncidents, countAttendanceByStatus, countBehaviorByType, countRepeatStudents, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange,
   gradeForClassName, isTeamDayComplete, getSessionCoverage
 } from "./competition_policy.ts";
 
@@ -13,6 +13,13 @@ Deno.test("grade names and Oman school week remain stable", () => {
   if (gradeForClassName("قسم الإدارة") !== null) throw new Error("invalid grade parsed");
   const week = getSchoolWeekRange("2026-11-10");
   if (week.start !== "2026-11-08" || week.end !== "2026-11-12" || getSchoolDays(week.start,week.end).length !== 5) throw new Error("school week must be Sunday-Thursday");
+});
+Deno.test("only an exact Sunday-to-Thursday range is a complete award week", () => {
+  if (!isCompleteSchoolWeekRange("2026-11-08", "2026-11-12")) throw new Error("complete school week was rejected");
+  if (isCompleteSchoolWeekRange("2026-11-08", "2026-11-10")) throw new Error("partial week was accepted");
+  if (isCompleteSchoolWeekRange("2026-11-09", "2026-11-12")) throw new Error("late-start week was accepted");
+  if (isCompleteSchoolWeekRange("2026-11-08", "2026-11-19")) throw new Error("multi-week range was accepted as one week");
+  if (isCompleteSchoolWeekRange("invalid", "2026-11-12")) throw new Error("invalid date was accepted");
 });
 Deno.test("attendance events are deduplicated per student, class, date and status", () => {
   const rows = [
