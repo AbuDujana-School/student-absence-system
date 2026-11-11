@@ -968,7 +968,7 @@
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
         <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين وفرقهم</h4><p class="mt-1 text-[11px] text-slate-500">يعكس ترتيب كل معلم مستوى الانضباط في جميع الصفوف المسندة إليه، وتظهر مساهمة كل صف في المقارنة أدناه.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
         <section id="saCompetitionOtherRanksSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">المراكز الرابعة وما بعدها؛ لا تُمنح نقاطاً في هذا الأسبوع.</p></div>
+          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">المراكز الرابعة وما بعدها حسب مجموع النقاط؛ ويُحدَّث الترتيب عند اعتماد نتيجة جديدة.</p></div>
           <div id="saCompetitionOtherRanks" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
         </section>
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
@@ -2124,7 +2124,7 @@ function saRenderCompetition(data){
         ?"لم تُعتمد نتيجة أسبوعية سابقة بعد. ستظهر أول نتيجة بعد إقفال سجلات الأسبوع يوم الخميس الساعة 1:50 ظهراً."
         :weeklyAwardsReady
           ?"اكتملت سجلات الفرق واعتمدت النتيجة الأسبوعية. تبقى هذه النتيجة ظاهرة حتى اعتماد نتيجة الأسبوع التالي."
-          :"نتيجة هذا الأسبوع غير مكتملة؛ لم تُمنح نقاط للمراكز قبل اكتمال سجلات الغياب والسلوك لجميع الصفوف.";
+          :"نتيجة الأسبوع المحدد غير مكتملة؛ لم تُمنح نقاط للمراكز قبل اكتمال سجلات الغياب والسلوك لجميع الصفوف.";
     }else if(period==="term"){
       const available=data.dataAvailableFrom&&data.dataAvailableFrom>data.termStart
         ?" تنبيه: لا تتوفر نتائج أسبوعية معتمدة قبل "+data.dataAvailableFrom+"؛ لذلك يبدأ جمع النقاط من أول أسبوع معتمد في النظام."
