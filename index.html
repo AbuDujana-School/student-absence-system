@@ -1456,7 +1456,9 @@
       <div class="text-xs font-black text-slate-800 dark:text-white mb-2 flex items-center gap-2"><i class="fa-solid fa-plus-circle text-blue-600"></i> صلاحيات إضافية للوحة التحكم</div>
       <div class="grid grid-cols-2 gap-2">
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800"><input type="checkbox" id="perm_p_attendance" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📋 رصد الغياب</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-200 dark:border-orange-800"><input type="checkbox" id="perm_p_dutyToday" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة في يوم التكليف</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-teal-50 dark:bg-teal-950/30 rounded-2xl border border-teal-200 dark:border-teal-800"><input type="checkbox" id="perm_p_behavior" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ رصد السلوكيات</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800"><input type="checkbox" id="perm_p_dashboard" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🏠 الرئيسية</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_studstats" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📊 الإحصائيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_behaviorstats" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ كشوفات السلوك</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_users" class="accent-sky-600 w-4 h-4"><span class="text-xs font-bold">👥 إدارة المستخدمين</span></label>
@@ -4396,7 +4398,7 @@ function setupRolePermissions() {
     badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     let first = null;
     const dashboardTab = document.getElementById('tab-dashboard');
-    const canDashboard = !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
+    const canDashboard = Object.prototype.hasOwnProperty.call(activeUser?.permissions || {}, 'dashboard') ? activeUser.permissions.dashboard === true : !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
     const canBeneficiaries = !!(activeUser?.permissions?.teachers || activeUser?.permissions?.students);
     if (dashboardTab) dashboardTab.style.display = canDashboard ? 'flex' : 'none';
     if (canDashboard) first = 'dashboard';
@@ -5069,7 +5071,7 @@ async function repPrint(){
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
-  const canDashboard = isA || !!activeUser?.permissions?.studstats || !!activeUser?.permissions?.teachers;
+  const canDashboard = isA || (Object.prototype.hasOwnProperty.call(activeUser?.permissions || {}, 'dashboard') ? activeUser.permissions.dashboard === true : !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers));
   const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
   if (tab === 'dashboard' ? !canDashboard : tab === 'beneficiaries' ? !canBeneficiaries : !has(tab)) return;
   document.getElementById('sec-dashboard')?.classList.add('hidden');
@@ -5641,6 +5643,8 @@ function openPermissionsModal(idx) {
   const p = t.permissions || {};
   document.getElementById('perm_p_attendance').checked = p.attendance !== false;
   document.getElementById('perm_p_behavior').checked = p.behavior !== false;
+  document.getElementById('perm_p_dutyToday').checked = p.dutyToday !== false;
+  document.getElementById('perm_p_dashboard').checked = Object.prototype.hasOwnProperty.call(p, 'dashboard') ? p.dashboard === true : !!(p.studstats || p.teachers);
   document.getElementById('perm_p_studstats').checked = !!p.studstats;
   document.getElementById('perm_p_behaviorstats').checked = !!p.behaviorstats;
   document.getElementById('perm_p_users').checked = !!p.users;
@@ -5662,6 +5666,8 @@ async function saveTeacherPermissions() {
   if (!t.permissions) t.permissions = {};
   t.permissions.attendance = document.getElementById('perm_p_attendance').checked;
   t.permissions.behavior = document.getElementById('perm_p_behavior').checked;
+  t.permissions.dutyToday = document.getElementById('perm_p_dutyToday').checked;
+  t.permissions.dashboard = document.getElementById('perm_p_dashboard').checked;
   t.permissions.studstats = document.getElementById('perm_p_studstats').checked;
   t.permissions.behaviorstats = document.getElementById('perm_p_behaviorstats').checked;
   t.permissions.users = document.getElementById('perm_p_users').checked;
@@ -5813,7 +5819,7 @@ function refreshDutyDashboardCard() {
       return now <= lastEnd + 30; 
   };
 
-  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
+  const isTE = activeUser?.type === 'teacher' && activeUser?.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
   const show = isA || hasDutyPerm || isTE;
   
   card.classList.toggle('hidden', !show);
@@ -5842,7 +5848,7 @@ function openDutyView() {
   d.periods.forEach(p => { const e = toMinutes(p.end); if (e !== null && e > lastEnd) lastEnd = e; });
   const isWithinTime = lastEnd === 0 || now <= lastEnd + 30;
   
-  const isTE = activeUser?.type === 'teacher' && isTeacherOnDutyToday(activeUser.name) && isWithinTime;
+  const isTE = activeUser?.type === 'teacher' && activeUser?.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && isWithinTime;
 
   if (!isA && !hasDutyPerm && !isTE) { showToast('غير متاح حالياً أو انتهى وقت العمل.', 'error'); return; }
   
