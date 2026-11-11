@@ -10,12 +10,122 @@ on:
     branches:
       - "main"
       - "feature/student-affairs-secure-preview"
+      - "feature/student-affairs-supervision-roles"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
 jobs:
+
+  # Isolated PostgreSQL 16 integration test; never connects to the school project.
+  app-session-migration-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_session_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_session_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: app_session_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Supabase-like database roles
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          SQL
+      - name: Apply app sessions migration to isolated PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
+      - name: Verify RLS, grants, and session lifecycle
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $do$
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.app_sessions'::regclass) THEN
+              RAISE EXCEPTION 'RLS is not enabled';
+            END IF;
+            IF has_table_privilege('anon', 'public.app_sessions', 'SELECT')
+              OR has_table_privilege('anon', 'public.app_sessions', 'INSERT')
+              OR has_table_privilege('authenticated', 'public.app_sessions', 'SELECT')
+              OR has_table_privilege('authenticated', 'public.app_sessions', 'INSERT') THEN
+              RAISE EXCEPTION 'A browser/public role has table access';
+            END IF;
+            IF NOT has_table_privilege('service_role', 'public.app_sessions', 'SELECT')
+              OR NOT has_table_privilege('service_role', 'public.app_sessions', 'INSERT')
+              OR NOT has_table_privilege('service_role', 'public.app_sessions', 'DELETE') THEN
+              RAISE EXCEPTION 'service_role is missing required privileges';
+            END IF;
+          END $do$;
+          SET ROLE service_role;
+          INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+          VALUES (repeat('a', 64), 'teacher', 'synthetic-teacher', now() + interval '1 hour');
+          DO $do$
+          BEGIN
+            IF (SELECT count(*) FROM public.app_sessions WHERE token_hash = repeat('a', 64)) <> 1 THEN
+              RAISE EXCEPTION 'service_role cannot read its synthetic session';
+            END IF;
+          END $do$;
+          DELETE FROM public.app_sessions WHERE token_hash = repeat('a', 64);
+          RESET ROLE;
+          SET ROLE anon;
+          DO $do$
+          BEGIN
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES (repeat('b', 64), 'teacher', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'anon insert unexpectedly succeeded';
+            EXCEPTION WHEN insufficient_privilege THEN
+              NULL;
+            END;
+          END $do$;
+          RESET ROLE;
+          SET ROLE authenticated;
+          DO $do$
+          BEGIN
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES (repeat('d', 64), 'teacher', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'authenticated insert unexpectedly succeeded';
+            EXCEPTION WHEN insufficient_privilege THEN
+              NULL;
+            END;
+          END $do$;
+          RESET ROLE;
+          DO $do$
+          BEGIN
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES (repeat('c', 64), 'invalid-role', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'invalid principal type unexpectedly succeeded';
+            EXCEPTION WHEN check_violation THEN
+              NULL;
+            END;
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES ('not-a-digest', 'teacher', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'invalid digest unexpectedly succeeded';
+            EXCEPTION WHEN check_violation THEN
+              NULL;
+            END;
+          END $do$;
+          SELECT 'isolated app_sessions migration integration checks passed' AS result;
+          SQL
   report-policy-tests:
     runs-on: ubuntu-latest
     steps:
@@ -39,6 +149,36 @@ jobs:
               subprocess.run(["node", "--check", str(path)], check=True)
           print(f"Checked {len(scripts)} inline script blocks")
           PY
+      - name: Verify general app session migration safety contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          sql = Path("supabase/migrations/20261111140000_general_app_sessions.sql").read_text().lower()
+          required = [
+              "create table if not exists public.app_sessions",
+              "token_hash text primary key",
+              "principal_type in ('admin', 'teacher', 'custom')",
+              "expires_at timestamptz not null",
+              "alter table public.app_sessions enable row level security",
+              "revoke all on table public.app_sessions from public, anon, authenticated",
+              "grant all on table public.app_sessions to service_role",
+              "on public.app_sessions (expires_at)",
+          ]
+          missing = [item for item in required if item not in sql]
+          if missing:
+              raise SystemExit("Missing session migration safeguards: " + ", ".join(missing))
+          forbidden = ["drop table", "truncate ", "delete from ", "alter table public.teachers", "alter table public.school_settings"]
+          present = [item for item in forbidden if item in sql]
+          if present:
+              raise SystemExit("Unexpected destructive or unrelated SQL: " + ", ".join(present))
+          print("General app session migration contract verified")
+          PY
+      - name: Type-check isolated general app auth modules
+        run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts
+      - name: Run general app auth policy tests
+        run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
+      - name: Run general app Supabase session store tests
+        run: deno test supabase/functions/student-affairs/app_session_store_test.ts
       - name: Run report authorization tests
         run: deno test supabase/functions/student-affairs/report_policy_test.ts
       - name: Run competition policy tests
