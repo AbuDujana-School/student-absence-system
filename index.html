@@ -2767,6 +2767,8 @@ async function saPrint(){
   }
 }
 
+async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
+
 /* ============ Constants ============ */
 const DEFAULT_CLASSES = ["1/9","2/9","3/9","4/9","5/9","6/9","7/9","8/9","1/10","2/10","3/10","4/10","5/10","6/10","7/10","8/10","1/11","2/11","3/11","4/11","5/11","6/11","7/11","8/11","1/12","2/12","3/12","4/12","5/12","6/12","7/12","8/12"];
 const DUTY_DAYS = ['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
