@@ -3989,9 +3989,16 @@ function setupRolePermissions() {
     let first = null;
     const dashboardTab = document.getElementById('tab-dashboard');
     const canDashboard = !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
+    const canBeneficiaries = !!(activeUser?.permissions?.teachers || activeUser?.permissions?.students);
     if (dashboardTab) dashboardTab.style.display = canDashboard ? 'flex' : 'none';
     if (canDashboard) first = 'dashboard';
-    ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); const allow = !!(activeUser?.permissions?.[id]); if (el) el.style.display = allow ? 'flex' : 'none'; if (allow && !first) first = id; });
+    else if (canBeneficiaries) first = 'beneficiaries';
+    ADMIN_TAB_PERMISSIONS.forEach(id => {
+      const el = document.getElementById(`tab-${id}`);
+      const allow = !!(activeUser?.permissions?.[id]);
+      if (el) el.style.display = allow ? 'flex' : 'none';
+      if (allow && !first && id !== 'students' && id !== 'teachers') first = id;
+    });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = activeUser?.permissions?.studentAffairs === true ? 'flex' : 'none';
     if (first) switchAdminTab(first);
   }
