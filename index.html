@@ -6329,7 +6329,7 @@ if ("serviceWorker" in navigator) {
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const validStatus=["absent","late","escape","outside"];
   const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
-  function canUseCombined(prefix){const p=cfg[prefix].getP();return saSession?.principal?.type==="admin"||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
+  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=saSession?.principal?.type==="admin"||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
   function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
