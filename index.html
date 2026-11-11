@@ -6229,6 +6229,8 @@ if ("serviceWorker" in navigator) {
 /* Combined attendance + behavior report: isolated from the two existing report flows. */
 (function(){
   const modes={sa:false,rep:false};
+  const activatingCombined={sa:false,rep:false};
+  const loadVersions={sa:0,rep:0};
   const cfg={
     sa:{prefix:"sa",getP:()=>saReportPermissions||{},getAllowed:d=>saGetAllowedReportClasses(d),getSelected:()=>saGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>saGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#saReportClassesContainer .sa-report-class-chk"),results:"saResults",summary:"saSummary",from:"saFrom",to:"saTo",button:"saPrintButton",readBtn:"saViewButton",tabs:["saAttendanceTab","saBehaviorTab"],container:"saReportClassesContainer",statusWrap:"saStatusFilterWrap",domainSetter:d=>saSetDomain(d),load:()=>saLoadReport(),print:()=>saPrint()},
     rep:{prefix:"rep",getP:()=>repPermissions||{},getAllowed:d=>repGetAllowedReportClasses(d),getSelected:()=>repGetSelectedReportClasses("attendance"),request:b=>saRequest(b),status:()=>repGetSelectedStatusFilters(),classes:()=>document.querySelectorAll("#repClassesGrid .rep-report-class-chk"),results:"repResults",summary:"repSummary",from:"repFrom",to:"repTo",button:"repPrintButton",readBtn:"repRecordsButton",tabs:["repAttendanceTab","repBehaviorTab"],container:"repClassesGrid",statusWrap:"repStatusFilterWrap",domainSetter:d=>repSetDomain(d),load:()=>repLoadReport(),print:()=>repPrint()}
@@ -6298,7 +6300,7 @@ if ("serviceWorker" in navigator) {
   function activate(prefix){
     const c=cfg[prefix],p=c.getP();
     if(!canUseCombined(prefix)){showToast("يتطلب التقرير الموحّد صلاحيات قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
-    c.domainSetter("attendance");modes[prefix]=true;document.getElementById(prefix+"ReportPeriodControls")?.classList.add("hidden");mount(prefix);const datePreset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");if(prefix==="rep")document.getElementById("repStudentAffairsPanel")?.classList.add("rep-combined-active");setClassIntersection(prefix);
+    activatingCombined[prefix]=true;try{c.domainSetter("attendance");}finally{activatingCombined[prefix]=false;}modes[prefix]=true;document.getElementById(prefix+"ReportPeriodControls")?.classList.add("hidden");mount(prefix);const datePreset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");if(prefix==="rep")document.getElementById("repStudentAffairsPanel")?.classList.add("rep-combined-active");setClassIntersection(prefix);
     document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
     c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
     document.getElementById(c.statusWrap)?.classList.add("hidden");
@@ -6403,10 +6405,11 @@ if ("serviceWorker" in navigator) {
     box.innerHTML=css+'<div class="matrix-legend">الألوان مطابقة لترميز الحالات والسلوكيات المعتمد في النظام. الرقم يوضح عدد التسجيلات والحصص تظهر أسفله.</div><div class="matrix-preview">'+html+'</div>';
   }
   async function load(prefix){
+    const requestVersion=++loadVersions[prefix];
     const c=cfg[prefix],box=document.getElementById(c.results);
     box.innerHTML='<div class="rounded-xl border p-8 text-center">جارٍ جلب بيانات الجهتين والتحقق منها...</div>';
-    try{const data=await getData(prefix),rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);}
-    catch(e){box.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">'+esc(e.message)+'</div>';showToast(e.message,"error");}
+    try{const data=await getData(prefix);if(requestVersion!==loadVersions[prefix]||!modes[prefix])return;const rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);}
+    catch(e){if(requestVersion!==loadVersions[prefix]||!modes[prefix])return;box.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">'+esc(e.message)+'</div>';showToast(e.message,"error");}
   }
   function printHtml(data){
     const groups=new Map();data.rows.forEach(r=>{if(!groups.has(r.className))groups.set(r.className,[]);groups.get(r.className).push(r);});
@@ -6425,11 +6428,13 @@ if ("serviceWorker" in navigator) {
     try{const data=await getData(prefix);data.rows=merge(data);w.document.open();w.document.write(printHtml(data));w.document.close();}
     catch(e){try{w.close();}catch(_){}showToast(e.message,"error");}
   }
-  const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
-  saSetDomain=function(d){modes.sa=false;document.getElementById("saReportPeriodControls")?.classList.remove("hidden");document.getElementById("saCombinedControls")?.classList.add("hidden");document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saFrom")?.closest("label")?.style.removeProperty("display");document.getElementById("saTo")?.closest("label")?.style.removeProperty("display");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
-  repSetDomain=function(d){modes.rep=false;document.getElementById("repReportPeriodControls")?.classList.remove("hidden");document.getElementById("repCombinedControls")?.classList.add("hidden");document.getElementById("repStudentAffairsPanel")?.classList.remove("rep-combined-active");document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repFrom")?.closest("label")?.style.removeProperty("display");document.getElementById("repTo")?.closest("label")?.style.removeProperty("display");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
-  saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
-  repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
+  const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint,oldSaRender=saRenderReport,oldRepRender=repRenderReport;
+  saSetDomain=function(d){loadVersions.sa++;modes.sa=false;document.getElementById("saReportPeriodControls")?.classList.remove("hidden");document.getElementById("saCombinedControls")?.classList.add("hidden");document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saFrom")?.closest("label")?.style.removeProperty("display");document.getElementById("saTo")?.closest("label")?.style.removeProperty("display");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
+  repSetDomain=function(d){loadVersions.rep++;modes.rep=false;document.getElementById("repReportPeriodControls")?.classList.remove("hidden");document.getElementById("repCombinedControls")?.classList.add("hidden");document.getElementById("repStudentAffairsPanel")?.classList.remove("rep-combined-active");document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repFrom")?.closest("label")?.style.removeProperty("display");document.getElementById("repTo")?.closest("label")?.style.removeProperty("display");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
+  saRenderReport=function(...args){if(modes.sa||activatingCombined.sa)return;return oldSaRender(...args);};
+  repRenderReport=function(...args){if(modes.rep||activatingCombined.rep)return;return oldRepRender(...args);};
+  saLoadReport=function(){if(activatingCombined.sa)return;if(modes.sa)return load("sa");return oldSaLoad();};
+  repLoadReport=function(){if(activatingCombined.rep)return;if(modes.rep)return load("rep");return oldRepLoad();};
   saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
   repPrint=function(){if(modes.rep)return print("rep");return oldRepPrint();};
   const oldSaDate=saOnReportDateChanged,oldRepDate=repOnReportDateChanged;
