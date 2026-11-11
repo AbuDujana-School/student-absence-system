@@ -94,7 +94,7 @@ Deno.test("Supabase app session adapter rejects malformed rows and ignores malfo
   assert(await store.findByTokenHash("bad-digest") === null, "Malformed digest should not be queried");
   assert(lookups.length === 0, "Malformed digest reached the database");
   assert(await store.findByTokenHash("b".repeat(64)) === null, "Malformed database row was accepted");
-  assert(lookups.length === 1, "Valid digest did not perform exactly one lookup");
+  assert(Number(lookups.length) === 1, "Valid digest did not perform exactly one lookup");
 });
 
 Deno.test("Supabase app session adapter does not expose database error details", async () => {
