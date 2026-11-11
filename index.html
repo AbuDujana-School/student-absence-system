@@ -949,6 +949,46 @@
   }
 </style>
 
+
+<style id="admin-glass-compact-3d">
+/* Compact glass dashboard tiles: visual-only overrides. */
+#adminModal .admin-tab.menu-tab-btn{
+  min-height:76px!important;height:76px!important;padding:.48rem .38rem!important;gap:.32rem!important;
+  border-radius:1rem!important;box-shadow:0 7px 16px -11px rgba(22,35,58,.42),inset 0 1px 0 rgba(255,255,255,.92)!important;
+}
+#adminModal .admin-tab.menu-tab-btn>i{
+  width:29px!important;height:29px!important;flex:0 0 29px!important;border-radius:9px!important;
+  color:#fff!important;font-size:.78rem!important;
+  box-shadow:0 5px 9px -5px rgba(var(--tile-rgb),.9),inset 0 1px 0 rgba(255,255,255,.62),inset 0 -3px 4px rgba(0,0,0,.17)!important;
+}
+#adminModal .admin-tab.menu-tab-btn>span{font-size:.70rem!important;line-height:1.25!important;font-weight:900!important}
+#adminModal .admin-tab.menu-tab-btn:hover{transform:translateY(-2px)!important;box-shadow:0 12px 20px -13px rgba(var(--tile-rgb),.68),inset 0 1px 0 #fff!important}
+#adminModal .admin-tab.menu-tab-btn:hover>i{transform:translateY(-1px) scale(1.04)!important}
+#adminModal .admin-tab.menu-tab-btn:active{transform:scale(.98)!important}
+#tab-dashboard{--tile-accent:#5367dc!important;--tile-rgb:83,103,220!important}
+#tab-studstats{--tile-accent:#2588c7!important;--tile-rgb:37,136,199!important}
+#tab-behaviorstats{--tile-accent:#8a58c9!important;--tile-rgb:138,88,201!important}
+#tab-users{--tile-accent:#287eaa!important;--tile-rgb:40,126,170!important}
+#tab-beneficiaries{--tile-accent:#c58a28!important;--tile-rgb:197,138,40!important}
+#tab-students{--tile-accent:#5b65c9!important;--tile-rgb:91,101,201!important}
+#tab-teachers{--tile-accent:#c86b3c!important;--tile-rgb:200,107,60!important}
+#tab-duty{--tile-accent:#ad7b2d!important;--tile-rgb:173,123,45!important}
+#tab-alerts{--tile-accent:#cf526b!important;--tile-rgb:207,82,107!important}
+#tab-reports{--tile-accent:#7654b8!important;--tile-rgb:118,84,184!important}
+#tab-sync{--tile-accent:#218da9!important;--tile-rgb:33,141,169!important}
+#tab-security{--tile-accent:#536579!important;--tile-rgb:83,101,121!important}
+#tab-studentAffairs{--tile-accent:#b04e87!important;--tile-rgb:176,78,135!important}
+@media(max-width:640px){
+ #adminModal .admin-tab.menu-tab-btn{min-height:70px!important;height:70px!important;padding:.38rem .25rem!important;gap:.25rem!important}
+ #adminModal .admin-tab.menu-tab-btn>i{width:26px!important;height:26px!important;flex-basis:26px!important;border-radius:8px!important;font-size:.72rem!important}
+ #adminModal .admin-tab.menu-tab-btn>span{font-size:.65rem!important;line-height:1.2!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #adminModal .admin-tab.menu-tab-btn,#adminModal .admin-tab.menu-tab-btn>i{transition:none!important}
+ #adminModal .admin-tab.menu-tab-btn:hover,#adminModal .admin-tab.menu-tab-btn:active{transform:none!important}
+}
+</style>
+
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
