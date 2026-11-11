@@ -6,6 +6,7 @@ import {
   isValidAppPin,
   isValidAppSessionToken,
   projectAppPrincipal,
+  resolveAppPrincipal,
 } from "./app_auth_policy.ts";
 
 Deno.test("general app PIN accepts only 4–10 numeric digits", () => {
@@ -68,4 +69,33 @@ Deno.test("Bearer extraction rejects missing, malformed, and public-key-like val
   for (const value of [null, "", "Bearer anon-key", "Basic " + token, "Bearer " + token + " extra", "Bearer " + "g".repeat(64)]) {
     if (extractAppBearerToken(value) !== null) throw new Error("Malformed authorization header accepted");
   }
+});
+
+
+Deno.test("general app principal resolution preserves admin-custom-teacher precedence", async () => {
+  const candidates = [
+    { type: "teacher", name: "Teacher", hash: "teacher-hash", salt: "teacher-salt", permissions: { reports: true } },
+    { type: "custom", name: "Custom", hash: "custom-hash", salt: "custom-salt", permissions: { custom: true } },
+    { type: "admin", name: "Admin", hash: "admin-hash", salt: "admin-salt", permissions: { admin: true } },
+  ];
+  const resolved = await resolveAppPrincipal("1234", candidates, async (_pin, _salt, hash) => hash.endsWith("-hash"));
+  if (resolved?.type !== "admin" || resolved.name !== "Admin") throw new Error("Legacy admin-first precedence changed");
+});
+
+Deno.test("general app principal resolution skips invalid candidates and never exposes verifier fields", async () => {
+  const candidates = [
+    { type: "visitor", name: "Unsupported", hash: "h", salt: "s" },
+    { type: "custom", name: "Custom", hash: "h2", salt: "s2", permissions: { canEdit: true, nested: { pin_hash: "secret", visible: "yes" } } },
+  ];
+  const resolved = await resolveAppPrincipal("1234", candidates, async (_pin, _salt, hash) => hash === "h2");
+  if (resolved?.type !== "custom" || resolved.permissions.canEdit !== true) throw new Error("Valid custom principal not resolved");
+  if ("hash" in resolved || "salt" in resolved || "pin_hash" in resolved.permissions) throw new Error("Credential fields leaked");
+});
+
+Deno.test("general app principal resolution rejects malformed PIN and missing verifiers", async () => {
+  let calls = 0;
+  const candidates = [{ type: "teacher", name: "Teacher", hash: "h", salt: "s" }, { type: "teacher", name: "No verifier", hash: "", salt: "" }];
+  const malformed = await resolveAppPrincipal("12x4", candidates, async () => { calls++; return true; });
+  const missing = await resolveAppPrincipal("1234", candidates.slice(1), async () => { calls++; return true; });
+  if (malformed !== null || missing !== null || calls !== 0) throw new Error("Invalid login input reached verifier");
 });
