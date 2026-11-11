@@ -560,6 +560,42 @@
 .dark #studentAffairsView #saStatusCheckboxesContainer label,.dark #studentAffairsView #saCombinedStatuses label,.dark #studentAffairsView #saCombinedBehaviors label{background:linear-gradient(145deg,#1b3448,#142a3b)!important;border-color:#345064!important;color:#dce8f1!important}
 .dark #studentAffairsView #saStatusCheckboxesContainer label:has(input:checked),.dark #studentAffairsView #saCombinedStatuses label:has(input:checked),.dark #studentAffairsView #saCombinedBehaviors label:has(input:checked){background:linear-gradient(145deg,#164e4a,#123d3b)!important;border-color:#2dd4bf!important}
 @media(max-width:430px){#studentAffairsView #saAttendanceTab,#studentAffairsView #saBehaviorTab,#studentAffairsView #saCombinedTab{font-size:10.5px!important;gap:3px;padding:8px 3px!important}}
+
+/* Match the combined-report controls in the Reports copy to Student Affairs */
+#repStudentAffairsPanel .sa-glass-panel{position:relative;display:grid;gap:16px;overflow:hidden;padding:clamp(16px,3vw,24px);border:1px solid rgba(22,140,133,.2);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,248,249,.94));box-shadow:0 16px 42px -24px rgba(24,54,83,.28),inset 0 1px 0 rgba(255,255,255,.9)}
+#repStudentAffairsPanel .sa-glass-panel:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#d5a64a,#168c85,#183653)}
+#repStudentAffairsPanel .sa-glass-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+#repStudentAffairsPanel .sa-glass-heading strong{display:block;color:#183653;font-size:16px;font-weight:900}
+#repStudentAffairsPanel .sa-glass-heading p{margin-top:5px;color:#64748b;font-size:11px;font-weight:600}
+#repStudentAffairsPanel .sa-glass-eyebrow{display:block;margin-bottom:5px;color:#168c85;font-size:9px;font-weight:900;letter-spacing:1.5px}
+#repStudentAffairsPanel .sa-glass-chip{display:inline-flex;align-items:center;gap:7px;padding:8px 12px;border:1px solid #d5e9e7;border-radius:999px;background:#f0f8f7;color:#0f6e69;font-size:10px;font-weight:900}
+#repStudentAffairsPanel .sa-glass-section{display:grid;gap:9px;min-width:0}
+#repStudentAffairsPanel .sa-glass-label{display:flex;align-items:center;gap:8px;color:#183653;font-size:12px;font-weight:900}
+#repStudentAffairsPanel .sa-glass-label i{color:#168c85}
+#repStudentAffairsPanel .sa-glass-option-box{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:6px;border:1px solid #dce9ec;border-radius:17px;background:rgba(226,239,242,.7)}
+#repStudentAffairsPanel .sa-glass-choice{display:flex;align-items:center;justify-content:center;gap:9px;min-width:0;min-height:46px;padding:10px 12px;border:1px solid transparent;border-radius:12px;background:rgba(255,255,255,.8);color:#53677c;font-size:12px;font-weight:900;white-space:normal;transition:all .2s ease}
+#repStudentAffairsPanel .sa-glass-choice i{font-size:13px}
+#repStudentAffairsPanel .sa-glass-choice:hover{border-color:#a8d8d3;background:#fff;transform:translateY(-1px)}
+#repStudentAffairsPanel .sa-glass-choice.is-active{border-color:rgba(213,166,74,.6);background:linear-gradient(135deg,#183653,#234a6b);color:#fff;box-shadow:0 7px 18px -8px rgba(24,54,83,.65),inset 0 1px 0 rgba(255,255,255,.18)}
+#repStudentAffairsPanel .sa-glass-hint{color:#64748b;font-size:10px;line-height:1.8}
+#repStudentAffairsPanel .sa-glass-filter-grid{display:grid;grid-template-columns:1fr;gap:12px}
+#repStudentAffairsPanel .sa-glass-filter-card{min-width:0;padding:13px;border:1px solid #dce7ed;border-radius:16px;background:rgba(255,255,255,.78)}
+#repStudentAffairsPanel .sa-glass-check{display:flex;align-items:center;gap:7px;min-height:38px;padding:8px 10px;border:1px solid #e1e9ef;border-radius:11px;background:#fff;color:#40566d;font-size:11px;font-weight:800}
+#repStudentAffairsPanel .sa-glass-check input{width:16px;height:16px;flex:0 0 auto;accent-color:#168c85}
+#repStudentAffairsPanel label:has(#repFrom:disabled),#repStudentAffairsPanel label:has(#repTo:disabled){display:none!important}
+#repStudentAffairsPanel #repDatePreset{display:none!important}
+#repStudentAffairsPanel #repFrom,#repStudentAffairsPanel #repTo{min-height:46px;border-radius:13px;border:1px solid #d5e2eb;background:#fff}
+.dark #repStudentAffairsPanel .sa-glass-panel{background:linear-gradient(145deg,rgba(15,26,43,.98),rgba(17,44,57,.96));border-color:rgba(56,189,180,.22)}
+.dark #repStudentAffairsPanel .sa-glass-heading strong,.dark #repStudentAffairsPanel .sa-glass-label{color:#e2f1f2}
+.dark #repStudentAffairsPanel .sa-glass-heading p,.dark #repStudentAffairsPanel .sa-glass-hint{color:#a9bdca}
+.dark #repStudentAffairsPanel .sa-glass-option-box{background:rgba(7,20,32,.65);border-color:#29495b}
+.dark #repStudentAffairsPanel .sa-glass-choice{background:#162a3c;color:#c8d8e3}
+.dark #repStudentAffairsPanel .sa-glass-choice.is-active{background:linear-gradient(135deg,#168c85,#0f6e69);color:#fff}
+.dark #repStudentAffairsPanel .sa-glass-filter-card{background:rgba(12,27,42,.75);border-color:#29495b}
+.dark #repStudentAffairsPanel .sa-glass-check{background:#15283a;border-color:#2d485c;color:#d4e2eb}
+.dark #repStudentAffairsPanel #repFrom,.dark #repStudentAffairsPanel #repTo{background:#15283a;color:#e2edf5;border-color:#345064}
+@media(min-width:768px){#repStudentAffairsPanel .sa-glass-filter-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:430px){#repStudentAffairsPanel .sa-glass-chip{display:none}#repStudentAffairsPanel .sa-glass-choice{font-size:11px;padding:9px 6px}}
 </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
@@ -5553,7 +5589,7 @@ if ("serviceWorker" in navigator) {
   function activate(prefix){
     const c=cfg[prefix],p=c.getP();
     if(!canUseCombined(prefix)){showToast("يتطلب التقرير الموحّد صلاحيات قراءة الغياب والسلوكيات وصلاحية طباعة التقرير الموحّد.","error");return;}
-    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);if(prefix==="sa"){const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");}setClassIntersection(prefix);
+    c.domainSetter("attendance");modes[prefix]=true;mount(prefix);const datePreset=document.getElementById(prefix==="sa"?"saDatePreset":"repDatePreset")?.closest("label");if(datePreset)datePreset.classList.add("hidden");setClassIntersection(prefix);
     document.getElementById(prefix+"CombinedTab").className="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white shadow";
     c.tabs.forEach(id=>{const el=document.getElementById(id);if(el)el.classList.remove("bg-blue-600","bg-teal-600","text-white","shadow");});
     document.getElementById(c.statusWrap)?.classList.add("hidden");
@@ -5691,7 +5727,7 @@ if ("serviceWorker" in navigator) {
   }
   const oldSaSet=saSetDomain,oldRepSet=repSetDomain,oldSaLoad=saLoadReport,oldRepLoad=repLoadReport,oldSaPrint=saPrint,oldRepPrint=repPrint;
   saSetDomain=function(d){modes.sa=false;document.getElementById("saCombinedFilters")?.classList.add("hidden");document.getElementById("saCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("saDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldSaSet(d);mount("sa");};
-  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");oldRepSet(d);mount("rep");};
+  repSetDomain=function(d){modes.rep=false;document.getElementById("repCombinedFilters")?.classList.add("hidden");document.getElementById("repCombinedTab")?.classList.remove("bg-teal-700","text-white","shadow");const datePreset=document.getElementById("repDatePreset")?.closest("label");if(datePreset)datePreset.classList.remove("hidden");oldRepSet(d);mount("rep");};
   saLoadReport=function(){if(modes.sa)return load("sa");return oldSaLoad();};
   repLoadReport=function(){if(modes.rep)return load("rep");return oldRepLoad();};
   saPrint=function(){if(modes.sa)return print("sa");return oldSaPrint();};
