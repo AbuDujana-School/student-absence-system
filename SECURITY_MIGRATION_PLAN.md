@@ -198,3 +198,14 @@ A safe first production cutover cannot simply replace the PIN check or remove `s
 - These are isolated primitives only. They are not yet called by the Edge Function and do not create or validate a live session.
 - The latest GitHub commit's combined status reported the Vercel check as failed with an account build-rate-limit/upgrade URL. No GitHub Actions workflow run was returned for that commit, so the Deno test suite has **not** been confirmed as executed for this change.
 - No Vercel preview was produced for this commit; no deployment or production configuration was changed.
+
+
+### General-app authentication module — isolated implementation increment
+
+- Extended `app_auth_policy.ts` with a server-side principal resolver that preserves the existing identity precedence (admin, then custom user, then teacher) while keeping the PIN verifier callback injected and credential fields out of the returned profile.
+- Added a storage-independent session lifecycle contract: issue an opaque token, persist only its SHA-256 digest through an injected store, validate expiry and principal type, and revoke one exact session.
+- Added synthetic unit tests for principal precedence, invalid candidate handling, secret-field projection, session issue/read/expiry/revocation, and invalid TTL rejection. Tests use an in-memory fake store and do not access Supabase.
+- The module is still deliberately **not wired into the live Edge Function or frontend**. The application requires a distinct general-app session store; reusing `student_affairs_sessions` would couple general login to Student Affairs authorization and risk locking out users.
+- Next dependency before runtime wiring: create and review a dedicated `app_sessions` migration on a disposable/non-production database branch, with service-role-only access and indexes/constraints for token digest and expiry. Do not apply it to production. Then add an isolated Edge Function action and tests against the branch schema.
+- The current Vercel check remains failed due to the reported build-rate limit. No successful Deno test result has yet been retrieved for the latest commit; the new tests are committed but must be run before any runtime integration.
+- No production database, data, credentials, grants, RLS policies, Edge Function deployment, or production URL were changed.
