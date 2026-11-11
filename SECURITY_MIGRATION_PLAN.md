@@ -189,3 +189,12 @@ A safe first production cutover cannot simply replace the PIN check or remove `s
 - These helpers are not yet wired into `student-affairs/index.ts` as a general-app login/session API. The Edge Function's existing `login` action is explicitly gated by Student Affairs access and stores sessions in `student_affairs_sessions`; it must not be reused as unrestricted general-app login.
 - No `app_sessions` table, general-app login endpoint, general-app session validation endpoint, or frontend migration to server authentication was confirmed in this audit.
 - No production schema, data, RLS, grants, Supabase function deployment, Vercel deployment, or production application changes were made.
+
+
+### Follow-up: general-app session primitives (feature branch)
+
+- Added opaque 256-bit session-token generation, SHA-256 token hashing, and strict Bearer-header extraction to `app_auth_policy.ts`.
+- Added unit cases for token format/uniqueness, deterministic digest shape, invalid-token rejection, and malformed Authorization headers.
+- These are isolated primitives only. They are not yet called by the Edge Function and do not create or validate a live session.
+- The latest GitHub commit's combined status reported the Vercel check as failed with an account build-rate-limit/upgrade URL. No GitHub Actions workflow run was returned for that commit, so the Deno test suite has **not** been confirmed as executed for this change.
+- No Vercel preview was produced for this commit; no deployment or production configuration was changed.
