@@ -208,26 +208,39 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
   const afterCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
   const latestClosedWeekStart = afterCutoff ? week.start : shiftCompetitionDate(week.start, -7);
-  const { data: row, error } = await db.from("competition_weekly_results")
+  const baseQuery = () => db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
-    .lte("week_start", latestClosedWeekStart)
-    .order("week_start", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (error) throw error;
-  if (!row) {
-    return {
-      from: latestClosedWeekStart, to: shiftCompetitionDate(latestClosedWeekStart, 4), today,
-      period: "weekly", status: "awaiting_first_result", finalizedAt: null,
-      teams: [], ownGrades: [], ownClasses: [], classComparison: [],
-      weeklyWins: {}, weeklyPoints: {}, weeklyHistory: [], completedWeeks: 0
-    };
+    .lte("week_start", latestClosedWeekStart);
+  const [{ data: latestComplete, error: completeError }, { data: latestAttempt, error: attemptError }] = await Promise.all([
+    baseQuery().eq("status", "complete").order("week_start", { ascending: false }).limit(1).maybeSingle(),
+    baseQuery().order("week_start", { ascending: false }).limit(1).maybeSingle()
+  ]);
+  if (completeError) throw completeError;
+  if (attemptError) throw attemptError;
+  if (latestComplete) {
+    const pendingWeek = latestAttempt?.status === "incomplete" && latestAttempt.week_start > latestComplete.week_start
+      ? { from: latestAttempt.week_start, to: latestAttempt.week_end, status: "incomplete" }
+      : null;
+    return projectCompetitionResponse({
+      ...(latestComplete.snapshot || {}),
+      from: latestComplete.week_start, to: latestComplete.week_end, today, period: "weekly",
+      snapshotStatus: latestComplete.status, finalizedAt: latestComplete.finalized_at, pendingWeek
+    }, principal);
   }
-  return projectCompetitionResponse({
-    ...(row.snapshot || {}),
-    from: row.week_start, to: row.week_end, today, period: "weekly",
-    snapshotStatus: row.status, finalizedAt: row.finalized_at
-  }, principal);
+  if (latestAttempt) {
+    return projectCompetitionResponse({
+      ...(latestAttempt.snapshot || {}),
+      from: latestAttempt.week_start, to: latestAttempt.week_end, today, period: "weekly",
+      status: "incomplete", snapshotStatus: latestAttempt.status,
+      finalizedAt: latestAttempt.finalized_at, pendingWeek: null
+    }, principal);
+  }
+  return {
+    from: latestClosedWeekStart, to: shiftCompetitionDate(latestClosedWeekStart, 4), today,
+    period: "weekly", status: "awaiting_first_result", finalizedAt: null, pendingWeek: null,
+    teams: [], ownGrades: [], ownClasses: [], classComparison: [],
+    weeklyWins: {}, weeklyPoints: {}, weeklyHistory: [], completedWeeks: 0
+  };
 }
 async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any) {
   if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
