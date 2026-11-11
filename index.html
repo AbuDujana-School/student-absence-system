@@ -1397,12 +1397,12 @@
           <div class="flex items-center gap-2 text-blue-800 dark:text-blue-200"><i class="fa-solid fa-clipboard-list"></i><b class="text-sm">تكليف متابعة الغياب</b></div><p class="text-[11px] text-slate-500">حدد الصفوف المخصصة لمتابعة الغياب.</p>
           <div class="flex flex-wrap gap-2"><button type="button" onclick="saToggleAllClasses('att',true)" class="rounded-lg bg-blue-50 px-3 py-1.5 text-[11px] font-bold text-blue-700 dark:bg-blue-950 dark:text-blue-200">تحديد الكل</button><button type="button" onclick="saToggleAllClasses('att',false)" class="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">إلغاء التحديد</button></div>
           <div id="saAttendanceClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div>
-          <div class="space-y-2 border-t border-slate-200 pt-3 dark:border-slate-700"><b class="text-xs text-slate-700 dark:text-slate-200">الحالات المسموح بمشاهدتها</b><label class="flex items-center gap-2 rounded-xl border border-blue-100 bg-blue-50 p-2 text-xs font-extrabold dark:border-blue-900 dark:bg-blue-950/30"><input id="saAllAttendanceStatuses" type="checkbox" onchange="saToggleAllAttendanceStatuses(this.checked)" class="h-4 w-4 accent-blue-700"> جميع الحالات</label><div id="saAttendanceStatuses" class="grid grid-cols-2 gap-2 text-xs"></div></div>
+
         </div>
         <div class="space-y-3 rounded-2xl border border-teal-200 p-4 dark:border-teal-900">
           <div class="flex items-center gap-2 text-teal-800 dark:text-teal-200"><i class="fa-solid fa-scale-balanced"></i><b class="text-sm">تكليف متابعة السلوكيات</b></div><p class="text-[11px] text-slate-500">يمكن تحديد صفوف السلوكيات بشكل مستقل عن صفوف الغياب.</p>
           <div class="flex flex-wrap gap-2"><button type="button" onclick="saToggleAllClasses('beh',true)" class="rounded-lg bg-teal-50 px-3 py-1.5 text-[11px] font-bold text-teal-700 dark:bg-teal-950 dark:text-teal-200">تحديد الكل</button><button type="button" onclick="saToggleAllClasses('beh',false)" class="rounded-lg bg-slate-100 px-3 py-1.5 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">إلغاء التحديد</button></div>
-          <div id="saBehaviorClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div><div id="saFlags" class="grid grid-cols-1 gap-2 border-t border-slate-200 pt-3 text-xs dark:border-slate-700 sm:grid-cols-2"></div>
+          <div id="saBehaviorClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div>
         </div>
       </div>
       <div class="rounded-2xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
@@ -1412,6 +1412,10 @@
       <div class="space-y-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
         <div class="text-xs font-black text-slate-800 dark:text-white">ثالثاً: الصلاحيات الممنوحة</div>
         <label class="flex items-center gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 p-3 text-xs font-bold text-indigo-900 dark:border-indigo-900 dark:bg-indigo-950/30 dark:text-indigo-200"><input id="saEntryAccess" type="checkbox" class="h-4 w-4 accent-indigo-700"><span>السماح بدخول قسم شؤون الطلبة</span></label>
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <div class="space-y-2 rounded-xl border border-blue-100 bg-blue-50/60 p-3 dark:border-blue-900 dark:bg-blue-950/20"><b class="text-xs text-blue-900 dark:text-blue-100">الحالات المسموح بمشاهدتها في تقارير الغياب</b><label class="flex items-center gap-2 rounded-xl border border-blue-100 bg-white p-2 text-xs font-extrabold dark:border-blue-900 dark:bg-slate-900"><input id="saAllAttendanceStatuses" type="checkbox" onchange="saToggleAllAttendanceStatuses(this.checked)" class="h-4 w-4 accent-blue-700"> جميع الحالات</label><div id="saAttendanceStatuses" class="grid grid-cols-2 gap-2 text-xs"></div></div>
+          <div class="space-y-2 rounded-xl border border-slate-200 p-3 dark:border-slate-700"><b class="text-xs text-slate-800 dark:text-slate-100">التقارير والطباعة والصلاحيات الإضافية</b><div id="saFlags" class="grid grid-cols-1 gap-2 border-t border-slate-200 pt-3 text-xs dark:border-slate-700 sm:grid-cols-2"></div></div>
+        </div>
       </div>
       <div id="saCompetitionTeamSettings" class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
         <label class="flex items-center gap-3 text-xs font-black text-amber-950 dark:text-amber-100"><input id="saCompetitionParticipant" type="checkbox" class="h-4 w-4 accent-amber-600" onchange="saToggleCompetitionTeamFields()"> إشراك هذا المعلم في سباق التميز</label>
