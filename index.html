@@ -1888,6 +1888,8 @@ const ADMIN_AUTH_TTL_MS = 30*60*1000;
 const PBKDF2_ITERATIONS = 150000;
 const SCHOOL_NAME = 'مدرسة أبو دجانة الأنصاري';
 let serverTimeOffset = 0, lastServerSyncSuccess = 0;
+const APP_AUTH_SESSION_KEY = 'abuDujana_appSession';
+let appAuthSession = null;
 
 /* ============ Unified Period Color ============ */
 const UNIFIED_PERIOD_GRADIENT = { from: '#0d9488', via: '#0f766e', to: '#115e59', shadow: 'rgba(13,148,136,.4)' };
@@ -2012,6 +2014,25 @@ let saDomain="attendance",saReportPermissions={};
 function saReadStoredSession(){for(const store of [localStorage,sessionStorage]){try{const raw=store.getItem("abuDujana_studentAffairsSession");if(!raw)continue;const v=JSON.parse(raw);if(v?.token&&v?.expires_at&&Date.parse(v.expires_at)>Date.now())return v;}catch(e){}}return null;}
 try{saSession=saReadStoredSession();}catch(e){saSession=null;}
 async function saRequest(body){const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
+async function appAuthRequest(body, token) {
+  const headers = { "Content-Type": "application/json", apikey: SA_DEV_ANON_KEY };
+  if (token) headers.Authorization = "Bearer " + token;
+  let response;
+  try { response = await fetch(SA_API_URL, { method: "POST", headers, body: JSON.stringify(body), cache: "no-store" }); }
+  catch (networkError) { const error = new Error("تعذر الاتصال بخدمة تسجيل الدخول الآمن."); error.status = 0; throw error; }
+  let data = {}; try { data = await response.json(); } catch (error) {}
+  if (!response.ok) { const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن."); error.status = response.status; throw error; }
+  return data;
+}
+function isLegacyAuthEndpointUnavailable(error) { return error?.status === 404 || (error?.status === 400 && /unknown action/i.test(String(error?.message || ""))); }
+function saveAppAuthSession(session) {
+  if (!session?.token || !/^[a-f0-9]{64}$/i.test(session.token)) throw new Error("استجابة جلسة الدخول غير صالحة.");
+  try { sessionStorage.setItem(APP_AUTH_SESSION_KEY, session.token); } catch (error) { throw new Error("تعذر حفظ جلسة الدخول الآمنة في هذا المتصفح."); }
+  appAuthSession = session;
+}
+function readAppAuthToken() { try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; } }
+function clearAppAuthSession() { appAuthSession = null; try { sessionStorage.removeItem(APP_AUTH_SESSION_KEY); } catch (error) {} }
+async function revokeAppAuthSession() { const token = appAuthSession?.token || readAppAuthToken(); if (!token) return; try { await appAuthRequest({ action: "app_logout" }, token); } catch (error) { console.warn("Unable to revoke application session immediately."); } }
 function saPopulateStatusFilter(){
   const container=document.getElementById("saStatusCheckboxesContainer");
   if(!container)return;
@@ -2662,7 +2683,7 @@ async function verifyStoredSession() {
     return token;
   } catch(e) { return null; }
 }
-function clearSession() { try { localStorage.removeItem('abuDujana_session'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_session_secret'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_adminAuthUntil'); } catch(e) {} try { localStorage.removeItem('abuDujana_studentAffairsSession'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_studentAffairsSession'); } catch(e) {} }
+function clearSession() { try { localStorage.removeItem('abuDujana_session'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_session_secret'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_adminAuthUntil'); } catch(e) {} try { localStorage.removeItem('abuDujana_studentAffairsSession'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_studentAffairsSession'); } catch(e) {} clearAppAuthSession(); }
 function isAdminAuthorized() { if (activeUser?.type === 'admin') return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} }
 
@@ -3186,51 +3207,87 @@ async function initDefaults() {
 
 /* ============ Auth ============ */
 async function checkExistingSession() {
+  const appToken = readAppAuthToken();
+  if (appToken) {
+    try {
+      const result = await appAuthRequest({ action: "app_session" }, appToken);
+      if (result?.principal?.type && result?.principal?.name) {
+        appAuthSession = { token: appToken, expires_at: result.expires_at, principal: result.principal };
+        activeUser = result.principal;
+        try { saSession = saReadStoredSession(); } catch (error) { saSession = null; }
+        await finalizeLoginState();
+        return;
+      }
+      clearAppAuthSession();
+    } catch (error) {
+      if (error?.status === 401 || error?.status === 403) clearAppAuthSession();
+      else console.warn("Secure application session unavailable; checking the existing compatible session.");
+    }
+  }
   try {
     const token = await verifyStoredSession();
-    if (!token) { try { localStorage.removeItem('abuDujana_activeUser'); } catch(e) {} try { localStorage.removeItem('abuDujana_session'); } catch(e) {} return; }
+    if (!token) { try { localStorage.removeItem("abuDujana_activeUser"); } catch(e) {} try { localStorage.removeItem("abuDujana_session"); } catch(e) {} return; }
     let user = null;
-    if (token.role === 'admin') user = { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
-    else if (token.role === 'custom') { const u = (db.customUsers || []).find(x => x.name === token.userName); if (u) user = { type: 'custom', name: u.name, permissions: u.permissions || {} }; }
-    else if (token.role === 'teacher') { const t = (db.teachers || []).find(x => x.name === token.userName); if (t) user = { type: 'teacher', name: t.name, permissions: t.permissions || {} }; }
+    if (token.role === "admin") user = { type: "admin", name: "مدير النظام العام", permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
+    else if (token.role === "custom") { const u = (db.customUsers || []).find(x => x.name === token.userName); if (u) user = { type: "custom", name: u.name, permissions: u.permissions || {} }; }
+    else if (token.role === "teacher") { const t = (db.teachers || []).find(x => x.name === token.userName); if (t) user = { type: "teacher", name: t.name, permissions: t.permissions || {} }; }
     if (!user) { clearSession(); return; }
     activeUser = user;
-    try{saSession=saReadStoredSession();if(!saSession){localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}catch(e){saSession=null;}
+    try { saSession = saReadStoredSession(); } catch(e) { saSession = null; }
     await finalizeLoginState();
-  } catch(e) { clearSession(); }
+  } catch(error) { console.warn("Compatible session restore failed."); }
 }
+
 
 async function handleUserLogin(e) {
   e.preventDefault();
   const now = Date.now();
-  if (now < loginLockedUntil) { const wait = Math.ceil((loginLockedUntil - now) / 1000); showToast(`محاولات كثيرة. انتظر ${wait} ثانية.`, 'error'); return; }
-  const pin = document.getElementById('userPinInput').value.trim(); if (!pin) return;
-  const btn = document.getElementById('loginSubmitBtn');
+  if (now < loginLockedUntil) { const wait = Math.ceil((loginLockedUntil - now) / 1000); showToast("محاولات كثيرة. انتظر " + wait + " ثانية.", "error"); return; }
+  const pin = document.getElementById("userPinInput").value.trim(); if (!pin) return;
+  const btn = document.getElementById("loginSubmitBtn");
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
-  document.getElementById('loginError').classList.add('hidden');
+  document.getElementById("loginError").classList.add("hidden");
   try {
-    await new Promise(r => setTimeout(r, 200));
-    const found = await findUserByPinWithRecord(pin);
-    if (found) {
+    let serverLogin = null;
+    let useLegacyLogin = !navigator.onLine;
+    if (!useLegacyLogin) {
+      try { serverLogin = await appAuthRequest({ action: "app_login", pin }); }
+      catch (serverError) { if (isLegacyAuthEndpointUnavailable(serverError)) useLegacyLogin = true; else throw serverError; }
+    }
+    if (serverLogin?.token && serverLogin?.principal) {
+      saveAppAuthSession(serverLogin);
+      activeUser = serverLogin.principal;
+      loginAttempts = 0; loginLockedUntil = 0;
+      await finalizeLoginState();
+    } else if (useLegacyLogin) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+      const found = await findUserByPinWithRecord(pin);
+      if (!found) {
+        loginAttempts++;
+        if (loginAttempts >= 5) loginLockedUntil = now + Math.min(30, Math.pow(2, loginAttempts - 5)) * 1000 * 5;
+        document.getElementById("loginError").classList.remove("hidden");
+        return;
+      }
       activeUser = found.user;
       loginAttempts = 0; loginLockedUntil = 0;
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       if (await isLegacyHash(pin, found.record)) {
-        try { const rec = await createPinRecord(pin); found.record.hash = rec.hash; found.record.salt = rec.salt; if (found.user.type === 'admin') dirtySets.admin_pin = true; else dirtySets.teachers.add(found.user.name); await saveSystemDataToCloud(); } catch(e) {}
+        try { const rec = await createPinRecord(pin); found.record.hash = rec.hash; found.record.salt = rec.salt; if (found.user.type === "admin") dirtySets.admin_pin = true; else dirtySets.teachers.add(found.user.name); await saveSystemDataToCloud(); } catch(error) {}
       }
       await finalizeLoginState();
-      if(activeUser.type==='admin'||activeUser.permissions?.admin||activeUser.permissions?.studentAffairs===true){try{await saLogin(pin);}catch(saError){console.warn('Student Affairs session not established:',saError);saSession=null;try{sessionStorage.removeItem('abuDujana_studentAffairsSession');}catch(e){}}}
-      showToast(`أهلاً بك: ${activeUser.name}`, 'success');
-      document.getElementById('userPinInput').value = '';
-    } else {
-      loginAttempts++;
-      if (loginAttempts >= 5) loginLockedUntil = now + Math.min(30, Math.pow(2, loginAttempts - 5)) * 1000 * 5;
-      document.getElementById('loginError').classList.remove('hidden');
-    }
-  } catch(err) { console.error('Login error:', err); showToast('حدث خطأ. حاول مجدداً.', 'error'); }
-  finally { btn.disabled = false; btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>'; }
+    } else { throw new Error("استجابة تسجيل الدخول الآمن غير مكتملة."); }
+    if (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true) { try { await saLogin(pin); } catch(saError) { console.warn("Student Affairs session not established:", saError); saSession = null; try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {} } }
+    showToast("أهلاً بك: " + activeUser.name, "success");
+    document.getElementById("userPinInput").value = "";
+  } catch(error) {
+    if (error?.status === 401 || error?.status === 429) {
+      if (error.status === 429) showToast(error.message || "محاولات كثيرة. حاول لاحقاً.", "error");
+      else { loginAttempts++; if (loginAttempts >= 5) loginLockedUntil = now + Math.min(30, Math.pow(2, loginAttempts - 5)) * 1000 * 5; document.getElementById("loginError").classList.remove("hidden"); }
+    } else { console.error("Login error:", error); showToast(error?.message || "تعذر التحقق من بيانات الدخول حالياً. لم يتم تغيير أي بيانات.", "error"); }
+  } finally { btn.disabled = false; btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>'; }
 }
+
 
 async function findUserByPinWithRecord(pin) {
   if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) return { user: { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } }, record: db.adminPin };
@@ -3365,6 +3422,8 @@ function logoutUser() {
   _performLogout();
 }
 function _performLogout() {
+  revokeAppAuthSession();
+  clearAppAuthSession();
   activeUser = null; selectedClass = null; selectedBehaviorClass = null;
   attendanceDirty = false; behaviorDirty = false;
   attendanceUndoStack = []; behaviorUndoStack = [];
