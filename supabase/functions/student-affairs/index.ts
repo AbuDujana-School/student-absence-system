@@ -240,10 +240,11 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
   if (!activeTerm || !isValidIsoDate(activeTerm.start) || !isValidIsoDate(activeTerm.end)) {
     competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
   }
+  const termTo = today > activeTerm.end ? activeTerm.end : today;
   const { data: history, error } = await db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
     .gte("week_start", activeTerm.start)
-    .lte("week_start", today)
+    .lte("week_start", termTo)
     .order("week_start", { ascending: true });
   if (error) throw error;
   const completed = (history || []).filter((row: any) => row.status === "complete" && Array.isArray(row.snapshot?.teams));
@@ -321,7 +322,7 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
   }));
   const earliestWeek = completed.length ? completed[0].week_start : null;
   const raw = {
-    from: activeTerm.start, to: today, termStart: activeTerm.start, termEnd: activeTerm.end,
+    from: activeTerm.start, to: termTo, termStart: activeTerm.start, termEnd: activeTerm.end,
     termLabel: String(activeTerm.label || "الفصل الدراسي"), dataAvailableFrom: earliestWeek,
     today, period: "term", status: completed.length ? "complete" : "no_completed_weeks",
     teams: rankedTeams, ownGrades: [], ownClasses: [], classComparison: allClasses,
@@ -534,7 +535,7 @@ async function handle(req: Request) {
     try {
       const principal = await findPrincipal(body.pin, await getPepper());
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
-      if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلاب" }); }
+      if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة" }); }
       await clearFailedLogin(rate.key);
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
       const expires = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
@@ -563,7 +564,7 @@ async function handle(req: Request) {
   const p = session.principal;
   if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
-    return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلاب لهذا الحساب" });
+    return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
   }
   if (body?.action === "logout") {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
