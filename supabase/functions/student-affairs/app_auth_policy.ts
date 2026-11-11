@@ -74,3 +74,38 @@ export function extractAppBearerToken(header: unknown): string | null {
   const match = /^Bearer ([a-f0-9]{64})$/i.exec(header.trim());
   return match ? match[1].toLowerCase() : null;
 }
+
+
+export interface AppLoginCandidate extends AppPrincipalInput {
+  hash: unknown;
+  salt: unknown;
+}
+
+/**
+ * Resolve an application identity without coupling it to Student Affairs access.
+ * Candidate order is normalized to the legacy login precedence: admin, custom, teacher.
+ * The caller supplies the server-side credential verifier; raw credentials never leave this module.
+ */
+export async function resolveAppPrincipal(
+  pin: unknown,
+  candidates: AppLoginCandidate[],
+  verify: (pin: string, salt: string, hash: string) => Promise<boolean>,
+): Promise<AppPrincipal | null> {
+  if (!isValidAppPin(pin) || !Array.isArray(candidates)) return null;
+  const priority: Record<AppPrincipalType, number> = { admin: 0, custom: 1, teacher: 2 };
+  const ordered = candidates
+    .filter((candidate) =>
+      (candidate.type === "admin" || candidate.type === "custom" || candidate.type === "teacher") &&
+      typeof candidate.name === "string" && candidate.name.trim() !== "" &&
+      typeof candidate.hash === "string" && candidate.hash.length > 0 &&
+      typeof candidate.salt === "string" && candidate.salt.length > 0
+    )
+    .slice()
+    .sort((a, b) => priority[a.type as AppPrincipalType] - priority[b.type as AppPrincipalType]);
+  for (const candidate of ordered) {
+    if (await verify(pin, candidate.salt as string, candidate.hash as string)) {
+      return projectAppPrincipal(candidate);
+    }
+  }
+  return null;
+}
