@@ -6509,7 +6509,102 @@ if ("serviceWorker" in navigator) {
     const masthead='<header class="print-masthead"><div class="matrix-school">'+esc(SCHOOL_NAME||"مدرسة أبو دجانة")+'</div><div class="matrix-subtitle">كشف رصد الغياب والسلوكيات</div><div class="print-meta">'+(data.mode==="daily"?"تاريخ الرصد: "+esc(data.from||"—"):"الفترة: "+esc((data.from||"—")+" إلى "+(data.to||"—")))+' · تاريخ ووقت الطباعة: '+esc(printStamp.toLocaleString("ar-OM"))+'</div></header>';
     const sheets=sortClassesList([...groups.keys()]).map(cl=>[cl,groups.get(cl)]).map(([cl,list])=>{const st=classStats(list);const fitScale=Math.min(1,Math.max(.62,23/Math.max(list.length,23)));const fitWidth=(100/fitScale).toFixed(1);const items=statusOrder.map(k=>'<span class="matrix-stat"><b>'+esc(statusName(k))+'</b> '+(st.att[k]||0)+'</span>').join("")+behaviorKeys.filter(k=>!Array.isArray(data.behaviors)||data.behaviors.includes(k)).map(k=>'<span class="matrix-stat"><b>'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</b> '+(st.beh[k]||0)+'</span>').join("");return '<section class="class-sheet" style="zoom:'+fitScale.toFixed(3)+';width:'+fitWidth+'%"><div class="class-sheet-title">الصف '+esc(formatClassName(cl))+'</div><div class="class-sheet-stats"><span class="matrix-stat matrix-stat-total-att"><b>إجمالي الغياب:</b> '+st.attTotal+'</span><span class="matrix-stat matrix-stat-total-beh"><b>إجمالي السلوكيات:</b> '+st.behTotal+'</span>'+items+'</div>'+matrixTable(list,data.mode||"daily",true,(data.from===data.to?data.from:(data.from+" إلى "+data.to)),data.behaviors,data.cumulative)+'</section>';}).join("");
     const noData='<div class="empty">لا توجد تسجيلات مطابقة للفترة والمرشحات المحددة.</div>';
-    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>كشف الرصد - '+esc(data.schoolName)+'</title>'+css+'</head><body>'+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
+    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>كشف الرصد - '+esc(data.schoolName)+'</title>'+css+'
+<style id="report-tables-card-layout">
+/* Consistent, responsive report tables across Student Affairs and Reports. */
+#saResults table,
+#repResults table,
+#sec-reports table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0 8px;
+  margin-top: 10px;
+}
+#saResults th, #repResults th, #sec-reports th {
+  padding: 12px 10px;
+  background: rgba(22,140,133,.10) !important;
+  color: #183653;
+  font-weight: 900;
+  text-align: right;
+  vertical-align: middle;
+  border: 0;
+  border-bottom: 2px solid #168c85;
+}
+#saResults td, #repResults td, #sec-reports td {
+  padding: 12px 10px;
+  background: #fff;
+  color: #243b50;
+  border-top: 1px solid #e2e8f0;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 12px;
+  font-weight: 700;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+#saResults tbody tr,
+#repResults tbody tr,
+#sec-reports tbody tr {
+  transition: background-color .2s ease, box-shadow .2s ease;
+}
+#saResults tbody tr td:first-child,
+#repResults tbody tr td:first-child,
+#sec-reports tbody tr td:first-child {
+  border-right: 1px solid #e2e8f0;
+  border-radius: 0 10px 10px 0;
+}
+#saResults tbody tr td:last-child,
+#repResults tbody tr td:last-child,
+#sec-reports tbody tr td:last-child {
+  border-left: 1px solid #e2e8f0;
+  border-radius: 10px 0 0 10px;
+}
+#saResults tbody tr:hover td,
+#repResults tbody tr:hover td,
+#sec-reports tbody tr:hover td {
+  background: #f1f7f8 !important;
+}
+#saResults tbody tr:hover,
+#repResults tbody tr:hover,
+#sec-reports tbody tr:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.dark #saResults th, .dark #repResults th, .dark #sec-reports th {
+  background: rgba(22,140,133,.18) !important;
+  color: #e2edf5 !important;
+  border-bottom-color: #2bb6aa;
+}
+.dark #saResults td, .dark #repResults td, .dark #sec-reports td {
+  background: #132438;
+  color: #dbe7f1;
+  border-top-color: #2a4055;
+  border-bottom-color: #2a4055;
+}
+.dark #saResults tbody tr td:first-child,
+.dark #repResults tbody tr td:first-child,
+.dark #sec-reports tbody tr td:first-child { border-right-color: #2a4055; }
+.dark #saResults tbody tr td:last-child,
+.dark #repResults tbody tr td:last-child,
+.dark #sec-reports tbody tr td:last-child { border-left-color: #2a4055; }
+.dark #saResults tbody tr:hover td,
+.dark #repResults tbody tr:hover td,
+.dark #sec-reports tbody tr:hover td {
+  background: #183448 !important;
+}
+@media (max-width: 640px) {
+  #saResults th, #repResults th, #sec-reports th,
+  #saResults td, #repResults td, #sec-reports td {
+    padding: 10px 8px;
+    font-size: 11px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #saResults tbody tr, #repResults tbody tr, #sec-reports tbody tr {
+    transition: none;
+  }
+}
+</style>
+
+</head><body>'+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
   async function print(prefix){
     const c=cfg[prefix],p=c.getP();
