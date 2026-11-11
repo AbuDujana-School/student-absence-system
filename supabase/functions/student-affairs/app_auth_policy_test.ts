@@ -20,12 +20,14 @@ Deno.test("principal projection accepts only supported types and non-empty names
 Deno.test("principal projection excludes credential-shaped permission fields", () => {
   const projected = projectAppPrincipal({
     type: "teacher", name: "Teacher A",
-    permissions: { attendance: true, studentAffairs: true, pin_hash: "x", pin_salt: "x", access_token: "x" },
+    permissions: { attendance: true, studentAffairs: true, pin_hash: "x", pin_salt: "x", access_token: "x", nested: { apiKey: "x", visible: true } },
     mustChangePin: true,
   });
   if (!projected) throw new Error("Expected projected principal");
   if (projected.permissions.attendance !== true || projected.permissions.studentAffairs !== true) throw new Error("Permissions were not preserved");
   for (const key of ["pin_hash", "pin_salt", "access_token"]) if (key in projected.permissions) throw new Error(`Credential field leaked: ${key}`);
+  const nested = projected.permissions.nested as Record<string, unknown>;
+  if ("apiKey" in nested || nested.visible !== true) throw new Error("Nested credential field was not filtered safely");
   if (projected.mustChangePin !== true) throw new Error("mustChangePin flag was lost");
 });
 
