@@ -40,6 +40,32 @@ jobs:
               subprocess.run(["node", "--check", str(path)], check=True)
           print(f"Checked {len(scripts)} inline script blocks")
           PY
+      - name: Verify general app session migration safety contract
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          sql = Path("supabase/migrations/20261111140000_general_app_sessions.sql").read_text().lower()
+          required = [
+              "create table if not exists public.app_sessions",
+              "token_hash text primary key",
+              "principal_type in ('admin', 'teacher', 'custom')",
+              "expires_at timestamptz not null",
+              "alter table public.app_sessions enable row level security",
+              "revoke all on table public.app_sessions from public, anon, authenticated",
+              "grant all on table public.app_sessions to service_role",
+              "on public.app_sessions (expires_at)",
+          ]
+          missing = [item for item in required if item not in sql]
+          if missing:
+              raise SystemExit("Missing session migration safeguards: " + ", ".join(missing))
+          forbidden = ["drop table", "truncate ", "delete from ", "alter table public.teachers", "alter table public.school_settings"]
+          present = [item for item in forbidden if item in sql]
+          if present:
+              raise SystemExit("Unexpected destructive or unrelated SQL: " + ", ".join(present))
+          print("General app session migration contract verified")
+          PY
+      - name: Type-check isolated general app auth modules
+        run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts
       - name: Run general app auth policy tests
         run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
       - name: Run general app Supabase session store tests
