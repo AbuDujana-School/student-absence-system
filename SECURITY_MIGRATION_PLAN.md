@@ -104,7 +104,8 @@ No application rows were selected or exported during this audit. No database wri
 
 ## Current status
 
-- Read-only source and schema inventory: started.
+- Read-only source and schema inventory: completed for the primary general-app load/save/auth paths; detailed endpoint-by-endpoint inventory remains in progress.
+- Added a standalone general-app authentication policy module and unit tests on this feature branch only. These tests establish PIN format, principal projection, credential-field exclusion, token format, and expiry behavior; they do not yet authenticate users or change runtime behavior.
 - Direct frontend database access: confirmed.
 - General login validates credentials in the browser: confirmed.
 - Existing Student Affairs backend: partial coverage only.
