@@ -791,6 +791,26 @@
  #studentAffairsView #saStatusCheckboxesContainer label:before,#studentAffairsView #saCombinedStatuses label:before,#studentAffairsView #saCombinedBehaviors label:before,
  #repStudentAffairsPanel #repStatusesGrid label:before,#repStudentAffairsPanel #repBehaviorTypesGrid label:before,#repStudentAffairsPanel #repCombinedStatuses label:before,#repStudentAffairsPanel #repCombinedBehaviors label:before{width:30px;height:30px;flex-basis:30px;font-size:12px}
 }
+
+/* Text-only tiles: remove decorative icons and reclaim their space */
+#studentAffairsView #saStatusCheckboxesContainer label:before,
+#studentAffairsView #saCombinedStatuses label:before,
+#studentAffairsView #saCombinedBehaviors label:before,
+#repStudentAffairsPanel #repStatusesGrid label:before,
+#repStudentAffairsPanel #repBehaviorTypesGrid label:before,
+#repStudentAffairsPanel #repCombinedStatuses label:before,
+#repStudentAffairsPanel #repCombinedBehaviors label:before{
+  content:none!important;display:none!important;
+}
+#studentAffairsView #saStatusCheckboxesContainer label,
+#studentAffairsView #saCombinedStatuses label,
+#studentAffairsView #saCombinedBehaviors label,
+#repStudentAffairsPanel #repStatusesGrid label,
+#repStudentAffairsPanel #repBehaviorTypesGrid label,
+#repStudentAffairsPanel #repCombinedStatuses label,
+#repStudentAffairsPanel #repCombinedBehaviors label{
+  padding-inline:10px 36px!important;
+}
 </style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
