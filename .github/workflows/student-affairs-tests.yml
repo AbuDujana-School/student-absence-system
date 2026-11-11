@@ -17,6 +17,98 @@ on:
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
 jobs:
+
+  app-session-migration-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_session_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_session_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      PGHOST: localhost
+      PGPORT: 5432
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      PGDATABASE: app_session_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create Supabase-like database roles
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE anon NOLOGIN;
+          CREATE ROLE authenticated NOLOGIN;
+          CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          SQL
+      - name: Apply app sessions migration to isolated PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
+      - name: Verify RLS, grants, and session lifecycle
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.app_sessions'::regclass) THEN
+              RAISE EXCEPTION 'RLS is not enabled';
+            END IF;
+            IF has_table_privilege('anon', 'public.app_sessions', 'SELECT')
+              OR has_table_privilege('anon', 'public.app_sessions', 'INSERT')
+              OR has_table_privilege('authenticated', 'public.app_sessions', 'SELECT')
+              OR has_table_privilege('authenticated', 'public.app_sessions', 'INSERT')
+              OR has_table_privilege('public', 'public.app_sessions', 'SELECT') THEN
+              RAISE EXCEPTION 'A browser/public role has table access';
+            END IF;
+            IF NOT has_table_privilege('service_role', 'public.app_sessions', 'SELECT')
+              OR NOT has_table_privilege('service_role', 'public.app_sessions', 'INSERT')
+              OR NOT has_table_privilege('service_role', 'public.app_sessions', 'DELETE') THEN
+              RAISE EXCEPTION 'service_role is missing required privileges';
+            END IF;
+          END $;
+          SET ROLE service_role;
+          INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+          VALUES (repeat('a', 64), 'teacher', 'synthetic-teacher', now() + interval '1 hour');
+          DO $
+          BEGIN
+            IF (SELECT count(*) FROM public.app_sessions WHERE token_hash = repeat('a', 64)) <> 1 THEN
+              RAISE EXCEPTION 'service_role cannot read its synthetic session';
+            END IF;
+          END $;
+          DELETE FROM public.app_sessions WHERE token_hash = repeat('a', 64);
+          RESET ROLE;
+          DO $
+          BEGIN
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES (repeat('b', 64), 'teacher', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'anon insert unexpectedly succeeded';
+            EXCEPTION WHEN insufficient_privilege THEN
+              NULL;
+            END;
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES (repeat('c', 64), 'invalid-role', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'invalid principal type unexpectedly succeeded';
+            EXCEPTION WHEN check_violation THEN
+              NULL;
+            END;
+            BEGIN
+              INSERT INTO public.app_sessions(token_hash, principal_type, principal_name, expires_at)
+              VALUES ('not-a-digest', 'teacher', 'must-be-denied', now() + interval '1 hour');
+              RAISE EXCEPTION 'invalid digest unexpectedly succeeded';
+            EXCEPTION WHEN check_violation THEN
+              NULL;
+            END;
+          END $;
+          SELECT 'isolated app_sessions migration integration checks passed' AS result;
+          SQL
   report-policy-tests:
     runs-on: ubuntu-latest
     steps:
