@@ -1419,7 +1419,7 @@
         <div class="mt-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-900 dark:bg-violet-950/20">
           <div class="mb-3 text-xs font-black text-violet-950 dark:text-violet-100">نوع التكليف الإشرافي</div>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">الدور<select id="saSupervisionRole" onchange="saToggleSupervisionFields()" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><option value="team_leader">رئيس فريق</option><option value="supervisor">معلم مشرف</option><option value="visitor">معلم زائر</option></select></label>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">الدور<select id="saSupervisionRole" onchange="saToggleSupervisionFields()" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><option value="">غير محدد</option><option value="team_leader">رئيس فريق</option><option value="supervisor">معلم مشرف</option><option value="visitor">معلم زائر</option></select></label>
             <label id="saSupervisionTeamWrap" class="text-xs font-bold text-slate-700 dark:text-slate-200">اسم الفريق<input id="saSupervisionTeamName" type="text" maxlength="80" placeholder="مثال: فريق التواصل" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><span class="mt-1 block text-[10px] font-medium text-slate-500">يُكتب الاسم نفسه لرئيس الفريق والمعلمين المشرفين التابعين له.</span></label>
           </div><p id="saSupervisionRoleHint" class="mt-3 text-[11px] leading-6 text-violet-900 dark:text-violet-200"></p>
         </div>
@@ -2378,7 +2378,7 @@ function saAssignedTeacherData(){
     const saved=records.find(x=>x.principal_type==="teacher"&&x.principal_name===t.name)||{};
     const attendance=Array.isArray(saved.allowed_attendance_classes)?saved.allowed_attendance_classes:Array.isArray(saved.allowed_classes)?saved.allowed_classes:[];
     const behavior=Array.isArray(saved.allowed_behavior_classes)?saved.allowed_behavior_classes:Array.isArray(saved.allowed_classes)?saved.allowed_classes:[];
-    return {name:t.name,entry:p.studentAffairs===true,role:p.student_affairs_role||"supervisor",team:p.student_affairs_team_name||"",attendance,behavior,readAttendance:p.can_read_attendance===true,readBehavior:p.can_read_behavior===true,analytics:p.can_view_analytics===true,competition:p.can_view_competition===true,printAttendance:p.can_print_attendance===true,printBehavior:p.can_print_behavior===true,printCombined:p.can_print_combined===true};
+    return {name:t.name,entry:p.studentAffairs===true,role:p.student_affairs_role||"",team:p.student_affairs_team_name||"",attendance,behavior,readAttendance:p.can_read_attendance===true,readBehavior:p.can_read_behavior===true,analytics:p.can_view_analytics===true,competition:p.can_view_competition===true,printAttendance:p.can_print_attendance===true,printBehavior:p.can_print_behavior===true,printCombined:p.can_print_combined===true};
   }).filter(t=>t.entry).sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar",{sensitivity:"base"}));
 }
 function saRenderAssignedTeachers(){
@@ -2390,7 +2390,7 @@ function saRenderAssignedTeachers(){
   box.innerHTML=teachers.map(t=>{
     const hasAtt=t.attendance.length>0,hasBeh=t.behavior.length>0;
     const scope=hasAtt&&hasBeh?"الغياب والسلوكيات":hasAtt?"الغياب فقط":hasBeh?"السلوكيات فقط":"دخول القسم دون صفوف مسندة";
-    const roleLabel=t.role==="team_leader"?"رئيس فريق":t.role==="visitor"?"زائر":"معلم مشرف";
+    const roleLabel=t.role==="team_leader"?"رئيس فريق":t.role==="visitor"?"زائر":t.role==="supervisor"?"معلم مشرف":"لم يحدد نوع الإشراف";
     const tone=hasAtt&&hasBeh?"border-violet-200 bg-violet-50 text-violet-800":hasAtt?"border-blue-200 bg-blue-50 text-blue-800":hasBeh?"border-teal-200 bg-teal-50 text-teal-800":"border-slate-200 bg-slate-100 text-slate-700";
     const classBlock=(label,items,color)=>'<div class="rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-950"><div class="mb-2 text-[11px] font-black '+color+'">'+label+' ('+items.length+')</div>'+(items.length?'<div class="flex flex-wrap gap-1.5">'+items.map(c=>'<span class="rounded-lg bg-slate-100 px-2 py-1 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(c)+'</span>').join("")+'</div>':'<span class="text-[11px] text-slate-400">لا توجد صفوف مسندة</span>')+'</div>';
     const extras=[t.readAttendance&&"عرض تقارير الغياب",t.readBehavior&&"عرض تقارير السلوك",t.analytics&&"التحليلات",t.competition&&"مسابقة التميز",t.printAttendance&&"طباعة الغياب",t.printBehavior&&"طباعة السلوك",t.printCombined&&"طباعة التقرير الموحد"].filter(Boolean);
@@ -2413,7 +2413,7 @@ function saLoadPerson(){
   if([...sel.options].some(o=>o.value===old))sel.value=old;
   const saved=saAdminData.permissions.find(p=>p.principal_type===type&&p.principal_name===sel.value)||{},person=saAdminData.teachers.find(t=>t.name===sel.value);
   document.getElementById("saEntryAccess").checked=person?.permissions?.studentAffairs===true;
-  const roleSelect=document.getElementById("saSupervisionRole");if(roleSelect)roleSelect.value=person?.permissions?.student_affairs_role||"supervisor";
+  const roleSelect=document.getElementById("saSupervisionRole");if(roleSelect)roleSelect.value=person?.permissions?.student_affairs_role||"";
   const teamInput=document.getElementById("saSupervisionTeamName");if(teamInput)teamInput.value=person?.permissions?.student_affairs_team_name||"";
   document.getElementById("saSupervisionRole")?.closest(".rounded-2xl")?.classList.toggle("hidden",type!=="teacher");saToggleSupervisionFields();
   document.getElementById("saCompetitionTeamSettings")?.classList.toggle("hidden",type!=="teacher");
@@ -2426,9 +2426,9 @@ function saLoadPerson(){
   document.getElementById("saFlags").innerHTML=SA_FLAGS.map(([k,l])=>'<label class="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-900/60 border border-slate-100 dark:border-slate-700"><input type="checkbox" class="sa-flag" data-key="'+k+'" '+((k==="can_view_competition"?(person?.permissions?.can_view_competition===true):(saved[k]===true))?"checked":"")+'><span>'+l+'</span></label>').join("");saUpdateScopeSummary();
 }
 function saToggleSupervisionFields(){
-  const role=document.getElementById("saSupervisionRole")?.value||"supervisor",wrap=document.getElementById("saSupervisionTeamWrap"),input=document.getElementById("saSupervisionTeamName");
-  if(wrap)wrap.classList.toggle("hidden",role==="visitor");if(role==="visitor"&&input)input.value="";
-  const hint=document.getElementById("saSupervisionRoleHint");if(hint)hint.textContent=role==="team_leader"?"رئيس الفريق يتابع صفوفه المسندة إليه، ويستطيع كذلك متابعة أداء المعلمين المشرفين المرتبطين بالفريق نفسه.":role==="supervisor"?"المعلم المشرف يتابع الصفوف المسندة إليه فقط. إذا كان تابعاً لفريق، اكتب اسم الفريق نفسه ليراه رئيس الفريق.":"الزائر لا يستطيع فتح كشوفات الغياب أو السلوكيات؛ يمكن منحه التحليلات أو مسابقة التميز بصورة مستقلة.";
+  const role=document.getElementById("saSupervisionRole")?.value||"",wrap=document.getElementById("saSupervisionTeamWrap"),input=document.getElementById("saSupervisionTeamName");
+  if(wrap)wrap.classList.toggle("hidden",!role||role==="visitor");if((role==="visitor"||!role)&&input)input.value="";
+  const hint=document.getElementById("saSupervisionRoleHint");if(hint)hint.textContent=role==="team_leader"?"رئيس الفريق يتابع صفوفه المسندة إليه، ويستطيع كذلك متابعة أداء المعلمين المشرفين المرتبطين بالفريق نفسه.":role==="supervisor"?"المعلم المشرف يتابع الصفوف المسندة إليه فقط. إذا كان تابعاً لفريق، اكتب اسم الفريق نفسه ليراه رئيس الفريق.":role==="visitor"?"الزائر لا يستطيع فتح كشوفات الغياب أو السلوكيات؛ يمكن منحه التحليلات أو مسابقة التميز بصورة مستقلة.":"لم يتم تحديد نوع الإشراف لهذا المعلم بعد.";
 }
 function saToggleCompetitionTeamFields(){const enabled=document.getElementById("saCompetitionParticipant")?.checked===true;document.getElementById("saCompetitionTeamFields")?.classList.toggle("hidden",!enabled);}
 function saMergeServerManagedTeacherPermissions(localPermissions,serverPermissions){
