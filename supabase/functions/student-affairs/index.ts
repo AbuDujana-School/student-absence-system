@@ -1,7 +1,8 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
-import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
+import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
+import { buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
 import {
   resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
   type AppLoginCandidate, type AppPrincipal,
@@ -156,13 +157,24 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
 }
 async function permissionsFor(p: { type: string; name: string }, strictCompetition = false) {
   if (p.type === "admin") {
-    const { data: classes } = await db.from("classes").select("name");
+    const [{ data: classes }, { data: teachers }, { data: permissionRows }] = await Promise.all([
+      db.from("classes").select("name"),
+      db.from("teachers").select("name,role,permissions").neq("role", "custom"),
+      db.from("student_affairs_permissions").select("*").eq("principal_type", "teacher")
+    ]);
     const all = (classes || []).map((x: any) => x.name);
-    return { role: "admin", own_allowed_attendance_classes: all, own_allowed_behavior_classes: all, team_allowed_attendance_classes: all, team_allowed_behavior_classes: all, team_members: [], allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_view_competition: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
+    const byName = new Map((permissionRows || []).map((row: any) => [String(row.principal_name), row]));
+    const teacherDirectory = (teachers || []).filter((item: any) => item.permissions?.studentAffairs === true)
+      .map((item: any) => {
+        const row: any = byName.get(String(item.name)) || {};
+        const legacy = Array.isArray(row.allowed_classes) ? row.allowed_classes : [];
+        return { name: String(item.name), allowed_attendance_classes: Array.isArray(row.allowed_attendance_classes) ? row.allowed_attendance_classes : legacy, allowed_behavior_classes: Array.isArray(row.allowed_behavior_classes) ? row.allowed_behavior_classes : legacy, attendance_statuses: Array.isArray(row.attendance_statuses) ? row.attendance_statuses : ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
+      }).sort((a: any, b: any) => a.name.localeCompare(b.name, "ar"));
+    return { role: "admin", own_allowed_attendance_classes: all, own_allowed_behavior_classes: all, team_allowed_attendance_classes: all, team_allowed_behavior_classes: all, allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_view_competition: true, competition_participant: false, can_print_attendance: true, can_print_behavior: true, can_print_combined: true, team_members: [], teacher_directory: teacherDirectory };
   }
   const [{ data }, { data: teacher }] = await Promise.all([
     db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle(),
-    db.from("teachers").select("permissions").eq("name", p.name).maybeSingle()
+    db.from("teachers").select("name,role,permissions").eq("name", p.name).maybeSingle()
   ]);
   const legacy = Array.isArray(data?.allowed_classes) ? data.allowed_classes : [];
   const ownAttendance = Array.isArray(data?.allowed_attendance_classes) ? data.allowed_attendance_classes : legacy;
@@ -170,43 +182,76 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
   const tp = teacher?.permissions && typeof teacher.permissions === "object" ? teacher.permissions : {};
   const role = ["team_leader", "supervisor", "visitor"].includes(String(tp.student_affairs_role || "")) ? String(tp.student_affairs_role) : "unassigned";
   const teamName = String(tp.student_affairs_team_name || "").trim();
-  let teamMembers: any[] = [], teamAttendance: string[] = [], teamBehavior: string[] = [];
-  if (role === "team_leader" && teamName) {
-    const [{ data: teachers }, { data: permissionRows }] = await Promise.all([
-      db.from("teachers").select("name,permissions").neq("role", "custom"),
-      db.from("student_affairs_permissions").select("principal_name,allowed_classes,allowed_attendance_classes,allowed_behavior_classes").eq("principal_type", "teacher")
+  let teamMembers: any[] = [], teacherDirectory: any[] = [], teamAttendance: string[] = [], teamBehavior: string[] = [];
+  if ((role === "team_leader" && teamName) || role === "visitor") {
+    const [{ data: teachers, error: teachersError }, { data: permissionRows, error: permissionError }] = await Promise.all([
+      db.from("teachers").select("name,role,permissions").neq("role", "custom"),
+      db.from("student_affairs_permissions").select("*").eq("principal_type", "teacher")
     ]);
+    if (teachersError || permissionError) throw new Error("تعذر تحميل نطاق الإشراف في شؤون الطلبة.");
     const byName = new Map((permissionRows || []).map((row: any) => [String(row.principal_name), row]));
-    teamMembers = (teachers || []).filter((item: any) => item.name !== p.name && item.permissions?.student_affairs_role === "supervisor"
-      && String(item.permissions?.student_affairs_team_name || "").trim() === teamName && item.permissions?.studentAffairs === true).map((item: any) => {
-        const row: any = byName.get(String(item.name)) || {};
-        const legacyClasses = Array.isArray(row.allowed_classes) ? row.allowed_classes : [];
-        const attendance = Array.isArray(row.allowed_attendance_classes) ? row.allowed_attendance_classes : legacyClasses;
-        const behavior = Array.isArray(row.allowed_behavior_classes) ? row.allowed_behavior_classes : legacyClasses;
-        teamAttendance.push(...attendance); teamBehavior.push(...behavior);
-        return { name: String(item.name), allowed_attendance_classes: attendance, allowed_behavior_classes: behavior, attendance_statuses: Array.isArray(row.attendance_statuses) ? row.attendance_statuses : ["absent", "late", "escape", "outside"] };
-      });
+    const projectTeacher = (item: any) => {
+      const row: any = byName.get(String(item.name)) || {};
+      const legacyClasses = Array.isArray(row.allowed_classes) ? row.allowed_classes : [];
+      const attendance = Array.isArray(row.allowed_attendance_classes) ? row.allowed_attendance_classes : legacyClasses;
+      const behavior = Array.isArray(row.allowed_behavior_classes) ? row.allowed_behavior_classes : legacyClasses;
+      return {
+        name: String(item.name),
+        allowed_attendance_classes: attendance,
+        allowed_behavior_classes: behavior,
+        attendance_statuses: Array.isArray(row.attendance_statuses) ? row.attendance_statuses : ["absent", "late", "escape", "outside"],
+        can_read_attendance: row.can_read_attendance === true,
+        can_read_behavior: row.can_read_behavior === true,
+        can_view_analytics: row.can_view_analytics === true,
+        can_print_attendance: row.can_print_attendance === true,
+        can_print_behavior: row.can_print_behavior === true,
+        can_print_combined: row.can_print_combined === true
+      };
+    };
+    if (role === "team_leader") {
+      teamMembers = (teachers || []).filter((item: any) => item.name !== p.name && item.role !== "custom"
+        && item.permissions?.student_affairs_role === "supervisor"
+        && (String(item.permissions?.supervisor_team_leader_name || "").trim() === p.name
+          || (!item.permissions?.supervisor_team_leader_name && String(item.permissions?.student_affairs_team_name || "").trim() === teamName))
+        && item.permissions?.studentAffairs === true).map((item: any) => {
+          const member = projectTeacher(item);
+          teamAttendance.push(...member.allowed_attendance_classes);
+          teamBehavior.push(...member.allowed_behavior_classes);
+          return member;
+        });
+    }
+    if (role === "visitor") {
+      teacherDirectory = (teachers || []).filter((item: any) => item.name !== p.name
+        && item.role !== "custom" && item.permissions?.studentAffairs === true
+        && item.permissions?.student_affairs_role !== "visitor")
+        .map(projectTeacher)
+        .sort((a: any, b: any) => a.name.localeCompare(b.name, "ar"));
+    }
   }
   const unique = (items: string[]) => [...new Set(items.map(String).filter(Boolean))];
   const ownAttendanceUnique = unique(ownAttendance), ownBehaviorUnique = unique(ownBehavior);
   const teamAttendanceUnique = unique(teamAttendance), teamBehaviorUnique = unique(teamBehavior);
   const visitor = role === "visitor";
+  if (visitor) {
+    const { data: classes, error: classesError } = await db.from("classes").select("name").order("name");
+    if (classesError) throw classesError;
+    const access = buildVisitorAccess((classes || []).map((item: any) => String(item.name || "")), teacherDirectory);
+    return { ...(data || {}), ...access, can_view_competition: true, competition_team_name: "", competition_team_classes: [] };
+  }
   const reportPermissions = {
-    ...(data || {}), role, team_name: teamName, team_members: teamMembers,
+    ...(data || {}), role, team_name: teamName, team_members: teamMembers, teacher_directory: [],
     own_allowed_attendance_classes: ownAttendanceUnique, own_allowed_behavior_classes: ownBehaviorUnique,
     team_allowed_attendance_classes: teamAttendanceUnique, team_allowed_behavior_classes: teamBehaviorUnique,
-    // Standard reports and sheets are restricted to personal assignments. Team data is only available
-    // through the dedicated supervision endpoints below, unless the administrator explicitly grants Reports access.
     allowed_classes: unique([...ownAttendanceUnique, ...ownBehaviorUnique]), allowed_attendance_classes: ownAttendanceUnique, allowed_behavior_classes: ownBehaviorUnique,
     attendance_statuses: Array.isArray(data?.attendance_statuses) ? data.attendance_statuses : (strictCompetition ? [] : ["absent", "late", "escape", "outside"]),
-    can_read_attendance: !visitor && data?.can_read_attendance === true, can_read_behavior: !visitor && data?.can_read_behavior === true,
+    can_read_attendance: data?.can_read_attendance === true, can_read_behavior: data?.can_read_behavior === true,
     can_view_analytics: data?.can_view_analytics === true,
     can_view_competition: teacher?.permissions?.can_view_competition === true,
     competition_participant: teacher?.permissions?.competition_participant === true,
     competition_team_name: typeof teacher?.permissions?.competition_team_name === "string" ? teacher.permissions.competition_team_name : "",
     competition_team_classes: Array.isArray(teacher?.permissions?.competition_team_classes) ? teacher.permissions.competition_team_classes : [],
-    can_print_attendance: !visitor && data?.can_print_attendance === true, can_print_behavior: !visitor && data?.can_print_behavior === true,
-    can_print_combined: !visitor && data?.can_print_combined === true
+    can_print_attendance: data?.can_print_attendance === true, can_print_behavior: data?.can_print_behavior === true,
+    can_print_combined: data?.can_print_combined === true
   };
   const reportsAccess = tp.reports === true;
   let reportClasses: string[] = [];
@@ -541,13 +586,25 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const dataFrom = period === "monthly" ? getSchoolWeekRange(from).start : from;
   if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
 
-  const [{ data: classRows, error: classError }, { data: teacherRows, error: teacherError }] = await Promise.all([
+  const [{ data: classRows, error: classError }, { data: teacherRows, error: teacherError }, { data: studentAffairsRows, error: studentAffairsError }] = await Promise.all([
     db.from("classes").select("name").order("name", { ascending: true }),
-    db.from("teachers").select("name,role,permissions").order("name", { ascending: true })
+    db.from("teachers").select("name,role,permissions").order("name", { ascending: true }),
+    db.from("student_affairs_permissions").select("principal_name,allowed_classes,allowed_attendance_classes,allowed_behavior_classes").eq("principal_type", "teacher")
   ]);
   if (classError) throw classError;
   if (teacherError) throw teacherError;
+  if (studentAffairsError) throw studentAffairsError;
   const allClasses = (classRows || []).map((row: any) => String(row.name || "").trim()).filter(Boolean);
+  const studentAffairsByTeacher = new Map((studentAffairsRows || []).map((row: any) => [String(row.principal_name), row]));
+  for (const teacher of teacherRows || []) {
+    if (teacher.permissions?.student_affairs_role !== "team_leader" || teacher.permissions?.competition_participant !== true) continue;
+    const personal = studentAffairsByTeacher.get(String(teacher.name)) as any;
+    const legacy = Array.isArray(personal?.allowed_classes) ? personal.allowed_classes : [];
+    const ownClasses = [...(Array.isArray(personal?.allowed_attendance_classes) ? personal.allowed_attendance_classes : legacy),
+      ...(Array.isArray(personal?.allowed_behavior_classes) ? personal.allowed_behavior_classes : legacy)];
+    const outside = findCompetitionClassesOutsidePersonalScope(teacher.permissions?.competition_team_classes || [], ownClasses);
+    if (outside.length) competitionError(409, "إعداد سباق التميز غير متوافق مع فصول رئيس الفريق الشخصية: " + String(teacher.name) + " — " + outside[0]);
+  }
   let teams: any[];
   try {
     teams = buildCompetitionTeams(teacherRows || [], allClasses);
@@ -773,7 +830,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "supervision_trend") {
     const permissions = await permissionsFor(p);
-    if (p.type !== "admin" && permissions.can_view_analytics !== true) return reply(403, { error: "غير مصرح بعرض مؤشر الأداء" });
+    if (p.type !== "admin" && permissions.can_view_analytics !== true && !["team_leader", "visitor"].includes(permissions.role)) return reply(403, { error: "غير مصرح بعرض مؤشر الأداء" });
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? new Date().toISOString().slice(0, 10) : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
@@ -793,19 +850,22 @@ async function handle(req: Request) {
       }, ...(permissions.team_members || [])];
       attendanceClasses = [...(permissions.own_allowed_attendance_classes || []), ...(permissions.team_allowed_attendance_classes || [])];
       behaviorClasses = [...(permissions.own_allowed_behavior_classes || []), ...(permissions.team_allowed_behavior_classes || [])];
-    } else if (scope === "teacher" && p.type !== "admin" && permissions.role === "team_leader") {
-      const targetName = String(body.teacher_name || "");
-      const member = (permissions.team_members || []).find((item: any) => item.name === targetName);
-      if (!member) return reply(403, { error: "هذا المعلم ليس ضمن فريقك" });
-      selectedMembers = [member];
-      attendanceClasses = member.allowed_attendance_classes || [];
-      behaviorClasses = member.allowed_behavior_classes || [];
+    } else if (scope === "teacher" && (p.type === "admin" || ["team_leader", "visitor"].includes(permissions.role))) {
+      const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, String(body.teacher_name || ""), permissions.team_members || [], permissions.teacher_directory || []);
+      if (!target) return reply(403, { error: permissions.role === "visitor" ? "هذا المعلم غير موجود ضمن معلمي شؤون الطلبة." : "هذا المعلم ليس ضمن فريقك" });
+      selectedMembers = [target];
+      attendanceClasses = target.allowed_attendance_classes || [];
+      behaviorClasses = target.allowed_behavior_classes || [];
+    } else if (scope === "all" && (p.type === "admin" || permissions.role === "visitor")) {
+      selectedMembers = permissions.teacher_directory || [];
+      attendanceClasses = selectedMembers.flatMap((item: any) => item.allowed_attendance_classes || []);
+      behaviorClasses = selectedMembers.flatMap((item: any) => item.allowed_behavior_classes || []);
     } else if (scope !== "own") return reply(403, { error: "نطاق المتابعة غير مصرح به" });
     const unique = (items: string[]) => [...new Set(items.map(String).filter(Boolean))];
     attendanceClasses = unique(attendanceClasses); behaviorClasses = unique(behaviorClasses);
     const ownStatusSet = new Set((permissions.attendance_statuses || ["absent", "late", "escape", "outside"]).map(String));
     const classStatusSets = new Map<string, Set<string>>();
-    if (scope === "team" || scope === "teacher") {
+    if (scope === "team" || scope === "teacher" || scope === "all") {
       for (const member of selectedMembers) {
         const statuses = new Set<string>((member.attendance_statuses || ["absent", "late", "escape", "outside"]).map(String));
         for (const className of member.allowed_attendance_classes || []) {
@@ -874,7 +934,9 @@ async function handle(req: Request) {
   }
   if (body?.action === "supervision_team") {
     const permissions = await permissionsFor(p);
-    if (p.type !== "admin" && permissions.role !== "team_leader") return reply(403, { error: "متابعة المعلمين متاحة لرئيس الفريق فقط" });
+    if (p.type === "admin") return reply(200, { team_name: "جميع المعلمين", teachers: permissions.teacher_directory || [] });
+    if (permissions.role === "visitor") return reply(200, { team_name: "جميع معلمي شؤون الطلبة", teachers: permissions.teacher_directory || [] });
+    if (permissions.role !== "team_leader") return reply(403, { error: "متابعة المعلمين متاحة لرئيس الفريق والزائر فقط" });
     return reply(200, { team_name: permissions.team_name || "", teachers: permissions.team_members || [] });
   }
   if (body?.action === "get_permissions") {
@@ -893,17 +955,27 @@ async function handle(req: Request) {
     const { data: target } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
     if (!target || (type === "custom" ? target.role !== "custom" : target.role === "custom")) return reply(404, { error: "المعلم غير موجود" });
     const supervisionRole = String(body.student_affairs_role ?? target.permissions?.student_affairs_role ?? "").trim();
-    const supervisionTeam = String(body.student_affairs_team_name ?? target.permissions?.student_affairs_team_name ?? "").trim();
-    if (type === "teacher" && supervisionRole && !["team_leader", "supervisor", "visitor"].includes(supervisionRole)) return reply(400, { error: "نوع الإشراف غير صالح" });
+    let supervisionTeam = String(body.student_affairs_team_name ?? target.permissions?.student_affairs_team_name ?? "").trim();
+    let supervisionLeaderName = String(body.supervisor_team_leader_name ?? target.permissions?.supervisor_team_leader_name ?? "").trim();
+    if (supervisionRole && (type === "custom" ? supervisionRole !== "visitor" : !["team_leader", "supervisor", "visitor"].includes(supervisionRole))) return reply(400, { error: "نوع الإشراف غير صالح لهذا الحساب" });
+    if (supervisionRole === "visitor" && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للزائر." });
     if (type === "teacher" && !supervisionRole && supervisionTeam) return reply(400, { error: "حدد نوع الإشراف قبل ربط المعلم بفريق" });
     if (type === "teacher" && supervisionRole === "team_leader" && (!supervisionTeam || body.studentAffairs !== true)) return reply(400, { error: "يجب تحديد اسم الفريق ومنح رئيس الفريق دخول شؤون الطلبة" });
     if (type === "teacher" && supervisionRole === "supervisor" && supervisionTeam && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للمعلم المشرف المرتبط بفريق" });
-    if (type === "teacher" && supervisionRole === "supervisor" && supervisionTeam) {
+    if (type === "teacher" && supervisionRole === "supervisor" && (supervisionLeaderName || supervisionTeam)) {
       const { data: leaders, error: leaderError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
       if (leaderError) throw leaderError;
-      const hasLeader = (leaders || []).some((item: any) => item.permissions?.student_affairs_role === "team_leader" && String(item.permissions?.student_affairs_team_name || "").trim() === supervisionTeam && item.permissions?.studentAffairs === true);
-      if (!hasLeader) return reply(400, { error: "لا يوجد رئيس فريق مفعّل بهذا الاسم. أضف رئيس الفريق أولاً." });
+      const matchedLeader = (leaders || []).find((item: any) => item.name === supervisionLeaderName
+        && item.permissions?.student_affairs_role === "team_leader" && item.permissions?.studentAffairs === true
+        && String(item.permissions?.student_affairs_team_name || "").trim())
+        || (!supervisionLeaderName ? (leaders || []).find((item: any) => item.permissions?.student_affairs_role === "team_leader"
+          && item.permissions?.studentAffairs === true
+          && String(item.permissions?.student_affairs_team_name || "").trim() === supervisionTeam) : null);
+      if (!matchedLeader) return reply(400, { error: "اختر رئيس فريق مفعّلاً من القائمة قبل ربط المعلم المشرف." });
+      supervisionLeaderName = String(matchedLeader.name);
+      supervisionTeam = String(matchedLeader.permissions.student_affairs_team_name || "").trim();
     }
+    if (type === "teacher" && supervisionRole !== "supervisor") supervisionLeaderName = "";
     if (type === "teacher" && supervisionRole === "visitor" && supervisionTeam) return reply(400, { error: "المعلم الزائر لا يُربط بفريق إشراف" });
     const legacyClasses: string[] = Array.isArray(body.allowed_classes) ? Array.from(new Set((body.allowed_classes as unknown[]).map(String))) : [];
     const attendanceClasses: string[] = Array.isArray(body.allowed_attendance_classes) ? Array.from(new Set((body.allowed_attendance_classes as unknown[]).map(String))) : legacyClasses;
@@ -916,6 +988,7 @@ async function handle(req: Request) {
     const valid = new Set((classRows || []).map((x: any) => x.name));
     if (allowed.some((x: string) => !valid.has(x))) return reply(400, { error: "توجد شعبة غير معتمدة" });
     if (body.competition_participant === true) {
+      if (supervisionRole === "visitor") return reply(400, { error: "الزائر يملك صلاحية الاطلاع ولا يدخل في سباق التميز." });
       if (type !== "teacher") return reply(400, { error: "المشاركة في سباق التميز مخصصة لحسابات المعلمين." });
       const teamName = String(body.competition_team_name || "").trim();
       const teamClasses = Array.isArray(body.competition_team_classes)
@@ -924,6 +997,10 @@ async function handle(req: Request) {
       if (!teamName) return reply(400, { error: "اكتب اسم الفريق قبل تفعيل المشاركة." });
       if (!teamClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل للفريق." });
       if (teamClasses.some(className => !valid.has(className))) return reply(400, { error: "توجد صفوف غير معتمدة ضمن الفريق." });
+      if (supervisionRole === "team_leader") {
+        const outsidePersonalScope = findCompetitionClassesOutsidePersonalScope(teamClasses, allowed);
+        if (outsidePersonalScope.length) return reply(400, { error: "صفوف قائد الفريق في سباق التميز يجب أن تكون من فصوله الشخصية فقط. الصف غير المسند إليه: " + outsidePersonalScope[0] });
+      }
       const { data: participantRows, error: participantError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
       if (participantError) throw participantError;
       const assigned = new Map<string, string>();
@@ -935,25 +1012,32 @@ async function handle(req: Request) {
       const conflict = teamClasses.find(className => assigned.has(className));
       if (conflict) return reply(409, { error: "الصف " + conflict + " مسند بالفعل إلى فريق المعلم " + assigned.get(conflict) + "." });
     }
-    const visitor = type === "teacher" && supervisionRole === "visitor";
-    const row = { principal_type: type, principal_name: name, allowed_classes: allowed, allowed_attendance_classes: attendanceClasses, allowed_behavior_classes: behaviorClasses, attendance_statuses: statuses, can_read_attendance: !visitor && asBool(body.can_read_attendance), can_read_behavior: !visitor && asBool(body.can_read_behavior), can_view_analytics: asBool(body.can_view_analytics), can_print_attendance: !visitor && asBool(body.can_print_attendance), can_print_behavior: !visitor && asBool(body.can_print_behavior), can_print_combined: !visitor && asBool(body.can_print_combined), updated_at: new Date().toISOString() };
+    const visitor = supervisionRole === "visitor";
+    const row = { principal_type: type, principal_name: name, allowed_classes: visitor ? [] : allowed, allowed_attendance_classes: visitor ? [] : attendanceClasses, allowed_behavior_classes: visitor ? [] : behaviorClasses, attendance_statuses: visitor ? ["absent", "late", "escape", "outside"] : statuses, can_read_attendance: visitor || asBool(body.can_read_attendance), can_read_behavior: visitor || asBool(body.can_read_behavior), can_view_analytics: visitor || asBool(body.can_view_analytics), can_print_attendance: visitor || asBool(body.can_print_attendance), can_print_behavior: visitor || asBool(body.can_print_behavior), can_print_combined: visitor || asBool(body.can_print_combined), updated_at: new Date().toISOString() };
     const { error } = await db.from("student_affairs_permissions").upsert(row, { onConflict: "principal_type,principal_name" });
     if (error) throw error;
     if (typeof body.studentAffairs === "boolean" || typeof body.can_view_competition === "boolean") {
       const mergedPermissions = { ...(target.permissions || {}) };
-      if (type === "teacher") {
-        if (supervisionRole) {
-          mergedPermissions.student_affairs_role = supervisionRole;
-          mergedPermissions.student_affairs_team_name = supervisionRole === "visitor" ? "" : supervisionTeam;
-        } else {
-          delete mergedPermissions.student_affairs_role;
-          delete mergedPermissions.student_affairs_team_name;
-        }
+      if (supervisionRole) {
+        mergedPermissions.student_affairs_role = supervisionRole;
+        mergedPermissions.student_affairs_team_name = supervisionRole === "visitor" ? "" : supervisionTeam;
+        if (supervisionRole === "supervisor" && supervisionLeaderName) mergedPermissions.supervisor_team_leader_name = supervisionLeaderName;
+        else delete mergedPermissions.supervisor_team_leader_name;
+      } else {
+        delete mergedPermissions.student_affairs_role;
+        delete mergedPermissions.student_affairs_team_name;
+        delete mergedPermissions.supervisor_team_leader_name;
+      }
+      if (visitor) {
+        mergedPermissions.can_view_competition = true;
+        mergedPermissions.competition_participant = false;
+        mergedPermissions.competition_team_name = "";
+        mergedPermissions.competition_team_classes = [];
       }
       if (typeof body.studentAffairs === "boolean") mergedPermissions.studentAffairs = body.studentAffairs;
       if (typeof body.can_view_competition === "boolean") mergedPermissions.can_view_competition = body.can_view_competition;
       if (typeof body.competition_participant === "boolean") {
-        if (body.competition_participant && type !== "teacher") return reply(400, { error: "المشاركة في سباق التميز مخصصة لحسابات المعلمين." });
+        if (body.competition_participant && (type !== "teacher" || visitor)) return reply(400, { error: "المشاركة في سباق التميز مخصصة للمعلمين المشاركين فقط، وليست للزائر." });
         const { data: configuredClasses, error: configuredClassesError } = await db.from("classes").select("name");
         if (configuredClassesError) throw configuredClassesError;
         const validCompetitionClasses = new Set((configuredClasses || []).map((item: any) => String(item.name || "").trim()));
@@ -1026,7 +1110,13 @@ async function handle(req: Request) {
     }
   }
   if (body?.action === "reports") {
-    const permissions = await permissionsFor(p);
+    let permissions = await permissionsFor(p);
+    const targetName = String(body.supervision_teacher_name || "").trim();
+    if (targetName) {
+      const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, targetName, permissions.team_members || [], permissions.teacher_directory || []);
+      if (!target) return reply(403, { error: "لا تملك صلاحية الاطلاع على تقارير هذا المعلم." });
+      permissions = projectSupervisionReportPermissions(permissions, target, permissions.role === "visitor" || permissions.role === "admin");
+    }
     const allowedAttendance = new Set((permissions.allowed_attendance_classes || []) as string[]);
     const allowedBehavior = new Set((permissions.allowed_behavior_classes || []) as string[]);
     const legacyRequested = Array.isArray(body.classes) ? Array.from(new Set((body.classes as unknown[]).map(String))) : null;
