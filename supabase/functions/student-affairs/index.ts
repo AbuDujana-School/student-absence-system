@@ -913,6 +913,7 @@ async function handle(req: Request) {
       if (!matchedLeader) return reply(400, { error: "اختر رئيس فريق مفعّلاً من القائمة قبل ربط المعلم المشرف." });
       supervisionLeaderName = String(matchedLeader.name);
       supervisionTeam = String(matchedLeader.permissions.student_affairs_team_name || "").trim();
+      if (body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للمعلم المشرف المرتبط برئيس الفريق." });
     }
     if (type === "teacher" && supervisionRole !== "supervisor") supervisionLeaderName = "";
     if (type === "teacher" && supervisionRole === "visitor" && supervisionTeam) return reply(400, { error: "المعلم الزائر لا يُربط بفريق إشراف" });
