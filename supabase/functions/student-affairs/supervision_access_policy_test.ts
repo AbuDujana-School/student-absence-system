@@ -1,5 +1,6 @@
 import { assertEquals } from "https://deno.land/std@0.224.0/assert/mod.ts";
 import {
+  applyTeamLeaderNoticePrintAccess,
   buildVisitorAccess,
   isDirectSupervisionMember,
   projectSupervisionReportPermissions,
@@ -95,4 +96,20 @@ Deno.test("legacy supervisors retain team-name matching until explicitly linked"
   if (isDirectSupervisionMember(legacy, "Leader B", "فريق آخر")) {
     throw new Error("legacy supervisor must not appear in an unrelated team");
   }
+});
+
+
+Deno.test("team leader receives notice-only print access for a resolved team member", () => {
+  const base = { role: "team_leader", can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
+  const scoped = applyTeamLeaderNoticePrintAccess(base, "team_leader", colleague, "notice_issue_commit");
+  assertEquals(scoped.can_print_attendance, true);
+  assertEquals(scoped.can_print_behavior, true);
+  assertEquals(scoped.can_print_combined, true);
+});
+
+Deno.test("team leader notice print grant does not expand ordinary report permissions", () => {
+  const base = { role: "team_leader", can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
+  assertEquals(applyTeamLeaderNoticePrintAccess(base, "team_leader", colleague, "print_attendance"), base);
+  assertEquals(applyTeamLeaderNoticePrintAccess(base, "supervisor", colleague, "notice_issue_commit"), base);
+  assertEquals(applyTeamLeaderNoticePrintAccess(base, "team_leader", null, "notice_issue_commit"), base);
 });

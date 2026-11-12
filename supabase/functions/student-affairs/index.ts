@@ -3,7 +3,7 @@ import { buildNoticeCandidates, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, 
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
-import { buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
+import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
 import {
   resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
   type AppLoginCandidate, type AppPrincipal,
@@ -1195,6 +1195,7 @@ async function handle(req: Request) {
       const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, targetName, permissions.team_members || [], permissions.teacher_directory || []);
       if (!target) return reply(403, { error: "لا تملك صلاحية الاطلاع على تقارير هذا المعلم." });
       permissions = projectSupervisionReportPermissions(permissions, target, permissions.role === "visitor" || permissions.role === "admin");
+      permissions = applyTeamLeaderNoticePrintAccess(permissions, permissions.role, target, String(body.report_mode || "view"));
     }
     const allowedAttendance = new Set((permissions.allowed_attendance_classes || []) as string[]);
     const allowedBehavior = new Set((permissions.allowed_behavior_classes || []) as string[]);

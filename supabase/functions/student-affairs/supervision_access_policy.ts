@@ -89,6 +89,28 @@ export function resolveTeamLeader(selectedName: string, targetName: string, lead
   return leaders.find((leader) => leader.name === name && leader.role === "team_leader" && leader.studentAffairs === true && String(leader.teamName || "").trim()) || null;
 }
 
+/**
+ * Team leaders may print notices for a directly resolved team member.
+ * This grant is deliberately limited to notice workflows; ordinary reports
+ * continue to honor the member's own print permissions.
+ */
+export function applyTeamLeaderNoticePrintAccess<T extends Record<string, any>>(
+  permissions: T,
+  viewerRole: string,
+  target: SupervisionTeacher | null,
+  mode: string,
+): T {
+  if (viewerRole !== "team_leader" || !target || !["notice_scan", "notice_history", "notice_issue_commit"].includes(mode)) {
+    return permissions;
+  }
+  return {
+    ...permissions,
+    can_print_attendance: true,
+    can_print_behavior: true,
+    can_print_combined: true,
+  };
+}
+
 /** Projects an authorized colleague's report scope without changing the viewer's own assignments. */
 export function projectSupervisionReportPermissions<T extends Record<string, any>>(
   base: T,
