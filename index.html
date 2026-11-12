@@ -3298,6 +3298,13 @@ function saNoticeDateLabel(value){
   const date=String(value||"").trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(date)?date.replace(/-/g,"/"):"";
 }
+function saNoticeResolveStudentName(className,rawName){
+  const original=String(rawName||"").trim();
+  const normalize=value=>String(value||"").trim().replace(/\s+/g," ");
+  const roster=Array.isArray(db?.students?.[className])?db.students[className]:[];
+  const match=roster.find(name=>normalize(name)===normalize(original));
+  return match?String(match).trim():original;
+}
 function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedStatuses){
   const students=new Map(),seenAbsence=new Set(),seenEvents=new Set(),validAttendance=new Set(["absent","late","escape","outside"]);
   let ignored=0;
@@ -3326,7 +3333,7 @@ function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedS
     if(!className)return;
     const records=session?.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([rawName,rawValue])=>{
-      const name=String(rawName||"").trim();
+      const name=saNoticeResolveStudentName(className,rawName);
       if(!name||name==="undefined"||name==="null"){ignored++;return;}
       const status=typeof rawValue==="string"?rawValue:String(rawValue?.status||rawValue?.type||"");
       if(!validAttendance.has(status)||!allowedStatuses.includes(status))return;
