@@ -400,8 +400,9 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
       finalizedAt: latestAttempt.finalized_at, pendingWeek: null
     }, principal, permissions);
   }
+  const firstVisibleWeek = latestClosedWeekStart < currentTerm.start ? currentTerm.start : latestClosedWeekStart;
   return {
-    from: latestClosedWeekStart, to: shiftCompetitionDate(latestClosedWeekStart, 4), today,
+    from: firstVisibleWeek, to: shiftCompetitionDate(firstVisibleWeek, 4), today,
     period: "weekly", status: "awaiting_first_result", finalizedAt: null, pendingWeek: null,
     teams: [], ownGrades: [], ownClasses: [], classComparison: [],
     weeklyWins: {}, weeklyPoints: {}, weeklyHistory: [], completedWeeks: 0
