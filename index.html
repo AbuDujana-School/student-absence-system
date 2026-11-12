@@ -4061,6 +4061,8 @@ async function checkAndEnforcePinChange() {
 }
 async function checkAndEnforceAdminPinChange() {
   if (!activeUser || activeUser.type !== 'admin') return false;
+  // Cloudflare Preview uses an isolated demo admin PIN; never force a PIN change there.
+  if (IS_CLOUDFLARE_PREVIEW) return false;
   const isDefault = await verifyPinAgainstRecord('1234', db.adminPin);
   if (!isDefault) return false;
   const modal = document.getElementById('forceAdminPinModal');
