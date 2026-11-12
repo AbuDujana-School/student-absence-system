@@ -3735,9 +3735,10 @@ function saOpenNoticeModal(){
   select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
   document.getElementById("saNoticeThreshold").value="2";
   const today=getOmanLocalDate();
+  // Default scan window starts on 08 Nov 2026; issue/end dates follow the Oman-local day of printing.
   document.getElementById("saNoticeDate").value=today;
   document.getElementById("saNoticeToDate").value=today;
-  document.getElementById("saNoticeFromDate").value="2000-01-01";
+  document.getElementById("saNoticeFromDate").value="2026-11-08";
   document.getElementById("saNoticeFromDate").max=today;
   document.getElementById("saNoticeToDate").max=today;
   document.getElementById("saNoticeDate").max=today;
