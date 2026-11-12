@@ -1278,7 +1278,7 @@
       </div>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope,document.getElementById('saSupervisionTeacherSelect')?.value||'')" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope,document.getElementById('saSupervisionTeacherSelect')?.value||'')" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
       <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="اتجاه الغياب والسلوكيات للصفوف المشرف عليها"></canvas></div>
-      <div class="flex flex-wrap gap-2 text-[10px] font-bold"><span class="rounded-lg bg-teal-50 px-2 py-1 text-teal-800">السلوكيات · مساحة</span><span class="rounded-lg bg-slate-100 px-2 py-1 text-slate-800">الغياب</span><span class="rounded-lg bg-red-50 px-2 py-1 text-red-700">التسرب</span><span class="rounded-lg bg-amber-50 px-2 py-1 text-amber-700">التأخر</span><span class="rounded-lg bg-purple-50 px-2 py-1 text-purple-700">الخروج</span></div>
+      <div class="flex flex-wrap gap-2 text-[10px] font-bold"><span class="rounded-lg bg-teal-50 px-2 py-1 text-teal-800">السلوكيات · جبال سفلية</span><span class="rounded-lg bg-slate-100 px-2 py-1 text-slate-900">الغياب</span><span class="rounded-lg bg-violet-50 px-2 py-1 text-violet-700">التسرب</span><span class="rounded-lg bg-amber-50 px-2 py-1 text-amber-700">التأخر</span><span class="rounded-lg bg-blue-50 px-2 py-1 text-blue-700">الخروج</span></div>
     </section>
     <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
       <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
@@ -2445,19 +2445,27 @@ async function saLoadSupervisionTrend(scope="own",teacherName=""){
     const canvas=document.getElementById("saSupervisionTrendChart");if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}
     if(canvas&&typeof Chart!=="undefined"){
       const ctx=canvas.getContext("2d");
-      const behaviorGradient=ctx.createLinearGradient(0,0,0,Math.max(canvas.clientHeight||320,220));
-      behaviorGradient.addColorStop(0,"rgba(22,140,133,.42)");
-      behaviorGradient.addColorStop(.55,"rgba(22,140,133,.17)");
-      behaviorGradient.addColorStop(1,"rgba(22,140,133,0)");
-      const line=(label,key,color)=>({label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,borderWidth:2.5,tension:.3,pointRadius:2.5,pointHoverRadius:6,pointBackgroundColor:"#fff",pointBorderColor:color,pointBorderWidth:2,fill:false,order:1});
+      const behaviorValues=rows.map(r=>Number(r.behavior||0));
+      const attendanceValues=["absent","escape","late","outside"].flatMap(key=>rows.map(r=>Number(r[key]||0)));
+      const maxBehavior=Math.max(1,...behaviorValues);
+      const maxAttendance=Math.max(1,...attendanceValues);
+      // Keep the behavior mountain in the lower band and the four status lines in the upper band.
+      const behaviorMax=Math.max(2,maxBehavior/0.34);
+      const attendanceMin=-maxAttendance*1.4;
+      const attendanceMax=Math.max(2,maxAttendance*1.2);
+      const behaviorGradient=ctx.createLinearGradient(0,canvas.clientHeight||320,0,0);
+      behaviorGradient.addColorStop(0,"rgba(22,140,133,.015)");
+      behaviorGradient.addColorStop(.35,"rgba(22,140,133,.10)");
+      behaviorGradient.addColorStop(1,"rgba(22,140,133,.24)");
+      const line=(label,key,color)=>({label,data:rows.map(r=>Number(r[key]||0)),yAxisID:"yAttendance",borderColor:color,backgroundColor:color,borderWidth:2.6,tension:.3,pointRadius:2.5,pointHoverRadius:6,pointBackgroundColor:"#fff",pointBorderColor:color,pointBorderWidth:2,fill:false,order:1});
       const datasets=[
-        {label:"السلوكيات المخالفة",data:rows.map(r=>Number(r.behavior||0)),borderColor:"#168C85",backgroundColor:behaviorGradient,borderWidth:2.5,tension:.4,pointRadius:2,pointHoverRadius:6,pointBackgroundColor:"#168C85",pointBorderColor:"#fff",pointBorderWidth:1.5,fill:true,order:10},
+        {label:"السلوكيات المخالفة",data:behaviorValues,yAxisID:"yBehavior",borderColor:"#168C85",backgroundColor:behaviorGradient,borderWidth:2.2,tension:.42,pointRadius:1.5,pointHoverRadius:5,pointBackgroundColor:"#168C85",pointBorderColor:"#fff",pointBorderWidth:1.2,fill:true,order:10},
         line("الغياب","absent","#0f172a"),
-        line("التسرب","escape","#dc2626"),
+        line("التسرب","escape","#8b5cf6"),
         line("التأخر","late","#f59e0b"),
-        line("الخروج","outside","#9333ea")
+        line("الخروج","outside","#3b82f6")
       ];
-      saSupervisionTrendChart=new Chart(ctx,{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:true,position:"bottom",labels:{usePointStyle:true,boxWidth:8,padding:12,font:{family:"Tajawal",size:10}}},tooltip:{mode:"index",intersect:false,titleFont:{family:"Tajawal"},bodyFont:{family:"Tajawal"},padding:10}},scales:{y:{beginAtZero:true,ticks:{precision:0,font:{family:"Tajawal",size:10}},grid:{color:"rgba(148,163,184,.16)"}},x:{ticks:{font:{family:"Tajawal",size:9},maxRotation:45,autoSkip:true},grid:{display:false}}}}});
+      saSupervisionTrendChart=new Chart(ctx,{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{display:true,position:"bottom",labels:{usePointStyle:true,boxWidth:8,padding:12,font:{family:"Tajawal",size:10}}},tooltip:{mode:"index",intersect:false,titleFont:{family:"Tajawal"},bodyFont:{family:"Tajawal"},padding:10,callbacks:{label:context=>context.dataset.label+": "+context.parsed.y}}},scales:{yBehavior:{type:"linear",position:"left",min:0,max:behaviorMax,display:false,grid:{drawOnChartArea:false}},yAttendance:{type:"linear",position:"right",min:attendanceMin,max:attendanceMax,display:false,grid:{drawOnChartArea:false}},x:{ticks:{font:{family:"Tajawal",size:9},maxRotation:45,autoSkip:true},grid:{display:false}}}}});
     }
     if(status){status.textContent="عدد الصفوف المشمولة: "+Number(d.class_count||0)+" · الفترة: "+from+" إلى "+to+(rows.length?"":" · لا توجد مشكلات مسجلة في هذه الفترة.");status.classList.remove("hidden");}
     document.getElementById("saSupervisionOwnBtn")?.classList.toggle("bg-blue-700",scope==="own");document.getElementById("saSupervisionOwnBtn")?.classList.toggle("text-white",scope==="own");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("bg-blue-700",scope==="team");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("text-white",scope==="team");
