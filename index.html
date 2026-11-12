@@ -2620,7 +2620,7 @@ function saCompetitionGetApprovedWeeks(term,today,now){
     candidates.push({start:next,end:normalEnd>term.end?term.end:normalEnd});
     next=saDateShift(next,7);
   }
-  return candidates.filter(week=>cutoffReached(week.end)||(week.end===term.end&&date>=term.end))
+  return candidates.filter(week=>cutoffReached(week.end))
     .map((week,index)=>({index,start:week.start,end:week.end,approved:true}));
 }
 function saCompetitionGrade(className){
