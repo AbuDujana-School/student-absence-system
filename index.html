@@ -3383,10 +3383,17 @@ function saNoticeBuildPages(students){
   const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)??999)-(classOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
   const pages=[];let cursor=0;
   while(cursor<ordered.length){
-    const level=saNoticeClassifyCard(ordered[cursor]),limit=level==="compact"?3:level==="medium"?2:1;
-    const pageItems=[];
-    while(cursor<ordered.length&&pageItems.length<limit&&saNoticeClassifyCard(ordered[cursor])===level){pageItems.push(ordered[cursor]);cursor++;}
-    pages.push({level,items:pageItems});
+    const firstLevel=saNoticeClassifyCard(ordered[cursor]);
+    let limit=firstLevel==="compact"?3:firstLevel==="medium"?2:1;
+    const pageItems=[ordered[cursor++]];
+    while(cursor<ordered.length&&pageItems.length<limit){
+      const nextLevel=saNoticeClassifyCard(ordered[cursor]);
+      if(nextLevel==="full")break;
+      if(nextLevel==="medium")limit=Math.min(limit,2);
+      if(pageItems.length>=limit)break;
+      pageItems.push(ordered[cursor++]);
+    }
+    pages.push({level:firstLevel,items:pageItems});
   }
   return pages;
 }
