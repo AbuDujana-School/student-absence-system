@@ -75,10 +75,10 @@ export function projectSupervisionReportPermissions<T extends Record<string, any
     attendance_statuses: visitor ? [...ALL_ATTENDANCE_STATUSES] : statuses,
     can_read_attendance: true,
     can_read_behavior: true,
-    can_view_analytics: base.can_view_analytics === true || visitor,
-    can_print_attendance: visitor,
-    can_print_behavior: visitor,
-    can_print_combined: visitor,
+    can_view_analytics: target.can_view_analytics === true || base.can_view_analytics === true || visitor,
+    can_print_attendance: visitor || target.can_print_attendance === true,
+    can_print_behavior: visitor || target.can_print_behavior === true,
+    can_print_combined: visitor || target.can_print_combined === true,
     supervision_teacher_name: target.name,
   };
 }
