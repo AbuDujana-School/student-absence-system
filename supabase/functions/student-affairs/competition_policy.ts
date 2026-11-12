@@ -58,7 +58,7 @@ function periodIdentity(row: CompetitionRow, fallbackIndex: number): string {
   return parsed ? "p" + parsed : "row" + fallbackIndex;
 }
 function attendanceIncidentKey(row: CompetitionRow, index: number, date: string, cls: string, student: string, status: string): string {
-  // Absence and lateness retain daily deduplication; escape is counted per period.
+  // Absence, lateness and outside status retain daily deduplication; escape is counted per period.
   return status === "escape"
     ? [cls, date, student, status, periodIdentity(row, index)].join("\u001f")
     : [cls, date, student, status].join("\u001f");
