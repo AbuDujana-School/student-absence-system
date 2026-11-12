@@ -1078,6 +1078,70 @@
       padding: 10px 8px;
     }
   }
+
+<style id="combined-summary-breakdown-cards">
+  .combined-summary .combined-summary-breakdown {
+    display: grid !important; grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px; margin-top: 12px; align-items: stretch; min-width: 0;
+  }
+  .combined-summary .summary-category-chip {
+    box-sizing: border-box; display: flex !important; flex-direction: column;
+    align-items: center; justify-content: center; gap: 7px; min-width: 0;
+    min-height: 76px; padding: 11px 8px; border: 1px solid #dce6ee;
+    border-radius: 14px; background: linear-gradient(145deg,#fff,#f6f9fc);
+    box-shadow: 0 5px 14px -12px rgba(24,54,83,.55); text-align: center;
+    white-space: normal; overflow-wrap: anywhere;
+    transition: transform .18s ease, box-shadow .18s ease;
+  }
+  .combined-summary .summary-category-chip span {
+    display: block; max-width: 100%; color: #526579; font-size: 11px;
+    font-weight: 800; line-height: 1.4; overflow-wrap: anywhere;
+  }
+  .combined-summary .summary-category-chip b {
+    display: block; color: #183653; font-size: 22px; font-weight: 900;
+    line-height: 1.1; font-variant-numeric: tabular-nums;
+  }
+  .combined-summary .summary-category-chip.summary-att-absent { background:#edf5ff; border-color:#c8dcf4; }
+  .combined-summary .summary-category-chip.summary-att-escape { background:#fff0f1; border-color:#f4cbd0; }
+  .combined-summary .summary-category-chip.summary-att-late { background:#fff8e7; border-color:#f1dfad; }
+  .combined-summary .summary-category-chip.summary-att-outside { background:#f3efff; border-color:#dcd0fa; }
+  .combined-summary .summary-category-chip.summary-beh-eating { background:#fff8e7; border-color:#f1dfad; }
+  .combined-summary .summary-category-chip.summary-beh-talking { background:#fff2e8; border-color:#f2d5bd; }
+  .combined-summary .summary-category-chip.summary-beh-tools { background:#fffde8; border-color:#eee8b4; }
+  .combined-summary .summary-category-chip.summary-beh-chaos { background:#fff0f1; border-color:#f4cbd0; }
+  .combined-summary .summary-category-chip.summary-beh-sleeping { background:#f0f2ff; border-color:#d4d9f5; }
+  .combined-summary .summary-category-chip.summary-beh-homework { background:#edf5ff; border-color:#c8dcf4; }
+  .combined-summary .summary-category-chip.summary-beh-other { background:#fff0f1; border-color:#f4cbd0; }
+  .combined-summary .summary-category-chip:hover { transform:translateY(-2px); box-shadow:0 9px 18px -13px rgba(24,54,83,.45); }
+  .dark .combined-summary .summary-category-chip { border-color:#2a4055; background:linear-gradient(145deg,#172b40,#112235); }
+  .dark .combined-summary .summary-category-chip span { color:#b9c9d8; }
+  .dark .combined-summary .summary-category-chip b { color:#f1f6fb; }
+  .dark .combined-summary .summary-category-chip.summary-att-absent,
+  .dark .combined-summary .summary-category-chip.summary-beh-homework { background:#172f49; border-color:#315474; }
+  .dark .combined-summary .summary-category-chip.summary-att-escape,
+  .dark .combined-summary .summary-category-chip.summary-beh-chaos,
+  .dark .combined-summary .summary-category-chip.summary-beh-other { background:#382532; border-color:#70414d; }
+  .dark .combined-summary .summary-category-chip.summary-att-late,
+  .dark .combined-summary .summary-category-chip.summary-beh-eating,
+  .dark .combined-summary .summary-category-chip.summary-beh-tools { background:#382f20; border-color:#6c5931; }
+  .dark .combined-summary .summary-category-chip.summary-att-outside,
+  .dark .combined-summary .summary-category-chip.summary-beh-sleeping { background:#292844; border-color:#4a4777; }
+  .dark .combined-summary .summary-category-chip.summary-beh-talking { background:#3a2b23; border-color:#70503d; }
+  @media (max-width:900px) {
+    .combined-summary .combined-summary-breakdown { grid-template-columns:repeat(3,minmax(0,1fr)); gap:9px; }
+  }
+  @media (max-width:520px) {
+    .combined-summary .combined-summary-breakdown { grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; }
+    .combined-summary .summary-category-chip { min-height:70px; padding:9px 7px; border-radius:12px; }
+    .combined-summary .summary-category-chip span { font-size:10.5px; }
+    .combined-summary .summary-category-chip b { font-size:21px; }
+  }
+  @media (prefers-reduced-motion:reduce) {
+    .combined-summary .summary-category-chip { transition:none; }
+    .combined-summary .summary-category-chip:hover { transform:none; }
+  }
+</style>
+
 </style>
 
 </head>
