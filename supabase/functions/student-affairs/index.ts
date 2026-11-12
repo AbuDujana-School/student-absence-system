@@ -1338,7 +1338,37 @@ async function handle(req: Request) {
     const wantsBehavior = mode === "notice_scan" ? requestedBehavior.length > 0 : mode === "view" || mode === "print_behavior" || mode === "print_combined";
     if (wantsAttendance && requestedAttendance.length && (permissions.can_read_attendance !== true || (mode === "notice_scan" && permissions.can_print_attendance !== true))) return reply(403, { error: "غير مصرح بفحص سجلات الغياب المحددة" });
     if (wantsBehavior && requestedBehavior.length && (permissions.can_read_behavior !== true || (mode === "notice_scan" && permissions.can_print_behavior !== true))) return reply(403, { error: "غير مصرح بفحص سجلات السلوك المحددة" });
-    const filterAttendance = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatuses) })).filter(row => Object.keys(row.records).length > 0);
+    const filterAttendance = (rows: any[]) => {
+      const filtered = (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatuses) }))
+        .filter(row => Object.keys(row.records).length > 0);
+      // Student Affairs presents daily absence once only: keep the absent mark
+      // in the earliest lesson of that class/date and hide repeated marks in
+      // later lessons. This is a response-only projection; stored attendance
+      // records and all other application sections remain unchanged.
+      const seenDailyAbsences = new Set<string>();
+      const periodOrder = (value: unknown) => {
+        const match = String(value ?? "").match(/\d+/);
+        return match ? Number(match[0]) : Number.MAX_SAFE_INTEGER;
+      };
+      const ordered = [...filtered].sort((a, b) =>
+        String(b.date_str || "").localeCompare(String(a.date_str || "")) ||
+        String(a.class_name || "").localeCompare(String(b.class_name || "")) ||
+        periodOrder(a.period) - periodOrder(b.period) ||
+        String(a.record_key || "").localeCompare(String(b.record_key || ""))
+      );
+      return ordered.map(row => {
+        const records = { ...row.records };
+        for (const [student, value] of Object.entries(records)) {
+          const status = typeof value === "string" ? value
+            : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
+          if (status !== "absent") continue;
+          const dailyKey = [String(row.class_name || ""), String(student), String(row.date_str || "")].join("\u001f");
+          if (seenDailyAbsences.has(dailyKey)) delete records[student];
+          else seenDailyAbsences.add(dailyKey);
+        }
+        return { ...row, records };
+      }).filter(row => Object.keys(row.records).length > 0);
+    };
     const filterBehavior = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterBehaviorRecordMap(row.records) })).filter(row => Object.keys(row.records).length > 0);
     const [attendance, behaviors] = await Promise.all([
       wantsAttendance && permissions.can_read_attendance && requestedAttendance.length
