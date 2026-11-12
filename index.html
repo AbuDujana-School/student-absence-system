@@ -1350,11 +1350,19 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
         <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب مستوى الأداء</h4><p class="mt-1 text-[11px] text-slate-500">تظهر المراكز الثلاثة الأولى، ويمكن اختيار أي معلم من بقية المراكز لعرض تفاصيله ونقاطه فقط.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
-        <section id="saCompetitionOtherRanksSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-users ml-1 text-teal-600"></i> بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">اختر اسم المعلم لعرض مستوى أدائه ونقاطه والفصول التي يشرف عليها.</p></div>
-          <div class="space-y-3 p-4"><label for="saCompetitionTeacherSelect" class="block text-xs font-black text-slate-700 dark:text-slate-200">اسم المعلم
-              <select id="saCompetitionTeacherSelect" onchange="saRenderSelectedCompetitionTeacher(this.value)" class="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white"><option value="">اختر معلماً لعرض تفاصيله</option></select>
-            </label><div id="saCompetitionSelectedTeacherDetails" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950">اختر اسم المعلم من القائمة لعرض تفاصيله.</div></div>
+        <section id="saCompetitionOtherRanksSection" class="hidden">
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <button id="saCompetitionTeacherDropdownToggle" type="button" aria-expanded="false" aria-controls="saCompetitionTeacherDropdownPanel" onclick="saToggleCompetitionTeacherDropdown()" class="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-right transition hover:bg-slate-50 dark:hover:bg-slate-800">
+              <span class="flex min-w-0 items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300"><i class="fa-solid fa-users text-lg"></i></span><span><span class="block text-sm font-black text-slate-800 dark:text-white">بقية المراكز</span><span class="mt-0.5 block text-[10px] text-slate-500">اضغط لاختيار معلم وعرض تفاصيله فقط</span></span></span>
+              <span class="flex shrink-0 items-center gap-2"><span id="saCompetitionOtherRanksCount" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300"></span><i id="saCompetitionTeacherDropdownChevron" class="fa-solid fa-chevron-down text-xs text-slate-500 transition-transform"></i></span>
+            </button>
+            <div id="saCompetitionTeacherDropdownPanel" class="hidden border-t border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+              <label for="saCompetitionTeacherSelect" class="block text-xs font-black text-slate-700 dark:text-slate-200">اختر اسم المعلم
+                <select id="saCompetitionTeacherSelect" onchange="saRenderSelectedCompetitionTeacher(this.value)" class="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white"><option value="">اختر معلماً لعرض تفاصيله</option></select>
+              </label>
+            </div>
+          </div>
+          <div id="saCompetitionSelectedTeacherDetails" class="hidden mt-3" aria-live="polite"></div>
         </section>
 <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
       </div>
@@ -2665,17 +2673,30 @@ async function saLoadCompetition(){
     const details=document.getElementById("saCompetitionSelectedTeacherDetails");if(details)details.innerHTML="";
   }
 }
+function saToggleCompetitionTeacherDropdown(){
+  const panel=document.getElementById("saCompetitionTeacherDropdownPanel");
+  const button=document.getElementById("saCompetitionTeacherDropdownToggle");
+  const chevron=document.getElementById("saCompetitionTeacherDropdownChevron");
+  if(!panel||!button)return;
+  const opening=panel.classList.contains("hidden");
+  panel.classList.toggle("hidden",!opening);
+  button.setAttribute("aria-expanded",String(opening));
+  chevron?.classList.toggle("rotate-180",opening);
+}
 function saRenderSelectedCompetitionTeacher(teamId){
-  saCompetitionSelectedTeacherId=String(teamId||"");
   const container=document.getElementById("saCompetitionSelectedTeacherDetails"),data=saCompetitionData;
   if(!container)return;
-  const team=(Array.isArray(data?.teams)?data.teams:[]).find(item=>String(item.teamId)===saCompetitionSelectedTeacherId&&Number(item.rank)>3);
-  if(!team||data?.status!=="approved"){container.innerHTML="اختر اسم المعلم من القائمة لعرض تفاصيله.";return;}
-  const period=data.period||"weekly",pointsBefore=Number(data?.weeklyPoints?.[team.teamId]||0),award=period==="term"?null:Number(team.weeklyAwardPoints||0),points=period==="term"?pointsBefore:pointsBefore+(award||0);
+  const team=(Array.isArray(data?.teams)?data.teams:[]).find(item=>String(item.teamId)===String(teamId||""));
+  if(!team||data?.status!=="approved"){container.innerHTML="";container.classList.add("hidden");return;}
+  const period=data.period||"weekly",points=Number(data?.weeklyPoints?.[team.teamId]||0),award=period==="term"?null:Number(team.weeklyAwardPoints||0);
   const wins=Number(data?.weeklyWins?.[team.teamId]??team.weeklyWins??0),classes=Array.isArray(team.classNames)?team.classNames:[];
   const awardLabel=period==="weekly"?"النقاط التي اكتسبها هذا الأسبوع":"نقاط حصاد الأسابيع الأربعة";
-  const totalLabel="رصيد النقاط التراكمي حتى هذه النتيجة";
+  const totalLabel=period==="weekly"?"الرصيد التراكمي قبل نتيجة هذا الأسبوع":period==="monthly"?"الرصيد التراكمي قبل دورة الأسابيع الأربعة":"رصيد النقاط التراكمي في هذا الفصل";
   container.innerHTML='<article class="overflow-hidden rounded-2xl border border-teal-200 bg-white shadow-sm dark:border-teal-900 dark:bg-slate-900"><div class="flex items-center justify-between gap-3 bg-teal-50 px-4 py-3 dark:bg-teal-950/40"><div><div class="text-[10px] font-bold text-teal-700 dark:text-teal-300">تفاصيل المعلم المحدد</div><h4 class="mt-1 text-base font-black text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||team.teacherName||"")+'</h4></div><span class="rounded-xl bg-white px-3 py-2 text-xs font-black text-teal-800 dark:bg-slate-800 dark:text-teal-200">المركز '+Number(team.rank)+'</span></div><div class="space-y-3 p-4"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-xs text-slate-500">الفريق</span><b class="text-xs font-black text-slate-800 dark:text-slate-100">'+escapeHtml(team.teamName||"—")+'</b></div><div><div class="mb-2 text-xs font-black text-slate-600 dark:text-slate-300">الفصول التي يشرف عليها</div><div class="flex flex-wrap gap-2">'+(classes.length?classes.map(cls=>'<span class="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(formatClassName(cls))+'</span>').join(""):'<span class="text-xs text-slate-400">لا توجد فصول مسندة</span>')+'</div></div><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">مستوى الأداء</div><div class="mt-1 text-3xl font-black tabular-nums text-teal-700 dark:text-teal-300">'+(team.score==null?"—":Number(team.score).toFixed(1)+"%")+'</div></div>'+(award!==null?'<div class="rounded-xl bg-amber-50 p-4 text-center dark:bg-amber-950/30"><div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">'+awardLabel+'</div><div class="mt-1 text-2xl font-black tabular-nums text-amber-700 dark:text-amber-300">'+award+' نقطة</div></div>':"")+'<div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">'+totalLabel+'</div><div class="mt-1 text-2xl font-black tabular-nums text-slate-800 dark:text-white">'+points+' نقطة</div></div><div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">مرات الحصول على المركز الأول</div><div class="mt-1 text-2xl font-black tabular-nums text-slate-800 dark:text-white">'+wins+'</div></div></div></div></article>';
+  container.classList.remove("hidden");
+  document.getElementById("saCompetitionTeacherDropdownPanel")?.classList.add("hidden");
+  document.getElementById("saCompetitionTeacherDropdownToggle")?.setAttribute("aria-expanded","false");
+  document.getElementById("saCompetitionTeacherDropdownChevron")?.classList.remove("rotate-180");
 }
 function saRenderCompetition(data){
   const status=document.getElementById("saCompetitionStatus");
@@ -2722,9 +2743,17 @@ function saRenderCompetition(data){
   if(teacherSelect){
     const previous=saCompetitionSelectedTeacherId;
     teacherSelect.innerHTML='<option value="">اختر معلماً لعرض تفاصيله</option>'+other.map(team=>'<option value="'+escapeHtml(team.teamId)+'">'+escapeHtml(team.leaderName||team.teacherName||"معلم")+' · المركز '+Number(team.rank)+'</option>').join("");
-    saCompetitionSelectedTeacherId=other.some(team=>team.teamId===previous)?previous:"";
+    saCompetitionSelectedTeacherId=other.some(team=>String(team.teamId)===String(previous))?previous:"";
     teacherSelect.value=saCompetitionSelectedTeacherId;
   }
+  const count=document.getElementById("saCompetitionOtherRanksCount");
+  if(count)count.textContent=other.length+" معلم";
+  const dropdown=document.getElementById("saCompetitionTeacherDropdownPanel");
+  const toggle=document.getElementById("saCompetitionTeacherDropdownToggle");
+  const chevron=document.getElementById("saCompetitionTeacherDropdownChevron");
+  dropdown?.classList.add("hidden");
+  toggle?.setAttribute("aria-expanded","false");
+  chevron?.classList.remove("rotate-180");
   saRenderSelectedCompetitionTeacher(saCompetitionSelectedTeacherId);
 }
 async function openStudentAffairsAssignments(){
