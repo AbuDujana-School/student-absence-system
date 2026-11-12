@@ -1680,6 +1680,114 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 }
 </style>
 
+<style id="sa-notice-times-new-roman-smart-spacing">
+/* Final print typography and measured smart-spacing override. */
+#saNoticePrintRoot,
+#saNoticePrintRoot .sa-notice-page,
+#saNoticePrintRoot .sa-notice-card,
+#saNoticePrintRoot .sa-notice-card * {
+  font-family:"Times New Roman",Times,serif!important;
+}
+#saNoticePrintRoot .sa-notice-card {
+  box-sizing:border-box!important;
+  font-size:12pt!important;
+  line-height:1.35!important;
+  overflow:visible!important;
+  min-width:0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-heading,
+#saNoticePrintRoot .sa-notice-card .notice-title,
+#saNoticePrintRoot .sa-notice-card .notice-meta,
+#saNoticePrintRoot .sa-notice-card .notice-intro,
+#saNoticePrintRoot .sa-notice-card .notice-items,
+#saNoticePrintRoot .sa-notice-card .notice-items li,
+#saNoticePrintRoot .sa-notice-card .notice-conclusion,
+#saNoticePrintRoot .sa-notice-card .notice-signatures {
+  font-size:1em!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-items li {
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+  white-space:normal!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+#saNoticePrintRoot .sa-notice-card.fit-tight .notice-items li {
+  line-height:var(--notice-line-height,1.18)!important;
+}
+#saNoticePrintRoot .sa-notice-cutline {
+  flex:0 0 0!important;
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+@media print {
+  @page { size:A4 portrait; margin:5mm; }
+  html,body { margin:0!important;padding:0!important;background:#fff!important; }
+  #saNoticePrintRoot { width:100%!important;margin:0!important;padding:0!important; }
+  #saNoticePrintRoot .sa-notice-page {
+    box-sizing:border-box!important;
+    width:100%!important;
+    height:287mm!important;
+    min-height:287mm!important;
+    max-height:287mm!important;
+    margin:0!important;
+    padding:0!important;
+    gap:1.4mm!important;
+    overflow:visible!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+  #saNoticePrintRoot .sa-notice-page:last-child {
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  #saNoticePrintRoot .sa-notice-card {
+    flex:1 1 0!important;
+    min-height:0!important;
+    max-height:none!important;
+    padding:var(--notice-card-pad,2.6mm) 2.2mm!important;
+    overflow:visible!important;
+    border:1px solid #c4c9cf!important;
+    border-radius:1.5mm!important;
+    color:#111!important;
+    background:#fff!important;
+    -webkit-print-color-adjust:exact!important;
+    print-color-adjust:exact!important;
+  }
+  #saNoticePrintRoot .sa-notice-card .notice-heading {
+    line-height:1.2!important;
+    padding:1mm!important;
+    margin:0 0 1mm!important;
+    background:#f3f3f3!important;
+    color:#111!important;
+  }
+  #saNoticePrintRoot .sa-notice-card .notice-intro,
+  #saNoticePrintRoot .sa-notice-card .notice-conclusion {
+    line-height:var(--notice-line-height,1.35)!important;
+    margin:var(--notice-block-gap,1.15mm) 0!important;
+  }
+  #saNoticePrintRoot .sa-notice-card .notice-items {
+    min-height:0!important;
+    overflow:visible!important;
+    padding-right:3mm!important;
+  }
+  #saNoticePrintRoot .sa-notice-card .notice-items li {
+    line-height:var(--notice-line-height,1.35)!important;
+    margin:var(--notice-item-gap,1.25mm) 0!important;
+  }
+  #saNoticePrintRoot .sa-notice-card .notice-signatures {
+    margin-top:var(--notice-block-gap,1.15mm)!important;
+    padding-top:1mm!important;
+    line-height:1.2!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  #saNoticePrintRoot .sa-notice-cutline {
+    border-top:1px dashed #b8bec5!important;
+    margin:.6mm 0!important;
+  }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -4169,17 +4277,16 @@ function saNoticeFitCards(){
     const eventCount=Number(card.querySelectorAll(".notice-items li").length)||1;
     const textLength=(card.querySelector(".notice-items")?.innerText||"").length;
     const density=Math.max(eventCount,textLength/95);
-    // Start with a genuinely readable type size; only compress when measured content requires it.
-    let baseFont=10.4;
-    if(density>8)baseFont=9.9;
-    if(density>12)baseFont=9.4;
-    if(density>18)baseFont=8.9;
+    // Times New Roman 12pt is the starting point for every notice.
+    // Fit is measured from rendered DOM dimensions; spacing is compressed before
+    // font size, and page capacity is reduced only if a card still cannot fit.
+    const baseFont=12;
     const levels=[
-      {shrink:0,line:1.46,item:1.35,block:1.25,pad:2.4},
-      {shrink:.25,line:1.36,item:.95,block:.9,pad:2},
-      {shrink:.55,line:1.26,item:.55,block:.55,pad:1.6},
-      {shrink:.85,line:1.16,item:.25,block:.25,pad:1.2},
-      {shrink:1.15,line:1.08,item:0,block:0,pad:.8}
+      {shrink:0,line:1.42,item:1.25,block:1.15,pad:2.6},
+      {shrink:.25,line:1.34,item:.95,block:.9,pad:2.2},
+      {shrink:.5,line:1.26,item:.65,block:.65,pad:1.8},
+      {shrink:.85,line:1.18,item:.35,block:.35,pad:1.3},
+      {shrink:1.2,line:1.12,item:.15,block:.15,pad:1}
     ];
     let fitted=false;
     for(let i=0;i<levels.length;i++){
@@ -8233,6 +8340,8 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   }
 }
 </style>
+
+
 
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
