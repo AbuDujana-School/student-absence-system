@@ -106,6 +106,59 @@
 }
 
 </style>
+<style id="sa-notice-print-readability">
+/* Clear monochrome notice sheets: strong black text, soft neutral greys only. */
+.sa-notice-page{color:#111!important;background:#fff!important}
+.sa-notice-card{
+ color:#111!important;background:#fff!important;border-color:#d1d5db!important;
+ font-family:'Tajawal',Arial,sans-serif!important;
+}
+.sa-notice-card .notice-heading,
+.sa-notice-card .notice-heading .notice-school,
+.sa-notice-card .notice-title,
+.sa-notice-card .notice-meta,
+.sa-notice-card .notice-intro,
+.sa-notice-card .notice-items,
+.sa-notice-card .notice-items li,
+.sa-notice-card .notice-conclusion,
+.sa-notice-card .notice-signatures{color:#111!important}
+.sa-notice-card .notice-title{border-bottom-color:#d1d5db!important}
+.sa-notice-card .notice-meta{color:#333!important}
+.sa-notice-cutline{border-top-color:#bfc4ca!important}
+.sa-notice-cutline span{color:#777!important;background:#fff!important}
+
+/* Spacing follows the amount of information on each student's notice. */
+.sa-notice-card.compact{font-size:9pt!important;line-height:1.48!important}
+.sa-notice-card.compact .notice-heading{line-height:1.35!important;margin-bottom:2mm!important}
+.sa-notice-card.compact .notice-title{margin:2mm 0!important;padding-bottom:1.5mm!important}
+.sa-notice-card.compact .notice-meta{gap:2mm 4mm!important;margin:2mm 0!important}
+.sa-notice-card.compact .notice-intro,
+.sa-notice-card.compact .notice-conclusion{line-height:1.5!important;margin:2mm 0!important}
+.sa-notice-card.compact .notice-items{flex:1;display:flex;flex-direction:column;justify-content:space-evenly;margin:1.5mm 0!important}
+.sa-notice-card.compact .notice-items li{line-height:1.48!important;margin:1.4mm 0!important}
+.sa-notice-card.compact .notice-signatures{margin-top:2mm!important;line-height:1.4!important}
+
+.sa-notice-card.medium{font-size:8.7pt!important;line-height:1.34!important}
+.sa-notice-card.medium .notice-intro,
+.sa-notice-card.medium .notice-conclusion{line-height:1.34!important;margin:1.3mm 0!important}
+.sa-notice-card.medium .notice-items li{line-height:1.32!important;margin:.9mm 0!important}
+
+.sa-notice-card.full{font-size:8.3pt!important;line-height:1.2!important}
+.sa-notice-card.full .notice-intro,
+.sa-notice-card.full .notice-conclusion{line-height:1.2!important;margin:.7mm 0!important}
+.sa-notice-card.full .notice-items li{line-height:1.18!important;margin:.45mm 0!important}
+
+/* When content is exceptionally long, retain the existing safe-fit shrink,
+   but keep text black and spacing readable as far as the available area allows. */
+.sa-notice-card.fit-tight .notice-items li{line-height:1.08!important}
+.sa-notice-card.fit-tight .notice-intro,
+.sa-notice-card.fit-tight .notice-conclusion{line-height:1.1!important}
+@media print{
+ .sa-notice-card,.sa-notice-card *{color:#111!important}
+ .sa-notice-card{background:#fff!important;border-color:#d1d5db!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .sa-notice-cutline{border-top-color:#c4c4c4!important}
+}
+</style>
 
 <style id="sa-notice-viewport-fix">
 /* Keep the automatic-notice dialog fully inside the visible device viewport. */
