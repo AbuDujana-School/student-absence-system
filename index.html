@@ -1314,18 +1314,18 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
       </div>
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
       <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="الاتجاه الزمني لحالات الغياب والتأخر والتسرب والخروج"></canvas></div>
-      <div class="flex flex-wrap items-center justify-center gap-2.5 border-t border-slate-100 pt-3 text-[11px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان المخطط"><span class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-slate-800 dark:bg-slate-800 dark:text-slate-100"><i class="h-1 w-5 rounded-full" style="background:#0f172a"></i>الغياب</span><span class="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"><i class="h-1 w-5 rounded-full" style="background:#f59e0b"></i>التأخر</span><span class="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-red-800 dark:bg-red-950/30 dark:text-red-300"><i class="h-1 w-5 rounded-full" style="background:#ef4444"></i>متسرب</span><span class="inline-flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-violet-800 dark:bg-violet-950/30 dark:text-violet-300"><i class="h-1 w-5 rounded-full" style="background:#8b5cf6"></i>خارج</span></div>
+      <div class="flex flex-nowrap items-center justify-center gap-x-2 overflow-x-auto whitespace-nowrap border-t border-slate-100 py-2 text-[9px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان المخطط"><span class="inline-flex shrink-0 items-center gap-1 text-slate-800 dark:text-slate-100"><i class="h-1 w-3 rounded-full" style="background:#0f172a"></i>الغياب</span><span class="inline-flex shrink-0 items-center gap-1 text-amber-800 dark:text-amber-300"><i class="h-1 w-3 rounded-full" style="background:#f59e0b"></i>التأخر</span><span class="inline-flex shrink-0 items-center gap-1 text-red-800 dark:text-red-300"><i class="h-1 w-3 rounded-full" style="background:#ef4444"></i>متسرب</span><span class="inline-flex shrink-0 items-center gap-1 text-violet-800 dark:text-violet-300"><i class="h-1 w-3 rounded-full" style="background:#8b5cf6"></i>خارج</span></div>
       <div class="border-t border-slate-100 pt-4 dark:border-slate-700">
         <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> الاتجاه الزمني للسلوكيات</h4><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">عدد حالات كل سلوك مسجلة يومياً خلال الفترة المحددة.</p></div>
         <div class="relative h-72 w-full"><canvas id="saSupervisionBehaviorChart" aria-label="الاتجاه الزمني لأنواع السلوكيات المسجلة"></canvas></div>
-        <div class="mt-2 flex flex-nowrap items-center justify-center gap-x-3 overflow-x-auto whitespace-nowrap border-t border-slate-100 pt-2 text-[9px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
-          <span class="inline-flex shrink-0 items-center gap-1 text-amber-700 dark:text-amber-300"><i class="h-2 w-2 rounded-full" style="background:#f59e0b"></i>الأكل</span>
-          <span class="inline-flex shrink-0 items-center gap-1 text-orange-700 dark:text-orange-300"><i class="h-2 w-2 rounded-full" style="background:#f97316"></i>الكلام</span>
-          <span class="inline-flex shrink-0 items-center gap-1 text-yellow-700 dark:text-yellow-300"><i class="h-2 w-2 rounded-full" style="background:#eab308"></i>الأدوات</span>
-          <span class="inline-flex shrink-0 items-center gap-1 text-red-700 dark:text-red-300"><i class="h-2 w-2 rounded-full" style="background:#ef4444"></i>الفوضى</span>
-          <span class="inline-flex shrink-0 items-center gap-1 text-indigo-700 dark:text-indigo-300"><i class="h-2 w-2 rounded-full" style="background:#6366f1"></i>النوم</span>
-          <span class="inline-flex shrink-0 items-center gap-1 text-blue-700 dark:text-blue-300"><i class="h-2 w-2 rounded-full" style="background:#3b82f6"></i>الواجب</span>
-          <span class="inline-flex shrink-0 items-center gap-1 text-pink-700 dark:text-pink-300"><i class="h-2 w-2 rounded-full" style="background:#ec4899"></i>أخرى</span>
+        <div class="mt-2 flex flex-nowrap items-center justify-center gap-x-2 overflow-x-auto whitespace-nowrap border-t border-slate-100 pt-2 text-[9px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
+          <span class="inline-flex shrink-0 items-center gap-1 text-teal-700 dark:text-teal-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#0d9488"></i>الأكل</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-rose-700 dark:text-rose-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#e11d48"></i>الكلام</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-violet-700 dark:text-violet-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#7c3aed"></i>الأدوات</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-orange-700 dark:text-orange-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#ea580c"></i>الفوضى</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-blue-700 dark:text-blue-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#2563eb"></i>النوم</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-lime-700 dark:text-lime-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#65a30d"></i>الواجب</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-slate-700 dark:text-slate-300"><i class="h-1.5 w-1.5 rounded-full" style="background:#64748b"></i>أخرى</span>
         </div>
       </div>
     </section>
@@ -2479,8 +2479,8 @@ function saSetDomain(domain){saInitReportDateInputs("sa");const p=saReportPermis
 async function saSetupSupervisionPanel(){
   const panel=document.getElementById("saSupervisionPanel"),p=saReportPermissions||{};if(!panel)return;
   const enabled=saSession?.principal?.type==="admin"||p.can_view_analytics===true;panel.classList.toggle("hidden",!enabled);if(!enabled)return;
-  const today=getOmanLocalDate(),from=today.slice(0,8)+"01",fromInput=document.getElementById("saSupervisionFrom"),toInput=document.getElementById("saSupervisionTo");
-  if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;
+  const today=getOmanLocalDate(),currentYear=Number(today.slice(0,4)),schoolYearStart=today>=currentYear+"-09-09"?currentYear:currentYear-1,from=schoolYearStart+"-09-09",fromInput=document.getElementById("saSupervisionFrom"),toInput=document.getElementById("saSupervisionTo");
+  if(fromInput)fromInput.value=from;if(toInput)toInput.value=today;
   const isLeader=p.role==="team_leader";
   document.getElementById("saSupervisionTeamBtn")?.classList.toggle("hidden",!isLeader);
   await saLoadSupervisionTrend("own");
@@ -2510,7 +2510,7 @@ async function saLoadSupervisionTrend(scope="own"){
         }
       };
       saSupervisionTrendChart=new Chart(ctx,{type:"line",data:{labels,datasets},options:commonOptions});
-      const behaviorSpecs=[["الأكل","eating","#f59e0b"],["الكلام","talking","#f97316"],["الأدوات","tools","#eab308"],["الفوضى","chaos","#ef4444"],["النوم","sleeping","#6366f1"],["الواجب","homework","#3b82f6"],["أخرى","other","#ec4899"]];
+      const behaviorSpecs=[["الأكل","eating","#0d9488"],["الكلام","talking","#e11d48"],["الأدوات","tools","#7c3aed"],["الفوضى","chaos","#ea580c"],["النوم","sleeping","#2563eb"],["الواجب","homework","#65a30d"],["أخرى","other","#64748b"]];
       const behaviorDatasets=behaviorSpecs.map(([label,key,color])=>({label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,borderWidth:2.25,tension:.3,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:"#ffffff",pointBorderColor:color,pointBorderWidth:2,fill:false}));
       const behaviorCanvas=document.getElementById("saSupervisionBehaviorChart");
       if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}
