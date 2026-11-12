@@ -3503,6 +3503,8 @@ function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedS
     const iso=String(session?.date_str||"").slice(0,10),date=saNoticeDateLabel(iso);
     if(!date){ignored++;return;}
     const period=saNoticePeriodKey(session),event={type,date:iso,period,note:String(note||"").trim()};
+    const priorIssueDate=latest.get(className+String.fromCharCode(31)+name)?.date||"";
+    if(priorIssueDate&&iso<=priorIssueDate)return;
     if(type==="absent"){
       const daily=[className,name,iso].join(String.fromCharCode(31));
       if(seenAbsence.has(daily))return;
