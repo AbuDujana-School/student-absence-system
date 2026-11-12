@@ -1869,6 +1869,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <button type="button" onclick="saCloseNoticeModal()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200" aria-label="إغلاق">✕</button>
         </div>
         <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label id="saNoticeTargetWrap" class="hidden text-xs font-black text-slate-700 dark:text-slate-200">نطاق التنبيهات
+            <select id="saNoticeTargetSelect" onchange="saNoticeTargetChanged()" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white"></select>
+            <span id="saNoticeTargetScopeHint" class="mt-1 block text-[10px] font-medium leading-5 text-slate-500"></span>
+          </label>
           <label class="text-xs font-black text-slate-700 dark:text-slate-200">الصف المصرح به
             <select id="saNoticeClassSelect" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white"><option value="">جارٍ تحميل الصفوف...</option></select>
           </label>
@@ -3805,15 +3809,47 @@ function saPrintStudentProfile(){
   w.document.open();w.document.write(root.innerHTML);w.document.close();
 }
 function saNoticeHasCombinedPermission(p){return (p?.can_read_attendance===true&&p?.can_print_attendance===true)||(p?.can_read_behavior===true&&p?.can_print_behavior===true);}
-function saNoticeAllowedClasses(){
-  const p=saReportPermissions||{},items=[];
-  if(p.can_read_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length)items.push(...saGetAllowedReportClasses("attendance"));
-  if(p.can_read_behavior===true)items.push(...saGetAllowedReportClasses("behavior"));
+function saNoticeGetTargetContext(){
+  const base=saReportPermissions||{};
+  const targetSelect=document.getElementById("saNoticeTargetSelect");
+  const selected=base.role==="team_leader"?String(targetSelect?.value||"__self__"):"__self__";
+  if(selected==="__self__")return {permissions:base,supervisionTeacherName:"",label:"حسابي"};
+  const member=(Array.isArray(base.team_members)?base.team_members:[]).find(item=>String(item?.name||"")===selected);
+  if(!member)throw new Error("عضو الفريق المحدد غير موجود ضمن نطاق صلاحياتك.");
+  return {
+    supervisionTeacherName:String(member.name),
+    label:String(member.name),
+    permissions:{
+      ...base,
+      allowed_attendance_classes:Array.isArray(member.allowed_attendance_classes)?member.allowed_attendance_classes:[],
+      allowed_behavior_classes:Array.isArray(member.allowed_behavior_classes)?member.allowed_behavior_classes:[],
+      attendance_statuses:Array.isArray(member.attendance_statuses)?member.attendance_statuses:["absent","late","escape","outside"],
+      can_read_attendance:true,
+      can_read_behavior:true,
+      can_print_attendance:member.can_print_attendance===true,
+      can_print_behavior:member.can_print_behavior===true,
+      can_print_combined:member.can_print_combined===true
+    }
+  };
+}
+function saNoticeAllowedClasses(p=saReportPermissions||{}){
+  const items=[];
+  if(p.can_read_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length)items.push(...(p.allowed_attendance_classes||p.allowed_classes||[]));
+  if(p.can_read_behavior===true)items.push(...(p.allowed_behavior_classes||p.allowed_classes||[]));
   return sortClassesList([...new Set(items.map(x=>String(x).trim()).filter(Boolean))]);
 }
-function saNoticeRenderTypeFilters(){
+function saNoticeTargetChanged(){
+  try{
+    const context=saNoticeGetTargetContext(),p=context.permissions,classes=saNoticeAllowedClasses(p);
+    const select=document.getElementById("saNoticeClassSelect");
+    if(select)select.innerHTML=classes.length?'<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join(""):'<option value="">لا توجد صفوف مصرح بها لهذا الاختيار</option>';
+    saNoticeRenderTypeFilters(p);
+    const status=document.getElementById("saNoticeTargetScopeHint");
+    if(status)status.textContent=context.supervisionTeacherName?"ستُعرض وتُطبع تنبيهات عضو الفريق المحدد فقط: "+context.label:"ستُعرض وتُطبع التنبيهات ضمن صلاحيات حسابك الشخصية.";
+  }catch(error){saNoticeSetStatus(error?.message||"تعذر تحديد نطاق الفريق.",true);}
+}
+function saNoticeRenderTypeFilters(p=saReportPermissions||{}){
   const host=document.getElementById("saNoticeTypeFilters");if(!host)return;
-  const p=saReportPermissions||{};
   const attendanceAllowed=p.can_read_attendance===true&&p.can_print_attendance===true&&Array.isArray(p.attendance_statuses)?p.attendance_statuses:[];
   const behaviorAllowed=p.can_read_behavior===true&&p.can_print_behavior===true;
   const groups=SA_NOTICE_TYPE_GROUPS.map(group=>{
@@ -3834,9 +3870,22 @@ function saNoticeRefreshPrintAction(){
 function saOpenNoticeModal(){
   const p=saReportPermissions||{};
   if(!saSession?.token){showToast("تعذر التحقق من جلسة شؤون الطلبة. أعد تسجيل الدخول.","error");return;}
-  if(!saNoticeHasCombinedPermission(p)){showToast("تحتاج إلى صلاحية قراءة وطباعة مصدر واحد على الأقل من مصادر المخالفات.","error");return;}
-  const classes=saNoticeAllowedClasses(),select=document.getElementById("saNoticeClassSelect");
-  if(!classes.length){showToast("لا توجد صفوف مسندة إليك ومصرح بها في سجلات الحضور أو السلوك.","error");return;}
+  const isLeader=p.role==="team_leader",members=Array.isArray(p.team_members)?p.team_members:[];
+  const ownAllowed=saNoticeHasCombinedPermission(p)&&saNoticeAllowedClasses(p).length>0;
+  const eligibleMembers=members.filter(member=>{
+    const target={can_read_attendance:true,can_read_behavior:true,can_print_attendance:member.can_print_attendance===true,can_print_behavior:member.can_print_behavior===true,attendance_statuses:member.attendance_statuses||["absent","late","escape","outside"]};
+    return saNoticeHasCombinedPermission(target)&&saNoticeAllowedClasses({...target,allowed_attendance_classes:member.allowed_attendance_classes||[],allowed_behavior_classes:member.allowed_behavior_classes||[]}).length>0;
+  });
+  if(!ownAllowed&&(!isLeader||!eligibleMembers.length)){showToast("لا تتوفر لك أو لأعضاء فريقك صلاحية قراءة وطباعة مصدر مخالفات مصرح به.","error");return;}
+  const targetWrap=document.getElementById("saNoticeTargetWrap"),targetSelect=document.getElementById("saNoticeTargetSelect");
+  if(targetWrap)targetWrap.classList.toggle("hidden",!isLeader);
+  if(isLeader&&targetSelect){
+    targetSelect.innerHTML=(ownAllowed?'<option value="__self__">تنبيهات حسابي</option>':'')+eligibleMembers.map(member=>'<option value="'+escapeHtml(member.name)+'">'+escapeHtml(member.name)+'</option>').join("");
+    targetSelect.value=ownAllowed?"__self__":String(eligibleMembers[0]?.name||"");
+  }
+  saNoticeTargetChanged();
+  const classes=saNoticeAllowedClasses(saNoticeGetTargetContext().permissions),select=document.getElementById("saNoticeClassSelect");
+  if(!classes.length){showToast("لا توجد صفوف مصرح بها ضمن الاختيار الحالي.","error");return;}
   select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
   document.getElementById("saNoticeThreshold").value="2";
   const today=getOmanLocalDate();
@@ -3849,7 +3898,7 @@ function saOpenNoticeModal(){
   document.getElementById("saNoticeDate").max=today;
   document.getElementById("saNoticeIssueMode").value="test";
   document.getElementById("saNoticeDelivered").checked=false;
-  saNoticeRenderTypeFilters();saNoticeRefreshPrintAction();
+  saNoticeRenderTypeFilters(saNoticeGetTargetContext().permissions);saNoticeRefreshPrintAction();
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
   document.getElementById("saNoticeStatus").classList.add("hidden");
   const noticeModal=document.getElementById("saNoticeModal");
@@ -4065,7 +4114,9 @@ function saNoticeRenderPreview(students){
 }
 async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
-  const p=saReportPermissions||{},threshold=Number(document.getElementById("saNoticeThreshold")?.value);
+  let targetContext;
+  try{targetContext=saNoticeGetTargetContext();}catch(error){saNoticeSetStatus(error?.message||"تعذر تحديد نطاق الفريق.",true);return;}
+  const p=targetContext.permissions,supervisionTeacherName=targetContext.supervisionTeacherName,threshold=Number(document.getElementById("saNoticeThreshold")?.value);
   const issueDate=document.getElementById("saNoticeDate")?.value||"";
   const rangeFrom=document.getElementById("saNoticeFromDate")?.value||"";
   const rangeTo=document.getElementById("saNoticeToDate")?.value||"";
@@ -4076,9 +4127,9 @@ async function saGenerateAutomaticNotices(){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(rangeFrom)||!/^\d{4}-\d{2}-\d{2}$/.test(rangeTo)||rangeFrom>rangeTo||rangeTo>issueDate){saNoticeSetStatus("حدد فترة صحيحة: تاريخ البداية لا يتجاوز تاريخ النهاية، والنهاية لا تتجاوز تاريخ الإصدار.",true);return;}
   if(!selectedTypes.length){saNoticeSetStatus("اختر نوع مخالفة واحداً على الأقل لرصده.",true);return;}
   const selected=document.getElementById("saNoticeClassSelect")?.value||"";
-  const available=saNoticeAllowedClasses(),classes=selected==="__all__"?available:available.filter(c=>c===selected);
+  const available=saNoticeAllowedClasses(p),classes=selected==="__all__"?available:available.filter(c=>c===selected);
   if(!classes.length){saNoticeSetStatus("اختر صفاً من الصفوف المصرح بها لك.",true);return;}
-  const allowedAttendance=new Set(saGetAllowedReportClasses("attendance")),allowedBehavior=new Set(saGetAllowedReportClasses("behavior"));
+  const allowedAttendance=new Set(p.allowed_attendance_classes||[]),allowedBehavior=new Set(p.allowed_behavior_classes||[]);
   const selectedAttendance=selectedTypes.filter(type=>["absent","late","escape","outside"].includes(type));
   const selectedBehavior=selectedTypes.filter(type=>!["absent","late","escape","outside"].includes(type));
   const attendanceClasses=selectedAttendance.length?classes.filter(c=>allowedAttendance.has(c)):[];
@@ -4105,7 +4156,7 @@ async function saGenerateAutomaticNotices(){
     while(cursor<jobs.length){
       const job=jobs[cursor++];
       try{
-        const result=await saRequest({action:"reports",report_mode:"notice_scan",attendance_classes:job.useAttendance?[job.className]:[],behavior_classes:job.useBehavior?[job.className]:[],attendance_status_filters:job.useAttendance?statuses:undefined,from:job.from,to:job.to});
+        const result=await saRequest({action:"reports",report_mode:"notice_scan",supervision_teacher_name:supervisionTeacherName||undefined,attendance_classes:job.useAttendance?[job.className]:[],behavior_classes:job.useBehavior?[job.className]:[],attendance_status_filters:job.useAttendance?statuses:undefined,from:job.from,to:job.to});
         const a=Array.isArray(result?.attendance)?result.attendance:[],b=Array.isArray(result?.behaviors)?result.behaviors:[];
         if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.year+". أوقفنا التوليد حتى لا نصدر نتائج ناقصة.");
         a.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل حضور من صف غير محدد؛ أوقفنا العملية حمايةً للخصوصية.");});
@@ -4117,13 +4168,13 @@ async function saGenerateAutomaticNotices(){
   try{
     await Promise.all(Array.from({length:Math.min(3,jobs.length)},()=>worker()));
     if(errors.length)throw errors[0];
-    const historyResult=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:classes,to:issueDate});
+    const historyResult=await saRequest({action:"reports",report_mode:"notice_history",supervision_teacher_name:supervisionTeacherName||undefined,notice_classes:classes,to:issueDate});
     const historyRows=Array.isArray(historyResult?.notices)?historyResult.notices:[];
     const built=saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,statuses,selectedTypes,historyRows);
     if(built.ignored>0)throw new Error("تعذر إصدار الإشعارات: وُجدت سجلات لا تحتوي على اسم طالب أو تاريخ صالح. أوقفنا التوليد حتى تُراجع البيانات.");
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
     saNoticeLastGenerated=qualifying;saNoticeLastHistory=historyRows;saNoticeCurrentIssueDate=issueDate;
-    saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate,rangeFrom,rangeTo};
+    saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate,rangeFrom,rangeTo,supervisionTeacherName};
     const preview=document.getElementById("saNoticePreviewPanel");
     if(!qualifying.length){
       document.getElementById("saNoticePrintRoot").innerHTML="";
@@ -4164,7 +4215,7 @@ async function saNoticeHandlePrint(){
   saNoticeGenerationBusy=true;const button=document.getElementById("saNoticePrintAction");if(button){button.disabled=true;button.textContent="جارٍ اعتماد التنبيهات رسمياً...";}
   try{
     const settings=saNoticeLastSettings;
-    const result=await saRequest({action:"reports",report_mode:"notice_issue_commit",notice_classes:settings.classes,attendance_classes:settings.attendanceClasses,behavior_classes:settings.behaviorClasses,selected_types:settings.selectedTypes,threshold:settings.threshold,issued_on:settings.issuedOn,range_from:settings.rangeFrom,range_to:settings.rangeTo,delivered});
+    const result=await saRequest({action:"reports",report_mode:"notice_issue_commit",supervision_teacher_name:settings.supervisionTeacherName||undefined,notice_classes:settings.classes,attendance_classes:settings.attendanceClasses,behavior_classes:settings.behaviorClasses,selected_types:settings.selectedTypes,threshold:settings.threshold,issued_on:settings.issuedOn,range_from:settings.rangeFrom,range_to:settings.rangeTo,delivered});
     const issued=Array.isArray(result?.issued)?result.issued:[];
     if(!issued.length)throw new Error(result?.message||"لم يعتمد الخادم أي تنبيه. لم تتم الطباعة الرسمية.");
     saNoticeLastGenerated=issued.map(saNoticeBuildAuthoritativeStudent);
