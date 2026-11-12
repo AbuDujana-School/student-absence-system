@@ -6,6 +6,36 @@
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
 <title>مدرسة ابو دجانة</title>
+<script>
+/* Cloudflare Pages is a strictly local, read-only demo environment. */
+(function () {
+  const isPagesHost = location.hostname.toLowerCase().endsWith(".pages.dev");
+  window.__ABUDUJANA_CLOUDFLARE_PREVIEW__ = isPagesHost;
+  if (!isPagesHost) return;
+  try {
+    localStorage.removeItem("abuDujana_session");
+    localStorage.removeItem("abuDujana_activeUser");
+    localStorage.removeItem("abuDujana_studentAffairsSession");
+    sessionStorage.removeItem("abuDujana_session_secret");
+    sessionStorage.removeItem("abuDujana_appSession");
+    sessionStorage.removeItem("abuDujana_studentAffairsSession");
+  } catch (error) {}
+  const nativeFetch = window.fetch.bind(window);
+  window.fetch = function (input, init) {
+    let target = "";
+    try {
+      target = typeof input === "string" ? input : input && input.url ? input.url : String(input);
+      const url = new URL(target, location.href);
+      if (url.origin !== location.origin) {
+        return Promise.reject(new TypeError("الشبكة الخارجية معطلة في نسخة المعاينة."));
+      }
+    } catch (error) {
+      return Promise.reject(new TypeError("طلب الشبكة غير مسموح في نسخة المعاينة."));
+    }
+    return nativeFetch(input, init);
+  };
+})();
+</script>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1146,6 +1176,12 @@
 
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
+<div id="cloudflarePreviewBanner" class="hidden sticky top-0 z-[10000000] px-3 py-2 text-center text-xs sm:text-sm font-extrabold text-amber-950 bg-amber-300 border-b-2 border-amber-500" role="status" aria-live="polite">
+  نسخة معاينة تجريبية — لا تتصل بقاعدة المدرسة ولا تحفظ بيانات حقيقية. رمز الدخول التجريبي: <b dir="ltr">1234</b>. المزامنة وشؤون الطلبة معطلتان.
+</div>
+<script>
+if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflarePreviewBanner")?.classList.remove("hidden");
+</script>
 
 
 <div id="schoolSplash" role="status" aria-label="مرحباً بكم في مدرسة ابو دجانة">
@@ -2242,8 +2278,9 @@
 
 <script>
 /* ============ Supabase & Crypto config ============ */
-const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
+const IS_CLOUDFLARE_PREVIEW = window.__ABUDUJANA_CLOUDFLARE_PREVIEW__ === true;
+const SUPABASE_URL = IS_CLOUDFLARE_PREVIEW ? "https://preview-disabled.invalid" : "https://ylsocrvwqibptuwfzbke.supabase.co";
+const SUPABASE_ANON_KEY = IS_CLOUDFLARE_PREVIEW ? "preview-disabled-key" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
@@ -2290,6 +2327,7 @@ async function hmacSha256Hex(key, message) { const enc = new TextEncoder(); cons
 async function deriveSessionSecret(pin, salt) { return await pbkdf2Hex(APP_PEPPER + ':session:' + pin, salt + ':session', 100000); }
 
 async function syncServerTime() {
+  if (IS_CLOUDFLARE_PREVIEW) return;
   try {
     const res = await fetch(SUPABASE_URL, { method: 'HEAD' });
     const serverDateStr = res.headers.get('date');
@@ -2349,8 +2387,8 @@ function showPrompt(message, options = {}) {
 }
 
 
-const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
-const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
+const SA_API_URL=IS_CLOUDFLARE_PREVIEW?"https://preview-disabled.invalid/functions/v1/student-affairs":(window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs");
+const SA_DEV_ANON_KEY=IS_CLOUDFLARE_PREVIEW?"preview-disabled-key":"sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
@@ -2376,8 +2414,9 @@ const SA_BEHAVIOR_TYPES={eating:"الأكل",talking:"الكلام",tools:"ال�
 let saDomain="attendance",saReportPermissions={};
 function saReadStoredSession(){for(const store of [localStorage,sessionStorage]){try{const raw=store.getItem("abuDujana_studentAffairsSession");if(!raw)continue;const v=JSON.parse(raw);if(v?.token&&v?.expires_at&&Date.parse(v.expires_at)>Date.now())return v;}catch(e){}}return null;}
 try{saSession=saReadStoredSession();}catch(e){saSession=null;}
-async function saRequest(body){const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
+async function saRequest(body){if(IS_CLOUDFLARE_PREVIEW)throw new Error("خدمة شؤون الطلبة غير متاحة في نسخة المعاينة.");const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
 async function appAuthRequest(body, token) {
+  if (IS_CLOUDFLARE_PREVIEW) throw new Error("تسجيل الدخول الحقيقي غير متاح في نسخة المعاينة.");
   const headers = { "Content-Type": "application/json", apikey: SA_DEV_ANON_KEY };
   if (token) headers.Authorization = "Bearer " + token;
   let response;
@@ -2770,7 +2809,7 @@ function closeStudentAffairsAssignments(){
     card.classList.toggle("hidden",!allowed);
   });
 }
-async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();saSetupCompetitionPanel();saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
+async function openStudentAffairsView(){if(IS_CLOUDFLARE_PREVIEW){showToast("شؤون الطلبة غير متاحة في نسخة المعاينة.","info");return;}const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();saSetupCompetitionPanel();saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();}
@@ -3310,6 +3349,23 @@ async function migrateCredentialsIfNeeded() {
 }
 
 async function loadSystemDataFromCloud() {
+  if (IS_CLOUDFLARE_PREVIEW) {
+    updateSyncStatus(false, "معاينة محلية فقط");
+    let restored = false;
+    try { restored = await restoreOfflineState(); } catch (error) {}
+    if (!restored) {
+      let saved = null;
+      try { saved = localStorage.getItem("abuDujana_db_v30"); } catch (error) {}
+      if (saved) {
+        try { db = JSON.parse(saved); } catch (error) { await initDefaults(); }
+      } else {
+        await initDefaults();
+      }
+    }
+    loadDirtySetsFromLocal();
+    updateSyncStatus(false, "معاينة محلية فقط");
+    return true;
+  }
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
   loadDirtySetsFromLocal();
@@ -3485,6 +3541,10 @@ async function saveSystemDataToCloud(options = {}) {
   saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
   if (!durableSaved) updateSyncStatus(false, "تحذير: تعذر تأكيد التخزين المحلي");
+  if (IS_CLOUDFLARE_PREVIEW) {
+    updateSyncStatus(false, "معاينة محلية فقط");
+    return true;
+  }
   try {
     if (dirtySets.classes.size > 0) { const rows = [...dirtySets.classes].map(n => ({ name: n })); await robustUpsert('classes', rows, 'name', 200); dirtySets.classes.clear(); }
     if (dirtySets.teachers.size > 0) {
@@ -3548,6 +3608,7 @@ async function saveSystemDataToCloud(options = {}) {
 }
 
 function forceSyncWithCloud() {
+  if (IS_CLOUDFLARE_PREVIEW) { showToast("المزامنة معطلة في نسخة المعاينة؛ التغييرات محلية على هذا المتصفح فقط.", "info"); return; }
   if (attendanceDirty || behaviorDirty || dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
     showConfirm('لديك تغييرات غير محفوظة قد تُستبدل. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
     return;
@@ -3571,6 +3632,13 @@ function doForceSync() {
 function updateSyncStatus(isSynced, text) {
   const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
   if (!ind || !txt) return;
+  if (IS_CLOUDFLARE_PREVIEW) {
+    txt.textContent = "معاينة محلية فقط";
+    ind.className = "bg-amber-200 text-amber-950 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-amber-400";
+    ind.onclick = null;
+    ind.removeAttribute("title");
+    return;
+  }
   txt.textContent = text || (isSynced ? "متزامن" : "محلي");
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
   else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر للمزامنة"; }
@@ -3579,6 +3647,10 @@ function updateSyncStatus(isSynced, text) {
 async function initDefaults() {
   db = { version: 27, adminPin: await createPinRecord('1234'), customUsers: [], customCategories: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
   sortClassesList(db.classes).forEach(c => { db.students[c] = []; });
+  if (IS_CLOUDFLARE_PREVIEW) {
+    const demoClass = sortClassesList(db.classes)[0];
+    if (demoClass) db.students[demoClass] = ["طالب تجريبي 1", "طالب تجريبي 2", "طالب تجريبي 3"];
+  }
   sortClassesList(db.classes).forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
   saveToLocalStorageSafe(); await saveSystemDataToCloud();
 }
@@ -3626,6 +3698,20 @@ async function handleUserLogin(e) {
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
   document.getElementById("loginError").classList.add("hidden");
   try {
+    if (IS_CLOUDFLARE_PREVIEW) {
+      const demo = await findUserByPinWithRecord(pin);
+      if (!demo) {
+        document.getElementById("loginError").classList.remove("hidden");
+        return;
+      }
+      activeUser = demo.user;
+      loginAttempts = 0;
+      loginLockedUntil = 0;
+      await finalizeLoginState();
+      showToast("تم الدخول إلى نسخة المعاينة التجريبية فقط.", "info");
+      document.getElementById("userPinInput").value = "";
+      return;
+    }
     let serverLogin = null;
     let useLegacyLogin = !navigator.onLine;
     if (!useLegacyLogin) {
@@ -6396,7 +6482,7 @@ function exportDutyReportsCSV() {
 </script>
 <script>
 // PWA shell registration. Offline data persistence is implemented in a separate stage.
-if ("serviceWorker" in navigator) {
+if (!IS_CLOUDFLARE_PREVIEW && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(error => {
       console.warn("تعذر تسجيل خدمة التطبيق:", error);
