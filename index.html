@@ -1184,6 +1184,12 @@
   </div>
 </header>
 
+<div id="uiReviewBar" class="hidden sticky top-0 z-[80] border-b border-teal-200 bg-white/95 px-4 py-3 shadow-sm backdrop-blur dark:border-teal-900 dark:bg-slate-950/95" dir="rtl">
+  <div class="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2">
+    <span class="text-xs font-black text-teal-800 dark:text-teal-200"><i class="fa-solid fa-eye ml-1"></i> معاينة فقط — الحفظ والاتصال بالبيانات الرسمية معطلان</span>
+    <button type="button" onclick="uiReviewBack()" class="rounded-lg border border-slate-200 px-3 py-2 text-[11px] font-bold dark:border-slate-700">العودة إلى قائمة المعاينة</button>
+  </div>
+</div>
 <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
   <div id="loginView" class="max-w-md mx-auto my-12 glass-card p-8 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/80">
@@ -1203,6 +1209,15 @@
       </button>
     </form>
   </div>
+
+  <section id="uiReviewLauncher" class="hidden max-w-3xl mx-auto my-10 rounded-3xl border border-teal-200 bg-white p-6 shadow-xl dark:border-teal-900 dark:bg-slate-900" dir="rtl">
+    <div class="flex items-center gap-3"><span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200"><i class="fa-solid fa-eye text-xl"></i></span><div><h2 class="text-lg font-black text-slate-900 dark:text-white">معاينة واجهات شؤون الطلبة</h2><p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-300">نسخة عرض منفصلة. لا تتصل ببيانات المدرسة ولا تحفظ أي تعديل.</p></div></div>
+    <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <button type="button" onclick="uiReviewOpenStudentAffairs()" class="rounded-2xl bg-teal-700 px-5 py-4 text-sm font-black text-white shadow hover:bg-teal-800"><i class="fa-solid fa-chart-line ml-2"></i> معاينة قسم شؤون الطلبة</button>
+      <button type="button" onclick="uiReviewOpenBeneficiaries()" class="rounded-2xl bg-indigo-700 px-5 py-4 text-sm font-black text-white shadow hover:bg-indigo-800"><i class="fa-solid fa-users-gear ml-2"></i> معاينة إدارة المستفيدين</button>
+    </div>
+    <p class="mt-4 text-[11px] leading-6 text-slate-500 dark:text-slate-400">تُعرض الواجهات بحالات فارغة مقصودة؛ لا توجد أسماء أو نقاط أو سجلات تجريبية.</p>
+  </section>
 
   <div id="dashboardSelectionView" class="hidden space-y-8">
     <div class="glass-card p-5 sm:p-6 rounded-3xl shadow-lg border border-emerald-100 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4 relative overflow-hidden">
@@ -1297,11 +1312,12 @@
       </div>
     </section>
     <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
-      <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div><div class="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200"><i class="fa-solid fa-crown"></i> بطولة الانضباط المدرسية</div><h3 class="text-lg font-black sm:text-xl">سباق التميز بين المعلمين</h3><p class="mt-1 text-xs leading-6 text-blue-100">50 نقطة للحضور والانضباط و50 نقطة للسلوك. يظهر ترتيب المعلم وأداء صفوف فريقه. يشترط اكتمال سجلات الحصص الثماني لكل صف مشارك من الأحد إلى الخميس.</p></div>
-          <div class="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-center"><div class="text-[10px] font-bold text-blue-100">نطاق التقييم</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black">آخر نتيجة أسبوعية معتمدة</div></div>
+      <div class="border-b border-slate-100 bg-white px-4 py-5 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+        <div class="mx-auto flex max-w-xl items-center justify-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-l from-amber-50 via-white to-teal-50 px-5 py-4 text-center shadow-sm dark:border-amber-900/60 dark:from-slate-800 dark:via-slate-900 dark:to-teal-950/30">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-xl text-white shadow-md"><i class="fa-solid fa-trophy"></i></span>
+          <div class="text-right"><h3 class="text-base font-black text-slate-900 dark:text-white sm:text-lg">بطولة الانضباط المدرسية</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">50% تحسن الغياب + 50% تحسن السلوك، مع مكافأة المحافظة على المستوى الجيد</p></div>
         </div>
+        <div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">النتيجة المعروضة</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black text-slate-800 dark:text-slate-100">آخر نتيجة أسبوعية معتمدة</div></div>
       </div>
       <div class="space-y-5 p-4 sm:p-6">
         <div class="flex flex-wrap items-center gap-2">
@@ -1309,13 +1325,13 @@
           <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
           <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">من بداية الفصل حتى الآن</button>
         </div>
-        <div class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
-          <div id="saCompetitionDateRangeWrap" class="grid min-w-[260px] flex-1 grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saCompetitionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label><label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saCompetitionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label></div>
-          <label id="saCompetitionTermSelectWrap" class="hidden min-w-[220px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
-          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
+          <label id="saCompetitionTermSelectWrap" class="hidden min-w-[190px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
+          <p class="flex-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تعتمد النتائج الأسبوعية بعد إقفال الخميس الساعة 1:51 ظهراً بتوقيت عُمان، ولا توجد تواريخ يدوية للاختيار.</p>
+          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
-        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين وفرقهم</h4><p class="mt-1 text-[11px] text-slate-500">يعكس ترتيب كل معلم مستوى الانضباط في جميع الصفوف المسندة إليه، وتظهر مساهمة كل صف في المقارنة أدناه.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب مستوى الأداء</h4><p class="mt-1 text-[11px] text-slate-500">تظهر المراكز الثلاثة الأولى، ويمكن اختيار أي معلم من بقية المراكز لعرض تفاصيله ونقاطه فقط.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
         <section id="saCompetitionOtherRanksSection" class="hidden">
           <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
             <button id="saCompetitionTeacherDropdownToggle" type="button" aria-expanded="false" aria-controls="saCompetitionTeacherDropdownPanel" onclick="saToggleCompetitionTeacherDropdown()" class="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-right transition hover:bg-slate-50 dark:hover:bg-slate-800">
@@ -1330,30 +1346,7 @@
           </div>
           <div id="saCompetitionSelectedTeacherDetails" class="hidden mt-3" aria-live="polite"></div>
         </section>
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
-          <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور مؤشر الأداء النسبي</h4><p class="mt-1 text-[11px] text-slate-500">مؤشر للمقارنة بين الفرق خلال أيام الدراسة، وليس رصيد النقاط التراكمي.</p></div>
-            <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور الأداء النسبي للفرق"></canvas></div>
-          </section>
-          <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-            <h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-trophy ml-1 text-amber-500"></i> رصيد نقاط التميز</h4>
-            <p class="mt-1 text-[11px] text-slate-500">النقاط المتراكمة من المراكز الأسبوعية: الأول 10، الثاني 6، الثالث 3.</p>
-            <div id="saCompetitionWins" class="mt-4 space-y-3"></div>
-          </section>
-        </div>
-        <section class="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب الصفوف وأثرها في أداء المعلمين</h4><p class="mt-1 text-[11px] text-slate-500">متوسط الحالات لكل صف في اليوم الدراسي؛ كل صف له الوزن نفسه دون ترجيح بعدد الطلاب.</p></div>
-            <div class="flex gap-2"><button id="saCompetitionCompareAllBtn" onclick="saSetCompetitionCompareScope('all')" class="rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white">جميع الصفوف</button><button id="saCompetitionCompareOwnBtn" onclick="saSetCompetitionCompareScope('own')" class="rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">صفوف فريقي</button></div>
-          </div>
-          <div id="saCompetitionClassComparison" class="mt-4 space-y-3"></div>
-        </section>
-        <section class="rounded-2xl border border-teal-200 bg-teal-50/50 p-4 dark:border-teal-900/60 dark:bg-teal-950/20">
-          <div class="flex items-center gap-2"><i class="fa-solid fa-lightbulb text-amber-500"></i><h4 class="text-sm font-black text-slate-800 dark:text-white">ملاحظات متابعة الأداء</h4></div>
-          <p class="mt-1 text-[11px] leading-6 text-slate-500">قراءة ذكية تتجدد من سجلات الغياب والسلوك المسجلة فعلياً في البوابة التعليمية، وتحوّل مؤشرات صفوفك إلى خطوات تربوية عملية للأسبوع القادم، دون عرض أسماء الطلاب.</p>
-          <div id="saCompetitionRecommendations" class="mt-3 space-y-2"></div>
-        </section>
-        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
+<p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
       </div>
     </section>
     <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
@@ -1782,11 +1775,11 @@
         <div class="mb-3 text-xs font-black text-indigo-900 dark:text-indigo-100">ثانياً: اختيار المعلم المسؤول</div>
         <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-bold text-slate-600 dark:text-slate-300">نوع الحساب<select id="saType" onchange="saLoadPerson()" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"><option value="teacher">معلم</option><option value="custom">مستخدم مخصص</option></select></label><label class="text-xs font-bold text-slate-600 dark:text-slate-300">اسم المعلم / المستخدم<select id="saPerson" onchange="saLoadPerson()" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></select></label></div>
         <div class="mt-3 rounded-2xl border border-violet-200 bg-violet-50/60 p-4 dark:border-violet-900 dark:bg-violet-950/20">
-          <div class="mb-3 text-xs font-black text-violet-950 dark:text-violet-100">نوع التكليف الإشرافي</div>
+          <div class="mb-3 text-xs font-black text-violet-950 dark:text-violet-100">نوع المستفيد في شؤون الطلبة</div>
           <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <label class="text-xs font-bold text-slate-700 dark:text-slate-200">الدور<select id="saSupervisionRole" onchange="saToggleSupervisionFields()" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><option value="">غير محدد</option><option value="team_leader">رئيس فريق</option><option value="supervisor">معلم مشرف</option><option value="visitor">زائر شؤون الطلبة</option></select></label>
-            <label id="saSupervisionTeamWrap" class="text-xs font-bold text-slate-700 dark:text-slate-200">اسم الفريق<input id="saSupervisionTeamName" type="text" maxlength="80" placeholder="مثال: فريق التواصل" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><span class="mt-1 block text-[10px] font-medium text-slate-500">يُحدد لرئيس الفريق، ويُربط المعلم المشرف به من القائمة المجاورة.</span>
-            <label id="saSupervisionLeaderWrap" class="hidden text-xs font-bold text-slate-700 dark:text-slate-200">رئيس الفريق<select id="saSupervisionLeader" onchange="saSelectSupervisionLeader()" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><option value="">اختر رئيس الفريق</option></select><span class="mt-1 block text-[10px] font-medium text-slate-500">اختر رئيس الفريق من القائمة؛ سيرتبط المعلم بفريقه تلقائياً.</span></label>
+            <label id="saSupervisionTeamWrap" class="text-xs font-bold text-slate-700 dark:text-slate-200">اسم الفريق<input id="saSupervisionTeamName" type="text" maxlength="80" placeholder="مثال: فريق التواصل" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><span class="mt-1 block text-[10px] font-medium text-slate-500">يُحدد لرئيس الفريق، ويُربط المعلم المشرف به من القائمة المجاورة.</span></label>
+            <label id="saSupervisionLeaderWrap" class="hidden text-xs font-bold text-slate-700 dark:text-slate-200">رئيس الفريق<select id="saSupervisionLeader" onchange="saSelectSupervisionLeader()" class="mt-1 w-full rounded-xl border border-violet-200 bg-white p-3 dark:border-violet-800 dark:bg-slate-950"><option value="">دون ربط بفريق</option></select><span class="mt-1 block text-[10px] font-medium text-slate-500">اختر رئيس الفريق من القائمة؛ سيرتبط المعلم بفريقه تلقائياً.</span></label>
           </div><p id="saSupervisionRoleHint" class="mt-3 text-[11px] leading-6 text-violet-900 dark:text-violet-200"></p>
           <div id="saVisitorAccessNote" class="hidden mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] leading-6 font-bold text-emerald-900 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-100">صلاحية الزائر شاملة: الاطلاع على جميع معلمي شؤون الطلبة، وتقاريرهم التفصيلية، ومخططات الأداء، والتحليلات، والطباعة وجميع أدوات القسم. لا تُسند للزائر فصول خاصة ولا يُحتسب ضمن سباق التميز.</div>
         </div>
@@ -1801,13 +1794,19 @@
         </div>
       </div>
       <div id="saCompetitionTeamSettings" class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
-        <label class="flex items-center gap-3 text-xs font-black text-amber-950 dark:text-amber-100"><input id="saCompetitionParticipant" type="checkbox" class="h-4 w-4 accent-amber-600" onchange="saToggleCompetitionTeamFields()"> إشراك هذا المعلم في سباق التميز</label>
+        <label class="flex items-center gap-3 text-xs font-black text-amber-950 dark:text-amber-100"><input id="saCompetitionParticipant" type="checkbox" class="h-4 w-4 accent-amber-600" onchange="saToggleCompetitionTeamFields()"> إشراك هذا المعلم في بطولة الانضباط المدرسية</label>
         <div id="saCompetitionTeamFields" class="hidden space-y-3">
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">اسم الفريق<input id="saCompetitionTeamName" type="text" maxlength="80" placeholder="مثال: فريق النخبة" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"></label>
-          <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي يشرف عليها قائد الفريق</div><p class="mb-2 text-[11px] text-slate-500">حدد الصفوف بنفسك. لا يمكن إسناد الصف نفسه إلى فريقين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
+          <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي تدخل في نقاط القائد</div><p class="mb-2 text-[11px] text-slate-500">تقتصر على صفوفه الشخصية المسندة إليه في الغياب أو السلوك، ولا تشمل صفوف المعلمين المشرفين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
         </div>
       </div>
-      <section id="saCompetitionSettingsPanel" class="hidden space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20"><div><h4 class="text-sm font-black text-amber-950 dark:text-amber-100">إعدادات إتاحة نتائج الفصول</h4><p class="mt-1 text-[11px] leading-5 text-slate-600 dark:text-slate-300">تُقرأ تواريخ الفصول من تقويم المدرسة المعتمد. الإعداد الافتراضي هو الفصل الحالي فقط، ولا تتغير السجلات أو النقاط عند تبديل هذا الخيار.</p></div><div id="saCompetitionCalendarSummary" class="grid grid-cols-1 gap-2 sm:grid-cols-2"></div><label class="block text-xs font-bold text-slate-700 dark:text-slate-200">إتاحة النتائج السابقة للمعلمين<select id="saCompetitionVisibilityMode" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"><option value="current">الفصل الحالي فقط (الافتراضي)</option><option value="both">إظهار نتائج الفصلين للمعلمين</option></select></label><div class="flex flex-wrap items-center justify-between gap-2"><span id="saCompetitionSettingsStatus" class="text-[10px] text-slate-500" aria-live="polite">الإعداد الافتراضي: الفصل الحالي فقط.</span><button type="button" onclick="saCompetitionSaveSettings()" class="rounded-xl bg-amber-700 px-5 py-2.5 text-xs font-black text-white shadow-sm hover:bg-amber-800"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ إعدادات البطولة</button></div></section>
+      <section id="saCompetitionSettingsPanel" class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+        <div class="flex items-center gap-2"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200"><i class="fa-solid fa-calendar-check"></i></span><div><h3 class="text-sm font-black text-slate-900 dark:text-white">إعدادات الفصول الدراسية والبطولة</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تُدار من حساب المدير فقط.</p></div></div>
+        <div id="saCompetitionCalendarSummary" class="grid grid-cols-1 gap-3 sm:grid-cols-2"><div class="rounded-xl border border-white/80 bg-white/80 p-3 text-xs dark:border-slate-700 dark:bg-slate-900/70"><b class="text-slate-800 dark:text-white">جارٍ تحميل تقويم المدرسة</b></div></div>
+        <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">إتاحة النتائج السابقة للمعلمين<select id="saCompetitionVisibilityMode" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"><option value="current">الفصل الحالي فقط (الموصى به)</option><option value="both">إظهار نتائج الفصلين للمعلمين</option></select></label>
+        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">عند اختيار الفصل الحالي فقط، لا تظهر معدلات الفصل الأول للمعلم في الفصل الثاني. تبقى النتائج السابقة محفوظة في أرشيف مستقل ولا تنتقل نقاطها إلى الفصل الجديد. يُحفظ هذا الخيار في إعدادات المدرسة المعتمدة، ولا تتغير السجلات أو النقاط عند تبديل هذا الخيار.</p>
+        <div class="flex flex-wrap items-center justify-between gap-2"><span id="saCompetitionSettingsStatus" class="text-[10px] text-slate-500" aria-live="polite">الإعداد الافتراضي: كل فصل مستقل.</span><button type="button" onclick="saCompetitionSaveSettings()" class="rounded-xl bg-amber-700 px-5 py-2.5 text-xs font-black text-white shadow-sm hover:bg-amber-800"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ إعدادات البطولة</button></div>
+      </section>
       <div id="saScopeSummary" class="rounded-2xl border border-dashed border-teal-200 bg-teal-50/70 px-4 py-3 text-xs leading-6 text-teal-900 dark:border-teal-900 dark:bg-teal-950/20 dark:text-teal-100" aria-live="polite">مسؤولية الفصول مستقلة عن صلاحية الاطلاع: قائد الفريق يُقيّم على فصوله فقط، والمعلم المشرف على فصوله، والزائر يطّلع على الجميع دون امتلاك فصول أو نقاط منافسة.</div>
       <div class="flex justify-end"><button onclick="saSavePermissions()" class="w-full rounded-xl bg-indigo-700 px-7 py-3 text-xs font-extrabold text-white shadow-lg transition hover:bg-indigo-800 sm:w-auto"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التكليف والصلاحيات</button></div>
     </div>
@@ -2392,8 +2391,78 @@ const SA_BEHAVIOR_TYPES={eating:"الأكل",talking:"الكلام",tools:"ال�
 let saDomain="attendance",saReportPermissions={},saOwnReportPermissions={},saSelectedSupervisionTeacher="";
 function saReadStoredSession(){for(const store of [localStorage,sessionStorage]){try{const raw=store.getItem("abuDujana_studentAffairsSession");if(!raw)continue;const v=JSON.parse(raw);if(v?.token&&v?.expires_at&&Date.parse(v.expires_at)>Date.now())return v;}catch(e){}}return null;}
 try{saSession=saReadStoredSession();}catch(e){saSession=null;}
-async function saRequest(body){const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
-async function appAuthRequest(body, token) {
+
+function uiReviewPrepare(){
+  activeUser={type:"admin",name:"معاينة التصميم",permissions:{admin:true,studentAffairs:true}};
+  saSession={token:"ui-review-only",expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"معاينة التصميم"}};
+  saReportPermissions={can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"visitor"};
+  saAdminData={teachers:[],permissions:[],classes:Array.isArray(DEFAULT_CLASSES)?DEFAULT_CLASSES:[]};
+  const today=getOmanLocalDate(),year=Number(today.slice(0,4)),month=Number(today.slice(5,7)),startYear=month>=9?year:year-1;
+  saCompetitionTerms=[
+    {id:startYear+"-09-01",start:startYear+"-09-01",end:startYear+"-12-30",label:"الفصل الأول "+startYear+"/"+(startYear+1)},
+    {id:(startYear+1)+"-01-25",start:(startYear+1)+"-01-25",end:(startYear+1)+"-05-30",label:"الفصل الثاني "+startYear+"/"+(startYear+1)}
+  ];
+  const current=saCompetitionTerms.find(term=>term.start<=today&&today<=term.end)||saCompetitionTerms[0];
+  saCompetitionCurrentTermId=current.id;saCompetitionSelectedTermId=current.id;
+  saCompetitionShowBothTerms=false;saCompetitionSettingsLoaded=true;
+  saCompetitionRenderSettings();saCompetitionRenderTermSelector();
+}
+function uiReviewDisableMutations(){
+  document.querySelectorAll('#saAssignmentsPanel button[onclick],#saCompetitionSettingsPanel button[onclick]').forEach(button=>{
+    if(/save|delete|remove|reset|add|update|permission/i.test(button.getAttribute("onclick")||"")){
+      button.disabled=true;button.title="الحفظ معطل في معاينة الواجهات";button.classList.add("opacity-50","cursor-not-allowed");
+    }
+  });
+}
+async function uiReviewOpenStudentAffairs(){
+  uiReviewPrepare();
+  document.getElementById("uiReviewLauncher")?.classList.add("hidden");
+  document.getElementById("adminModal")?.classList.add("hidden");
+  document.getElementById("studentAffairsView")?.classList.remove("hidden");
+  await openStudentAffairsView();
+  uiReviewDisableMutations();
+}
+async function uiReviewOpenBeneficiaries(){
+  uiReviewPrepare();
+  document.getElementById("uiReviewLauncher")?.classList.add("hidden");
+  document.getElementById("studentAffairsView")?.classList.add("hidden");
+  document.getElementById("adminModal")?.classList.remove("hidden");
+  document.getElementById("adminAuthSection")?.classList.add("hidden");
+  document.getElementById("adminContentSection")?.classList.remove("hidden");
+  document.querySelectorAll('#adminContentSection [id^="sec-"]').forEach(section=>section.classList.add("hidden"));
+  document.getElementById("sec-beneficiaries")?.classList.remove("hidden");
+  await openStudentAffairsAssignments();
+  // Preview-only: no real teacher records exist here, so expose the role-dependent
+  // controls in a usable initial state without inventing names or saving data.
+  const role=document.getElementById("saSupervisionRole");
+  role?.closest(".rounded-2xl")?.classList.remove("hidden");
+  if(role){role.value="team_leader";saToggleSupervisionFields();}
+  uiReviewDisableMutations();
+}
+function uiReviewBack(){
+  document.getElementById("studentAffairsView")?.classList.add("hidden");
+  document.getElementById("adminModal")?.classList.add("hidden");
+  document.getElementById("uiReviewLauncher")?.classList.remove("hidden");
+  activeUser=null;saSession=null;saReportPermissions={};saAdminData=null;
+}
+
+async function saRequest(body){
+  if(IS_UI_REVIEW_PREVIEW){
+    const action=String(body?.action||"");
+    if(action==="get_my_permissions")return {permissions:{can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"visitor"}};
+    if(action==="get_permissions")return {teachers:[],permissions:[],classes:Array.isArray(DEFAULT_CLASSES)?DEFAULT_CLASSES:[]};
+    if(action==="competition_settings"){
+      const year=Number(getOmanLocalDate().slice(0,4)),month=Number(getOmanLocalDate().slice(5,7)),startYear=month>=9?year:year-1;
+      const terms=[{id:startYear+"-09-01",start:startYear+"-09-01",end:startYear+"-12-30",label:"الفصل الأول "+startYear+"/"+(startYear+1)},{id:(startYear+1)+"-01-25",start:(startYear+1)+"-01-25",end:(startYear+1)+"-05-30",label:"الفصل الثاني "+startYear+"/"+(startYear+1)}];
+      const today=getOmanLocalDate(),current=terms.find(term=>term.start<=today&&today<=term.end)||terms[0];
+      return {terms,currentTermId:current.id,selectedTermId:current.id,showBothTerms:false,canManage:true};
+    }
+    if(action==="competition")return {status:"no_participants",period:body.period||"weekly",teams:[],weeklyPoints:{},weeklyWins:{},termLabel:"معاينة الواجهة"};
+    if(action==="supervision_team")return {teachers:[]};
+    if(action==="supervision_trend")return {series:[],class_count:0};
+    throw new Error("هذه معاينة واجهات فقط؛ جميع عمليات الحفظ والتعديل والاتصال بالبيانات معطلة.");
+  }const h={"Content-Type":"application/json","apikey":SA_DEV_ANON_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
+async function appAuthRequest(body, token) { if(IS_UI_REVIEW_PREVIEW) throw new Error("تسجيل الدخول غير متاح في معاينة الواجهات.");
   const headers = { "Content-Type": "application/json", apikey: SA_DEV_ANON_KEY };
   if (token) headers.Authorization = "Bearer " + token;
   let response;
@@ -2547,43 +2616,105 @@ function saApplyReportDatePreset(preset){const today=getOmanLocalDate();if(prese
 const reportDateCommitTimers={sa:null,rep:null};
 function saCommitReportDateChange(prefix){const select=document.getElementById(prefix+"DatePreset"),from=document.getElementById(prefix+"From"),to=document.getElementById(prefix+"To");if(!select||!from||!to)return;select.value="custom";from.disabled=false;to.disabled=false;syncReportPeriodControls(prefix);if(reportDateCommitTimers[prefix])clearTimeout(reportDateCommitTimers[prefix]);reportDateCommitTimers[prefix]=setTimeout(()=>{reportDateCommitTimers[prefix]=null;const latestFrom=document.getElementById(prefix+"From")?.value||"",latestTo=document.getElementById(prefix+"To")?.value||"";if(!latestFrom||!latestTo||latestFrom>latestTo)return;if(prefix==="sa")saLoadReport();else repLoadReport();},180);}
 function saOnReportDateChanged(){saCommitReportDateChange("sa");}
+
+async function saCompetitionLoadSettings(){
+  if(IS_UI_REVIEW_PREVIEW&&saCompetitionSettingsLoaded){
+    saCompetitionRenderSettings();saCompetitionRenderTermSelector();
+    return {terms:saCompetitionTerms,currentTermId:saCompetitionCurrentTermId,selectedTermId:saCompetitionSelectedTermId,showBothTerms:saCompetitionShowBothTerms,canManage:true};
+  }
+  const settings=await saRequest({action:"competition_settings",mode:"read"});
+  saCompetitionTerms=Array.isArray(settings.terms)?settings.terms:[];
+  saCompetitionCurrentTermId=String(settings.currentTermId||"");
+  saCompetitionShowBothTerms=settings.showBothTerms===true;
+  saCompetitionSettingsLoaded=true;
+  if(!saCompetitionTerms.some(term=>String(term.id)===String(saCompetitionSelectedTermId))){
+    saCompetitionSelectedTermId=String(settings.selectedTermId||saCompetitionCurrentTermId||saCompetitionTerms[0]?.id||"");
+  }
+  saCompetitionRenderSettings();saCompetitionRenderTermSelector();
+  return settings;
+}
+function saCompetitionRenderSettings(){
+  const panel=document.getElementById("saCompetitionSettingsPanel");
+  if(!panel)return;
+  const isAdmin=saSession?.principal?.type==="admin"||activeUser?.type==="admin";
+  panel.classList.toggle("hidden",!isAdmin);
+  if(!isAdmin)return;
+  const select=document.getElementById("saCompetitionVisibilityMode");
+  if(select)select.value=saCompetitionShowBothTerms?"both":"current";
+  const status=document.getElementById("saCompetitionSettingsStatus");
+  if(status)status.textContent=saCompetitionShowBothTerms?"المعلمون مخوّلون لعرض نتائج الفصلين.":"المعلمون يرون نتائج الفصل الحالي فقط.";
+  const summary=document.getElementById("saCompetitionCalendarSummary");
+  if(summary){
+    summary.innerHTML=saCompetitionTerms.length?saCompetitionTerms.map((term,index)=>'<div class="rounded-xl border border-white/80 bg-white/80 p-3 text-xs dark:border-slate-700 dark:bg-slate-900/70"><b class="text-slate-800 dark:text-white">'+escapeHtml(term.label||("الفصل الدراسي "+(index+1)))+'</b><p class="mt-1 text-slate-600 dark:text-slate-300">'+escapeHtml(term.start||"—")+' – '+escapeHtml(term.end||"—")+'</p></div>').join(""):'<div class="rounded-xl border border-dashed border-amber-300 p-3 text-xs text-slate-600 dark:border-amber-800 dark:text-slate-300">لا يوجد تقويم فصول معتمد في إعدادات المدرسة.</div>';
+  }
+}
+function saCompetitionRenderTermSelector(){
+  const select=document.getElementById("saCompetitionTermSelect"),wrap=document.getElementById("saCompetitionTermSelectWrap");
+  if(!select||!wrap)return;
+  const terms=Array.isArray(saCompetitionTerms)?saCompetitionTerms:[];
+  const current=terms.find(term=>String(term.id)===String(saCompetitionCurrentTermId))||terms[0];
+  if(!current){wrap.classList.add("hidden");return;}
+  if(!terms.some(term=>String(term.id)===String(saCompetitionSelectedTermId)))saCompetitionSelectedTermId=String(current.id);
+  select.innerHTML=terms.map(term=>'<option value="'+escapeHtml(term.id)+'">'+escapeHtml(term.label||term.start)+(term.start>getOmanLocalDate()?" · لم يبدأ بعد":"")+'</option>').join("");
+  select.value=saCompetitionSelectedTermId;
+  wrap.classList.toggle("hidden",saCompetitionPeriod==="weekly"||terms.length<2);
+}
+function saSetCompetitionTerm(termId){
+  const allowed=Array.isArray(saCompetitionTerms)?saCompetitionTerms:[];
+  if(!allowed.some(term=>String(term.id)===String(termId))){
+    saCompetitionSelectedTermId=saCompetitionCurrentTermId;
+    saCompetitionRenderTermSelector();
+    showToast("لا تملك صلاحية عرض نتائج هذا الفصل.","error");
+    return;
+  }
+  saCompetitionSelectedTermId=String(termId);
+  saLoadCompetition();
+}
+async function saCompetitionSaveSettings(){
+  if(IS_UI_REVIEW_PREVIEW){showToast("المعاينة للعرض فقط؛ الحفظ معطل لحماية بيانات المدرسة.","info");return;}
+  if(saSession?.principal?.type!=="admin"&&activeUser?.type!=="admin"){showToast("تعديل إعدادات البطولة متاح لمدير النظام فقط.","error");return;}
+  const mode=document.getElementById("saCompetitionVisibilityMode")?.value||"current";
+  try{
+    const settings=await saRequest({action:"competition_settings",mode:"save",showBothTerms:mode==="both"});
+    saCompetitionTerms=Array.isArray(settings.terms)?settings.terms:[];
+    saCompetitionCurrentTermId=String(settings.currentTermId||"");
+    saCompetitionShowBothTerms=settings.showBothTerms===true;
+    saCompetitionSettingsLoaded=true;
+    saCompetitionSelectedTermId=String(settings.selectedTermId||saCompetitionCurrentTermId||"");
+    saCompetitionRenderSettings();
+    saCompetitionRenderTermSelector();
+    await saLoadCompetition();
+    showToast("تم حفظ إعدادات إتاحة نتائج الفصول.","success");
+  }catch(error){showToast(error?.message||"تعذر حفظ إعدادات البطولة.","error");}
+}
+
 function saSetCompetitionPeriod(period){
+  if(!["weekly","monthly","term"].includes(period))return;
   saCompetitionLoadSequence++;
   saCompetitionPeriod=period;
-  const today=getOmanLocalDate();
-  const from=document.getElementById("saCompetitionFrom"),to=document.getElementById("saCompetitionTo");
-  if(period==="weekly"){
-    const weekday=new Date(today+"T12:00:00.000Z").getUTCDay();
-    const weekStart=saDateShift(today,-weekday);
-    const clockParts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Muscat",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
-    const clockValues={};clockParts.forEach(part=>{if(part.type!=="literal")clockValues[part.type]=part.value;});
-    const minutes=Number(clockValues.hour||0)*60+Number(clockValues.minute||0);
-    const latestClosedStart=(weekday>4||(weekday===4&&minutes>=830))?weekStart:saDateShift(weekStart,-7);
-    if(from)from.value=latestClosedStart;
-    if(to)to.value=saDateShift(latestClosedStart,4);
-  }else if(period==="monthly"){
-    const monthStart=today.slice(0,7)+"-01";
-    const yesterday=saDateShift(today,-1);
-    if(from)from.value=monthStart;
-    if(to)to.value=yesterday<monthStart?today:yesterday;
-  }else if(period==="term"){
-    if(from)from.value="";
-    if(to)to.value="";
-  }
-  if(from&&to){const automatic=period!=="monthly";from.disabled=automatic;to.disabled=automatic;}
-  const labels={weekly:"آخر نتيجة أسبوعية معتمدة",monthly:"حصاد الشهر",term:"من بداية الفصل الدراسي حتى الآن"};
+  if(period==="weekly")saCompetitionSelectedTermId=saCompetitionCurrentTermId;
+  saCompetitionRenderTermSelector();
+  const labels={weekly:"النتيجة الأسبوعية المعتمدة",monthly:"حصاد الشهر",term:"الحصاد التراكمي للفصل الدراسي"};
   const active="rounded-xl bg-blue-700 px-4 py-2.5 text-xs font-black text-white shadow-sm";
   const idle="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200";
   [["weekly","saCompetitionWeeklyBtn"],["monthly","saCompetitionMonthlyBtn"],["term","saCompetitionTermBtn"]].forEach(([key,id])=>{const el=document.getElementById(id);if(el)el.className=period===key?active:idle;});
-  const rangeLabel=document.getElementById("saCompetitionRangeLabel");if(rangeLabel)rangeLabel.textContent=labels[period]||"فترة مخصصة";
-  saLoadCompetition();
+  const rangeLabel=document.getElementById("saCompetitionRangeLabel");if(rangeLabel)rangeLabel.textContent=labels[period]||"نتائج البطولة";
+  return saLoadCompetition();
 }
-function saSetupCompetitionPanel(){
+async function saSetupCompetitionPanel(){
   const panel=document.getElementById("saCompetitionPanel");
   if(!panel)return;
   const enabled=saCanViewCompetition();
   panel.classList.toggle("hidden",!enabled);
-  if(enabled&&!panel.dataset.initialized){panel.dataset.initialized="true";saSetCompetitionPeriod("weekly");}else if(enabled){saLoadCompetition();}
+  if(!enabled)return;
+  try{
+    await saCompetitionLoadSettings();
+    if(!panel.dataset.initialized){panel.dataset.initialized="true";await saSetCompetitionPeriod("weekly");}
+    else await saLoadCompetition();
+  }catch(error){
+    const status=document.getElementById("saCompetitionStatus");
+    if(status){status.textContent=error?.message||"تعذر تحميل إعدادات البطولة.";status.classList.remove("hidden");}
+  }
 }
 function saCompetitionDayLabel(date){
   const weekday=new Date(date+"T12:00:00.000Z").getUTCDay();
@@ -2592,25 +2723,43 @@ function saCompetitionDayLabel(date){
 }
 async function saLoadCompetition(){
   const requestId=++saCompetitionLoadSequence;
-  if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة المراحل.","error");return;}
-  const requestPeriod=saCompetitionPeriod;
-  const from=document.getElementById("saCompetitionFrom")?.value||"",to=document.getElementById("saCompetitionTo")?.value||"";
-  if(requestPeriod!=="term"&&(!from||!to||from>to)){const status=document.getElementById("saCompetitionStatus");if(status){status.textContent="يرجى تحديد بداية الفترة ونهايتها بصورة صحيحة.";status.classList.remove("hidden");}return;}
-  const status=document.getElementById("saCompetitionStatus");
-  if(status){status.textContent="جارٍ احتساب النتائج والتحقق من اكتمال سجلات الفرق...";status.classList.remove("hidden");}
-  document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
+  if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة الانضباط.","error");return;}
   try{
-    const data=await saRequest({action:"competition",from:from||undefined,to:to||undefined,period:requestPeriod});
+    if(!saCompetitionSettingsLoaded)await saCompetitionLoadSettings();
+    if(requestId!==saCompetitionLoadSequence)return;
+    const requestPeriod=saCompetitionPeriod;
+    const currentTerm=saCompetitionTerms.find(term=>String(term.id)===String(saCompetitionCurrentTermId));
+    const selectedTerm=saCompetitionTerms.find(term=>String(term.id)===String(saCompetitionSelectedTermId))||currentTerm;
+    if(!currentTerm||!selectedTerm)throw new Error("لا يوجد تقويم فصل دراسي معتمد.");
+    const request={action:"competition",period:requestPeriod};
+    if(requestPeriod==="term"){
+      request.termId=selectedTerm.id;
+    }else if(requestPeriod==="monthly"){
+      const today=getOmanLocalDate();
+      const anchor=today<selectedTerm.start?selectedTerm.start:(today>selectedTerm.end?selectedTerm.end:today);
+      if(anchor<selectedTerm.start){throw new Error("لم يبدأ الفصل الدراسي المحدد بعد.");}
+      const monthStart=anchor.slice(0,7)+"-01";
+      const from=monthStart<selectedTerm.start?selectedTerm.start:monthStart;
+      const monthEnd=new Date(Date.UTC(Number(anchor.slice(0,4)),Number(anchor.slice(5,7)),0)).toISOString().slice(0,10);
+      const to=[monthEnd,selectedTerm.end,today].sort()[0];
+      if(from>to)throw new Error("لا توجد أيام مكتملة في الشهر المحدد لهذا الفصل.");
+      request.from=from;request.to=to;
+    }
+    const status=document.getElementById("saCompetitionStatus");
+    if(status){status.textContent="جارٍ إعداد النتائج والتحقق من اكتمال الأسابيع المعتمدة...";status.classList.remove("hidden");}
+    const podium=document.getElementById("saCompetitionPodium");
+    if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
+    const data=await saRequest(request);
     if(requestId!==saCompetitionLoadSequence||!saCanViewCompetition())return;
     saCompetitionData=data;
     saRenderCompetition(data);
   }catch(error){
     if(requestId!==saCompetitionLoadSequence)return;
+    const status=document.getElementById("saCompetitionStatus");
     if(status){status.textContent=error?.message||"تعذر تحميل نتائج البطولة.";status.classList.remove("hidden");}
-    document.getElementById("saCompetitionPodium").innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
-    document.getElementById("saCompetitionRecommendations").innerHTML="";
-    document.getElementById("saCompetitionWins").innerHTML="";
-    if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
+    const podium=document.getElementById("saCompetitionPodium");
+    if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
+    const details=document.getElementById("saCompetitionSelectedTeacherDetails");if(details)details.innerHTML="";
   }
 }
 function saSetCompetitionCompareScope(scope){
@@ -2632,7 +2781,7 @@ function saRenderSelectedCompetitionTeacher(teamId){
   const container=document.getElementById("saCompetitionSelectedTeacherDetails"),data=saCompetitionData;
   if(!container)return;
   const team=(Array.isArray(data?.teams)?data.teams:[]).find(item=>String(item.teamId)===String(teamId||""));
-  if(!team){container.innerHTML="";container.classList.add("hidden");return;}
+  if(!team||data?.status!=="approved"){container.innerHTML="";container.classList.add("hidden");return;}
   const period=data.period||"weekly",points=Number(data?.weeklyPoints?.[team.teamId]||0),award=period==="term"?null:Number(team.weeklyAwardPoints||0);
   const wins=Number(data?.weeklyWins?.[team.teamId]??team.weeklyWins??0),classes=Array.isArray(team.classNames)?team.classNames:[];
   const awardLabel=period==="weekly"?"النقاط التي اكتسبها هذا الأسبوع":"نقاط حصاد الأسابيع الأربعة";
@@ -2643,199 +2792,89 @@ function saRenderSelectedCompetitionTeacher(teamId){
   document.getElementById("saCompetitionTeacherDropdownToggle")?.setAttribute("aria-expanded","false");
   document.getElementById("saCompetitionTeacherDropdownChevron")?.classList.remove("rotate-180");
 }
-
 function saRenderCompetition(data){
   const status=document.getElementById("saCompetitionStatus");
   const teams=Array.isArray(data?.teams)?data.teams:[];
-  const ownTeamNames=new Set(Array.isArray(data?.ownGrades)?data.ownGrades.map(String):[]);
-  const isAdmin=data?.isAdmin===true;
   const period=data?.period||"weekly";
-  const completedWeeks=Number(data?.completedWeeks||0);
-  const weeklyAwardsReady=teams.length>0&&teams.every(team=>team.weeklyAwardPoints!==null&&team.weeklyAwardPoints!==undefined);
-  const hasTermPoints=Object.values(data?.weeklyPoints||{}).some(value=>Number(value)>0);
-  const rankingsReady=period==="weekly"?weeklyAwardsReady:completedWeeks>0&&teams.length>0&&teams.every(team=>Number.isFinite(Number(team.rank)))&&(period!=="term"||hasTermPoints);
+  const ready=data?.status==="approved"&&teams.length>0;
   if(status){
-    if(period==="weekly"){
-      status.textContent=data.status==="awaiting_first_result"
-        ?"لم تُعتمد نتيجة أسبوعية سابقة بعد. ستظهر أول نتيجة بعد إقفال سجلات الأسبوع يوم الخميس الساعة 1:50 ظهراً."
-        :data.pendingWeek
-          ?"تظل آخر نتيجة أسبوعية معتمدة ظاهرة على منصة الأوائل؛ أما الأسبوع الجديد فما زالت سجلاته غير مكتملة، ولن تحل نتيجته محل النتيجة الحالية حتى اعتمادها."
-          :weeklyAwardsReady
-            ?"اكتملت سجلات الفرق واعتمدت النتيجة الأسبوعية. تبقى هذه النتيجة ظاهرة حتى اعتماد نتيجة الأسبوع التالي."
-            :"نتيجة الأسبوع المحدد غير مكتملة؛ لا تُمنح نقاط المراكز حتى تكتمل سجلات الغياب والسلوك للحصص الثماني في جميع الصفوف المشاركة.";
-    }else if(period==="term"){
-      const available=data.dataAvailableFrom&&data.dataAvailableFrom>data.termStart
-        ?" تنبيه: لا تتوفر نتائج أسبوعية معتمدة قبل "+data.dataAvailableFrom+"؛ لذلك يبدأ جمع النقاط من أول أسبوع معتمد في النظام."
-        :"";
-      status.textContent=completedWeeks>0
-        ?(hasTermPoints?"الترتيب حسب مجموع نقاط المراكز الأسبوعية المعتمدة منذ بداية الفصل. عدد الأسابيع المحتسبة: "+completedWeeks+"."+available:"اكتملت أسابيع احتساب البيانات، لكن لم يحصل أي فريق على نقاط مراكز حتى الآن."+available)
-        :"لم تُعتمد نتائج أسبوعية لهذا الفصل بعد؛ سيبدأ الرصيد التراكمي بعد اعتماد أول نتيجة أسبوعية."+available;
-    }else{
-      status.textContent=completedWeeks>0
-        ?"الرصيد التراكمي يحتسب الأسابيع الدراسية المكتملة فقط؛ الأسابيع غير المكتملة لا تمنح نقاطاً."
-        :"لا توجد أسابيع مكتملة في الفترة المحددة؛ لم تُمنح نقاط تراكمية بعد.";
-    }
-    status.className="rounded-xl border px-4 py-3 text-xs font-bold leading-6 "+(rankingsReady&&period==="weekly"?"hidden":"border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200");
+    const messages={
+      no_participants:"لا يوجد معلمون مشاركون مخوّلون في بطولة الانضباط حالياً.",
+      not_started:"لم يبدأ الفصل الدراسي المحدد بعد؛ ستظهر نتائجه عند بدء الفصل وتسجيل الأسابيع المعتمدة.",
+      awaiting_first_result:"لم تُعتمد نتيجة أسبوعية لهذا الفصل بعد. ستظهر بعد إقفال الأسبوع واكتمال سجلاته.",
+      awaiting_baseline:"تُستكمل حالياً الأسابيع الأربعة الأولى لبناء خط أساس عادل. يبدأ ترتيب التحسن بعد اكتمالها.",
+      awaiting_first_harvest:"لم تكتمل بعد أربعة أسابيع تنافسية معتمدة لتكوين حصاد الأسابيع الأربعة.",
+      no_active_term:"لا توجد فترة فصل دراسي جارية حالياً. النتائج السابقة محفوظة في الأرشيف.",
+      approved:period==="weekly"?"هذه نتيجة الأسبوع المعتمدة، وتبقى ظاهرة حتى اعتماد نتيجة الأسبوع التالي.":period==="monthly"?"هذا حصاد دورة مكتملة من أربعة أسابيع معتمدة.":"هذا الرصيد التراكمي للفصل الدراسي المحدد."
+    };
+    status.textContent=messages[data?.status]||"لا تتوفر نتائج معتمدة للفترة المحددة.";
+    status.className="rounded-xl border px-4 py-3 text-xs font-bold leading-6 "+(ready?"hidden":"border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200");
   }
-  const rangeFrom=document.getElementById("saCompetitionFrom"),rangeTo=document.getElementById("saCompetitionTo");
-  if(rangeFrom&&data.from){rangeFrom.value=data.from;rangeFrom.disabled=period!=="monthly";}
-  if(rangeTo&&data.to){rangeTo.value=data.to;rangeTo.disabled=period!=="monthly";}
   const rangeLabel=document.getElementById("saCompetitionRangeLabel");
   if(rangeLabel){
-    if(period==="weekly")rangeLabel.textContent=data.status==="awaiting_first_result"?"بانتظار أول نتيجة معتمدة":data.from&&data.to?"نتيجة "+saCompetitionDayLabel(data.from)+" – "+saCompetitionDayLabel(data.to):"آخر نتيجة أسبوعية معتمدة";
-    else if(period==="term")rangeLabel.textContent=(data.termLabel||"الفصل الدراسي")+" · "+(data.termStart||"")+" إلى "+(data.to||data.today||"");
-    else rangeLabel.textContent="حصاد الشهر";
+    const label=period==="weekly"?"النتيجة الأسبوعية المعتمدة":period==="monthly"?"حصاد أربعة أسابيع معتمدة":"النتائج التراكمية للفصل";
+    rangeLabel.textContent=label+(data?.termLabel?" · "+data.termLabel:"");
   }
   const sorted=[...teams].sort((a,b)=>(Number(a.rank)||999)-(Number(b.rank)||999));
-  const podiumTeams=rankingsReady?sorted.filter(team=>Number(team.rank)>=1&&Number(team.rank)<=3):[];
+  const podiumTeams=ready?sorted.filter(team=>Number(team.rank)>=1&&Number(team.rank)<=3):[];
   const podium=document.getElementById("saCompetitionPodium");
-  const platformTheme={
-    1:{card:"border-amber-300 bg-gradient-to-b from-amber-50 via-white to-amber-100 dark:border-amber-700 dark:from-amber-950/50 dark:via-slate-900 dark:to-amber-950/40",accent:"text-amber-700 dark:text-amber-200",top:"bg-gradient-to-r from-amber-300 via-yellow-100 to-amber-400",side:"bg-gradient-to-b from-amber-500 to-amber-700",rank:"bg-amber-400 text-amber-950",height:"md:min-h-[365px]"},
-    2:{card:"border-slate-300 bg-gradient-to-b from-slate-100 via-white to-slate-200 dark:border-slate-600 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800",accent:"text-slate-700 dark:text-slate-100",top:"bg-gradient-to-r from-slate-200 via-white to-slate-400",side:"bg-gradient-to-b from-slate-400 to-slate-600",rank:"bg-slate-300 text-slate-800",height:"md:min-h-[325px]"},
-    3:{card:"border-orange-300 bg-gradient-to-b from-orange-50 via-white to-orange-100 dark:border-orange-800 dark:from-orange-950/40 dark:via-slate-900 dark:to-orange-950/30",accent:"text-orange-700 dark:text-orange-200",top:"bg-gradient-to-r from-orange-200 via-amber-100 to-orange-400",side:"bg-gradient-to-b from-orange-500 to-orange-700",rank:"bg-orange-300 text-orange-950",height:"md:min-h-[305px]"}
+  const theme={
+    1:{card:"border-amber-300 bg-gradient-to-b from-amber-50 via-white to-amber-100 dark:border-amber-700 dark:from-amber-950/50 dark:via-slate-900 dark:to-amber-950/40",accent:"text-amber-700 dark:text-amber-200",rank:"bg-amber-400 text-amber-950"},
+    2:{card:"border-slate-300 bg-gradient-to-b from-slate-100 via-white to-slate-200 dark:border-slate-600 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800",accent:"text-slate-700 dark:text-slate-100",rank:"bg-slate-300 text-slate-800"},
+    3:{card:"border-orange-300 bg-gradient-to-b from-orange-50 via-white to-orange-100 dark:border-orange-800 dark:from-orange-950/40 dark:via-slate-900 dark:to-orange-950/30",accent:"text-orange-700 dark:text-orange-200",rank:"bg-orange-300 text-orange-950"}
   };
-  const displayPodium=[...podiumTeams].sort((a,b)=>Number(a.rank)-Number(b.rank));
-  podium.innerHTML=displayPodium.length?displayPodium.map(team=>{
-    const rank=Number(team.rank),style=platformTheme[rank]||platformTheme[3],own=ownTeamNames.has(String(team.teamName||team.grade));
-    const points=period==="weekly"?team.weeklyAwardPoints:Number(data?.weeklyPoints?.[team.teamId]||0);
-    const classes=Array.isArray(team.classNames)?team.classNames:[];
-    return '<article class="relative flex flex-col overflow-hidden rounded-[1.7rem] border-2 p-5 shadow-xl transition duration-300 hover:-translate-y-1 '+style.card+' '+style.height+'">'+
-      '<div class="absolute -left-10 -top-10 h-32 w-32 rounded-full bg-white/60 blur-2xl dark:bg-white/5"></div>'+
-      '<div class="relative flex items-center justify-between gap-2"><span class="rounded-full px-3 py-1.5 text-[11px] font-black '+style.rank+'">'+(period==="weekly"&&rank===1?"بطل هذا الأسبوع":period==="term"&&rank===1?"المتصدر التراكمي":rank===1?"المركز الأول":rank===2?"المركز الثاني":rank===3?"المركز الثالث":"المركز "+rank)+'</span><span class="text-3xl">'+(rank===1?"👑":rank===2?"🥈":"🥉")+'</span></div>'+
-      '<div class="relative mt-4 text-center"><div class="text-[10px] font-bold text-slate-500">قائد الفريق</div><h4 class="mt-1 text-xl font-black leading-8 text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||"")+'</h4><div class="mt-2 inline-flex rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-xs font-extrabold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">'+escapeHtml(team.teamName||"الفريق")+'</div>'+(own?'<div class="mt-2"><span class="rounded-full bg-teal-100 px-3 py-1 text-[10px] font-black text-teal-800 dark:bg-teal-950 dark:text-teal-200">فريقك</span></div>':"")+'</div>'+
-      '<div class="relative mt-4 flex-1 rounded-2xl bg-white/75 p-3 dark:bg-slate-950/50"><div class="text-[10px] font-black text-slate-500">الصفوف التي يشرف عليها</div><div class="mt-2 flex flex-wrap justify-center gap-1.5">'+(classes.length?classes.map(cls=>'<span class="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(formatClassName(cls))+'</span>').join(""):'<span class="text-xs text-slate-400">—</span>')+'</div></div>'+
-      '<div class="relative mt-4 rounded-2xl bg-white/85 p-3 text-center shadow-sm dark:bg-slate-950/60"><div class="text-[10px] font-bold text-slate-500">'+(period==="weekly"?"نقاط هذا الأسبوع":"نقاط الأسابيع المكتملة")+'</div><div class="mt-1 text-3xl font-black tabular-nums '+style.accent+'">'+(points==null?"—":Number(points))+'</div><div class="text-[10px] text-slate-400">نقطة</div><div class="mt-2 border-t border-slate-200/70 pt-2 text-[11px] font-bold text-slate-500 dark:border-slate-700">مؤشر الأداء: '+(team.score==null?"—":Number(team.score).toFixed(1))+' / 100</div></div>'+
-      '<div class="relative mx-auto mt-4 w-[88%]"><div class="mx-auto h-3 w-[82%] rounded-t-lg border border-white/70 '+style.top+' shadow-md"></div><div class="mx-auto h-12 w-[72%] border-x border-white/30 '+style.side+' shadow-inner"></div><div class="h-3 w-full rounded-sm border border-white/30 '+style.side+' shadow-lg"></div><div class="mx-auto h-2 w-[94%] rounded-b-md bg-slate-500/30 dark:bg-black/40"></div></div>'+
-      '</article>';
-  }).join(""):'<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-7 text-center text-xs font-bold leading-6 text-slate-500 dark:border-slate-700 dark:bg-slate-950">ستظهر منصة التتويج بعد اكتمال الأسبوع أو توفر نتائج الأسابيع المكتملة.</div>';
-  const other=rankingsReady?sorted.filter(team=>Number(team.rank)>3):[];
+  if(podium)podium.innerHTML=podiumTeams.length?podiumTeams.map(team=>{
+    const rank=Number(team.rank),style=theme[rank]||theme[3],classes=Array.isArray(team.classNames)?team.classNames:[];
+    const currentPoints=period==="term"?null:Number(team.weeklyAwardPoints||0);
+    const previousPoints=Number(data?.weeklyPoints?.[team.teamId]||0);
+    const currentLabel=period==="weekly"?"النقاط التي اكتسبها هذا الأسبوع":period==="monthly"?"نقاط حصاد الأسابيع الأربعة":"";
+    const totalLabel=period==="weekly"?"رصيد نقاطه التراكمي من الأسابيع الماضية":period==="monthly"?"رصيده التراكمي قبل هذه الدورة":"رصيد نقاطه التراكمي في هذا الفصل";
+    return '<article class="relative flex flex-col overflow-hidden rounded-[1.6rem] border-2 p-5 shadow-lg '+style.card+'"><div class="flex items-center justify-between gap-2"><span class="rounded-full px-3 py-1.5 text-[10px] font-black '+style.rank+'">'+(rank===1?"المعلم المتميز في شؤون الطلاب":rank===2?"المركز الثاني":"المركز الثالث")+'</span><span class="text-2xl">'+(rank===1?"🏆":rank===2?"🥈":"🥉")+'</span></div><div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500">اسم المعلم</div><h4 class="mt-1 text-lg font-black leading-8 text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||team.teacherName||"")+'</h4><span class="mt-2 inline-flex rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[10px] font-extrabold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">'+escapeHtml(team.teamName||"الفريق")+'</span></div><div class="mt-4 flex-1 rounded-xl bg-white/75 p-3 dark:bg-slate-950/50"><div class="text-[10px] font-black text-slate-500">الفصول التي يشرف عليها</div><div class="mt-2 flex flex-wrap justify-center gap-1.5">'+(classes.length?classes.map(cls=>'<span class="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(formatClassName(cls))+'</span>').join(""):'<span class="text-xs text-slate-400">—</span>')+'</div></div><div class="mt-4 rounded-xl bg-white/85 p-3 text-center dark:bg-slate-950/60"><div class="text-[10px] font-bold text-slate-500">مستوى الأداء</div><div class="mt-1 text-3xl font-black tabular-nums '+style.accent+'">'+(team.score==null?"—":Number(team.score).toFixed(1)+"%")+'</div>'+(currentPoints!==null?'<div class="mt-3 border-t border-slate-200 pt-2 text-[10px] font-bold text-slate-500 dark:border-slate-700">'+currentLabel+'</div><div class="text-xl font-black tabular-nums '+style.accent+'">'+currentPoints+' نقطة</div>':"")+'<div class="mt-2 border-t border-slate-200 pt-2 text-[10px] font-bold text-slate-500 dark:border-slate-700">'+totalLabel+'</div><div class="text-lg font-black tabular-nums text-slate-800 dark:text-white">'+previousPoints+' نقطة</div></div></article>';
+  }).join(""):(IS_UI_REVIEW_PREVIEW?[
+    {rank:1,label:"المركز الأول",icon:"🏆",card:"border-amber-300 bg-gradient-to-b from-amber-50 via-white to-amber-100 dark:border-amber-700 dark:from-amber-950/50 dark:via-slate-900 dark:to-amber-950/40",accent:"text-amber-700 dark:text-amber-200",rankClass:"bg-amber-400 text-amber-950"},
+    {rank:2,label:"المركز الثاني",icon:"🥈",card:"border-slate-300 bg-gradient-to-b from-slate-100 via-white to-slate-200 dark:border-slate-600 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800",accent:"text-slate-700 dark:text-slate-100",rankClass:"bg-slate-300 text-slate-800"},
+    {rank:3,label:"المركز الثالث",icon:"🥉",card:"border-orange-300 bg-gradient-to-b from-orange-50 via-white to-orange-100 dark:border-orange-800 dark:from-orange-950/40 dark:via-slate-900 dark:to-orange-950/30",accent:"text-orange-700 dark:text-orange-200",rankClass:"bg-orange-300 text-orange-950"}
+  ].map(item=>'<article class="relative flex flex-col overflow-hidden rounded-[1.6rem] border-2 p-5 shadow-lg '+item.card+'"><div class="flex items-center justify-between gap-2"><span class="rounded-full px-3 py-1.5 text-[10px] font-black '+item.rankClass+'">'+item.label+'</span><span class="text-2xl">'+item.icon+'</span></div><div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500">اسم المعلم</div><h4 class="mt-1 text-sm font-black leading-8 text-slate-500 dark:text-slate-400">سيظهر بعد اعتماد النتائج</h4><span class="mt-2 inline-flex rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[10px] font-extrabold text-slate-500 dark:border-slate-700 dark:bg-slate-800">لا توجد بيانات في المعاينة</span></div><div class="mt-4 flex-1 rounded-xl bg-white/75 p-3 dark:bg-slate-950/50"><div class="text-[10px] font-black text-slate-500">الفصول التي يشرف عليها</div><div class="mt-2 text-center text-xs text-slate-400">لا توجد فصول معروضة</div></div><div class="mt-4 rounded-xl bg-white/85 p-3 text-center dark:bg-slate-950/60"><div class="text-[10px] font-bold text-slate-500">مستوى الأداء</div><div class="mt-1 text-3xl font-black tabular-nums '+item.accent+'">—</div><div class="mt-3 border-t border-slate-200 pt-2 text-[10px] font-bold text-slate-500 dark:border-slate-700">رصيد النقاط</div><div class="text-lg font-black tabular-nums text-slate-500">—</div></div></article>').join(""):'<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-7 text-center text-xs font-bold leading-6 text-slate-500 dark:border-slate-700 dark:bg-slate-950">ستظهر النتائج بعد اكتمال الأسابيع المطلوبة واعتمادها.</div>');
+  const other=ready?sorted.filter(team=>Number(team.rank)>3):[];
   const otherSection=document.getElementById("saCompetitionOtherRanksSection"),teacherSelect=document.getElementById("saCompetitionTeacherSelect");
-  if(otherSection)otherSection.classList.toggle("hidden",other.length===0);
+  if(otherSection){
+    otherSection.classList.toggle("hidden",other.length===0&&!IS_UI_REVIEW_PREVIEW);
+    if(IS_UI_REVIEW_PREVIEW&&other.length===0){
+      const emptyLabel=otherSection.querySelector("#saCompetitionOtherRanksCount");
+      if(emptyLabel)emptyLabel.textContent="لا توجد بيانات";
+      const select=otherSection.querySelector("#saCompetitionTeacherSelect");
+      if(select){select.disabled=true;select.innerHTML='<option value="">لا توجد أسماء معلمين في معاينة التصميم</option>';}
+      const panel=otherSection.querySelector("#saCompetitionTeacherDropdownPanel");
+      if(panel){
+        panel.querySelector(".ui-review-empty-note")?.remove();
+        const note=document.createElement("p");
+        note.className="ui-review-empty-note mt-3 text-xs leading-6 text-slate-500 dark:text-slate-300";
+        note.textContent="تظهر أسماء المعلمين هنا عند توفر نتائج معتمدة. لا تُعرض أي أسماء أو بيانات تجريبية في هذه المعاينة.";
+        panel.appendChild(note);
+      }
+    }
+  }
   if(teacherSelect){
     const previous=saCompetitionSelectedTeacherId;
-    teacherSelect.innerHTML='<option value="">اختر معلماً لعرض تفاصيله</option>'+other.map(team=>'<option value="'+escapeHtml(team.teamId)+'">'+escapeHtml(team.leaderName||team.teacherName||"معلم")+' · المركز '+Number(team.rank)+'</option>').join("");
+    teacherSelect.innerHTML='<option value="">'+(other.length?"اختر معلماً لعرض تفاصيله":(IS_UI_REVIEW_PREVIEW?"لا توجد بيانات معلمين في معاينة التصميم":"اختر معلماً لعرض تفاصيله"))+'</option>'+other.map(team=>'<option value="'+escapeHtml(team.teamId)+'">'+escapeHtml(team.leaderName||team.teacherName||"معلم")+' · المركز '+Number(team.rank)+'</option>').join("");
     saCompetitionSelectedTeacherId=other.some(team=>String(team.teamId)===String(previous))?previous:"";
     teacherSelect.value=saCompetitionSelectedTeacherId;
   }
-  const count=document.getElementById("saCompetitionOtherRanksCount");if(count)count.textContent=other.length+" معلم";
-  document.getElementById("saCompetitionTeacherDropdownPanel")?.classList.add("hidden");
-  document.getElementById("saCompetitionTeacherDropdownToggle")?.setAttribute("aria-expanded","false");
-  document.getElementById("saCompetitionTeacherDropdownChevron")?.classList.remove("rotate-180");
+  const count=document.getElementById("saCompetitionOtherRanksCount");
+  if(count)count.textContent=other.length+" معلم";
+  const dropdown=document.getElementById("saCompetitionTeacherDropdownPanel");
+  const toggle=document.getElementById("saCompetitionTeacherDropdownToggle");
+  const chevron=document.getElementById("saCompetitionTeacherDropdownChevron");
+  if(IS_UI_REVIEW_PREVIEW){
+    dropdown?.classList.remove("hidden");
+    toggle?.setAttribute("aria-expanded","true");
+    chevron?.classList.add("rotate-180");
+  }else{
+    dropdown?.classList.add("hidden");
+    toggle?.setAttribute("aria-expanded","false");
+    chevron?.classList.remove("rotate-180");
+  }
   saRenderSelectedCompetitionTeacher(saCompetitionSelectedTeacherId);
-  const wins=document.getElementById("saCompetitionWins"),pointsMap=data?.weeklyPoints||{},winsMap=data?.weeklyWins||{};
-  if(wins)wins.innerHTML=teams.map(team=>{
-    const points=Number(pointsMap[team.teamId]||0),winsCount=Number(winsMap[team.teamId]||0);
-    const max=Math.max(0,...Object.values(pointsMap).map(Number)),leader=max>0&&points===max;
-    return '<div class="flex items-center justify-between gap-3 rounded-xl border '+(leader?'border-amber-300 bg-amber-50 dark:border-amber-800 dark:bg-amber-950/30':'border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70')+' px-3 py-2.5"><span class="min-w-0 truncate text-xs font-black text-slate-700 dark:text-slate-200">'+(leader?'👑 ':"")+escapeHtml(team.leaderName||team.teamName)+'</span><div class="text-left"><strong class="text-sm font-black tabular-nums text-amber-600">'+points+' نقطة</strong><div class="text-[10px] text-slate-500">'+winsCount+' مرات في المركز الأول</div></div></div>';
-  }).join("");
-  const compareAll=document.getElementById("saCompetitionCompareAllBtn"),compareOwn=document.getElementById("saCompetitionCompareOwnBtn");
-  const scope=window.saCompetitionCompareScope||"all";
-  if(compareAll&&compareOwn){
-    compareAll.hidden=!isAdmin;compareOwn.hidden=!isAdmin;
-    compareAll.className=scope==="all"?"rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white":"rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700";
-    compareOwn.className=scope==="own"?"rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white":"rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700";
-  }
-  const teacherRank=new Map(teams.map(team=>[String(team.teamName||team.grade),Number(team.rank)||999]));
-  const classRows=(Array.isArray(data?.classComparison)?data.classComparison:[])
-    .filter(item=>isAdmin?(scope==="all"||ownTeamNames.has(String(item.teamName))):ownTeamNames.has(String(item.teamName)))
-    .sort((a,b)=>(teacherRank.get(String(a.teamName))||999)-(teacherRank.get(String(b.teamName))||999)
-      ||(a.complete===b.complete?0:a.complete?-1:1)
-      ||((Number(a.attendanceRate)||0)+(Number(a.behaviorRate)||0))-((Number(b.attendanceRate)||0)+(Number(b.behaviorRate)||0))
-      ||String(a.className||"").localeCompare(String(b.className||""),"ar"));
-  const classRankByTeacher=new Map();
-  const comparison=document.getElementById("saCompetitionClassComparison");
-  if(comparison){
-    const maxAttendance=Math.max(1,...classRows.map(item=>Number(item.attendanceRate)||0)),maxBehavior=Math.max(1,...classRows.map(item=>Number(item.behaviorRate)||0));
-    comparison.innerHTML=classRows.length?classRows.map(item=>{
-      const teacherKey=String(item.teamName||"");
-      const classRank=(classRankByTeacher.get(teacherKey)||0)+1;
-      classRankByTeacher.set(teacherKey,classRank);
-      const a=item.complete?Number(item.attendanceRate):null,b=item.complete?Number(item.behaviorRate):null;
-      const aWidth=a==null?0:Math.min(100,a/maxAttendance*100),bWidth=b==null?0:Math.min(100,b/maxBehavior*100);
-      return '<article class="rounded-xl border border-white bg-white/90 p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><strong class="text-sm font-black text-slate-800 dark:text-white">صف '+escapeHtml(formatClassName(item.className))+'</strong><span class="mr-2 rounded-md bg-indigo-50 px-2 py-1 text-[9px] font-black text-indigo-700 dark:bg-indigo-950 dark:text-indigo-200">ترتيب الصف '+classRank+' ضمن الفريق</span><div class="mt-0.5 text-[10px] text-slate-500">'+escapeHtml(item.teamName||"")+' · '+escapeHtml(item.leaderName||"")+'</div></div><span class="rounded-lg '+(item.complete?'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-200':'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-200')+' px-2 py-1 text-[10px] font-black">'+(item.complete?'مكتمل':'غير مكتمل')+'</span></div><div class="space-y-2"><div><div class="mb-1 flex justify-between text-[10px] font-bold"><span class="text-rose-600">الغياب</span><span class="tabular-nums text-slate-600 dark:text-slate-300">'+(a==null?"—":a.toFixed(2))+' حالة / صف / يوم</span></div><div class="h-2 overflow-hidden rounded-full bg-rose-100 dark:bg-rose-950"><div class="h-full rounded-full bg-rose-500 transition-all duration-700" style="width:'+aWidth+'%"></div></div></div><div><div class="mb-1 flex justify-between text-[10px] font-bold"><span class="text-violet-600">السلوكيات السلبية</span><span class="tabular-nums text-slate-600 dark:text-slate-300">'+(b==null?"—":b.toFixed(2))+' حالة / صف / يوم</span></div><div class="h-2 overflow-hidden rounded-full bg-violet-100 dark:bg-violet-950"><div class="h-full rounded-full bg-violet-500 transition-all duration-700" style="width:'+bWidth+'%"></div></div></div></div></article>';
-    }).join(""):'<div class="rounded-xl border border-dashed border-indigo-200 bg-white/70 p-5 text-center text-xs font-bold text-slate-500 dark:border-indigo-900 dark:bg-slate-900">لا توجد بيانات صفوف مكتملة للمقارنة في الفترة المحددة.</div>';
-  }
-  const recommendations=document.getElementById("saCompetitionRecommendations");
-  const ownClasses=(Array.isArray(data?.ownClasses)?data.ownClasses:[]).filter(item=>ownTeamNames.has(String(item.teamName||item.grade)));
-  const ready=ownClasses.filter(item=>item.complete&&Number.isFinite(Number(item.attendanceRate))&&Number.isFinite(Number(item.behaviorRate)));
-  if(recommendations){
-    if(!ready.length){
-      recommendations.innerHTML='<div class="rounded-xl border border-dashed border-teal-200 bg-white/70 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-teal-900 dark:bg-slate-900 dark:text-slate-300">'+(ownTeamNames.size?'ستظهر التوصيات بعد اكتمال سجلات الغياب والسلوك لجميع أيام وحصص الفترة. لا يصدر النظام نصائح من بيانات ناقصة.':'هذه صلاحية مشاهدة للمنافسة فقط؛ لا يوجد فريق مشارك مرتبط بحسابك لتوليد توصيات خاصة به.')+'</div>';
-    }else{
-      const ownTeam=teams.find(team=>ownTeamNames.has(String(team.teamName||team.grade)));
-      const ownRank=Number(ownTeam?.rank)||null;
-      const periodLabel=period==="weekly"?"الأسبوع القادم":"الفترة القادمة";
-      const esc=escapeHtml;
-      const sortedClasses=[...ready].sort((a,b)=>(Number(b.attendanceRate)+Number(b.behaviorRate))-(Number(a.attendanceRate)+Number(a.behaviorRate)));
-      const priority=sortedClasses[0];
-      const advice=[];
-      if(ownRank&&ownRank>1){
-        advice.push({kind:"فرصة المنافسة",tone:"amber",title:"خطوتك نحو المركز الأول",body:'جاء فريقك في المركز <b>'+ownRank+'</b> في الفترة المحددة. ركّز جهودك على الصفوف والمؤشرات التالية؛ فخفض الحالات المسجلة فيها يرفع مستوى فريقك في المنافسة.'});
-      }else if(ownRank===1){
-        advice.push({kind:"المحافظة على الصدارة",tone:"emerald",title:"أداء متقدم يستحق الاستمرار",body:"فريقك في المركز الأول. حافظ على الممارسات الناجحة، وواصل المتابعة اليومية حتى لا يرتفع أي مؤشر في الأسبوع القادم."});
-      }else{
-        advice.push({kind:"تحليل الأداء",tone:"teal",title:"فرص التحسين في صفوفك",body:"توضح المؤشرات التالية المجالات التي تستحق الأولوية في المتابعة، بهدف تحسين أداء صفوف فريقك."});
-      }
-      const statusLabels={absent:"الغياب",late:"التأخر",outside:"الخروج من الحصة",escape:"التسرب"};
-      const behaviorLabels={eating:"تناول الطعام",talking:"الحديث الجانبي",tools:"العبث بالأدوات",chaos:"إثارة الفوضى",sleeping:"النوم أثناء الحصة",homework:"عدم أداء الواجب",other:"سلوكيات أخرى"};
-      const add=(kind,title,body,cls)=>advice.push({kind,title,body,className:cls});
-      for(const item of sortedClasses){
-        const cls=esc(formatClassName(item.className));
-        const a=item.attendanceStatusCounts||{};
-        const b=item.behaviorTypeCounts||{};
-        const attendanceKinds=Object.entries(statusLabels).filter(([key])=>Number(a[key]||0)>0).sort((x,y)=>Number(a[y[0]]||0)-Number(a[x[0]]||0));
-        const behaviorKinds=Object.entries(behaviorLabels).filter(([key])=>Number(b[key]||0)>0).sort((x,y)=>Number(b[y[0]]||0)-Number(b[x[0]]||0));
-        if(Number(item.attendanceRate)>0){
-          if(attendanceKinds.length){
-            const top=attendanceKinds.slice(0,2).map(([key,label])=>label+' ('+Number(a[key]||0)+')').join("، ");
-            add("الحضور والانضباط","أولوية متابعة صف "+cls,'سُجل في الصف متوسط <b>'+Number(item.attendanceRate).toFixed(2)+'</b> حالة يومياً، وأكثر الحالات تكراراً: <b>'+esc(top)+'</b>. راجع سجل الحضور يومياً، ونسّق مع مربي الصف لمعرفة أسباب التكرار، وتابع الحالات حتى يتحسن الالتزام.',item.className);
-          }else{
-            add("الحضور والانضباط","متابعة حضور صف "+cls,"توجد حالات غياب أو انضباط مسجلة. راجع تفاصيل السجلات في البوابة التعليمية وحدد الحالات المتكررة قبل وضع إجراء المتابعة.",item.className);
-          }
-        }
-        if(Number(item.repeatAttendanceStudents||0)>0){
-          add("متابعة فردية","الطلاب المتكررون في الغياب",'تُظهر السجلات وجود <b>'+Number(item.repeatAttendanceStudents)+'</b> طلاب تكررت لديهم حالات الحضور والانضباط في أيام مختلفة. راجع أسماءهم في البوابة التعليمية، وتابعهم فردياً، ووثّق المخالفات، وقدّم لهم ورقة تنبيه تربوية تحثهم على الالتزام في '+periodLabel+'.',item.className);
-        }
-        if(Number(item.behaviorRate)>0){
-          if(behaviorKinds.length){
-            const top=behaviorKinds.slice(0,2).map(([key,label])=>label+' ('+Number(b[key]||0)+')').join("، ");
-            add("السلوك الإيجابي","تحسين سلوك صف "+cls,'بلغ متوسط السلوكيات السلبية <b>'+Number(item.behaviorRate).toFixed(2)+'</b> حالة يومياً، وأكثرها: <b>'+esc(top)+'</b>. اتفق مع مربي الصف ومعلمي المواد على تذكير الطلبة بقواعد السلوك، وتعزيز الالتزام داخل الحصة، ومعالجة السلوك فور ظهوره بأسلوب تربوي ثابت.',item.className);
-          }else{
-            add("السلوك الإيجابي","تعزيز الانضباط في صف "+cls,"راجع الملاحظات السلوكية المسجلة وحدد السلوك الأكثر تكراراً، ثم اتفق مع مربي الصف على معالجة تربوية واضحة ومستمرة.",item.className);
-          }
-        }
-        if(Number(item.repeatBehaviorStudents||0)>0){
-          add("متابعة فردية","متابعة تكرار السلوك",'تُظهر السجلات وجود <b>'+Number(item.repeatBehaviorStudents)+'</b> طلاب تكررت لديهم سلوكيات سلبية في أيام مختلفة. راجع الحالات في البوابة التعليمية، واجلس مع كل طالب على انفراد لفهم سبب السلوك، ثم قدّم له ورقة تنبيه تربوية واضحة تشجعه على الالتزام خلال '+periodLabel+'.',item.className);
-        }
-      }
-      if(priority&&Number(priority.attendanceRate)===0&&Number(priority.behaviorRate)===0){
-        advice.push({kind:"نقطة قوة",title:"حافظ على تميز صفوفك",body:"لا تظهر في السجلات المكتملة حالات غياب أو سلوكيات سلبية في صفوف فريقك خلال الفترة المحددة. استمر في المتابعة اليومية وعزز السلوك الإيجابي حتى تحافظ على هذا المستوى."});
-      }else if(priority){
-        advice.push({kind:"هدف الفترة القادمة",title:"اجعل التحسن واضحاً في الأسبوع القادم",body:'ابدأ بصف <b>'+esc(formatClassName(priority.className))+'</b> لأنه يحمل أعلى مجموع لمعدلي الغياب والسلوك بين صفوف فريقك. وجّه المتابعة إليه أولاً، مع المحافظة على مستوى بقية الصفوف.'});
-      }
-      const selected=advice.slice(0,6);
-      const toneClass=tone=>tone==="amber"?"border-amber-200 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/20":tone==="emerald"?"border-emerald-200 bg-emerald-50/70 dark:border-emerald-900 dark:bg-emerald-950/20":"border-teal-100 bg-white dark:border-teal-900 dark:bg-slate-900";
-      recommendations.innerHTML='<div class="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-gradient-to-l from-slate-900 to-teal-900 p-3.5 text-white"><div><div class="text-[10px] font-bold text-teal-100">قراءة مخصصة لفريقك</div><div class="mt-1 text-sm font-black">'+(ownRank&&ownRank>1?'المركز الحالي: '+ownRank:'خطة تحسين الأداء')+'</div></div><span class="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-[10px] font-bold">'+selected.length+' توصيات مرتبطة بالمؤشرات</span></div>'+
-      selected.map((note,index)=>'<article class="rounded-xl border p-3.5 '+toneClass(note.tone)+'"><div class="mb-1.5 flex flex-wrap items-center justify-between gap-2"><span class="text-[10px] font-black text-teal-700 dark:text-teal-300">'+esc(note.kind)+'</span>'+(note.className?'<span class="rounded-lg bg-slate-100 px-2 py-1 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">الصف '+esc(formatClassName(note.className))+'</span>':'')+'</div><h5 class="text-xs font-black text-slate-800 dark:text-white">'+(index+1)+'. '+note.title+'</h5><p class="mt-1.5 text-xs leading-6 text-slate-600 dark:text-slate-300">'+note.body+'</p></article>').join("");
-    }
-  }
-  const chartTitle=document.getElementById("saCompetitionChartTitle");
-  if(chartTitle)chartTitle.innerHTML='<i class="fa-solid fa-chart-column ml-1 text-teal-600"></i> مقارنة معدلات الفرق (الأقل أفضل)';
-  const canvas=document.getElementById("saCompetitionChart");
-  if(saCompetitionChart){saCompetitionChart.destroy();saCompetitionChart=null;}
-  if(canvas&&typeof Chart!=="undefined"){
-    const chartTeams=teams.filter(team=>team.attendanceRate!=null&&team.behaviorRate!=null);
-    if(chartTeams.length){
-      saCompetitionChart=new Chart(canvas.getContext("2d"),{
-        type:"bar",
-        data:{labels:chartTeams.map(team=>team.teamName||team.grade),datasets:[
-          {label:"الغياب",data:chartTeams.map(team=>Number(team.attendanceRate)),backgroundColor:"#168C85",borderRadius:8,maxBarThickness:42},
-          {label:"السلوكيات السلبية",data:chartTeams.map(team=>Number(team.behaviorRate)),backgroundColor:"#D5A64A",borderRadius:8,maxBarThickness:42}
-        ]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:9,font:{family:"Tajawal",size:11}}},tooltip:{titleFont:{family:"Tajawal"},bodyFont:{family:"Tajawal"},callbacks:{label:context=>context.dataset.label+": "+Number(context.raw||0).toFixed(2)+" مخالفة لكل صف/يوم"}}},scales:{y:{beginAtZero:true,title:{display:true,text:"متوسط المخالفات لكل صف في اليوم",font:{family:"Tajawal",size:10}},ticks:{font:{family:"Tajawal"}},grid:{color:"rgba(148,163,184,.16)"}},x:{ticks:{font:{family:"Tajawal",size:10},maxRotation:0,autoSkip:false},grid:{display:false}}}}
-      });
-    }
-  }
 }
 async function openStudentAffairsAssignments(){
   const isAdmin=activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();
@@ -2846,6 +2885,7 @@ async function openStudentAffairsAssignments(){
   try{
     await saLoadAdmin();
     await saCompetitionLoadSettings();
+    saCompetitionRenderSettings();
     document.getElementById("saAdmin")?.classList.remove("hidden");
     panel.classList.remove("hidden");
     document.querySelectorAll("#sec-beneficiaries [data-beneficiary-card]").forEach(card=>card.classList.add("hidden"));
@@ -2861,10 +2901,10 @@ function closeStudentAffairsAssignments(){
     card.classList.toggle("hidden",!allowed);
   });
 }
-async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();saSetupCompetitionPanel();saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
+async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();await saSetupCompetitionPanel();await saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
-async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();}
+async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
   const teachers=Array.isArray(saAdminData?.teachers)?saAdminData.teachers:[];
   const records=Array.isArray(saAdminData?.permissions)?saAdminData.permissions:[];
@@ -3133,6 +3173,7 @@ function dutyDayForDate(dateStr) {
 function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 /* ============ DB ============ */
+const IS_UI_REVIEW_PREVIEW = location.hostname.includes("abu-dujana-school-preview");
 let db = { version: 27, adminPin: null, customUsers: [], customCategories: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
 const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false, custom_categories: false };
 let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
@@ -3372,6 +3413,18 @@ function populateCategoryDropdowns() {
 /* ============ Init ============ */
 window.addEventListener('DOMContentLoaded', async () => {
   initDarkMode(); setCurrentDate();
+  if(IS_UI_REVIEW_PREVIEW){
+    document.getElementById("loginView")?.classList.add("hidden");
+    document.getElementById("uiReviewLauncher")?.classList.remove("hidden");
+    document.getElementById("uiReviewBar")?.classList.remove("hidden");
+    updateSyncStatus(false,"معاينة واجهات فقط — لا اتصال ببيانات المدرسة");
+    // Stable, explicit preview routes prevent the navigation bar from being
+    // mistaken for the separate beneficiary-management preview entry point.
+    const previewRoute=new URLSearchParams(location.search).get("review");
+    if(previewRoute==="beneficiaries")void uiReviewOpenBeneficiaries();
+    else if(previewRoute==="student-affairs")void uiReviewOpenStudentAffairs();
+    return;
+  }
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
   await restoreOfflineState();
   syncServerTime();
@@ -6516,7 +6569,7 @@ function exportDutyReportsCSV() {
 </script>
 <script>
 // PWA shell registration. Offline data persistence is implemented in a separate stage.
-if ("serviceWorker" in navigator) {
+if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js").catch(error => {
       console.warn("تعذر تسجيل خدمة التطبيق:", error);
