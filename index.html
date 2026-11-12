@@ -3717,6 +3717,14 @@ async function handleUserLogin(e) {
       loginAttempts = 0;
       loginLockedUntil = 0;
       await finalizeLoginState();
+      if (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true) {
+        try { await saLogin(pin); }
+        catch (saError) {
+          console.warn("Preview Student Affairs session could not be established:", saError);
+          saSession = null;
+          try { localStorage.removeItem("abuDujana_studentAffairsSession"); sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch (error) {}
+        }
+      }
       showToast("تم الدخول إلى نسخة المعاينة التجريبية فقط.", "info");
       document.getElementById("userPinInput").value = "";
       return;
