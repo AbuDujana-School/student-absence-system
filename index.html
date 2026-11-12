@@ -3416,15 +3416,12 @@ async function saGenerateAutomaticNotices(){
   const canBehavior=p.can_read_behavior===true&&p.can_print_behavior===true;
   const statuses=canAttendance?p.attendance_statuses.filter(x=>["absent","late","escape","outside"].includes(x)):[];
   const jobs=[];
-  const today=getOmanLocalDate(),currentYear=Number(today.slice(0,4))||new Date().getFullYear(),startYear=saNoticeStartYear();
+  const today=getOmanLocalDate(),from=saNoticeStartYear()+"-01-01";
   classes.forEach(className=>{
     const useAttendance=canAttendance&&allowedAttendance.has(className)&&statuses.length>0;
     const useBehavior=canBehavior&&allowedBehavior.has(className);
     if(!useAttendance&&!useBehavior)return;
-    for(let year=startYear;year<=currentYear;year++){
-      const from=year+"-01-01",to=year===currentYear?today:year+"-12-31";
-      jobs.push({className,from,to,useAttendance,useBehavior});
-    }
+    jobs.push({className,from,to:today,useAttendance,useBehavior});
   });
   if(!jobs.length){saNoticeSetStatus("لا توجد صلاحيات لقراءة سجلات الغياب أو السلوك في الصف المحدد.",true);return;}
   saNoticeGenerationBusy=true;
