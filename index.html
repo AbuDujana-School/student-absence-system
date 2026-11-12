@@ -2397,6 +2397,15 @@ function uiReviewPrepare(){
   saSession={token:"ui-review-only",expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"معاينة التصميم"}};
   saReportPermissions={can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"visitor"};
   saAdminData={teachers:[],permissions:[],classes:Array.isArray(DEFAULT_CLASSES)?DEFAULT_CLASSES:[]};
+  const today=getOmanLocalDate(),year=Number(today.slice(0,4)),month=Number(today.slice(5,7)),startYear=month>=9?year:year-1;
+  saCompetitionTerms=[
+    {id:startYear+"-09-01",start:startYear+"-09-01",end:startYear+"-12-30",label:"الفصل الأول "+startYear+"/"+(startYear+1)},
+    {id:(startYear+1)+"-01-25",start:(startYear+1)+"-01-25",end:(startYear+1)+"-05-30",label:"الفصل الثاني "+startYear+"/"+(startYear+1)}
+  ];
+  const current=saCompetitionTerms.find(term=>term.start<=today&&today<=term.end)||saCompetitionTerms[0];
+  saCompetitionCurrentTermId=current.id;saCompetitionSelectedTermId=current.id;
+  saCompetitionShowBothTerms=false;saCompetitionSettingsLoaded=true;
+  saCompetitionRenderSettings();saCompetitionRenderTermSelector();
 }
 function uiReviewDisableMutations(){
   document.querySelectorAll('#saAssignmentsPanel button[onclick],#saCompetitionSettingsPanel button[onclick]').forEach(button=>{
@@ -2604,6 +2613,10 @@ function saCommitReportDateChange(prefix){const select=document.getElementById(p
 function saOnReportDateChanged(){saCommitReportDateChange("sa");}
 
 async function saCompetitionLoadSettings(){
+  if(IS_UI_REVIEW_PREVIEW&&saCompetitionSettingsLoaded){
+    saCompetitionRenderSettings();saCompetitionRenderTermSelector();
+    return {terms:saCompetitionTerms,currentTermId:saCompetitionCurrentTermId,selectedTermId:saCompetitionSelectedTermId,showBothTerms:saCompetitionShowBothTerms,canManage:true};
+  }
   const settings=await saRequest({action:"competition_settings",mode:"read"});
   saCompetitionTerms=Array.isArray(settings.terms)?settings.terms:[];
   saCompetitionCurrentTermId=String(settings.currentTermId||"");
@@ -2612,8 +2625,7 @@ async function saCompetitionLoadSettings(){
   if(!saCompetitionTerms.some(term=>String(term.id)===String(saCompetitionSelectedTermId))){
     saCompetitionSelectedTermId=String(settings.selectedTermId||saCompetitionCurrentTermId||saCompetitionTerms[0]?.id||"");
   }
-  saCompetitionRenderSettings();
-  saCompetitionRenderTermSelector();
+  saCompetitionRenderSettings();saCompetitionRenderTermSelector();
   return settings;
 }
 function saCompetitionRenderSettings(){
