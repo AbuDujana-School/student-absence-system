@@ -69,7 +69,7 @@ jobs:
             END IF;
           END $do$;
           SET ROLE service_role;
-          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-12","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":false,"threshold":3,"period_start":"2000-01-01","period_end":"2026-11-12","selected_types":["late"],"events":[{"type":"late","date":"2026-11-12","period":"1","note":""}]}]'::jsonb);
+          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-12","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":false,"threshold":1,"period_start":"2000-01-01","period_end":"2026-11-12","selected_types":["late"],"events":[{"type":"late","date":"2026-11-12","period":"1","note":""}]}]'::jsonb);
           SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-14","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":true,"threshold":1,"period_start":"2026-11-13","period_end":"2026-11-14","selected_types":["late"],"events":[{"type":"late","date":"2026-11-13","period":"2","note":""}]}]'::jsonb);
           SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-14","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":true,"threshold":1,"period_start":"2026-11-13","period_end":"2026-11-14","selected_types":["late"],"events":[{"type":"late","date":"2026-11-13","period":"2","note":""}]}]'::jsonb);
           DO $do$
