@@ -46,6 +46,43 @@ jobs:
           SQL
       - name: Apply app sessions migration to isolated PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
+      - name: Apply isolated official notice ledger migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
+      - name: Verify official notice ledger isolation and atomic numbering
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $do$
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.student_affairs_notice_issues'::regclass) THEN
+              RAISE EXCEPTION 'notice ledger RLS is not enabled';
+            END IF;
+            IF has_table_privilege('anon', 'public.student_affairs_notice_issues', 'SELECT')
+              OR has_table_privilege('authenticated', 'public.student_affairs_notice_issues', 'SELECT')
+              OR has_function_privilege('anon', 'public.issue_student_affairs_notices(jsonb)', 'EXECUTE')
+              OR has_function_privilege('authenticated', 'public.issue_student_affairs_notices(jsonb)', 'EXECUTE') THEN
+              RAISE EXCEPTION 'browser roles can access the official notice ledger';
+            END IF;
+            IF NOT has_table_privilege('service_role', 'public.student_affairs_notice_issues', 'INSERT')
+              OR NOT has_table_privilege('service_role', 'public.student_affairs_notice_issues', 'SELECT')
+              OR NOT has_function_privilege('service_role', 'public.issue_student_affairs_notices(jsonb)', 'EXECUTE') THEN
+              RAISE EXCEPTION 'service_role is missing notice ledger privileges';
+            END IF;
+          END $do$;
+          SET ROLE service_role;
+          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-12","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":false,"threshold":3,"period_start":"2000-01-01","period_end":"2026-11-12","selected_types":["late"],"events":[{"type":"late","date":"2026-11-12","period":"1","note":""}]}]'::jsonb);
+          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-12","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":true,"threshold":3,"period_start":"2026-11-12","period_end":"2026-11-12","selected_types":["late"],"events":[{"type":"late","date":"2026-11-12","period":"2","note":""}]}]'::jsonb);
+          DO $do$
+          DECLARE v_count integer; v_max integer; v_delivered boolean;
+          BEGIN
+            SELECT count(*), max(issue_number), bool_or(delivered) INTO v_count, v_max, v_delivered
+            FROM public.student_affairs_notice_issues WHERE class_name='9/1' AND student_name='synthetic-student';
+            IF v_count <> 2 OR v_max <> 2 OR v_delivered IS DISTINCT FROM true THEN
+              RAISE EXCEPTION 'official notice numbering or delivery status failed';
+            END IF;
+          END $do$;
+          RESET ROLE;
+          SELECT 'isolated official notice ledger integration checks passed' AS result;
+          SQL
       - name: Verify RLS, grants, and session lifecycle
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -167,14 +204,16 @@ jobs:
               raise SystemExit("Unexpected destructive or unrelated SQL: " + ", ".join(present))
           print("General app session migration contract verified")
           PY
-      - name: Type-check isolated general app auth modules
-        run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts
+      - name: Type-check isolated auth and notice policy modules
+        run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts supabase/functions/student-affairs/notice_policy.ts
       - name: Run general app auth policy tests
         run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
       - name: Run general app Supabase session store tests
         run: deno test supabase/functions/student-affairs/app_session_store_test.ts
       - name: Run report authorization tests
         run: deno test supabase/functions/student-affairs/report_policy_test.ts
+      - name: Run incremental notice policy tests
+        run: deno test supabase/functions/student-affairs/notice_policy_test.ts
       - name: Run Student Affairs supervision access policy tests
         run: deno test supabase/functions/student-affairs/supervision_access_policy_test.ts
       - name: Run competition policy tests
