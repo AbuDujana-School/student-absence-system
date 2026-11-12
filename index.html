@@ -1339,6 +1339,84 @@
 }
 @media(prefers-reduced-motion:reduce){#studentAffairsView .sa-report-tabs button{transition:none!important}}
 </style>
+
+<style id="sa-report-tabs-three-column-glass-fix">
+/* Three compact, readable glass tabs: RTL order is right-to-left. */
+#studentAffairsView .sa-report-tabs{
+  display:grid!important;
+  grid-template-columns:repeat(3,minmax(0,1fr))!important;
+  direction:rtl!important;
+  align-items:stretch;
+  gap:6px!important;
+  width:min(100%,470px)!important;
+  padding:6px!important;
+  border:1px solid rgba(148,163,184,.24)!important;
+  border-radius:16px!important;
+  background:linear-gradient(145deg,rgba(15,35,55,.94),rgba(31,65,83,.91))!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.13),0 10px 24px -18px rgba(15,35,55,.75)!important;
+}
+#studentAffairsView .sa-report-tabs>.hidden{display:none!important}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab,
+#studentAffairsView .sa-report-tabs>#saBehaviorTab,
+#studentAffairsView .sa-report-tabs>#saCombinedTab{
+  display:flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:6px!important;
+  min-width:0!important;
+  min-height:42px!important;
+  padding:7px 5px!important;
+  border:1px solid rgba(255,255,255,.2)!important;
+  border-radius:11px!important;
+  color:#f8fafc!important;
+  font-family:'Tajawal',sans-serif!important;
+  font-size:12px!important;
+  line-height:1.25!important;
+  font-weight:900!important;
+  white-space:nowrap!important;
+  text-align:center!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 4px 12px -9px rgba(0,0,0,.7)!important;
+  transition:transform .18s ease,box-shadow .18s ease,filter .18s ease!important;
+}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab{background:linear-gradient(145deg,rgba(37,99,235,.94),rgba(29,78,216,.88))!important}
+#studentAffairsView .sa-report-tabs>#saBehaviorTab{background:linear-gradient(145deg,rgba(13,148,136,.96),rgba(15,118,110,.9))!important}
+#studentAffairsView .sa-report-tabs>#saCombinedTab{background:linear-gradient(145deg,rgba(124,58,237,.94),rgba(91,33,182,.9))!important}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab .sa-report-tab-icon,
+#studentAffairsView .sa-report-tabs>#saBehaviorTab .sa-report-tab-icon,
+#studentAffairsView .sa-report-tabs>#saCombinedTab .sa-report-tab-icon{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;font-size:14px;line-height:1}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab .sa-report-tab-label,
+#studentAffairsView .sa-report-tabs>#saBehaviorTab .sa-report-tab-label,
+#studentAffairsView .sa-report-tabs>#saCombinedTab .sa-report-tab-label{display:inline-block;min-width:0;overflow:visible;color:#fff!important;font-size:12px!important;font-weight:900!important}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab:hover,
+#studentAffairsView .sa-report-tabs>#saBehaviorTab:hover,
+#studentAffairsView .sa-report-tabs>#saCombinedTab:hover{transform:translateY(-2px);filter:brightness(1.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.24),0 8px 16px -10px rgba(0,0,0,.75)!important}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab:focus-visible,
+#studentAffairsView .sa-report-tabs>#saBehaviorTab:focus-visible,
+#studentAffairsView .sa-report-tabs>#saCombinedTab:focus-visible{outline:3px solid #fbbf24!important;outline-offset:2px}
+#studentAffairsView .sa-report-tabs>#saAttendanceTab.bg-blue-600,
+#studentAffairsView .sa-report-tabs>#saBehaviorTab.bg-teal-600,
+#studentAffairsView .sa-report-tabs>#saCombinedTab.bg-teal-700{border-color:rgba(255,255,255,.75)!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.2),0 0 0 2px rgba(255,255,255,.18),0 8px 16px -9px rgba(0,0,0,.8)!important;filter:brightness(1.12)}
+.dark #studentAffairsView .sa-report-tabs{background:linear-gradient(145deg,rgba(8,20,34,.98),rgba(15,39,54,.96))!important;border-color:rgba(94,234,212,.22)!important}
+@media(max-width:480px){
+  #studentAffairsView .sa-report-tabs{gap:4px!important;padding:5px!important;width:100%!important}
+  #studentAffairsView .sa-report-tabs>#saAttendanceTab,
+  #studentAffairsView .sa-report-tabs>#saBehaviorTab,
+  #studentAffairsView .sa-report-tabs>#saCombinedTab{gap:4px!important;min-height:40px!important;padding:6px 3px!important;font-size:11px!important}
+  #studentAffairsView .sa-report-tabs>#saAttendanceTab .sa-report-tab-label,
+  #studentAffairsView .sa-report-tabs>#saBehaviorTab .sa-report-tab-label,
+  #studentAffairsView .sa-report-tabs>#saCombinedTab .sa-report-tab-label{font-size:11px!important}
+  #studentAffairsView .sa-report-tabs>#saAttendanceTab .sa-report-tab-icon,
+  #studentAffairsView .sa-report-tabs>#saBehaviorTab .sa-report-tab-icon,
+  #studentAffairsView .sa-report-tabs>#saCombinedTab .sa-report-tab-icon{font-size:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  #studentAffairsView .sa-report-tabs>#saAttendanceTab,
+  #studentAffairsView .sa-report-tabs>#saBehaviorTab,
+  #studentAffairsView .sa-report-tabs>#saCombinedTab{transition:none!important}
+}
+</style>
+
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
