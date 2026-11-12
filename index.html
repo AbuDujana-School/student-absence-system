@@ -6627,7 +6627,8 @@ if ("serviceWorker" in navigator) {
   if(typeof oldSaDate==="function")saOnReportDateChanged=function(){if(modes.sa)return load("sa");return oldSaDate();};
   if(typeof oldRepDate==="function")repOnReportDateChanged=function(){if(modes.rep)return load("rep");return oldRepDate();};
   document.addEventListener("change",e=>{if(e.target?.id==="saCombinedPeriodMode"){syncPeriodMode("sa");if(modes.sa)load("sa");}if(e.target?.id==="repCombinedPeriodMode"){syncPeriodMode("rep");if(modes.rep)load("rep");}if(e.target?.id==="saCombinedCumulative"&&modes.sa)load("sa");if(e.target?.id==="repCombinedCumulative"&&modes.rep)load("rep");if(e.target?.classList?.contains("sa-combined-status")||e.target?.classList?.contains("sa-combined-behavior")){if(modes.sa)load("sa");}if(e.target?.classList?.contains("rep-combined-status")||e.target?.classList?.contains("rep-combined-behavior")){if(modes.rep)load("rep");}});
-  document.addEventListener("DOMContentLoaded",()=>{mount("sa");mount("rep");});
+  window.refreshCombinedReportTabs=()=>{mount("sa");mount("rep");};
+  document.addEventListener("DOMContentLoaded",()=>{window.refreshCombinedReportTabs();});
   // Inline HTML handlers execute in the global scope; expose the scoped controller methods they call.
   window.setCombinedPeriodMode=setCombinedPeriodMode;
   window.setCombinedOutputMode=setCombinedOutputMode;
