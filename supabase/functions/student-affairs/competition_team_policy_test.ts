@@ -1,4 +1,5 @@
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope } from "./competition_team_policy.ts";
+import { isDirectSupervisionMember } from "./supervision_access_policy.ts";
 
 Deno.test("only explicitly enrolled teachers become competition teams", () => {
   const teams = buildCompetitionTeams([
@@ -7,6 +8,37 @@ Deno.test("only explicitly enrolled teachers become competition teams", () => {
     { name: "Teacher B", permissions: { competition_participant: false, competition_team_name: "ignored", competition_team_classes: ["3/9"] } }
   ], ["1/9", "2/9", "3/9"]);
   if (teams.length !== 1 || teams[0].leaderName !== "Teacher A" || teams[0].classNames.length !== 2) throw new Error("non-participants must not enter the competition");
+});
+
+Deno.test("explicit supervisor assignment belongs to exactly one team leader", () => {
+  const supervisor = {
+    name: "Supervisor A",
+    permissions: {
+      studentAffairs: true,
+      student_affairs_role: "supervisor",
+      student_affairs_team_name: "فريق العلوم",
+      supervisor_team_leader_name: "Leader A"
+    }
+  };
+  if (!isDirectSupervisionMember(supervisor, "Leader A", "فريق العلوم")) {
+    throw new Error("the explicitly selected leader must see the assigned supervisor");
+  }
+  if (isDirectSupervisionMember(supervisor, "Leader B", "فريق العلوم")) {
+    throw new Error("a second leader with the same team name must not see this supervisor");
+  }
+});
+
+Deno.test("legacy supervisors retain team-name matching until explicitly linked", () => {
+  const legacy = {
+    name: "Legacy Supervisor",
+    permissions: { studentAffairs: true, student_affairs_role: "supervisor", student_affairs_team_name: "فريق العلوم" }
+  };
+  if (!isDirectSupervisionMember(legacy, "Leader A", "فريق العلوم")) {
+    throw new Error("legacy same-team assignment should remain visible");
+  }
+  if (isDirectSupervisionMember(legacy, "Leader B", "فريق آخر")) {
+    throw new Error("legacy supervisor must not appear outside the matching team");
+  }
 });
 
 Deno.test("leader competition classes must stay within personal class assignments", () => {
