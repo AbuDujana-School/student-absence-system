@@ -1,4 +1,5 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
+import { buildNoticeCandidates, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
@@ -1200,6 +1201,84 @@ async function handle(req: Request) {
     const to = body.to == null ? "2100-12-31" : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
     const statusAllow = new Set((permissions.attendance_statuses || []) as string[]);
+    if (mode === "notice_history") {
+      const noticeClasses = Array.isArray(body.notice_classes) ? Array.from(new Set((body.notice_classes as unknown[]).map(String))) : [];
+      const allowedNoticeClasses = [...new Set([...(permissions.allowed_attendance_classes || []), ...(permissions.allowed_behavior_classes || [])])];
+      if (!noticeClasses.length || !areClassesAllowed(noticeClasses, allowedNoticeClasses)) return reply(403, { error: "لا تملك صلاحية الاطلاع على سجل التنبيهات في الصف المحدد." });
+      const { data, error } = await db.from("student_affairs_notice_issues")
+        .select("id,class_name,student_name,issue_number,issued_on,issued_at,issued_by_type,issued_by_name,delivered,delivered_at,threshold,period_start,period_end,selected_types,events")
+        .in("class_name", noticeClasses).lte("issued_on", to).order("issued_at", { ascending: true }).limit(10000);
+      if (error) return reply(500, { error: "تعذر تحميل سجل التنبيهات الرسمي." });
+      if ((data || []).length >= 10000) return reply(413, { error: "سجل التنبيهات كبير جداً للعرض دفعة واحدة. حدد طالباً أو صفاً واحداً." });
+      const studentName = String(body.student_name || "").trim();
+      const rows = studentName ? (data || []).filter((row: any) => String(row.student_name || "") === studentName) : (data || []);
+      return reply(200, { notices: rows, permissions });
+    }
+    if (mode === "notice_issue_commit") {
+      const issuedOn = body.issued_on;
+      const threshold = Number(body.threshold);
+      const selectedTypes = Array.isArray(body.selected_types) ? Array.from(new Set((body.selected_types as unknown[]).map(String))) : [];
+      if (!isValidIsoDate(issuedOn) || issuedOn > new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Muscat" })) return reply(400, { error: "تاريخ الإصدار غير صالح." });
+      if (!Number.isInteger(threshold) || threshold < 1 || threshold > 10) return reply(400, { error: "حد المخالفات يجب أن يكون من 1 إلى 10." });
+      if (!selectedTypes.length || selectedTypes.some(type => !(NOTICE_TYPES as readonly string[]).includes(type))) return reply(400, { error: "أنواع المخالفات المحددة غير صالحة." });
+      const useAttendance = selectedTypes.some(type => (NOTICE_ATTENDANCE_TYPES as readonly string[]).includes(type));
+      const useBehavior = selectedTypes.some(type => (NOTICE_BEHAVIOR_TYPES as readonly string[]).includes(type));
+      if (useAttendance && (permissions.can_read_attendance !== true || permissions.can_print_attendance !== true || selectedTypes.some(type => (NOTICE_ATTENDANCE_TYPES as readonly string[]).includes(type) && !statusAllow.has(type)))) return reply(403, { error: "غير مصرح بإصدار تنبيهات عن إحدى حالات الحضور المحددة." });
+      if (useBehavior && (permissions.can_read_behavior !== true || permissions.can_print_behavior !== true)) return reply(403, { error: "غير مصرح بإصدار تنبيهات عن السلوكيات المحددة." });
+      const attendanceClasses = useAttendance && Array.isArray(body.attendance_classes) ? Array.from(new Set((body.attendance_classes as unknown[]).map(String))) : [];
+      const behaviorClasses = useBehavior && Array.isArray(body.behavior_classes) ? Array.from(new Set((body.behavior_classes as unknown[]).map(String))) : [];
+      if (useAttendance && (!attendanceClasses.length || !areClassesAllowed(attendanceClasses, [...allowedAttendance]))) return reply(403, { error: "توجد صفوف حضور خارج نطاق صلاحياتك." });
+      if (useBehavior && (!behaviorClasses.length || !areClassesAllowed(behaviorClasses, [...allowedBehavior]))) return reply(403, { error: "توجد صفوف سلوك خارج نطاق صلاحياتك." });
+      const noticeClasses = [...new Set([...attendanceClasses, ...behaviorClasses])];
+      if (!noticeClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل." });
+      const jobs: Array<{ className: string; year: number; from: string; to: string; attendance: boolean; behavior: boolean }> = [];
+      const firstYear = 2000, lastYear = Number(String(issuedOn).slice(0, 4));
+      noticeClasses.forEach(className => {
+        for (let year = firstYear; year <= lastYear; year++) jobs.push({
+          className, year, from: year + "-01-01", to: year === lastYear ? issuedOn : year + "-12-31",
+          attendance: attendanceClasses.includes(className), behavior: behaviorClasses.includes(className)
+        });
+      });
+      const attendanceRows: any[] = [], behaviorRows: any[] = [], loadErrors: Error[] = [];
+      let jobCursor = 0;
+      const loadWorker = async () => {
+        while (jobCursor < jobs.length) {
+          const job = jobs[jobCursor++];
+          try {
+            const [a, b] = await Promise.all([
+              job.attendance ? db.from("attendance").select("record_key,date_str,class_name,period,records").eq("class_name", job.className).gte("date_str", job.from).lte("date_str", job.to).order("date_str", { ascending: true }).limit(5000) : Promise.resolve({ data: [], error: null } as any),
+              job.behavior ? db.from("behaviors").select("record_key,date_str,class_name,period,records").eq("class_name", job.className).gte("date_str", job.from).lte("date_str", job.to).order("date_str", { ascending: true }).limit(5000) : Promise.resolve({ data: [], error: null } as any)
+            ]);
+            if (a.error || b.error) throw new Error("تعذر قراءة سجلات المخالفات التاريخية.");
+            if ((a.data || []).length >= 5000 || (b.data || []).length >= 5000) throw new Error("بلغت سجلات أحد الصفوف الحد الأقصى في سنة " + job.year + ". لم نعتمد أي تنبيه حتى لا تكون النتائج ناقصة.");
+            for (const row of [...(a.data || []), ...(b.data || [])]) if (String(row.class_name || "") !== job.className) throw new Error("وصل سجل من صف خارج النطاق المصرح به.");
+            attendanceRows.push(...(a.data || [])); behaviorRows.push(...(b.data || []));
+          } catch (error) { loadErrors.push(error instanceof Error ? error : new Error("تعذر قراءة السجلات.")); }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, () => loadWorker()));
+      if (loadErrors.length) return reply(500, { error: loadErrors[0].message });
+      const [{ data: historyRows, error: historyError }, { data: rosterRows, error: rosterError }] = await Promise.all([
+        db.from("student_affairs_notice_issues").select("class_name,student_name,issue_number,issued_on,events").in("class_name", noticeClasses).lte("issued_on", issuedOn).order("issued_at", { ascending: true }).limit(10000),
+        db.from("students").select("class_name,student_name").in("class_name", noticeClasses)
+      ]);
+      if (historyError || rosterError) return reply(500, { error: "تعذر تحميل سجل التنبيهات أو قائمة الطلاب للتحقق من الإصدار." });
+      if ((historyRows || []).length >= 10000) return reply(413, { error: "سجل التنبيهات تجاوز الحد الآمن للتحقق. لم يتم إصدار أي تنبيه." });
+      const candidates = buildNoticeCandidates({
+        attendance: attendanceRows, behaviors: behaviorRows, history: historyRows || [], roster: rosterRows || [],
+        selected_types: selectedTypes, threshold, period_end: issuedOn
+      });
+      if (!candidates.length) return reply(200, { issued: [], candidates: [], message: "لا يوجد طالب تجاوز الحد المحدد خلال الفترة الجديدة." });
+      const delivered = body.delivered === true;
+      const payload = candidates.map(candidate => ({
+        class_name: candidate.class_name, student_name: candidate.student_name, issued_on: issuedOn,
+        issued_by_type: p.type, issued_by_name: p.name, delivered, threshold,
+        period_start: candidate.period_start, period_end: issuedOn, selected_types: selectedTypes, events: candidate.events
+      }));
+      const { data: issued, error: issueError } = await db.rpc("issue_student_affairs_notices", { p_items: payload });
+      if (issueError) return reply(500, { error: "تعذر حفظ التنبيهات الرسمية. لم نعرضها على أنها معتمدة." });
+      return reply(200, { issued: Array.isArray(issued) ? issued : [], candidates, message: "تم اعتماد التنبيهات الرسمية وحفظ سجلها." });
+    }
     if (body.attendance_status_filters != null && !Array.isArray(body.attendance_status_filters)) return reply(400, { error: "قائمة حالات الغياب غير صالحة" });
     const requestedStatuses = body.attendance_status_filters == null
       ? (body.attendance_status_filter == null ? null : [String(body.attendance_status_filter)])
