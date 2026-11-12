@@ -26,16 +26,16 @@ Deno.test("attendance absence is daily while other statuses remain period-specif
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"late"} },
     { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape"} }
   ];
-  if (countAttendanceIncidents(rows) !== 3) throw new Error("daily absence and per-period status counting failed");
+  if (countAttendanceIncidents(rows) !== 3) throw new Error("daily absence/late and per-period escape counting failed");
 });
-Deno.test("absence counts once per day but escape and other attendance events count per period", () => {
+Deno.test("absence and lateness remain daily while escape counts per period", () => {
   const rows = [
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} },
     { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} }
   ];
-  if (countAttendanceIncidents(rows) !== 5) throw new Error("daily absence or per-period attendance counting failed");
+  if (countAttendanceIncidents(rows) !== 5) throw new Error("daily absence/late and per-period escape counting failed");
   const counts = countAttendanceByStatus(rows);
-  if (counts.absent !== 1 || counts.escape !== 2 || counts.late !== 2) throw new Error("attendance status totals do not follow daily/per-period rules");
+  if (counts.absent !== 1 || counts.escape !== 2 || counts.late !== 1) throw new Error("attendance status totals do not follow daily/per-period rules");
 });
 Deno.test("behavior violations are counted separately for each class period", () => {
   const rows = [
@@ -140,7 +140,7 @@ Deno.test("coaching metrics count real attendance and behavior types without exp
   ];
   const a = countAttendanceByStatus(attendanceRows);
   const b = countBehaviorByType(behaviorRows);
-  if (a.late !== 3 || a.absent !== 1 || a.escape !== 1) throw new Error("attendance coaching breakdown must count absence daily and other events per period");
+  if (a.late !== 2 || a.absent !== 1 || a.escape !== 1) throw new Error("attendance coaching breakdown must preserve daily counts except per-period escape");
   if (b.talking !== 3 || b.tools !== 1 || b.sleeping !== 1) throw new Error("behavior coaching breakdown must count each period");
   if (countRepeatStudents(attendanceRows, "attendance") !== 1) throw new Error("repeat attendance students must require multiple days");
   if (countRepeatStudents(behaviorRows, "behavior") !== 1) throw new Error("repeat behavior students must require multiple days");
