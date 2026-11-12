@@ -112,15 +112,16 @@
 #saNoticeModal:not(.hidden){
   position:fixed!important;
   inset:0!important;
+  z-index:2147483647!important;
   width:100%!important;
   height:100vh!important;
   height:100dvh!important;
   box-sizing:border-box!important;
   display:flex!important;
-  align-items:center!important;
+  align-items:flex-start!important;
   justify-content:center!important;
   overflow:hidden!important;
-  padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom))!important;
+  padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom))!important;
 }
 #saNoticeModal .sa-notice-dialog{
   box-sizing:border-box!important;
@@ -3719,7 +3720,11 @@ function saOpenNoticeModal(){
   saNoticeRenderTypeFilters();saNoticeRefreshPrintAction();
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
   document.getElementById("saNoticeStatus").classList.add("hidden");
-  document.getElementById("saNoticeModal").classList.remove("hidden");
+  const noticeModal=document.getElementById("saNoticeModal");
+  // Move the modal out of nested app panels/stacking contexts so the fixed
+  // overlay is layered above the sticky application header on mobile.
+  if(noticeModal && noticeModal.parentElement!==document.body) document.body.appendChild(noticeModal);
+  noticeModal.classList.remove("hidden");
   document.body.classList.remove("sa-notice-print-mode");
   saNoticeLastGenerated=[];saNoticeLastHistory=[];saNoticeLastSettings=null;saNoticeOfficialCommitted=false;
 }
