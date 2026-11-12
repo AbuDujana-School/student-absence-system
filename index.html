@@ -1349,9 +1349,9 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
           <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
-        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">عرض نتائج المعلمين</h4><p class="mt-1 text-[11px] text-slate-500">اختر اسم أي معلم مشارك في البطولة لعرض تفاصيله ونقاطه فقط، دون إظهار نتائج بقية المعلمين.</p></div>
-        <section id="saCompetitionTeacherSelectorSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-users ml-1 text-teal-600"></i> اختر المعلم</h4><p class="mt-1 text-[11px] text-slate-500">القائمة تشمل جميع المعلمين المشاركين، بما فيهم أصحاب المراكز الثلاثة الأولى.</p></div>
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب مستوى الأداء</h4><p class="mt-1 text-[11px] text-slate-500">تظهر المراكز الثلاثة الأولى، ويمكن اختيار أي معلم من بقية المراكز لعرض تفاصيله ونقاطه فقط.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
+        <section id="saCompetitionOtherRanksSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-users ml-1 text-teal-600"></i> بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">اختر اسم المعلم لعرض مستوى أدائه ونقاطه والفصول التي يشرف عليها.</p></div>
           <div class="space-y-3 p-4"><label for="saCompetitionTeacherSelect" class="block text-xs font-black text-slate-700 dark:text-slate-200">اسم المعلم
               <select id="saCompetitionTeacherSelect" onchange="saRenderSelectedCompetitionTeacher(this.value)" class="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white"><option value="">اختر معلماً لعرض تفاصيله</option></select>
             </label><div id="saCompetitionSelectedTeacherDetails" class="rounded-xl border border-dashed border-slate-200 bg-slate-50 p-5 text-center text-xs text-slate-500 dark:border-slate-700 dark:bg-slate-950">اختر اسم المعلم من القائمة لعرض تفاصيله.</div></div>
@@ -2651,8 +2651,8 @@ async function saLoadCompetition(){
   const termId=saCompetitionSelectedTermId||saCompetitionGetCurrentTerm(getOmanLocalDate()).id;
   const status=document.getElementById("saCompetitionStatus");
   if(status){status.textContent="جارٍ إعداد النتائج والتحقق من اكتمال الأسابيع المعتمدة...";status.classList.remove("hidden");}
-  const details=document.getElementById("saCompetitionSelectedTeacherDetails");
-  if(details)details.innerHTML='<div class="rounded-xl border border-slate-200 p-6 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد نتائج المعلمين...</div>';
+  const podium=document.getElementById("saCompetitionPodium");
+  if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
   try{
     const data=await saRequest({action:"competition",period:requestPeriod,termId});
     if(requestId!==saCompetitionLoadSequence||!saCanViewCompetition())return;
@@ -2661,19 +2661,20 @@ async function saLoadCompetition(){
   }catch(error){
     if(requestId!==saCompetitionLoadSequence)return;
     if(status){status.textContent=error?.message||"تعذر تحميل نتائج البطولة.";status.classList.remove("hidden");}
-    const details=document.getElementById("saCompetitionSelectedTeacherDetails");
-    if(details)details.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
+    if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
+    const details=document.getElementById("saCompetitionSelectedTeacherDetails");if(details)details.innerHTML="";
   }
 }
 function saRenderSelectedCompetitionTeacher(teamId){
+  saCompetitionSelectedTeacherId=String(teamId||"");
   const container=document.getElementById("saCompetitionSelectedTeacherDetails"),data=saCompetitionData;
   if(!container)return;
-  const team=(Array.isArray(data?.teams)?data.teams:[]).find(item=>String(item.teamId)===String(teamId||""));
+  const team=(Array.isArray(data?.teams)?data.teams:[]).find(item=>String(item.teamId)===saCompetitionSelectedTeacherId&&Number(item.rank)>3);
   if(!team||data?.status!=="approved"){container.innerHTML="اختر اسم المعلم من القائمة لعرض تفاصيله.";return;}
-  const period=data.period||"weekly",points=Number(data?.weeklyPoints?.[team.teamId]||0),award=period==="term"?null:Number(team.weeklyAwardPoints||0);
+  const period=data.period||"weekly",pointsBefore=Number(data?.weeklyPoints?.[team.teamId]||0),award=period==="term"?null:Number(team.weeklyAwardPoints||0),points=period==="term"?pointsBefore:pointsBefore+(award||0);
   const wins=Number(data?.weeklyWins?.[team.teamId]??team.weeklyWins??0),classes=Array.isArray(team.classNames)?team.classNames:[];
   const awardLabel=period==="weekly"?"النقاط التي اكتسبها هذا الأسبوع":"نقاط حصاد الأسابيع الأربعة";
-  const totalLabel=period==="weekly"?"الرصيد التراكمي قبل نتيجة هذا الأسبوع":period==="monthly"?"الرصيد التراكمي قبل دورة الأسابيع الأربعة":"رصيد النقاط التراكمي في هذا الفصل";
+  const totalLabel="رصيد النقاط التراكمي حتى هذه النتيجة";
   container.innerHTML='<article class="overflow-hidden rounded-2xl border border-teal-200 bg-white shadow-sm dark:border-teal-900 dark:bg-slate-900"><div class="flex items-center justify-between gap-3 bg-teal-50 px-4 py-3 dark:bg-teal-950/40"><div><div class="text-[10px] font-bold text-teal-700 dark:text-teal-300">تفاصيل المعلم المحدد</div><h4 class="mt-1 text-base font-black text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||team.teacherName||"")+'</h4></div><span class="rounded-xl bg-white px-3 py-2 text-xs font-black text-teal-800 dark:bg-slate-800 dark:text-teal-200">المركز '+Number(team.rank)+'</span></div><div class="space-y-3 p-4"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-xs text-slate-500">الفريق</span><b class="text-xs font-black text-slate-800 dark:text-slate-100">'+escapeHtml(team.teamName||"—")+'</b></div><div><div class="mb-2 text-xs font-black text-slate-600 dark:text-slate-300">الفصول التي يشرف عليها</div><div class="flex flex-wrap gap-2">'+(classes.length?classes.map(cls=>'<span class="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(formatClassName(cls))+'</span>').join(""):'<span class="text-xs text-slate-400">لا توجد فصول مسندة</span>')+'</div></div><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">مستوى الأداء</div><div class="mt-1 text-3xl font-black tabular-nums text-teal-700 dark:text-teal-300">'+(team.score==null?"—":Number(team.score).toFixed(1)+"%")+'</div></div>'+(award!==null?'<div class="rounded-xl bg-amber-50 p-4 text-center dark:bg-amber-950/30"><div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">'+awardLabel+'</div><div class="mt-1 text-2xl font-black tabular-nums text-amber-700 dark:text-amber-300">'+award+' نقطة</div></div>':"")+'<div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">'+totalLabel+'</div><div class="mt-1 text-2xl font-black tabular-nums text-slate-800 dark:text-white">'+points+' نقطة</div></div><div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">مرات الحصول على المركز الأول</div><div class="mt-1 text-2xl font-black tabular-nums text-slate-800 dark:text-white">'+wins+'</div></div></div></div></article>';
 }
 function saRenderCompetition(data){
@@ -2700,12 +2701,28 @@ function saRenderCompetition(data){
     rangeLabel.textContent=label+(data?.termLabel?" · "+data.termLabel:"");
   }
   const sorted=[...teams].sort((a,b)=>(Number(a.rank)||999)-(Number(b.rank)||999));
-  const teacherSection=document.getElementById("saCompetitionTeacherSelectorSection"),teacherSelect=document.getElementById("saCompetitionTeacherSelect");
-  if(teacherSection)teacherSection.classList.toggle("hidden",!ready);
+  const podiumTeams=ready?sorted.filter(team=>Number(team.rank)>=1&&Number(team.rank)<=3):[];
+  const podium=document.getElementById("saCompetitionPodium");
+  const theme={
+    1:{card:"border-amber-300 bg-gradient-to-b from-amber-50 via-white to-amber-100 dark:border-amber-700 dark:from-amber-950/50 dark:via-slate-900 dark:to-amber-950/40",accent:"text-amber-700 dark:text-amber-200",rank:"bg-amber-400 text-amber-950"},
+    2:{card:"border-slate-300 bg-gradient-to-b from-slate-100 via-white to-slate-200 dark:border-slate-600 dark:from-slate-800 dark:via-slate-900 dark:to-slate-800",accent:"text-slate-700 dark:text-slate-100",rank:"bg-slate-300 text-slate-800"},
+    3:{card:"border-orange-300 bg-gradient-to-b from-orange-50 via-white to-orange-100 dark:border-orange-800 dark:from-orange-950/40 dark:via-slate-900 dark:to-orange-950/30",accent:"text-orange-700 dark:text-orange-200",rank:"bg-orange-300 text-orange-950"}
+  };
+  if(podium)podium.innerHTML=podiumTeams.length?podiumTeams.map(team=>{
+    const rank=Number(team.rank),style=theme[rank]||theme[3],classes=Array.isArray(team.classNames)?team.classNames:[];
+    const currentPoints=period==="term"?null:Number(team.weeklyAwardPoints||0);
+    const previousPoints=Number(data?.weeklyPoints?.[team.teamId]||0);
+    const currentLabel=period==="weekly"?"النقاط التي اكتسبها هذا الأسبوع":period==="monthly"?"نقاط حصاد الأسابيع الأربعة":"";
+    const totalLabel=period==="weekly"?"رصيد نقاطه التراكمي من الأسابيع الماضية":period==="monthly"?"رصيده التراكمي قبل هذه الدورة":"رصيد نقاطه التراكمي في هذا الفصل";
+    return '<article class="relative flex flex-col overflow-hidden rounded-[1.6rem] border-2 p-5 shadow-lg '+style.card+'"><div class="flex items-center justify-between gap-2"><span class="rounded-full px-3 py-1.5 text-[10px] font-black '+style.rank+'">'+(rank===1?"المعلم المتميز في شؤون الطلاب":rank===2?"المركز الثاني":"المركز الثالث")+'</span><span class="text-2xl">'+(rank===1?"🏆":rank===2?"🥈":"🥉")+'</span></div><div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500">اسم المعلم</div><h4 class="mt-1 text-lg font-black leading-8 text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||team.teacherName||"")+'</h4><span class="mt-2 inline-flex rounded-full border border-slate-200 bg-white/80 px-3 py-1 text-[10px] font-extrabold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">'+escapeHtml(team.teamName||"الفريق")+'</span></div><div class="mt-4 flex-1 rounded-xl bg-white/75 p-3 dark:bg-slate-950/50"><div class="text-[10px] font-black text-slate-500">الفصول التي يشرف عليها</div><div class="mt-2 flex flex-wrap justify-center gap-1.5">'+(classes.length?classes.map(cls=>'<span class="rounded-lg bg-slate-100 px-2.5 py-1.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(formatClassName(cls))+'</span>').join(""):'<span class="text-xs text-slate-400">—</span>')+'</div></div><div class="mt-4 rounded-xl bg-white/85 p-3 text-center dark:bg-slate-950/60"><div class="text-[10px] font-bold text-slate-500">مستوى الأداء</div><div class="mt-1 text-3xl font-black tabular-nums '+style.accent+'">'+(team.score==null?"—":Number(team.score).toFixed(1)+"%")+'</div>'+(currentPoints!==null?'<div class="mt-3 border-t border-slate-200 pt-2 text-[10px] font-bold text-slate-500 dark:border-slate-700">'+currentLabel+'</div><div class="text-xl font-black tabular-nums '+style.accent+'">'+currentPoints+' نقطة</div>':"")+'<div class="mt-2 border-t border-slate-200 pt-2 text-[10px] font-bold text-slate-500 dark:border-slate-700">'+totalLabel+'</div><div class="text-lg font-black tabular-nums text-slate-800 dark:text-white">'+previousPoints+' نقطة</div></div></article>';
+  }).join(""):'<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-7 text-center text-xs font-bold leading-6 text-slate-500 dark:border-slate-700 dark:bg-slate-950">ستظهر النتائج بعد اكتمال الأسابيع المطلوبة واعتمادها.</div>';
+  const other=ready?sorted.filter(team=>Number(team.rank)>3):[];
+  const otherSection=document.getElementById("saCompetitionOtherRanksSection"),teacherSelect=document.getElementById("saCompetitionTeacherSelect");
+  if(otherSection)otherSection.classList.toggle("hidden",other.length===0);
   if(teacherSelect){
     const previous=saCompetitionSelectedTeacherId;
-    teacherSelect.innerHTML='<option value="">اختر اسم المعلم لعرض تفاصيله</option>'+(ready?sorted.map(team=>'<option value="'+escapeHtml(team.teamId)+'">'+escapeHtml(team.leaderName||team.teacherName||"معلم")+' · المركز '+Number(team.rank)+'</option>').join(""):"");
-    saCompetitionSelectedTeacherId=ready&&sorted.some(team=>String(team.teamId)===String(previous))?previous:"";
+    teacherSelect.innerHTML='<option value="">اختر معلماً لعرض تفاصيله</option>'+other.map(team=>'<option value="'+escapeHtml(team.teamId)+'">'+escapeHtml(team.leaderName||team.teacherName||"معلم")+' · المركز '+Number(team.rank)+'</option>').join("");
+    saCompetitionSelectedTeacherId=other.some(team=>team.teamId===previous)?previous:"";
     teacherSelect.value=saCompetitionSelectedTeacherId;
   }
   saRenderSelectedCompetitionTeacher(saCompetitionSelectedTeacherId);
