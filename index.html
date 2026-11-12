@@ -3423,9 +3423,12 @@ function saNoticeRenderTypeFilters(){
   const p=saReportPermissions||{};
   const attendanceAllowed=p.can_read_attendance===true&&p.can_print_attendance===true&&Array.isArray(p.attendance_statuses)?p.attendance_statuses:[];
   const behaviorAllowed=p.can_read_behavior===true&&p.can_print_behavior===true;
-  const items=SA_NOTICE_TYPE_GROUPS.flatMap(group=>group.items.filter(type=>group.title==="سجلات الحضور"?attendanceAllowed.includes(type):behaviorAllowed).map(type=>({type,title:SA_NOTICE_LABELS[type]})));
-  host.innerHTML=items.map(item=>'<label class="flex items-start gap-2 rounded-xl bg-slate-50 p-2 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200"><input type="checkbox" data-sa-notice-type="'+item.type+'" checked class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"><span>'+escapeHtml(item.title)+'</span></label>').join("");
-  if(!items.length)host.innerHTML='<p class="text-xs text-rose-600">لا توجد أنواع مخالفات مصرح بها.</p>';
+  const groups=SA_NOTICE_TYPE_GROUPS.map(group=>{
+    const items=group.items.filter(type=>group.title==="سجلات الحضور"?attendanceAllowed.includes(type):behaviorAllowed).map(type=>({type,title:SA_NOTICE_LABELS[type]}));
+    if(!items.length)return "";
+    return '<section class="mb-3 last:mb-0"><div class="mb-2 text-[11px] font-black text-slate-500 dark:text-slate-400">'+group.title+'</div><div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">'+items.map(item=>'<label class="flex items-start gap-2 rounded-xl bg-slate-50 p-2 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200"><input type="checkbox" data-sa-notice-type="'+item.type+'" class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"><span>'+escapeHtml(item.title)+'</span></label>').join("")+'</div></section>';
+  }).join("");
+  host.innerHTML=groups||'<p class="text-xs text-rose-600">لا توجد أنواع مخالفات مصرح بها.</p>';
 }
 function saNoticeSelectedTypes(){
   return [...(document.querySelectorAll("#saNoticeTypeFilters input[data-sa-notice-type]:checked")||[])].map(input=>String(input.dataset.saNoticeType||"")).filter(Boolean);
