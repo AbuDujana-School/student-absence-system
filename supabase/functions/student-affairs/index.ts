@@ -943,13 +943,26 @@ async function handle(req: Request) {
     const days = new Map<string, any>();
     const behaviorKeys = ["eating", "talking", "tools", "chaos", "sleeping", "homework", "other"];
     const countedDailyBehaviors = new Set<string>();
+    // Absence is a daily status, not a per-period event. A student may appear in
+    // several attendance rows (one per lesson) on the same date; count that
+    // student's absence once per class/date while preserving per-record counts
+    // for late, escape and outside statuses.
+    const countedDailyAbsences = new Set<string>();
     const getDay = (date: string) => { if (!days.has(date)) days.set(date, { date, absent: 0, late: 0, escape: 0, outside: 0, behavior: 0, ...Object.fromEntries(behaviorKeys.map((key) => [key, 0])), total: 0 }); return days.get(date); };
     for (const row of attendanceRows) {
-      const day = getDay(String(row.date_str)), records = row.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
-      for (const value of Object.values(records as Record<string, unknown>)) {
+      const date = String(row.date_str || ""), className = String(row.class_name || "");
+      const day = getDay(date), records = row.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
+      for (const [student, value] of Object.entries(records as Record<string, unknown>)) {
         const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
-        const allowedStatuses = classStatusSets.get(String(row.class_name)) || ownStatusSet;
-        if (["absent", "late", "escape", "outside"].includes(status) && allowedStatuses.has(status)) { day[status]++; day.total++; }
+        const allowedStatuses = classStatusSets.get(className) || ownStatusSet;
+        if (!["absent", "late", "escape", "outside"].includes(status) || !allowedStatuses.has(status)) continue;
+        if (status === "absent") {
+          const dailyKey = [className, student, date].join("\u001f");
+          if (countedDailyAbsences.has(dailyKey)) continue;
+          countedDailyAbsences.add(dailyKey);
+        }
+        day[status]++;
+        day.total++;
       }
     }
     for (const row of behaviorRows) {
@@ -1297,16 +1310,23 @@ async function handle(req: Request) {
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
         const [a, b] = await Promise.all([
-          allowedAttendance.has(className) ? db.from("attendance").select("record_key,records", { count: "exact" }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31").limit(5000) : Promise.resolve({ data: [], error: null } as any),
+          allowedAttendance.has(className) ? db.from("attendance").select("record_key,date_str,records", { count: "exact" }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31").limit(5000) : Promise.resolve({ data: [], error: null } as any),
           allowedBehavior.has(className) ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
         ]);
         if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
         const statusCounts: Record<string, number> = { absent: 0, late: 0, escape: 0, outside: 0 };
+        const countedDailyAbsences = new Set<string>();
         for (const session of (a.data || [])) {
-          const records = session.records && typeof session.records === "object" && !Array.isArray(session.records) ? session.records : {};
-          for (const value of Object.values(records as Record<string, unknown>)) {
+          const date = String(session.date_str || ""), records = session.records && typeof session.records === "object" && !Array.isArray(session.records) ? session.records : {};
+          for (const [student, value] of Object.entries(records as Record<string, unknown>)) {
             const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
-            if (Object.prototype.hasOwnProperty.call(statusCounts, status) && statusAllow.has(status) && (!requestedStatuses || requestedStatuses.includes(status))) statusCounts[status]++;
+            if (!Object.prototype.hasOwnProperty.call(statusCounts, status) || !statusAllow.has(status) || (requestedStatuses && !requestedStatuses.includes(status))) continue;
+            if (status === "absent") {
+              const dailyKey = [className, student, date].join("\u001f");
+              if (countedDailyAbsences.has(dailyKey)) continue;
+              countedDailyAbsences.add(dailyKey);
+            }
+            statusCounts[status]++;
           }
         }
         const selectedAttendanceRecords = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
