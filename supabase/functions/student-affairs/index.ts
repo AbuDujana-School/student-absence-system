@@ -366,12 +366,15 @@ function projectCompetitionResponse(snapshot: any, principal: { type: string; na
 }
 async function getLatestWeeklyCompetition(principal: { type: string; name: string }, permissions: any) {
   const today = getOmanIsoDate();
+  const { currentTerm } = await readCompetitionTermSettings();
   const week = getSchoolWeekRange(today);
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
   const afterCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
   const latestClosedWeekStart = afterCutoff ? week.start : shiftCompetitionDate(week.start, -7);
   const baseQuery = () => db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
+    .gte("week_start", currentTerm.start)
+    .lte("week_end", currentTerm.end)
     .lte("week_start", latestClosedWeekStart);
   const [{ data: latestComplete, error: completeError }, { data: latestAttempt, error: attemptError }] = await Promise.all([
     baseQuery().eq("status", "complete").order("week_start", { ascending: false }).limit(1).maybeSingle(),
@@ -1138,7 +1141,15 @@ async function handle(req: Request) {
       if (period === "weekly") snapshot = await getLatestWeeklyCompetition(p, permissions);
       else if (period === "term") snapshot = await buildTermCompetitionSnapshot(p, permissions, body.termId);
       else {
-        const live = await buildCompetitionSnapshot(p, permissions, body.from, body.to, period);
+        let from = body.from, to = body.to;
+        const termSettings = await readCompetitionTermSettings();
+        if (p.type !== "admin" && !termSettings.showBothTerms) {
+          if (!isValidIsoDate(from) || !isValidIsoDate(to)) return reply(400, { error: "نطاق تاريخ البطولة غير صالح." });
+          if (from < termSettings.currentTerm.start) from = termSettings.currentTerm.start;
+          if (to > termSettings.currentTerm.end) to = termSettings.currentTerm.end;
+          if (from > to) return reply(400, { error: "الفترة المحددة تقع خارج الفصل الدراسي الحالي." });
+        }
+        const live = await buildCompetitionSnapshot(p, permissions, from, to, period);
         snapshot = projectCompetitionResponse(live, p, permissions);
       }
       return reply(200, snapshot);
