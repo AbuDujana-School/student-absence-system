@@ -3363,7 +3363,7 @@ function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedS
 }
 function saNoticeClassifyCard(student){
   const lineCount=student.groups.size,eventCount=student.events.length;
-  return lineCount<=2&&eventCount<=3?"compact":lineCount<=4&&eventCount<=7?"medium":"full";
+  return lineCount<=3&&eventCount<=4?"compact":lineCount<=5&&eventCount<=8?"medium":"full";
 }
 function saNoticeBuildCard(student,index){
   const groups=[...student.groups.values()].sort((a,b)=>String(a.type).localeCompare(String(b.type),"en"));
