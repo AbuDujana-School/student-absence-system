@@ -1279,6 +1279,19 @@
       <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
       <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="الاتجاه الزمني لحالات الغياب والتأخر والتسرب والخروج"></canvas></div>
       <div class="flex flex-wrap items-center justify-center gap-2.5 border-t border-slate-100 pt-3 text-[11px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان المخطط"><span class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-slate-800 dark:bg-slate-800 dark:text-slate-100"><i class="h-1 w-5 rounded-full" style="background:#0f172a"></i>الغياب</span><span class="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"><i class="h-1 w-5 rounded-full" style="background:#f59e0b"></i>التأخر</span><span class="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-red-800 dark:bg-red-950/30 dark:text-red-300"><i class="h-1 w-5 rounded-full" style="background:#ef4444"></i>متسرب</span><span class="inline-flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-violet-800 dark:bg-violet-950/30 dark:text-violet-300"><i class="h-1 w-5 rounded-full" style="background:#8b5cf6"></i>خارج</span></div>
+      <div class="border-t border-slate-100 pt-4 dark:border-slate-700">
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> الاتجاه الزمني للسلوكيات</h4><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">عدد حالات كل سلوك مسجلة يومياً خلال الفترة المحددة.</p></div>
+        <div class="relative h-72 w-full"><canvas id="saSupervisionBehaviorChart" aria-label="الاتجاه الزمني لأنواع السلوكيات المسجلة"></canvas></div>
+        <div class="mt-2 flex flex-nowrap items-center justify-center gap-x-3 overflow-x-auto whitespace-nowrap border-t border-slate-100 pt-2 text-[9px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
+          <span class="inline-flex shrink-0 items-center gap-1 text-amber-700 dark:text-amber-300"><i class="h-2 w-2 rounded-full" style="background:#f59e0b"></i>الأكل</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-orange-700 dark:text-orange-300"><i class="h-2 w-2 rounded-full" style="background:#f97316"></i>الكلام</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-yellow-700 dark:text-yellow-300"><i class="h-2 w-2 rounded-full" style="background:#eab308"></i>الأدوات</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-red-700 dark:text-red-300"><i class="h-2 w-2 rounded-full" style="background:#ef4444"></i>الفوضى</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-indigo-700 dark:text-indigo-300"><i class="h-2 w-2 rounded-full" style="background:#6366f1"></i>النوم</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-blue-700 dark:text-blue-300"><i class="h-2 w-2 rounded-full" style="background:#3b82f6"></i>الواجب</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-pink-700 dark:text-pink-300"><i class="h-2 w-2 rounded-full" style="background:#ec4899"></i>أخرى</span>
+        </div>
+      </div>
     </section>
     <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
       <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
@@ -2338,7 +2351,7 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
 const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
-let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
+let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
 function sortClassesList(classesArray){
@@ -2458,10 +2471,15 @@ async function saLoadSupervisionTrend(scope="own"){
         }
       };
       saSupervisionTrendChart=new Chart(ctx,{type:"line",data:{labels,datasets},options:commonOptions});
+      const behaviorSpecs=[["الأكل","eating","#f59e0b"],["الكلام","talking","#f97316"],["الأدوات","tools","#eab308"],["الفوضى","chaos","#ef4444"],["النوم","sleeping","#6366f1"],["الواجب","homework","#3b82f6"],["أخرى","other","#ec4899"]];
+      const behaviorDatasets=behaviorSpecs.map(([label,key,color])=>({label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,borderWidth:2.25,tension:.3,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:"#ffffff",pointBorderColor:color,pointBorderWidth:2,fill:false}));
+      const behaviorCanvas=document.getElementById("saSupervisionBehaviorChart");
+      if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}
+      if(behaviorCanvas)saSupervisionBehaviorChart=new Chart(behaviorCanvas.getContext("2d"),{type:"line",data:{labels,datasets:behaviorDatasets},options:commonOptions});
     }
     if(status){status.textContent="عدد الصفوف المشمولة: "+Number(d.class_count||0)+" · الفترة: "+from+" إلى "+to+(rows.length?"":" · لا توجد مشكلات مسجلة في هذه الفترة.");status.classList.remove("hidden");}
     document.getElementById("saSupervisionOwnBtn")?.classList.toggle("bg-blue-700",scope==="own");document.getElementById("saSupervisionOwnBtn")?.classList.toggle("text-white",scope==="own");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("bg-blue-700",scope==="team");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("text-white",scope==="team");
-  }catch(e){if(status){status.textContent=e?.message||"تعذر تحميل مؤشر الأداء.";status.classList.remove("hidden");}if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}}
+  }catch(e){if(status){status.textContent=e?.message||"تعذر تحميل مؤشر الأداء.";status.classList.remove("hidden");}if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}}
 }
 function saCanViewCompetition(){const p=saReportPermissions||{};return saSession?.principal?.type==="admin"||p.can_view_competition===true;}
 function saDateShift(value,days){const d=new Date(value+"T12:00:00.000Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
