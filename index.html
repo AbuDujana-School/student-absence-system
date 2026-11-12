@@ -2615,7 +2615,8 @@ function saCompetitionGetApprovedWeeks(term,today){
   while(next<=latestStart&&next<=term.end&&starts.length<60){starts.push(next);next=saDateShift(next,7);}
   const latestEnd=saDateShift(latestStart,4);
   return starts.filter(start=>start<=latestStart).map((start,index)=>{
-    const normalEnd=saDateShift(start,4),end=normalEnd>term.end?term.end:normalEnd;
+    const startDay=new Date(start+"T12:00:00.000Z").getUTCDay();
+    const normalEnd=saDateShift(start,(4-startDay+7)%7),end=normalEnd>term.end?term.end:normalEnd;
     return {index,start,end,approved:end<=latestEnd||end===term.end&&date>=term.end};
   }).filter(week=>week.approved);
 }
@@ -3693,7 +3694,7 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
     const trendBehavior=0.01+((seed>>>13)%29)/1000;
     const history=approvedWeeks.map((week,weekIndex)=>{
       const jitterA=(((seed+weekIndex*37)%13)-6)/250;
-      const jitterB=(((seed>>>3+weekIndex*19)%13)-6)/250;
+      const jitterB=((((seed>>>3)+weekIndex*19)%13)-6)/250;
       return {
         week,
         attendanceRate:Math.max(0.03,baseAttendance*(1-trendAttendance*weekIndex)+jitterA),
@@ -3739,7 +3740,7 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
     cumulativeBefore.set(row.teamId,(cumulativeBefore.get(row.teamId)||0)+row.weeklyAwardPoints);
     if(row.rank===1)wins.set(row.teamId,(wins.get(row.teamId)||0)+1);
   }));
-  let selectedRows=[],weeklyPoints={},monthlyCycle=null,statusCode="approved",completedWeeks=weeklyResults.length;
+  let selectedRows=[],weeklyPoints={},monthlyCycle=null,selectedCycleResults=null,statusCode="approved",completedWeeks=weeklyResults.length;
   if(period==="weekly"){
     const latest=weeklyResults[weeklyResults.length-1];
     if(latest){
@@ -3754,6 +3755,7 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
     for(let i=0;i+3<weeklyResults.length;i+=4)cycles.push(weeklyResults.slice(i,i+4));
     monthlyCycle=cycles.length?cycles[cycles.length-1]:null;
     if(monthlyCycle){
+      selectedCycleResults=monthlyCycle;
       const cycleStart=weeklyResults.indexOf(monthlyCycle[0]);
       const cycleEnd=cycleStart+monthlyCycle.length;
       const before=weeklyResults.slice(0,cycleStart);
@@ -3788,8 +3790,8 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
   if(period==="weekly"&&weeklyResults.length){
     const latest=weeklyResults[weeklyResults.length-1];
     latest.rows.forEach(row=>classRowsForPeriod.push(...row.classRows));
-  }else if(period==="monthly"&&monthlyCycle&&Array.isArray(monthlyCycle)){
-    monthlyCycle.forEach(result=>result.rows.forEach(row=>classRowsForPeriod.push(...row.classRows)));
+  }else if(period==="monthly"&&selectedCycleResults){
+    selectedCycleResults.forEach(result=>result.rows.forEach(row=>classRowsForPeriod.push(...row.classRows)));
   }else if(period==="term"){
     weeklyResults.forEach(result=>result.rows.forEach(row=>classRowsForPeriod.push(...row.classRows)));
   }
