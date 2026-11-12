@@ -51,50 +51,64 @@ function behaviorTypes(raw: unknown): string[] {
   const values = Array.isArray(record.types) ? record.types : Array.isArray(record.type) ? record.type : [record.type];
   return [...new Set(values.map(value => String(value || "")).filter(type => COMPETITION_BEHAVIOR_TYPES.includes(type)))];
 }
+function periodIdentity(row: CompetitionRow, fallbackIndex: number): string {
+  const explicit = Number(row?.period);
+  if (COMPETITION_REQUIRED_PERIODS.includes(explicit)) return "p" + explicit;
+  const parsed = String(row?.record_key || "").match(/_p?(\\d+)$/)?.[1];
+  return parsed ? "p" + parsed : "row" + fallbackIndex;
+}
+function attendanceIncidentKey(row: CompetitionRow, index: number, date: string, cls: string, student: string, status: string): string {
+  // Absence is a daily incident; other attendance events (including escape) are counted per period.
+  return status === "absent"
+    ? [cls, date, student, status].join("\\u001f")
+    : [cls, date, student, status, periodIdentity(row, index)].join("\\u001f");
+}
 export function countAttendanceIncidents(rows: CompetitionRow[]): number {
   const unique = new Set<string>();
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) continue;
+  (Array.isArray(rows) ? rows : []).forEach((row, index) => {
+    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) return;
     for (const [student, raw] of Object.entries(recordMap(row))) {
       const status = typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || "");
-      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.add([cls, date, student, status].join("\u001f"));
+      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.add(attendanceIncidentKey(row, index, date, cls, student, status));
     }
-  }
+  });
   return unique.size;
 }
 export function countBehaviorIncidents(rows: CompetitionRow[]): number {
   const unique = new Set<string>();
-  for (const row of Array.isArray(rows) ? rows : []) {
-    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) continue;
+  (Array.isArray(rows) ? rows : []).forEach((row, index) => {
+    const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) return;
+    const period = periodIdentity(row, index);
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      for (const type of behaviorTypes(raw)) unique.add([cls, date, student, type].join("\u001f"));
+      for (const type of behaviorTypes(raw)) unique.add([cls, date, period, student, type].join("\\u001f"));
     }
-  }
+  });
   return unique.size;
 }
 export function countAttendanceByStatus(rows: CompetitionRow[]): Record<string, number> {
   const unique = new Map<string, string>();
-  for (const row of Array.isArray(rows) ? rows : []) {
+  (Array.isArray(rows) ? rows : []).forEach((row, index) => {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
-    if (!date || !cls) continue;
+    if (!date || !cls) return;
     for (const [student, raw] of Object.entries(recordMap(row))) {
       const status = typeof raw === "string" ? raw : String((raw as {status?: unknown} | null)?.status || "");
-      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.set([cls, date, student, status].join("\u001f"), status);
+      if (COMPETITION_ATTENDANCE_STATUSES.includes(status)) unique.set(attendanceIncidentKey(row, index, date, cls, student, status), status);
     }
-  }
+  });
   const counts: Record<string, number> = { absent: 0, late: 0, outside: 0, escape: 0 };
   for (const status of unique.values()) counts[status] = (counts[status] || 0) + 1;
   return counts;
 }
 export function countBehaviorByType(rows: CompetitionRow[]): Record<string, number> {
   const unique = new Map<string, string>();
-  for (const row of Array.isArray(rows) ? rows : []) {
+  (Array.isArray(rows) ? rows : []).forEach((row, index) => {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim();
-    if (!date || !cls) continue;
+    if (!date || !cls) return;
+    const period = periodIdentity(row, index);
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      for (const type of behaviorTypes(raw)) unique.set([cls, date, student, type].join("\u001f"), type);
+      for (const type of behaviorTypes(raw)) unique.set([cls, date, period, student, type].join("\\u001f"), type);
     }
-  }
+  });
   const counts: Record<string, number> = {};
   for (const type of COMPETITION_BEHAVIOR_TYPES) counts[type] = 0;
   for (const type of unique.values()) counts[type] = (counts[type] || 0) + 1;
@@ -129,22 +143,23 @@ export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
   }
   return coverage;
 }
-export function isTeamDayComplete(classes: string[], dateValue: unknown, attendance: CoverageMap, behavior: CoverageMap): boolean {
+export function isTeamDayComplete(classes: string[], dateValue: unknown, attendance: CoverageMap, _behavior?: CoverageMap): boolean {
   const date = asIsoDate(dateValue), names = [...new Set((Array.isArray(classes) ? classes : []).map(x => String(x || "").trim()).filter(Boolean))];
   if (!date || !names.length) return false;
-  const a = attendance.get(date), b = behavior.get(date);
-  const hasAll = (map: Map<string, Set<number>> | undefined, name: string) => COMPETITION_REQUIRED_PERIODS.every(period => map?.get(name)?.has(period));
-  return names.every(name => hasAll(a, name) && hasAll(b, name));
+  const a = attendance.get(date);
+  const hasAllAttendancePeriods = (name: string) => COMPETITION_REQUIRED_PERIODS.every(period => a?.get(name)?.has(period));
+  // Attendance save is the period-submission marker. A missing behavior entry means zero incidents, not incomplete data.
+  return names.every(hasAllAttendancePeriods);
 }
 type BuildTeamRatesInput = { grade: string; classNames: string[]; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
 export function buildTeamRates({ grade, classNames, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
   const days = getSchoolDays(from, to), classes = [...new Set((Array.isArray(classNames) ? classNames : []).map(x => String(x || "").trim()).filter(Boolean))], allowed = new Set(classes);
   const filter = (rows: CompetitionRow[]) => rows.filter(row => { const date = asIsoDate(row?.date_str); return !!date && date >= from && date <= to && allowed.has(String(row?.class_name || "").trim()); });
   const attendance = filter(attendanceRows), behavior = filter(behaviorRows), aCoverage = getSessionCoverage(attendance), bCoverage = getSessionCoverage(behavior);
-  const completeDays = days.filter(day => isTeamDayComplete(classes, day, aCoverage, bCoverage));
+  const completeDays = days.filter(day => isTeamDayComplete(classes, day, aCoverage));
   const classMetrics = classes.map(className => {
     const aRows = attendance.filter(row => String(row.class_name || "").trim() === className), bRows = behavior.filter(row => String(row.class_name || "").trim() === className);
-    const complete = days.length > 0 && days.every(day => isTeamDayComplete([className], day, aCoverage, bCoverage));
+    const complete = days.length > 0 && days.every(day => isTeamDayComplete([className], day, aCoverage));
     const attendanceIncidents = countAttendanceIncidents(aRows), behaviorIncidents = countBehaviorIncidents(bRows);
     return {
       className, complete, attendanceIncidents, behaviorIncidents,
