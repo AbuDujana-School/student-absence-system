@@ -42,7 +42,14 @@ export function buildCompetitionTeams(teachers: TeacherTeamConfig[], allClasses:
   return teams.sort((a, b) => a.teamName.localeCompare(b.teamName, "ar") || a.leaderName.localeCompare(b.leaderName, "ar"));
 }
 
-export function projectCompetitionTeam(team: CompetitionTeam, metric: Record<string, unknown>) {
+/** Returns competition classes that are outside the teacher's own assigned classes. */
+export function findCompetitionClassesOutsidePersonalScope(competitionClasses: unknown[], personalClasses: unknown[]): string[] {
+  const personal = new Set((Array.isArray(personalClasses) ? personalClasses : []).map(value => String(value || "").trim()).filter(Boolean));
+  return [...new Set((Array.isArray(competitionClasses) ? competitionClasses : []).map(value => String(value || "").trim()).filter(Boolean))]
+    .filter(className => !personal.has(className));
+}
+
+export function projectCompetitionTeam(team: CompetitionTeam, metric: Record<string, unknown>)
   return {
     teamId: team.teamId,
     teamName: team.teamName,
