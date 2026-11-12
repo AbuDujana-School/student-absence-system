@@ -3719,6 +3719,10 @@ async function ensureCloudflarePreviewDemoTeachers(){
   const demoLeader=db.teachers.find(t=>t?.name===SA_PREVIEW_TEST_TEAM.leader);
   if(demoLeader)demoLeader.permissions={...(demoLeader.permissions||{}),studentAffairs:true,student_affairs_role:"team_leader",student_affairs_team_name:SA_PREVIEW_TEST_TEAM.name,supervisor_team_leader_name:""};
   SA_PREVIEW_TEST_TEAM.supervisors.forEach(name=>{const teacher=db.teachers.find(t=>t?.name===name);if(teacher)teacher.permissions={...(teacher.permissions||{}),studentAffairs:true,student_affairs_role:"supervisor",student_affairs_team_name:SA_PREVIEW_TEST_TEAM.name,supervisor_team_leader_name:SA_PREVIEW_TEST_TEAM.leader};});
+  for(const name of [SA_PREVIEW_TEST_TEAM.leader,...SA_PREVIEW_TEST_TEAM.supervisors]){
+    const teacher=db.teachers.find(t=>t?.name===name),index=SA_PREVIEW_TEACHER_NAMES.indexOf(name);
+    if(teacher&&index>=0){const pinRecord=await createPinRecord(String(2001+index));teacher.pin_hash=pinRecord.hash;teacher.pin_salt=pinRecord.salt;teacher.must_change_pin=false;}
+  }
   if(!db.students||typeof db.students!=="object")db.students={};
   const demoStudentNames=["سالم","محمد","أحمد","خالد","علي","مازن","حمد","ناصر","راشد","يوسف","إبراهيم","سلطان"];
   classes.forEach((className,classIndex)=>{
