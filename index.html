@@ -3319,7 +3319,8 @@ function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedS
     item.groups.get(groupKey).events.push(event);
     item.events.push({type,date,period,note:String(note||"").trim()});
   };
-  (attendanceSessions||[]).forEach(session=>{
+  const orderedAttendance=(attendanceSessions||[]).slice().sort((a,b)=>String(a?.date_str||"").localeCompare(String(b?.date_str||""))||(Number(a?.period)||0)-(Number(b?.period)||0));
+  orderedAttendance.forEach(session=>{
     const className=String(session?.class_name||"").trim();
     if(!className)return;
     const records=session?.records&&typeof session.records==="object"?session.records:{};
@@ -3377,7 +3378,8 @@ function saNoticeBuildCard(student,index){
     '<footer class="notice-signatures"><span>توقيع الطالب بالعلم: ............................</span><span>يعتمد / إدارة المدرسة (شؤون الطلبة): ............................</span></footer></article>';
 }
 function saNoticeBuildPages(students){
-  const ordered=students.slice().sort((a,b)=>sortClassesList([a.className,b.className]).indexOf(a.className)-sortClassesList([a.className,b.className]).indexOf(b.className)||String(a.name).localeCompare(String(b.name),"ar"));
+  const classOrder=new Map(sortClassesList([...new Set(students.map(x=>x.className))]).map((name,index)=>[name,index]));
+  const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)||0)-(classOrder.get(b.className)||0)||String(a.name).localeCompare(String(b.name),"ar"));
   const pages=[];let cursor=0;
   while(cursor<ordered.length){
     const level=saNoticeClassifyCard(ordered[cursor]),limit=level==="compact"?3:level==="medium"?2:1;
