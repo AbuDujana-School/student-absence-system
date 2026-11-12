@@ -4934,15 +4934,30 @@ async function finalizeLoginState() {
   const singlePermission = !isAdmin ? getSingleAdminPermission(activeUser) : null;
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) {
-    if (!isAdmin && singlePermission) {
-      adminBtn.classList.add('hidden');
-      adminBtn.classList.remove('flex');
-    } else if (isAdmin || hasAnyPermission(activeUser)) {
+    const buttonIcon = adminBtn.querySelector('i');
+    const buttonLabel = adminBtn.querySelector('span');
+    if (singlePermission) {
+      const sourceTab = document.getElementById('tab-' + singlePermission);
+      const sourceIcon = sourceTab?.querySelector('i');
+      const sourceLabel = singlePermission === 'studentAffairs'
+        ? 'شؤون الطلاب'
+        : (sourceTab?.querySelector('span')?.textContent?.trim() || 'القسم المخصص');
+      if (buttonIcon) buttonIcon.className = sourceIcon?.className || 'fa-solid fa-folder-open text-emerald-300';
+      if (buttonLabel) buttonLabel.textContent = sourceLabel;
       adminBtn.classList.remove('hidden');
       adminBtn.classList.add('flex');
+      adminBtn.setAttribute('aria-label', 'فتح ' + sourceLabel);
     } else {
-      adminBtn.classList.add('hidden');
-      adminBtn.classList.remove('flex');
+      if (buttonIcon) buttonIcon.className = 'fa-solid fa-sliders text-emerald-300';
+      if (buttonLabel) buttonLabel.textContent = 'لوحة التحكم';
+      adminBtn.removeAttribute('aria-label');
+      if (isAdmin || hasAnyPermission(activeUser)) {
+        adminBtn.classList.remove('hidden');
+        adminBtn.classList.add('flex');
+      } else {
+        adminBtn.classList.add('hidden');
+        adminBtn.classList.remove('flex');
+      }
     }
   }
 
@@ -4951,7 +4966,7 @@ async function finalizeLoginState() {
   if (singlePermission) {
     dashboardView?.setAttribute('data-single-permission-mode', 'true');
     dashboardGrid?.classList.add('hidden');
-    renderSinglePermissionLauncher(singlePermission);
+    document.getElementById('singlePermissionLauncher')?.remove();
   } else {
     dashboardView?.removeAttribute('data-single-permission-mode');
     dashboardGrid?.classList.remove('hidden');
