@@ -3384,14 +3384,14 @@ async function saLoadStudentNoticeProfile(){
   const className=document.getElementById("saStudentProfileClass")?.value||"",name=String(document.getElementById("saStudentProfileName")?.value||"").trim();
   const p=saReportPermissions||{};
   if(!className||!name){saStudentProfileStatus("حدد الصف واكتب اسم الطالب أو اختره من القائمة.",true);return;}
-  if(p.can_read_attendance!==true||p.can_read_behavior!==true){saStudentProfileStatus("يتطلب عرض الملف صلاحية قراءة سجلات الحضور والسلوك.",true);return;}
+  if(p.can_read_attendance!==true||p.can_read_behavior!==true||p.can_print_attendance!==true||p.can_print_behavior!==true){saStudentProfileStatus("يتطلب عرض وطباعة الملف صلاحية قراءة وطباعة سجلات الحضور والسلوك.",true);return;}
   const allowed=saStudentProfileAllowedClasses();if(!allowed.includes(className)){saStudentProfileStatus("الصف خارج نطاق صلاحياتك.",true);return;}
   const attendanceAllowed=saGetAllowedReportClasses("attendance").includes(className),behaviorAllowed=saGetAllowedReportClasses("behavior").includes(className);
   if(!attendanceAllowed||!behaviorAllowed){saStudentProfileStatus("لا تتوفر صلاحية قراءة المصدرين لهذا الصف.",true);return;}
   saNoticeProfileSelectedName=name;const host=document.getElementById("saStudentProfileResult");host.classList.remove("hidden");host.innerHTML='<div class="p-4 text-sm font-bold text-slate-600">جارٍ جمع السجل التاريخي والتحقق من التنبيهات...</div>';
   try{
     const to=getOmanLocalDate(),jobs=[];for(let year=2000;year<=Number(to.slice(0,4));year++)jobs.push({from:year+"-01-01",to:year===Number(to.slice(0,4))?to:year+"-12-31",year});
-    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"print_combined",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:["absent","late","escape","outside"],from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
+    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"notice_scan",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:["absent","late","escape","outside"],from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
     const history=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],student_name:name,to});
     const directory=(Array.isArray(db?.students?.[className])?db.students[className]:[]).some(x=>String(x||"").trim()===name);
     if(!directory)throw new Error("لم يُعثر على الطالب بهذا الاسم في قائمة الصف المحدد. اختر اسماً من القائمة.");
@@ -3648,7 +3648,7 @@ async function saGenerateAutomaticNotices(){
     while(cursor<jobs.length){
       const job=jobs[cursor++];
       try{
-        const result=await saRequest({action:"reports",report_mode:"print_combined",attendance_classes:job.useAttendance?[job.className]:[],behavior_classes:job.useBehavior?[job.className]:[],attendance_status_filters:job.useAttendance?statuses:undefined,from:job.from,to:job.to});
+        const result=await saRequest({action:"reports",report_mode:"notice_scan",attendance_classes:job.useAttendance?[job.className]:[],behavior_classes:job.useBehavior?[job.className]:[],attendance_status_filters:job.useAttendance?statuses:undefined,from:job.from,to:job.to});
         const a=Array.isArray(result?.attendance)?result.attendance:[],b=Array.isArray(result?.behaviors)?result.behaviors:[];
         if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.year+". أوقفنا التوليد حتى لا نصدر نتائج ناقصة.");
         a.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل حضور من صف غير محدد؛ أوقفنا العملية حمايةً للخصوصية.");});
