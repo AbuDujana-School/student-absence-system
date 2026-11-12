@@ -2727,7 +2727,7 @@ function saRenderCompetition(data){
   }).join(""):'<div class="p-5 text-center text-xs text-slate-500">'+(ready?"لا توجد مراكز أخرى.":"تظهر بقية المراكز بعد اعتماد النتائج.")+'</div>';
   const wins=document.getElementById("saCompetitionWins"),pointsMap=data?.weeklyPoints||{},winsMap=data?.weeklyWins||{};
   if(wins)wins.innerHTML=ready?sorted.map(team=>{
-    const points=Number(pointsMap[team.teamId]||0),winsCount=Number(winsMap[team.teamId]||0);
+    const points=period==="monthly"?Number(team.weeklyAwardPoints||0):Number(pointsMap[team.teamId]||0),winsCount=Number(winsMap[team.teamId]||0);
     return '<div class="flex items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 dark:border-slate-700 dark:bg-slate-800/70"><span class="min-w-0 truncate text-xs font-black text-slate-700 dark:text-slate-200">'+escapeHtml(team.leaderName||team.teacherName||team.teamName)+'</span><div class="text-left"><strong class="text-sm font-black tabular-nums text-amber-600">'+points+' نقطة</strong><div class="text-[10px] text-slate-500">'+winsCount+' مرات في المركز الأول</div></div></div>';
   }).join(""):'<div class="text-center text-xs text-slate-500">يظهر الرصيد بعد اعتماد النتائج.</div>';
   const rows=Array.isArray(data?.classComparison)?data.classComparison:[];
@@ -3740,7 +3740,7 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
     cumulativeBefore.set(row.teamId,(cumulativeBefore.get(row.teamId)||0)+row.weeklyAwardPoints);
     if(row.rank===1)wins.set(row.teamId,(wins.get(row.teamId)||0)+1);
   }));
-  let selectedRows=[],weeklyPoints={},monthlyCycle=null,selectedCycleResults=null,statusCode="approved",completedWeeks=weeklyResults.length;
+  let selectedRows=[],weeklyPoints={},monthlyCycle=null,selectedCycleResults=null,selectedWins=wins,statusCode="approved",completedWeeks=weeklyResults.length;
   if(period==="weekly"){
     const latest=weeklyResults[weeklyResults.length-1];
     if(latest){
@@ -3759,6 +3759,8 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
       const cycleStart=weeklyResults.indexOf(monthlyCycle[0]);
       const cycleEnd=cycleStart+monthlyCycle.length;
       const before=weeklyResults.slice(0,cycleStart);
+      selectedWins=new Map(teacherModels.map(model=>["preview-teacher-"+(model.index+1),0]));
+      monthlyCycle.forEach(result=>result.rows.filter(row=>row.rank===1).forEach(row=>selectedWins.set(row.teamId,(selectedWins.get(row.teamId)||0)+1)));
       const aggregate=teacherModels.map(model=>{
         const id="preview-teacher-"+(model.index+1);
         const cycleRows=monthlyCycle.map(result=>result.rows.find(row=>row.teamId===id)).filter(Boolean);
@@ -3828,7 +3830,7 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
     today,
     monthlyCycle:monthlyCycle&&!Array.isArray(monthlyCycle)?monthlyCycle:null,
     weeklyPoints:weeklyPointsForPeriod,
-    weeklyWins:Object.fromEntries(wins),
+    weeklyWins:Object.fromEntries(selectedWins),
     demoSnapshotLabel:"بيانات تجريبية محلية للمعاينة فقط"
   };
 }
