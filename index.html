@@ -3658,7 +3658,7 @@ async function ensureCloudflarePreviewDemoTeachers(){
     let teacher=db.teachers.find(t=>t?.name===name);
     if(!teacher){
       const record=await createPinRecord(String(2001+i));
-      const group=Math.floor(i/6)+1,slot=i%6;
+      const group=i<12?1:Math.floor((i-12)/6)+2,slot=i<12?i:i%6;
       const role=i===0?"team_leader":(i===4?"visitor":(i>=12&&slot===0?"team_leader":(i>=12&&slot===4?"visitor":"supervisor")));
       const team=group===1?"الفريق التجريبي":"الفريق التجريبي "+group;
       teacher={name,role:"teacher",pin_hash:record.hash,pin_salt:record.salt,permissions:{studentAffairs:true,student_affairs_role:role,student_affairs_team_name:role==="visitor"?"":team}};
@@ -3667,7 +3667,7 @@ async function ensureCloudflarePreviewDemoTeachers(){
       teacher.role="teacher";
       teacher.permissions={...(teacher.permissions||{}),studentAffairs:true};
       if(!teacher.permissions.student_affairs_role){
-        const group=Math.floor(i/6)+1,slot=i%6;
+        const group=i<12?1:Math.floor((i-12)/6)+2,slot=i<12?i:i%6;
         teacher.permissions.student_affairs_role=i===0||i>=12&&slot===0?"team_leader":i===4||i>=12&&slot===4?"visitor":"supervisor";
       }
       if(!teacher.permissions.student_affairs_team_name&&teacher.permissions.student_affairs_role!=="visitor"){
@@ -3688,7 +3688,7 @@ function saPreviewDefaultState(){
   const classes=sortClassesList(Array.isArray(db?.classes)?db.classes:DEFAULT_CLASSES);
   const teachers=(db?.teachers||[]).filter(t=>SA_PREVIEW_TEACHER_NAMES.includes(t?.name));
   return {permissions:teachers.map((t,i)=>{
-    const group=Math.floor(i/6)+1,slot=i%6;
+    const group=i<12?1:Math.floor((i-12)/6)+2,slot=i<12?i:i%6;
     const role=t.permissions?.student_affairs_role||(i===0||i>=12&&slot===0?"team_leader":i===4||i>=12&&slot===4?"visitor":"supervisor");
     const team=t.permissions?.student_affairs_team_name||(role==="visitor"?"":group===1?"الفريق التجريبي":"الفريق التجريبي "+group);
     const attendance=classes.length?[classes[(i*2)%classes.length]]:[];
