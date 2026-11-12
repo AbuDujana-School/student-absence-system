@@ -4,6 +4,7 @@ export type TeacherTeamConfig = {
   role?: string;
   permissions?: {
     competition_participant?: boolean;
+    student_affairs_role?: string;
     competition_team_name?: string;
     competition_team_classes?: string[];
   } | null;
@@ -24,6 +25,7 @@ export function buildCompetitionTeams(teachers: TeacherTeamConfig[], allClasses:
   for (const teacher of Array.isArray(teachers) ? teachers : []) {
     const permissions = teacher?.permissions || {};
     if (permissions.competition_participant !== true) continue;
+    if (permissions.student_affairs_role === "visitor") continue;
     if (teacher.role === "custom") throw new Error("لا يمكن إضافة مستخدم مخصص إلى سباق التميز؛ المشاركة مخصصة للمعلمين.");
     const teamName = String(permissions.competition_team_name || "").trim();
     const classNames = [...new Set((Array.isArray(permissions.competition_team_classes) ? permissions.competition_team_classes : [])
