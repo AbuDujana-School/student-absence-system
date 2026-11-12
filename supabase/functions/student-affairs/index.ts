@@ -1205,18 +1205,22 @@ async function handle(req: Request) {
       const noticeClasses = Array.isArray(body.notice_classes) ? Array.from(new Set((body.notice_classes as unknown[]).map(String))) : [];
       const allowedNoticeClasses = [...new Set([...(permissions.allowed_attendance_classes || []), ...(permissions.allowed_behavior_classes || [])])];
       if (!noticeClasses.length || !areClassesAllowed(noticeClasses, allowedNoticeClasses)) return reply(403, { error: "لا تملك صلاحية الاطلاع على سجل التنبيهات في الصف المحدد." });
-      const [{ data, error }, { data: studentDirectory, error: studentError }] = await Promise.all([
-        db.from("student_affairs_notice_issues")
-          .select("id,class_name,student_name,issue_number,issued_on,issued_at,issued_by_type,issued_by_name,delivered,delivered_at,threshold,period_start,period_end,selected_types,events")
-          .in("class_name", noticeClasses).lte("issued_on", to).order("issued_at", { ascending: true }).limit(10000),
-        db.from("students").select("class_name,student_name").in("class_name", noticeClasses).order("student_name")
-      ]);
-      if (error || studentError) return reply(500, { error: "تعذر تحميل سجل التنبيهات أو قائمة الطلاب." });
+      const { data, error } = await db.from("student_affairs_notice_issues")
+        .select("id,class_name,student_name,issue_number,issued_on,issued_at,issued_by_type,issued_by_name,delivered,delivered_at,threshold,period_start,period_end,selected_types,events")
+        .in("class_name", noticeClasses).lte("issued_on", to).order("issued_at", { ascending: true }).limit(10000);
+      if (error) return reply(500, { error: "تعذر تحميل سجل التنبيهات الرسمي." });
       if ((data || []).length >= 10000) return reply(413, { error: "سجل التنبيهات كبير جداً للعرض دفعة واحدة. حدد طالباً أو صفاً واحداً." });
       const studentName = String(body.student_name || "").trim();
-      const rows = studentName ? (data || []).filter((row: any) => String(row.student_name || "") === studentName) : (data || []);
-      const directory = studentName ? (studentDirectory || []).filter((row: any) => String(row.student_name || "") === studentName) : (studentDirectory || []);
-      return reply(200, { notices: rows, students: directory, permissions });
+      const rows = (data || []).filter((row: any) => !studentName || String(row.student_name || "") === studentName).map((row: any) => ({
+        ...row,
+        events: (Array.isArray(row.events) ? row.events : []).filter((event: any) => {
+          const type = String(event?.type || "");
+          if ((NOTICE_ATTENDANCE_TYPES as readonly string[]).includes(type)) return permissions.can_read_attendance === true && (permissions.allowed_attendance_classes || []).includes(String(row.class_name || ""));
+          if ((NOTICE_BEHAVIOR_TYPES as readonly string[]).includes(type)) return permissions.can_read_behavior === true && (permissions.allowed_behavior_classes || []).includes(String(row.class_name || ""));
+          return false;
+        })
+      }));
+      return reply(200, { notices: rows, permissions });
     }
     if (mode === "notice_issue_commit") {
       const issuedOn = body.issued_on;
@@ -1262,14 +1266,11 @@ async function handle(req: Request) {
       };
       await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, () => loadWorker()));
       if (loadErrors.length) return reply(500, { error: loadErrors[0].message });
-      const [{ data: historyRows, error: historyError }, { data: rosterRows, error: rosterError }] = await Promise.all([
-        db.from("student_affairs_notice_issues").select("class_name,student_name,issue_number,issued_on,events").in("class_name", noticeClasses).lte("issued_on", issuedOn).order("issued_at", { ascending: true }).limit(10000),
-        db.from("students").select("class_name,student_name").in("class_name", noticeClasses)
-      ]);
-      if (historyError || rosterError) return reply(500, { error: "تعذر تحميل سجل التنبيهات أو قائمة الطلاب للتحقق من الإصدار." });
+      const { data: historyRows, error: historyError } = await db.from("student_affairs_notice_issues").select("class_name,student_name,issue_number,issued_on,events").in("class_name", noticeClasses).lte("issued_on", issuedOn).order("issued_at", { ascending: true }).limit(10000);
+      if (historyError) return reply(500, { error: "تعذر تحميل سجل التنبيهات للتحقق من الإصدار." });
       if ((historyRows || []).length >= 10000) return reply(413, { error: "سجل التنبيهات تجاوز الحد الآمن للتحقق. لم يتم إصدار أي تنبيه." });
       const candidates = buildNoticeCandidates({
-        attendance: attendanceRows, behaviors: behaviorRows, history: historyRows || [], roster: rosterRows || [],
+        attendance: attendanceRows, behaviors: behaviorRows, history: historyRows || [], roster: [],
         selected_types: selectedTypes, threshold, period_end: issuedOn
       });
       if (!candidates.length) return reply(200, { issued: [], candidates: [], message: "لا يوجد طالب تجاوز الحد المحدد خلال الفترة الجديدة." });
