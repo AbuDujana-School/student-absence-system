@@ -5,6 +5,8 @@ export type TeacherTeamConfig = {
   permissions?: {
     competition_participant?: boolean;
     student_affairs_role?: string;
+    student_affairs_team_name?: string;
+    supervisor_team_leader_name?: string;
     competition_team_name?: string;
     competition_team_classes?: string[];
   } | null;
