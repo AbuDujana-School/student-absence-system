@@ -27,6 +27,14 @@ Deno.test("leader competition classes must stay within personal class assignment
   }
 });
 
+Deno.test("legacy visitor accounts are excluded from the competition even if an old flag is true", () => {
+  const teams = buildCompetitionTeams([
+    { name: "زائر", permissions: { student_affairs_role: "visitor", competition_participant: true, competition_team_name: "فريق قديم", competition_team_classes: ["1/9"] } },
+    { name: "قائد", permissions: { student_affairs_role: "team_leader", competition_participant: true, competition_team_name: "فريق القائد", competition_team_classes: ["2/9"] } }
+  ], ["1/9", "2/9"]);
+  if (teams.length !== 1 || teams[0].leaderName !== "قائد") throw new Error("visitors must never become competition participants");
+});
+
 Deno.test("team name and assigned classes are mandatory", () => {
   for (const permissions of [
     { competition_participant: true, competition_team_name: "", competition_team_classes: ["1/9"] },
