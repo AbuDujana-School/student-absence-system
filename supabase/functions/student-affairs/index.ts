@@ -1218,7 +1218,7 @@ async function handle(req: Request) {
       const issuedOn = body.issued_on;
       const threshold = Number(body.threshold);
       const selectedTypes = Array.isArray(body.selected_types) ? Array.from(new Set((body.selected_types as unknown[]).map(String))) : [];
-      if (!isValidIsoDate(issuedOn) || issuedOn > new Date().toLocaleDateString("en-CA", { timeZone: "Asia/Muscat" })) return reply(400, { error: "تاريخ الإصدار غير صالح." });
+      if (!isValidIsoDate(issuedOn) || issuedOn > new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString().slice(0, 10)) return reply(400, { error: "تاريخ الإصدار غير صالح." });
       if (!Number.isInteger(threshold) || threshold < 1 || threshold > 10) return reply(400, { error: "حد المخالفات يجب أن يكون من 1 إلى 10." });
       if (!selectedTypes.length || selectedTypes.some(type => !(NOTICE_TYPES as readonly string[]).includes(type))) return reply(400, { error: "أنواع المخالفات المحددة غير صالحة." });
       const useAttendance = selectedTypes.some(type => (NOTICE_ATTENDANCE_TYPES as readonly string[]).includes(type));
