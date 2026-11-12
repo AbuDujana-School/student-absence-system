@@ -47,10 +47,10 @@ export function authorizeReportMode(p: ReportPermissions, mode: string): Authori
   if (!["view", "analytics", "print_attendance", "print_behavior", "print_combined", "notice_history", "notice_issue_commit"].includes(mode)) {
     return { status: 400, message: "نوع التقرير غير صالح" };
   }
-  if (mode === "notice_history" && !(readAttendance && readBehavior)) {
+  if (mode === "notice_history" && !readAttendance && !readBehavior) {
     return { status: 403, message: "غير مصرح بعرض سجل التنبيهات" };
   }
-  if (mode === "notice_issue_commit" && !(p.can_print_combined === true && printAttendance && printBehavior)) {
+  if (mode === "notice_issue_commit" && !(printAttendance || printBehavior)) {
     return { status: 403, message: "غير مصرح بإصدار التنبيهات الرسمية" };
   }
   if (mode === "view" && !readAttendance && !readBehavior) {
