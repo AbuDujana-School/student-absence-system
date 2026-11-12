@@ -1818,7 +1818,7 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
         <label class="flex items-center gap-3 text-xs font-black text-amber-950 dark:text-amber-100"><input id="saCompetitionParticipant" type="checkbox" class="h-4 w-4 accent-amber-600" onchange="saToggleCompetitionTeamFields()"> إشراك هذا المعلم في بطولة الانضباط المدرسية</label>
         <div id="saCompetitionTeamFields" class="hidden space-y-3">
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">اسم الفريق<input id="saCompetitionTeamName" type="text" maxlength="80" placeholder="مثال: فريق النخبة" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"></label>
-          <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي يشرف عليها قائد الفريق</div><p class="mb-2 text-[11px] text-slate-500">حدد الصفوف بنفسك. لا يمكن إسناد الصف نفسه إلى فريقين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
+          <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي تدخل في نقاط القائد</div><p class="mb-2 text-[11px] text-slate-500">تقتصر على صفوفه الشخصية المسندة إليه في الغياب أو السلوك، ولا تشمل صفوف المعلمين المشرفين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
         </div>
       </div>
       <section id="saCompetitionSettingsPanel" class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
@@ -2879,7 +2879,11 @@ function saLoadPerson(){
   document.getElementById("saSupervisionRole")?.closest(".rounded-2xl")?.classList.toggle("hidden",false);saToggleSupervisionFields();
   document.getElementById("saCompetitionTeamSettings")?.classList.toggle("hidden",type!=="teacher");
   document.getElementById("saCompetitionParticipant").checked=person?.permissions?.competition_participant===true;document.getElementById("saCompetitionTeamName").value=person?.permissions?.competition_team_name||"";
-  saChecks("saCompetitionClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-competition-class",person?.permissions?.competition_team_classes||[]);
+  const competitionClassList=sortClassesList(saAdminData.classes.map(c=>c.name));
+  const personalClasses=new Set([...(saved.allowed_attendance_classes??saved.allowed_classes??[]),...(saved.allowed_behavior_classes??saved.allowed_classes??[])]);
+  const competitionOptions=person?.permissions?.student_affairs_role==="team_leader"?competitionClassList.filter(name=>personalClasses.has(name)):competitionClassList;
+  const savedCompetitionClasses=(person?.permissions?.competition_team_classes||[]).filter(name=>competitionOptions.includes(name));
+  saChecks("saCompetitionClasses",competitionOptions.map(name=>[name,name]),"sa-competition-class",savedCompetitionClasses);
   saToggleCompetitionTeamFields();
   const ac=saved.allowed_attendance_classes??saved.allowed_classes??[],bc=saved.allowed_behavior_classes??saved.allowed_classes??[],st=saved.attendance_statuses??["absent","late","escape","outside"];
   saChecks("saAttendanceClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-att-class",ac);saChecks("saBehaviorClasses",sortClassesList(saAdminData.classes.map(c=>c.name)).map(name=>[name,name]),"sa-beh-class",bc);
