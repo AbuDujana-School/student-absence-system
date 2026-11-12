@@ -419,6 +419,7 @@ async function readCompetitionTermSettings() {
     .map((term: any) => ({ id: String(term.start), start: String(term.start), end: String(term.end), label: String(term.label || "الفصل الدراسي") }));
   const today = getOmanIsoDate();
   const currentTerm = terms.find((term: any) => term.start <= today && today <= term.end)
+    || terms.find((term: any) => term.start > today)
     || terms.filter((term: any) => term.start <= today).sort((a: any, b: any) => String(b.start).localeCompare(String(a.start)))[0]
     || terms[0];
   if (!currentTerm) competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
