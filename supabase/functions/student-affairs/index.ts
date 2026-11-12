@@ -1,6 +1,7 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
+import { isDirectSupervisionMember } from "./supervision_access_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import {
   resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
@@ -177,10 +178,7 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
       db.from("student_affairs_permissions").select("principal_name,allowed_classes,allowed_attendance_classes,allowed_behavior_classes").eq("principal_type", "teacher")
     ]);
     const byName = new Map((permissionRows || []).map((row: any) => [String(row.principal_name), row]));
-    teamMembers = (teachers || []).filter((item: any) => item.name !== p.name && item.permissions?.student_affairs_role === "supervisor"
-      && (String(item.permissions?.supervisor_team_leader_name || "").trim() === p.name
-        || (!item.permissions?.supervisor_team_leader_name && String(item.permissions?.student_affairs_team_name || "").trim() === teamName))
-      && item.permissions?.studentAffairs === true).map((item: any) => {
+    teamMembers = (teachers || []).filter((item: any) => isDirectSupervisionMember(item, p.name, teamName)).map((item: any) => {
         const row: any = byName.get(String(item.name)) || {};
         const legacyClasses = Array.isArray(row.allowed_classes) ? row.allowed_classes : [];
         const attendance = Array.isArray(row.allowed_attendance_classes) ? row.allowed_attendance_classes : legacyClasses;
