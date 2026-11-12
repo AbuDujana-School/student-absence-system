@@ -3319,8 +3319,8 @@ function saStudentProfileStatus(message,isError=false){
 }
 function saStudentProfileAllowedClasses(){
   const p=saReportPermissions||{},out=[];
-  if(p.can_read_attendance===true)out.push(...saGetAllowedReportClasses("attendance"));
-  if(p.can_read_behavior===true)out.push(...saGetAllowedReportClasses("behavior"));
+  if(p.can_read_attendance===true&&p.can_print_attendance===true&&(p.attendance_statuses||[]).length)out.push(...saGetAllowedReportClasses("attendance"));
+  if(p.can_read_behavior===true&&p.can_print_behavior===true)out.push(...saGetAllowedReportClasses("behavior"));
   return sortClassesList([...new Set(out.map(x=>String(x||"").trim()).filter(Boolean))]);
 }
 async function saLoadStudentProfileDirectory(){
@@ -3391,7 +3391,7 @@ async function saLoadStudentNoticeProfile(){
   saNoticeProfileSelectedName=name;const host=document.getElementById("saStudentProfileResult");host.classList.remove("hidden");host.innerHTML='<div class="p-4 text-sm font-bold text-slate-600">جارٍ جمع السجل التاريخي والتحقق من التنبيهات...</div>';
   try{
     const to=getOmanLocalDate(),jobs=[];for(let year=2000;year<=Number(to.slice(0,4));year++)jobs.push({from:year+"-01-01",to:year===Number(to.slice(0,4))?to:year+"-12-31",year});
-    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"notice_scan",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:["absent","late","escape","outside"],from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
+    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"notice_scan",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:(p.attendance_statuses||[]).filter(type=>["absent","late","escape","outside"].includes(type)),from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
     const history=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],student_name:name,to});
     const directory=(Array.isArray(db?.students?.[className])?db.students[className]:[]).some(x=>String(x||"").trim()===name);
     if(!directory)throw new Error("لم يُعثر على الطالب بهذا الاسم في قائمة الصف المحدد. اختر اسماً من القائمة.");
