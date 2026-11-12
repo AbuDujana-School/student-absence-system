@@ -1,6 +1,6 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
-import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
+import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import { buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
 import {
@@ -586,13 +586,25 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   const dataFrom = period === "monthly" ? getSchoolWeekRange(from).start : from;
   if (!schoolDays.length) competitionError(400, "الفترة المحددة لا تحتوي على أيام دراسية");
 
-  const [{ data: classRows, error: classError }, { data: teacherRows, error: teacherError }] = await Promise.all([
+  const [{ data: classRows, error: classError }, { data: teacherRows, error: teacherError }, { data: studentAffairsRows, error: studentAffairsError }] = await Promise.all([
     db.from("classes").select("name").order("name", { ascending: true }),
-    db.from("teachers").select("name,role,permissions").order("name", { ascending: true })
+    db.from("teachers").select("name,role,permissions").order("name", { ascending: true }),
+    db.from("student_affairs_permissions").select("principal_name,allowed_classes,allowed_attendance_classes,allowed_behavior_classes").eq("principal_type", "teacher")
   ]);
   if (classError) throw classError;
   if (teacherError) throw teacherError;
+  if (studentAffairsError) throw studentAffairsError;
   const allClasses = (classRows || []).map((row: any) => String(row.name || "").trim()).filter(Boolean);
+  const studentAffairsByTeacher = new Map((studentAffairsRows || []).map((row: any) => [String(row.principal_name), row]));
+  for (const teacher of teacherRows || []) {
+    if (teacher.permissions?.student_affairs_role !== "team_leader" || teacher.permissions?.competition_participant !== true) continue;
+    const personal = studentAffairsByTeacher.get(String(teacher.name)) as any;
+    const legacy = Array.isArray(personal?.allowed_classes) ? personal.allowed_classes : [];
+    const ownClasses = [...(Array.isArray(personal?.allowed_attendance_classes) ? personal.allowed_attendance_classes : legacy),
+      ...(Array.isArray(personal?.allowed_behavior_classes) ? personal.allowed_behavior_classes : legacy)];
+    const outside = findCompetitionClassesOutsidePersonalScope(teacher.permissions?.competition_team_classes || [], ownClasses);
+    if (outside.length) competitionError(409, "إعداد سباق التميز غير متوافق مع فصول رئيس الفريق الشخصية: " + String(teacher.name) + " — " + outside[0]);
+  }
   let teams: any[];
   try {
     teams = buildCompetitionTeams(teacherRows || [], allClasses);
@@ -985,6 +997,10 @@ async function handle(req: Request) {
       if (!teamName) return reply(400, { error: "اكتب اسم الفريق قبل تفعيل المشاركة." });
       if (!teamClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل للفريق." });
       if (teamClasses.some(className => !valid.has(className))) return reply(400, { error: "توجد صفوف غير معتمدة ضمن الفريق." });
+      if (supervisionRole === "team_leader") {
+        const outsidePersonalScope = findCompetitionClassesOutsidePersonalScope(teamClasses, allowed);
+        if (outsidePersonalScope.length) return reply(400, { error: "صفوف قائد الفريق في سباق التميز يجب أن تكون من فصوله الشخصية فقط. الصف غير المسند إليه: " + outsidePersonalScope[0] });
+      }
       const { data: participantRows, error: participantError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
       if (participantError) throw participantError;
       const assigned = new Map<string, string>();
