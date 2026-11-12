@@ -19,30 +19,24 @@ on:
 jobs:
 
   # Isolated PostgreSQL 16 integration test; never connects to the school project.
+  # Use the runner image's local PostgreSQL 16 service instead of a Docker service
+  # container, avoiding a service-container startup/health-check stall before steps.
   app-session-migration-integration:
-    runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: app_session_test
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d app_session_test"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
+    runs-on: ubuntu-24.04
     env:
-      PGHOST: localhost
+      PGHOST: 127.0.0.1
       PGPORT: 5432
       PGUSER: postgres
       PGPASSWORD: postgres
       PGDATABASE: app_session_test
     steps:
       - uses: actions/checkout@v4
+      - name: Start isolated PostgreSQL 16 on the runner
+        run: |
+          sudo service postgresql start
+          sudo -u postgres env -u PGHOST -u PGPORT -u PGUSER -u PGPASSWORD -u PGDATABASE psql -v ON_ERROR_STOP=1 -c "ALTER USER postgres WITH PASSWORD 'postgres';"
+          sudo -u postgres env -u PGHOST -u PGPORT -u PGUSER -u PGPASSWORD -u PGDATABASE createdb app_session_test
+          pg_isready -h 127.0.0.1 -p 5432 -U postgres -d app_session_test
       - name: Create Supabase-like database roles
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
