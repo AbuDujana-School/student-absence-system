@@ -6510,7 +6510,7 @@ if ("serviceWorker" in navigator) {
     const masthead='<header class="print-masthead"><div class="matrix-school">'+esc(SCHOOL_NAME||"مدرسة أبو دجانة")+'</div><div class="matrix-subtitle">كشف رصد الغياب والسلوكيات</div><div class="print-meta">'+(data.mode==="daily"?"تاريخ الرصد: "+esc(data.from||"—"):"الفترة: "+esc((data.from||"—")+" إلى "+(data.to||"—")))+' · تاريخ ووقت الطباعة: '+esc(printStamp.toLocaleString("ar-OM"))+'</div></header>';
     const sheets=sortClassesList([...groups.keys()]).map(cl=>[cl,groups.get(cl)]).map(([cl,list])=>{const st=classStats(list);const fitScale=Math.min(1,Math.max(.62,23/Math.max(list.length,23)));const fitWidth=(100/fitScale).toFixed(1);const items=statusOrder.map(k=>'<span class="matrix-stat"><b>'+esc(statusName(k))+'</b> '+(st.att[k]||0)+'</span>').join("")+behaviorKeys.filter(k=>!Array.isArray(data.behaviors)||data.behaviors.includes(k)).map(k=>'<span class="matrix-stat"><b>'+esc(SA_BEHAVIOR_TYPES[k]||k)+'</b> '+(st.beh[k]||0)+'</span>').join("");return '<section class="class-sheet" style="zoom:'+fitScale.toFixed(3)+';width:'+fitWidth+'%"><div class="class-sheet-title">الصف '+esc(formatClassName(cl))+'</div><div class="class-sheet-stats"><span class="matrix-stat matrix-stat-total-att"><b>إجمالي الغياب:</b> '+st.attTotal+'</span><span class="matrix-stat matrix-stat-total-beh"><b>إجمالي السلوكيات:</b> '+st.behTotal+'</span>'+items+'</div>'+matrixTable(list,data.mode||"daily",true,(data.from===data.to?data.from:(data.from+" إلى "+data.to)),data.behaviors,data.cumulative)+'</section>';}).join("");
     const noData='<div class="empty">لا توجد تسجيلات مطابقة للفترة والمرشحات المحددة.</div>';
-    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>كشف الرصد - '+esc(data.schoolName)+'</title>'+css+'
+    return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>كشف الرصد - '+esc(data.schoolName)+'</title>'+css+`
 <style id="report-tables-card-layout">
 /* Consistent, responsive report tables across Student Affairs and Reports. */
 #saResults table,
@@ -6605,7 +6605,7 @@ if ("serviceWorker" in navigator) {
 }
 </style>
 
-</head><body>'+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
+</head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
   async function print(prefix){
     const c=cfg[prefix],p=c.getP();
