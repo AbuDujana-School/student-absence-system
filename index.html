@@ -1330,11 +1330,12 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
       </div>
     </section>
     <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
-      <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
-        <div class="flex flex-wrap items-start justify-between gap-4">
-          <div><div class="mb-2 inline-flex items-center gap-2 rounded-full border border-amber-300/30 bg-amber-300/10 px-3 py-1 text-[10px] font-black text-amber-200"><i class="fa-solid fa-crown"></i> بطولة الانضباط المدرسية</div><h3 class="text-lg font-black sm:text-xl">سباق التميز بين المعلمين</h3><p class="mt-1 text-xs leading-6 text-blue-100">50 نقطة للحضور والانضباط و50 نقطة للسلوك. يظهر ترتيب المعلم وأداء صفوف فريقه. يشترط اكتمال سجلات الحصص الثماني لكل صف مشارك من الأحد إلى الخميس.</p></div>
-          <div class="rounded-2xl border border-white/15 bg-white/10 px-4 py-3 text-center"><div class="text-[10px] font-bold text-blue-100">نطاق التقييم</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black">آخر نتيجة أسبوعية معتمدة</div></div>
+      <div class="border-b border-slate-100 bg-white px-4 py-5 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
+        <div class="mx-auto flex max-w-xl items-center justify-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-l from-amber-50 via-white to-teal-50 px-5 py-4 text-center shadow-sm dark:border-amber-900/60 dark:from-slate-800 dark:via-slate-900 dark:to-teal-950/30">
+          <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-xl text-white shadow-md"><i class="fa-solid fa-trophy"></i></span>
+          <div class="text-right"><h3 class="text-base font-black text-slate-900 dark:text-white sm:text-lg">بطولة الانضباط المدرسية</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">التميز في الانضباط والتحسن المستمر</p></div>
         </div>
+        <div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">النتيجة المعروضة</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black text-slate-800 dark:text-slate-100">آخر نتيجة أسبوعية معتمدة</div></div>
       </div>
       <div class="space-y-5 p-4 sm:p-6">
         <div class="flex flex-wrap items-center gap-2">
@@ -1342,10 +1343,10 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
           <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
           <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">من بداية الفصل حتى الآن</button>
         </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saCompetitionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
-          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saCompetitionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
-          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
+        <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
+          <label id="saCompetitionTermSelectWrap" class="hidden min-w-[190px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
+          <p class="flex-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تعتمد النتائج الأسبوعية بعد إقفال الخميس الساعة 1:51 ظهراً بتوقيت عُمان، ولا توجد تواريخ يدوية للاختيار.</p>
+          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
         <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين وفرقهم</h4><p class="mt-1 text-[11px] text-slate-500">يعكس ترتيب كل معلم مستوى الانضباط في جميع الصفوف المسندة إليه، وتظهر مساهمة كل صف في المقارنة أدناه.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
@@ -1353,24 +1354,17 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
           <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">المراكز الرابعة وما بعدها حسب مجموع النقاط؛ ويُحدَّث الترتيب عند اعتماد نتيجة جديدة.</p></div>
           <div id="saCompetitionOtherRanks" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
         </section>
-        <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
+        <div class="grid grid-cols-1 gap-4">
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
-            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> تطور مؤشر الأداء النسبي</h4><p class="mt-1 text-[11px] text-slate-500">مؤشر للمقارنة بين الفرق خلال أيام الدراسة، وليس رصيد النقاط التراكمي.</p></div>
-            <div class="relative h-64"><canvas id="saCompetitionChart" aria-label="مخطط تطور الأداء النسبي للفرق"></canvas></div>
+            <div class="mb-4"><h4 id="saCompetitionChartTitle" class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-column ml-1 text-teal-600"></i> مقارنة معدلات أداء الفرق</h4><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">مقارنة نسبية عادلة حسب المرحلة، لا حسب الأعداد الخام.</p></div>
+            <div id="saCompetitionStageComparisons" class="space-y-4" aria-live="polite"></div>
           </section>
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
             <h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-trophy ml-1 text-amber-500"></i> رصيد نقاط التميز</h4>
-            <p class="mt-1 text-[11px] text-slate-500">النقاط المتراكمة من المراكز الأسبوعية: الأول 10، الثاني 6، الثالث 3.</p>
+            <p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">مجموع النقاط المكتسبة من النتائج الأسبوعية المعتمدة داخل الفصل الحالي.</p>
             <div id="saCompetitionWins" class="mt-4 space-y-3"></div>
           </section>
         </div>
-        <section class="rounded-2xl border border-indigo-200 bg-indigo-50/40 p-4 dark:border-indigo-900 dark:bg-indigo-950/20">
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب الصفوف وأثرها في أداء المعلمين</h4><p class="mt-1 text-[11px] text-slate-500">متوسط الحالات لكل صف في اليوم الدراسي؛ كل صف له الوزن نفسه دون ترجيح بعدد الطلاب.</p></div>
-            <div class="flex gap-2"><button id="saCompetitionCompareAllBtn" onclick="saSetCompetitionCompareScope('all')" class="rounded-xl bg-indigo-700 px-3 py-2 text-[11px] font-black text-white">جميع الصفوف</button><button id="saCompetitionCompareOwnBtn" onclick="saSetCompetitionCompareScope('own')" class="rounded-xl bg-white px-3 py-2 text-[11px] font-bold text-slate-600 ring-1 ring-slate-200 dark:bg-slate-800 dark:text-slate-200 dark:ring-slate-700">صفوف فريقي</button></div>
-          </div>
-          <div id="saCompetitionClassComparison" class="mt-4 space-y-3"></div>
-        </section>
         <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">تُحجب النتيجة التنافسية عند نقص بيانات أي فريق، حتى لا يُمنح فريق نقاطاً إضافية بسبب عدم تسجيل الحصص. النتائج التاريخية تُستخرج من السجلات المتاحة ولا تُنشئ سجلات انتصارات أو تغيّر البيانات الأصلية.</p>
       </div>
     </section>
@@ -1823,6 +1817,16 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
           <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي يشرف عليها قائد الفريق</div><p class="mb-2 text-[11px] text-slate-500">حدد الصفوف بنفسك. لا يمكن إسناد الصف نفسه إلى فريقين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
         </div>
       </div>
+      <section id="saCompetitionSettingsPanel" class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/60 dark:bg-amber-950/20">
+        <div class="flex items-center gap-2"><span class="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-200"><i class="fa-solid fa-calendar-check"></i></span><div><h3 class="text-sm font-black text-slate-900 dark:text-white">إعدادات الفصول الدراسية والبطولة</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تُدار من حساب المدير فقط.</p></div></div>
+        <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div class="rounded-xl border border-white/80 bg-white/80 p-3 text-xs dark:border-slate-700 dark:bg-slate-900/70"><b class="text-slate-800 dark:text-white">الفصل الأول</b><p class="mt-1 text-slate-600 dark:text-slate-300">1 سبتمبر – 30 ديسمبر</p></div>
+          <div class="rounded-xl border border-white/80 bg-white/80 p-3 text-xs dark:border-slate-700 dark:bg-slate-900/70"><b class="text-slate-800 dark:text-white">الفصل الثاني</b><p class="mt-1 text-slate-600 dark:text-slate-300">25 يناير – 30 مايو</p></div>
+        </div>
+        <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">إتاحة النتائج السابقة للمعلمين<select id="saCompetitionVisibilityMode" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"><option value="current">الفصل الحالي فقط (الموصى به)</option><option value="both">إظهار نتائج الفصلين للمعلمين</option></select></label>
+        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">عند اختيار الفصل الحالي فقط، لا تظهر معدلات الفصل الأول للمعلم في الفصل الثاني. تبقى النتائج السابقة محفوظة في أرشيف مستقل ولا تنتقل نقاطها إلى الفصل الجديد.</p>
+        <div class="flex flex-wrap items-center justify-between gap-2"><span id="saCompetitionSettingsStatus" class="text-[10px] text-slate-500" aria-live="polite">الإعداد الافتراضي: كل فصل مستقل.</span><button type="button" onclick="saCompetitionSaveSettings()" class="rounded-xl bg-amber-700 px-5 py-2.5 text-xs font-black text-white shadow-sm hover:bg-amber-800"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ إعدادات البطولة</button></div>
+      </section>
       <div id="saScopeSummary" class="rounded-2xl border border-dashed border-teal-200 bg-teal-50/70 px-4 py-3 text-xs leading-6 text-teal-900 dark:border-teal-900 dark:bg-teal-950/20 dark:text-teal-100" aria-live="polite">تُحدد مسؤولية المعلم تلقائياً من الصفوف المختارة للغياب والسلوك. لا يوجد دور مستقل باسم قائد فريق.</div>
       <div class="flex justify-end"><button onclick="saSavePermissions()" class="w-full rounded-xl bg-indigo-700 px-7 py-3 text-xs font-extrabold text-white shadow-lg transition hover:bg-indigo-800 sm:w-auto"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التكليف والصلاحيات</button></div>
     </div>
@@ -2384,7 +2388,7 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=IS_CLOUDFLARE_PREVIEW?"https://preview-disabled.invalid/functions/v1/student-affairs":(window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs");
 const SA_DEV_ANON_KEY=IS_CLOUDFLARE_PREVIEW?"preview-disabled-key":"sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
-let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
+let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
 function sortClassesList(classesArray){
@@ -2745,7 +2749,7 @@ function closeStudentAffairsAssignments(){
 async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="لم يتم إنشاء جلسة شؤون الطلبة لهذه المرة. سجّل الخروج من التطبيق ثم ادخل مجدداً برمز الحساب التجريبي، وبعدها افتح شؤون الطلبة.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();saSetupCompetitionPanel();saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
-async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();}
+async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
   const teachers=Array.isArray(saAdminData?.teachers)?saAdminData.teachers:[];
   const records=Array.isArray(saAdminData?.permissions)?saAdminData.permissions:[];
