@@ -726,6 +726,7 @@ async function handle(req: Request) {
       return reply(status, { error: message });
     }
   }
+  let session: Awaited<ReturnType<typeof getSession>> = null;
   let p: { type: string; name: string };
   if (body?.action === "reports_permissions" || body?.action === "reports") {
     const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
@@ -754,7 +755,7 @@ async function handle(req: Request) {
       return reply(200, { permissions: await permissionsFor(p) });
     }
   } else {
-    const session = await getSession(req);
+    session = await getSession(req);
     if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
     p = session.principal;
     if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
@@ -763,6 +764,7 @@ async function handle(req: Request) {
     }
   }
   if (body?.action === "logout") {
+    if (!session) return reply(400, { error: "جلسة شؤون الطلبة غير صالحة." });
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
     return reply(200, { ok: true });
   }
