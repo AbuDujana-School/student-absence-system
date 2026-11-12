@@ -8,7 +8,7 @@ Deno.test("Reports entry permission enables preview, analytics, and all print mo
   const unchanged = applyReportsEntryPermissions(original, ["9/1", "9/2"], false);
   if (unchanged.can_print_combined !== false || unchanged.can_read_attendance !== false) throw new Error("Users without Reports access gained permissions");
 });
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions, resolveStudentAffairsClassScope } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
@@ -84,4 +84,21 @@ Deno.test("behavior reports preserve and expand multiple violation types while s
   if (Object.keys(filtered).join(",") !== "A,B") throw new Error("multi behavior filtering failed");
   if (behaviorTypesFromRecord(filtered.A).join(",") !== "eating,talking") throw new Error("multiple types were not preserved");
   if (behaviorTypesFromRecord(filtered.B).join(",") !== "sleeping") throw new Error("legacy behavior record was not preserved");
+});
+
+Deno.test("Student Affairs class scope gives team leaders only their own and direct team classes", () => {
+  const scope = resolveStudentAffairsClassScope("team_leader", ["9/1"], ["9/1"], ["9/2", "9/3"], ["9/2", "9/3"]);
+  if (scope.allowed_attendance_classes.join(",") !== "9/1,9/2,9/3") throw new Error("team leader did not receive own plus team attendance classes");
+  if (scope.allowed_behavior_classes.join(",") !== "9/1,9/2,9/3") throw new Error("team leader did not receive own plus team behavior classes");
+});
+Deno.test("Student Affairs class scope keeps supervisors limited to their personal assignments", () => {
+  const scope = resolveStudentAffairsClassScope("supervisor", ["9/3", "9/4", "9/5"], ["9/3", "9/4", "9/5"], ["9/1", "9/2"], ["9/1", "9/2"]);
+  if (scope.allowed_attendance_classes.join(",") !== "9/3,9/4,9/5") throw new Error("supervisor inherited team or school attendance classes");
+  if (scope.allowed_behavior_classes.join(",") !== "9/3,9/4,9/5") throw new Error("supervisor inherited team or school behavior classes");
+});
+Deno.test("Competition personal class scope remains separate from team Student Affairs scope", () => {
+  const personal = ["9/1"];
+  const studentAffairs = resolveStudentAffairsClassScope("team_leader", personal, personal, ["9/2", "9/3"], ["9/2", "9/3"]);
+  if (personal.join(",") !== "9/1") throw new Error("personal competition scope was modified");
+  if (studentAffairs.allowed_classes.join(",") !== "9/1,9/2,9/3") throw new Error("Student Affairs team scope is incorrect");
 });

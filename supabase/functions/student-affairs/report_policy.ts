@@ -39,6 +39,30 @@ export function applyReportsEntryPermissions<T extends object>(permissions: T, c
     can_print_combined: true,
   } as T & ReportsEntryPermissions;
 }
+
+/** Resolves the class scope exposed in Student Affairs reports. Team leaders see
+ * their own assignments plus directly supervised team assignments; supervisors
+ * and ordinary teachers remain limited to their own assignments. Competition
+ * authorization intentionally uses the separate personal scope.
+ */
+export function resolveStudentAffairsClassScope(
+  role: string,
+  ownAttendance: string[],
+  ownBehavior: string[],
+  teamAttendance: string[] = [],
+  teamBehavior: string[] = [],
+) {
+  const unique = (values: unknown[]) => [...new Set(values.map((value) => String(value || "").trim()).filter(Boolean))];
+  const leader = role === "team_leader";
+  const attendance = unique(leader ? [...ownAttendance, ...teamAttendance] : ownAttendance);
+  const behavior = unique(leader ? [...ownBehavior, ...teamBehavior] : ownBehavior);
+  return {
+    allowed_attendance_classes: attendance,
+    allowed_behavior_classes: behavior,
+    allowed_classes: unique([...attendance, ...behavior]),
+  };
+}
+
 export function authorizeReportMode(p: ReportPermissions, mode: string): AuthorizationError | null {
   const readAttendance = p.can_read_attendance === true;
   const readBehavior = p.can_read_behavior === true;
