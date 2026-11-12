@@ -45,3 +45,18 @@ Deno.test("a previously notified student receives no next notice below the new-p
   });
   if (result.length !== 0) throw new Error("a below-threshold new period incorrectly issued a second notice");
 });
+
+Deno.test("new notice window excludes all pre-issue events, even if an earlier notice used different filters", () => {
+  const prior = { class_name: "9/1", student_name: "طالب تجريبي", issue_number: 1, issued_on: "2026-11-02", events: [{ type: "late", date: "2026-11-02", period: "1", note: "" }] };
+  const result = buildNoticeCandidates({
+    attendance: [
+      session("9/1", "2026-10-30", 1, { "طالب تجريبي": "escape" }),
+      session("9/1", "2026-11-02", 2, { "طالب تجريبي": "escape" }),
+      session("9/1", "2026-11-03", 1, { "طالب تجريبي": "escape" }),
+      session("9/1", "2026-11-04", 2, { "طالب تجريبي": "late" })
+    ],
+    behaviors: [], history: [prior], roster: [], selected_types: ["late", "escape"], threshold: 2, period_end: "2026-11-04"
+  });
+  if (result.length !== 1 || result[0].issue_number !== 2 || result[0].events.length !== 2) throw new Error("new monitoring window did not begin after prior official issue");
+  if (result[0].period_start !== "2026-11-03") throw new Error("next monitoring period start date is incorrect");
+});
