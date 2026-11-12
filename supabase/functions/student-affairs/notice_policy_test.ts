@@ -60,3 +60,12 @@ Deno.test("new notice window excludes all pre-issue events, even if an earlier n
   if (result.length !== 1 || result[0].issue_number !== 2 || result[0].events.length !== 2) throw new Error("new monitoring window did not begin after prior official issue");
   if (result[0].period_start !== "2026-11-03") throw new Error("next monitoring period start date is incorrect");
 });
+
+Deno.test("absence already recorded in a prior notice stays daily-deduplicated across periods", () => {
+  const prior = { class_name: "9/1", student_name: "طالب", issue_number: 1, issued_on: "2026-11-02", events: [{ type: "absent", date: "2026-11-02", period: "1", note: "" }] };
+  const result = buildNoticeCandidates({
+    attendance: [session("9/1", "2026-11-03", 1, { "طالب": "absent" }), session("9/1", "2026-11-03", 2, { "طالب": "absent" })],
+    behaviors: [], history: [prior], roster: [], selected_types: ["absent"], threshold: 1, period_end: "2026-11-03"
+  });
+  if (result.length !== 1 || result[0].events.length !== 1) throw new Error("daily absence count was not preserved");
+});
