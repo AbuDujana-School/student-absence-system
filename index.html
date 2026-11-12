@@ -2598,27 +2598,30 @@ function saSetCompetitionTerm(termId){
   saCompetitionSelectedTermId=termId;
   saLoadCompetition();
 }
-function saCompetitionGetApprovedWeeks(term,today){
+function saCompetitionGetApprovedWeeks(term,today,now){
   const date=String(today||getOmanLocalDate());
   if(!term||date<term.start)return [];
-  const day=new Date(date+"T12:00:00.000Z").getUTCDay();
-  const sunday=saDateShift(date,-day);
-  const clockParts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Muscat",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(new Date());
+  const instant=now instanceof Date?now:(now?new Date(now):new Date());
+  const clockParts=new Intl.DateTimeFormat("en-GB",{timeZone:"Asia/Muscat",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(instant);
   const clock={};clockParts.forEach(part=>{if(part.type!=="literal")clock[part.type]=part.value;});
   const minutes=Number(clock.hour||0)*60+Number(clock.minute||0);
-  let latestStart=(day>4||(day===4&&minutes>=831))?sunday:saDateShift(sunday,-7);
-  if(date>term.end)latestStart=saDateShift(term.end,-new Date(term.end+"T12:00:00.000Z").getUTCDay());
-  else if(date>=term.end&&term.end>=sunday&&term.end<=saDateShift(sunday,4))latestStart=sunday;
-  const starts=[term.start];
-  const firstDay=new Date(term.start+"T12:00:00.000Z").getUTCDay();
+  const cutoffReached=end=>date>end||(date===end&&minutes>=831);
+  const weekday=value=>new Date(value+"T12:00:00.000Z").getUTCDay();
+  const candidates=[];
+  const firstDay=weekday(term.start);
+  const firstEndDayOffset=(4-firstDay+7)%7;
+  const firstNormalEnd=saDateShift(term.start,firstEndDayOffset);
+  const firstEnd=firstNormalEnd>term.end?term.end:firstNormalEnd;
+  candidates.push({start:term.start,end:firstEnd});
   let next=firstDay===0?saDateShift(term.start,7):saDateShift(term.start,7-firstDay);
-  while(next<=latestStart&&next<=term.end&&starts.length<60){starts.push(next);next=saDateShift(next,7);}
-  const latestEnd=saDateShift(latestStart,4);
-  return starts.filter(start=>start<=latestStart).map((start,index)=>{
-    const startDay=new Date(start+"T12:00:00.000Z").getUTCDay();
-    const normalEnd=saDateShift(start,(4-startDay+7)%7),end=normalEnd>term.end?term.end:normalEnd;
-    return {index,start,end,approved:end<=latestEnd||end===term.end&&date>=term.end};
-  }).filter(week=>week.approved);
+  while(next<=term.end&&candidates.length<60){
+    const startDay=weekday(next);
+    const normalEnd=saDateShift(next,(4-startDay+7)%7);
+    candidates.push({start:next,end:normalEnd>term.end?term.end:normalEnd});
+    next=saDateShift(next,7);
+  }
+  return candidates.filter(week=>cutoffReached(week.end)||(week.end===term.end&&date>=term.end))
+    .map((week,index)=>({index,start:week.start,end:week.end,approved:true}));
 }
 function saCompetitionGrade(className){
   const value=String(className||"");
