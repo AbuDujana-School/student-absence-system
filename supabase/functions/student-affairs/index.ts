@@ -1312,10 +1312,10 @@ async function handle(req: Request) {
       }
       return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
     }
-    const wantsAttendance = mode === "view" || mode === "print_attendance" || mode === "print_combined";
-    const wantsBehavior = mode === "view" || mode === "print_behavior" || mode === "print_combined";
-    if (wantsAttendance && requestedAttendance.length && permissions.can_read_attendance !== true) return reply(403, { error: "غير مصرح بعرض الغياب" });
-    if (wantsBehavior && requestedBehavior.length && permissions.can_read_behavior !== true) return reply(403, { error: "غير مصرح بعرض السلوكيات" });
+    const wantsAttendance = mode === "notice_scan" ? requestedAttendance.length > 0 : mode === "view" || mode === "print_attendance" || mode === "print_combined";
+    const wantsBehavior = mode === "notice_scan" ? requestedBehavior.length > 0 : mode === "view" || mode === "print_behavior" || mode === "print_combined";
+    if (wantsAttendance && requestedAttendance.length && (permissions.can_read_attendance !== true || (mode === "notice_scan" && permissions.can_print_attendance !== true))) return reply(403, { error: "غير مصرح بفحص سجلات الغياب المحددة" });
+    if (wantsBehavior && requestedBehavior.length && (permissions.can_read_behavior !== true || (mode === "notice_scan" && permissions.can_print_behavior !== true))) return reply(403, { error: "غير مصرح بفحص سجلات السلوك المحددة" });
     const filterAttendance = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterAttendanceRecordMap(row.records, [...statusAllow], requestedStatuses) })).filter(row => Object.keys(row.records).length > 0);
     const filterBehavior = (rows: any[]) => (rows || []).map(row => ({ ...row, records: filterBehaviorRecordMap(row.records) })).filter(row => Object.keys(row.records).length > 0);
     const [attendance, behaviors] = await Promise.all([
