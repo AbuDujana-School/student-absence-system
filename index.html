@@ -1264,6 +1264,81 @@
   #studentAffairsView #saAttendanceTab,#studentAffairsView #saBehaviorTab{transition:none!important}
 }
 </style>
+
+<style id="sa-report-tabs-horizontal-polish">
+/* Clear, high-contrast horizontal attendance/behavior navigation. */
+#studentAffairsView .sa-report-header{
+  display:flex!important;flex-direction:row!important;align-items:center!important;
+  justify-content:space-between!important;gap:16px!important;flex-wrap:wrap!important;
+}
+#studentAffairsView .sa-report-tabs{
+  display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;
+  align-items:center!important;justify-content:center!important;gap:10px!important;
+  flex:0 0 auto!important;width:auto!important;min-width:max-content!important;
+  padding:8px!important;border:1px solid rgba(148,163,184,.25)!important;
+  border-radius:18px!important;
+  background:linear-gradient(145deg,rgba(255,255,255,.94),rgba(231,242,245,.88))!important;
+  box-shadow:0 10px 26px -18px rgba(24,54,83,.42),inset 0 1px 0 #fff!important;
+}
+#studentAffairsView .sa-report-tabs button{
+  display:inline-flex!important;flex:1 1 150px!important;flex-direction:row!important;
+  align-items:center!important;justify-content:center!important;gap:10px!important;
+  min-width:148px!important;min-height:56px!important;padding:8px 18px!important;
+  border:1px solid rgba(148,163,184,.25)!important;border-radius:14px!important;
+  color:#29465f!important;font-size:14px!important;font-weight:900!important;
+  line-height:1.35!important;white-space:nowrap!important;
+  background:linear-gradient(145deg,#fff,#f3f8fa)!important;
+  box-shadow:0 5px 14px -12px rgba(24,54,83,.5),inset 0 1px 0 #fff!important;
+  transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease,background .2s ease!important;
+}
+#studentAffairsView .sa-report-tab-icon{
+  display:inline-grid!important;place-items:center!important;flex:0 0 36px!important;
+  width:36px!important;height:36px!important;border-radius:12px!important;
+  background:linear-gradient(145deg,#dff4f1,#c8e9e5)!important;
+  color:#08786f!important;font-size:17px!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.9),0 3px 8px -6px rgba(8,120,111,.5)!important;
+}
+#studentAffairsView #saBehaviorTab .sa-report-tab-icon{
+  background:linear-gradient(145deg,#fff1d5,#f7dfae)!important;color:#9a6411!important;
+}
+#studentAffairsView .sa-report-tab-label{display:inline-block!important;font-size:14px!important;font-weight:900!important;letter-spacing:0!important}
+#studentAffairsView .sa-report-tabs button:hover{
+  transform:translateY(-2px)!important;border-color:rgba(22,140,133,.5)!important;
+  box-shadow:0 10px 20px -13px rgba(15,118,110,.45)!important;
+}
+#studentAffairsView #saAttendanceTab.bg-blue-600,
+#studentAffairsView #saBehaviorTab.bg-teal-600{
+  color:#fff!important;border-color:rgba(213,166,74,.6)!important;
+  background:linear-gradient(135deg,#183653 0%,#0f766e 100%)!important;
+  box-shadow:0 10px 22px -12px rgba(15,91,100,.7),inset 0 1px 0 rgba(255,255,255,.22)!important;
+}
+#studentAffairsView #saAttendanceTab.bg-blue-600 .sa-report-tab-icon,
+#studentAffairsView #saBehaviorTab.bg-teal-600 .sa-report-tab-icon{
+  color:#fff!important;background:rgba(255,255,255,.17)!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.2)!important;
+}
+#studentAffairsView .sa-report-tabs button:focus-visible{outline:3px solid rgba(22,140,133,.35)!important;outline-offset:3px!important}
+.dark #studentAffairsView .sa-report-tabs{
+  background:linear-gradient(145deg,rgba(15,35,52,.96),rgba(19,48,61,.92))!important;
+  border-color:rgba(94,234,212,.2)!important;box-shadow:0 10px 26px -18px #000,inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+.dark #studentAffairsView .sa-report-tabs button{
+  color:#e2edf5!important;background:linear-gradient(145deg,#1b344a,#142a3d)!important;
+  border-color:rgba(148,163,184,.2)!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.06)!important;
+}
+.dark #studentAffairsView .sa-report-tabs button.bg-blue-600,
+.dark #studentAffairsView .sa-report-tabs button.bg-teal-600{
+  color:#fff!important;background:linear-gradient(135deg,#0f766e,#183653)!important;
+}
+@media(max-width:640px){
+  #studentAffairsView .sa-report-header{align-items:stretch!important;flex-direction:column!important;gap:12px!important}
+  #studentAffairsView .sa-report-tabs{display:flex!important;flex-direction:row!important;width:100%!important;min-width:0!important;gap:8px!important;padding:6px!important}
+  #studentAffairsView .sa-report-tabs button{flex:1 1 0!important;min-width:0!important;min-height:54px!important;padding:7px 8px!important;gap:7px!important}
+  #studentAffairsView .sa-report-tab-icon{width:32px!important;height:32px!important;flex-basis:32px!important;border-radius:10px!important;font-size:15px!important}
+  #studentAffairsView .sa-report-tab-label{font-size:12px!important}
+}
+@media(prefers-reduced-motion:reduce){#studentAffairsView .sa-report-tabs button{transition:none!important}}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -1470,7 +1545,7 @@
       </div>
     </section>
     <div class="space-y-5 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6">
-      <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><i class="fa-solid fa-calendar-check ml-1.5"></i><span>الغياب</span></button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><i class="fa-solid fa-clipboard-check ml-1.5"></i><span>السلوكيات</span></button></div></div>
+      <div class="sa-report-header flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">لوحة التقارير والمتابعة</h3><p class="mt-1 text-xs text-slate-500">اختر نوع المتابعة والصفوف والفترة المطلوبة</p></div><div class="sa-report-tabs flex gap-2 rounded-2xl bg-slate-100 p-1 dark:bg-slate-800" role="group" aria-label="نوع المتابعة"><button id="saAttendanceTab" onclick="saSetDomain('attendance')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span><span class="sa-report-tab-label">الغياب</span></button><button id="saBehaviorTab" onclick="saSetDomain('behavior')" class="rounded-xl px-5 py-2.5 text-xs font-black transition"><span class="sa-report-tab-icon" aria-hidden="true"><i class="fa-solid fa-clipboard-list"></i></span><span class="sa-report-tab-label">السلوكيات</span></button></div></div>
       <div id="saReportPeriodControls" class="space-y-3 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 dark:border-slate-700 dark:bg-slate-950/40">
         <div class="sa-glass-label"><i class="fa-regular fa-calendar-days"></i><span>الفترة الزمنية</span></div>
         <div class="sa-glass-option-box" role="group" aria-label="اختيار الفترة الزمنية">
@@ -2721,7 +2796,7 @@ function saGetSelectedReportClasses(domain=saDomain){
   return legacy==="all"?allowed:allowed.filter(c=>c===legacy);
 }
 function saPopulateReportClasses(){const allowed=saGetAllowedReportClasses();const container=document.getElementById("saReportClassesContainer");if(container){if(!allowed.length){container.innerHTML='<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700">لا توجد صفوف مخصصة لك في هذا القسم.</div>';}else{container.innerHTML=sortClassesList(allowed).map(c=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"><input type="checkbox" class="sa-report-class-chk h-4 w-4 accent-blue-600" value="'+escapeHtml(c)+'" checked onchange="saUpdateSelectedClassCount()"><span dir="ltr">'+escapeHtml(formatClassName(c))+'</span></label>').join("");}}const legacy=document.getElementById("saReportClass");if(legacy){legacy.innerHTML='<option value="all">جميع الصفوف المصرح بها</option>'+sortClassesList(allowed).map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");legacy.value="all";}saUpdateSelectedClassCount();}
-function saSetDomain(domain){saInitReportDateInputs("sa");const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();if(canRead)saLoadReport();else{document.getElementById("saSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}} 
+function saSetDomain(domain){saInitReportDateInputs("sa");const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();saLoadStudentProfileDirectory();if(canRead)saLoadReport();else{document.getElementById("saSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}} 
 async function saSetupSupervisionPanel(){
   const panel=document.getElementById("saSupervisionPanel"),p=saReportPermissions||{};if(!panel)return;
   saBaseReportPermissions={...p};
@@ -3378,7 +3453,7 @@ function saStudentProfileStatus(message,isError=false){
 }
 function saStudentProfileAllowedClasses(){
   const p=saReportPermissions||{},out=[];
-  if(p.can_read_attendance===true&&(p.attendance_statuses||[]).length)out.push(...saGetAllowedReportClasses("attendance"));
+  if(p.can_read_attendance===true)out.push(...saGetAllowedReportClasses("attendance"));
   if(p.can_read_behavior===true)out.push(...saGetAllowedReportClasses("behavior"));
   return sortClassesList([...new Set(out.map(x=>String(x||"").trim()).filter(Boolean))]);
 }
