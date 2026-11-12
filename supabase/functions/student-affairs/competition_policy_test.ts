@@ -21,26 +21,44 @@ Deno.test("only an exact Sunday-to-Thursday range is a complete award week", () 
   if (isCompleteSchoolWeekRange("2026-11-08", "2026-11-19")) throw new Error("multi-week range was accepted as one week");
   if (isCompleteSchoolWeekRange("invalid", "2026-11-12")) throw new Error("invalid date was accepted");
 });
-Deno.test("attendance events are deduplicated per student, class, date and status", () => {
+Deno.test("attendance absence is daily while other statuses remain period-specific", () => {
   const rows = [
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"late"} },
     { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape"} }
   ];
-  if (countAttendanceIncidents(rows) !== 3) throw new Error("attendance deduplication failed");
+  if (countAttendanceIncidents(rows) !== 3) throw new Error("daily absence/late and per-period escape counting failed");
 });
-Deno.test("behavior events are deduplicated per student, class, date and type", () => {
+Deno.test("absence and lateness remain daily while escape counts per period", () => {
+  const rows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} },
+    { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} }
+  ];
+  if (countAttendanceIncidents(rows) !== 4) throw new Error("daily absence/late and per-period escape counting failed");
+  const counts = countAttendanceByStatus(rows);
+  if (counts.absent !== 1 || counts.escape !== 2 || counts.late !== 1) throw new Error("attendance status totals do not follow daily/per-period rules");
+});
+Deno.test("behavior violations are counted separately for each class period", () => {
+  const rows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"}} },
+    { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":{type:"talking"}} }
+  ];
+  if (countBehaviorIncidents(rows) !== 2 || countBehaviorByType(rows).talking !== 2) throw new Error("per-period behavior counting failed");
+});
+Deno.test("behavior events are counted per student, class, date, period and type", () => {
   const rows = [
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"normal"}} },
     { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"sleeping"}} }
   ];
-  if (countBehaviorIncidents(rows) !== 2) throw new Error("behavior deduplication failed");
+  if (countBehaviorIncidents(rows) !== 3) throw new Error("behavior period counting failed");
 });
-Deno.test("a team day requires all eight periods for every assigned class in both domains", () => {
+Deno.test("a team day requires all eight attendance periods, while missing behavior records mean zero", () => {
   const attendance = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
-  const behavior = getSessionCoverage(sessions("1/9"));
-  if (isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,behavior)) throw new Error("missing class sessions must not count as zero");
+  const noBehavior = getSessionCoverage([]);
+  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,noBehavior)) throw new Error("missing behavior must be treated as zero");
+  const partialAttendance = getSessionCoverage(sessions("1/9").slice(0,7));
+  if (isTeamDayComplete(["1/9"],"2026-11-08",partialAttendance,noBehavior)) throw new Error("unsaved attendance period must remain incomplete");
   const full = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
-  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,full)) throw new Error("complete day rejected");
+  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",full,noBehavior)) throw new Error("complete attendance day rejected");
 });
 Deno.test("team rates are the unweighted average of class rates, not student-weighted rates", () => {
   const team = buildTeamRates({
@@ -50,6 +68,14 @@ Deno.test("team rates are the unweighted average of class rates, not student-wei
   });
   if (!team.complete || team.classCount !== 2 || team.attendanceRate !== 2 || team.behaviorRate !== 1.5) throw new Error("class-equal mean is incorrect");
   if (team.classMetrics.length !== 2 || team.classMetrics[0].attendanceRate !== 1 || team.classMetrics[1].attendanceRate !== 3) throw new Error("class metrics missing");
+});
+Deno.test("missing behavior sessions contribute zero without blocking completed attendance", () => {
+  const result = buildTeamRates({
+    grade:"فريق أ", classNames:["1/9"], from:"2026-11-08", to:"2026-11-08",
+    attendanceRows:sessions("1/9"),
+    behaviorRows:[]
+  });
+  if (!result.complete || result.behaviorIncidents !== 0 || result.behaviorRate !== 0) throw new Error("missing behavior data must be zero, not incomplete");
 });
 Deno.test("weekly podium ties share places without giving away a skipped award", () => {
   const result = calculateRelativeCompetitionScores([
@@ -114,8 +140,8 @@ Deno.test("coaching metrics count real attendance and behavior types without exp
   ];
   const a = countAttendanceByStatus(attendanceRows);
   const b = countBehaviorByType(behaviorRows);
-  if (a.late !== 2 || a.absent !== 1 || a.escape !== 1) throw new Error("attendance coaching breakdown must deduplicate repeated periods");
-  if (b.talking !== 2 || b.tools !== 1 || b.sleeping !== 1) throw new Error("behavior coaching breakdown must deduplicate repeated periods");
+  if (a.late !== 2 || a.absent !== 1 || a.escape !== 1) throw new Error("attendance coaching breakdown must preserve daily counts except per-period escape");
+  if (b.talking !== 3 || b.tools !== 1 || b.sleeping !== 1) throw new Error("behavior coaching breakdown must count each period");
   if (countRepeatStudents(attendanceRows, "attendance") !== 1) throw new Error("repeat attendance students must require multiple days");
   if (countRepeatStudents(behaviorRows, "behavior") !== 1) throw new Error("repeat behavior students must require multiple days");
 });

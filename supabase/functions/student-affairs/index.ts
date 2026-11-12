@@ -532,10 +532,23 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
 async function finalizeCompetitionWeek() {
   const today = getOmanIsoDate();
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
-  if (weekday !== 4 || getOmanClockMinutes() < 13 * 60 + 50) {
-    competitionError(400, "لم يحن موعد اعتماد نتيجة الأسبوع بعد.");
+  const currentWeek = getSchoolWeekRange(today);
+  const afterWeeklyCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
+  // Before Thursday 13:50, the latest closed week is eligible. After the cutoff, this week is eligible.
+  const eligibleStart = afterWeeklyCutoff ? currentWeek.start : shiftCompetitionDate(currentWeek.start, -7);
+  const { currentTerm } = await readCompetitionTermSettings();
+  // Never abandon an earlier incomplete week when the calendar rolls forward; retry it until it completes.
+  const { data: pending, error: pendingError } = await db.from("competition_weekly_results")
+    .select("week_start,week_end").eq("status", "incomplete")
+    .gte("week_start", currentTerm.start).lte("week_end", currentTerm.end)
+    .order("week_start", { ascending: true }).limit(1).maybeSingle();
+  if (pendingError) throw pendingError;
+  const range = pending && pending.week_start <= eligibleStart
+    ? { start: pending.week_start, end: pending.week_end }
+    : { start: eligibleStart, end: shiftCompetitionDate(eligibleStart, 4) };
+  if (range.start < currentTerm.start || range.end > currentTerm.end) {
+    return { ok: true, status: "outside_term", weekStart: range.start };
   }
-  const range = getSchoolWeekRange(today);
   const { data: existing, error: existingError } = await db.from("competition_weekly_results")
     .select("status").eq("week_start", range.start).maybeSingle();
   if (existingError) throw existingError;
