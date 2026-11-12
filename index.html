@@ -3312,6 +3312,99 @@ function saNoticeSetStatus(message,isError){
   box.textContent=String(message||"");box.classList.remove("hidden","border-blue-200","bg-blue-50","text-blue-900","dark:border-blue-900","dark:bg-blue-950/30","dark:text-blue-200","border-red-200","bg-red-50","text-red-800","dark:border-red-900","dark:bg-red-950/30","dark:text-red-200");
   box.classList.add(isError?"border-red-200":"border-blue-200",isError?"bg-red-50":"bg-blue-50",isError?"text-red-800":"text-blue-900",isError?"dark:border-red-900":"dark:border-blue-900",isError?"dark:bg-red-950/30":"dark:bg-blue-950/30",isError?"dark:text-red-200":"dark:text-blue-200");
 }
+function saStudentProfileStatus(message,isError=false){
+  const box=document.getElementById("saStudentProfileStatus");if(!box)return;
+  box.textContent=String(message||"");box.classList.remove("hidden","text-red-700","text-slate-700","dark:text-red-300","dark:text-slate-200");
+  box.classList.add(isError?"text-red-700":"text-slate-700",isError?"dark:text-red-300":"dark:text-slate-200");
+}
+function saStudentProfileAllowedClasses(){
+  const p=saReportPermissions||{},out=[];
+  if(p.can_read_attendance===true)out.push(...saGetAllowedReportClasses("attendance"));
+  if(p.can_read_behavior===true)out.push(...saGetAllowedReportClasses("behavior"));
+  return sortClassesList([...new Set(out.map(x=>String(x||"").trim()).filter(Boolean))]);
+}
+async function saLoadStudentProfileDirectory(){
+  const select=document.getElementById("saStudentProfileClass"),list=document.getElementById("saStudentProfileNames");
+  if(!select||!list)return;
+  const classes=saStudentProfileAllowedClasses(),prior=select.value;
+  if(!classes.length){select.innerHTML='<option value="">لا توجد صفوف مصرح بها</option>';list.innerHTML="";saStudentProfileStatus("لا توجد صلاحية لعرض سجلات الطلاب.",true);return;}
+  select.innerHTML=classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
+  if(classes.includes(prior))select.value=prior;
+  const className=select.value;
+  list.innerHTML="";saStudentProfileStatus("جارٍ تحميل أسماء الطلاب من الصف المحدد...");
+  try{
+    const result=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],to:getOmanLocalDate()});
+    const names=[...new Set((result?.students||[]).map(x=>String(x.student_name||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
+    list.innerHTML=names.map(name=>'<option value="'+escapeHtml(name)+'"></option>').join("");
+    saStudentProfileStatus("تم تحميل "+names.length+" طالباً من الصف "+formatClassName(className)+".");
+  }catch(error){saStudentProfileStatus(error?.message||"تعذر تحميل قائمة الطلاب.",true);}
+}
+function saNoticePeriodForProfile(session){
+  let value=session?.period;if(value==null||value===""){const m=String(session?.record_key||"").match(/_p(\d+)$/);if(m)value=m[1];}
+  return saNoticePeriodLabel(String(value||"غير محددة"));
+}
+function saBuildStudentProfileRows(attendance,behaviors){
+  const rows=[],seenAbsence=new Set();
+  (attendance||[]).forEach(session=>{
+    const className=String(session.class_name||""),date=String(session.date_str||"").slice(0,10);
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+    Object.entries(session.records&&typeof session.records==="object"?session.records:{}).forEach(([raw,value])=>{
+      const name=saNoticeResolveStudentName(className,raw);
+      if(name!==saNoticeProfileSelectedName)return;
+      const status=typeof value==="string"?value:(value&&typeof value==="object"?String(value.status||value.type||""):"");
+      if(!["absent","late","escape","outside"].includes(status))return;
+      if(status==="absent"){const key=date;if(seenAbsence.has(key))return;seenAbsence.add(key);}
+      rows.push({date,period:saNoticePeriodForProfile(session),type:status,note:"",source:"الحضور"});
+    });
+  });
+  (behaviors||[]).forEach(session=>{
+    const date=String(session.date_str||"").slice(0,10);if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return;
+    Object.entries(session.records&&typeof session.records==="object"?session.records:{}).forEach(([raw,value])=>{
+      const name=saNoticeResolveStudentName(String(session.class_name||""),raw);
+      if(name!==saNoticeProfileSelectedName)return;
+      const data=value&&typeof value==="object"?value:{type:String(value||""),note:""};
+      const note=String(data.note||data.description||"").trim();
+      getBehaviorTypesFromRecord(data).forEach(type=>rows.push({date,period:saNoticePeriodForProfile(session),type,note:type==="other"?note:"",source:"السلوك"}));
+    });
+  });
+  return rows.sort((a,b)=>a.date.localeCompare(b.date)||String(a.period).localeCompare(String(b.period),"ar",{numeric:true})||a.type.localeCompare(b.type));
+}
+let saNoticeProfileSelectedName="";
+function saStudentProfilePrintableHtml(className,name,rows,notices){
+  const countByType=new Map();rows.forEach(row=>countByType.set(row.type,(countByType.get(row.type)||0)+1));
+  const summary=[...countByType].map(([type,count])=>'<span class="summary-chip">'+escapeHtml(SA_NOTICE_LABELS[type]||type)+': '+count+'</span>').join(" ");
+  const detailRows=rows.map(row=>'<tr><td>'+escapeHtml(row.date.replace(/-/g,"/"))+'</td><td>'+escapeHtml(row.period)+'</td><td>'+escapeHtml(SA_NOTICE_LABELS[row.type]||row.type)+'</td><td>'+escapeHtml(row.note||"—")+'</td></tr>').join("");
+  const noticeRows=notices.map(row=>'<tr><td>'+escapeHtml(String(row.issue_number))+'</td><td>'+escapeHtml(String(row.issued_on||"").replace(/-/g,"/"))+'</td><td>'+escapeHtml(row.delivered?"تم التسليم":"لم يؤكد التسليم")+'</td><td>'+escapeHtml(row.issued_by_name||"—")+'</td><td>'+escapeHtml(String(row.events?.length||0))+'</td></tr>').join("");
+  return '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>السجل السلوكي للطالب</title><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet"><style>@page{size:A4 portrait;margin:12mm}*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;color:#1f2937;font-size:12px}h1,h2{text-align:center;margin:4px 0 10px}h1{font-size:20px}h2{font-size:15px;margin-top:22px}header{text-align:center;line-height:1.6;margin-bottom:18px}.meta{display:flex;justify-content:space-between;border:1px solid #cbd5e1;padding:10px;margin:14px 0}.summary-chip{display:inline-block;border:1px solid #cbd5e1;border-radius:5px;padding:5px;margin:3px}table{width:100%;border-collapse:collapse;margin-top:8px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:right}th{background:#f1f5f9}footer{margin-top:30px;display:flex;justify-content:space-between;font-weight:700}@media print{thead{display:table-header-group}tr{break-inside:avoid}}</style></head><body><header><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><strong>مدرسة أبو دجانة الأنصاري للتعليم الأساسي</strong></header><h1>السجل التفصيلي للغياب والسلوك والتنبيهات</h1><div class="meta"><strong>الطالب: '+escapeHtml(name)+'</strong><strong>الصف: '+escapeHtml(formatClassName(className))+'</strong><strong>تاريخ التقرير: '+escapeHtml(getOmanLocalDate().replace(/-/g,"/"))+'</strong></div><h2>ملخص المخالفات</h2><div>'+summary+'</div><p>إجمالي الوقائع المسجلة: <strong>'+rows.length+'</strong></p><h2>تفاصيل الوقائع حسب التاريخ والحصة</h2><table><thead><tr><th>التاريخ</th><th>الحصة</th><th>نوع المخالفة</th><th>التفاصيل</th></tr></thead><tbody>'+detailRows+'</tbody></table><h2>سجل التنبيهات الرسمية</h2><table><thead><tr><th>رقم التنبيه</th><th>تاريخ الإصدار</th><th>حالة التسليم</th><th>أصدره</th><th>عدد الوقائع</th></tr></thead><tbody>'+noticeRows+'</tbody></table><footer><span>ولي الأمر: ........................</span><span>شؤون الطلبة: ........................</span></footer><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),300));<\/script></body></html>';
+}
+async function saLoadStudentNoticeProfile(){
+  const className=document.getElementById("saStudentProfileClass")?.value||"",name=String(document.getElementById("saStudentProfileName")?.value||"").trim();
+  const p=saReportPermissions||{};
+  if(!className||!name){saStudentProfileStatus("حدد الصف واكتب اسم الطالب أو اختره من القائمة.",true);return;}
+  if(p.can_read_attendance!==true||p.can_read_behavior!==true){saStudentProfileStatus("يتطلب عرض الملف صلاحية قراءة سجلات الحضور والسلوك.",true);return;}
+  const allowed=saStudentProfileAllowedClasses();if(!allowed.includes(className)){saStudentProfileStatus("الصف خارج نطاق صلاحياتك.",true);return;}
+  const attendanceAllowed=saGetAllowedReportClasses("attendance").includes(className),behaviorAllowed=saGetAllowedReportClasses("behavior").includes(className);
+  if(!attendanceAllowed||!behaviorAllowed){saStudentProfileStatus("لا تتوفر صلاحية قراءة المصدرين لهذا الصف.",true);return;}
+  saNoticeProfileSelectedName=name;const host=document.getElementById("saStudentProfileResult");host.classList.remove("hidden");host.innerHTML='<div class="p-4 text-sm font-bold text-slate-600">جارٍ جمع السجل التاريخي والتحقق من التنبيهات...</div>';
+  try{
+    const to=getOmanLocalDate(),jobs=[];for(let year=2000;year<=Number(to.slice(0,4));year++)jobs.push({from:year+"-01-01",to:year===Number(to.slice(0,4))?to:year+"-12-31",year});
+    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"print_combined",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:["absent","late","escape","outside"],from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
+    const history=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],student_name:name,to});
+    const directory=(history?.students||[]).some(x=>String(x.student_name||"").trim()===name);
+    if(!directory)throw new Error("لم يُعثر على الطالب بهذا الاسم في قائمة الصف المحدد. اختر اسماً من القائمة.");
+    const rows=saBuildStudentProfileRows(attendance,behaviors),notices=(history?.notices||[]).filter(x=>String(x.student_name||"").trim()===name);
+    const grouped=new Map();rows.forEach(row=>grouped.set(row.type,(grouped.get(row.type)||0)+1));
+    const summary=[...grouped].map(([type,count])=>'<span class="inline-block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 m-1 text-[11px] font-bold">'+escapeHtml(SA_NOTICE_LABELS[type]||type)+' ('+count+')</span>').join("");
+    host.innerHTML='<div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div class="flex flex-wrap justify-between gap-2"><div><h4 class="font-black text-slate-900 dark:text-white">'+escapeHtml(name)+'</h4><p class="text-xs text-slate-500">'+escapeHtml(formatClassName(className))+' · '+rows.length+' واقعة · '+notices.length+' تنبيه رسمي</p></div><button type="button" onclick="saPrintStudentProfile()" class="rounded-xl bg-teal-700 px-4 py-2 text-xs font-black text-white"><i class="fa-solid fa-print ml-1"></i> طباعة / PDF</button></div><div class="mt-3">'+summary+'</div><div class="mt-4 overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="p-2 text-right">التاريخ</th><th class="p-2 text-right">الحصة</th><th class="p-2 text-right">المخالفة</th><th class="p-2 text-right">التفاصيل</th></tr></thead><tbody>'+rows.map(row=>'<tr class="border-t border-slate-200"><td class="p-2">'+escapeHtml(row.date)+'</td><td class="p-2">'+escapeHtml(row.period)+'</td><td class="p-2">'+escapeHtml(SA_NOTICE_LABELS[row.type]||row.type)+'</td><td class="p-2">'+escapeHtml(row.note||"—")+'</td></tr>').join("")+'</tbody></table></div><h5 class="mt-5 font-black">التنبيهات السابقة</h5><div class="mt-2 space-y-2">'+(notices.length?notices.map(n=>'<div class="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800"><strong>تنبيه رقم ('+escapeHtml(String(n.issue_number))+')</strong> · '+escapeHtml(n.issued_on)+' · '+(n.delivered?"تم التسليم":"لم يؤكد التسليم")+'<div class="mt-1 text-slate-500">أصدره: '+escapeHtml(n.issued_by_name||"—")+' · '+(n.events||[]).length+' واقعة</div></div>').join(""):'<p class="text-xs text-slate-500">لا توجد تنبيهات رسمية مسجلة لهذا الطالب.</p>')+'</div></div>';
+    document.getElementById("saStudentProfilePrintRoot").innerHTML=saStudentProfilePrintableHtml(className,name,rows,notices);
+    saStudentProfileStatus("تم تحميل الملف التفصيلي من السجلات التاريخية وسجل التنبيهات الرسمي.");
+  }catch(error){host.innerHTML="";saStudentProfileStatus(error?.message||"تعذر تحميل الملف التفصيلي.",true);}
+}
+function saPrintStudentProfile(){
+  const root=document.getElementById("saStudentProfilePrintRoot");if(!root?.innerHTML){saStudentProfileStatus("حمّل ملف الطالب أولاً قبل الطباعة.",true);return;}
+  const w=window.open("about:blank","_blank");if(!w){saStudentProfileStatus("اسمح بالنوافذ المنبثقة لطباعة التقرير.",true);return;}
+  w.document.open();w.document.write(root.innerHTML);w.document.close();
+}
 function saNoticeHasCombinedPermission(p){return p?.can_print_combined===true&&p?.can_print_attendance===true&&p?.can_print_behavior===true&&p?.can_read_attendance===true&&p?.can_read_behavior===true;}
 function saNoticeAllowedClasses(){
   const p=saReportPermissions||{},items=[];
