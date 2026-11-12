@@ -58,6 +58,13 @@ export function buildVisitorAccess(allClasses: string[], teacherDirectory: Super
   };
 }
 
+/** Resolves a selected leader only when that leader is active and is not the teacher being assigned. */
+export function resolveTeamLeader(selectedName: string, targetName: string, leaders: Array<{ name: string; role?: string; studentAffairs?: boolean; teamName?: string }>) {
+  const name = String(selectedName || "").trim();
+  if (!name || name === String(targetName || "").trim()) return null;
+  return leaders.find((leader) => leader.name === name && leader.role === "team_leader" && leader.studentAffairs === true && String(leader.teamName || "").trim()) || null;
+}
+
 /** Projects an authorized colleague's report scope without changing the viewer's own assignments. */
 export function projectSupervisionReportPermissions<T extends Record<string, any>>(
   base: T,
