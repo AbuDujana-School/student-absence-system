@@ -78,9 +78,12 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
       for (const raw of row.events) {
         if (!raw || typeof raw !== "object") continue;
         const event = raw as NoticeEvent;
-        if (event.type && event.date && event.period !== undefined) alreadyIssued.add(eventKey(cl, name, {
-          type: String(event.type), date: String(event.date), period: String(event.period), note: normalize(event.note)
-        }));
+        if (event.type && event.date && event.period !== undefined) {
+          if (String(event.type) === "absent") absenceDays.add([cl, name, String(event.date).slice(0, 10)].join(String.fromCharCode(31)));
+          alreadyIssued.add(eventKey(cl, name, {
+            type: String(event.type), date: String(event.date), period: String(event.period), note: normalize(event.note)
+          }));
+        }
       }
     }
   }
