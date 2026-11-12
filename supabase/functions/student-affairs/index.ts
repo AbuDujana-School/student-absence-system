@@ -157,9 +157,20 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
 }
 async function permissionsFor(p: { type: string; name: string }, strictCompetition = false) {
   if (p.type === "admin") {
-    const { data: classes } = await db.from("classes").select("name");
+    const [{ data: classes }, { data: teachers }, { data: permissionRows }] = await Promise.all([
+      db.from("classes").select("name"),
+      db.from("teachers").select("name,role,permissions").neq("role", "custom"),
+      db.from("student_affairs_permissions").select("*").eq("principal_type", "teacher")
+    ]);
     const all = (classes || []).map((x: any) => x.name);
-    return { role: "admin", own_allowed_attendance_classes: all, own_allowed_behavior_classes: all, team_allowed_attendance_classes: all, team_allowed_behavior_classes: all, allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_view_competition: true, competition_participant: false, can_print_attendance: true, can_print_behavior: true, can_print_combined: true, team_members: [], teacher_directory: [] };
+    const byName = new Map((permissionRows || []).map((row: any) => [String(row.principal_name), row]));
+    const teacherDirectory = (teachers || []).filter((item: any) => item.permissions?.studentAffairs === true)
+      .map((item: any) => {
+        const row: any = byName.get(String(item.name)) || {};
+        const legacy = Array.isArray(row.allowed_classes) ? row.allowed_classes : [];
+        return { name: String(item.name), allowed_attendance_classes: Array.isArray(row.allowed_attendance_classes) ? row.allowed_attendance_classes : legacy, allowed_behavior_classes: Array.isArray(row.allowed_behavior_classes) ? row.allowed_behavior_classes : legacy, attendance_statuses: Array.isArray(row.attendance_statuses) ? row.attendance_statuses : ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_print_attendance: true, can_print_behavior: true, can_print_combined: true };
+      }).sort((a: any, b: any) => a.name.localeCompare(b.name, "ar"));
+    return { role: "admin", own_allowed_attendance_classes: all, own_allowed_behavior_classes: all, team_allowed_attendance_classes: all, team_allowed_behavior_classes: all, allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_view_competition: true, competition_participant: false, can_print_attendance: true, can_print_behavior: true, can_print_combined: true, team_members: [], teacher_directory: teacherDirectory };
   }
   const [{ data }, { data: teacher }] = await Promise.all([
     db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle(),
@@ -827,7 +838,7 @@ async function handle(req: Request) {
       attendanceClasses = [...(permissions.own_allowed_attendance_classes || []), ...(permissions.team_allowed_attendance_classes || [])];
       behaviorClasses = [...(permissions.own_allowed_behavior_classes || []), ...(permissions.team_allowed_behavior_classes || [])];
     } else if (scope === "teacher" && p.type !== "admin" && ["team_leader", "visitor"].includes(permissions.role)) {
-      const target = resolveSupervisionTeacher(permissions.role, String(body.teacher_name || ""), permissions.team_members || [], permissions.teacher_directory || []);
+      const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, String(body.teacher_name || ""), permissions.team_members || [], permissions.teacher_directory || []);
       if (!target) return reply(403, { error: permissions.role === "visitor" ? "هذا المعلم غير موجود ضمن معلمي شؤون الطلبة." : "هذا المعلم ليس ضمن فريقك" });
       selectedMembers = [target];
       attendanceClasses = target.allowed_attendance_classes || [];
@@ -1073,7 +1084,7 @@ async function handle(req: Request) {
     let permissions = await permissionsFor(p);
     const targetName = String(body.supervision_teacher_name || "").trim();
     if (targetName) {
-      const target = resolveSupervisionTeacher(permissions.role, targetName, permissions.team_members || [], permissions.teacher_directory || []);
+      const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, targetName, permissions.team_members || [], permissions.teacher_directory || []);
       if (!target) return reply(403, { error: "لا تملك صلاحية الاطلاع على تقارير هذا المعلم." });
       permissions = projectSupervisionReportPermissions(permissions, target, permissions.role === "visitor");
     }
