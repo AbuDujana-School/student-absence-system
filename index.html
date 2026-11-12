@@ -2480,6 +2480,7 @@ function saPopulateReportClasses(){const allowed=saGetAllowedReportClasses();con
 function saSetDomain(domain){saInitReportDateInputs("sa");const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();if(canRead)saLoadReport();else{document.getElementById("saSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}} 
 async function saSetupSupervisionPanel(){
   const panel=document.getElementById("saSupervisionPanel"),p=saReportPermissions||{};if(!panel)return;
+  saBaseReportPermissions={...p};
   const isVisitor=p.role==="visitor",isLeader=p.role==="team_leader";
   const enabled=saSession?.principal?.type==="admin"||p.can_view_analytics===true||isVisitor;panel.classList.toggle("hidden",!enabled);if(!enabled)return;
   const today=getOmanLocalDate(),currentYear=Number(today.slice(0,4)),schoolYearStart=today>=currentYear+"-09-09"?currentYear:currentYear-1,from=schoolYearStart+"-09-09",fromInput=document.getElementById("saSupervisionFrom"),toInput=document.getElementById("saSupervisionTo");
@@ -2493,14 +2494,37 @@ async function saSetupSupervisionPanel(){
   saSupervisionTeacherName="";
   if(select){
     select.innerHTML='<option value="">اختر المعلم لمتابعة أدائه</option>';
-    try{const result=await saRequest({action:"supervision_team"});(result.teachers||[]).forEach(t=>{const option=document.createElement("option");option.value=t.name;option.textContent=t.name;select.appendChild(option);});}
+    try{const result=await saRequest({action:"supervision_team"});saSupervisionTeachers=Array.isArray(result.teachers)?result.teachers:[];saSupervisionTeachers.forEach(t=>{const option=document.createElement("option");option.value=t.name;option.textContent=t.name;select.appendChild(option);});}
     catch(error){const status=document.getElementById("saSupervisionStatus");if(status){status.textContent=error.message||"تعذر تحميل قائمة المعلمين.";status.classList.remove("hidden");}}
   }
   if(isVisitor){const subtitle=document.getElementById("saSupervisionSubtitle");if(subtitle)subtitle.textContent="اختر أي معلم من شؤون الطلبة لعرض مخططاته وتقاريره.";const status=document.getElementById("saSupervisionStatus");if(status){status.textContent="اختر معلماً من القائمة لعرض بياناته.";status.classList.remove("hidden");}return;}
   await saLoadSupervisionTrend("own");
 }
-let saSupervisionTeacherName="";
-async function saSelectSupervisionTeacher(name){saSupervisionTeacherName=String(name||"");if(!saSupervisionTeacherName){if(saReportPermissions?.role!=="visitor")return saLoadSupervisionTrend("own");return;}return saLoadSupervisionTrend("teacher");}
+let saSupervisionTeacherName="",saSupervisionTeachers=[],saBaseReportPermissions=null;
+async function saSelectSupervisionTeacher(name){
+  saSupervisionTeacherName=String(name||"");
+  if(!saSupervisionTeacherName){
+    if(saBaseReportPermissions)saReportPermissions={...saBaseReportPermissions};
+    saPopulateReportClasses();
+    if(saReportPermissions?.role!=="visitor")return saLoadSupervisionTrend("own");
+    return;
+  }
+  const target=saSupervisionTeachers.find(item=>item.name===saSupervisionTeacherName);
+  if(!target)return;
+  saReportPermissions={...(saBaseReportPermissions||saReportPermissions),
+    allowed_classes:[...new Set([...(target.allowed_attendance_classes||[]),...(target.allowed_behavior_classes||[])])],
+    allowed_attendance_classes:target.allowed_attendance_classes||[],
+    allowed_behavior_classes:target.allowed_behavior_classes||[],
+    attendance_statuses:target.attendance_statuses||["absent","late","escape","outside"],
+    can_read_attendance:true,can_read_behavior:true,can_view_analytics:true,
+    can_print_attendance:saBaseReportPermissions?.role==="visitor",
+    can_print_behavior:saBaseReportPermissions?.role==="visitor",
+    can_print_combined:saBaseReportPermissions?.role==="visitor"
+  };
+  saPopulateReportClasses();
+  await saLoadSupervisionTrend("teacher");
+  if(document.getElementById("saViewButton")&&!document.getElementById("saViewButton").classList.contains("hidden"))await saLoadReport();
+}
 async function saLoadSupervisionTrend(scope="own"){
   const panel=document.getElementById("saSupervisionPanel"),status=document.getElementById("saSupervisionStatus");if(!panel||panel.classList.contains("hidden"))return;
   const from=document.getElementById("saSupervisionFrom")?.value||"2000-01-01",to=document.getElementById("saSupervisionTo")?.value||getOmanLocalDate();if(from>to){if(status){status.textContent="تاريخ البداية يجب ألا يكون بعد النهاية.";status.classList.remove("hidden");}return;}
