@@ -2,7 +2,7 @@ import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterB
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
-import { buildVisitorAccess, isDirectSupervisionMember, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
+import { buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
 import {
   resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
   type AppLoginCandidate, type AppPrincipal,
@@ -211,7 +211,9 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     if (role === "team_leader") {
       teamMembers = (teachers || []).filter((item: any) => item.name !== p.name && item.role !== "custom"
         && item.permissions?.student_affairs_role === "supervisor"
-        && isDirectSupervisionMember(item, p.name, teamName)).map((item: any) => {
+        && (String(item.permissions?.supervisor_team_leader_name || "").trim() === p.name
+          || (!item.permissions?.supervisor_team_leader_name && String(item.permissions?.student_affairs_team_name || "").trim() === teamName))
+        && item.permissions?.studentAffairs === true).map((item: any) => {
           const member = projectTeacher(item);
           teamAttendance.push(...member.allowed_attendance_classes);
           teamBehavior.push(...member.allowed_behavior_classes);
