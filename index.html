@@ -2687,6 +2687,7 @@ function saRenderCompetition(data){
   const ready=data?.status==="approved"&&teams.length>0;
   if(status){
     const messages={
+      no_participants:"لا يوجد معلمون مشاركون مخوّلون في بطولة الانضباط حالياً.",
       not_started:"لم يبدأ الفصل الدراسي المحدد بعد؛ ستظهر نتائجه عند بدء الفصل وتسجيل الأسابيع المعتمدة.",
       awaiting_first_result:"لم تُعتمد نتيجة أسبوعية لهذا الفصل بعد. ستظهر بعد إقفال الأسبوع واكتمال سجلاته.",
       awaiting_baseline:"تُستكمل حالياً الأسابيع الأربعة الأولى لبناء خط أساس عادل. يبدأ ترتيب التحسن بعد اكتمالها.",
@@ -3740,7 +3741,7 @@ function saPreviewBuildCompetition(period,requestedTermId,current){
     cumulativeBefore.set(row.teamId,(cumulativeBefore.get(row.teamId)||0)+row.weeklyAwardPoints);
     if(row.rank===1)wins.set(row.teamId,(wins.get(row.teamId)||0)+1);
   }));
-  let selectedRows=[],weeklyPoints={},monthlyCycle=null,selectedCycleResults=null,selectedWins=wins,statusCode="approved",completedWeeks=weeklyResults.length;
+  let selectedRows=[],weeklyPoints={},monthlyCycle=null,selectedCycleResults=null,selectedWins=wins,statusCode=teacherModels.length?"approved":"no_participants",completedWeeks=weeklyResults.length;
   if(period==="weekly"){
     const latest=weeklyResults[weeklyResults.length-1];
     if(latest){
