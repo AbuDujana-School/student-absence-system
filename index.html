@@ -3826,9 +3826,9 @@ function saNoticeGetTargetContext(){
       attendance_statuses:Array.isArray(member.attendance_statuses)?member.attendance_statuses:["absent","late","escape","outside"],
       can_read_attendance:true,
       can_read_behavior:true,
-      can_print_attendance:member.can_print_attendance===true,
-      can_print_behavior:member.can_print_behavior===true,
-      can_print_combined:member.can_print_combined===true
+      can_print_attendance:true,
+      can_print_behavior:true,
+      can_print_combined:true
     }
   };
 }
@@ -3873,7 +3873,7 @@ function saOpenNoticeModal(){
   const isLeader=p.role==="team_leader",members=Array.isArray(p.team_members)?p.team_members:[];
   const ownAllowed=saNoticeHasCombinedPermission(p)&&saNoticeAllowedClasses(p).length>0;
   const eligibleMembers=members.filter(member=>{
-    const target={can_read_attendance:true,can_read_behavior:true,can_print_attendance:member.can_print_attendance===true,can_print_behavior:member.can_print_behavior===true,attendance_statuses:member.attendance_statuses||["absent","late","escape","outside"]};
+    const target={can_read_attendance:true,can_read_behavior:true,can_print_attendance:true,can_print_behavior:true,attendance_statuses:member.attendance_statuses||["absent","late","escape","outside"]};
     return saNoticeHasCombinedPermission(target)&&saNoticeAllowedClasses({...target,allowed_attendance_classes:member.allowed_attendance_classes||[],allowed_behavior_classes:member.allowed_behavior_classes||[]}).length>0;
   });
   if(!ownAllowed&&(!isLeader||!eligibleMembers.length)){showToast("لا تتوفر لك أو لأعضاء فريقك صلاحية قراءة وطباعة مصدر مخالفات مصرح به.","error");return;}
