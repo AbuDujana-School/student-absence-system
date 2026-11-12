@@ -94,3 +94,8 @@ Deno.test("official notice issue requires at least one source print permission; 
   if (authorizeReportMode({ can_read_attendance: true }, "notice_issue_commit")?.status !== 403) throw new Error("official notice issue allowed without print permission");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "notice_issue_commit") !== null) throw new Error("attendance-only official notice issue denied");
 });
+
+Deno.test("notice scan allows only a source with both read and print permission", () => {
+  if (authorizeReportMode({ can_read_attendance: true }, "notice_scan")?.status !== 403) throw new Error("notice scan allowed without print permission");
+  if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "notice_scan") !== null) throw new Error("attendance-only notice scan denied");
+});
