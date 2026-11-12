@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
@@ -191,12 +191,12 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
   const ownAttendanceUnique = unique(ownAttendance), ownBehaviorUnique = unique(ownBehavior);
   const teamAttendanceUnique = unique(teamAttendance), teamBehaviorUnique = unique(teamBehavior);
   const visitor = role === "visitor";
-  return {
+  const reportPermissions = {
     ...(data || {}), role, team_name: teamName, team_members: teamMembers,
     own_allowed_attendance_classes: ownAttendanceUnique, own_allowed_behavior_classes: ownBehaviorUnique,
     team_allowed_attendance_classes: teamAttendanceUnique, team_allowed_behavior_classes: teamBehaviorUnique,
     // Standard reports and sheets are restricted to personal assignments. Team data is only available
-    // through the dedicated supervision endpoints below.
+    // through the dedicated supervision endpoints below, unless the administrator explicitly grants Reports access.
     allowed_classes: unique([...ownAttendanceUnique, ...ownBehaviorUnique]), allowed_attendance_classes: ownAttendanceUnique, allowed_behavior_classes: ownBehaviorUnique,
     attendance_statuses: Array.isArray(data?.attendance_statuses) ? data.attendance_statuses : (strictCompetition ? [] : ["absent", "late", "escape", "outside"]),
     can_read_attendance: !visitor && data?.can_read_attendance === true, can_read_behavior: !visitor && data?.can_read_behavior === true,
@@ -208,6 +208,14 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     can_print_attendance: !visitor && data?.can_print_attendance === true, can_print_behavior: !visitor && data?.can_print_behavior === true,
     can_print_combined: !visitor && data?.can_print_combined === true
   };
+  const reportsAccess = tp.reports === true;
+  let reportClasses: string[] = [];
+  if (reportsAccess) {
+    const { data: classes, error: classesError } = await db.from("classes").select("name");
+    if (classesError) throw classesError;
+    reportClasses = (classes || []).map((item: any) => String(item.name || ""));
+  }
+  return applyReportsEntryPermissions(reportPermissions, reportClasses, reportsAccess);
 }
 async function hasStudentAffairsAccess(p: { type: string; name: string }) {
   if (p.type === "admin") return true;
@@ -215,7 +223,7 @@ async function hasStudentAffairsAccess(p: { type: string; name: string }) {
   if (error || !data) return false;
   const expectedRole = p.type === "custom" ? "custom" : "teacher";
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
-    && (data.permissions?.studentAffairs === true || data.permissions?.admin === true);
+    && (data.permissions?.studentAffairs === true || data.permissions?.admin === true || data.permissions?.reports === true);
 }
 async function getSession(req: Request) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();

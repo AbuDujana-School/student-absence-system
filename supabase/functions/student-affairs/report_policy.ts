@@ -7,6 +7,38 @@ export type ReportPermissions = {
   can_print_combined?: boolean;
 };
 export type AuthorizationError = { status: 400 | 403; message: string };
+
+export type ReportsEntryPermissions = {
+  allowed_classes?: string[];
+  allowed_attendance_classes?: string[];
+  allowed_behavior_classes?: string[];
+  attendance_statuses?: string[];
+  can_read_attendance?: boolean;
+  can_read_behavior?: boolean;
+  can_view_analytics?: boolean;
+  can_print_attendance?: boolean;
+  can_print_behavior?: boolean;
+  can_print_combined?: boolean;
+};
+
+/** A granted Reports tab permission includes the full reporting workflow, scoped to configured school classes. */
+export function applyReportsEntryPermissions<T extends object>(permissions: T, classes: string[], enabled: boolean): T & ReportsEntryPermissions {
+  if (!enabled) return permissions as T & ReportsEntryPermissions;
+  const allowed = [...new Set(classes.map(value => String(value || "").trim()).filter(Boolean))];
+  return {
+    ...permissions,
+    allowed_classes: allowed,
+    allowed_attendance_classes: allowed,
+    allowed_behavior_classes: allowed,
+    attendance_statuses: ["absent", "late", "escape", "outside"],
+    can_read_attendance: true,
+    can_read_behavior: true,
+    can_view_analytics: true,
+    can_print_attendance: true,
+    can_print_behavior: true,
+    can_print_combined: true,
+  } as T & ReportsEntryPermissions;
+}
 export function authorizeReportMode(p: ReportPermissions, mode: string): AuthorizationError | null {
   const readAttendance = p.can_read_attendance === true;
   const readBehavior = p.can_read_behavior === true;

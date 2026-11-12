@@ -1,4 +1,14 @@
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed } from "./report_policy.ts";
+Deno.test("Reports entry permission enables preview, analytics, and all print modes for school classes", () => {
+  const original = { allowed_classes: ["9/1"], can_read_attendance: false, can_read_behavior: false, can_view_analytics: false, can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
+  const granted = applyReportsEntryPermissions(original, ["9/1", "9/2", "9/2", ""], true);
+  if (granted.can_read_attendance !== true || granted.can_read_behavior !== true || granted.can_view_analytics !== true) throw new Error("Reports access did not enable report preview and analytics");
+  if (granted.can_print_attendance !== true || granted.can_print_behavior !== true || granted.can_print_combined !== true) throw new Error("Reports access did not enable all print modes");
+  if ((granted.allowed_classes as string[]).join(",") !== "9/1,9/2") throw new Error("Reports access class scope is incorrect");
+  if (authorizeReportMode(granted, "print_combined") !== null) throw new Error("Reports access did not authorize combined print");
+  const unchanged = applyReportsEntryPermissions(original, ["9/1", "9/2"], false);
+  if (unchanged.can_print_combined !== false || unchanged.can_read_attendance !== false) throw new Error("Users without Reports access gained permissions");
+});
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 Deno.test("attendance print requires both read and print permission", () => {
   if (authorizeReportMode({ can_print_attendance: true }, "print_attendance")?.status !== 403) throw new Error("print bypass");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "print_attendance") !== null) throw new Error("valid attendance print denied");
