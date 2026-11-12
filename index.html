@@ -3434,7 +3434,7 @@ function closeStudentAffairsAssignments(){
   });
 }
 async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();await saSetupCompetitionPanel();await saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
-function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
+function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");const d=await saRequest({action:"login",pin:String(pin)});saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
@@ -4929,20 +4929,33 @@ async function finalizeLoginState() {
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
-  
-  // إظهار/إخفاء زر لوحة التحكم بناءً على الصلاحيات
+
+  const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin === true || isAdminAuthorized();
+  const singlePermission = !isAdmin ? getSingleAdminPermission(activeUser) : null;
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) {
-    const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin || isAdminAuthorized();
-    const hasAny = hasAnyPermission(activeUser);
-    
-    if (isAdmin || hasAny) {
+    if (!isAdmin && singlePermission) {
+      adminBtn.classList.add('hidden');
+      adminBtn.classList.remove('flex');
+    } else if (isAdmin || hasAnyPermission(activeUser)) {
       adminBtn.classList.remove('hidden');
       adminBtn.classList.add('flex');
     } else {
       adminBtn.classList.add('hidden');
       adminBtn.classList.remove('flex');
     }
+  }
+
+  const dashboardView = document.getElementById('dashboardSelectionView');
+  const dashboardGrid = dashboardView?.querySelector(':scope > .grid');
+  if (singlePermission) {
+    dashboardView?.setAttribute('data-single-permission-mode', 'true');
+    dashboardGrid?.classList.add('hidden');
+    renderSinglePermissionLauncher(singlePermission);
+  } else {
+    dashboardView?.removeAttribute('data-single-permission-mode');
+    dashboardGrid?.classList.remove('hidden');
+    document.getElementById('singlePermissionLauncher')?.remove();
   }
 
   document.getElementById('changeTeacherPinBtn').classList.toggle('hidden', activeUser.type !== 'teacher');
@@ -4953,7 +4966,64 @@ async function finalizeLoginState() {
   await checkAndEnforcePinChange(); await checkAndEnforceAdminPinChange();
   window.refreshCombinedReportTabs?.();
 }
-function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k]) || user.permissions.studentAffairs === true) : false; }
+function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k] === true) || user.permissions.studentAffairs === true) : false; }
+function getAssignedAdminPermissionKeys(user = activeUser) {
+  const permissions = user?.permissions || {};
+  return [...ADMIN_TAB_PERMISSIONS, 'studentAffairs'].filter(key => permissions[key] === true);
+}
+function getSingleAdminPermission(user = activeUser) {
+  const keys = getAssignedAdminPermissionKeys(user);
+  return keys.length === 1 ? keys[0] : null;
+}
+function hasMultipleAdminPermissions(user = activeUser) {
+  return getAssignedAdminPermissionKeys(user).length >= 2;
+}
+function renderSinglePermissionLauncher(permissionKey) {
+  const view = document.getElementById('dashboardSelectionView');
+  if (!view || !permissionKey) return;
+  let launcher = document.getElementById('singlePermissionLauncher');
+  if (!launcher) {
+    launcher = document.createElement('div');
+    launcher.id = 'singlePermissionLauncher';
+    launcher.className = 'mx-auto flex w-full max-w-xl justify-center px-2 py-8';
+    view.appendChild(launcher);
+  }
+  const sourceTab = document.getElementById('tab-' + permissionKey);
+  const sourceIcon = sourceTab?.querySelector('i');
+  const sourceLabel = sourceTab?.querySelector('span')?.textContent?.trim() || 'فتح القسم المخصص';
+  launcher.replaceChildren();
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'group flex min-h-44 w-full max-w-md flex-col items-center justify-center gap-5 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl transition hover:-translate-y-1 hover:border-teal-400 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-teal-200 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-teal-900';
+  const iconWrap = document.createElement('span');
+  iconWrap.className = 'flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-teal-600 to-blue-900 text-3xl text-white shadow-lg transition group-hover:scale-105';
+  const icon = document.createElement('i');
+  icon.className = sourceIcon?.className || 'fa-solid fa-folder-open';
+  iconWrap.appendChild(icon);
+  const label = document.createElement('span');
+  label.className = 'text-xl font-black text-slate-800 dark:text-white';
+  label.textContent = sourceLabel;
+  const hint = document.createElement('span');
+  hint.className = 'text-xs font-bold text-slate-500 dark:text-slate-400';
+  hint.textContent = 'اضغط للدخول إلى القسم المخصص لك';
+  button.append(iconWrap, label, hint);
+  button.addEventListener('click', () => openSinglePermissionModule(permissionKey));
+  launcher.appendChild(button);
+}
+function openSinglePermissionModule(permissionKey) {
+  if (getSingleAdminPermission(activeUser) !== permissionKey) {
+    showToast('تعذر التحقق من صلاحية هذا القسم. يرجى تسجيل الدخول مجدداً.', 'error');
+    return;
+  }
+  if (permissionKey === 'studentAffairs') {
+    document.getElementById('dashboardSelectionView')?.classList.add('hidden');
+    void openStudentAffairsView();
+    return;
+  }
+  document.getElementById('dashboardSelectionView')?.classList.add('hidden');
+  openControlPanelDirectly();
+  switchAdminTab(permissionKey);
+}
 function canAccessAttendance() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.attendance; if (activeUser.type === 'teacher') return activeUser.permissions?.attendance !== false; return false; }
 function canAccessBehavior() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.behavior; if (activeUser.type === 'teacher') return activeUser.permissions?.behavior !== false; return false; }
 
@@ -5816,7 +5886,10 @@ function openControlPanelDirectly() {
   document.getElementById('adminContentSection').classList.remove('hidden');
   setupRolePermissions();
 }
-function closeAdminModal() { document.getElementById('adminModal').classList.add('hidden'); }
+function closeAdminModal() {
+  document.getElementById('adminModal')?.classList.add('hidden');
+  if (getSingleAdminPermission(activeUser)) document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+}
 async function verifyAdminPinAndOpen() {
   const pin = document.getElementById('adminPinInput').value.trim(); if (!pin) return;
   const b = document.querySelector('#adminAuthSection button'); const old = b.textContent; b.disabled = true; b.textContent = '...';
@@ -5846,7 +5919,7 @@ function setupRolePermissions() {
     badge.className = "bg-blue-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     let first = null;
     const dashboardTab = document.getElementById('tab-dashboard');
-    const canDashboard = Object.prototype.hasOwnProperty.call(activeUser?.permissions || {}, 'dashboard') ? activeUser.permissions.dashboard === true : !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers);
+    const canDashboard = hasMultipleAdminPermissions(activeUser);
     const canBeneficiaries = !!(activeUser?.permissions?.teachers || activeUser?.permissions?.students);
     if (dashboardTab) dashboardTab.style.display = canDashboard ? 'flex' : 'none';
     if (canDashboard) first = 'dashboard';
@@ -5862,7 +5935,8 @@ function setupRolePermissions() {
   }
   const beneficiaryTab = document.getElementById('tab-beneficiaries');
   if (beneficiaryTab) {
-    const canOpenBeneficiaries = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
+    const isSingleModule = !(activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin) && !!getSingleAdminPermission(activeUser);
+    const canOpenBeneficiaries = !isSingleModule && (activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students);
     beneficiaryTab.style.display = canOpenBeneficiaries ? 'flex' : 'none';
   }
   document.querySelectorAll('[data-beneficiary-card]').forEach(card => {
@@ -6523,7 +6597,7 @@ async function repPrint(){
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
-  const canDashboard = isA || (Object.prototype.hasOwnProperty.call(activeUser?.permissions || {}, 'dashboard') ? activeUser.permissions.dashboard === true : !!(activeUser?.permissions?.studstats || activeUser?.permissions?.teachers));
+  const canDashboard = isA || hasMultipleAdminPermissions(activeUser);
   const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
   if (tab === 'dashboard' ? !canDashboard : tab === 'beneficiaries' ? !canBeneficiaries : !has(tab)) return;
   document.getElementById('sec-dashboard')?.classList.add('hidden');
