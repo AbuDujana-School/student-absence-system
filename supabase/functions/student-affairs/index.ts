@@ -211,7 +211,8 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     if (role === "team_leader") {
       teamMembers = (teachers || []).filter((item: any) => item.name !== p.name && item.role !== "custom"
         && item.permissions?.student_affairs_role === "supervisor"
-        && String(item.permissions?.student_affairs_team_name || "").trim() === teamName
+        && (String(item.permissions?.supervisor_team_leader_name || "").trim() === p.name
+          || (!item.permissions?.supervisor_team_leader_name && String(item.permissions?.student_affairs_team_name || "").trim() === teamName))
         && item.permissions?.studentAffairs === true).map((item: any) => {
           const member = projectTeacher(item);
           teamAttendance.push(...member.allowed_attendance_classes);
@@ -942,18 +943,27 @@ async function handle(req: Request) {
     const { data: target } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
     if (!target || (type === "custom" ? target.role !== "custom" : target.role === "custom")) return reply(404, { error: "المعلم غير موجود" });
     const supervisionRole = String(body.student_affairs_role ?? target.permissions?.student_affairs_role ?? "").trim();
-    const supervisionTeam = String(body.student_affairs_team_name ?? target.permissions?.student_affairs_team_name ?? "").trim();
+    let supervisionTeam = String(body.student_affairs_team_name ?? target.permissions?.student_affairs_team_name ?? "").trim();
+    let supervisionLeaderName = String(body.supervisor_team_leader_name ?? target.permissions?.supervisor_team_leader_name ?? "").trim();
     if (supervisionRole && (type === "custom" ? supervisionRole !== "visitor" : !["team_leader", "supervisor", "visitor"].includes(supervisionRole))) return reply(400, { error: "نوع الإشراف غير صالح لهذا الحساب" });
     if (supervisionRole === "visitor" && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للزائر." });
     if (type === "teacher" && !supervisionRole && supervisionTeam) return reply(400, { error: "حدد نوع الإشراف قبل ربط المعلم بفريق" });
     if (type === "teacher" && supervisionRole === "team_leader" && (!supervisionTeam || body.studentAffairs !== true)) return reply(400, { error: "يجب تحديد اسم الفريق ومنح رئيس الفريق دخول شؤون الطلبة" });
     if (type === "teacher" && supervisionRole === "supervisor" && supervisionTeam && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للمعلم المشرف المرتبط بفريق" });
-    if (type === "teacher" && supervisionRole === "supervisor" && supervisionTeam) {
+    if (type === "teacher" && supervisionRole === "supervisor" && (supervisionLeaderName || supervisionTeam)) {
       const { data: leaders, error: leaderError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
       if (leaderError) throw leaderError;
-      const hasLeader = (leaders || []).some((item: any) => item.permissions?.student_affairs_role === "team_leader" && String(item.permissions?.student_affairs_team_name || "").trim() === supervisionTeam && item.permissions?.studentAffairs === true);
-      if (!hasLeader) return reply(400, { error: "لا يوجد رئيس فريق مفعّل بهذا الاسم. أضف رئيس الفريق أولاً." });
+      const matchedLeader = (leaders || []).find((item: any) => item.name === supervisionLeaderName
+        && item.permissions?.student_affairs_role === "team_leader" && item.permissions?.studentAffairs === true
+        && String(item.permissions?.student_affairs_team_name || "").trim())
+        || (!supervisionLeaderName ? (leaders || []).find((item: any) => item.permissions?.student_affairs_role === "team_leader"
+          && item.permissions?.studentAffairs === true
+          && String(item.permissions?.student_affairs_team_name || "").trim() === supervisionTeam) : null);
+      if (!matchedLeader) return reply(400, { error: "اختر رئيس فريق مفعّلاً من القائمة قبل ربط المعلم المشرف." });
+      supervisionLeaderName = String(matchedLeader.name);
+      supervisionTeam = String(matchedLeader.permissions.student_affairs_team_name || "").trim();
     }
+    if (type === "teacher" && supervisionRole !== "supervisor") supervisionLeaderName = "";
     if (type === "teacher" && supervisionRole === "visitor" && supervisionTeam) return reply(400, { error: "المعلم الزائر لا يُربط بفريق إشراف" });
     const legacyClasses: string[] = Array.isArray(body.allowed_classes) ? Array.from(new Set((body.allowed_classes as unknown[]).map(String))) : [];
     const attendanceClasses: string[] = Array.isArray(body.allowed_attendance_classes) ? Array.from(new Set((body.allowed_attendance_classes as unknown[]).map(String))) : legacyClasses;
@@ -995,9 +1005,12 @@ async function handle(req: Request) {
       if (supervisionRole) {
         mergedPermissions.student_affairs_role = supervisionRole;
         mergedPermissions.student_affairs_team_name = supervisionRole === "visitor" ? "" : supervisionTeam;
+        if (supervisionRole === "supervisor" && supervisionLeaderName) mergedPermissions.supervisor_team_leader_name = supervisionLeaderName;
+        else delete mergedPermissions.supervisor_team_leader_name;
       } else {
         delete mergedPermissions.student_affairs_role;
         delete mergedPermissions.student_affairs_team_name;
+        delete mergedPermissions.supervisor_team_leader_name;
       }
       if (visitor) {
         mergedPermissions.can_view_competition = true;
