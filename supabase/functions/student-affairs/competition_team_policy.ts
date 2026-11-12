@@ -4,6 +4,9 @@ export type TeacherTeamConfig = {
   role?: string;
   permissions?: {
     competition_participant?: boolean;
+    student_affairs_role?: string;
+    student_affairs_team_name?: string;
+    supervisor_team_leader_name?: string;
     competition_team_name?: string;
     competition_team_classes?: string[];
   } | null;
@@ -24,6 +27,7 @@ export function buildCompetitionTeams(teachers: TeacherTeamConfig[], allClasses:
   for (const teacher of Array.isArray(teachers) ? teachers : []) {
     const permissions = teacher?.permissions || {};
     if (permissions.competition_participant !== true) continue;
+    if (permissions.student_affairs_role === "visitor") continue;
     if (teacher.role === "custom") throw new Error("لا يمكن إضافة مستخدم مخصص إلى سباق التميز؛ المشاركة مخصصة للمعلمين.");
     const teamName = String(permissions.competition_team_name || "").trim();
     const classNames = [...new Set((Array.isArray(permissions.competition_team_classes) ? permissions.competition_team_classes : [])
@@ -40,6 +44,13 @@ export function buildCompetitionTeams(teachers: TeacherTeamConfig[], allClasses:
   }
 
   return teams.sort((a, b) => a.teamName.localeCompare(b.teamName, "ar") || a.leaderName.localeCompare(b.leaderName, "ar"));
+}
+
+/** Returns competition classes that are outside the teacher's own assigned classes. */
+export function findCompetitionClassesOutsidePersonalScope(competitionClasses: unknown[], personalClasses: unknown[]): string[] {
+  const personal = new Set((Array.isArray(personalClasses) ? personalClasses : []).map(value => String(value || "").trim()).filter(Boolean));
+  return [...new Set((Array.isArray(competitionClasses) ? competitionClasses : []).map(value => String(value || "").trim()).filter(Boolean))]
+    .filter(className => !personal.has(className));
 }
 
 export function projectCompetitionTeam(team: CompetitionTeam, metric: Record<string, unknown>) {
