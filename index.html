@@ -2522,13 +2522,13 @@ async function saSelectSupervisionTeacher(name){
     can_print_combined:saBaseReportPermissions?.role==="visitor"||saBaseReportPermissions?.role==="admin"||target.can_print_combined===true
   };
   saPopulateReportClasses();
+  saSetDomain(saDomain);
   await saLoadSupervisionTrend("teacher");
-  if(document.getElementById("saViewButton")&&!document.getElementById("saViewButton").classList.contains("hidden"))await saLoadReport();
 }
 async function saLoadSupervisionTrend(scope="own"){
   const panel=document.getElementById("saSupervisionPanel"),status=document.getElementById("saSupervisionStatus");if(!panel||panel.classList.contains("hidden"))return;
   const from=document.getElementById("saSupervisionFrom")?.value||"2000-01-01",to=document.getElementById("saSupervisionTo")?.value||getOmanLocalDate();if(from>to){if(status){status.textContent="تاريخ البداية يجب ألا يكون بعد النهاية.";status.classList.remove("hidden");}return;}
-  if(scope!=="teacher"){saSupervisionTeacherName="";const selector=document.getElementById("saSupervisionTeacherSelect");if(selector)selector.value="";if(saBaseReportPermissions)saReportPermissions={...saBaseReportPermissions};saPopulateReportClasses();}
+  if(scope!=="teacher"){const hadTarget=!!saSupervisionTeacherName;saSupervisionTeacherName="";const selector=document.getElementById("saSupervisionTeacherSelect");if(selector)selector.value="";if(saBaseReportPermissions)saReportPermissions={...saBaseReportPermissions};saPopulateReportClasses();if(hadTarget)saSetDomain(saDomain);}
   saSupervisionScope=scope;const subtitle=document.getElementById("saSupervisionSubtitle");if(subtitle)subtitle.textContent=scope==="team"?"أداء صفوفك وصفوف المعلمين المشرف عليهم في فريقك فقط.":scope==="teacher"?"أداء المعلم المحدد وفصوله المسندة فقط.":"أداء صفوفك المسندة إليك فقط.";
   if(status){status.textContent="جارٍ تحميل اتجاه حالات الغياب والانضباط...";status.classList.remove("hidden");}
   try{
