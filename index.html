@@ -40,6 +40,50 @@
   .period-btn:active { transform: scale(.96); }
   .student-name-badge { display: inline-flex; align-items: center; gap: .4rem; padding: .45rem .85rem; border-radius: 1rem; font-weight: 800; font-size: .82rem; letter-spacing: .01em; box-shadow: 0 4px 10px -4px rgba(0,0,0,.2), inset 0 1px 0 rgba(255,255,255,.25); border: 1px solid rgba(255,255,255,.25); }
   .chart-container { position: relative; width: 100%; }
+
+/* ============ Automatic student notices ============ */
+#saNoticeModal{z-index:100000}
+#saNoticeModal .sa-notice-dialog{max-height:94vh;overflow:auto}
+#saNoticePrintRoot{font-family:'Tajawal',Arial,sans-serif}
+.sa-notice-page{width:min(100%,210mm);min-height:297mm;margin:0 auto 18px;padding:10mm;background:#fff;color:#172334;box-shadow:0 12px 36px rgba(15,23,42,.14);direction:rtl;display:flex;flex-direction:column;justify-content:space-evenly;gap:3mm}
+.sa-notice-card{position:relative;flex:1;min-height:0;border:1.4px solid #24445f;border-radius:8px;padding:4mm 5mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
+.sa-notice-card.compact{padding:2.8mm 4mm;font-size:9pt;line-height:1.32}
+.sa-notice-card.medium{padding:4mm 5mm;font-size:10pt;line-height:1.42}
+.sa-notice-card.full{padding:7mm 7mm;font-size:11pt;line-height:1.55}
+.sa-notice-card .notice-heading{text-align:center;font-weight:900;line-height:1.35;margin-bottom:2mm}
+.sa-notice-card .notice-heading .notice-country{font-size:1.04em}
+.sa-notice-card .notice-heading .notice-school{font-size:1.08em;color:#173c59}
+.sa-notice-card .notice-title{text-align:center;font-weight:900;margin:2mm 0;border-bottom:1px solid #cbd5e1;padding-bottom:2mm}
+.sa-notice-card .notice-meta{display:flex;flex-wrap:wrap;justify-content:space-between;gap:2mm 5mm;font-weight:800;margin:2mm 0}
+.sa-notice-card .notice-intro{margin:2mm 0;text-align:justify}
+.sa-notice-card .notice-items{margin:1mm 0 2mm;padding:0 5mm 0 0;list-style:none}
+.sa-notice-card .notice-items li{margin:1.3mm 0;text-align:justify;break-inside:avoid;page-break-inside:avoid}
+.sa-notice-card .notice-conclusion{text-align:justify;margin-top:2mm}
+.sa-notice-card .notice-signatures{display:flex;justify-content:space-between;gap:5mm;margin-top:3mm;font-weight:800;font-size:.92em}
+.sa-notice-card .notice-signatures span{flex:1}
+.sa-notice-cutline{position:relative;border-top:1.5px dashed #64748b;height:0;flex:none;margin:1mm 0}
+.sa-notice-cutline span{position:absolute;left:50%;top:-3.3mm;transform:translateX(-50%);background:#fff;color:#64748b;padding:0 3mm;font-size:10pt}
+.sa-notice-page:last-child{margin-bottom:0}
+@media print{
+ @page{size:A4 portrait;margin:10mm}
+ html,body{margin:0!important;padding:0!important;background:#fff!important;width:100%!important;min-height:0!important}
+ body.sa-notice-print-mode *{visibility:hidden!important}
+ body.sa-notice-print-mode #saNoticeModal,
+ body.sa-notice-print-mode #saNoticeModal *{visibility:visible!important}
+ body.sa-notice-print-mode #saNoticeModal{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;background:#fff!important}
+ body.sa-notice-print-mode #saNoticeModal .sa-notice-dialog{display:block!important;width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
+ body.sa-notice-print-mode .sa-notice-config,
+ body.sa-notice-print-mode .sa-notice-toolbar,
+ body.sa-notice-print-mode .sa-notice-screen-summary{display:none!important}
+ body.sa-notice-print-mode #saNoticePreviewPanel{display:block!important;margin:0!important;padding:0!important}
+ body.sa-notice-print-mode #saNoticePrintRoot{display:block!important;width:100%!important;margin:0!important;padding:0!important}
+ .sa-notice-page{width:100%!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:2mm!important;break-after:page;page-break-after:always}
+ .sa-notice-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ .sa-notice-card{overflow:hidden!important;border:1.2px solid #24445f!important;border-radius:5px!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
+ .sa-notice-cutline{border-top:1.2px dashed #64748b!important;margin:0!important}
+ .sa-notice-cutline span{background:#fff!important}
+}
+
 </style>
 
 <!-- ═══════════════════════════════════════════════════════════════
@@ -1381,8 +1425,50 @@
       <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800"><button id="saViewButton" onclick="saLoadReport()" class="flex-1 rounded-xl bg-blue-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-800 sm:flex-none"><i class="fa-solid fa-magnifying-glass ml-1"></i> عرض السجلات</button><button id="saAnalyticsButton" onclick="saLoadAnalytics()" class="hidden flex-1 rounded-xl bg-teal-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-800 sm:flex-none"><i class="fa-solid fa-chart-column ml-1"></i> التحليلات</button><button id="saPrintButton" onclick="saPrint()" class="hidden flex-1 rounded-xl bg-slate-800 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-slate-900 sm:flex-none"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة / حفظ PDF</button></div>
       <div id="saSummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div><div id="saResults" class="space-y-4"></div>
     </div>
+
+    <section id="saAutomaticNotices" class="rounded-3xl border border-amber-200 bg-gradient-to-br from-white via-amber-50/50 to-slate-50 p-4 shadow-sm dark:border-amber-900/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 sm:p-5" dir="rtl">
+      <div class="flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300"><i class="fa-solid fa-file-circle-exclamation text-xl"></i></span>
+          <div><h3 class="text-base font-black text-slate-900 dark:text-white">طباعة التنبيهات</h3><p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">إصدار إشعارات رسمية تلقائية من سجلات الغياب والسلوك المصرح لك بالاطلاع عليها.</p></div>
+        </div>
+        <button type="button" onclick="saOpenNoticeModal()" class="rounded-2xl bg-gradient-to-l from-amber-600 to-amber-700 px-5 py-3 text-xs font-black text-white shadow-md transition hover:from-amber-700 hover:to-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-200 dark:focus:ring-amber-900"><i class="fa-solid fa-print ml-2"></i> 🖨️ طباعة إشعارات التنبيه التلقائية</button>
+      </div>
+      <p class="mt-3 text-[11px] leading-6 text-slate-500 dark:text-slate-400">يُحتسب الغياب مرة واحدة في اليوم لكل طالب، بينما تُحتسب حالات التأخر والتسرب والخروج والسلوكيات بحسب الحصة المسجلة. لا تُنشأ أي سجلات جديدة ولا تُعدّل البيانات الأصلية.</p>
+    </section>
   </div>
 
+  <div id="saNoticeModal" class="hidden fixed inset-0 z-[100000] overflow-y-auto bg-slate-950/70 p-2 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="saNoticeModalTitle" dir="rtl">
+    <div class="sa-notice-dialog mx-auto w-full max-w-6xl rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+      <div class="sa-notice-config border-b border-slate-200 p-4 dark:border-slate-700 sm:p-6">
+        <div class="flex items-center justify-between gap-3">
+          <div><h3 id="saNoticeModalTitle" class="text-lg font-black text-slate-900 dark:text-white"><i class="fa-solid fa-file-circle-exclamation ml-2 text-amber-600"></i>إصدار إشعارات التنبيه التلقائية</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">حدد الصف والحد الأدنى للمخالفات، ثم أنشئ المعاينة.</p></div>
+          <button type="button" onclick="saCloseNoticeModal()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200" aria-label="إغلاق">✕</button>
+        </div>
+        <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label class="text-xs font-black text-slate-700 dark:text-slate-200">الصف المصرح به
+            <select id="saNoticeClassSelect" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white"><option value="">جارٍ تحميل الصفوف...</option></select>
+          </label>
+          <label class="text-xs font-black text-slate-700 dark:text-slate-200">الحد الأدنى لإجمالي المخالفات
+            <input id="saNoticeThreshold" type="number" min="1" max="10" step="1" value="2" inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
+          </label>
+        </div>
+        <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <p class="max-w-2xl text-[11px] leading-6 text-slate-500 dark:text-slate-400">يشمل الفحص السجلات التاريخية المتاحة في النظام، ويطبق صلاحيات شؤون الطلبة على الخادم لكل صف ولكل نوع سجل.</p>
+          <button id="saNoticeGenerateBtn" type="button" onclick="saGenerateAutomaticNotices()" class="rounded-xl bg-amber-600 px-6 py-3 text-xs font-black text-white shadow transition hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"><i class="fa-solid fa-wand-magic-sparkles ml-2"></i> توليد ومعاينة للطباعة</button>
+        </div>
+        <div id="saNoticeStatus" class="hidden mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold leading-6 text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200" role="status" aria-live="polite"></div>
+      </div>
+      <div id="saNoticePreviewPanel" class="hidden p-3 sm:p-5">
+        <div class="sa-notice-toolbar mb-4 flex flex-wrap items-center justify-between gap-2">
+          <button type="button" onclick="saNoticeBackToConfig()" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"><i class="fa-solid fa-arrow-right ml-1"></i> تعديل الاختيارات</button>
+          <button type="button" onclick="saPrintAutomaticNotices()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-teal-800"><i class="fa-solid fa-print ml-2"></i> طباعة / حفظ كـ PDF</button>
+        </div>
+        <div id="saNoticePreviewSummary" class="sa-notice-screen-summary mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"></div>
+        <div id="saNoticePrintRoot" class="space-y-4"></div>
+      </div>
+    </div>
+  </div>
 
 </section>
 
@@ -3140,6 +3226,275 @@ async function saPrint(){
     showToast(e.message||"تعذر تجهيز التقرير للطباعة.","error");
   }
 }
+
+
+/* ============ Automatic student notices: permission-scoped extraction ============ */
+const SA_NOTICE_LABELS={
+  absent:"الغياب عن الحصة الدراسية",
+  late:"التأخر عن الحصة الدراسية",
+  escape:"التسرب من الحصة الدراسية",
+  outside:"التواجد خارج الفصل الدراسي أثناء الحصة",
+  eating:"تناول الطعام داخل الفصل الدراسي",
+  talking:"الكلام الجانبي وإعاقة سير الدرس",
+  tools:"عدم إحضار الأدوات المدرسية أو العبث بها",
+  chaos:"إثارة الفوضى والإزعاج أثناء الحصة الدراسية",
+  sleeping:"النوم المتكرر أثناء الحصة الدراسية",
+  homework:"عدم أداء الواجبات المدرسية",
+  other:"سلوكيات أخرى مخالفة للنظام المدرسي"
+};
+let saNoticeLastGenerated=[];
+let saNoticeGenerationBusy=false;
+function saNoticeSetStatus(message,isError){
+  const box=document.getElementById("saNoticeStatus");if(!box)return;
+  box.textContent=String(message||"");box.classList.remove("hidden","border-blue-200","bg-blue-50","text-blue-900","dark:border-blue-900","dark:bg-blue-950/30","dark:text-blue-200","border-red-200","bg-red-50","text-red-800","dark:border-red-900","dark:bg-red-950/30","dark:text-red-200");
+  box.classList.add(isError?"border-red-200":"border-blue-200",isError?"bg-red-50":"bg-blue-50",isError?"text-red-800":"text-blue-900",isError?"dark:border-red-900":"dark:border-blue-900",isError?"dark:bg-red-950/30":"dark:bg-blue-950/30",isError?"dark:text-red-200":"dark:text-blue-200");
+}
+function saNoticeHasCombinedPermission(p){return p?.can_print_combined===true&&p?.can_print_attendance===true&&p?.can_print_behavior===true&&p?.can_read_attendance===true&&p?.can_read_behavior===true;}
+function saNoticeAllowedClasses(){
+  const p=saReportPermissions||{},items=[];
+  if(p.can_read_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length)items.push(...saGetAllowedReportClasses("attendance"));
+  if(p.can_read_behavior===true)items.push(...saGetAllowedReportClasses("behavior"));
+  return sortClassesList([...new Set(items.map(x=>String(x).trim()).filter(Boolean))]);
+}
+function saOpenNoticeModal(){
+  const p=saReportPermissions||{};
+  if(!saSession?.token){showToast("تعذر التحقق من جلسة شؤون الطلبة. أعد تسجيل الدخول.","error");return;}
+  if(!saNoticeHasCombinedPermission(p)){showToast("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً. راجع صلاحيات شؤون الطلبة.","error");return;}
+  const classes=saNoticeAllowedClasses(),select=document.getElementById("saNoticeClassSelect");
+  if(!classes.length){showToast("لا توجد صفوف مسندة إليك ومصرح بها في سجلات الحضور أو السلوك.","error");return;}
+  select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
+  document.getElementById("saNoticeThreshold").value="2";
+  document.getElementById("saNoticePreviewPanel").classList.add("hidden");
+  document.getElementById("saNoticeStatus").classList.add("hidden");
+  document.getElementById("saNoticeModal").classList.remove("hidden");
+  document.body.classList.remove("sa-notice-print-mode");
+}
+function saCloseNoticeModal(){
+  if(saNoticeGenerationBusy)return;
+  document.getElementById("saNoticeModal")?.classList.add("hidden");
+  document.body.classList.remove("sa-notice-print-mode");
+}
+function saNoticeBackToConfig(){
+  document.getElementById("saNoticePreviewPanel")?.classList.add("hidden");
+  document.getElementById("saNoticePrintRoot").innerHTML="";
+}
+function saNoticeStartYear(){
+  const keys=[...Object.keys(db?.attendance||{}),...Object.keys(db?.behaviors||{})],dates=[];
+  keys.forEach(key=>{const match=String(key).match(/^(\d{4}-\d{2}-\d{2})_/);if(match&&/^\d{4}-\d{2}-\d{2}$/.test(match[1]))dates.push(match[1]);});
+  if(!dates.length)return 2000;
+  const earliest=dates.reduce((a,b)=>a<b?a:b);
+  return Math.max(2000,Number(earliest.slice(0,4))||2000);
+}
+function saNoticePeriodLabel(session){
+  let value=session?.period;
+  if(value==null||value===""){
+    const key=String(session?.record_key||"");
+    const match=key.match(/_p(\d+)$/);if(match)value=match[1];
+  }
+  const numeric=Number(value),mapped=periodNamesMap[numeric];
+  return mapped?String(mapped).replace(/^الحصة\s*/,""):String(value||"غير محددة");
+}
+function saNoticeDateLabel(value){
+  const date=String(value||"").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(date)?date.replace(/-/g,"/"):"";
+}
+function saNoticeResolveStudentName(className,rawName){
+  const original=String(rawName||"").trim();
+  const normalize=value=>String(value||"").trim().replace(/\s+/g," ");
+  const roster=Array.isArray(db?.students?.[className])?db.students[className]:[];
+  const match=roster.find(name=>normalize(name)===normalize(original));
+  return match?String(match).trim():original;
+}
+function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedStatuses){
+  const students=new Map(),seenAbsence=new Set(),seenEvents=new Set(),validAttendance=new Set(["absent","late","escape","outside"]);
+  let ignored=0;
+  const getStudent=(className,name)=>{
+    const key=className+String.fromCharCode(31)+name;
+    if(!students.has(key))students.set(key,{className,name,events:[],groups:new Map()});
+    return students.get(key);
+  };
+  const addEvent=(className,name,type,session,note)=>{
+    const date=saNoticeDateLabel(session?.date_str);
+    if(!date){ignored++;return;}
+    const period=saNoticePeriodLabel(session);
+    const eventKey=[className,name,type,session.date_str,period,note||""].join(String.fromCharCode(31));
+    if(seenEvents.has(eventKey))return;
+    seenEvents.add(eventKey);
+    const item=getStudent(className,name);
+    const groupKey=type==="other"?type+String.fromCharCode(31)+String(note||"").trim():type;
+    if(!item.groups.has(groupKey))item.groups.set(groupKey,{type,note:String(note||"").trim(),events:[]});
+    const event={date,period};
+    item.groups.get(groupKey).events.push(event);
+    item.events.push({type,date,period,note:String(note||"").trim()});
+  };
+  const orderedAttendance=(attendanceSessions||[]).slice().sort((a,b)=>String(a?.date_str||"").localeCompare(String(b?.date_str||""))||(Number(a?.period)||0)-(Number(b?.period)||0));
+  orderedAttendance.forEach(session=>{
+    const className=String(session?.class_name||"").trim();
+    if(!className)return;
+    const records=session?.records&&typeof session.records==="object"?session.records:{};
+    Object.entries(records).forEach(([rawName,rawValue])=>{
+      const name=saNoticeResolveStudentName(className,rawName);
+      if(!name||name==="undefined"||name==="null"){ignored++;return;}
+      const status=typeof rawValue==="string"?rawValue:String(rawValue?.status||rawValue?.type||"");
+      if(!validAttendance.has(status)||!allowedStatuses.includes(status))return;
+      if(status==="absent"){
+        const daily=[className,name,String(session.date_str||"")].join(String.fromCharCode(31));
+        if(seenAbsence.has(daily))return;
+        seenAbsence.add(daily);
+      }
+      addEvent(className,name,status,session,"");
+    });
+  });
+  (behaviorSessions||[]).forEach(session=>{
+    const className=String(session?.class_name||"").trim();
+    if(!className)return;
+    const records=session?.records&&typeof session.records==="object"?session.records:{};
+    Object.entries(records).forEach(([rawName,rawValue])=>{
+      const name=String(rawName||"").trim();
+      if(!name||name==="undefined"||name==="null"){ignored++;return;}
+      const data=rawValue&&typeof rawValue==="object"?rawValue:{type:String(rawValue||""),note:""};
+      const types=getBehaviorTypesFromRecord(data);
+      if(!types.length)return;
+      const note=String(data.note||data.description||"").trim();
+      types.forEach(type=>addEvent(className,name,type,session,type==="other"?note:""));
+    });
+  });
+  return {students:[...students.values()],ignored};
+}
+function saNoticeClassifyCard(student){
+  const lineCount=student.groups.size,eventCount=student.events.length;
+  return lineCount<=2&&eventCount<=3?"compact":lineCount<=4&&eventCount<=7?"medium":"full";
+}
+function saNoticeBuildCard(student,index){
+  const groups=[...student.groups.values()].sort((a,b)=>String(a.type).localeCompare(String(b.type),"en"));
+  const list=groups.map(group=>{
+    const events=group.events.slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.period).localeCompare(String(b.period),"ar",{numeric:true}));
+    const label=SA_NOTICE_LABELS[group.type]||"مخالفة مسجلة في النظام";
+    const title=label+(group.type==="other"&&group.note?" ("+group.note+")":"");
+    const details=events.map((event,i)=>(i===0?"الحصة (":"والحصة (")+event.period+") بتاريخ ("+event.date+")");
+    return "<li>• <strong>"+escapeHtml(title)+"</strong>: وذلك في "+details.join("، ") + ".</li>";
+  }).join("");
+  const today=saNoticeDateLabel(getOmanLocalDate())||String(getOmanLocalDate()).replace(/-/g,"/");
+  const serial=index+1;
+  return '<article class="sa-notice-card '+saNoticeClassifyCard(student)+'">'+
+    '<div><header class="notice-heading"><div class="notice-country">سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div class="notice-school">مدرسة أبو دجانة الأنصاري للتعليم الأساسي</div></header>'+
+    '<div class="notice-title">إشعار وتنبيه رقم ( '+serial+' )</div>'+
+    '<div class="notice-meta"><span>للطالب: <strong>'+escapeHtml(student.name)+'</strong></span><span>المقيد بالصف: <strong>'+escapeHtml(formatClassName(student.className))+'</strong></span><span>التاريخ: <strong>'+escapeHtml(today)+'</strong></span></div>'+
+    '<p class="notice-intro">انطلاقاً من حرص إدارة المدرسة على انتظام سير العملية التعليمية وتعزيز الانضباط المدرسي، نفيدكم بأنه وبمراجعة سجلات المتابعة اليومية، فقد رُصدت عليكم عدة تجاوزات ومخالفات متكررة، وتتلخص فيما يلي:</p>'+
+    '<ul class="notice-items">'+list+'</ul>'+
+    '<p class="notice-conclusion">وعليه، يُعد هذا الإشعار تنبيهاً بضرورة الالتزام باللوائح والأنظمة المدرسية ولائحة شؤون الطلبة وتعديل السلوك فوراً، تجنباً لاتخاذ إجراءات إدارية، واستدعاء ولي الأمر مستقبلاً.</p></div>'+
+    '<footer class="notice-signatures"><span>توقيع الطالب بالعلم: ............................</span><span>يعتمد / إدارة المدرسة (شؤون الطلبة): ............................</span></footer></article>';
+}
+function saNoticeBuildPages(students){
+  const classOrder=new Map(sortClassesList([...new Set(students.map(x=>x.className))]).map((name,index)=>[name,index]));
+  const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)??999)-(classOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
+  const pages=[];let cursor=0;
+  while(cursor<ordered.length){
+    const firstLevel=saNoticeClassifyCard(ordered[cursor]);
+    let limit=firstLevel==="compact"?3:firstLevel==="medium"?2:1;
+    const pageItems=[ordered[cursor++]];
+    while(cursor<ordered.length&&pageItems.length<limit){
+      const nextLevel=saNoticeClassifyCard(ordered[cursor]);
+      if(nextLevel==="full")break;
+      if(nextLevel==="medium")limit=Math.min(limit,2);
+      if(pageItems.length>=limit)break;
+      pageItems.push(ordered[cursor++]);
+    }
+    pages.push({level:firstLevel,items:pageItems});
+  }
+  return pages;
+}
+async function saGenerateAutomaticNotices(){
+  if(saNoticeGenerationBusy)return;
+  const p=saReportPermissions||{},thresholdInput=document.getElementById("saNoticeThreshold"),threshold=Number(thresholdInput?.value);
+  if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً. راجع صلاحيات شؤون الطلبة.",true);return;}
+  if(!Number.isInteger(threshold)||threshold<1||threshold>10){saNoticeSetStatus("أدخل عدداً صحيحاً من 1 إلى 10. القيمة الافتراضية 2.",true);return;}
+  const selected=document.getElementById("saNoticeClassSelect")?.value||"";
+  const available=saNoticeAllowedClasses();
+  const classes=selected==="__all__"?available:available.filter(c=>c===selected);
+  if(!classes.length){saNoticeSetStatus("اختر صفاً من الصفوف المصرح بها لك.",true);return;}
+  const allowedAttendance=new Set(saGetAllowedReportClasses("attendance"));
+  const allowedBehavior=new Set(saGetAllowedReportClasses("behavior"));
+  const canAttendance=p.can_read_attendance===true&&p.can_print_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length>0;
+  const canBehavior=p.can_read_behavior===true&&p.can_print_behavior===true;
+  const statuses=canAttendance?p.attendance_statuses.filter(x=>["absent","late","escape","outside"].includes(x)):[];
+  const jobs=[];
+  const today=getOmanLocalDate(),currentYear=Number(today.slice(0,4))||new Date().getFullYear(),startYear=saNoticeStartYear();
+  classes.forEach(className=>{
+    const useAttendance=canAttendance&&allowedAttendance.has(className)&&statuses.length>0;
+    const useBehavior=canBehavior&&allowedBehavior.has(className);
+    if(!useAttendance&&!useBehavior)return;
+    for(let year=startYear;year<=currentYear;year++){
+      const from=year+"-01-01",to=year===currentYear?today:year+"-12-31";
+      jobs.push({className,from,to,useAttendance,useBehavior});
+    }
+  });
+  if(!jobs.length){saNoticeSetStatus("لا توجد صلاحيات لقراءة سجلات الغياب أو السلوك في الصف المحدد.",true);return;}
+  saNoticeGenerationBusy=true;
+  const button=document.getElementById("saNoticeGenerateBtn");if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ فحص السجلات...';}
+  saNoticeSetStatus("جارٍ فحص السجلات التاريخية للصفوف المحددة والتحقق من صلاحيات كل مصدر...",false);
+  const attendanceSessions=[],behaviorSessions=[],errors=[];
+  let cursor=0;
+  const worker=async()=>{
+    while(cursor<jobs.length){
+      const job=jobs[cursor++];
+      try{
+        const result=await saRequest({
+          action:"reports",report_mode:"print_combined",
+          attendance_classes:job.useAttendance?[job.className]:[],
+          behavior_classes:job.useBehavior?[job.className]:[],
+          attendance_status_filters:job.useAttendance?statuses:undefined,
+          from:job.from,to:job.to
+        });
+        const a=Array.isArray(result?.attendance)?result.attendance:[],b=Array.isArray(result?.behaviors)?result.behaviors:[];
+        if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.from.slice(0,4)+". أوقفنا الإصدار حتى لا نصدر إشعارات ناقصة.");
+        a.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل حضور من صف غير محدد؛ أوقفنا الإصدار حمايةً للخصوصية.");});
+        b.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل سلوك من صف غير محدد؛ أوقفنا الإصدار حمايةً للخصوصية.");});
+        attendanceSessions.push(...a);behaviorSessions.push(...b);
+      }catch(error){errors.push(error);}
+    }
+  };
+  try{
+    await Promise.all(Array.from({length:Math.min(3,jobs.length)},()=>worker()));
+    if(errors.length)throw errors[0];
+    const built=saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,statuses);
+    const qualifying=built.students.filter(student=>student.events.length>=threshold);
+    const noticeClassOrder=new Map(sortClassesList([...new Set(qualifying.map(x=>x.className))]).map((name,index)=>[name,index]));
+    qualifying.sort((a,b)=>(noticeClassOrder.get(a.className)??999)-(noticeClassOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
+    saNoticeLastGenerated=qualifying;
+    if(!qualifying.length){
+      document.getElementById("saNoticePrintRoot").innerHTML="";
+      document.getElementById("saNoticePreviewSummary").textContent="اكتمل الفحص: لم يُعثر على طالب بلغ الحد الأدنى المحدد ("+threshold+") من المخالفات المسجلة.";
+      document.getElementById("saNoticePreviewPanel").classList.remove("hidden");
+      saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين للإشعار.",false);
+    }else{
+      const pages=saNoticeBuildPages(qualifying);
+      const root=document.getElementById("saNoticePrintRoot");
+      root.innerHTML=pages.map((page,pageIndex)=>{
+        const cards=page.items.map((student,i)=>saNoticeBuildCard(student,qualifying.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
+        return '<section class="sa-notice-page" data-page="'+(pageIndex+1)+'">'+cards+'</section>';
+      }).join("");
+      const eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
+      document.getElementById("saNoticePreviewSummary").textContent="عدد الإشعارات: "+qualifying.length+" | إجمالي المخالفات المحتسبة: "+eventTotal+" | عدد صفحات A4: "+pages.length+" | الحد الأدنى: "+threshold+(built.ignored?" | سجلات غير مكتملة تم استبعادها: "+built.ignored:"");
+      document.getElementById("saNoticePreviewPanel").classList.remove("hidden");
+      saNoticeSetStatus("اكتمل الفحص بنجاح. تم تجميع المخالفات المتكررة في بنود موحدة مع تفاصيل الحصص والتواريخ.",false);
+    }
+  }catch(error){
+    saNoticeSetStatus(error?.message||"تعذر استخراج السجلات والتحقق منها. لم يتم إصدار إشعارات.",true);
+    showToast(error?.message||"تعذر إصدار الإشعارات.","error");
+  }finally{
+    saNoticeGenerationBusy=false;
+    if(button){button.disabled=false;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i> توليد ومعاينة للطباعة';}
+  }
+}
+function saPrintAutomaticNotices(){
+  if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
+  document.body.classList.add("sa-notice-print-mode");
+  const printNow=()=>{try{window.focus();window.print();}catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}};
+  const fonts=document.fonts?.ready||Promise.resolve();
+  Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1200))]).then(()=>setTimeout(printNow,100));
+}
+window.addEventListener("afterprint",()=>document.body.classList.remove("sa-notice-print-mode"));
 
 async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
 
