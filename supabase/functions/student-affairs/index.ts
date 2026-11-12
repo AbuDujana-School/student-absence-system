@@ -1051,7 +1051,8 @@ async function handle(req: Request) {
     const cleaned = { ...current, studentAffairs: false };
     ["student_affairs_role", "student_affairs_team_name", "supervisor_team_leader_name",
      "can_read_attendance", "can_read_behavior", "can_view_analytics",
-     "can_print_attendance", "can_print_behavior", "can_print_combined"].forEach(key => delete cleaned[key]);
+     "can_print_attendance", "can_print_behavior", "can_print_combined",
+     "competition_participant", "competition_team_name", "competition_team_classes"].forEach(key => delete cleaned[key]);
 
     const { data: updated, error: updateError } = await db.from("teachers").update({ permissions: cleaned }).eq("name", name).select("name").maybeSingle();
     if (updateError) throw updateError;
@@ -1130,7 +1131,10 @@ async function handle(req: Request) {
       const assigned = new Map<string, string>();
       for (const participant of participantRows || []) {
         const pp = participant.permissions || {};
-        if (pp.competition_participant !== true) continue;
+        const stillInStudentAffairs = pp.studentAffairs === true
+          || ["team_leader", "supervisor", "visitor"].includes(String(pp.student_affairs_role || ""));
+        // Ignore legacy competition scopes left behind by a previously removed member.
+        if (pp.competition_participant !== true || !stillInStudentAffairs) continue;
         for (const className of Array.isArray(pp.competition_team_classes) ? pp.competition_team_classes : []) assigned.set(String(className), String(participant.name));
       }
       const conflict = teamClasses.find(className => assigned.has(className));
