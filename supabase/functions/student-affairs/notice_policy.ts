@@ -98,12 +98,12 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
     const studentKey = keyOf(className, studentName);
     const event: NoticeEvent = { type, date, period: normalize(period) || "غير محددة", note: normalize(noteRaw) };
     const fingerprint = eventKey(className, studentName, event);
-    if (alreadyIssued.has(fingerprint) || seenEvents.has(fingerprint)) return;
     if (type === "absent") {
       const daily = [className, studentName, date].join(String.fromCharCode(31));
       if (absenceDays.has(daily)) return;
       absenceDays.add(daily);
     }
+    if (alreadyIssued.has(fingerprint) || seenEvents.has(fingerprint)) return;
     seenEvents.add(fingerprint);
     if (!grouped.has(studentKey)) grouped.set(studentKey, { class_name: className, student_name: studentName, events: [] });
     grouped.get(studentKey)!.events.push(event);
