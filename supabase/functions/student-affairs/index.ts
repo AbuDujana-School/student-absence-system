@@ -984,14 +984,14 @@ async function handle(req: Request) {
     if (supervisionRole === "visitor" && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للزائر." });
     if (type === "teacher" && !supervisionRole && supervisionTeam) return reply(400, { error: "حدد نوع الإشراف قبل ربط المعلم بفريق" });
     if (type === "teacher" && supervisionRole === "team_leader" && (!supervisionTeam || body.studentAffairs !== true)) return reply(400, { error: "يجب تحديد اسم الفريق ومنح رئيس الفريق دخول شؤون الطلبة" });
-    if (type === "teacher" && supervisionRole === "supervisor" && supervisionTeam && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للمعلم المشرف المرتبط بفريق" });
-    if (type === "teacher" && supervisionRole === "supervisor" && (supervisionLeaderName || supervisionTeam)) {
+    if (type === "teacher" && supervisionRole === "supervisor") {
+      if (body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للمعلم المشرف." });
       const { data: leaders, error: leaderError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
       if (leaderError) throw leaderError;
       const matchedLeader = (leaders || []).find((item: any) => item.name === supervisionLeaderName
         && item.permissions?.student_affairs_role === "team_leader" && item.permissions?.studentAffairs === true
         && String(item.permissions?.student_affairs_team_name || "").trim())
-        || (!supervisionLeaderName ? (leaders || []).find((item: any) => item.permissions?.student_affairs_role === "team_leader"
+        || (!supervisionLeaderName && supervisionTeam ? (leaders || []).find((item: any) => item.permissions?.student_affairs_role === "team_leader"
           && item.permissions?.studentAffairs === true
           && String(item.permissions?.student_affairs_team_name || "").trim() === supervisionTeam) : null);
       if (!matchedLeader) return reply(400, { error: "اختر رئيس فريق مفعّلاً من القائمة قبل ربط المعلم المشرف." });
