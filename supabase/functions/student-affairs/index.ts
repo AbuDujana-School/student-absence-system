@@ -1043,7 +1043,7 @@ async function handle(req: Request) {
     if (supervisionRole && (type === "custom" ? supervisionRole !== "visitor" : !["team_leader", "supervisor", "visitor"].includes(supervisionRole))) return reply(400, { error: "نوع الإشراف غير صالح لهذا الحساب" });
     if (supervisionRole === "visitor" && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للزائر." });
     if (type === "teacher" && !supervisionRole && supervisionTeam) return reply(400, { error: "حدد نوع الإشراف قبل ربط المعلم بفريق" });
-    if (type === "teacher" && supervisionRole === "team_leader" && !supervisionTeam) return reply(400, { error: "يجب تحديد اسم الفريق ومنح قائد الفريق دخول شؤون الطلبة" });
+    if (type === "teacher" && supervisionRole === "team_leader" && !supervisionTeam) return reply(400, { error: "حدد اسم الفريق للقائد قبل حفظ العضوية." });
     if (type === "teacher" && supervisionRole === "supervisor") {
       const { data: leaders, error: leaderError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
       if (leaderError) throw leaderError;
