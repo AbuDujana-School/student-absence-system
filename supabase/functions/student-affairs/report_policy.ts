@@ -7,6 +7,25 @@ export type ReportPermissions = {
   can_print_combined?: boolean;
 };
 export type AuthorizationError = { status: 400 | 403; message: string };
+
+/** A granted Reports tab permission includes the full reporting workflow, scoped to configured school classes. */
+export function applyReportsEntryPermissions(permissions: Record<string, unknown>, classes: string[], enabled: boolean): Record<string, unknown> {
+  if (!enabled) return permissions;
+  const allowed = [...new Set(classes.map(value => String(value || "").trim()).filter(Boolean))];
+  return {
+    ...permissions,
+    allowed_classes: allowed,
+    allowed_attendance_classes: allowed,
+    allowed_behavior_classes: allowed,
+    attendance_statuses: ["absent", "late", "escape", "outside"],
+    can_read_attendance: true,
+    can_read_behavior: true,
+    can_view_analytics: true,
+    can_print_attendance: true,
+    can_print_behavior: true,
+    can_print_combined: true,
+  };
+}
 export function authorizeReportMode(p: ReportPermissions, mode: string): AuthorizationError | null {
   const readAttendance = p.can_read_attendance === true;
   const readBehavior = p.can_read_behavior === true;
