@@ -2841,7 +2841,7 @@ function saLoadPerson(){
   if([...sel.options].some(o=>o.value===old))sel.value=old;
   const saved=saAdminData.permissions.find(p=>p.principal_type===type&&p.principal_name===sel.value)||{},person=saAdminData.teachers.find(t=>t.name===sel.value);
   document.getElementById("saEntryAccess").checked=person?.permissions?.studentAffairs===true;
-  const roleSelect=document.getElementById("saSupervisionRole");if(roleSelect)roleSelect.value=person?.permissions?.student_affairs_role||"";
+  const roleSelect=document.getElementById("saSupervisionRole");if(roleSelect){roleSelect.value=person?.permissions?.student_affairs_role||(type==="custom"&&person?.permissions?.studentAffairs?"visitor":"");Array.from(roleSelect.options).forEach(option=>{option.hidden=type==="custom"&&option.value!==""&&option.value!=="visitor";});}
   const teamInput=document.getElementById("saSupervisionTeamName");if(teamInput)teamInput.value=person?.permissions?.student_affairs_team_name||"";
   document.getElementById("saSupervisionRole")?.closest(".rounded-2xl")?.classList.toggle("hidden",false);saToggleSupervisionFields();
   document.getElementById("saCompetitionTeamSettings")?.classList.toggle("hidden",type!=="teacher");
