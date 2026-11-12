@@ -1,4 +1,4 @@
-import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
+import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions, resolveStudentAffairsClassScope } from "./report_policy.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
@@ -238,11 +238,12 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     const access = buildVisitorAccess((classes || []).map((item: any) => String(item.name || "")), teacherDirectory);
     return { ...(data || {}), ...access, can_view_competition: true, competition_team_name: "", competition_team_classes: [] };
   }
+  const classScope = resolveStudentAffairsClassScope(role, ownAttendanceUnique, ownBehaviorUnique, teamAttendanceUnique, teamBehaviorUnique);
   const reportPermissions = {
     ...(data || {}), role, team_name: teamName, team_members: teamMembers, teacher_directory: [],
     own_allowed_attendance_classes: ownAttendanceUnique, own_allowed_behavior_classes: ownBehaviorUnique,
     team_allowed_attendance_classes: teamAttendanceUnique, team_allowed_behavior_classes: teamBehaviorUnique,
-    allowed_classes: unique([...ownAttendanceUnique, ...ownBehaviorUnique]), allowed_attendance_classes: ownAttendanceUnique, allowed_behavior_classes: ownBehaviorUnique,
+    allowed_classes: classScope.allowed_classes, allowed_attendance_classes: classScope.allowed_attendance_classes, allowed_behavior_classes: classScope.allowed_behavior_classes,
     attendance_statuses: Array.isArray(data?.attendance_statuses) ? data.attendance_statuses : (strictCompetition ? [] : ["absent", "late", "escape", "outside"]),
     can_read_attendance: data?.can_read_attendance === true, can_read_behavior: data?.can_read_behavior === true,
     can_view_analytics: data?.can_view_analytics === true,
@@ -254,13 +255,15 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
     can_print_combined: data?.can_print_combined === true
   };
   const reportsAccess = tp.reports === true;
-  let reportClasses: string[] = [];
-  if (reportsAccess) {
-    const { data: classes, error: classesError } = await db.from("classes").select("name");
-    if (classesError) throw classesError;
-    reportClasses = (classes || []).map((item: any) => String(item.name || ""));
-  }
-  return applyReportsEntryPermissions(reportPermissions, reportClasses, reportsAccess);
+  // The Reports entry permission enables report actions, but must never widen
+  // a teacher's class assignment to every class in the school.
+  const granted = applyReportsEntryPermissions(reportPermissions, classScope.allowed_classes, reportsAccess);
+  return {
+    ...granted,
+    allowed_classes: classScope.allowed_classes,
+    allowed_attendance_classes: classScope.allowed_attendance_classes,
+    allowed_behavior_classes: classScope.allowed_behavior_classes,
+  };
 }
 async function hasStudentAffairsAccess(p: { type: string; name: string }) {
   if (p.type === "admin") return true;
@@ -626,7 +629,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
     const ownClasses = [...(Array.isArray(personal?.allowed_attendance_classes) ? personal.allowed_attendance_classes : legacy),
       ...(Array.isArray(personal?.allowed_behavior_classes) ? personal.allowed_behavior_classes : legacy)];
     const outside = findCompetitionClassesOutsidePersonalScope(teacher.permissions?.competition_team_classes || [], ownClasses);
-    if (outside.length) competitionError(409, "إعداد سباق التميز غير متوافق مع فصول رئيس الفريق الشخصية: " + String(teacher.name) + " — " + outside[0]);
+    if (outside.length) competitionError(409, "إعداد سباق التميز غير متوافق مع فصول قائد الفريق الشخصية: " + String(teacher.name) + " — " + outside[0]);
   }
   let teams: any[];
   try {
