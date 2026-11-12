@@ -3418,6 +3418,11 @@ window.addEventListener('DOMContentLoaded', async () => {
     document.getElementById("uiReviewLauncher")?.classList.remove("hidden");
     document.getElementById("uiReviewBar")?.classList.remove("hidden");
     updateSyncStatus(false,"معاينة واجهات فقط — لا اتصال ببيانات المدرسة");
+    // Stable, explicit preview routes prevent the navigation bar from being
+    // mistaken for the separate beneficiary-management preview entry point.
+    const previewRoute=new URLSearchParams(location.search).get("review");
+    if(previewRoute==="beneficiaries")void uiReviewOpenBeneficiaries();
+    else if(previewRoute==="student-affairs")void uiReviewOpenStudentAffairs();
     return;
   }
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
