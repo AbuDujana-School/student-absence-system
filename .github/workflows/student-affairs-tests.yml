@@ -70,14 +70,18 @@ jobs:
           END $do$;
           SET ROLE service_role;
           SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-12","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":false,"threshold":3,"period_start":"2000-01-01","period_end":"2026-11-12","selected_types":["late"],"events":[{"type":"late","date":"2026-11-12","period":"1","note":""}]}]'::jsonb);
-          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-12","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":true,"threshold":3,"period_start":"2026-11-12","period_end":"2026-11-12","selected_types":["late"],"events":[{"type":"late","date":"2026-11-12","period":"2","note":""}]}]'::jsonb);
+          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-14","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":true,"threshold":1,"period_start":"2026-11-13","period_end":"2026-11-14","selected_types":["late"],"events":[{"type":"late","date":"2026-11-13","period":"2","note":""}]}]'::jsonb);
+          SELECT public.issue_student_affairs_notices('[{"class_name":"9/1","student_name":"synthetic-student","issued_on":"2026-11-14","issued_by_type":"teacher","issued_by_name":"synthetic-teacher","delivered":true,"threshold":1,"period_start":"2026-11-13","period_end":"2026-11-14","selected_types":["late"],"events":[{"type":"late","date":"2026-11-13","period":"2","note":""}]}]'::jsonb);
           DO $do$
-          DECLARE v_count integer; v_max integer; v_delivered boolean;
+          DECLARE v_count integer; v_max integer; v_delivered boolean; v_event_count integer; v_period_start date;
           BEGIN
-            SELECT count(*), max(issue_number), bool_or(delivered) INTO v_count, v_max, v_delivered
-            FROM public.student_affairs_notice_issues WHERE class_name='9/1' AND student_name='synthetic-student';
-            IF v_count <> 2 OR v_max <> 2 OR v_delivered IS DISTINCT FROM true THEN
-              RAISE EXCEPTION 'official notice numbering or delivery status failed';
+            SELECT count(*), max(issue_number), bool_or(delivered),
+                   max(jsonb_array_length(events)), max(period_start)
+              INTO v_count, v_max, v_delivered, v_event_count, v_period_start
+              FROM public.student_affairs_notice_issues WHERE class_name='9/1' AND student_name='synthetic-student';
+            IF v_count <> 2 OR v_max <> 2 OR v_delivered IS DISTINCT FROM true
+              OR v_event_count <> 1 OR v_period_start <> DATE '2026-11-13' THEN
+              RAISE EXCEPTION 'official notice numbering, idempotency, or delivery status failed';
             END IF;
           END $do$;
           RESET ROLE;
