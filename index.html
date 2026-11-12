@@ -144,6 +144,32 @@
   #saNoticeModal .sa-notice-config{padding:12px!important}
 }
 </style>
+<style id="sa-notice-native-top-layer">
+/* Native dialog top layer prevents the sticky app header from covering the notice form. */
+#saNoticeModal[open]{
+ position:fixed!important;inset:0!important;z-index:2147483647!important;
+ display:flex!important;align-items:flex-start!important;justify-content:center!important;
+ box-sizing:border-box!important;width:100vw!important;max-width:none!important;
+ height:100vh!important;height:100dvh!important;max-height:none!important;margin:0!important;
+ padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))!important;
+ overflow:hidden!important;border:0!important;background:transparent!important;
+}
+#saNoticeModal::backdrop{background:rgba(2,6,23,.72);backdrop-filter:blur(3px)}
+#saNoticeModal[open] .sa-notice-dialog{
+ flex:0 1 auto!important;width:min(100%,760px)!important;max-width:760px!important;
+ max-height:calc(100vh - 20px)!important;
+ max-height:calc(100dvh - max(20px,env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px))!important;
+ margin:0 auto!important;overflow-x:hidden!important;overflow-y:auto!important;
+ overscroll-behavior:contain!important;-webkit-overflow-scrolling:touch!important;
+}
+@media(max-width:640px){
+ #saNoticeModal[open]{padding:max(8px,env(safe-area-inset-top)) 8px max(8px,env(safe-area-inset-bottom))!important}
+ #saNoticeModal[open] .sa-notice-dialog{width:100%!important;max-width:100%!important}
+}
+@media print{
+ body.sa-notice-print-mode #saNoticeModal[open]{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;background:#fff!important}
+}
+</style>
 
 <!-- ═══════════════════════════════════════════════════════════════
      BRAND VISUAL REDESIGN — Abu Dujana School Management
@@ -1730,7 +1756,7 @@
     </section>
   </div>
 
-  <div id="saNoticeModal" class="hidden fixed inset-0 z-[100000] flex overflow-y-auto bg-slate-950/70 p-2 sm:p-3" role="dialog" aria-modal="true" aria-labelledby="saNoticeModalTitle" dir="rtl">
+  <dialog id="saNoticeModal" class="fixed inset-0 z-[100000] m-0 hidden overflow-hidden border-0 bg-transparent p-0" aria-labelledby="saNoticeModalTitle" dir="rtl">
     <div class="sa-notice-dialog mx-auto w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
       <div class="sa-notice-config border-b border-slate-200 p-4 dark:border-slate-700 sm:p-6">
         <div class="flex items-center justify-between gap-3">
@@ -1783,7 +1809,7 @@
         <div id="saNoticePrintRoot" class="space-y-4"></div>
       </div>
     </div>
-  </div>
+  </dialog>
 
 </section>
 
@@ -3726,11 +3752,14 @@ function saOpenNoticeModal(){
   if(noticeModal && noticeModal.parentElement!==document.body) document.body.appendChild(noticeModal);
   noticeModal.classList.remove("hidden");
   document.body.classList.remove("sa-notice-print-mode");
+  if(typeof noticeModal.showModal==="function" && !noticeModal.open) noticeModal.showModal();
   saNoticeLastGenerated=[];saNoticeLastHistory=[];saNoticeLastSettings=null;saNoticeOfficialCommitted=false;
 }
 function saCloseNoticeModal(){
   if(saNoticeGenerationBusy)return;
-  document.getElementById("saNoticeModal")?.classList.add("hidden");
+  const noticeModal=document.getElementById("saNoticeModal");
+  if(noticeModal?.open) noticeModal.close();
+  noticeModal?.classList.add("hidden");
   document.body.classList.remove("sa-notice-print-mode");
 }
 function saNoticeBackToConfig(){
