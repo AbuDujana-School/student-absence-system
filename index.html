@@ -3333,7 +3333,6 @@ async function saLoadStudentProfileDirectory(){
   const className=select.value;
   list.innerHTML="";saStudentProfileStatus("جارٍ تحميل أسماء الطلاب من الصف المحدد...");
   try{
-    const result=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],to:getOmanLocalDate()});
     const names=[...new Set((Array.isArray(db?.students?.[className])?db.students[className]:[]).map(x=>String(x||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
     list.innerHTML=names.map(name=>'<option value="'+escapeHtml(name)+'"></option>').join("");
     saStudentProfileStatus("تم تحميل "+names.length+" طالباً من الصف "+formatClassName(className)+".");
