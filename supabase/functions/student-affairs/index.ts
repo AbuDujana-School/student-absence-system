@@ -1237,9 +1237,12 @@ async function handle(req: Request) {
     }
     if (mode === "notice_issue_commit") {
       const issuedOn = body.issued_on;
+      const rangeFrom = body.range_from == null ? "2000-01-01" : String(body.range_from);
+      const rangeTo = body.range_to == null ? issuedOn : String(body.range_to);
       const threshold = Number(body.threshold);
       const selectedTypes = Array.isArray(body.selected_types) ? Array.from(new Set((body.selected_types as unknown[]).map(String))) : [];
       if (!isValidIsoDate(issuedOn) || issuedOn > new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString().slice(0, 10)) return reply(400, { error: "تاريخ الإصدار غير صالح." });
+      if (!isValidIsoDate(rangeFrom) || !isValidIsoDate(rangeTo) || rangeFrom > rangeTo || rangeTo > issuedOn) return reply(400, { error: "فترة المخالفات غير صالحة. يجب أن تكون البداية قبل النهاية، وألا تتجاوز النهاية تاريخ الإصدار." });
       if (!Number.isInteger(threshold) || threshold < 1 || threshold > 10) return reply(400, { error: "حد المخالفات يجب أن يكون من 1 إلى 10." });
       if (!selectedTypes.length || selectedTypes.some(type => !(NOTICE_TYPES as readonly string[]).includes(type))) return reply(400, { error: "أنواع المخالفات المحددة غير صالحة." });
       const useAttendance = selectedTypes.some(type => (NOTICE_ATTENDANCE_TYPES as readonly string[]).includes(type));
@@ -1253,10 +1256,10 @@ async function handle(req: Request) {
       const noticeClasses = [...new Set([...attendanceClasses, ...behaviorClasses])];
       if (!noticeClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل." });
       const jobs: Array<{ className: string; year: number; from: string; to: string; attendance: boolean; behavior: boolean }> = [];
-      const firstYear = 2000, lastYear = Number(String(issuedOn).slice(0, 4));
+      const firstYear = Number(rangeFrom.slice(0, 4)), lastYear = Number(rangeTo.slice(0, 4));
       noticeClasses.forEach(className => {
         for (let year = firstYear; year <= lastYear; year++) jobs.push({
-          className, year, from: year + "-01-01", to: year === lastYear ? issuedOn : year + "-12-31",
+          className, year, from: year === firstYear ? rangeFrom : year + "-01-01", to: year === lastYear ? rangeTo : year + "-12-31",
           attendance: attendanceClasses.includes(className), behavior: behaviorClasses.includes(className)
         });
       });
@@ -1284,14 +1287,14 @@ async function handle(req: Request) {
       if ((historyRows || []).length >= 10000) return reply(413, { error: "سجل التنبيهات تجاوز الحد الآمن للتحقق. لم يتم إصدار أي تنبيه." });
       const candidates = buildNoticeCandidates({
         attendance: attendanceRows, behaviors: behaviorRows, history: historyRows || [], roster: [],
-        selected_types: selectedTypes, threshold, period_end: issuedOn
+        selected_types: selectedTypes, threshold, period_end: rangeTo
       });
       if (!candidates.length) return reply(200, { issued: [], candidates: [], message: "لا يوجد طالب تجاوز الحد المحدد خلال الفترة الجديدة." });
       const delivered = body.delivered === true;
       const payload = candidates.map(candidate => ({
         class_name: candidate.class_name, student_name: candidate.student_name, issued_on: issuedOn,
         issued_by_type: p.type, issued_by_name: p.name, delivered, threshold,
-        period_start: candidate.period_start, period_end: issuedOn, selected_types: selectedTypes, events: candidate.events
+        period_start: rangeFrom, period_end: rangeTo, selected_types: selectedTypes, events: candidate.events
       }));
       const { data: issued, error: issueError } = await db.rpc("issue_student_affairs_notices", { p_items: payload });
       if (issueError) return reply(500, { error: "تعذر حفظ التنبيهات الرسمية. لم نعرضها على أنها معتمدة." });
