@@ -28,6 +28,22 @@ Deno.test("attendance events are deduplicated per student, class, date and statu
   ];
   if (countAttendanceIncidents(rows) !== 3) throw new Error("attendance deduplication failed");
 });
+Deno.test("absence counts once per day but escape and other attendance events count per period", () => {
+  const rows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} },
+    { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} }
+  ];
+  if (countAttendanceIncidents(rows) !== 5) throw new Error("daily absence or per-period attendance counting failed");
+  const counts = countAttendanceByStatus(rows);
+  if (counts.absent !== 1 || counts.escape !== 2 || counts.late !== 2) throw new Error("attendance status totals do not follow daily/per-period rules");
+});
+Deno.test("behavior violations are counted separately for each class period", () => {
+  const rows = [
+    { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"}} },
+    { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":{type:"talking"}} }
+  ];
+  if (countBehaviorIncidents(rows) !== 2 || countBehaviorByType(rows).talking !== 2) throw new Error("per-period behavior counting failed");
+});
 Deno.test("behavior events are deduplicated per student, class, date and type", () => {
   const rows = [
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":{type:"talking"},"طالب ب":{type:"normal"}} },
@@ -35,12 +51,14 @@ Deno.test("behavior events are deduplicated per student, class, date and type", 
   ];
   if (countBehaviorIncidents(rows) !== 2) throw new Error("behavior deduplication failed");
 });
-Deno.test("a team day requires all eight periods for every assigned class in both domains", () => {
+Deno.test("a team day requires all eight attendance periods, while missing behavior records mean zero", () => {
   const attendance = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
-  const behavior = getSessionCoverage(sessions("1/9"));
-  if (isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,behavior)) throw new Error("missing class sessions must not count as zero");
+  const noBehavior = getSessionCoverage([]);
+  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,noBehavior)) throw new Error("missing behavior must be treated as zero");
+  const partialAttendance = getSessionCoverage(sessions("1/9").slice(0,7));
+  if (isTeamDayComplete(["1/9"],"2026-11-08",partialAttendance,noBehavior)) throw new Error("unsaved attendance period must remain incomplete");
   const full = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
-  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,full)) throw new Error("complete day rejected");
+  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",full,noBehavior)) throw new Error("complete attendance day rejected");
 });
 Deno.test("team rates are the unweighted average of class rates, not student-weighted rates", () => {
   const team = buildTeamRates({
