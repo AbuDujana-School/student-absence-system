@@ -404,21 +404,39 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
     weeklyWins: {}, weeklyPoints: {}, weeklyHistory: [], completedWeeks: 0
   };
 }
-async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any) {
+async function readCompetitionTermSettings() {
+  const [{ data: calendar, error: calendarError }, { data: visibility, error: visibilityError }] = await Promise.all([
+    db.from("school_settings").select("value").eq("key", "competition_term_calendar").maybeSingle(),
+    db.from("school_settings").select("value").eq("key", "competition_visibility_mode").maybeSingle()
+  ]);
+  if (calendarError || visibilityError) throw calendarError || visibilityError;
+  const terms = (Array.isArray(calendar?.value) ? calendar.value : [])
+    .filter((term: any) => isValidIsoDate(term?.start) && isValidIsoDate(term?.end) && term.start <= term.end)
+    .sort((a: any, b: any) => String(a.start).localeCompare(String(b.start)))
+    .map((term: any) => ({ id: String(term.start), start: String(term.start), end: String(term.end), label: String(term.label || "الفصل الدراسي") }));
+  const today = getOmanIsoDate();
+  const currentTerm = terms.find((term: any) => term.start <= today && today <= term.end)
+    || terms.filter((term: any) => term.start <= today).sort((a: any, b: any) => String(b.start).localeCompare(String(a.start)))[0]
+    || terms[0];
+  if (!currentTerm) competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
+  return { terms, currentTerm, showBothTerms: visibility?.value?.showBothTerms === true };
+}
+async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, requestedTermId?: unknown) {
   if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
   const today = getOmanIsoDate();
-  const { data: setting, error: settingError } = await db.from("school_settings").select("value").eq("key", "competition_term_calendar").maybeSingle();
-  if (settingError) throw settingError;
-  const terms = Array.isArray(setting?.value) ? setting.value : [];
-  const activeTerm = terms.find((term: any) => typeof term?.start === "string" && typeof term?.end === "string" && term.start <= today && today <= term.end)
-    || terms.filter((term: any) => typeof term?.start === "string" && term.start <= today).sort((a: any, b: any) => String(b.start).localeCompare(String(a.start)))[0];
-  if (!activeTerm || !isValidIsoDate(activeTerm.start) || !isValidIsoDate(activeTerm.end)) {
-    competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
+  const termSettings = await readCompetitionTermSettings();
+  const { terms, currentTerm, showBothTerms } = termSettings;
+  const selectedTermId = String(requestedTermId || currentTerm.id);
+  const selectedTerm = terms.find((term: any) => term.id === selectedTermId);
+  if (!selectedTerm) competitionError(400, "الفصل الدراسي المطلوب غير موجود في تقويم المدرسة.");
+  if (principal.type !== "admin" && !showBothTerms && selectedTerm.id !== currentTerm.id) {
+    competitionError(403, "لا تملك صلاحية عرض نتائج فصل دراسي سابق.");
   }
-  const termTo = today > activeTerm.end ? activeTerm.end : today;
+  const visibleTerms = principal.type === "admin" || showBothTerms ? terms : [currentTerm];
+  const termTo = today > selectedTerm.end ? selectedTerm.end : today < selectedTerm.start ? selectedTerm.start : today;
   const { data: history, error } = await db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
-    .gte("week_start", activeTerm.start)
+    .gte("week_start", selectedTerm.start)
     .lte("week_end", termTo)
     .order("week_start", { ascending: true });
   if (error) throw error;
@@ -497,14 +515,14 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
   }));
   const earliestWeek = completed.length ? completed[0].week_start : null;
   const raw = {
-    from: activeTerm.start, to: termTo, termStart: activeTerm.start, termEnd: activeTerm.end,
-    termLabel: String(activeTerm.label || "الفصل الدراسي"), dataAvailableFrom: earliestWeek,
-    today, period: "term", status: completed.length ? "complete" : "no_completed_weeks",
+    from: selectedTerm.start, to: termTo, termStart: selectedTerm.start, termEnd: selectedTerm.end,
+    termLabel: selectedTerm.label, dataAvailableFrom: earliestWeek,
+    today, period: "term", status: selectedTerm.start > today ? "not_started" : completed.length ? "complete" : "no_completed_weeks",
     teams: rankedTeams, ownGrades: [], ownClasses: [], classComparison: allClasses,
     dailyProgress: [], weeklyWins, weeklyPoints, weeklyHistory,
     completedWeeks: completed.length
   };
-  return projectCompetitionResponse(raw, principal, permissions);
+  return { ...projectCompetitionResponse(raw, principal, permissions), terms: visibleTerms, currentTermId: currentTerm.id, selectedTermId: selectedTerm.id, showBothTerms };
 }
 async function finalizeCompetitionWeek() {
   const today = getOmanIsoDate();
@@ -1088,6 +1106,27 @@ async function handle(req: Request) {
     if (revokeError) throw revokeError;
     return reply(200, { ok: true, permissions: row });
   }
+  if (body?.action === "competition_settings") {
+    const permissions = await permissionsFor(p, true);
+    if (p.type !== "admin" && permissions?.can_view_competition !== true) return reply(403, { error: "لا تملك صلاحية مشاهدة إعدادات البطولة." });
+    const mode = String(body.mode || "read");
+    if (mode === "save") {
+      if (p.type !== "admin") return reply(403, { error: "تعديل إعدادات البطولة متاح لمدير النظام فقط." });
+      if (typeof body.showBothTerms !== "boolean") return reply(400, { error: "قيمة إتاحة نتائج الفصلين غير صالحة." });
+      const { error } = await db.from("school_settings").upsert({
+        key: "competition_visibility_mode",
+        value: { version: 1, showBothTerms: body.showBothTerms }
+      }, { onConflict: "key" });
+      if (error) throw error;
+    }
+    const settings = await readCompetitionTermSettings();
+    const visibleTerms = p.type === "admin" || settings.showBothTerms ? settings.terms : [settings.currentTerm];
+    return reply(200, {
+      terms: visibleTerms, currentTermId: settings.currentTerm.id,
+      selectedTermId: settings.currentTerm.id, showBothTerms: settings.showBothTerms,
+      canManage: p.type === "admin"
+    });
+  }
   if (body?.action === "competition") {
     const permissions = await permissionsFor(p, true);
     if (p.type !== "admin" && permissions?.can_view_competition !== true) {
@@ -1097,7 +1136,7 @@ async function handle(req: Request) {
       let snapshot: any;
       const period = String(body.period || "weekly");
       if (period === "weekly") snapshot = await getLatestWeeklyCompetition(p, permissions);
-      else if (period === "term") snapshot = await buildTermCompetitionSnapshot(p, permissions);
+      else if (period === "term") snapshot = await buildTermCompetitionSnapshot(p, permissions, body.termId);
       else {
         const live = await buildCompetitionSnapshot(p, permissions, body.from, body.to, period);
         snapshot = projectCompetitionResponse(live, p, permissions);
