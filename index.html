@@ -45,7 +45,7 @@
 #saNoticeModal{z-index:100000}
 #saNoticeModal .sa-notice-dialog{max-height:94vh;overflow:auto}
 #saNoticePrintRoot{font-family:'Tajawal',Arial,sans-serif}
-.sa-notice-page{width:min(100%,210mm);height:297mm;min-height:297mm;margin:0 auto 18px;padding:0;background:#fff;color:#172334;box-shadow:0 12px 36px rgba(15,23,42,.14);direction:rtl;display:flex;flex-direction:column;justify-content:space-between;gap:2mm}
+.sa-notice-page{width:min(100%,210mm);height:277mm;min-height:277mm;margin:0 auto 18px;padding:0;background:#fff;color:#172334;box-shadow:0 12px 36px rgba(15,23,42,.14);direction:rtl;display:flex;flex-direction:column;justify-content:space-between;gap:2mm}
 .sa-notice-card{position:relative;flex:1;min-height:0;border:1px solid #94a3b8;border-radius:4px;padding:2.2mm 3.2mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;break-inside:avoid;page-break-inside:avoid;background:#fff;color:#1f2937}
 .sa-notice-card.compact,.sa-notice-card.medium,.sa-notice-card.full{padding:2.2mm 3.2mm;font-size:8.4pt;line-height:1.2}
 .sa-notice-card .notice-heading{text-align:center;font-weight:800;line-height:1.18;margin-bottom:1mm;color:#111827}
@@ -3319,8 +3319,8 @@ function saStudentProfileStatus(message,isError=false){
 }
 function saStudentProfileAllowedClasses(){
   const p=saReportPermissions||{},out=[];
-  if(p.can_read_attendance===true&&p.can_print_attendance===true&&(p.attendance_statuses||[]).length)out.push(...saGetAllowedReportClasses("attendance"));
-  if(p.can_read_behavior===true&&p.can_print_behavior===true)out.push(...saGetAllowedReportClasses("behavior"));
+  if(p.can_read_attendance===true&&(p.attendance_statuses||[]).length)out.push(...saGetAllowedReportClasses("attendance"));
+  if(p.can_read_behavior===true)out.push(...saGetAllowedReportClasses("behavior"));
   return sortClassesList([...new Set(out.map(x=>String(x||"").trim()).filter(Boolean))]);
 }
 async function saLoadStudentProfileDirectory(){
@@ -3369,6 +3369,7 @@ function saBuildStudentProfileRows(attendance,behaviors){
   return rows.sort((a,b)=>a.date.localeCompare(b.date)||String(a.period).localeCompare(String(b.period),"ar",{numeric:true})||a.type.localeCompare(b.type));
 }
 let saNoticeProfileSelectedName="";
+let saStudentProfileCanPrint=false;
 function saStudentProfilePrintableHtml(className,name,rows,notices){
   const countByType=new Map();rows.forEach(row=>countByType.set(row.type,(countByType.get(row.type)||0)+1));
   const summary=[...countByType].map(([type,count])=>'<span class="summary-chip">'+escapeHtml(SA_NOTICE_LABELS[type]||type)+': '+count+'</span>').join(" ");
@@ -3383,21 +3384,23 @@ async function saLoadStudentNoticeProfile(){
   const className=document.getElementById("saStudentProfileClass")?.value||"",name=String(document.getElementById("saStudentProfileName")?.value||"").trim();
   const p=saReportPermissions||{};
   if(!className||!name){saStudentProfileStatus("حدد الصف واكتب اسم الطالب أو اختره من القائمة.",true);return;}
-  if(p.can_read_attendance!==true||p.can_read_behavior!==true||p.can_print_attendance!==true||p.can_print_behavior!==true){saStudentProfileStatus("يتطلب عرض وطباعة الملف صلاحية قراءة وطباعة سجلات الحضور والسلوك.",true);return;}
+  if(p.can_read_attendance!==true&&p.can_read_behavior!==true){saStudentProfileStatus("لا تملك صلاحية قراءة سجلات الحضور أو السلوك.",true);return;}
   const allowed=saStudentProfileAllowedClasses();if(!allowed.includes(className)){saStudentProfileStatus("الصف خارج نطاق صلاحياتك.",true);return;}
-  const attendanceAllowed=saGetAllowedReportClasses("attendance").includes(className),behaviorAllowed=saGetAllowedReportClasses("behavior").includes(className);
-  if(!attendanceAllowed||!behaviorAllowed){saStudentProfileStatus("لا تتوفر صلاحية قراءة المصدرين لهذا الصف.",true);return;}
+  const attendanceAllowed=p.can_read_attendance===true&&(p.attendance_statuses||[]).length>0&&saGetAllowedReportClasses("attendance").includes(className);
+  const behaviorAllowed=p.can_read_behavior===true&&saGetAllowedReportClasses("behavior").includes(className);
+  if(!attendanceAllowed&&!behaviorAllowed){saStudentProfileStatus("لا تتوفر صلاحية قراءة سجلات هذا الصف.",true);return;}
+  saStudentProfileCanPrint=(!attendanceAllowed||p.can_print_attendance===true)&&(!behaviorAllowed||p.can_print_behavior===true);
   saNoticeProfileSelectedName=name;const host=document.getElementById("saStudentProfileResult");host.classList.remove("hidden");host.innerHTML='<div class="p-4 text-sm font-bold text-slate-600">جارٍ جمع السجل التاريخي والتحقق من التنبيهات...</div>';
   try{
     const to=getOmanLocalDate(),jobs=[];for(let year=2000;year<=Number(to.slice(0,4));year++)jobs.push({from:year+"-01-01",to:year===Number(to.slice(0,4))?to:year+"-12-31",year});
-    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"notice_scan",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:(p.attendance_statuses||[]).filter(type=>["absent","late","escape","outside"].includes(type)),from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
+    const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"view",attendance_classes:attendanceAllowed?[className]:[],behavior_classes:behaviorAllowed?[className]:[],attendance_status_filters:attendanceAllowed?(p.attendance_statuses||[]).filter(type=>["absent","late","escape","outside"].includes(type)):[],from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
     const history=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],student_name:name,to});
     const directory=(Array.isArray(db?.students?.[className])?db.students[className]:[]).some(x=>String(x||"").trim()===name);
     if(!directory)throw new Error("لم يُعثر على الطالب بهذا الاسم في قائمة الصف المحدد. اختر اسماً من القائمة.");
     const rows=saBuildStudentProfileRows(attendance,behaviors),notices=(history?.notices||[]).filter(x=>String(x.student_name||"").trim()===name);
     const grouped=new Map();rows.forEach(row=>grouped.set(row.type,(grouped.get(row.type)||0)+1));
     const summary=[...grouped].map(([type,count])=>'<span class="inline-block rounded-lg border border-slate-200 bg-slate-50 px-2 py-1 m-1 text-[11px] font-bold">'+escapeHtml(SA_NOTICE_LABELS[type]||type)+' ('+count+')</span>').join("");
-    host.innerHTML='<div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div class="flex flex-wrap justify-between gap-2"><div><h4 class="font-black text-slate-900 dark:text-white">'+escapeHtml(name)+'</h4><p class="text-xs text-slate-500">'+escapeHtml(formatClassName(className))+' · '+rows.length+' واقعة · '+notices.length+' تنبيه رسمي</p></div><button type="button" onclick="saPrintStudentProfile()" class="rounded-xl bg-teal-700 px-4 py-2 text-xs font-black text-white"><i class="fa-solid fa-print ml-1"></i> طباعة / PDF</button></div><div class="mt-3">'+summary+'</div><div class="mt-4 overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="p-2 text-right">التاريخ</th><th class="p-2 text-right">الحصة</th><th class="p-2 text-right">المخالفة</th><th class="p-2 text-right">التفاصيل</th></tr></thead><tbody>'+rows.map(row=>'<tr class="border-t border-slate-200"><td class="p-2">'+escapeHtml(row.date)+'</td><td class="p-2">'+escapeHtml(row.period)+'</td><td class="p-2">'+escapeHtml(SA_NOTICE_LABELS[row.type]||row.type)+'</td><td class="p-2">'+escapeHtml(row.note||"—")+'</td></tr>').join("")+'</tbody></table></div><h5 class="mt-5 font-black">التنبيهات السابقة</h5><div class="mt-2 space-y-2">'+(notices.length?notices.map(n=>{
+    host.innerHTML='<div class="rounded-xl border border-slate-200 p-4 dark:border-slate-700"><div class="flex flex-wrap justify-between gap-2"><div><h4 class="font-black text-slate-900 dark:text-white">'+escapeHtml(name)+'</h4><p class="text-xs text-slate-500">'+escapeHtml(formatClassName(className))+' · '+rows.length+' واقعة · '+notices.length+' تنبيه رسمي</p></div>'+(saStudentProfileCanPrint?'<button type="button" onclick="saPrintStudentProfile()" class="rounded-xl bg-teal-700 px-4 py-2 text-xs font-black text-white"><i class="fa-solid fa-print ml-1"></i> طباعة / PDF</button>':'<span class="text-[11px] font-bold text-slate-500">عرض فقط — لا تتوفر صلاحية طباعة جميع المصادر</span>')+'</div><div class="mt-3">'+summary+'</div><div class="mt-4 overflow-x-auto"><table class="w-full text-xs"><thead><tr><th class="p-2 text-right">التاريخ</th><th class="p-2 text-right">الحصة</th><th class="p-2 text-right">المخالفة</th><th class="p-2 text-right">التفاصيل</th></tr></thead><tbody>'+rows.map(row=>'<tr class="border-t border-slate-200"><td class="p-2">'+escapeHtml(row.date)+'</td><td class="p-2">'+escapeHtml(row.period)+'</td><td class="p-2">'+escapeHtml(SA_NOTICE_LABELS[row.type]||row.type)+'</td><td class="p-2">'+escapeHtml(row.note||"—")+'</td></tr>').join("")+'</tbody></table></div><h5 class="mt-5 font-black">التنبيهات السابقة</h5><div class="mt-2 space-y-2">'+(notices.length?notices.map(n=>{
       const detail=(Array.isArray(n.events)?n.events:[]).map(event=>escapeHtml(SA_NOTICE_LABELS[event.type]||event.type)+" · "+escapeHtml(String(event.date||""))+" · الحصة "+escapeHtml(saNoticePeriodLabel(event.period))).join("، ");
       return '<div class="rounded-lg bg-slate-50 p-3 text-xs dark:bg-slate-800"><strong>تنبيه رقم ('+escapeHtml(String(n.issue_number))+')</strong> · '+escapeHtml(n.issued_on)+' · '+(n.delivered?"تم التسليم":"لم يؤكد التسليم")+'<div class="mt-1 text-slate-500">أصدره: '+escapeHtml(n.issued_by_name||"—")+' · '+(n.events||[]).length+' واقعة</div><div class="mt-2 leading-6">'+(detail||"لا تتوفر تفاصيل ظاهرة ضمن صلاحياتك.")+'</div></div>';
     }).join(""):'<p class="text-xs text-slate-500">لا توجد تنبيهات رسمية مسجلة لهذا الطالب.</p>')+'</div></div>';
@@ -3406,7 +3409,7 @@ async function saLoadStudentNoticeProfile(){
   }catch(error){host.innerHTML="";saStudentProfileStatus(error?.message||"تعذر تحميل الملف التفصيلي.",true);}
 }
 function saPrintStudentProfile(){
-  const root=document.getElementById("saStudentProfilePrintRoot");if(!root?.innerHTML){saStudentProfileStatus("حمّل ملف الطالب أولاً قبل الطباعة.",true);return;}
+  const root=document.getElementById("saStudentProfilePrintRoot");if(!saStudentProfileCanPrint){saStudentProfileStatus("لا تتوفر صلاحية طباعة جميع مصادر هذا الملف.",true);return;}if(!root?.innerHTML){saStudentProfileStatus("حمّل ملف الطالب أولاً قبل الطباعة.",true);return;}
   const w=window.open("about:blank","_blank");if(!w){saStudentProfileStatus("اسمح بالنوافذ المنبثقة لطباعة التقرير.",true);return;}
   w.document.open();w.document.write(root.innerHTML);w.document.close();
 }
