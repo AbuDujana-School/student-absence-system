@@ -3279,11 +3279,8 @@ function saNoticeBackToConfig(){
   document.getElementById("saNoticePrintRoot").innerHTML="";
 }
 function saNoticeStartYear(){
-  const keys=[...Object.keys(db?.attendance||{}),...Object.keys(db?.behaviors||{})],dates=[];
-  keys.forEach(key=>{const match=String(key).match(/^(\d{4}-\d{2}-\d{2})_/);if(match&&/^\d{4}-\d{2}-\d{2}$/.test(match[1]))dates.push(match[1]);});
-  if(!dates.length)return 2000;
-  const earliest=dates.reduce((a,b)=>a<b?a:b);
-  return Math.max(2000,Number(earliest.slice(0,4))||2000);
+  // Local caches may omit archived records; query the full supported historical range from the reporting service.
+  return 2000;
 }
 function saNoticePeriodLabel(session){
   let value=session?.period;
@@ -3335,7 +3332,7 @@ function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedS
     Object.entries(records).forEach(([rawName,rawValue])=>{
       const name=saNoticeResolveStudentName(className,rawName);
       if(!name||name==="undefined"||name==="null"){ignored++;return;}
-      const status=typeof rawValue==="string"?rawValue:String(rawValue?.status||rawValue?.type||"");
+      const status=typeof rawValue==="string"?rawValue:(rawValue&&typeof rawValue==="object"?String(rawValue.status||rawValue.type||""):"");
       if(!validAttendance.has(status)||!allowedStatuses.includes(status))return;
       if(status==="absent"){
         const daily=[className,name,String(session.date_str||"")].join(String.fromCharCode(31));
