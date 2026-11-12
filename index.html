@@ -3334,7 +3334,7 @@ async function saLoadStudentProfileDirectory(){
   list.innerHTML="";saStudentProfileStatus("جارٍ تحميل أسماء الطلاب من الصف المحدد...");
   try{
     const result=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],to:getOmanLocalDate()});
-    const names=[...new Set((result?.students||[]).map(x=>String(x.student_name||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
+    const names=[...new Set((Array.isArray(db?.students?.[className])?db.students[className]:[]).map(x=>String(x||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
     list.innerHTML=names.map(name=>'<option value="'+escapeHtml(name)+'"></option>').join("");
     saStudentProfileStatus("تم تحميل "+names.length+" طالباً من الصف "+formatClassName(className)+".");
   }catch(error){saStudentProfileStatus(error?.message||"تعذر تحميل قائمة الطلاب.",true);}
@@ -3390,7 +3390,7 @@ async function saLoadStudentNoticeProfile(){
     const to=getOmanLocalDate(),jobs=[];for(let year=2000;year<=Number(to.slice(0,4));year++)jobs.push({from:year+"-01-01",to:year===Number(to.slice(0,4))?to:year+"-12-31",year});
     const attendance=[],behaviors=[];for(const job of jobs){const result=await saRequest({action:"reports",report_mode:"print_combined",attendance_classes:[className],behavior_classes:[className],attendance_status_filters:["absent","late","escape","outside"],from:job.from,to:job.to});const a=result?.attendance||[],b=result?.behaviors||[];if(a.length>=5000||b.length>=5000)throw new Error("تجاوزت سجلات سنة "+job.year+" الحد الآمن. لم نعرض ملفاً قد يكون ناقصاً.");if(a.some(x=>String(x.class_name||"")!==className)||b.some(x=>String(x.class_name||"")!==className))throw new Error("تضمن الرد سجلات من صف خارج النطاق.");attendance.push(...a);behaviors.push(...b);}
     const history=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:[className],student_name:name,to});
-    const directory=(history?.students||[]).some(x=>String(x.student_name||"").trim()===name);
+    const directory=(Array.isArray(db?.students?.[className])?db.students[className]:[]).some(x=>String(x||"").trim()===name);
     if(!directory)throw new Error("لم يُعثر على الطالب بهذا الاسم في قائمة الصف المحدد. اختر اسماً من القائمة.");
     const rows=saBuildStudentProfileRows(attendance,behaviors),notices=(history?.notices||[]).filter(x=>String(x.student_name||"").trim()===name);
     const grouped=new Map();rows.forEach(row=>grouped.set(row.type,(grouped.get(row.type)||0)+1));
