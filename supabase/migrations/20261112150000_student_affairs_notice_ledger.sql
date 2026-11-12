@@ -47,6 +47,8 @@ declare
   v_student text;
   v_next_number integer;
   v_delivered boolean;
+  v_last_issued_on date;
+  v_new_events jsonb;
 begin
   if jsonb_typeof(p_items) <> 'array' or jsonb_array_length(p_items) < 1 or jsonb_array_length(p_items) > 1000 then
     raise exception 'Invalid notice batch';
@@ -70,6 +72,34 @@ begin
     end if;
 
     perform pg_advisory_xact_lock(hashtextextended(v_class || chr(31) || v_student, 0));
+
+    select max(issued_on)
+      into v_last_issued_on
+      from public.student_affairs_notice_issues
+      where class_name = v_class and student_name = v_student;
+
+    -- Re-check the monitoring window under the per-student lock. This prevents
+    -- concurrent official print requests from duplicating the same notice/events.
+    select coalesce(jsonb_agg(candidate.event), '[]'::jsonb)
+      into v_new_events
+      from jsonb_array_elements(v_item->'events') as candidate(event)
+      where (v_last_issued_on is null or (candidate.event->>'date')::date > v_last_issued_on)
+        and not exists (
+          select 1
+            from public.student_affairs_notice_issues prior
+            cross join lateral jsonb_array_elements(prior.events) as old(event)
+           where prior.class_name = v_class
+             and prior.student_name = v_student
+             and old.event->>'type' = candidate.event->>'type'
+             and old.event->>'date' = candidate.event->>'date'
+             and old.event->>'period' = candidate.event->>'period'
+             and coalesce(old.event->>'note', '') = coalesce(candidate.event->>'note', '')
+        );
+
+    if jsonb_array_length(v_new_events) < (v_item->>'threshold')::integer then
+      continue;
+    end if;
+
     select coalesce(max(issue_number), 0) + 1
       into v_next_number
       from public.student_affairs_notice_issues
@@ -83,9 +113,9 @@ begin
       v_item->>'issued_by_type', btrim(v_item->>'issued_by_name'),
       v_delivered, case when v_delivered then now() else null end,
       (v_item->>'threshold')::smallint,
-      nullif(v_item->>'period_start', '')::date,
+      case when v_last_issued_on is null then nullif(v_item->>'period_start', '')::date else v_last_issued_on + 1 end,
       (v_item->>'period_end')::date,
-      v_item->'selected_types', v_item->'events'
+      v_item->'selected_types', v_new_events
     )
     returning * into v_row;
 
