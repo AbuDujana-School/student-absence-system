@@ -94,7 +94,9 @@
  body.sa-notice-print-mode .sa-notice-screen-summary{display:none!important}
  body.sa-notice-print-mode #saNoticePreviewPanel{display:block!important;margin:0!important;padding:0!important}
  body.sa-notice-print-mode #saNoticePrintRoot{display:block!important;width:100%!important;margin:0!important;padding:0!important}
- .sa-notice-page{width:100%!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:2mm!important;break-after:page;page-break-after:always}
+ .sa-notice-page{box-sizing:border-box!important;width:100%!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:2mm!important;break-after:page;page-break-after:always}
+ .sa-notice-card{box-sizing:border-box!important;min-height:0!important;max-height:none!important;flex:1 1 0!important;overflow:hidden!important}
+ .sa-notice-card .notice-items li{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
  .sa-notice-page:last-child{break-after:auto!important;page-break-after:auto!important}
  .sa-notice-card.fit-tight .notice-items li{margin:.5mm 0!important}
  .sa-notice-card.fit-tight .notice-intro,.sa-notice-card.fit-tight .notice-conclusion{margin:.7mm 0!important}
@@ -168,6 +170,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading,
 body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   color:#111!important;background:#fff!important;background-image:none!important;
   border-color:#d1d5db!important;box-shadow:none!important;text-shadow:none!important;
+}
+#saNoticePrintRoot .sa-notice-card > div:first-child{
+  display:flex!important;flex:1 1 auto!important;min-height:0!important;flex-direction:column!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-items{
+  display:flex!important;flex:1 1 auto!important;min-height:0!important;
+  flex-direction:column!important;justify-content:space-evenly!important;
 }
 #saNoticePrintRoot .sa-notice-card .notice-heading{
   padding:0!important;border:0!important;border-radius:0!important;
@@ -4004,12 +4013,13 @@ function saNoticeFitCards(){
     if(density>8)font=8.4;
     if(density>12)font=7.8;
     if(density>18)font=7.2;
-    card.style.fontSize=font+"pt";
+    // Inline !important overrides density presets so measured fitting really takes effect.
+    card.style.setProperty("font-size",font+"pt","important");
     const levels=[
-      {line:1.34,item:1.05,block:1.15,pad:2.2},
-      {line:1.22,item:.7,block:.8,pad:1.7},
-      {line:1.12,item:.35,block:.45,pad:1.2},
-      {line:1.04,item:.15,block:.2,pad:.8},
+      {line:1.48,item:1.4,block:1.5,pad:2.4},
+      {line:1.32,item:.9,block:1,pad:1.9},
+      {line:1.18,item:.45,block:.55,pad:1.3},
+      {line:1.06,item:.15,block:.2,pad:.8},
       {line:.98,item:0,block:0,pad:.5}
     ];
     let fitted=false;
@@ -4024,9 +4034,20 @@ function saNoticeFitCards(){
       // Measure after layout so the entire original text must fit; nothing is hidden or truncated.
       void card.offsetHeight;
       const content=card.firstElementChild;
+      const footer=card.querySelector(".notice-signatures");
+      const list=card.querySelector(".notice-items");
+      const listFits=!list||list.scrollHeight<=list.clientHeight+1;
       const contentHeight=content?content.scrollHeight:card.scrollHeight;
       const available=content?content.clientHeight:card.clientHeight;
-      if(contentHeight<=available+2&&card.scrollHeight<=card.clientHeight+2){fitted=true;break;}
+      const cardRect=card.getBoundingClientRect();
+      const footerRect=footer?footer.getBoundingClientRect():null;
+      const contentRect=content?content.getBoundingClientRect():null;
+      // Verify the full body, signature position and card bounds; never clip omitted text.
+      const bodyFits=contentHeight<=available+1;
+      const footerFits=!footerRect||footerRect.bottom<=cardRect.bottom+1;
+      const bodyDoesNotCollide=!contentRect||!footerRect||contentRect.bottom<=footerRect.top+1;
+      const cardFits=card.scrollHeight<=card.clientHeight+1;
+      if(bodyFits&&listFits&&footerFits&&bodyDoesNotCollide&&cardFits){fitted=true;break;}
     }
     if(!fitted){card.dataset.fitFailed="true";overflow++;}
   });
