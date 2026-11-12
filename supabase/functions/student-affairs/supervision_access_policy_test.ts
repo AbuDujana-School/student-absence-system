@@ -3,6 +3,7 @@ import {
   buildVisitorAccess,
   projectSupervisionReportPermissions,
   resolveSupervisionTeacher,
+  resolveTeamLeader,
 } from "./supervision_access_policy.ts";
 
 const colleague = {
@@ -38,6 +39,19 @@ Deno.test("visitor has global read, analytics and print access without owned cla
   assertEquals(permissions.can_view_analytics, true);
   assertEquals(permissions.can_print_combined, true);
   assertEquals(permissions.competition_participant, false);
+});
+
+Deno.test("supervisor assignment resolves only an active team leader and inherits the leader's team", () => {
+  const leaders = [
+    { name: "قائد نشط", role: "team_leader", studentAffairs: true, teamName: "فريق التاسع" },
+    { name: "قائد غير مفعل", role: "team_leader", studentAffairs: false, teamName: "فريق آخر" },
+    { name: "معلم عادي", role: "supervisor", studentAffairs: true, teamName: "فريق التاسع" },
+  ];
+  assertEquals(resolveTeamLeader("قائد نشط", "معلم مشرف", leaders), leaders[0]);
+  assertEquals(resolveTeamLeader("قائد غير مفعل", "معلم مشرف", leaders), null);
+  assertEquals(resolveTeamLeader("معلم عادي", "معلم مشرف", leaders), null);
+  assertEquals(resolveTeamLeader("قائد نشط", "قائد نشط", leaders), null);
+  assertEquals(resolveTeamLeader("", "معلم مشرف", leaders), null);
 });
 
 Deno.test("colleague report scope does not overwrite leader ownership", () => {
