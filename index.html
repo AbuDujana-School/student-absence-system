@@ -1838,8 +1838,8 @@
           <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mb-2">
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-700/60">
               <div>
-                <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600"></i> اتجاه الغياب، التأخر، التسرب، والخروج</h2>
-                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">مخطط زمني تفاعلي يعرض أعداد الحالات المسجلة فعلياً حسب الفترة المحددة</p>
+                <h2 class="text-lg font-bold text-slate-800 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-area text-teal-600"></i> الاتجاه الزمني للغياب والسلوكيات</h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">مخطط تفاعلي موحّد: مساحة السلوكيات في الخلفية وأربعة خطوط لحالات الغياب والانضباط</p>
               </div>
               <div class="flex flex-wrap items-center gap-2 bg-slate-50 dark:bg-slate-900/50 p-2 rounded-xl border border-slate-200 dark:border-slate-700 text-xs">
                 <label for="analyticsStartDate" class="font-medium text-slate-600 dark:text-slate-300">من:</label>
@@ -1849,11 +1849,12 @@
                 <button type="button" onclick="applyAdvancedAnalyticsDateFilter()" class="bg-blue-600 hover:bg-blue-700 text-white font-medium px-3.5 py-1.5 rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"><i class="fa-solid fa-rotate"></i> تحديث المخطط</button>
               </div>
             </div>
-            <div class="flex flex-wrap items-center justify-end gap-3 mb-4 text-xs font-semibold">
-              <span class="flex items-center gap-1.5 text-red-500 bg-red-50 dark:bg-red-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> غياب</span>
-              <span class="flex items-center gap-1.5 text-amber-500 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span> تأخر</span>
-              <span class="flex items-center gap-1.5 text-purple-500 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-purple-500 inline-block"></span> تسرب</span>
-              <span class="flex items-center gap-1.5 text-blue-500 bg-blue-50 dark:bg-blue-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> خروج</span>
+            <div class="flex flex-wrap items-center justify-end gap-2 mb-4 text-xs font-semibold">
+              <span class="flex items-center gap-1.5 text-teal-700 bg-teal-50 dark:bg-teal-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-sm inline-block" style="background:#168C85"></span> السلوكيات المخالفة (مساحة)</span>
+              <span class="flex items-center gap-1.5 text-slate-700 bg-slate-100 dark:bg-slate-800 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full inline-block" style="background:#0f172a"></span> الغياب</span>
+              <span class="flex items-center gap-1.5 text-red-600 bg-red-50 dark:bg-red-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full inline-block" style="background:#dc2626"></span> التسرب</span>
+              <span class="flex items-center gap-1.5 text-amber-600 bg-amber-50 dark:bg-amber-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full inline-block" style="background:#f59e0b"></span> التأخر</span>
+              <span class="flex items-center gap-1.5 text-purple-600 bg-purple-50 dark:bg-purple-950/40 px-3 py-1.5 rounded-lg"><span class="w-3 h-3 rounded-full inline-block" style="background:#9333ea"></span> الخروج</span>
             </div>
             <p id="advancedAnalyticsDataNote" class="text-xs text-slate-500 dark:text-slate-400 px-1">تُعرض البيانات المسجلة فعلياً فقط؛ لا تُستخدم أرقام افتراضية.</p>
             <div class="relative h-80 w-full mt-3"><canvas id="analyticsAttendanceChart"></canvas></div>
@@ -1863,10 +1864,6 @@
             <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
               <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مؤشر تغطية رصد الحصص</h3><p class="text-xs text-slate-400">نسبة الحصص التي تحتوي على رصد فعلي من إجمالي الحصص المتوقعة لكل يوم</p></div>
               <div class="relative h-64"><canvas id="analyticsTeacherChart"></canvas></div>
-            </div>
-            <div class="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-              <div class="mb-4"><h3 class="text-base font-bold text-slate-800 dark:text-white">مسار المخالفات السلوكية اليومية</h3><p class="text-xs text-slate-400">عدد سجلات السلوك غير الطبيعي المسجلة لكل يوم</p></div>
-              <div class="relative h-64"><canvas id="analyticsBehaviorChart"></canvas></div>
             </div>
             <div class="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 mb-2 lg:col-span-2" dir="rtl">
               <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-100 dark:border-slate-700/60">
@@ -4799,9 +4796,10 @@ function updateAdvancedAnalytics() {
     const className = session.className || parsed.className || 'غير محدد';
     const period = Number(session.period || parsed.period || 0);
     Object.entries(session.records).forEach(([student, record]) => {
-      if (!record || typeof record !== 'object' || !record.type || record.type === 'normal') return;
-      daily.get(date).behavior++;
-      // السلوكيات تبقى ضمن مخططها المستقل ولا تدخل في مقارنة حالات الحضور الأربع.
+      // احتساب كل نوع سلوكي مخالف مسجل للطالب في الحصة، مع استبعاد حالة الانضباط.
+      const behaviorTypes = getBehaviorTypesFromRecord(record);
+      if (!behaviorTypes.length) return;
+      daily.get(date).behavior += behaviorTypes.length;
     });
   });
 
@@ -4837,25 +4835,43 @@ function updateAdvancedAnalytics() {
       x: { grid: { display: false }, ticks: { font: chartFont(10), maxRotation: 45, minRotation: 0 } }
     }
   };
+  const trendCanvas = document.getElementById('analyticsAttendanceChart');
+  const trendContext = trendCanvas?.getContext('2d');
+  const behaviorAreaGradient = trendContext
+    ? trendContext.createLinearGradient(0, 0, 0, Math.max(trendCanvas.clientHeight || 320, 220))
+    : 'rgba(22,140,133,.22)';
+  if (behaviorAreaGradient && typeof behaviorAreaGradient.addColorStop === 'function') {
+    behaviorAreaGradient.addColorStop(0, 'rgba(22,140,133,.42)');
+    behaviorAreaGradient.addColorStop(.55, 'rgba(22,140,133,.16)');
+    behaviorAreaGradient.addColorStop(1, 'rgba(22,140,133,0)');
+  }
   const attendanceConfig = {
     type: 'line',
     data: { labels, datasets: [
-      { label: 'غياب', data: absent, borderColor: '#ef4444', backgroundColor: '#ef4444', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 },
-      { label: 'تأخر', data: late, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 },
-      { label: 'تسرب', data: escape, borderColor: '#8b5cf6', backgroundColor: '#8b5cf6', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 },
-      { label: 'خروج', data: outside, borderColor: '#3b82f6', backgroundColor: '#3b82f6', borderWidth: 2.5, tension: .3, pointRadius: 6, pointHoverRadius: 8, pointBackgroundColor: '#ffffff', pointBorderWidth: 2.5 }
+      { label: 'السلوكيات المخالفة', data: behavior, borderColor: '#168C85', backgroundColor: behaviorAreaGradient, borderWidth: 2.5, fill: true, tension: .4, pointRadius: 2.5, pointHoverRadius: 6, pointBackgroundColor: '#168C85', pointBorderColor: '#ffffff', pointBorderWidth: 1.5, order: 10 },
+      { label: 'الغياب', data: absent, borderColor: '#0f172a', backgroundColor: '#0f172a', borderWidth: 2.5, fill: false, tension: .3, pointRadius: 3, pointHoverRadius: 7, pointBackgroundColor: '#ffffff', pointBorderColor: '#0f172a', pointBorderWidth: 2, order: 1 },
+      { label: 'التسرب', data: escape, borderColor: '#dc2626', backgroundColor: '#dc2626', borderWidth: 2.5, fill: false, tension: .3, pointRadius: 3, pointHoverRadius: 7, pointBackgroundColor: '#ffffff', pointBorderColor: '#dc2626', pointBorderWidth: 2, order: 1 },
+      { label: 'التأخر', data: late, borderColor: '#f59e0b', backgroundColor: '#f59e0b', borderWidth: 2.5, fill: false, tension: .3, pointRadius: 3, pointHoverRadius: 7, pointBackgroundColor: '#ffffff', pointBorderColor: '#f59e0b', pointBorderWidth: 2, order: 1 },
+      { label: 'الخروج', data: outside, borderColor: '#9333ea', backgroundColor: '#9333ea', borderWidth: 2.5, fill: false, tension: .3, pointRadius: 3, pointHoverRadius: 7, pointBackgroundColor: '#ffffff', pointBorderColor: '#9333ea', pointBorderWidth: 2, order: 1 }
     ] },
-    options: { ...commonOptions, plugins: { ...commonOptions.plugins, legend: { display: false }, tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(15,23,42,.9)', titleFont: chartFont(13), bodyFont: chartFont(12), padding: 10, cornerRadius: 8 } } }
+    options: {
+      ...commonOptions,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        ...commonOptions.plugins,
+        legend: { display: true, position: 'bottom', labels: { color: '#64748b', padding: 14, usePointStyle: true, pointStyle: 'circle', boxWidth: 9, font: chartFont(11, '700') } },
+        tooltip: { mode: 'index', intersect: false, backgroundColor: 'rgba(15,23,42,.95)', titleFont: chartFont(13), bodyFont: chartFont(12), padding: 11, cornerRadius: 9 }
+      },
+      scales: {
+        ...commonOptions.scales,
+        y: { ...commonOptions.scales.y, beginAtZero: true, ticks: { ...commonOptions.scales.y.ticks, precision: 0 } }
+      }
+    }
   };
   const teacherConfig = {
     type: 'line',
     data: { labels, datasets: [{ label: 'تغطية رصد الحصص %', data: coverage, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,.13)', fill: true, borderWidth: 3, tension: .3, pointRadius: 3 }] },
     options: { ...commonOptions, scales: { ...commonOptions.scales, y: { ...commonOptions.scales.y, min: 0, max: 100, ticks: { font: chartFont(10), callback: value => value + '%' } } } }
-  };
-  const behaviorConfig = {
-    type: 'bar',
-    data: { labels, datasets: [{ label: 'المخالفات السلوكية', data: behavior, backgroundColor: '#f59e0b', borderRadius: 6 }] },
-    options: commonOptions
   };
   const gradeConfig = {
     type: 'bar',
@@ -4877,7 +4893,6 @@ function updateAdvancedAnalytics() {
   [
     ['analyticsAttendanceChart', attendanceConfig],
     ['analyticsTeacherChart', teacherConfig],
-    ['analyticsBehaviorChart', behaviorConfig],
     ['analyticsGradeChart', gradeConfig]
   ].forEach(([id, config]) => {
     if (chartInstances[id]) {
