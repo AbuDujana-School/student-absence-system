@@ -33,7 +33,7 @@ Deno.test("absence and lateness remain daily while escape counts per period", ()
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} },
     { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape","طالب ج":"late"} }
   ];
-  if (countAttendanceIncidents(rows) !== 5) throw new Error("daily absence/late and per-period escape counting failed");
+  if (countAttendanceIncidents(rows) !== 4) throw new Error("daily absence/late and per-period escape counting failed");
   const counts = countAttendanceByStatus(rows);
   if (counts.absent !== 1 || counts.escape !== 2 || counts.late !== 1) throw new Error("attendance status totals do not follow daily/per-period rules");
 });
