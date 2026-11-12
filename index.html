@@ -3541,6 +3541,7 @@ function saRenderCompetition(data){
   if(status){
     const messages={
       no_participants:"لا يوجد معلمون مشاركون مخوّلون في بطولة الانضباط حالياً.",
+      incomplete:"تظهر أدناه المؤشرات الأولية للصفوف المسجلة في السباق. لا يوجد ترتيب أو مستوى نهائي حتى يكتمل تسجيل الأيام المطلوبة وتعتمد النتيجة.",
       not_started:"لم يبدأ الفصل الدراسي المحدد بعد؛ ستظهر نتائجه عند بدء الفصل وتسجيل الأسابيع المعتمدة.",
       awaiting_first_result:"لم تُعتمد نتيجة أسبوعية لهذا الفصل بعد. ستظهر بعد إقفال الأسبوع واكتمال سجلاته.",
       awaiting_baseline:"تُستكمل حالياً الأسابيع الأربعة الأولى لبناء خط أساس عادل. يبدأ ترتيب التحسن بعد اكتمالها.",
@@ -3553,7 +3554,7 @@ function saRenderCompetition(data){
   }
   const rangeLabel=document.getElementById("saCompetitionRangeLabel");
   if(rangeLabel){
-    const label=period==="weekly"?"النتيجة الأسبوعية المعتمدة":period==="monthly"?"حصاد أربعة أسابيع معتمدة":"النتائج التراكمية للفصل";
+    const label=data?.status==="incomplete"&&period==="weekly"?"مؤشرات الأسبوع الأولية · غير معتمدة":period==="weekly"?"النتيجة الأسبوعية المعتمدة":period==="monthly"?"حصاد أربعة أسابيع معتمدة":"النتائج التراكمية للفصل";
     rangeLabel.textContent=label+(data?.termLabel?" · "+data.termLabel:"");
   }
   const classProgress=document.getElementById("saCompetitionClassProgress");
