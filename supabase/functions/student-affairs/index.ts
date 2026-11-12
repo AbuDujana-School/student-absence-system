@@ -817,7 +817,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "supervision_trend") {
     const permissions = await permissionsFor(p);
-    if (p.type !== "admin" && permissions.can_view_analytics !== true) return reply(403, { error: "غير مصرح بعرض مؤشر الأداء" });
+    if (p.type !== "admin" && permissions.can_view_analytics !== true && !["team_leader", "visitor"].includes(permissions.role)) return reply(403, { error: "غير مصرح بعرض مؤشر الأداء" });
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? new Date().toISOString().slice(0, 10) : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
