@@ -2842,7 +2842,7 @@ function saLoadPerson(){
   document.getElementById("saSupervisionRole")?.closest(".rounded-2xl")?.classList.toggle("hidden",type!=="teacher");saToggleSupervisionFields();
   document.getElementById("saCompetitionTeamSettings")?.classList.toggle("hidden",type!=="teacher");
   document.getElementById("saCompetitionParticipant").checked=person?.permissions?.competition_participant===true;document.getElementById("saCompetitionTeamName").value=person?.permissions?.competition_team_name||"";
-  const allCompetitionClasses=sortClassesList(saAdminData.classes.map(c=>c.name)),personalClasses=new Set([...(saved.allowed_attendance_classes??saved.allowed_classes??[]),...(saved.allowed_behavior_classes??saved.allowed_classes??[])]),competitionOptions=person?.permissions?.student_affairs_role==="team_leader"?allCompetitionClasses.filter(name=>personalClasses.has(name)):allCompetitionClasses;
+  const allCompetitionClasses=sortClassesList(saAdminData.classes.map(c=>c.name)),personalClasses=new Set([...(saved.allowed_attendance_classes??saved.allowed_classes??[]),...(saved.allowed_behavior_classes??saved.allowed_classes??[])]),competitionOptions=document.getElementById("saSupervisionRole")?.value==="team_leader"?allCompetitionClasses.filter(name=>personalClasses.has(name)):allCompetitionClasses;
   saChecks("saCompetitionClasses",competitionOptions.map(name=>[name,name]),"sa-competition-class",(person?.permissions?.competition_team_classes||[]).filter(name=>competitionOptions.includes(name)));
   saToggleCompetitionTeamFields();
   const ac=saved.allowed_attendance_classes??saved.allowed_classes??[],bc=saved.allowed_behavior_classes??saved.allowed_classes??[],st=saved.attendance_statuses??["absent","late","escape","outside"];
