@@ -85,3 +85,17 @@ Deno.test("behavior reports preserve and expand multiple violation types while s
   if (behaviorTypesFromRecord(filtered.A).join(",") !== "eating,talking") throw new Error("multiple types were not preserved");
   if (behaviorTypesFromRecord(filtered.B).join(",") !== "sleeping") throw new Error("legacy behavior record was not preserved");
 });
+
+Deno.test("notice history requires at least one source read permission", () => {
+  if (authorizeReportMode({}, "notice_history")?.status !== 403) throw new Error("notice history allowed without source permission");
+  if (authorizeReportMode({ can_read_attendance: true }, "notice_history") !== null) throw new Error("attendance-only notice history access denied");
+});
+Deno.test("official notice issue requires at least one source print permission; selected source is checked by handler", () => {
+  if (authorizeReportMode({ can_read_attendance: true }, "notice_issue_commit")?.status !== 403) throw new Error("official notice issue allowed without print permission");
+  if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "notice_issue_commit") !== null) throw new Error("attendance-only official notice issue denied");
+});
+
+Deno.test("notice scan allows only a source with both read and print permission", () => {
+  if (authorizeReportMode({ can_read_attendance: true }, "notice_scan")?.status !== 403) throw new Error("notice scan allowed without print permission");
+  if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "notice_scan") !== null) throw new Error("attendance-only notice scan denied");
+});

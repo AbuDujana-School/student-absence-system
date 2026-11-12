@@ -44,8 +44,17 @@ export function authorizeReportMode(p: ReportPermissions, mode: string): Authori
   const readBehavior = p.can_read_behavior === true;
   const printAttendance = p.can_print_attendance === true && readAttendance;
   const printBehavior = p.can_print_behavior === true && readBehavior;
-  if (!["view", "analytics", "print_attendance", "print_behavior", "print_combined"].includes(mode)) {
+  if (!["view", "analytics", "print_attendance", "print_behavior", "print_combined", "notice_history", "notice_scan", "notice_issue_commit"].includes(mode)) {
     return { status: 400, message: "نوع التقرير غير صالح" };
+  }
+  if (mode === "notice_scan" && !((readAttendance && printAttendance) || (readBehavior && printBehavior))) {
+    return { status: 403, message: "غير مصرح بفحص سجلات التنبيهات" };
+  }
+  if (mode === "notice_history" && !readAttendance && !readBehavior) {
+    return { status: 403, message: "غير مصرح بعرض سجل التنبيهات" };
+  }
+  if (mode === "notice_issue_commit" && !(printAttendance || printBehavior)) {
+    return { status: 403, message: "غير مصرح بإصدار التنبيهات الرسمية" };
   }
   if (mode === "view" && !readAttendance && !readBehavior) {
     return { status: 403, message: "لا تملك صلاحية عرض التقارير" };
