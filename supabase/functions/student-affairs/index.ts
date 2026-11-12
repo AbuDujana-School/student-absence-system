@@ -837,13 +837,13 @@ async function handle(req: Request) {
       }, ...(permissions.team_members || [])];
       attendanceClasses = [...(permissions.own_allowed_attendance_classes || []), ...(permissions.team_allowed_attendance_classes || [])];
       behaviorClasses = [...(permissions.own_allowed_behavior_classes || []), ...(permissions.team_allowed_behavior_classes || [])];
-    } else if (scope === "teacher" && p.type !== "admin" && ["team_leader", "visitor"].includes(permissions.role)) {
+    } else if (scope === "teacher" && (p.type === "admin" || ["team_leader", "visitor"].includes(permissions.role))) {
       const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, String(body.teacher_name || ""), permissions.team_members || [], permissions.teacher_directory || []);
       if (!target) return reply(403, { error: permissions.role === "visitor" ? "هذا المعلم غير موجود ضمن معلمي شؤون الطلبة." : "هذا المعلم ليس ضمن فريقك" });
       selectedMembers = [target];
       attendanceClasses = target.allowed_attendance_classes || [];
       behaviorClasses = target.allowed_behavior_classes || [];
-    } else if (scope === "all" && p.type !== "admin" && permissions.role === "visitor") {
+    } else if (scope === "all" && (p.type === "admin" || permissions.role === "visitor")) {
       selectedMembers = permissions.teacher_directory || [];
       attendanceClasses = selectedMembers.flatMap((item: any) => item.allowed_attendance_classes || []);
       behaviorClasses = selectedMembers.flatMap((item: any) => item.allowed_behavior_classes || []);
