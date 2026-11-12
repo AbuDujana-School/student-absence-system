@@ -1333,7 +1333,7 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
       <div class="border-b border-slate-100 bg-white px-4 py-5 dark:border-slate-800 dark:bg-slate-900 sm:px-6">
         <div class="mx-auto flex max-w-xl items-center justify-center gap-4 rounded-2xl border border-amber-200 bg-gradient-to-l from-amber-50 via-white to-teal-50 px-5 py-4 text-center shadow-sm dark:border-amber-900/60 dark:from-slate-800 dark:via-slate-900 dark:to-teal-950/30">
           <span class="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 text-xl text-white shadow-md"><i class="fa-solid fa-trophy"></i></span>
-          <div class="text-right"><h3 class="text-base font-black text-slate-900 dark:text-white sm:text-lg">بطولة الانضباط المدرسية</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">التميز في الانضباط والتحسن المستمر</p></div>
+          <div class="text-right"><h3 class="text-base font-black text-slate-900 dark:text-white sm:text-lg">بطولة الانضباط المدرسية</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">50% تحسن الغياب + 50% تحسن السلوك، مع مكافأة المحافظة على المستوى الجيد</p></div>
         </div>
         <div class="mt-4 text-center"><div class="text-[10px] font-bold text-slate-500 dark:text-slate-400">النتيجة المعروضة</div><div id="saCompetitionRangeLabel" class="mt-1 text-sm font-black text-slate-800 dark:text-slate-100">آخر نتيجة أسبوعية معتمدة</div></div>
       </div>
@@ -1349,7 +1349,7 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
           <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
-        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين وفرقهم</h4><p class="mt-1 text-[11px] text-slate-500">يعكس ترتيب كل معلم مستوى الانضباط في جميع الصفوف المسندة إليه، وتظهر مساهمة كل صف في المقارنة أدناه.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب مستوى الأداء</h4><p class="mt-1 text-[11px] text-slate-500">تُرتب أسماء المعلمين بحسب مستوى الأداء من 100، وتظهر مقارنة معدلات الفرق حسب الصفوف العاشر والحادي عشر والثاني عشر أدناه.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
         <section id="saCompetitionOtherRanksSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
           <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">المراكز الرابعة وما بعدها حسب مجموع النقاط؛ ويُحدَّث الترتيب عند اعتماد نتيجة جديدة.</p></div>
           <div id="saCompetitionOtherRanks" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
@@ -1811,7 +1811,7 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
         </div>
       </div>
       <div id="saCompetitionTeamSettings" class="space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20">
-        <label class="flex items-center gap-3 text-xs font-black text-amber-950 dark:text-amber-100"><input id="saCompetitionParticipant" type="checkbox" class="h-4 w-4 accent-amber-600" onchange="saToggleCompetitionTeamFields()"> إشراك هذا المعلم في سباق التميز</label>
+        <label class="flex items-center gap-3 text-xs font-black text-amber-950 dark:text-amber-100"><input id="saCompetitionParticipant" type="checkbox" class="h-4 w-4 accent-amber-600" onchange="saToggleCompetitionTeamFields()"> إشراك هذا المعلم في بطولة الانضباط المدرسية</label>
         <div id="saCompetitionTeamFields" class="hidden space-y-3">
           <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">اسم الفريق<input id="saCompetitionTeamName" type="text" maxlength="80" placeholder="مثال: فريق النخبة" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"></label>
           <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي يشرف عليها قائد الفريق</div><p class="mb-2 text-[11px] text-slate-500">حدد الصفوف بنفسك. لا يمكن إسناد الصف نفسه إلى فريقين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
@@ -1824,7 +1824,7 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
           <div class="rounded-xl border border-white/80 bg-white/80 p-3 text-xs dark:border-slate-700 dark:bg-slate-900/70"><b class="text-slate-800 dark:text-white">الفصل الثاني</b><p class="mt-1 text-slate-600 dark:text-slate-300">25 يناير – 30 مايو</p></div>
         </div>
         <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">إتاحة النتائج السابقة للمعلمين<select id="saCompetitionVisibilityMode" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"><option value="current">الفصل الحالي فقط (الموصى به)</option><option value="both">إظهار نتائج الفصلين للمعلمين</option></select></label>
-        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">عند اختيار الفصل الحالي فقط، لا تظهر معدلات الفصل الأول للمعلم في الفصل الثاني. تبقى النتائج السابقة محفوظة في أرشيف مستقل ولا تنتقل نقاطها إلى الفصل الجديد.</p>
+        <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">عند اختيار الفصل الحالي فقط، لا تظهر معدلات الفصل الأول للمعلم في الفصل الثاني. تبقى النتائج السابقة محفوظة في أرشيف مستقل ولا تنتقل نقاطها إلى الفصل الجديد. في المعاينة يُحفظ هذا الخيار محلياً على هذا المتصفح فقط.</p>
         <div class="flex flex-wrap items-center justify-between gap-2"><span id="saCompetitionSettingsStatus" class="text-[10px] text-slate-500" aria-live="polite">الإعداد الافتراضي: كل فصل مستقل.</span><button type="button" onclick="saCompetitionSaveSettings()" class="rounded-xl bg-amber-700 px-5 py-2.5 text-xs font-black text-white shadow-sm hover:bg-amber-800"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ إعدادات البطولة</button></div>
       </section>
       <div id="saScopeSummary" class="rounded-2xl border border-dashed border-teal-200 bg-teal-50/70 px-4 py-3 text-xs leading-6 text-teal-900 dark:border-teal-900 dark:bg-teal-950/20 dark:text-teal-100" aria-live="polite">تُحدد مسؤولية المعلم تلقائياً من الصفوف المختارة للغياب والسلوك. لا يوجد دور مستقل باسم قائد فريق.</div>
