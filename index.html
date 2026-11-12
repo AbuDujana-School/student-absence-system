@@ -4125,15 +4125,37 @@ function getFilteredBehaviorRecords() {
 }
 
 function renderAbsenceCharts(sessions) {
+  // Count each student/status once per class and date, not once per lesson.
+  // A student absent in several periods on the same day is one daily absence.
   const statusCounts = { present: 0, absent: 0, late: 0, escape: 0, outside: 0 };
-  let totalCells = 0;
-  sessions.forEach(s => { Object.values(s.records).forEach(st => { if (statusCounts[st] !== undefined) statusCounts[st]++; totalCells++; }); });
+  const countedDailyStatuses = new Set();
+  const classMap = new Map();
 
+  sessions.forEach(s => {
+    const className = String(s.className || 'غير محدد');
+    const date = String(s.date || '');
+    Object.entries(s.records || {}).forEach(([student, rawStatus]) => {
+      const status = String(rawStatus || '');
+      if (!Object.prototype.hasOwnProperty.call(statusCounts, status)) return;
+      const studentName = String(student || '').trim();
+      if (!studentName) return;
+      const dailyKey = className + '::' + studentName + '::' + date + '::' + status;
+      if (countedDailyStatuses.has(dailyKey)) return;
+      countedDailyStatuses.add(dailyKey);
+      statusCounts[status]++;
+      if (status !== 'present') {
+        if (!classMap.has(className)) classMap.set(className, new Set());
+        classMap.get(className).add(studentName + '::' + date + '::' + status);
+      }
+    });
+  });
+
+  const totalCells = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
+  const violations = statusCounts.absent + statusCounts.late + statusCounts.escape + statusCounts.outside;
   const summaryEl = document.getElementById('chartDistSummary');
   if (summaryEl) {
-    const violations = totalCells - statusCounts.present;
     const pct = totalCells ? Math.round(violations / totalCells * 100) : 0;
-    summaryEl.textContent = `${violations} مخالفة / ${totalCells} (${pct}%)`;
+    summaryEl.textContent = `${violations} حالة يومية فريدة / ${totalCells} حالة مرصودة (${pct}%)`;
   }
 
   const canvas1 = document.getElementById('absenceDistChart');
@@ -4165,13 +4187,10 @@ function renderAbsenceCharts(sessions) {
     });
   }
 
-  const classMap = {};
-  sessions.forEach(s => {
-    const c = s.className || 'غير محدد';
-    if (!classMap[c]) classMap[c] = 0;
-    Object.values(s.records).forEach(st => { if (st !== 'present') classMap[c]++; });
-  });
-  const sortedClasses = Object.entries(classMap).sort((a, b) => b[1] - a[1]).slice(0, 12);
+  const sortedClasses = Array.from(classMap.entries())
+    .map(([className, cases]) => [className, cases.size])
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 12);
   const canvas2 = document.getElementById('classDistChart');
   if (canvas2) {
     const ctx2 = canvas2.getContext('2d');
@@ -4181,7 +4200,7 @@ function renderAbsenceCharts(sessions) {
       type: 'bar',
       data: {
         labels: sortedClasses.map(([c]) => formatClassName(c)),
-        datasets: [{ label: 'المخالفات', data: sortedClasses.map(([,v]) => v), backgroundColor: barGrad, borderRadius: 8, borderSkipped: false, hoverBackgroundColor: '#10b981', maxBarThickness: 34 }]
+        datasets: [{ label: 'الحالات اليومية الفريدة', data: sortedClasses.map(([,v]) => v), backgroundColor: barGrad, borderRadius: 8, borderSkipped: false, hoverBackgroundColor: '#10b981', maxBarThickness: 34 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -4198,7 +4217,6 @@ function renderAbsenceCharts(sessions) {
     });
   }
 }
-
 function renderStudentStatsDashboard() {
   updateCustomRangeVisibility();
   const sessions = getFilteredAttendanceRecords();
