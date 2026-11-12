@@ -1975,6 +1975,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
+        <section id="saCompetitionClassProgress" class="hidden rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-700 dark:bg-slate-950/30" aria-live="polite">
+          <div class="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div><h4 class="text-sm font-black text-slate-800 dark:text-white">مؤشرات سباق التميز حسب الصفوف</h4><p class="mt-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تُعرض الصفوف المسجلة في السباق حتى قبل إضافة معلميها إلى شؤون الطلبة، ويرتبط اسم معلم القسم بالصف عند إسناده إليه.</p></div>
+            <span id="saCompetitionClassProgressState" class="rounded-lg bg-amber-100 px-3 py-1.5 text-[10px] font-black text-amber-800 dark:bg-amber-950/50 dark:text-amber-200">متابعة أولية</span>
+          </div>
+          <div id="saCompetitionClassProgressList" class="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3"></div>
+        </section>
         <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين حسب مستوى الأداء</h4><p class="mt-1 text-[11px] text-slate-500">تظهر المراكز الثلاثة الأولى، ويمكن اختيار أي معلم من بقية المراكز لعرض تفاصيله ونقاطه فقط.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
         <section id="saCompetitionOtherRanksSection" class="hidden">
           <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
@@ -3534,6 +3541,7 @@ function saRenderCompetition(data){
   if(status){
     const messages={
       no_participants:"لا يوجد معلمون مشاركون مخوّلون في بطولة الانضباط حالياً.",
+      incomplete:"تظهر أدناه المؤشرات الأولية للصفوف المسجلة في السباق. لا يوجد ترتيب أو مستوى نهائي حتى يكتمل تسجيل الأيام المطلوبة وتعتمد النتيجة.",
       not_started:"لم يبدأ الفصل الدراسي المحدد بعد؛ ستظهر نتائجه عند بدء الفصل وتسجيل الأسابيع المعتمدة.",
       awaiting_first_result:"لم تُعتمد نتيجة أسبوعية لهذا الفصل بعد. ستظهر بعد إقفال الأسبوع واكتمال سجلاته.",
       awaiting_baseline:"تُستكمل حالياً الأسابيع الأربعة الأولى لبناء خط أساس عادل. يبدأ ترتيب التحسن بعد اكتمالها.",
@@ -3546,8 +3554,35 @@ function saRenderCompetition(data){
   }
   const rangeLabel=document.getElementById("saCompetitionRangeLabel");
   if(rangeLabel){
-    const label=period==="weekly"?"النتيجة الأسبوعية المعتمدة":period==="monthly"?"حصاد أربعة أسابيع معتمدة":"النتائج التراكمية للفصل";
+    const label=data?.status==="incomplete"&&period==="weekly"?"مؤشرات الأسبوع الأولية · غير معتمدة":period==="weekly"?"النتيجة الأسبوعية المعتمدة":period==="monthly"?"حصاد أربعة أسابيع معتمدة":"النتائج التراكمية للفصل";
     rangeLabel.textContent=label+(data?.termLabel?" · "+data.termLabel:"");
+  }
+  const classProgress=document.getElementById("saCompetitionClassProgress");
+  const classProgressList=document.getElementById("saCompetitionClassProgressList");
+  const classProgressState=document.getElementById("saCompetitionClassProgressState");
+  const classRows=Array.isArray(data?.classComparison)?data.classComparison:[];
+  if(classProgress&&classProgressList){
+    const assignedTeachers=typeof saAssignedTeacherData==="function"?saAssignedTeacherData():[];
+    const orderedClassRows=[...classRows].sort((a,b)=>String(a.className||"").localeCompare(String(b.className||""),"ar",{numeric:true}));
+    classProgress.classList.toggle("hidden",orderedClassRows.length===0);
+    if(classProgressState){
+      const isApproved=data?.status==="approved";
+      classProgressState.textContent=isApproved?"بيانات معتمدة":"بيانات أولية · غير معتمدة";
+      classProgressState.className="rounded-lg px-3 py-1.5 text-[10px] font-black "+(isApproved?"bg-emerald-100 text-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-200":"bg-amber-100 text-amber-800 dark:bg-amber-950/50 dark:text-amber-200");
+    }
+    classProgressList.innerHTML=orderedClassRows.map(item=>{
+      const className=String(item.className||"");
+      const linked=assignedTeachers.filter(teacher=>teacher.attendance.includes(className)||teacher.behavior.includes(className));
+      const linkedNames=linked.length?linked.map(teacher=>escapeHtml(teacher.name)).join("، "):"لم يُضف معلم هذا الصف إلى شؤون الطلبة بعد";
+      const team=teams.find(candidate=>String(candidate.teamId||"")===String(item.teamId||""));
+      const teamLevel=data?.status==="approved"&&team&&team.rank!=null?"المركز "+Number(team.rank)+(team.score==null?"":" · "+Number(team.score).toFixed(1)+"%"):"بانتظار اعتماد مستوى الفريق";
+      const complete=item.complete===true;
+      const attendanceRate=Number.isFinite(Number(item.attendanceRate))&&item.attendanceRate!==null?Number(item.attendanceRate).toFixed(1):"—";
+      const behaviorRate=Number.isFinite(Number(item.behaviorRate))&&item.behaviorRate!==null?Number(item.behaviorRate).toFixed(1):"—";
+      const attendanceCount=Number(item.attendanceIncidents)||0;
+      const behaviorCount=Number(item.behaviorIncidents)||0;
+      return '<article class="rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-700 dark:bg-slate-900"><div class="flex items-start justify-between gap-2"><div><div class="text-[10px] font-bold text-slate-500">الصف</div><h5 class="mt-1 text-base font-black text-slate-900 dark:text-white">'+escapeHtml(formatClassName(className))+'</h5></div><span class="rounded-lg px-2 py-1 text-[9px] font-black '+(complete?'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300':'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300')+'">'+(complete?"مكتمل":"قيد استكمال الرصد")+'</span></div><div class="mt-2 text-[10px] leading-5 text-slate-500">فريق السباق: <b class="text-slate-700 dark:text-slate-200">'+escapeHtml(item.teamName||item.leaderName||"—")+'</b></div><div class="mt-2 text-[10px] leading-5 text-slate-500">مستوى فريق السباق: <b class="text-slate-700 dark:text-slate-200">'+escapeHtml(teamLevel)+'</b></div><div class="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-[10px] leading-5 dark:bg-slate-950"><span class="font-bold text-slate-500">معلم شؤون الطلبة المرتبط:</span><div class="font-black text-slate-800 dark:text-slate-100">'+linkedNames+'</div></div><div class="mt-3 grid grid-cols-2 gap-2"><div class="rounded-lg bg-slate-50 p-2 text-center dark:bg-slate-950"><div class="text-[9px] font-bold text-slate-500">وقائع الغياب</div><div class="mt-1 text-lg font-black tabular-nums text-slate-800 dark:text-white">'+attendanceCount+'</div><div class="text-[9px] text-slate-500">'+(complete?"المعدل "+attendanceRate:"معدل غير معتمد")+'</div></div><div class="rounded-lg bg-slate-50 p-2 text-center dark:bg-slate-950"><div class="text-[9px] font-bold text-slate-500">وقائع السلوك</div><div class="mt-1 text-lg font-black tabular-nums text-slate-800 dark:text-white">'+behaviorCount+'</div><div class="text-[9px] text-slate-500">'+(complete?"المعدل "+behaviorRate:"معدل غير معتمد")+'</div></div></div></article>';
+    }).join("");
   }
   const sorted=[...teams].sort((a,b)=>(Number(a.rank)||999)-(Number(b.rank)||999));
   const podiumTeams=ready?sorted.filter(team=>Number(team.rank)>=1&&Number(team.rank)<=3):[];
