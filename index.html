@@ -1309,16 +1309,26 @@
           <button id="saCompetitionMonthlyBtn" type="button" onclick="saSetCompetitionPeriod('monthly')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">حصاد الشهر</button>
           <button id="saCompetitionTermBtn" type="button" onclick="saSetCompetitionPeriod('term')" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200">من بداية الفصل حتى الآن</button>
         </div>
-        <div class="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
-          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saCompetitionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
-          <label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saCompetitionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label>
+        <div class="flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
+          <div id="saCompetitionDateRangeWrap" class="grid min-w-[260px] flex-1 grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-xs font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saCompetitionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label><label class="text-xs font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saCompetitionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-950"></label></div>
+          <label id="saCompetitionTermSelectWrap" class="hidden min-w-[220px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
           <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
         <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white">ترتيب المعلمين وفرقهم</h4><p class="mt-1 text-[11px] text-slate-500">يعكس ترتيب كل معلم مستوى الانضباط في جميع الصفوف المسندة إليه، وتظهر مساهمة كل صف في المقارنة أدناه.</p></div><div id="saCompetitionPodium" class="grid grid-cols-1 items-end gap-4 md:grid-cols-3"></div>
-        <section id="saCompetitionOtherRanksSection" class="hidden overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
-          <div class="border-b border-slate-100 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h4 class="text-sm font-black text-slate-800 dark:text-white">بقية المراكز</h4><p class="mt-1 text-[11px] text-slate-500">المراكز الرابعة وما بعدها حسب مجموع النقاط؛ ويُحدَّث الترتيب عند اعتماد نتيجة جديدة.</p></div>
-          <div id="saCompetitionOtherRanks" class="divide-y divide-slate-100 dark:divide-slate-800"></div>
+        <section id="saCompetitionOtherRanksSection" class="hidden">
+          <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900">
+            <button id="saCompetitionTeacherDropdownToggle" type="button" aria-expanded="false" aria-controls="saCompetitionTeacherDropdownPanel" onclick="saToggleCompetitionTeacherDropdown()" class="flex w-full items-center justify-between gap-3 px-4 py-3.5 text-right transition hover:bg-slate-50 dark:hover:bg-slate-800">
+              <span class="flex min-w-0 items-center gap-3"><span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 dark:bg-teal-950/50 dark:text-teal-300"><i class="fa-solid fa-users text-lg"></i></span><span><span class="block text-sm font-black text-slate-800 dark:text-white">بقية المراكز</span><span class="mt-0.5 block text-[10px] text-slate-500">اضغط لاختيار معلم وعرض تفاصيله فقط</span></span></span>
+              <span class="flex shrink-0 items-center gap-2"><span id="saCompetitionOtherRanksCount" class="rounded-full bg-slate-100 px-2.5 py-1 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-300"></span><i id="saCompetitionTeacherDropdownChevron" class="fa-solid fa-chevron-down text-xs text-slate-500 transition-transform"></i></span>
+            </button>
+            <div id="saCompetitionTeacherDropdownPanel" class="hidden border-t border-slate-100 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/50">
+              <label for="saCompetitionTeacherSelect" class="block text-xs font-black text-slate-700 dark:text-slate-200">اختر اسم المعلم
+                <select id="saCompetitionTeacherSelect" onchange="saRenderSelectedCompetitionTeacher(this.value)" class="mt-2 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-100 dark:border-slate-600 dark:bg-slate-900 dark:text-white"><option value="">اختر معلماً لعرض تفاصيله</option></select>
+              </label>
+            </div>
+          </div>
+          <div id="saCompetitionSelectedTeacherDetails" class="hidden mt-3" aria-live="polite"></div>
         </section>
         <div class="grid grid-cols-1 gap-4 lg:grid-cols-[1.5fr_1fr]">
           <section class="rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
@@ -1797,6 +1807,7 @@
           <div><div class="mb-2 text-xs font-bold text-slate-700 dark:text-slate-200">الصفوف التي يشرف عليها قائد الفريق</div><p class="mb-2 text-[11px] text-slate-500">حدد الصفوف بنفسك. لا يمكن إسناد الصف نفسه إلى فريقين.</p><div id="saCompetitionClasses" class="grid max-h-52 grid-cols-2 gap-2 overflow-y-auto text-xs"></div></div>
         </div>
       </div>
+      <section id="saCompetitionSettingsPanel" class="hidden space-y-3 rounded-2xl border border-amber-200 bg-amber-50/60 p-4 dark:border-amber-900 dark:bg-amber-950/20"><div><h4 class="text-sm font-black text-amber-950 dark:text-amber-100">إعدادات إتاحة نتائج الفصول</h4><p class="mt-1 text-[11px] leading-5 text-slate-600 dark:text-slate-300">تُقرأ تواريخ الفصول من تقويم المدرسة المعتمد. الإعداد الافتراضي هو الفصل الحالي فقط، ولا تتغير السجلات أو النقاط عند تبديل هذا الخيار.</p></div><div id="saCompetitionCalendarSummary" class="grid grid-cols-1 gap-2 sm:grid-cols-2"></div><label class="block text-xs font-bold text-slate-700 dark:text-slate-200">إتاحة النتائج السابقة للمعلمين<select id="saCompetitionVisibilityMode" class="mt-1 w-full rounded-xl border border-amber-200 bg-white p-3 dark:border-amber-800 dark:bg-slate-950"><option value="current">الفصل الحالي فقط (الافتراضي)</option><option value="both">إظهار نتائج الفصلين للمعلمين</option></select></label><div class="flex flex-wrap items-center justify-between gap-2"><span id="saCompetitionSettingsStatus" class="text-[10px] text-slate-500" aria-live="polite">الإعداد الافتراضي: الفصل الحالي فقط.</span><button type="button" onclick="saCompetitionSaveSettings()" class="rounded-xl bg-amber-700 px-5 py-2.5 text-xs font-black text-white shadow-sm hover:bg-amber-800"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ إعدادات البطولة</button></div></section>
       <div id="saScopeSummary" class="rounded-2xl border border-dashed border-teal-200 bg-teal-50/70 px-4 py-3 text-xs leading-6 text-teal-900 dark:border-teal-900 dark:bg-teal-950/20 dark:text-teal-100" aria-live="polite">مسؤولية الفصول مستقلة عن صلاحية الاطلاع: قائد الفريق يُقيّم على فصوله فقط، والمعلم المشرف على فصوله، والزائر يطّلع على الجميع دون امتلاك فصول أو نقاط منافسة.</div>
       <div class="flex justify-end"><button onclick="saSavePermissions()" class="w-full rounded-xl bg-indigo-700 px-7 py-3 text-xs font-extrabold text-white shadow-lg transition hover:bg-indigo-800 sm:w-auto"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التكليف والصلاحيات</button></div>
     </div>
@@ -2356,7 +2367,7 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
 const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
-let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
+let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionSelectedTeacherId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
 function sortClassesList(classesArray){
@@ -2606,6 +2617,33 @@ function saSetCompetitionCompareScope(scope){
   window.saCompetitionCompareScope=scope==="own"?"own":"all";
   if(saCompetitionData)saRenderCompetition(saCompetitionData);
 }
+function saToggleCompetitionTeacherDropdown(){
+  const panel=document.getElementById("saCompetitionTeacherDropdownPanel");
+  const button=document.getElementById("saCompetitionTeacherDropdownToggle");
+  const chevron=document.getElementById("saCompetitionTeacherDropdownChevron");
+  if(!panel||!button)return;
+  const opening=panel.classList.contains("hidden");
+  panel.classList.toggle("hidden",!opening);
+  button.setAttribute("aria-expanded",String(opening));
+  chevron?.classList.toggle("rotate-180",opening);
+}
+
+function saRenderSelectedCompetitionTeacher(teamId){
+  const container=document.getElementById("saCompetitionSelectedTeacherDetails"),data=saCompetitionData;
+  if(!container)return;
+  const team=(Array.isArray(data?.teams)?data.teams:[]).find(item=>String(item.teamId)===String(teamId||""));
+  if(!team){container.innerHTML="";container.classList.add("hidden");return;}
+  const period=data.period||"weekly",points=Number(data?.weeklyPoints?.[team.teamId]||0),award=period==="term"?null:Number(team.weeklyAwardPoints||0);
+  const wins=Number(data?.weeklyWins?.[team.teamId]??team.weeklyWins??0),classes=Array.isArray(team.classNames)?team.classNames:[];
+  const awardLabel=period==="weekly"?"النقاط التي اكتسبها هذا الأسبوع":"نقاط حصاد الأسابيع الأربعة";
+  const totalLabel=period==="weekly"?"الرصيد التراكمي قبل نتيجة هذا الأسبوع":period==="monthly"?"الرصيد التراكمي قبل دورة الأسابيع الأربعة":"رصيد النقاط التراكمي في هذا الفصل";
+  container.innerHTML='<article class="overflow-hidden rounded-2xl border border-teal-200 bg-white shadow-sm dark:border-teal-900 dark:bg-slate-900"><div class="flex items-center justify-between gap-3 bg-teal-50 px-4 py-3 dark:bg-teal-950/40"><div><div class="text-[10px] font-bold text-teal-700 dark:text-teal-300">تفاصيل المعلم المحدد</div><h4 class="mt-1 text-base font-black text-slate-900 dark:text-white">'+escapeHtml(team.leaderName||team.teacherName||"")+'</h4></div><span class="rounded-xl bg-white px-3 py-2 text-xs font-black text-teal-800 dark:bg-slate-800 dark:text-teal-200">المركز '+Number(team.rank)+'</span></div><div class="space-y-3 p-4"><div class="flex flex-wrap items-center justify-between gap-2"><span class="text-xs text-slate-500">الفريق</span><b class="text-xs font-black text-slate-800 dark:text-slate-100">'+escapeHtml(team.teamName||"—")+'</b></div><div><div class="mb-2 text-xs font-black text-slate-600 dark:text-slate-300">الفصول التي يشرف عليها</div><div class="flex flex-wrap gap-2">'+(classes.length?classes.map(cls=>'<span class="rounded-lg bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200">'+escapeHtml(formatClassName(cls))+'</span>').join(""):'<span class="text-xs text-slate-400">لا توجد فصول مسندة</span>')+'</div></div><div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">مستوى الأداء</div><div class="mt-1 text-3xl font-black tabular-nums text-teal-700 dark:text-teal-300">'+(team.score==null?"—":Number(team.score).toFixed(1)+"%")+'</div></div>'+(award!==null?'<div class="rounded-xl bg-amber-50 p-4 text-center dark:bg-amber-950/30"><div class="text-[10px] font-bold text-amber-700 dark:text-amber-300">'+awardLabel+'</div><div class="mt-1 text-2xl font-black tabular-nums text-amber-700 dark:text-amber-300">'+award+' نقطة</div></div>':"")+'<div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">'+totalLabel+'</div><div class="mt-1 text-2xl font-black tabular-nums text-slate-800 dark:text-white">'+points+' نقطة</div></div><div class="rounded-xl bg-slate-50 p-4 text-center dark:bg-slate-950"><div class="text-[10px] font-bold text-slate-500">مرات الحصول على المركز الأول</div><div class="mt-1 text-2xl font-black tabular-nums text-slate-800 dark:text-white">'+wins+'</div></div></div></div></article>';
+  container.classList.remove("hidden");
+  document.getElementById("saCompetitionTeacherDropdownPanel")?.classList.add("hidden");
+  document.getElementById("saCompetitionTeacherDropdownToggle")?.setAttribute("aria-expanded","false");
+  document.getElementById("saCompetitionTeacherDropdownChevron")?.classList.remove("rotate-180");
+}
+
 function saRenderCompetition(data){
   const status=document.getElementById("saCompetitionStatus");
   const teams=Array.isArray(data?.teams)?data.teams:[];
@@ -2671,12 +2709,19 @@ function saRenderCompetition(data){
       '</article>';
   }).join(""):'<div class="col-span-full rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-7 text-center text-xs font-bold leading-6 text-slate-500 dark:border-slate-700 dark:bg-slate-950">ستظهر منصة التتويج بعد اكتمال الأسبوع أو توفر نتائج الأسابيع المكتملة.</div>';
   const other=rankingsReady?sorted.filter(team=>Number(team.rank)>3):[];
-  const otherSection=document.getElementById("saCompetitionOtherRanksSection"),otherContainer=document.getElementById("saCompetitionOtherRanks");
+  const otherSection=document.getElementById("saCompetitionOtherRanksSection"),teacherSelect=document.getElementById("saCompetitionTeacherSelect");
   if(otherSection)otherSection.classList.toggle("hidden",other.length===0);
-  if(otherContainer)otherContainer.innerHTML=other.length?other.map(team=>{
-    const classes=Array.isArray(team.classNames)?team.classNames:[];
-    return '<div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3"><div class="flex min-w-0 items-center gap-3"><span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-sm font-black text-slate-600 dark:bg-slate-800 dark:text-slate-200">'+Number(team.rank)+'</span><div class="min-w-0"><div class="truncate text-sm font-black text-slate-800 dark:text-white">'+escapeHtml(team.leaderName||"")+'</div><div class="mt-0.5 text-[11px] text-slate-500">'+escapeHtml(team.teamName||"")+' · '+classes.map(cls=>escapeHtml(formatClassName(cls))).join("، ")+'</div></div></div><div class="text-left"><div class="text-xs font-black text-amber-600">'+(period==="weekly"?Number(team.weeklyAwardPoints||0):Number(data?.weeklyPoints?.[team.teamId]||0))+' نقطة</div><div class="text-[10px] text-slate-500">مؤشر '+(team.score==null?"—":Number(team.score).toFixed(1))+'/100</div></div></div>';
-  }).join(""):'<div class="p-5 text-center text-xs text-slate-500">'+(rankingsReady?"لا توجد فرق أخرى خارج منصة التتويج.":"تظهر المراكز التالية بعد اعتماد النتائج.")+'</div>';
+  if(teacherSelect){
+    const previous=saCompetitionSelectedTeacherId;
+    teacherSelect.innerHTML='<option value="">اختر معلماً لعرض تفاصيله</option>'+other.map(team=>'<option value="'+escapeHtml(team.teamId)+'">'+escapeHtml(team.leaderName||team.teacherName||"معلم")+' · المركز '+Number(team.rank)+'</option>').join("");
+    saCompetitionSelectedTeacherId=other.some(team=>String(team.teamId)===String(previous))?previous:"";
+    teacherSelect.value=saCompetitionSelectedTeacherId;
+  }
+  const count=document.getElementById("saCompetitionOtherRanksCount");if(count)count.textContent=other.length+" معلم";
+  document.getElementById("saCompetitionTeacherDropdownPanel")?.classList.add("hidden");
+  document.getElementById("saCompetitionTeacherDropdownToggle")?.setAttribute("aria-expanded","false");
+  document.getElementById("saCompetitionTeacherDropdownChevron")?.classList.remove("rotate-180");
+  saRenderSelectedCompetitionTeacher(saCompetitionSelectedTeacherId);
   const wins=document.getElementById("saCompetitionWins"),pointsMap=data?.weeklyPoints||{},winsMap=data?.weeklyWins||{};
   if(wins)wins.innerHTML=teams.map(team=>{
     const points=Number(pointsMap[team.teamId]||0),winsCount=Number(winsMap[team.teamId]||0);
@@ -2800,6 +2845,7 @@ async function openStudentAffairsAssignments(){
   if(!panel)return;
   try{
     await saLoadAdmin();
+    await saCompetitionLoadSettings();
     document.getElementById("saAdmin")?.classList.remove("hidden");
     panel.classList.remove("hidden");
     document.querySelectorAll("#sec-beneficiaries [data-beneficiary-card]").forEach(card=>card.classList.add("hidden"));
