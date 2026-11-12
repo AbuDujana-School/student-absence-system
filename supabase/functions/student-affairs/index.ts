@@ -532,10 +532,16 @@ async function buildTermCompetitionSnapshot(principal: { type: string; name: str
 async function finalizeCompetitionWeek() {
   const today = getOmanIsoDate();
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
-  if (weekday !== 4 || getOmanClockMinutes() < 13 * 60 + 50) {
-    competitionError(400, "لم يحن موعد اعتماد نتيجة الأسبوع بعد.");
+  const currentWeek = getSchoolWeekRange(today);
+  const afterWeeklyCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
+  // Before Thursday 13:50, keep checking the last closed week. From Thursday's cutoff onward,
+  // continue checking this week's result every five minutes until all required attendance sessions exist.
+  const start = afterWeeklyCutoff ? currentWeek.start : shiftCompetitionDate(currentWeek.start, -7);
+  const range = { start, end: shiftCompetitionDate(start, 4) };
+  const { currentTerm } = await readCompetitionTermSettings();
+  if (range.start < currentTerm.start || range.end > currentTerm.end) {
+    return { ok: true, status: "outside_term", weekStart: range.start };
   }
-  const range = getSchoolWeekRange(today);
   const { data: existing, error: existingError } = await db.from("competition_weekly_results")
     .select("status").eq("week_start", range.start).maybeSingle();
   if (existingError) throw existingError;
