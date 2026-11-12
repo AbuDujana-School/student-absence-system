@@ -42,8 +42,12 @@
   .chart-container { position: relative; width: 100%; }
 
 /* ============ Automatic student notices ============ */
-#saNoticeModal{z-index:100000}
-#saNoticeModal .sa-notice-dialog{max-height:94vh;overflow:auto}
+#saNoticeModal{z-index:100000;align-items:flex-start;justify-content:center;overscroll-behavior:contain;padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom))!important}
+#saNoticeModal .sa-notice-dialog{width:min(100%,900px)!important;max-height:calc(100dvh - 16px);max-height:calc(100vh - 16px);overflow-y:auto;overscroll-behavior:contain;margin:0 auto!important}
+@supports(height:100dvh){#saNoticeModal .sa-notice-dialog{max-height:calc(100dvh - 16px)}}
+#saNoticeModal .sa-notice-config{padding:clamp(12px,2.2vw,22px)!important}
+#saNoticeModal .sa-notice-config input,#saNoticeModal .sa-notice-config select{min-width:0;max-width:100%}
+#saNoticeModal .sa-notice-config label{min-width:0}
 #saNoticePrintRoot{font-family:'Tajawal',Arial,sans-serif}
 .sa-notice-page{width:min(100%,210mm);height:277mm;min-height:277mm;margin:0 auto 18px;padding:0;background:#fff;color:#172334;box-shadow:0 12px 36px rgba(15,23,42,.14);direction:rtl;display:flex;flex-direction:column;justify-content:space-between;gap:2mm}
 .sa-notice-card{position:relative;flex:1;min-height:0;border:1px solid #94a3b8;border-radius:4px;padding:2.2mm 3.2mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;break-inside:avoid;page-break-inside:avoid;background:#fff;color:#1f2937}
@@ -1485,7 +1489,7 @@
 
   <section id="uiReviewLauncher" class="hidden max-w-3xl mx-auto my-10 rounded-3xl border border-teal-200 bg-white p-6 shadow-xl dark:border-teal-900 dark:bg-slate-900" dir="rtl">
     <div class="flex items-center gap-3"><span class="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-200"><i class="fa-solid fa-eye text-xl"></i></span><div><h2 class="text-lg font-black text-slate-900 dark:text-white">معاينة واجهات شؤون الطلبة</h2><p class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-300">نسخة عرض منفصلة. لا تتصل ببيانات المدرسة ولا تحفظ أي تعديل.</p></div></div>
-    <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
       <button type="button" onclick="uiReviewOpenStudentAffairs()" class="rounded-2xl bg-teal-700 px-5 py-4 text-sm font-black text-white shadow hover:bg-teal-800"><i class="fa-solid fa-chart-line ml-2"></i> معاينة قسم شؤون الطلبة</button>
       <button type="button" onclick="uiReviewOpenBeneficiaries()" class="rounded-2xl bg-indigo-700 px-5 py-4 text-sm font-black text-white shadow hover:bg-indigo-800"><i class="fa-solid fa-users-gear ml-2"></i> معاينة إدارة المستفيدين</button>
     </div>
@@ -1688,8 +1692,8 @@
     </section>
   </div>
 
-  <div id="saNoticeModal" class="hidden fixed inset-0 z-[100000] overflow-y-auto bg-slate-950/70 p-2 sm:p-5" role="dialog" aria-modal="true" aria-labelledby="saNoticeModalTitle" dir="rtl">
-    <div class="sa-notice-dialog mx-auto w-full max-w-6xl rounded-3xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
+  <div id="saNoticeModal" class="hidden fixed inset-0 z-[100000] flex overflow-y-auto bg-slate-950/70 p-2 sm:p-3" role="dialog" aria-modal="true" aria-labelledby="saNoticeModalTitle" dir="rtl">
+    <div class="sa-notice-dialog mx-auto w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
       <div class="sa-notice-config border-b border-slate-200 p-4 dark:border-slate-700 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <div><h3 id="saNoticeModalTitle" class="text-lg font-black text-slate-900 dark:text-white"><i class="fa-solid fa-file-circle-exclamation ml-2 text-amber-600"></i>إصدار إشعارات التنبيه التلقائية</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">حدد الصف والحد الأدنى للمخالفات، ثم أنشئ المعاينة.</p></div>
@@ -1701,6 +1705,12 @@
           </label>
           <label class="text-xs font-black text-slate-700 dark:text-slate-200">الحد الأدنى للمخالفات
             <input id="saNoticeThreshold" type="number" min="1" max="10" step="1" value="2" inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
+          </label>
+          <label class="text-xs font-black text-slate-700 dark:text-slate-200">من تاريخ المخالفات
+            <input id="saNoticeFromDate" type="date" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
+          </label>
+          <label class="text-xs font-black text-slate-700 dark:text-slate-200">إلى تاريخ المخالفات
+            <input id="saNoticeToDate" type="date" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
           </label>
           <label class="text-xs font-black text-slate-700 dark:text-slate-200">تاريخ إصدار التنبيهات
             <input id="saNoticeDate" type="date" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
@@ -3660,7 +3670,13 @@ function saOpenNoticeModal(){
   if(!classes.length){showToast("لا توجد صفوف مسندة إليك ومصرح بها في سجلات الحضور أو السلوك.","error");return;}
   select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
   document.getElementById("saNoticeThreshold").value="2";
-  document.getElementById("saNoticeDate").value=getOmanLocalDate();
+  const today=getOmanLocalDate();
+  document.getElementById("saNoticeDate").value=today;
+  document.getElementById("saNoticeToDate").value=today;
+  document.getElementById("saNoticeFromDate").value="2000-01-01";
+  document.getElementById("saNoticeFromDate").max=today;
+  document.getElementById("saNoticeToDate").max=today;
+  document.getElementById("saNoticeDate").max=today;
   document.getElementById("saNoticeIssueMode").value="test";
   document.getElementById("saNoticeDelivered").checked=false;
   saNoticeRenderTypeFilters();saNoticeRefreshPrintAction();
@@ -3827,10 +3843,13 @@ async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
   const p=saReportPermissions||{},threshold=Number(document.getElementById("saNoticeThreshold")?.value);
   const issueDate=document.getElementById("saNoticeDate")?.value||"";
+  const rangeFrom=document.getElementById("saNoticeFromDate")?.value||"";
+  const rangeTo=document.getElementById("saNoticeToDate")?.value||"";
   const selectedTypes=saNoticeSelectedTypes();
   if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("تحتاج إلى صلاحية قراءة وطباعة مصدر واحد على الأقل من مصادر المخالفات.",true);return;}
   if(!Number.isInteger(threshold)||threshold<1||threshold>10){saNoticeSetStatus("أدخل عدداً صحيحاً من 1 إلى 10.",true);return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)||issueDate>getOmanLocalDate()){saNoticeSetStatus("حدد تاريخ إصدار صحيحاً لا يتجاوز تاريخ اليوم.",true);return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(rangeFrom)||!/^\d{4}-\d{2}-\d{2}$/.test(rangeTo)||rangeFrom>rangeTo||rangeTo>issueDate){saNoticeSetStatus("حدد فترة صحيحة: تاريخ البداية لا يتجاوز تاريخ النهاية، والنهاية لا تتجاوز تاريخ الإصدار.",true);return;}
   if(!selectedTypes.length){saNoticeSetStatus("اختر نوع مخالفة واحداً على الأقل لرصده.",true);return;}
   const selected=document.getElementById("saNoticeClassSelect")?.value||"";
   const available=saNoticeAllowedClasses(),classes=selected==="__all__"?available:available.filter(c=>c===selected);
@@ -3844,11 +3863,11 @@ async function saGenerateAutomaticNotices(){
   if(selectedBehavior.length&&!behaviorClasses.length){saNoticeSetStatus("لا توجد صلاحية لقراءة السلوكيات المحددة في الصف المختار.",true);return;}
   const statuses=selectedAttendance.filter(type=>(p.attendance_statuses||[]).includes(type));
   if(selectedAttendance.length!==statuses.length){saNoticeSetStatus("تتضمن اختياراتك حالة حضور غير مصرح بها.",true);return;}
-  const jobs=[],startYear=saNoticeStartYear(),currentYear=Number(issueDate.slice(0,4));
+  const jobs=[],startYear=Number(rangeFrom.slice(0,4)),currentYear=Number(rangeTo.slice(0,4));
   classes.forEach(className=>{
     const useAttendance=attendanceClasses.includes(className),useBehavior=behaviorClasses.includes(className);
     if(!useAttendance&&!useBehavior)return;
-    for(let year=startYear;year<=currentYear;year++)jobs.push({className,from:year+"-01-01",to:year===currentYear?issueDate:year+"-12-31",year,useAttendance,useBehavior});
+    for(let year=startYear;year<=currentYear;year++)jobs.push({className,from:year===startYear?rangeFrom:year+"-01-01",to:year===currentYear?rangeTo:year+"-12-31",year,useAttendance,useBehavior});
   });
   if(!jobs.length){saNoticeSetStatus("لا توجد سجلات ضمن الصفوف والأنواع التي اخترتها.",true);return;}
   saNoticeLastGenerated=[];saNoticeLastSettings=null;saNoticeOfficialCommitted=false;
@@ -3856,7 +3875,7 @@ async function saGenerateAutomaticNotices(){
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
   saNoticeGenerationBusy=true;
   const button=document.getElementById("saNoticeGenerateBtn");if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ فحص السجلات...';}
-  saNoticeSetStatus("جارٍ فحص المخالفات المختارة منذ بداية الأرشيف، ومقارنتها بسجل آخر تنبيه رسمي لكل طالب...",false);
+  saNoticeSetStatus("جارٍ فحص المخالفات من "+rangeFrom+" إلى "+rangeTo+"، ومقارنتها بسجل آخر تنبيه رسمي لكل طالب...",false);
   const attendanceSessions=[],behaviorSessions=[],errors=[];let cursor=0;
   const worker=async()=>{
     while(cursor<jobs.length){
@@ -3880,7 +3899,7 @@ async function saGenerateAutomaticNotices(){
     if(built.ignored>0)throw new Error("تعذر إصدار الإشعارات: وُجدت سجلات لا تحتوي على اسم طالب أو تاريخ صالح. أوقفنا التوليد حتى تُراجع البيانات.");
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
     saNoticeLastGenerated=qualifying;saNoticeLastHistory=historyRows;saNoticeCurrentIssueDate=issueDate;
-    saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate};
+    saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate,rangeFrom,rangeTo};
     const preview=document.getElementById("saNoticePreviewPanel");
     if(!qualifying.length){
       document.getElementById("saNoticePrintRoot").innerHTML="";
@@ -3888,7 +3907,7 @@ async function saGenerateAutomaticNotices(){
       preview.classList.remove("hidden");saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين لتنبيه جديد.",false);
     }else{
       const pages=saNoticeRenderPreview(qualifying),eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
-      document.getElementById("saNoticePreviewSummary").textContent="عدد الطلاب المستحقين: "+qualifying.length+" | المخالفات الجديدة المحتسبة: "+eventTotal+" | صفحات A4 (3 طلاب): "+pages+" | الحد: "+threshold+" | تاريخ الفحص: "+issueDate;
+      document.getElementById("saNoticePreviewSummary").textContent="عدد الطلاب المستحقين: "+qualifying.length+" | المخالفات الجديدة المحتسبة: "+eventTotal+" | صفحات A4 (3 طلاب): "+pages+" | الحد: "+threshold+" | فترة المخالفات: "+rangeFrom+" إلى "+rangeTo+" | تاريخ الإصدار: "+issueDate;
       preview.classList.remove("hidden");saNoticeSetStatus("اكتمل الفحص. استُبعدت المخالفات التي سبق إدراجها في تنبيهات رسمية، وحُدد رقم التنبيه التالي لكل طالب.",false);
     }
     saNoticeRefreshPrintAction();
@@ -3921,7 +3940,7 @@ async function saNoticeHandlePrint(){
   saNoticeGenerationBusy=true;const button=document.getElementById("saNoticePrintAction");if(button){button.disabled=true;button.textContent="جارٍ اعتماد التنبيهات رسمياً...";}
   try{
     const settings=saNoticeLastSettings;
-    const result=await saRequest({action:"reports",report_mode:"notice_issue_commit",notice_classes:settings.classes,attendance_classes:settings.attendanceClasses,behavior_classes:settings.behaviorClasses,selected_types:settings.selectedTypes,threshold:settings.threshold,issued_on:settings.issuedOn,delivered});
+    const result=await saRequest({action:"reports",report_mode:"notice_issue_commit",notice_classes:settings.classes,attendance_classes:settings.attendanceClasses,behavior_classes:settings.behaviorClasses,selected_types:settings.selectedTypes,threshold:settings.threshold,issued_on:settings.issuedOn,range_from:settings.rangeFrom,range_to:settings.rangeTo,delivered});
     const issued=Array.isArray(result?.issued)?result.issued:[];
     if(!issued.length)throw new Error(result?.message||"لم يعتمد الخادم أي تنبيه. لم تتم الطباعة الرسمية.");
     saNoticeLastGenerated=issued.map(saNoticeBuildAuthoritativeStudent);
