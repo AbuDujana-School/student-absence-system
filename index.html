@@ -3351,7 +3351,7 @@ function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedS
     if(!className)return;
     const records=session?.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([rawName,rawValue])=>{
-      const name=String(rawName||"").trim();
+      const name=saNoticeResolveStudentName(className,rawName);
       if(!name||name==="undefined"||name==="null"){ignored++;return;}
       const data=rawValue&&typeof rawValue==="object"?rawValue:{type:String(rawValue||""),note:""};
       const types=getBehaviorTypesFromRecord(data);
@@ -3437,14 +3437,21 @@ async function saGenerateAutomaticNotices(){
   const canBehavior=p.can_read_behavior===true&&p.can_print_behavior===true;
   const statuses=canAttendance?p.attendance_statuses.filter(x=>["absent","late","escape","outside"].includes(x)):[];
   const jobs=[];
-  const today=getOmanLocalDate(),from=saNoticeStartYear()+"-01-01";
+  const today=getOmanLocalDate(),startYear=saNoticeStartYear(),currentYear=Number(today.slice(0,4))||new Date().getFullYear();
   classes.forEach(className=>{
     const useAttendance=canAttendance&&allowedAttendance.has(className)&&statuses.length>0;
     const useBehavior=canBehavior&&allowedBehavior.has(className);
     if(!useAttendance&&!useBehavior)return;
-    jobs.push({className,from,to:today,useAttendance,useBehavior});
+    // The reporting endpoint has a 5,000-row cap per source. Split by calendar year so
+    // a busy class cannot hide older records behind one large response.
+    for(let year=startYear;year<=currentYear;year++){
+      jobs.push({className,from:year+"-01-01",to:year===currentYear?today:year+"-12-31",year,useAttendance,useBehavior});
+    }
   });
   if(!jobs.length){saNoticeSetStatus("لا توجد صلاحيات لقراءة سجلات الغياب أو السلوك في الصف المحدد.",true);return;}
+  saNoticeLastGenerated=[];
+  document.getElementById("saNoticePrintRoot").innerHTML="";
+  document.getElementById("saNoticePreviewPanel").classList.add("hidden");
   saNoticeGenerationBusy=true;
   const button=document.getElementById("saNoticeGenerateBtn");if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ فحص السجلات...';}
   saNoticeSetStatus("جارٍ فحص السجلات التاريخية للصفوف المحددة والتحقق من صلاحيات كل مصدر...",false);
@@ -3462,7 +3469,7 @@ async function saGenerateAutomaticNotices(){
           from:job.from,to:job.to
         });
         const a=Array.isArray(result?.attendance)?result.attendance:[],b=Array.isArray(result?.behaviors)?result.behaviors:[];
-        if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.from.slice(0,4)+". أوقفنا الإصدار حتى لا نصدر إشعارات ناقصة.");
+        if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.year+". أوقفنا الإصدار حتى لا نصدر إشعارات ناقصة.");
         a.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل حضور من صف غير محدد؛ أوقفنا الإصدار حمايةً للخصوصية.");});
         b.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل سلوك من صف غير محدد؛ أوقفنا الإصدار حمايةً للخصوصية.");});
         attendanceSessions.push(...a);behaviorSessions.push(...b);
@@ -3473,6 +3480,7 @@ async function saGenerateAutomaticNotices(){
     await Promise.all(Array.from({length:Math.min(3,jobs.length)},()=>worker()));
     if(errors.length)throw errors[0];
     const built=saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,statuses);
+    if(built.ignored>0)throw new Error("تعذر إصدار الإشعارات: وُجدت "+built.ignored+" سجلات لا تحتوي على اسم طالب أو تاريخ صالح. أوقفنا التوليد حتى تُراجع البيانات ولا يصدر إشعار ناقص.");
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
     const noticeClassOrder=new Map(sortClassesList([...new Set(qualifying.map(x=>x.className))]).map((name,index)=>[name,index]));
     qualifying.sort((a,b)=>(noticeClassOrder.get(a.className)??999)-(noticeClassOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
