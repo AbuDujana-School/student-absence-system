@@ -3581,7 +3581,7 @@ async function saRemoveAssignedTeacher(name){
   const teacherName=String(name||"").trim();if(!teacherName)return;
   const teacher=(saAdminData?.teachers||[]).find(item=>item.name===teacherName);
   if(!teacher){showToast("لم يتم العثور على المعلم في القائمة الحالية. حدّث البيانات وحاول مجدداً.","error");return;}
-  const confirmed=await (async()=>{return window.confirm("هل تريد حذف "+teacherName+" من قسم شؤون الطلاب؟ سيتم إلغاء دخوله وصلاحياته في هذا القسم فقط، ولن يُحذف حسابه أو رقمه السري أو صلاحياته الأخرى.");})();
+  const confirmed=window.confirm("هل تريد حذف "+teacherName+" من قسم شؤون الطلاب؟ سيتم إلغاء دخوله وصلاحياته في هذا القسم فقط، ولن يُحذف حسابه أو رقمه السري أو صلاحياته الأخرى.");
   if(!confirmed)return;
   try{
     await saRequest({action:"remove_student_affairs_member",principal_type:"teacher",principal_name:teacherName});
