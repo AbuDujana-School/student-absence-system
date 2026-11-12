@@ -65,6 +65,7 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
 
   const latest = new Map<string, { issue: number; date: string }>();
   const alreadyIssued = new Set<string>();
+  const absenceDays = new Set<string>();
   for (const row of input.history || []) {
     const cl = normalize(row.class_name), name = normalize(row.student_name);
     if (!cl || !name) continue;
@@ -89,7 +90,6 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
   }
 
   const grouped = new Map<string, { class_name: string; student_name: string; events: NoticeEvent[] }>();
-  const absenceDays = new Set<string>();
   const seenEvents = new Set<string>();
   const add = (classNameRaw: unknown, rawName: unknown, type: string, dateRaw: unknown, period: string, noteRaw = "") => {
     if (!selected.has(type)) return;
