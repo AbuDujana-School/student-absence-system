@@ -32,7 +32,7 @@ create index if not exists student_affairs_notice_issues_issued_on_idx
 
 alter table public.student_affairs_notice_issues enable row level security;
 revoke all on table public.student_affairs_notice_issues from public, anon, authenticated;
-grant all on table public.student_affairs_notice_issues to service_role;
+grant select, insert on table public.student_affairs_notice_issues to service_role;
 
 create or replace function public.issue_student_affairs_notices(p_items jsonb)
 returns jsonb
