@@ -85,3 +85,12 @@ Deno.test("behavior reports preserve and expand multiple violation types while s
   if (behaviorTypesFromRecord(filtered.A).join(",") !== "eating,talking") throw new Error("multiple types were not preserved");
   if (behaviorTypesFromRecord(filtered.B).join(",") !== "sleeping") throw new Error("legacy behavior record was not preserved");
 });
+
+Deno.test("notice history requires both attendance and behavior read access", () => {
+  if (authorizeReportMode({ can_read_attendance: true }, "notice_history")?.status !== 403) throw new Error("notice history bypassed behavior read permission");
+  if (authorizeReportMode({ can_read_attendance: true, can_read_behavior: true }, "notice_history") !== null) throw new Error("valid notice history access denied");
+});
+Deno.test("official notice issue requires combined read and print permissions", () => {
+  if (authorizeReportMode({ can_read_attendance: true, can_read_behavior: true, can_print_combined: true, can_print_attendance: true }, "notice_issue_commit")?.status !== 403) throw new Error("official notice issue bypassed behavior print permission");
+  if (authorizeReportMode({ can_read_attendance: true, can_read_behavior: true, can_print_combined: true, can_print_attendance: true, can_print_behavior: true }, "notice_issue_commit") !== null) throw new Error("valid official notice issue denied");
+});
