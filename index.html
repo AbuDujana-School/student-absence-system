@@ -3249,6 +3249,7 @@ function saNoticeSetStatus(message,isError){
   box.textContent=String(message||"");box.classList.remove("hidden","border-blue-200","bg-blue-50","text-blue-900","dark:border-blue-900","dark:bg-blue-950/30","dark:text-blue-200","border-red-200","bg-red-50","text-red-800","dark:border-red-900","dark:bg-red-950/30","dark:text-red-200");
   box.classList.add(isError?"border-red-200":"border-blue-200",isError?"bg-red-50":"bg-blue-50",isError?"text-red-800":"text-blue-900",isError?"dark:border-red-900":"dark:border-blue-900",isError?"dark:bg-red-950/30":"dark:bg-blue-950/30",isError?"dark:text-red-200":"dark:text-blue-200");
 }
+function saNoticeHasCombinedPermission(p){return p?.can_print_combined===true&&p?.can_print_attendance===true&&p?.can_print_behavior===true&&p?.can_read_attendance===true&&p?.can_read_behavior===true;}
 function saNoticeAllowedClasses(){
   const p=saReportPermissions||{},items=[];
   if(p.can_read_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length)items.push(...saGetAllowedReportClasses("attendance"));
@@ -3258,7 +3259,7 @@ function saNoticeAllowedClasses(){
 function saOpenNoticeModal(){
   const p=saReportPermissions||{};
   if(!saSession?.token){showToast("تعذر التحقق من جلسة شؤون الطلبة. أعد تسجيل الدخول.","error");return;}
-  if(p.can_print_combined!==true){showToast("لا تملك صلاحية طباعة الإشعارات الموحّدة.","error");return;}
+  if(!saNoticeHasCombinedPermission(p)){showToast("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً. راجع صلاحيات شؤون الطلبة.","error");return;}
   const classes=saNoticeAllowedClasses(),select=document.getElementById("saNoticeClassSelect");
   if(!classes.length){showToast("لا توجد صفوف مسندة إليك ومصرح بها في سجلات الحضور أو السلوك.","error");return;}
   select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
@@ -3392,7 +3393,7 @@ function saNoticeBuildPages(students){
 async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
   const p=saReportPermissions||{},thresholdInput=document.getElementById("saNoticeThreshold"),threshold=Number(thresholdInput?.value);
-  if(p.can_print_combined!==true){saNoticeSetStatus("لا تملك صلاحية إصدار الإشعارات الموحّدة.",true);return;}
+  if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً. راجع صلاحيات شؤون الطلبة.",true);return;}
   if(!Number.isInteger(threshold)||threshold<1||threshold>10){saNoticeSetStatus("أدخل عدداً صحيحاً من 1 إلى 10. القيمة الافتراضية 2.",true);return;}
   const selected=document.getElementById("saNoticeClassSelect")?.value||"";
   const available=saNoticeAllowedClasses();
@@ -3400,8 +3401,8 @@ async function saGenerateAutomaticNotices(){
   if(!classes.length){saNoticeSetStatus("اختر صفاً من الصفوف المصرح بها لك.",true);return;}
   const allowedAttendance=new Set(saGetAllowedReportClasses("attendance"));
   const allowedBehavior=new Set(saGetAllowedReportClasses("behavior"));
-  const canAttendance=p.can_read_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length>0;
-  const canBehavior=p.can_read_behavior===true;
+  const canAttendance=p.can_read_attendance===true&&p.can_print_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length>0;
+  const canBehavior=p.can_read_behavior===true&&p.can_print_behavior===true;
   const statuses=canAttendance?p.attendance_statuses.filter(x=>["absent","late","escape","outside"].includes(x)):[];
   const jobs=[];
   const today=getOmanLocalDate(),currentYear=Number(today.slice(0,4))||new Date().getFullYear(),startYear=saNoticeStartYear();
