@@ -3405,7 +3405,7 @@ function saPrintStudentProfile(){
   const w=window.open("about:blank","_blank");if(!w){saStudentProfileStatus("اسمح بالنوافذ المنبثقة لطباعة التقرير.",true);return;}
   w.document.open();w.document.write(root.innerHTML);w.document.close();
 }
-function saNoticeHasCombinedPermission(p){return p?.can_print_combined===true&&p?.can_print_attendance===true&&p?.can_print_behavior===true&&p?.can_read_attendance===true&&p?.can_read_behavior===true;}
+function saNoticeHasCombinedPermission(p){return (p?.can_read_attendance===true&&p?.can_print_attendance===true)||(p?.can_read_behavior===true&&p?.can_print_behavior===true);}
 function saNoticeAllowedClasses(){
   const p=saReportPermissions||{},items=[];
   if(p.can_read_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length)items.push(...saGetAllowedReportClasses("attendance"));
@@ -3432,7 +3432,7 @@ function saNoticeRefreshPrintAction(){
 function saOpenNoticeModal(){
   const p=saReportPermissions||{};
   if(!saSession?.token){showToast("تعذر التحقق من جلسة شؤون الطلبة. أعد تسجيل الدخول.","error");return;}
-  if(!saNoticeHasCombinedPermission(p)){showToast("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً. راجع صلاحيات شؤون الطلبة.","error");return;}
+  if(!saNoticeHasCombinedPermission(p)){showToast("تحتاج إلى صلاحية قراءة وطباعة مصدر واحد على الأقل من مصادر المخالفات.","error");return;}
   const classes=saNoticeAllowedClasses(),select=document.getElementById("saNoticeClassSelect");
   if(!classes.length){showToast("لا توجد صفوف مسندة إليك ومصرح بها في سجلات الحضور أو السلوك.","error");return;}
   select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
@@ -3600,7 +3600,7 @@ async function saGenerateAutomaticNotices(){
   const p=saReportPermissions||{},threshold=Number(document.getElementById("saNoticeThreshold")?.value);
   const issueDate=document.getElementById("saNoticeDate")?.value||"";
   const selectedTypes=saNoticeSelectedTypes();
-  if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً.",true);return;}
+  if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("تحتاج إلى صلاحية قراءة وطباعة مصدر واحد على الأقل من مصادر المخالفات.",true);return;}
   if(!Number.isInteger(threshold)||threshold<1||threshold>10){saNoticeSetStatus("أدخل عدداً صحيحاً من 1 إلى 10.",true);return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)||issueDate>getOmanLocalDate()){saNoticeSetStatus("حدد تاريخ إصدار صحيحاً لا يتجاوز تاريخ اليوم.",true);return;}
   if(!selectedTypes.length){saNoticeSetStatus("اختر نوع مخالفة واحداً على الأقل لرصده.",true);return;}
