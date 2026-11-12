@@ -45,7 +45,7 @@
 #saNoticeModal{z-index:100000}
 #saNoticeModal .sa-notice-dialog{max-height:94vh;overflow:auto}
 #saNoticePrintRoot{font-family:'Tajawal',Arial,sans-serif}
-.sa-notice-page{width:min(100%,210mm);min-height:297mm;margin:0 auto 18px;padding:10mm;background:#fff;color:#172334;box-shadow:0 12px 36px rgba(15,23,42,.14);direction:rtl;display:flex;flex-direction:column;justify-content:space-evenly;gap:3mm}
+.sa-notice-page{width:min(100%,210mm);height:297mm;min-height:297mm;margin:0 auto 18px;padding:10mm;background:#fff;color:#172334;box-shadow:0 12px 36px rgba(15,23,42,.14);direction:rtl;display:flex;flex-direction:column;justify-content:space-evenly;gap:3mm}
 .sa-notice-card{position:relative;flex:1;min-height:0;border:1.4px solid #24445f;border-radius:8px;padding:4mm 5mm;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;break-inside:avoid;page-break-inside:avoid}
 .sa-notice-card.compact{padding:2.8mm 4mm;font-size:9pt;line-height:1.32}
 .sa-notice-card.medium{padding:4mm 5mm;font-size:10pt;line-height:1.42}
@@ -79,6 +79,10 @@
  body.sa-notice-print-mode #saNoticePrintRoot{display:block!important;width:100%!important;margin:0!important;padding:0!important}
  .sa-notice-page{width:100%!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:2mm!important;break-after:page;page-break-after:always}
  .sa-notice-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ .sa-notice-card.fit-tight .notice-items li{margin:.5mm 0!important}
+ .sa-notice-card.fit-tight .notice-intro,.sa-notice-card.fit-tight .notice-conclusion{margin:.7mm 0!important}
+ .sa-notice-card.fit-tight .notice-signatures{margin-top:1mm!important}
+
  .sa-notice-card{overflow:hidden!important;border:1.2px solid #24445f!important;border-radius:5px!important;print-color-adjust:exact;-webkit-print-color-adjust:exact}
  .sa-notice-cutline{border-top:1.2px dashed #64748b!important;margin:0!important}
  .sa-notice-cutline span{background:#fff!important}
@@ -3404,6 +3408,23 @@ function saNoticeBuildPages(students){
   }
   return pages;
 }
+function saNoticeFitCards(){
+  const root=document.getElementById("saNoticePrintRoot");if(!root)return true;
+  let overflow=0;
+  root.querySelectorAll(".sa-notice-card").forEach(card=>{
+    card.removeAttribute("data-fit-failed");
+    let font=parseFloat(window.getComputedStyle(card).fontSize)||14;
+    const minimum=9;
+    while(card.scrollHeight>card.clientHeight+2&&font>minimum){
+      font=Math.max(minimum,font-.5);
+      card.style.fontSize=font+"px";
+      card.style.lineHeight="1.16";
+      card.classList.add("fit-tight");
+    }
+    if(card.scrollHeight>card.clientHeight+2){card.dataset.fitFailed="true";overflow++;}
+  });
+  return overflow===0;
+}
 async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
   const p=saReportPermissions||{},thresholdInput=document.getElementById("saNoticeThreshold"),threshold=Number(thresholdInput?.value);
@@ -3474,6 +3495,8 @@ async function saGenerateAutomaticNotices(){
         const cards=page.items.map((student,i)=>saNoticeBuildCard(student,qualifying.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
         return '<section class="sa-notice-page" data-page="'+(pageIndex+1)+'">'+cards+'</section>';
       }).join("");
+      const fitAfterFonts=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!saNoticeFitCards())saNoticeSetStatus("يوجد إشعار طويل تجاوز المساحة المتاحة في صفحة A4 حتى بعد تصغير الخط. راجع بياناته قبل الطباعة حتى لا تُحذف أي تفاصيل.",true);}));
+      if(document.fonts?.ready)document.fonts.ready.then(fitAfterFonts);else fitAfterFonts();
       const eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
       document.getElementById("saNoticePreviewSummary").textContent="عدد الإشعارات: "+qualifying.length+" | إجمالي المخالفات المحتسبة: "+eventTotal+" | عدد صفحات A4: "+pages.length+" | الحد الأدنى: "+threshold+(built.ignored?" | سجلات غير مكتملة تم استبعادها: "+built.ignored:"");
       document.getElementById("saNoticePreviewPanel").classList.remove("hidden");
@@ -3489,6 +3512,7 @@ async function saGenerateAutomaticNotices(){
 }
 function saPrintAutomaticNotices(){
   if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
+  if(!saNoticeFitCards()){showToast("يوجد إشعار يتجاوز مساحة صفحة A4. أوقفنا الطباعة حتى لا تُقص تفاصيل المخالفة.","error");return;}
   document.body.classList.add("sa-notice-print-mode");
   const printNow=()=>{try{window.focus();window.print();}catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}};
   const fonts=document.fonts?.ready||Promise.resolve();
