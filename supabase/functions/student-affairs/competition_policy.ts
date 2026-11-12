@@ -54,14 +54,14 @@ function behaviorTypes(raw: unknown): string[] {
 function periodIdentity(row: CompetitionRow, fallbackIndex: number): string {
   const explicit = Number(row?.period);
   if (COMPETITION_REQUIRED_PERIODS.includes(explicit)) return "p" + explicit;
-  const parsed = String(row?.record_key || "").match(/_p?(\\d+)$/)?.[1];
+  const parsed = String(row?.record_key || "").match(/_p?(\d+)$/)?.[1];
   return parsed ? "p" + parsed : "row" + fallbackIndex;
 }
 function attendanceIncidentKey(row: CompetitionRow, index: number, date: string, cls: string, student: string, status: string): string {
   // Absence is a daily incident; other attendance events (including escape) are counted per period.
   return status === "absent"
-    ? [cls, date, student, status].join("\\u001f")
-    : [cls, date, student, status, periodIdentity(row, index)].join("\\u001f");
+    ? [cls, date, student, status].join("\u001f")
+    : [cls, date, student, status, periodIdentity(row, index)].join("\u001f");
 }
 export function countAttendanceIncidents(rows: CompetitionRow[]): number {
   const unique = new Set<string>();
@@ -80,7 +80,7 @@ export function countBehaviorIncidents(rows: CompetitionRow[]): number {
     const date = asIsoDate(row?.date_str), cls = String(row?.class_name || "").trim(); if (!date || !cls) return;
     const period = periodIdentity(row, index);
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      for (const type of behaviorTypes(raw)) unique.add([cls, date, period, student, type].join("\\u001f"));
+      for (const type of behaviorTypes(raw)) unique.add([cls, date, period, student, type].join("\u001f"));
     }
   });
   return unique.size;
@@ -106,7 +106,7 @@ export function countBehaviorByType(rows: CompetitionRow[]): Record<string, numb
     if (!date || !cls) return;
     const period = periodIdentity(row, index);
     for (const [student, raw] of Object.entries(recordMap(row))) {
-      for (const type of behaviorTypes(raw)) unique.set([cls, date, period, student, type].join("\\u001f"), type);
+      for (const type of behaviorTypes(raw)) unique.set([cls, date, period, student, type].join("\u001f"), type);
     }
   });
   const counts: Record<string, number> = {};
