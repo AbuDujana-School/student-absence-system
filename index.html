@@ -3559,7 +3559,7 @@ async function saNoticeHandlePrint(){
   if(saNoticeOfficialCommitted){saPrintAutomaticNotices();return;}
   if(!saNoticeLastSettings){showToast("أعد توليد المعاينة قبل الاعتماد الرسمي.","error");return;}
   const delivered=document.getElementById("saNoticeDelivered")?.checked===true;
-  const confirmText="سيتم اعتماد "+saNoticeLastGenerated.length+" تنبيهاً رسمياً وحفظ رقم كل تنبيه وتاريخه"+(delivered+"".includes("never")?"":"")+(delivered?" مع تسجيل أنه تم التسليم للطلاب.":" دون تأكيد التسليم.")+" لا يمكن اعتبار هذه العملية تجربة. هل تريد المتابعة؟";
+  const confirmText="سيتم اعتماد "+saNoticeLastGenerated.length+" تنبيهاً رسمياً وحفظ رقم كل تنبيه وتاريخه"+(delivered?" مع تسجيل أنه تم التسليم للطلاب.":" دون تأكيد التسليم.")+" لا يمكن اعتبار هذه العملية تجربة. هل تريد المتابعة؟";
   if(!confirm(confirmText))return;
   saNoticeGenerationBusy=true;const button=document.getElementById("saNoticePrintAction");if(button){button.disabled=true;button.textContent="جارٍ اعتماد التنبيهات رسمياً...";}
   try{
