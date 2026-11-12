@@ -82,7 +82,7 @@
  body.sa-student-profile-print-mode .sa-student-profile-doc tr{break-inside:avoid;page-break-inside:avoid}
 }
 @media print{
- @page{size:A4 portrait;margin:10mm}
+ @page{size:A4 portrait;margin:5mm}
  html,body{margin:0!important;padding:0!important;background:#fff!important;width:100%!important;min-height:0!important}
  body.sa-notice-print-mode *{visibility:hidden!important}
  body.sa-notice-print-mode #saNoticeModal,
@@ -94,8 +94,8 @@
  body.sa-notice-print-mode .sa-notice-screen-summary{display:none!important}
  body.sa-notice-print-mode #saNoticePreviewPanel{display:block!important;margin:0!important;padding:0!important}
  body.sa-notice-print-mode #saNoticePrintRoot{display:block!important;width:100%!important;margin:0!important;padding:0!important}
- .sa-notice-page{box-sizing:border-box!important;width:100%!important;height:277mm!important;min-height:277mm!important;max-height:277mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:2mm!important;break-after:page;page-break-after:always}
- .sa-notice-card{box-sizing:border-box!important;min-height:0!important;max-height:none!important;flex:1 1 0!important;overflow:hidden!important}
+ .sa-notice-page{box-sizing:border-box!important;width:100%!important;height:287mm!important;min-height:287mm!important;max-height:287mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:1.4mm!important;break-after:page;page-break-after:always}
+ .sa-notice-card{box-sizing:border-box!important;min-height:0!important;max-height:none!important;flex:1 1 0!important;overflow:hidden!important;padding-inline:1.8mm!important}
  .sa-notice-card .notice-items li{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
  .sa-notice-page:last-child{break-after:auto!important;page-break-after:auto!important}
  .sa-notice-card.fit-tight .notice-items li{margin:.5mm 0!important}
@@ -281,6 +281,25 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     background:#f1f2f4!important;
   }
 }
+
+/* Dynamic page capacity: three by default, two or one only when content demands it. */
+@media print{
+  #saNoticePrintRoot .sa-notice-page{height:287mm!important;min-height:287mm!important;max-height:287mm!important;gap:1.4mm!important}
+  #saNoticePrintRoot .sa-notice-page .sa-notice-card{flex:1 1 0!important;min-height:0!important}
+  #saNoticePrintRoot .sa-notice-page .sa-notice-card{padding-inline:1.8mm!important}
+  #saNoticePrintRoot .sa-notice-page .notice-signatures{gap:1.5mm!important}
+  #saNoticePrintRoot .sa-notice-page .notice-items{padding-right:2.5mm!important}
+}
+#saNoticePrintRoot .sa-notice-card{
+  font-weight:600!important;
+  border-radius:2mm!important;
+  border-color:#aeb6bf!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-school{font-weight:900!important}
+#saNoticePrintRoot .sa-notice-card .notice-title{font-weight:900!important}
+#saNoticePrintRoot .sa-notice-card .notice-meta strong{font-weight:900!important}
+#saNoticePrintRoot .sa-notice-card .notice-items li{font-weight:600!important}
+#saNoticePrintRoot .sa-notice-cutline{border-top:1px dashed #b5bbc2!important;margin:.6mm 0!important}
 </style>
 
 <style id="sa-notice-viewport-fix">
@@ -4108,10 +4127,15 @@ function saNoticeBuildCard(student,index){
     '<p class="notice-conclusion">وعليه، يُعد هذا الإشعار تنبيهاً بضرورة الالتزام باللوائح والأنظمة المدرسية ولائحة شؤون الطلبة وتعديل السلوك فوراً، تجنباً لاتخاذ إجراءات إدارية، واستدعاء ولي الأمر مستقبلاً.</p></div>'+
     '<footer class="notice-signatures"><span>توقيع الطالب بالعلم: ............................</span><span>يعتمد / إدارة المدرسة (شؤون الطلبة): ............................</span></footer></article>';
 }
-function saNoticeBuildPages(students){
+function saNoticeBuildPages(students,perPage=3){
   const classOrder=new Map(sortClassesList([...new Set(students.map(x=>x.className))]).map((name,index)=>[name,index]));
   const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)??999)-(classOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
-  const pages=[];for(let cursor=0;cursor<ordered.length;cursor+=3)pages.push({level:"three",items:ordered.slice(cursor,cursor+3)});
+  const capacity=Math.max(1,Math.min(3,Number(perPage)||3));
+  const pages=[];
+  for(let cursor=0;cursor<ordered.length;cursor+=capacity){
+    const items=ordered.slice(cursor,cursor+capacity);
+    pages.push({level:capacity===3?"three":capacity===2?"two":"one",items});
+  }
   return pages;
 }
 function saNoticeFitCards(){
@@ -4167,13 +4191,28 @@ function saNoticeFitCards(){
   });
   return overflow===0;
 }
-function saNoticeRenderPreview(students){
-  const pages=saNoticeBuildPages(students),root=document.getElementById("saNoticePrintRoot");
+let saNoticePreviewFitRun=0;
+function saNoticeRenderPreview(students,perPage=3){
+  const capacity=Math.max(1,Math.min(3,Number(perPage)||3));
+  const pages=saNoticeBuildPages(students,capacity),root=document.getElementById("saNoticePrintRoot");
+  const run=++saNoticePreviewFitRun;
   root.innerHTML=pages.map((page,pageIndex)=>{
-    const cards=page.items.map((student,i)=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
-    return '<section class="sa-notice-page" data-page="'+(pageIndex+1)+'">'+cards+'</section>';
+    const cards=page.items.map(student=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
+    return '<section class="sa-notice-page notice-page-'+page.level+'" data-page="'+(pageIndex+1)+'" data-capacity="'+capacity+'">'+cards+'</section>';
   }).join("");
-  const fitAfterFonts=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!saNoticeFitCards())saNoticeSetStatus("يوجد إشعار طويل جداً لا يتسع في ثلث صفحة A4 حتى بعد تصغير الخط. أوقفنا الطباعة حتى لا تُحذف أي تفاصيل.",true);}));
+  const fitAfterFonts=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    if(run!==saNoticePreviewFitRun)return;
+    if(saNoticeFitCards())return;
+    if(capacity>1){
+      const nextCapacity=capacity-1;
+      saNoticeSetStatus(nextCapacity===2
+        ?"بعض الإشعارات تحتاج مساحة أكبر؛ تم تحويل الصفحات المتأثرة إلى توزيع طالبين في الصفحة للمحافظة على وضوح النص وجميع المخالفات."
+        :"هناك إشعار استثنائي يحتاج مساحة صفحة كاملة؛ يجري تخصيص صفحة مستقلة له حتى لا يُقص أي تفصيل.",false);
+      saNoticeRenderPreview(students,nextCapacity);
+      return;
+    }
+    saNoticeSetStatus("تعذر احتواء إشعار حتى في صفحة كاملة. لم تتم الطباعة ولم تُحذف أي مخالفة؛ راجع بيانات الإشعار الطويل.",true);
+  }));
   if(document.fonts?.ready)document.fonts.ready.then(fitAfterFonts);else fitAfterFonts();
   return pages.length;
 }
@@ -4292,19 +4331,34 @@ async function saNoticeHandlePrint(){
   }catch(error){saNoticeSetStatus(error?.message||"تعذر اعتماد التنبيهات رسمياً. لم تتم الطباعة على أنها معتمدة.",true);showToast(error?.message||"تعذر اعتماد التنبيهات.","error");}
   finally{saNoticeGenerationBusy=false;if(button){button.disabled=false;saNoticeRefreshPrintAction();}}
 }
-function saPrintAutomaticNotices(){
+function saNoticeWaitForLayout(){
+  return Promise.resolve(document.fonts?.ready||Promise.resolve()).then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))));
+}
+async function saPrintAutomaticNotices(){
   if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
-  const fonts=document.fonts?.ready||Promise.resolve();
-  Promise.resolve(fonts).then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))).then(()=>{
+  try{
+    await saNoticeWaitForLayout();
     if(!saNoticeFitCards()){
-      saNoticeSetStatus("تعذر احتواء إشعار واحد أو أكثر داخل ثلث الصفحة حتى بعد ضبط الخط والمسافات. لم نطبع الملف ولم نحذف أي مخالفة؛ راجع معاينة الإشعار الطويل.",true);
-      showToast("أوقفنا الطباعة لحماية جميع تفاصيل المخالفات من القص.","error");
+      // First exception: use two generous notice areas per A4 sheet.
+      saNoticeSetStatus("نضبط توزيع بعض الإشعارات على طالبين في الصفحة حتى تبقى جميع التفاصيل واضحة.",false);
+      saNoticeRenderPreview(saNoticeLastGenerated,2);
+      await saNoticeWaitForLayout();
+    }
+    if(!saNoticeFitCards()){
+      // Last-resort exception for an unusually long notice: dedicate a full sheet.
+      saNoticeSetStatus("يوجد إشعار استثنائي طويل؛ خُصصت له صفحة كاملة حفاظاً على كل تفاصيله.",false);
+      saNoticeRenderPreview(saNoticeLastGenerated,1);
+      await saNoticeWaitForLayout();
+    }
+    if(!saNoticeFitCards()){
+      saNoticeSetStatus("حتى الصفحة الكاملة لا تستوعب محتوى أحد الإشعارات. لم نطبع الملف ولم نحذف أي مخالفة؛ راجع معاينة الإشعار الطويل.",true);
+      showToast("أوقفنا الطباعة لأن المحتوى لا يتسع حتى في صفحة كاملة.", "error");
       return;
     }
     document.body.classList.add("sa-notice-print-mode");
     try{window.focus();window.print();}
     catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}
-  }).catch(error=>{saNoticeSetStatus(error?.message||"تعذر تجهيز معاينة الطباعة.",true);});
+  }catch(error){saNoticeSetStatus(error?.message||"تعذر تجهيز معاينة الطباعة.",true);}
 }
 document.getElementById("saNoticeIssueMode")?.addEventListener("change",saNoticeRefreshPrintAction);
 async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
