@@ -2694,7 +2694,7 @@ function saSetCompetitionPeriod(period){
   const idle="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-200";
   [["weekly","saCompetitionWeeklyBtn"],["monthly","saCompetitionMonthlyBtn"],["term","saCompetitionTermBtn"]].forEach(([key,id])=>{const el=document.getElementById(id);if(el)el.className=period===key?active:idle;});
   const rangeLabel=document.getElementById("saCompetitionRangeLabel");if(rangeLabel)rangeLabel.textContent=labels[period]||"نتائج البطولة";
-  saLoadCompetition();
+  return saLoadCompetition();
 }
 async function saSetupCompetitionPanel(){
   const panel=document.getElementById("saCompetitionPanel");
@@ -2704,7 +2704,7 @@ async function saSetupCompetitionPanel(){
   if(!enabled)return;
   try{
     await saCompetitionLoadSettings();
-    if(!panel.dataset.initialized){panel.dataset.initialized="true";saSetCompetitionPeriod("weekly");}
+    if(!panel.dataset.initialized){panel.dataset.initialized="true";await saSetCompetitionPeriod("weekly");}
     else await saLoadCompetition();
   }catch(error){
     const status=document.getElementById("saCompetitionStatus");
@@ -2840,10 +2840,13 @@ function saRenderCompetition(data){
       const select=otherSection.querySelector("#saCompetitionTeacherSelect");
       if(select){select.disabled=true;select.innerHTML='<option value="">لا توجد أسماء معلمين في معاينة التصميم</option>';}
       const panel=otherSection.querySelector("#saCompetitionTeacherDropdownPanel");
-      if(panel){panel.classList.remove("hidden");panel.innerHTML='<p class="text-xs leading-6 text-slate-500 dark:text-slate-300">تظهر أسماء المعلمين هنا عند توفر نتائج معتمدة. لا تُعرض أي أسماء أو بيانات تجريبية في هذه المعاينة.</p>';}
-      const toggle=otherSection.querySelector("#saCompetitionTeacherDropdownToggle");
-      toggle?.setAttribute("aria-expanded","true");
-      otherSection.querySelector("#saCompetitionTeacherDropdownChevron")?.classList.add("rotate-180");
+      if(panel){
+        panel.querySelector(".ui-review-empty-note")?.remove();
+        const note=document.createElement("p");
+        note.className="ui-review-empty-note mt-3 text-xs leading-6 text-slate-500 dark:text-slate-300";
+        note.textContent="تظهر أسماء المعلمين هنا عند توفر نتائج معتمدة. لا تُعرض أي أسماء أو بيانات تجريبية في هذه المعاينة.";
+        panel.appendChild(note);
+      }
     }
   }
   if(teacherSelect){
@@ -2857,9 +2860,15 @@ function saRenderCompetition(data){
   const dropdown=document.getElementById("saCompetitionTeacherDropdownPanel");
   const toggle=document.getElementById("saCompetitionTeacherDropdownToggle");
   const chevron=document.getElementById("saCompetitionTeacherDropdownChevron");
-  dropdown?.classList.add("hidden");
-  toggle?.setAttribute("aria-expanded","false");
-  chevron?.classList.remove("rotate-180");
+  if(IS_UI_REVIEW_PREVIEW){
+    dropdown?.classList.remove("hidden");
+    toggle?.setAttribute("aria-expanded","true");
+    chevron?.classList.add("rotate-180");
+  }else{
+    dropdown?.classList.add("hidden");
+    toggle?.setAttribute("aria-expanded","false");
+    chevron?.classList.remove("rotate-180");
+  }
   saRenderSelectedCompetitionTeacher(saCompetitionSelectedTeacherId);
 }
 async function openStudentAffairsAssignments(){
