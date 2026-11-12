@@ -64,8 +64,10 @@ jobs:
             END IF;
             IF NOT has_table_privilege('service_role', 'public.student_affairs_notice_issues', 'INSERT')
               OR NOT has_table_privilege('service_role', 'public.student_affairs_notice_issues', 'SELECT')
+              OR has_table_privilege('service_role', 'public.student_affairs_notice_issues', 'UPDATE')
+              OR has_table_privilege('service_role', 'public.student_affairs_notice_issues', 'DELETE')
               OR NOT has_function_privilege('service_role', 'public.issue_student_affairs_notices(jsonb)', 'EXECUTE') THEN
-              RAISE EXCEPTION 'service_role is missing notice ledger privileges';
+              RAISE EXCEPTION 'service_role notice ledger privileges are not append-only';
             END IF;
           END $do$;
           SET ROLE service_role;
