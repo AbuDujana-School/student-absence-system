@@ -62,6 +62,21 @@
 .sa-notice-cutline{position:relative;border-top:1.5px dashed #64748b;height:0;flex:none;margin:1mm 0}
 .sa-notice-cutline span{position:absolute;left:50%;top:-3.3mm;transform:translateX(-50%);background:#fff;color:#64748b;padding:0 3mm;font-size:10pt}
 .sa-notice-page:last-child{margin-bottom:0}
+#saStudentProfilePrintRoot{font-family:'Tajawal',Arial,sans-serif;color:#111827;direction:rtl}
+.sa-student-profile-doc{background:#fff;color:#111827;padding:10mm;line-height:1.65}
+.sa-student-profile-doc h1,.sa-student-profile-doc h2{text-align:center;font-weight:900}
+.sa-student-profile-doc table{width:100%;border-collapse:collapse;font-size:10pt;margin:3mm 0}
+.sa-student-profile-doc th,.sa-student-profile-doc td{border:1px solid #cbd5e1;padding:2mm;text-align:right;vertical-align:top}
+.sa-student-profile-doc th{background:#f1f5f9}
+@media print{
+ body.sa-student-profile-print-mode *{visibility:hidden!important}
+ body.sa-student-profile-print-mode #saStudentProfilePrintRoot,
+ body.sa-student-profile-print-mode #saStudentProfilePrintRoot *{visibility:visible!important}
+ body.sa-student-profile-print-mode #saStudentProfilePrintRoot{display:block!important;position:absolute!important;inset:0!important;width:100%!important;background:#fff!important}
+ body.sa-student-profile-print-mode .sa-student-profile-doc{padding:0!important}
+ body.sa-student-profile-print-mode .sa-student-profile-doc table{break-inside:auto}
+ body.sa-student-profile-print-mode .sa-student-profile-doc tr{break-inside:avoid;page-break-inside:avoid}
+}
 @media print{
  @page{size:A4 portrait;margin:10mm}
  html,body{margin:0!important;padding:0!important;background:#fff!important;width:100%!important;min-height:0!important}
@@ -1436,7 +1451,28 @@
         </div>
         <button type="button" onclick="saOpenNoticeModal()" class="rounded-2xl bg-gradient-to-l from-amber-600 to-amber-700 px-5 py-3 text-xs font-black text-white shadow-md transition hover:from-amber-700 hover:to-amber-800 focus:outline-none focus:ring-4 focus:ring-amber-200 dark:focus:ring-amber-900"><i class="fa-solid fa-print ml-2"></i> 🖨️ طباعة إشعارات التنبيه التلقائية</button>
       </div>
-      <p class="mt-3 text-[11px] leading-6 text-slate-500 dark:text-slate-400">يُحتسب الغياب مرة واحدة في اليوم لكل طالب، بينما تُحتسب حالات التأخر والتسرب والخروج والسلوكيات بحسب الحصة المسجلة. لا تُنشأ أي سجلات جديدة ولا تُعدّل البيانات الأصلية.</p>
+      <p class="mt-3 text-[11px] leading-6 text-slate-500 dark:text-slate-400">يُحتسب الغياب مرة واحدة في اليوم لكل طالب، بينما تُحتسب المخالفات الأخرى بحسب الحصة. لا تُعتمد التنبيهات إلا عند اختيار الإصدار الرسمي وتأكيد العملية.</p>
+      <div class="mt-5 rounded-3xl border border-slate-200 bg-white/80 p-4 dark:border-slate-700 dark:bg-slate-900/60">
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-user-magnifying-glass ml-2 text-teal-700"></i>السجل التفصيلي للطالب</h3><p class="mt-1 text-[11px] text-slate-500 dark:text-slate-400">اعرض جميع مخالفات الطالب وغيابه وتأخره وتنبيهاته السابقة بالتواريخ والحصص.</p></div>
+          <button type="button" onclick="saLoadStudentProfileDirectory()" class="rounded-xl bg-slate-100 px-4 py-2 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"><i class="fa-solid fa-rotate ml-1"></i> تحديث قائمة الطلاب</button>
+        </div>
+        <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <label class="text-xs font-black text-slate-700 dark:text-slate-200">الصف المصرح به
+            <select id="saStudentProfileClass" onchange="saLoadStudentProfileDirectory()" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white"><option value="">اختر الصف</option></select>
+          </label>
+          <label class="text-xs font-black text-slate-700 dark:text-slate-200 sm:col-span-2">اسم الطالب
+            <input id="saStudentProfileName" list="saStudentProfileNames" autocomplete="off" placeholder="اكتب اسم الطالب أو اختره من القائمة" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
+            <datalist id="saStudentProfileNames"></datalist>
+          </label>
+        </div>
+        <div class="mt-3 flex justify-end">
+          <button type="button" onclick="saLoadStudentNoticeProfile()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow hover:bg-teal-800"><i class="fa-solid fa-magnifying-glass ml-2"></i> عرض السجل التفصيلي</button>
+        </div>
+        <div id="saStudentProfileStatus" class="hidden mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200" role="status" aria-live="polite"></div>
+        <div id="saStudentProfileResult" class="hidden mt-4"></div>
+        <div id="saStudentProfilePrintRoot" class="hidden"></div>
+      </div>
     </section>
   </div>
 
