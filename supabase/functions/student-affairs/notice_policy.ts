@@ -96,6 +96,10 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
     if (!className || !originalName || !date) return;
     const studentName = roster.get(keyOf(className, originalName)) || originalName;
     const studentKey = keyOf(className, studentName);
+    const previousIssueDate = latest.get(studentKey)?.date || "";
+    // A student's next monitoring window begins the day after their last official issue,
+    // regardless of which categories were selected on that earlier issue.
+    if (previousIssueDate && date <= previousIssueDate) return;
     const event: NoticeEvent = { type, date, period: normalize(period) || "غير محددة", note: normalize(noteRaw) };
     const fingerprint = eventKey(className, studentName, event);
     if (type === "absent") {
@@ -137,7 +141,9 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
       ...student,
       issue_number: (previous?.issue || 0) + 1,
       previous_issue_on: previous?.date || null,
-      period_start: previous?.date || "2000-01-01",
+      period_start: previous?.date
+        ? new Date(new Date(previous.date + "T00:00:00.000Z").getTime() + 86400000).toISOString().slice(0, 10)
+        : "2000-01-01",
       period_end: input.period_end,
     });
   }
