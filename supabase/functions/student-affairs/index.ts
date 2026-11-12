@@ -1031,6 +1031,49 @@ async function handle(req: Request) {
     ]);
     return reply(200, { teachers: teachers || [], classes: classes || [], permissions: perms || [] });
   }
+  if (body?.action === "remove_student_affairs_member") {
+    if (p.type !== "admin") return reply(403, { error: "حذف عضوية شؤون الطلبة متاح لمدير النظام فقط." });
+    const type = String(body.principal_type || "");
+    const name = String(body.principal_name || "").trim();
+    if (type !== "teacher" || !name) return reply(400, { error: "بيانات المعلم المطلوب حذفه غير صالحة." });
+    const { data: target, error: targetError } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
+    if (targetError) throw targetError;
+    if (!target || target.role === "custom") return reply(404, { error: "المعلم غير موجود." });
+    const current = target.permissions && typeof target.permissions === "object" ? target.permissions : {};
+    const { data: assignment, error: assignmentError } = await db.from("student_affairs_permissions").select("principal_name").eq("principal_type", "teacher").eq("principal_name", name).maybeSingle();
+    if (assignmentError) throw assignmentError;
+    const isMember = current.studentAffairs === true || ["team_leader", "supervisor", "visitor"].includes(String(current.student_affairs_role || "")) || !!assignment;
+    if (!isMember) return reply(404, { error: "هذا المعلم غير مضاف حالياً إلى شؤون الطلبة." });
+
+    const { error: sessionError } = await db.from("student_affairs_sessions").delete().eq("principal_type", "teacher").eq("principal_name", name);
+    if (sessionError) throw sessionError;
+
+    const cleaned = { ...current, studentAffairs: false };
+    ["student_affairs_role", "student_affairs_team_name", "supervisor_team_leader_name",
+     "can_read_attendance", "can_read_behavior", "can_view_analytics",
+     "can_print_attendance", "can_print_behavior", "can_print_combined"].forEach(key => delete cleaned[key]);
+
+    const { data: updated, error: updateError } = await db.from("teachers").update({ permissions: cleaned }).eq("name", name).select("name").maybeSingle();
+    if (updateError) throw updateError;
+    if (!updated) throw new Error("تعذر إلغاء عضوية المعلم من سجل الحساب.");
+
+    if (current.student_affairs_role === "team_leader") {
+      const { data: linked, error: linkedError } = await db.from("teachers").select("name,permissions").neq("name", name);
+      if (linkedError) throw linkedError;
+      const linkedSupervisors = (linked || []).filter((item: any) => item.permissions?.student_affairs_role === "supervisor"
+        && String(item.permissions?.supervisor_team_leader_name || "").trim() === name);
+      for (const supervisor of linkedSupervisors) {
+        const supervisorPermissions = { ...(supervisor.permissions || {}) };
+        delete supervisorPermissions.supervisor_team_leader_name;
+        const { error: detachError } = await db.from("teachers").update({ permissions: supervisorPermissions }).eq("name", supervisor.name);
+        if (detachError) throw detachError;
+      }
+    }
+
+    const { error: deleteError } = await db.from("student_affairs_permissions").delete().eq("principal_type", "teacher").eq("principal_name", name);
+    if (deleteError) throw deleteError;
+    return reply(200, { ok: true, principal_name: name, removed_from: "student_affairs" });
+  }
   if (body?.action === "set_permissions") {
     if (p.type !== "admin") return reply(403, { error: "غير مصرح" });
     const type = body.principal_type, name = String(body.principal_name || "").trim();
