@@ -1086,7 +1086,7 @@ async function handle(req: Request) {
     if (targetName) {
       const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, targetName, permissions.team_members || [], permissions.teacher_directory || []);
       if (!target) return reply(403, { error: "لا تملك صلاحية الاطلاع على تقارير هذا المعلم." });
-      permissions = projectSupervisionReportPermissions(permissions, target, permissions.role === "visitor");
+      permissions = projectSupervisionReportPermissions(permissions, target, permissions.role === "visitor" || permissions.role === "admin");
     }
     const allowedAttendance = new Set((permissions.allowed_attendance_classes || []) as string[]);
     const allowedBehavior = new Set((permissions.allowed_behavior_classes || []) as string[]);
