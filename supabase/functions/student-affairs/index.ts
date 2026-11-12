@@ -784,9 +784,15 @@ async function handle(req: Request) {
       attendanceClasses = permissions.own_allowed_attendance_classes || [];
       behaviorClasses = permissions.own_allowed_behavior_classes || [];
     } else if (scope === "team" && p.type !== "admin" && permissions.role === "team_leader") {
-      selectedMembers = permissions.team_members || [];
-      attendanceClasses = permissions.team_allowed_attendance_classes || [];
-      behaviorClasses = permissions.team_allowed_behavior_classes || [];
+      // Team scope includes the leader's own assigned classes plus only directly supervised team members.
+      selectedMembers = [{
+        name: p.name,
+        allowed_attendance_classes: permissions.own_allowed_attendance_classes || [],
+        allowed_behavior_classes: permissions.own_allowed_behavior_classes || [],
+        attendance_statuses: permissions.attendance_statuses || ["absent", "late", "escape", "outside"]
+      }, ...(permissions.team_members || [])];
+      attendanceClasses = [...(permissions.own_allowed_attendance_classes || []), ...(permissions.team_allowed_attendance_classes || [])];
+      behaviorClasses = [...(permissions.own_allowed_behavior_classes || []), ...(permissions.team_allowed_behavior_classes || [])];
     } else if (scope === "teacher" && p.type !== "admin" && permissions.role === "team_leader") {
       const targetName = String(body.teacher_name || "");
       const member = (permissions.team_members || []).find((item: any) => item.name === targetName);
