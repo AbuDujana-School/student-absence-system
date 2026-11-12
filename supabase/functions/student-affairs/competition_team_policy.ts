@@ -49,7 +49,7 @@ export function findCompetitionClassesOutsidePersonalScope(competitionClasses: u
     .filter(className => !personal.has(className));
 }
 
-export function projectCompetitionTeam(team: CompetitionTeam, metric: Record<string, unknown>)
+export function projectCompetitionTeam(team: CompetitionTeam, metric: Record<string, unknown>) {
   return {
     teamId: team.teamId,
     teamName: team.teamName,
