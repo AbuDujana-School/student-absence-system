@@ -1,4 +1,4 @@
-import { buildCompetitionTeams } from "./competition_team_policy.ts";
+import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope } from "./competition_team_policy.ts";
 
 Deno.test("only explicitly enrolled teachers become competition teams", () => {
   const teams = buildCompetitionTeams([
@@ -7,6 +7,15 @@ Deno.test("only explicitly enrolled teachers become competition teams", () => {
     { name: "Teacher B", permissions: { competition_participant: false, competition_team_name: "ignored", competition_team_classes: ["3/9"] } }
   ], ["1/9", "2/9", "3/9"]);
   if (teams.length !== 1 || teams[0].leaderName !== "Teacher A" || teams[0].classNames.length !== 2) throw new Error("non-participants must not enter the competition");
+});
+
+Deno.test("leader competition classes must stay within personal class assignments", () => {
+  if (findCompetitionClassesOutsidePersonalScope(["تاسع أول", "تاسع ثالث"], ["تاسع أول", "تاسع ثاني"]).join("|") !== "تاسع ثالث") {
+    throw new Error("classes assigned to supervisors must be rejected from the leader's competition scope");
+  }
+  if (findCompetitionClassesOutsidePersonalScope(["تاسع أول", "تاسع ثاني"], ["تاسع أول", "تاسع ثاني"]).length) {
+    throw new Error("the leader's own classes should be accepted");
+  }
 });
 
 Deno.test("team name and assigned classes are mandatory", () => {
