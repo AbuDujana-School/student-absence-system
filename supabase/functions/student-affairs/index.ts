@@ -962,7 +962,7 @@ async function handle(req: Request) {
     const permissions = await permissionsFor(p);
     if (p.type === "admin") return reply(200, { team_name: "جميع المعلمين", teachers: permissions.teacher_directory || [] });
     if (permissions.role === "visitor") return reply(200, { team_name: "جميع معلمي شؤون الطلبة", teachers: permissions.teacher_directory || [] });
-    if (permissions.role !== "team_leader") return reply(403, { error: "متابعة المعلمين متاحة لرئيس الفريق والزائر فقط" });
+    if (permissions.role !== "team_leader") return reply(403, { error: "متابعة المعلمين متاحة لقائد الفريق والزائر فقط" });
     return reply(200, { team_name: permissions.team_name || "", teachers: permissions.team_members || [] });
   }
   if (body?.action === "get_permissions") {
@@ -986,7 +986,7 @@ async function handle(req: Request) {
     if (supervisionRole && (type === "custom" ? supervisionRole !== "visitor" : !["team_leader", "supervisor", "visitor"].includes(supervisionRole))) return reply(400, { error: "نوع الإشراف غير صالح لهذا الحساب" });
     if (supervisionRole === "visitor" && body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للزائر." });
     if (type === "teacher" && !supervisionRole && supervisionTeam) return reply(400, { error: "حدد نوع الإشراف قبل ربط المعلم بفريق" });
-    if (type === "teacher" && supervisionRole === "team_leader" && (!supervisionTeam || body.studentAffairs !== true)) return reply(400, { error: "يجب تحديد اسم الفريق ومنح رئيس الفريق دخول شؤون الطلبة" });
+    if (type === "teacher" && supervisionRole === "team_leader" && (!supervisionTeam || body.studentAffairs !== true)) return reply(400, { error: "يجب تحديد اسم الفريق ومنح قائد الفريق دخول شؤون الطلبة" });
     if (type === "teacher" && supervisionRole === "supervisor") {
       if (body.studentAffairs !== true) return reply(400, { error: "يجب تفعيل دخول شؤون الطلبة للمعلم المشرف." });
       const { data: leaders, error: leaderError } = await db.from("teachers").select("name,permissions").neq("name", target.name);
@@ -997,7 +997,7 @@ async function handle(req: Request) {
         || (!supervisionLeaderName && supervisionTeam ? (leaders || []).find((item: any) => item.permissions?.student_affairs_role === "team_leader"
           && item.permissions?.studentAffairs === true
           && String(item.permissions?.student_affairs_team_name || "").trim() === supervisionTeam) : null);
-      if (!matchedLeader) return reply(400, { error: "اختر رئيس فريق مفعّلاً من القائمة قبل ربط المعلم المشرف." });
+      if (!matchedLeader) return reply(400, { error: "اختر قائد فريق مفعّلاً من القائمة قبل ربط المعلم المشرف." });
       supervisionLeaderName = String(matchedLeader.name);
       supervisionTeam = String(matchedLeader.permissions.student_affairs_team_name || "").trim();
     }
