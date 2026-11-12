@@ -223,7 +223,7 @@ async function hasStudentAffairsAccess(p: { type: string; name: string }) {
   if (error || !data) return false;
   const expectedRole = p.type === "custom" ? "custom" : "teacher";
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
-    && (data.permissions?.studentAffairs === true || data.permissions?.admin === true || data.permissions?.reports === true);
+    && (data.permissions?.studentAffairs === true || data.permissions?.admin === true);
 }
 async function getSession(req: Request) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
@@ -726,12 +726,41 @@ async function handle(req: Request) {
       return reply(status, { error: message });
     }
   }
-  const session = await getSession(req);
-  if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
-  const p = session.principal;
-  if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
-    await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
-    return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
+  let p: { type: string; name: string };
+  if (body?.action === "reports_permissions" || body?.action === "reports") {
+    const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+    if (appSession) {
+      const appPrincipal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!appPrincipal) {
+        await revokeAppSession(appSessionStore, req.headers.get("authorization"));
+        return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      }
+      if (appPrincipal.type !== "admin" && appPrincipal.permissions?.reports !== true) {
+        return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
+      }
+      p = appPrincipal;
+    } else if (body?.action === "reports") {
+      const saSession = await getSession(req);
+      if (!saSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      p = saSession.principal;
+      if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
+        await db.from("student_affairs_sessions").delete().eq("token_hash", saSession.tokenHash);
+        return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
+      }
+    } else {
+      return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+    }
+    if (body?.action === "reports_permissions") {
+      return reply(200, { permissions: await permissionsFor(p) });
+    }
+  } else {
+    const session = await getSession(req);
+    if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+    p = session.principal;
+    if (p.type !== "admin" && !(await hasStudentAffairsAccess(p))) {
+      await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
+      return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
+    }
   }
   if (body?.action === "logout") {
     await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
