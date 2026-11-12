@@ -784,9 +784,15 @@ async function handle(req: Request) {
       attendanceClasses = permissions.own_allowed_attendance_classes || [];
       behaviorClasses = permissions.own_allowed_behavior_classes || [];
     } else if (scope === "team" && p.type !== "admin" && permissions.role === "team_leader") {
-      selectedMembers = permissions.team_members || [];
-      attendanceClasses = permissions.team_allowed_attendance_classes || [];
-      behaviorClasses = permissions.team_allowed_behavior_classes || [];
+      // Team scope includes the leader's own assigned classes plus only directly supervised team members.
+      selectedMembers = [{
+        name: p.name,
+        allowed_attendance_classes: permissions.own_allowed_attendance_classes || [],
+        allowed_behavior_classes: permissions.own_allowed_behavior_classes || [],
+        attendance_statuses: permissions.attendance_statuses || ["absent", "late", "escape", "outside"]
+      }, ...(permissions.team_members || [])];
+      attendanceClasses = [...(permissions.own_allowed_attendance_classes || []), ...(permissions.team_allowed_attendance_classes || [])];
+      behaviorClasses = [...(permissions.own_allowed_behavior_classes || []), ...(permissions.team_allowed_behavior_classes || [])];
     } else if (scope === "teacher" && p.type !== "admin" && permissions.role === "team_leader") {
       const targetName = String(body.teacher_name || "");
       const member = (permissions.team_members || []).find((item: any) => item.name === targetName);
@@ -838,7 +844,9 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر إعداد مؤشر الأداء" });
     }
     const days = new Map<string, any>();
-    const getDay = (date: string) => { if (!days.has(date)) days.set(date, { date, absent: 0, late: 0, escape: 0, outside: 0, behavior: 0, total: 0 }); return days.get(date); };
+    const behaviorKeys = ["eating", "talking", "tools", "chaos", "sleeping", "homework", "other"];
+    const countedDailyBehaviors = new Set<string>();
+    const getDay = (date: string) => { if (!days.has(date)) days.set(date, { date, absent: 0, late: 0, escape: 0, outside: 0, behavior: 0, ...Object.fromEntries(behaviorKeys.map((key) => [key, 0])), total: 0 }); return days.get(date); };
     for (const row of attendanceRows) {
       const day = getDay(String(row.date_str)), records = row.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
       for (const value of Object.values(records as Record<string, unknown>)) {
@@ -848,8 +856,19 @@ async function handle(req: Request) {
       }
     }
     for (const row of behaviorRows) {
-      const day = getDay(String(row.date_str)), records = row.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
-      for (const value of Object.values(records as Record<string, unknown>)) { const count = behaviorTypesFromRecord(value).length; if (count) { day.behavior += count; day.total += count; } }
+      const date = String(row.date_str), className = String(row.class_name || "");
+      const day = getDay(date), records = row.records && typeof row.records === "object" && !Array.isArray(row.records) ? row.records : {};
+      for (const [student, value] of Object.entries(records as Record<string, unknown>)) {
+        for (const behaviorType of behaviorTypesFromRecord(value)) {
+          if (!behaviorKeys.includes(behaviorType)) continue;
+          const dailyKey = [className, String(student), date, behaviorType].join("\u001f");
+          if (countedDailyBehaviors.has(dailyKey)) continue;
+          countedDailyBehaviors.add(dailyKey);
+          day[behaviorType]++;
+          day.behavior++;
+          day.total++;
+        }
+      }
     }
     return reply(200, { scope, class_count: unique([...attendanceClasses, ...behaviorClasses]).length, series: [...days.values()].sort((a, b) => a.date.localeCompare(b.date)), permissions: { role: permissions.role } });
   }

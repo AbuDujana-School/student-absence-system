@@ -1273,12 +1273,25 @@
   <div id="saLogin" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950/20"><p id="saLoginError" class="text-sm font-bold text-amber-800 dark:text-amber-200">جارٍ التحقق من جلسة دخولك...</p></div>
   <div id="saContent" class="hidden space-y-5">
     <section id="saSupervisionPanel" class="hidden space-y-4 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm dark:border-blue-900 dark:bg-slate-900 sm:p-5">
-      <div class="flex flex-wrap items-start justify-between gap-3"><div><h3 class="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-line text-blue-700"></i> مؤشر الأداء العام للصفوف</h3><p id="saSupervisionSubtitle" class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">اتجاه الغياب والسلوكيات والمشكلات المسجلة خلال الفترة.</p></div>
-        <div class="flex flex-wrap gap-2"><button id="saSupervisionOwnBtn" type="button" onclick="saLoadSupervisionTrend('own')" class="rounded-xl bg-blue-700 px-3 py-2 text-[11px] font-black text-white">صفوفي</button><button id="saSupervisionTeamBtn" type="button" onclick="saLoadSupervisionTrend('team')" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">فريقي</button><select id="saSupervisionTeacherSelect" onchange="saLoadSupervisionTrend('teacher',this.value)" class="hidden rounded-xl border border-slate-200 bg-white px-3 py-2 text-[11px] font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-950 dark:text-white"><option value="">اختر معلماً من الفريق</option></select></div>
+      <div class="flex flex-wrap items-start justify-between gap-3"><div><h3 class="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-area text-teal-700"></i> الاتجاه الزمني لحالات الغياب والانضباط</h3><p id="saSupervisionSubtitle" class="mt-1 text-xs leading-6 text-slate-500 dark:text-slate-400">متابعة حالات الغياب والتأخر والتسرب والخروج خلال الفترة المحددة.</p></div>
+        <div class="flex flex-wrap gap-2"><button id="saSupervisionOwnBtn" type="button" onclick="saLoadSupervisionTrend('own')" class="rounded-xl bg-blue-700 px-3 py-2 text-[11px] font-black text-white">صفوفي</button><button id="saSupervisionTeamBtn" type="button" onclick="saLoadSupervisionTrend('team')" class="hidden rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-black text-slate-700 dark:bg-slate-800 dark:text-slate-200">صفوف الفريق</button></div>
       </div>
-      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope,document.getElementById('saSupervisionTeacherSelect')?.value||'')" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope,document.getElementById('saSupervisionTeacherSelect')?.value||'')" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
-      <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="اتجاه الغياب والسلوكيات للصفوف المشرف عليها"></canvas></div>
-      <div class="flex flex-wrap gap-2 text-[10px] font-bold"><span class="rounded-lg bg-red-50 px-2 py-1 text-red-700">الغياب</span><span class="rounded-lg bg-amber-50 px-2 py-1 text-amber-700">التأخر</span><span class="rounded-lg bg-violet-50 px-2 py-1 text-violet-700">التسرب</span><span class="rounded-lg bg-blue-50 px-2 py-1 text-blue-700">الخروج</span><span class="rounded-lg bg-teal-50 px-2 py-1 text-teal-700">السلوكيات</span><span class="rounded-lg bg-slate-100 px-2 py-1 text-slate-700">إجمالي المشكلات</span></div>
+      <div class="grid grid-cols-1 gap-3 sm:grid-cols-2"><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من<input id="saSupervisionFrom" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label><label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى<input id="saSupervisionTo" type="date" onchange="saLoadSupervisionTrend(saSupervisionScope)" class="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 dark:border-slate-700 dark:bg-slate-950"></label></div>
+      <div id="saSupervisionStatus" class="hidden rounded-xl bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300"></div><div class="relative h-80 w-full"><canvas id="saSupervisionTrendChart" aria-label="الاتجاه الزمني لحالات الغياب والتأخر والتسرب والخروج"></canvas></div>
+      <div class="flex flex-wrap items-center justify-center gap-2.5 border-t border-slate-100 pt-3 text-[11px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان المخطط"><span class="inline-flex items-center gap-2 rounded-lg bg-slate-50 px-3 py-2 text-slate-800 dark:bg-slate-800 dark:text-slate-100"><i class="h-1 w-5 rounded-full" style="background:#0f172a"></i>الغياب</span><span class="inline-flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 text-amber-800 dark:bg-amber-950/30 dark:text-amber-300"><i class="h-1 w-5 rounded-full" style="background:#f59e0b"></i>التأخر</span><span class="inline-flex items-center gap-2 rounded-lg bg-red-50 px-3 py-2 text-red-800 dark:bg-red-950/30 dark:text-red-300"><i class="h-1 w-5 rounded-full" style="background:#ef4444"></i>متسرب</span><span class="inline-flex items-center gap-2 rounded-lg bg-violet-50 px-3 py-2 text-violet-800 dark:bg-violet-950/30 dark:text-violet-300"><i class="h-1 w-5 rounded-full" style="background:#8b5cf6"></i>خارج</span></div>
+      <div class="border-t border-slate-100 pt-4 dark:border-slate-700">
+        <div class="mb-2"><h4 class="text-sm font-black text-slate-800 dark:text-white"><i class="fa-solid fa-chart-line ml-1 text-teal-600"></i> الاتجاه الزمني للسلوكيات</h4><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">عدد حالات كل سلوك مسجلة يومياً خلال الفترة المحددة.</p></div>
+        <div class="relative h-72 w-full"><canvas id="saSupervisionBehaviorChart" aria-label="الاتجاه الزمني لأنواع السلوكيات المسجلة"></canvas></div>
+        <div class="mt-2 flex flex-nowrap items-center justify-center gap-x-3 overflow-x-auto whitespace-nowrap border-t border-slate-100 pt-2 text-[9px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
+          <span class="inline-flex shrink-0 items-center gap-1 text-amber-700 dark:text-amber-300"><i class="h-2 w-2 rounded-full" style="background:#f59e0b"></i>الأكل</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-orange-700 dark:text-orange-300"><i class="h-2 w-2 rounded-full" style="background:#f97316"></i>الكلام</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-yellow-700 dark:text-yellow-300"><i class="h-2 w-2 rounded-full" style="background:#eab308"></i>الأدوات</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-red-700 dark:text-red-300"><i class="h-2 w-2 rounded-full" style="background:#ef4444"></i>الفوضى</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-indigo-700 dark:text-indigo-300"><i class="h-2 w-2 rounded-full" style="background:#6366f1"></i>النوم</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-blue-700 dark:text-blue-300"><i class="h-2 w-2 rounded-full" style="background:#3b82f6"></i>الواجب</span>
+          <span class="inline-flex shrink-0 items-center gap-1 text-pink-700 dark:text-pink-300"><i class="h-2 w-2 rounded-full" style="background:#ec4899"></i>أخرى</span>
+        </div>
+      </div>
     </section>
     <section id="saCompetitionPanel" class="hidden overflow-hidden rounded-3xl border border-amber-200 bg-white shadow-sm dark:border-amber-900/60 dark:bg-slate-900">
       <div class="bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 text-white sm:p-6">
@@ -2338,7 +2351,7 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
 const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
-let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
+let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
 function sortClassesList(classesArray){
@@ -2429,26 +2442,44 @@ async function saSetupSupervisionPanel(){
   const enabled=saSession?.principal?.type==="admin"||p.can_view_analytics===true;panel.classList.toggle("hidden",!enabled);if(!enabled)return;
   const today=getOmanLocalDate(),from=today.slice(0,8)+"01",fromInput=document.getElementById("saSupervisionFrom"),toInput=document.getElementById("saSupervisionTo");
   if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;
-  const isLeader=p.role==="team_leader";document.getElementById("saSupervisionTeamBtn")?.classList.toggle("hidden",!isLeader);
-  const select=document.getElementById("saSupervisionTeacherSelect");
-  if(isLeader){try{const d=await saRequest({action:"supervision_team"});saSupervisionTeamData=d;if(select){select.innerHTML='<option value="">اختر معلماً من الفريق</option>'+(d.teachers||[]).map(t=>'<option value="'+escapeHtml(t.name)+'">'+escapeHtml(t.name)+'</option>').join("");select.classList.toggle("hidden",!(d.teachers||[]).length);}}catch(e){if(select){select.innerHTML='<option value="">تعذر تحميل المعلمين</option>';select.classList.add("hidden");}}}
-  else if(select){select.innerHTML='<option value="">اختر معلماً</option>';select.classList.add("hidden");}
+  const isLeader=p.role==="team_leader";
+  document.getElementById("saSupervisionTeamBtn")?.classList.toggle("hidden",!isLeader);
   await saLoadSupervisionTrend("own");
 }
-async function saLoadSupervisionTrend(scope="own",teacherName=""){
+async function saLoadSupervisionTrend(scope="own"){
   const panel=document.getElementById("saSupervisionPanel"),status=document.getElementById("saSupervisionStatus");if(!panel||panel.classList.contains("hidden"))return;
-  const from=document.getElementById("saSupervisionFrom")?.value||"2000-01-01",to=document.getElementById("saSupervisionTo")?.value||getOmanLocalDate();if(from>to){if(status){status.textContent="تاريخ البداية يجب ألا يكون بعد النهاية.";status.classList.remove("hidden");}return;}if(scope==="teacher"&&!teacherName)return;
-  saSupervisionScope=scope;const subtitle=document.getElementById("saSupervisionSubtitle");if(subtitle)subtitle.textContent=scope==="team"?"الأداء المجمع لجميع الصفوف المسندة إلى معلمي الفريق.":scope==="teacher"?"أداء الصفوف المسندة إلى المعلم المحدد.":"أداء الصفوف التي كُلّفت بالإشراف عليها شخصياً.";
-  if(status){status.textContent="جارٍ تحميل اتجاه الغياب والسلوكيات...";status.classList.remove("hidden");}
+  const from=document.getElementById("saSupervisionFrom")?.value||"2000-01-01",to=document.getElementById("saSupervisionTo")?.value||getOmanLocalDate();if(from>to){if(status){status.textContent="تاريخ البداية يجب ألا يكون بعد النهاية.";status.classList.remove("hidden");}return;}
+  saSupervisionScope=scope;const subtitle=document.getElementById("saSupervisionSubtitle");if(subtitle)subtitle.textContent=scope==="team"?"أداء صفوفك وصفوف المعلمين المشرف عليهم في فريقك فقط.":"أداء صفوفك فقط.";
+  if(status){status.textContent="جارٍ تحميل اتجاه حالات الغياب والانضباط...";status.classList.remove("hidden");}
   try{
-    const d=await saRequest({action:"supervision_trend",scope,teacher_name:teacherName||undefined,from,to}),rows=Array.isArray(d.series)?d.series:[],labels=rows.map(x=>x.date);
-    const specs=[["الغياب","absent","#ef4444"],["التأخر","late","#f59e0b"],["التسرب","escape","#8b5cf6"],["الخروج","outside","#3b82f6"],["السلوكيات","behavior","#0d9488"],["إجمالي المشكلات","total","#334155"]];
-    const datasets=specs.map(([label,key,color])=>({label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,borderWidth:key==="total"?3:2,tension:.3,pointRadius:2,pointHoverRadius:5,fill:false,borderDash:key==="total"?[6,4]:[]}));
+    const d=await saRequest({action:"supervision_trend",scope,from,to}),rows=Array.isArray(d.series)?d.series:[],labels=rows.map(x=>x.date);
     const canvas=document.getElementById("saSupervisionTrendChart");if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}
-    if(canvas&&typeof Chart!=="undefined")saSupervisionTrendChart=new Chart(canvas.getContext("2d"),{type:"line",data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},plugins:{legend:{position:"bottom",labels:{usePointStyle:true,boxWidth:8,font:{family:"Tajawal",size:10}}},tooltip:{titleFont:{family:"Tajawal"},bodyFont:{family:"Tajawal"}}},scales:{y:{beginAtZero:true,ticks:{precision:0,font:{family:"Tajawal",size:10}},grid:{color:"rgba(148,163,184,.16)"}},x:{ticks:{font:{family:"Tajawal",size:9},maxRotation:45,autoSkip:true},grid:{display:false}}}}});
+    if(canvas&&typeof Chart!=="undefined"){
+      const ctx=canvas.getContext("2d");
+      const specs=[["الغياب","absent","#0f172a"],["التأخر","late","#f59e0b"],["المتسرب","escape","#ef4444"],["الخارج","outside","#8b5cf6"]];
+      const datasets=specs.map(([label,key,color])=>({
+        label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,
+        borderWidth:2.5,tension:.3,pointRadius:6,pointHoverRadius:8,
+        pointBackgroundColor:"#ffffff",pointBorderColor:color,pointBorderWidth:2.5,fill:false
+      }));
+      const commonOptions={
+        responsive:true,maintainAspectRatio:false,interaction:{mode:"index",intersect:false},
+        plugins:{legend:{display:false},tooltip:{mode:"index",intersect:false,backgroundColor:"rgba(15,23,42,.9)",titleFont:{family:"Tajawal",size:13},bodyFont:{family:"Tajawal",size:12},padding:10,cornerRadius:8}},
+        scales:{
+          y:{beginAtZero:true,grid:{color:"rgba(148,163,184,.16)"},ticks:{precision:0,font:{family:"Tajawal",size:10}}},
+          x:{grid:{display:false},ticks:{font:{family:"Tajawal",size:10},maxRotation:45,minRotation:0}}
+        }
+      };
+      saSupervisionTrendChart=new Chart(ctx,{type:"line",data:{labels,datasets},options:commonOptions});
+      const behaviorSpecs=[["الأكل","eating","#f59e0b"],["الكلام","talking","#f97316"],["الأدوات","tools","#eab308"],["الفوضى","chaos","#ef4444"],["النوم","sleeping","#6366f1"],["الواجب","homework","#3b82f6"],["أخرى","other","#ec4899"]];
+      const behaviorDatasets=behaviorSpecs.map(([label,key,color])=>({label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,borderWidth:2.25,tension:.3,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:"#ffffff",pointBorderColor:color,pointBorderWidth:2,fill:false}));
+      const behaviorCanvas=document.getElementById("saSupervisionBehaviorChart");
+      if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}
+      if(behaviorCanvas)saSupervisionBehaviorChart=new Chart(behaviorCanvas.getContext("2d"),{type:"line",data:{labels,datasets:behaviorDatasets},options:commonOptions});
+    }
     if(status){status.textContent="عدد الصفوف المشمولة: "+Number(d.class_count||0)+" · الفترة: "+from+" إلى "+to+(rows.length?"":" · لا توجد مشكلات مسجلة في هذه الفترة.");status.classList.remove("hidden");}
     document.getElementById("saSupervisionOwnBtn")?.classList.toggle("bg-blue-700",scope==="own");document.getElementById("saSupervisionOwnBtn")?.classList.toggle("text-white",scope==="own");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("bg-blue-700",scope==="team");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("text-white",scope==="team");
-  }catch(e){if(status){status.textContent=e?.message||"تعذر تحميل مؤشر الأداء.";status.classList.remove("hidden");}if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}}
+  }catch(e){if(status){status.textContent=e?.message||"تعذر تحميل مؤشر الأداء.";status.classList.remove("hidden");}if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}}
 }
 function saCanViewCompetition(){const p=saReportPermissions||{};return saSession?.principal?.type==="admin"||p.can_view_competition===true;}
 function saDateShift(value,days){const d=new Date(value+"T12:00:00.000Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
