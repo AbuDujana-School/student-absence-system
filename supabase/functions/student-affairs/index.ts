@@ -1282,7 +1282,9 @@ async function handle(req: Request) {
       }));
       const { data: issued, error: issueError } = await db.rpc("issue_student_affairs_notices", { p_items: payload });
       if (issueError) return reply(500, { error: "تعذر حفظ التنبيهات الرسمية. لم نعرضها على أنها معتمدة." });
-      return reply(200, { issued: Array.isArray(issued) ? issued : [], candidates, message: "تم اعتماد التنبيهات الرسمية وحفظ سجلها." });
+      const issuedRows = Array.isArray(issued) ? issued : [];
+      if (!issuedRows.length) return reply(200, { issued: [], candidates: [], message: "لم يتبقَّ تنبيه جديد بعد إعادة التحقق الذرية. ربما اعتمد مستخدم آخر التنبيه نفسه، أو لم تعد المخالفات الجديدة تبلغ الحد." });
+      return reply(200, { issued: issuedRows, candidates, message: "تم اعتماد التنبيهات الرسمية وحفظ سجلها." });
     }
     if (body.attendance_status_filters != null && !Array.isArray(body.attendance_status_filters)) return reply(400, { error: "قائمة حالات الغياب غير صالحة" });
     const requestedStatuses = body.attendance_status_filters == null
