@@ -3380,7 +3380,7 @@ function saNoticeBuildCard(student,index){
 }
 function saNoticeBuildPages(students){
   const classOrder=new Map(sortClassesList([...new Set(students.map(x=>x.className))]).map((name,index)=>[name,index]));
-  const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)||0)-(classOrder.get(b.className)||0)||String(a.name).localeCompare(String(b.name),"ar"));
+  const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)??999)-(classOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
   const pages=[];let cursor=0;
   while(cursor<ordered.length){
     const level=saNoticeClassifyCard(ordered[cursor]),limit=level==="compact"?3:level==="medium"?2:1;
@@ -3445,7 +3445,8 @@ async function saGenerateAutomaticNotices(){
     if(errors.length)throw errors[0];
     const built=saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,statuses);
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
-    qualifying.sort((a,b)=>String(a.className).localeCompare(String(b.className),"ar",{numeric:true})||String(a.name).localeCompare(String(b.name),"ar"));
+    const noticeClassOrder=new Map(sortClassesList([...new Set(qualifying.map(x=>x.className))]).map((name,index)=>[name,index]));
+    qualifying.sort((a,b)=>(noticeClassOrder.get(a.className)??999)-(noticeClassOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
     saNoticeLastGenerated=qualifying;
     if(!qualifying.length){
       document.getElementById("saNoticePrintRoot").innerHTML="";
