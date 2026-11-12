@@ -765,6 +765,39 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر إتمام تسجيل الدخول حالياً" });
     }
   }
+  if (body?.action === "app_student_affairs_session") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) {
+        await revokeAppSession(appSessionStore, req.headers.get("authorization"));
+        return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      }
+      if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) {
+        return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة." });
+      }
+      const token = hex(crypto.getRandomValues(new Uint8Array(32)));
+      const expires = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
+      await db.from("student_affairs_sessions").delete().lt("expires_at", new Date().toISOString());
+      const { error } = await db.from("student_affairs_sessions").insert({
+        token_hash: await sha256(token),
+        principal_type: principal.type,
+        principal_name: principal.name,
+        expires_at: expires
+      });
+      if (error) throw error;
+      return reply(200, {
+        token,
+        expires_at: expires,
+        principal: { type: principal.type, name: principal.name },
+        permissions: await permissionsFor(principal)
+      });
+    } catch (error) {
+      console.error("Student Affairs app-session bridge failed:", error);
+      return reply(500, { error: "تعذر إنشاء جلسة شؤون الطلبة من جلسة التطبيق الحالية." });
+    }
+  }
   if (body?.action === "app_session") {
     try {
       const session = await readAppSession(appSessionStore, req.headers.get("authorization"));
