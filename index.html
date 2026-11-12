@@ -4962,14 +4962,13 @@ async function finalizeLoginState() {
   }
 
   const dashboardView = document.getElementById('dashboardSelectionView');
-  const dashboardGrid = dashboardView?.querySelector(':scope > .grid');
   if (singlePermission) {
+    // Single admin-panel permission changes only the header entry point.
+    // Keep the dashboard grid and its attendance, behavior, and duty cards intact.
     dashboardView?.setAttribute('data-single-permission-mode', 'true');
-    dashboardGrid?.classList.add('hidden');
     document.getElementById('singlePermissionLauncher')?.remove();
   } else {
     dashboardView?.removeAttribute('data-single-permission-mode');
-    dashboardGrid?.classList.remove('hidden');
     document.getElementById('singlePermissionLauncher')?.remove();
   }
 
