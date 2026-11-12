@@ -1481,7 +1481,7 @@
       <div id="saNoticePreviewPanel" class="hidden p-3 sm:p-5">
         <div class="sa-notice-toolbar mb-4 flex flex-wrap items-center justify-between gap-2">
           <button type="button" onclick="saNoticeBackToConfig()" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"><i class="fa-solid fa-arrow-right ml-1"></i> تعديل الاختيارات</button>
-          <button type="button" onclick="saNoticeHandlePrint()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-teal-800"><i class="fa-solid fa-print ml-2"></i> اعتماد / طباعة / حفظ PDF</button>
+          <button id="saNoticePrintAction" type="button" onclick="saNoticeHandlePrint()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-teal-800"><i class="fa-solid fa-print ml-2"></i> اعتماد / طباعة / حفظ PDF</button>
         </div>
         <div id="saNoticePreviewSummary" class="sa-notice-screen-summary mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"></div>
         <div id="saNoticePrintRoot" class="space-y-4"></div>
@@ -3262,7 +3262,15 @@ const SA_NOTICE_LABELS={
   other:"سلوكيات أخرى مخالفة للنظام المدرسي"
 };
 let saNoticeLastGenerated=[];
+let saNoticeLastHistory=[];
+let saNoticeLastSettings=null;
 let saNoticeGenerationBusy=false;
+let saNoticeCurrentIssueDate="";
+let saNoticeOfficialCommitted=false;
+const SA_NOTICE_TYPE_GROUPS=[
+  {title:"سجلات الحضور",items:["absent","late","escape","outside"]},
+  {title:"السلوكيات",items:["eating","talking","tools","chaos","sleeping","homework","other"]}
+];
 function saNoticeSetStatus(message,isError){
   const box=document.getElementById("saNoticeStatus");if(!box)return;
   box.textContent=String(message||"");box.classList.remove("hidden","border-blue-200","bg-blue-50","text-blue-900","dark:border-blue-900","dark:bg-blue-950/30","dark:text-blue-200","border-red-200","bg-red-50","text-red-800","dark:border-red-900","dark:bg-red-950/30","dark:text-red-200");
@@ -3275,6 +3283,23 @@ function saNoticeAllowedClasses(){
   if(p.can_read_behavior===true)items.push(...saGetAllowedReportClasses("behavior"));
   return sortClassesList([...new Set(items.map(x=>String(x).trim()).filter(Boolean))]);
 }
+function saNoticeRenderTypeFilters(){
+  const host=document.getElementById("saNoticeTypeFilters");if(!host)return;
+  const p=saReportPermissions||{};
+  const attendanceAllowed=p.can_read_attendance===true&&p.can_print_attendance===true&&Array.isArray(p.attendance_statuses)?p.attendance_statuses:[];
+  const behaviorAllowed=p.can_read_behavior===true&&p.can_print_behavior===true;
+  const items=SA_NOTICE_TYPE_GROUPS.flatMap(group=>group.items.filter(type=>group.title==="سجلات الحضور"?attendanceAllowed.includes(type):behaviorAllowed).map(type=>({type,title:SA_NOTICE_LABELS[type]})));
+  host.innerHTML=items.map(item=>'<label class="flex items-start gap-2 rounded-xl bg-slate-50 p-2 text-[11px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-200"><input type="checkbox" data-sa-notice-type="'+item.type+'" checked class="mt-0.5 h-4 w-4 shrink-0 rounded border-slate-300"><span>'+escapeHtml(item.title)+'</span></label>').join("");
+  if(!items.length)host.innerHTML='<p class="text-xs text-rose-600">لا توجد أنواع مخالفات مصرح بها.</p>';
+}
+function saNoticeSelectedTypes(){
+  return [...(document.querySelectorAll("#saNoticeTypeFilters input[data-sa-notice-type]:checked")||[])].map(input=>String(input.dataset.saNoticeType||"")).filter(Boolean);
+}
+function saNoticeRefreshPrintAction(){
+  const button=document.getElementById("saNoticePrintAction");if(!button)return;
+  const official=document.getElementById("saNoticeIssueMode")?.value==="official";
+  button.innerHTML=official?'<i class="fa-solid fa-shield-check ml-2"></i> اعتماد رسمي ثم طباعة':'<i class="fa-solid fa-print ml-2"></i> طباعة تجريبية / حفظ PDF';
+}
 function saOpenNoticeModal(){
   const p=saReportPermissions||{};
   if(!saSession?.token){showToast("تعذر التحقق من جلسة شؤون الطلبة. أعد تسجيل الدخول.","error");return;}
@@ -3283,10 +3308,15 @@ function saOpenNoticeModal(){
   if(!classes.length){showToast("لا توجد صفوف مسندة إليك ومصرح بها في سجلات الحضور أو السلوك.","error");return;}
   select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
   document.getElementById("saNoticeThreshold").value="2";
+  document.getElementById("saNoticeDate").value=getOmanLocalDate();
+  document.getElementById("saNoticeIssueMode").value="test";
+  document.getElementById("saNoticeDelivered").checked=false;
+  saNoticeRenderTypeFilters();saNoticeRefreshPrintAction();
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
   document.getElementById("saNoticeStatus").classList.add("hidden");
   document.getElementById("saNoticeModal").classList.remove("hidden");
   document.body.classList.remove("sa-notice-print-mode");
+  saNoticeLastGenerated=[];saNoticeLastHistory=[];saNoticeLastSettings=null;saNoticeOfficialCommitted=false;
 }
 function saCloseNoticeModal(){
   if(saNoticeGenerationBusy)return;
@@ -3296,17 +3326,15 @@ function saCloseNoticeModal(){
 function saNoticeBackToConfig(){
   document.getElementById("saNoticePreviewPanel")?.classList.add("hidden");
   document.getElementById("saNoticePrintRoot").innerHTML="";
+  saNoticeLastGenerated=[];saNoticeOfficialCommitted=false;
 }
-function saNoticeStartYear(){
-  // Local caches may omit archived records; query the full supported historical range from the reporting service.
-  return 2000;
-}
-function saNoticePeriodLabel(session){
+function saNoticeStartYear(){return 2000;}
+function saNoticePeriodKey(session){
   let value=session?.period;
-  if(value==null||value===""){
-    const key=String(session?.record_key||"");
-    const match=key.match(/_p(\d+)$/);if(match)value=match[1];
-  }
+  if(value==null||value===""){const match=String(session?.record_key||"").match(/_p(\d+)$/);if(match)value=match[1];}
+  return String(value||"غير محددة");
+}
+function saNoticePeriodLabel(value){
   const numeric=Number(value),mapped=periodNamesMap[numeric];
   return mapped?String(mapped).replace(/^الحصة\s*/,""):String(value||"غير محددة");
 }
@@ -3321,49 +3349,58 @@ function saNoticeResolveStudentName(className,rawName){
   const match=roster.find(name=>normalize(name)===normalize(original));
   return match?String(match).trim():original;
 }
-function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedStatuses){
-  const students=new Map(),seenAbsence=new Set(),seenEvents=new Set(),validAttendance=new Set(["absent","late","escape","outside"]);
+function saNoticeEventKey(className,name,event){
+  return [className,name,event.type,event.date,event.period,String(event.note||"").trim()].join(String.fromCharCode(31));
+}
+function saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,allowedStatuses,selectedTypes,historyRows=[]){
+  const students=new Map(),seenAbsence=new Set(),seenEvents=new Set(),alreadyIssued=new Set(),latest=new Map();
+  const selected=new Set(selectedTypes||[]),validAttendance=new Set(["absent","late","escape","outside"]);
   let ignored=0;
+  (historyRows||[]).forEach(row=>{
+    const className=String(row.class_name||"").trim(),name=String(row.student_name||"").trim(),key=className+String.fromCharCode(31)+name;
+    const issue=Number(row.issue_number)||0,prior=latest.get(key);
+    if(!prior||issue>prior.issue||(issue===prior.issue&&String(row.issued_on)>prior.date))latest.set(key,{issue,date:String(row.issued_on||"")});
+    (Array.isArray(row.events)?row.events:[]).forEach(event=>{
+      if(event&&event.type&&event.date&&event.period!==undefined)alreadyIssued.add(saNoticeEventKey(className,name,{type:String(event.type),date:String(event.date),period:String(event.period),note:String(event.note||"").trim()}));
+    });
+  });
   const getStudent=(className,name)=>{
     const key=className+String.fromCharCode(31)+name;
-    if(!students.has(key))students.set(key,{className,name,events:[],groups:new Map()});
+    if(!students.has(key))students.set(key,{className,name,events:[],groups:new Map(),issue_number:(latest.get(key)?.issue||0)+1,previous_issue_on:latest.get(key)?.date||null});
     return students.get(key);
   };
   const addEvent=(className,name,type,session,note)=>{
-    const date=saNoticeDateLabel(session?.date_str);
+    if(!selected.has(type))return;
+    const iso=String(session?.date_str||"").slice(0,10),date=saNoticeDateLabel(iso);
     if(!date){ignored++;return;}
-    const period=saNoticePeriodLabel(session);
-    const eventKey=[className,name,type,session.date_str,period,note||""].join(String.fromCharCode(31));
-    if(seenEvents.has(eventKey))return;
-    seenEvents.add(eventKey);
+    const period=saNoticePeriodKey(session),event={type,date:iso,period,note:String(note||"").trim()};
+    if(type==="absent"){
+      const daily=[className,name,iso].join(String.fromCharCode(31));
+      if(seenAbsence.has(daily))return;
+      seenAbsence.add(daily);
+    }
+    const fingerprint=saNoticeEventKey(className,name,event);
+    if(alreadyIssued.has(fingerprint)||seenEvents.has(fingerprint))return;
+    seenEvents.add(fingerprint);
     const item=getStudent(className,name);
     const groupKey=type==="other"?type+String.fromCharCode(31)+String(note||"").trim():type;
     if(!item.groups.has(groupKey))item.groups.set(groupKey,{type,note:String(note||"").trim(),events:[]});
-    const event={date,period};
-    item.groups.get(groupKey).events.push(event);
-    item.events.push({type,date,period,note:String(note||"").trim()});
+    item.groups.get(groupKey).events.push({date,period});
+    item.events.push(event);
   };
   const orderedAttendance=(attendanceSessions||[]).slice().sort((a,b)=>String(a?.date_str||"").localeCompare(String(b?.date_str||""))||(Number(a?.period)||0)-(Number(b?.period)||0));
   orderedAttendance.forEach(session=>{
-    const className=String(session?.class_name||"").trim();
-    if(!className)return;
+    const className=String(session?.class_name||"").trim();if(!className)return;
     const records=session?.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([rawName,rawValue])=>{
       const name=saNoticeResolveStudentName(className,rawName);
       if(!name||name==="undefined"||name==="null"){ignored++;return;}
       const status=typeof rawValue==="string"?rawValue:(rawValue&&typeof rawValue==="object"?String(rawValue.status||rawValue.type||""):"");
-      if(!validAttendance.has(status)||!allowedStatuses.includes(status))return;
-      if(status==="absent"){
-        const daily=[className,name,String(session.date_str||"")].join(String.fromCharCode(31));
-        if(seenAbsence.has(daily))return;
-        seenAbsence.add(daily);
-      }
-      addEvent(className,name,status,session,"");
+      if(validAttendance.has(status)&&allowedStatuses.includes(status))addEvent(className,name,status,session,"");
     });
   });
   (behaviorSessions||[]).forEach(session=>{
-    const className=String(session?.class_name||"").trim();
-    if(!className)return;
+    const className=String(session?.class_name||"").trim();if(!className)return;
     const records=session?.records&&typeof session.records==="object"?session.records:{};
     Object.entries(records).forEach(([rawName,rawValue])=>{
       const name=saNoticeResolveStudentName(className,rawName);
@@ -3387,15 +3424,15 @@ function saNoticeBuildCard(student,index){
     const events=group.events.slice().sort((a,b)=>a.date.localeCompare(b.date)||String(a.period).localeCompare(String(b.period),"ar",{numeric:true}));
     const label=SA_NOTICE_LABELS[group.type]||"مخالفة مسجلة في النظام";
     const title=label+(group.type==="other"&&group.note?" ("+group.note+")":"");
-    const details=events.map((event,i)=>(i===0?"الحصة (":"والحصة (")+event.period+") بتاريخ ("+event.date+")");
+    const details=events.map((event,i)=>(i===0?"الحصة (":"والحصة (")+saNoticePeriodLabel(event.period)+") بتاريخ ("+event.date+")");
     return "<li>• <strong>"+escapeHtml(title)+"</strong>: وذلك في "+details.join("، ") + ".</li>";
   }).join("");
-  const today=saNoticeDateLabel(getOmanLocalDate())||String(getOmanLocalDate()).replace(/-/g,"/");
-  const serial=index+1;
+  const issuedDate=saNoticeDateLabel(saNoticeCurrentIssueDate)||String(saNoticeCurrentIssueDate||getOmanLocalDate()).replace(/-/g,"/");
+  const serial=Number(student.issue_number)||index+1;
   return '<article class="sa-notice-card '+saNoticeClassifyCard(student)+'">'+
     '<div><header class="notice-heading"><div class="notice-country">سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div class="notice-school">مدرسة أبو دجانة الأنصاري للتعليم الأساسي</div></header>'+
     '<div class="notice-title">إشعار وتنبيه رقم ( '+serial+' )</div>'+
-    '<div class="notice-meta"><span>للطالب: <strong>'+escapeHtml(student.name)+'</strong></span><span>المقيد بالصف: <strong>'+escapeHtml(formatClassName(student.className))+'</strong></span><span>التاريخ: <strong>'+escapeHtml(today)+'</strong></span></div>'+
+    '<div class="notice-meta"><span>للطالب: <strong>'+escapeHtml(student.name)+'</strong></span><span>المقيد بالصف: <strong>'+escapeHtml(formatClassName(student.className))+'</strong></span><span>التاريخ: <strong>'+escapeHtml(issuedDate)+'</strong></span></div>'+
     '<p class="notice-intro">انطلاقاً من حرص إدارة المدرسة على انتظام سير العملية التعليمية وتعزيز الانضباط المدرسي، نفيدكم بأنه وبمراجعة سجلات المتابعة اليومية، فقد رُصدت عليكم عدة تجاوزات ومخالفات متكررة، وتتلخص فيما يلي:</p>'+
     '<ul class="notice-items">'+list+'</ul>'+
     '<p class="notice-conclusion">وعليه، يُعد هذا الإشعار تنبيهاً بضرورة الالتزام باللوائح والأنظمة المدرسية ولائحة شؤون الطلبة وتعديل السلوك فوراً، تجنباً لاتخاذ إجراءات إدارية، واستدعاء ولي الأمر مستقبلاً.</p></div>'+
@@ -3404,20 +3441,7 @@ function saNoticeBuildCard(student,index){
 function saNoticeBuildPages(students){
   const classOrder=new Map(sortClassesList([...new Set(students.map(x=>x.className))]).map((name,index)=>[name,index]));
   const ordered=students.slice().sort((a,b)=>(classOrder.get(a.className)??999)-(classOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
-  const pages=[];let cursor=0;
-  while(cursor<ordered.length){
-    const firstLevel=saNoticeClassifyCard(ordered[cursor]);
-    let limit=firstLevel==="compact"?3:firstLevel==="medium"?2:1;
-    const pageItems=[ordered[cursor++]];
-    while(cursor<ordered.length&&pageItems.length<limit){
-      const nextLevel=saNoticeClassifyCard(ordered[cursor]);
-      if(nextLevel==="full")break;
-      if(nextLevel==="medium")limit=Math.min(limit,2);
-      if(pageItems.length>=limit)break;
-      pageItems.push(ordered[cursor++]);
-    }
-    pages.push({level:firstLevel,items:pageItems});
-  }
+  const pages=[];for(let cursor=0;cursor<ordered.length;cursor+=3)pages.push({level:"three",items:ordered.slice(cursor,cursor+3)});
   return pages;
 }
 function saNoticeFitCards(){
@@ -3425,68 +3449,67 @@ function saNoticeFitCards(){
   let overflow=0;
   root.querySelectorAll(".sa-notice-card").forEach(card=>{
     card.removeAttribute("data-fit-failed");
-    let font=parseFloat(window.getComputedStyle(card).fontSize)||14;
+    let font=parseFloat(window.getComputedStyle(card).fontSize)||12;
     const minimum=7.2;
-    while(card.scrollHeight>card.clientHeight+2&&font>minimum){
-      font=Math.max(minimum,font-.5);
-      card.style.fontSize=font+"px";
-      card.style.lineHeight="1.16";
-      card.classList.add("fit-tight");
-    }
+    while(card.scrollHeight>card.clientHeight+2&&font>minimum){font=Math.max(minimum,font-.3);card.style.fontSize=font+"px";card.style.lineHeight="1.08";card.classList.add("fit-tight");}
     if(card.scrollHeight>card.clientHeight+2){card.dataset.fitFailed="true";overflow++;}
   });
   return overflow===0;
 }
+function saNoticeRenderPreview(students){
+  const pages=saNoticeBuildPages(students),root=document.getElementById("saNoticePrintRoot");
+  root.innerHTML=pages.map((page,pageIndex)=>{
+    const cards=page.items.map((student,i)=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
+    return '<section class="sa-notice-page" data-page="'+(pageIndex+1)+'">'+cards+'</section>';
+  }).join("");
+  const fitAfterFonts=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!saNoticeFitCards())saNoticeSetStatus("يوجد إشعار طويل جداً لا يتسع في ثلث صفحة A4 حتى بعد تصغير الخط. أوقفنا الطباعة حتى لا تُحذف أي تفاصيل.",true);}));
+  if(document.fonts?.ready)document.fonts.ready.then(fitAfterFonts);else fitAfterFonts();
+  return pages.length;
+}
 async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
-  const p=saReportPermissions||{},thresholdInput=document.getElementById("saNoticeThreshold"),threshold=Number(thresholdInput?.value);
-  if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً. راجع صلاحيات شؤون الطلبة.",true);return;}
-  if(!Number.isInteger(threshold)||threshold<1||threshold>10){saNoticeSetStatus("أدخل عدداً صحيحاً من 1 إلى 10. القيمة الافتراضية 2.",true);return;}
+  const p=saReportPermissions||{},threshold=Number(document.getElementById("saNoticeThreshold")?.value);
+  const issueDate=document.getElementById("saNoticeDate")?.value||"";
+  const selectedTypes=saNoticeSelectedTypes();
+  if(!saNoticeHasCombinedPermission(p)){saNoticeSetStatus("يتطلب إصدار الإشعارات صلاحية قراءة وطباعة سجلات الغياب والسلوك معاً.",true);return;}
+  if(!Number.isInteger(threshold)||threshold<1||threshold>10){saNoticeSetStatus("أدخل عدداً صحيحاً من 1 إلى 10.",true);return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)||issueDate>getOmanLocalDate()){saNoticeSetStatus("حدد تاريخ إصدار صحيحاً لا يتجاوز تاريخ اليوم.",true);return;}
+  if(!selectedTypes.length){saNoticeSetStatus("اختر نوع مخالفة واحداً على الأقل لرصده.",true);return;}
   const selected=document.getElementById("saNoticeClassSelect")?.value||"";
-  const available=saNoticeAllowedClasses();
-  const classes=selected==="__all__"?available:available.filter(c=>c===selected);
+  const available=saNoticeAllowedClasses(),classes=selected==="__all__"?available:available.filter(c=>c===selected);
   if(!classes.length){saNoticeSetStatus("اختر صفاً من الصفوف المصرح بها لك.",true);return;}
-  const allowedAttendance=new Set(saGetAllowedReportClasses("attendance"));
-  const allowedBehavior=new Set(saGetAllowedReportClasses("behavior"));
-  const canAttendance=p.can_read_attendance===true&&p.can_print_attendance===true&&Array.isArray(p.attendance_statuses)&&p.attendance_statuses.length>0;
-  const canBehavior=p.can_read_behavior===true&&p.can_print_behavior===true;
-  const statuses=canAttendance?p.attendance_statuses.filter(x=>["absent","late","escape","outside"].includes(x)):[];
-  const jobs=[];
-  const today=getOmanLocalDate(),startYear=saNoticeStartYear(),currentYear=Number(today.slice(0,4))||new Date().getFullYear();
+  const allowedAttendance=new Set(saGetAllowedReportClasses("attendance")),allowedBehavior=new Set(saGetAllowedReportClasses("behavior"));
+  const selectedAttendance=selectedTypes.filter(type=>["absent","late","escape","outside"].includes(type));
+  const selectedBehavior=selectedTypes.filter(type=>!["absent","late","escape","outside"].includes(type));
+  const attendanceClasses=selectedAttendance.length?classes.filter(c=>allowedAttendance.has(c)):[];
+  const behaviorClasses=selectedBehavior.length?classes.filter(c=>allowedBehavior.has(c)):[];
+  if(selectedAttendance.length&&!attendanceClasses.length){saNoticeSetStatus("لا توجد صلاحية لقراءة أنواع الحضور المحددة في الصف المختار.",true);return;}
+  if(selectedBehavior.length&&!behaviorClasses.length){saNoticeSetStatus("لا توجد صلاحية لقراءة السلوكيات المحددة في الصف المختار.",true);return;}
+  const statuses=selectedAttendance.filter(type=>(p.attendance_statuses||[]).includes(type));
+  if(selectedAttendance.length!==statuses.length){saNoticeSetStatus("تتضمن اختياراتك حالة حضور غير مصرح بها.",true);return;}
+  const jobs=[],startYear=saNoticeStartYear(),currentYear=Number(issueDate.slice(0,4));
   classes.forEach(className=>{
-    const useAttendance=canAttendance&&allowedAttendance.has(className)&&statuses.length>0;
-    const useBehavior=canBehavior&&allowedBehavior.has(className);
+    const useAttendance=attendanceClasses.includes(className),useBehavior=behaviorClasses.includes(className);
     if(!useAttendance&&!useBehavior)return;
-    // The reporting endpoint has a 5,000-row cap per source. Split by calendar year so
-    // a busy class cannot hide older records behind one large response.
-    for(let year=startYear;year<=currentYear;year++){
-      jobs.push({className,from:year+"-01-01",to:year===currentYear?today:year+"-12-31",year,useAttendance,useBehavior});
-    }
+    for(let year=startYear;year<=currentYear;year++)jobs.push({className,from:year+"-01-01",to:year===currentYear?issueDate:year+"-12-31",year,useAttendance,useBehavior});
   });
-  if(!jobs.length){saNoticeSetStatus("لا توجد صلاحيات لقراءة سجلات الغياب أو السلوك في الصف المحدد.",true);return;}
-  saNoticeLastGenerated=[];
+  if(!jobs.length){saNoticeSetStatus("لا توجد سجلات ضمن الصفوف والأنواع التي اخترتها.",true);return;}
+  saNoticeLastGenerated=[];saNoticeLastSettings=null;saNoticeOfficialCommitted=false;
   document.getElementById("saNoticePrintRoot").innerHTML="";
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
   saNoticeGenerationBusy=true;
   const button=document.getElementById("saNoticeGenerateBtn");if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ فحص السجلات...';}
-  saNoticeSetStatus("جارٍ فحص السجلات التاريخية للصفوف المحددة والتحقق من صلاحيات كل مصدر...",false);
-  const attendanceSessions=[],behaviorSessions=[],errors=[];
-  let cursor=0;
+  saNoticeSetStatus("جارٍ فحص المخالفات المختارة منذ بداية الأرشيف، ومقارنتها بسجل آخر تنبيه رسمي لكل طالب...",false);
+  const attendanceSessions=[],behaviorSessions=[],errors=[];let cursor=0;
   const worker=async()=>{
     while(cursor<jobs.length){
       const job=jobs[cursor++];
       try{
-        const result=await saRequest({
-          action:"reports",report_mode:"print_combined",
-          attendance_classes:job.useAttendance?[job.className]:[],
-          behavior_classes:job.useBehavior?[job.className]:[],
-          attendance_status_filters:job.useAttendance?statuses:undefined,
-          from:job.from,to:job.to
-        });
+        const result=await saRequest({action:"reports",report_mode:"print_combined",attendance_classes:job.useAttendance?[job.className]:[],behavior_classes:job.useBehavior?[job.className]:[],attendance_status_filters:job.useAttendance?statuses:undefined,from:job.from,to:job.to});
         const a=Array.isArray(result?.attendance)?result.attendance:[],b=Array.isArray(result?.behaviors)?result.behaviors:[];
-        if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.year+". أوقفنا الإصدار حتى لا نصدر إشعارات ناقصة.");
-        a.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل حضور من صف غير محدد؛ أوقفنا الإصدار حمايةً للخصوصية.");});
-        b.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل سلوك من صف غير محدد؛ أوقفنا الإصدار حمايةً للخصوصية.");});
+        if(a.length>=5000||b.length>=5000)throw new Error("بلغ استرجاع سجلات الصف "+formatClassName(job.className)+" الحد الأقصى المسموح في سنة "+job.year+". أوقفنا التوليد حتى لا نصدر نتائج ناقصة.");
+        a.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل حضور من صف غير محدد؛ أوقفنا العملية حمايةً للخصوصية.");});
+        b.forEach(row=>{if(String(row.class_name||"")!==job.className)throw new Error("وصل سجل سلوك من صف غير محدد؛ أوقفنا العملية حمايةً للخصوصية.");});
         attendanceSessions.push(...a);behaviorSessions.push(...b);
       }catch(error){errors.push(error);}
     }
@@ -3494,31 +3517,24 @@ async function saGenerateAutomaticNotices(){
   try{
     await Promise.all(Array.from({length:Math.min(3,jobs.length)},()=>worker()));
     if(errors.length)throw errors[0];
-    const built=saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,statuses);
-    if(built.ignored>0)throw new Error("تعذر إصدار الإشعارات: وُجدت "+built.ignored+" سجلات لا تحتوي على اسم طالب أو تاريخ صالح. أوقفنا التوليد حتى تُراجع البيانات ولا يصدر إشعار ناقص.");
+    const historyResult=await saRequest({action:"reports",report_mode:"notice_history",notice_classes:classes,to:issueDate});
+    const historyRows=Array.isArray(historyResult?.notices)?historyResult.notices:[];
+    const built=saNoticeBuildStudentGroups(attendanceSessions,behaviorSessions,statuses,selectedTypes,historyRows);
+    if(built.ignored>0)throw new Error("تعذر إصدار الإشعارات: وُجدت سجلات لا تحتوي على اسم طالب أو تاريخ صالح. أوقفنا التوليد حتى تُراجع البيانات.");
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
-    const noticeClassOrder=new Map(sortClassesList([...new Set(qualifying.map(x=>x.className))]).map((name,index)=>[name,index]));
-    qualifying.sort((a,b)=>(noticeClassOrder.get(a.className)??999)-(noticeClassOrder.get(b.className)??999)||String(a.name).localeCompare(String(b.name),"ar"));
-    saNoticeLastGenerated=qualifying;
+    saNoticeLastGenerated=qualifying;saNoticeLastHistory=historyRows;saNoticeCurrentIssueDate=issueDate;
+    saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate};
+    const preview=document.getElementById("saNoticePreviewPanel");
     if(!qualifying.length){
       document.getElementById("saNoticePrintRoot").innerHTML="";
-      document.getElementById("saNoticePreviewSummary").textContent="اكتمل الفحص: لم يُعثر على طالب بلغ الحد الأدنى المحدد ("+threshold+") من المخالفات المسجلة.";
-      document.getElementById("saNoticePreviewPanel").classList.remove("hidden");
-      saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين للإشعار.",false);
+      document.getElementById("saNoticePreviewSummary").textContent="حتى تاريخ "+issueDate+" لم يتجاوز أي طالب الحد المحدد ("+threshold+") في المخالفات الجديدة غير المحتسبة في تنبيه سابق.";
+      preview.classList.remove("hidden");saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين لتنبيه جديد.",false);
     }else{
-      const pages=saNoticeBuildPages(qualifying);
-      const root=document.getElementById("saNoticePrintRoot");
-      root.innerHTML=pages.map((page,pageIndex)=>{
-        const cards=page.items.map((student,i)=>saNoticeBuildCard(student,qualifying.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
-        return '<section class="sa-notice-page" data-page="'+(pageIndex+1)+'">'+cards+'</section>';
-      }).join("");
-      const fitAfterFonts=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{if(!saNoticeFitCards())saNoticeSetStatus("يوجد إشعار طويل تجاوز المساحة المتاحة في صفحة A4 حتى بعد تصغير الخط. راجع بياناته قبل الطباعة حتى لا تُحذف أي تفاصيل.",true);}));
-      if(document.fonts?.ready)document.fonts.ready.then(fitAfterFonts);else fitAfterFonts();
-      const eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
-      document.getElementById("saNoticePreviewSummary").textContent="عدد الإشعارات: "+qualifying.length+" | إجمالي المخالفات المحتسبة: "+eventTotal+" | عدد صفحات A4: "+pages.length+" | الحد الأدنى: "+threshold+(built.ignored?" | سجلات غير مكتملة تم استبعادها: "+built.ignored:"");
-      document.getElementById("saNoticePreviewPanel").classList.remove("hidden");
-      saNoticeSetStatus("اكتمل الفحص بنجاح. تم تجميع المخالفات المتكررة في بنود موحدة مع تفاصيل الحصص والتواريخ.",false);
+      const pages=saNoticeRenderPreview(qualifying),eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
+      document.getElementById("saNoticePreviewSummary").textContent="عدد الطلاب المستحقين: "+qualifying.length+" | المخالفات الجديدة المحتسبة: "+eventTotal+" | صفحات A4 (3 طلاب): "+pages+" | الحد: "+threshold+" | تاريخ الفحص: "+issueDate;
+      preview.classList.remove("hidden");saNoticeSetStatus("اكتمل الفحص. استُبعدت المخالفات التي سبق إدراجها في تنبيهات رسمية، وحُدد رقم التنبيه التالي لكل طالب.",false);
     }
+    saNoticeRefreshPrintAction();
   }catch(error){
     saNoticeSetStatus(error?.message||"تعذر استخراج السجلات والتحقق منها. لم يتم إصدار إشعارات.",true);
     showToast(error?.message||"تعذر إصدار الإشعارات.","error");
@@ -3527,16 +3543,48 @@ async function saGenerateAutomaticNotices(){
     if(button){button.disabled=false;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i> توليد ومعاينة للطباعة';}
   }
 }
+function saNoticeBuildAuthoritativeStudent(row){
+  const groups=new Map(),events=Array.isArray(row.events)?row.events:[];
+  events.forEach(event=>{
+    const type=String(event.type||""),note=String(event.note||"").trim(),key=type==="other"?type+String.fromCharCode(31)+note:type;
+    if(!groups.has(key))groups.set(key,{type,note,events:[]});
+    groups.get(key).events.push({date:saNoticeDateLabel(event.date),period:String(event.period||"غير محددة")});
+  });
+  return {className:String(row.class_name||""),name:String(row.student_name||""),issue_number:Number(row.issue_number)||1,events,groups};
+}
+async function saNoticeHandlePrint(){
+  if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
+  const official=document.getElementById("saNoticeIssueMode")?.value==="official";
+  if(!official){saNoticeOfficialCommitted=false;saPrintAutomaticNotices();return;}
+  if(saNoticeOfficialCommitted){saPrintAutomaticNotices();return;}
+  if(!saNoticeLastSettings){showToast("أعد توليد المعاينة قبل الاعتماد الرسمي.","error");return;}
+  const delivered=document.getElementById("saNoticeDelivered")?.checked===true;
+  const confirmText="سيتم اعتماد "+saNoticeLastGenerated.length+" تنبيهاً رسمياً وحفظ رقم كل تنبيه وتاريخه"+(delivered+"".includes("never")?"":"")+(delivered?" مع تسجيل أنه تم التسليم للطلاب.":" دون تأكيد التسليم.")+" لا يمكن اعتبار هذه العملية تجربة. هل تريد المتابعة؟";
+  if(!confirm(confirmText))return;
+  saNoticeGenerationBusy=true;const button=document.getElementById("saNoticePrintAction");if(button){button.disabled=true;button.textContent="جارٍ اعتماد التنبيهات رسمياً...";}
+  try{
+    const settings=saNoticeLastSettings;
+    const result=await saRequest({action:"reports",report_mode:"notice_issue_commit",notice_classes:settings.classes,attendance_classes:settings.attendanceClasses,behavior_classes:settings.behaviorClasses,selected_types:settings.selectedTypes,threshold:settings.threshold,issued_on:settings.issuedOn,delivered});
+    const issued=Array.isArray(result?.issued)?result.issued:[];
+    if(!issued.length)throw new Error(result?.message||"لم يعتمد الخادم أي تنبيه. لم تتم الطباعة الرسمية.");
+    saNoticeLastGenerated=issued.map(saNoticeBuildAuthoritativeStudent);
+    saNoticeOfficialCommitted=true;
+    const pages=saNoticeRenderPreview(saNoticeLastGenerated);
+    document.getElementById("saNoticePreviewSummary").textContent="تم الاعتماد الرسمي بنجاح | عدد التنبيهات: "+issued.length+" | صفحات A4 (3 طلاب): "+pages+" | حالة التسليم: "+(delivered?"تم التسليم":"لم يؤكد التسليم")+" | تاريخ الإصدار: "+settings.issuedOn;
+    saNoticeSetStatus("تم حفظ التنبيهات رسمياً في سجل الطالب. أصبح لكل طالب رقم تنبيه وتاريخ إصدار محفوظان.",false);
+    saPrintAutomaticNotices();
+  }catch(error){saNoticeSetStatus(error?.message||"تعذر اعتماد التنبيهات رسمياً. لم تتم الطباعة على أنها معتمدة.",true);showToast(error?.message||"تعذر اعتماد التنبيهات.","error");}
+  finally{saNoticeGenerationBusy=false;if(button){button.disabled=false;saNoticeRefreshPrintAction();}}
+}
 function saPrintAutomaticNotices(){
   if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
-  if(!saNoticeFitCards()){showToast("يوجد إشعار يتجاوز مساحة صفحة A4. أوقفنا الطباعة حتى لا تُقص تفاصيل المخالفة.","error");return;}
+  if(!saNoticeFitCards()){showToast("يوجد إشعار لا يتسع في ثلث صفحة A4. أوقفنا الطباعة حتى لا تُقص تفاصيل المخالفة.","error");return;}
   document.body.classList.add("sa-notice-print-mode");
   const printNow=()=>{try{window.focus();window.print();}catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}};
   const fonts=document.fonts?.ready||Promise.resolve();
   Promise.race([fonts,new Promise(resolve=>setTimeout(resolve,1200))]).then(()=>setTimeout(printNow,100));
 }
-window.addEventListener("afterprint",()=>document.body.classList.remove("sa-notice-print-mode"));
-
+document.getElementById("saNoticeIssueMode")?.addEventListener("change",saNoticeRefreshPrintAction);
 async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
 
 /* ============ Constants ============ */
