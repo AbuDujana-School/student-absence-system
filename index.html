@@ -2432,6 +2432,11 @@ async function uiReviewOpenBeneficiaries(){
   document.querySelectorAll('#adminContentSection [id^="sec-"]').forEach(section=>section.classList.add("hidden"));
   document.getElementById("sec-beneficiaries")?.classList.remove("hidden");
   await openStudentAffairsAssignments();
+  // Preview-only: no real teacher records exist here, so expose the role-dependent
+  // controls in a usable initial state without inventing names or saving data.
+  const role=document.getElementById("saSupervisionRole");
+  role?.closest(".rounded-2xl")?.classList.remove("hidden");
+  if(role){role.value="team_leader";saToggleSupervisionFields();}
   uiReviewDisableMutations();
 }
 function uiReviewBack(){
