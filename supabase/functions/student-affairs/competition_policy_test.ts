@@ -21,12 +21,12 @@ Deno.test("only an exact Sunday-to-Thursday range is a complete award week", () 
   if (isCompleteSchoolWeekRange("2026-11-08", "2026-11-19")) throw new Error("multi-week range was accepted as one week");
   if (isCompleteSchoolWeekRange("invalid", "2026-11-12")) throw new Error("invalid date was accepted");
 });
-Deno.test("attendance events are deduplicated per student, class, date and status", () => {
+Deno.test("attendance absence is daily while other statuses remain period-specific", () => {
   const rows = [
     { date_str:"2026-11-08", class_name:"1/9", period:1, records:{"طالب أ":"absent","طالب ب":"late"} },
     { date_str:"2026-11-08", class_name:"1/9", period:2, records:{"طالب أ":"absent","طالب ب":"escape"} }
   ];
-  if (countAttendanceIncidents(rows) !== 3) throw new Error("attendance deduplication failed");
+  if (countAttendanceIncidents(rows) !== 3) throw new Error("daily absence and per-period status counting failed");
 });
 Deno.test("absence counts once per day but escape and other attendance events count per period", () => {
   const rows = [
