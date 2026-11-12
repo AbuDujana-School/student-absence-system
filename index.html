@@ -107,6 +107,43 @@
 
 </style>
 
+<style id="sa-notice-viewport-fix">
+/* Keep the automatic-notice dialog fully inside the visible device viewport. */
+#saNoticeModal:not(.hidden){
+  position:fixed!important;
+  inset:0!important;
+  width:100%!important;
+  height:100vh!important;
+  height:100dvh!important;
+  box-sizing:border-box!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  overflow:hidden!important;
+  padding: max(10px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom))!important;
+}
+#saNoticeModal .sa-notice-dialog{
+  box-sizing:border-box!important;
+  flex:0 1 auto!important;
+  width:min(100%,760px)!important;
+  min-width:0!important;
+  max-width:760px!important;
+  max-height:calc(100vh - 20px)!important;
+  max-height:calc(100dvh - max(20px, env(safe-area-inset-top) + env(safe-area-inset-bottom) + 20px))!important;
+  overflow-x:hidden!important;
+  overflow-y:auto!important;
+  overscroll-behavior:contain!important;
+  -webkit-overflow-scrolling:touch!important;
+  margin:auto!important;
+}
+#saNoticeModal .sa-notice-config{min-width:0!important;box-sizing:border-box!important}
+@media(max-width:640px){
+  #saNoticeModal:not(.hidden){padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom))!important}
+  #saNoticeModal .sa-notice-dialog{width:100%!important;max-width:100%!important;border-radius:14px!important}
+  #saNoticeModal .sa-notice-config{padding:12px!important}
+}
+</style>
+
 <!-- ═══════════════════════════════════════════════════════════════
      BRAND VISUAL REDESIGN — Abu Dujana School Management
      ═══════════════════════════════════════════════════════════════ -->
