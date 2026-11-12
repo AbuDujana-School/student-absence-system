@@ -2843,7 +2843,6 @@ async function openStudentAffairsAssignments(){
     await saLoadAdmin();
     await saCompetitionLoadSettings();
     saCompetitionRenderSettings();
-    await saCompetitionLoadSettings();
     document.getElementById("saAdmin")?.classList.remove("hidden");
     panel.classList.remove("hidden");
     document.querySelectorAll("#sec-beneficiaries [data-beneficiary-card]").forEach(card=>card.classList.add("hidden"));
