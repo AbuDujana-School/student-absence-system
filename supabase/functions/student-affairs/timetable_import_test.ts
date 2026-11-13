@@ -17,9 +17,9 @@ Deno.test("normalizes Arabic name variants and spacing", () => {
 Deno.test("imports lesson contracts by teacher without inventing weekly placements", () => {
   const workbook = {
     "المعلمون": rows(
-      [null, "الإسم", "الإختصار", "مدرس الفصل"],
-      [null, "أحمد خالد محمد السالمي", "أحمد السالمي", ""],
-      [null, "سعيد عبدالله", "سعيد", ""],
+      [null, "الإسم", "الإختصار", "مدرس الفصل", "MWD (1)", "EXH (2)", "DAYS (3)", "<a,b> (4)", "التفريغ"],
+      [null, "أحمد خالد محمد السالمي", "أحمد السالمي", "", "-", "3", "-", "1 - 2", "الأحد: 1, 4-6"],
+      [null, "سعيد عبدالله", "سعيد", "", "-", "-", "-", "-", ""],
     ),
     "الحصص": rows(
       ["المعلم", "الشعب", "المجموعة", "المادة", "المدة", "الحصص/الأسبوع", "الغرف الدراسية المتاحة", "الدورة"],
@@ -45,6 +45,13 @@ Deno.test("imports lesson contracts by teacher without inventing weekly placemen
   }
   if (!result.referenceData["الفصول"] || !result.referenceData["المواد"]) {
     throw new Error("Reference sheets should be retained");
+  }
+  const rawTeacher = result.referenceData["المعلمون"]?.[0]?.values;
+  if (!rawTeacher || rawTeacher["MWD (1)"] !== "-" || rawTeacher["التفريغ"] !== "الأحد: 1, 4-6") {
+    throw new Error("Teacher scheduling constraints must be preserved exactly as imported");
+  }
+  if (result.teachers.find((t) => t.matchedTeacherId === "t1")?.records[0]?.periodsPerWeek !== 5) {
+    throw new Error("Weekly lesson count should be parsed without inferring a weekday/period placement");
   }
 });
 
