@@ -351,7 +351,7 @@ jobs:
                   'classSections',CASE WHEN p=1 THEN '[]'::jsonb ELSE jsonb_build_array('10/'||p::text) END,
                   'subject',CASE WHEN p=1 THEN 'فراغ' ELSE 'الرياضيات' END,
                   'sourceClass',CASE WHEN p=1 THEN 'فراغ' ELSE '10/'||p::text END,
-                  'sourceSubject',CASE WHEN p=6 THEN 'فراغ' ELSE 'الرياضيات' END,
+                  'sourceSubject',CASE WHEN p=1 THEN 'فراغ' ELSE 'الرياضيات' END,
                   'sourceStatus',CASE WHEN p=1 THEN 'فراغ' ELSE 'تدريس' END
                 ) ORDER BY p) FROM generate_series(1,7) p)
               )
