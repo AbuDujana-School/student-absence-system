@@ -166,7 +166,7 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
 const CONFIRMED_TEACHER_LINKS: Record<string, string> = {
   [normalizeArabicName("س فيزياء")]: normalizeArabicName("محمد البشير"),
   [normalizeArabicName("محمد جمعة ناصر السعدي")]: normalizeArabicName("محمد جمعة السعدي"),
-  [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله السعدي"),
+  [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله الساعدي"),
 };
 
 /** Reuse the reviewed workbook identity-matching rules for pasted timetable day imports. */
@@ -200,8 +200,10 @@ function resolveSystemTeacher(
       (teacher) => normalizeArabicName(teacher.name) === confirmedTarget,
     );
     if (confirmedMatches.length === 1) return { teacher: confirmedMatches[0], ambiguous: false };
-    // A school-confirmed mapping must still resolve to exactly one existing account.
-    return { teacher: null, ambiguous: confirmedMatches.length > 1 };
+    // When the confirmed account is present, use it. If this particular school directory
+    // does not contain that target, fall through to confidence-scored detailed-name matching.
+    // This supports the same detailed source label in separate directories without guessing.
+    if (confirmedMatches.length > 1) return { teacher: null, ambiguous: true };
   }
 
   const ranked = systemTeachers
