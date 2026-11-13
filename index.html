@@ -2999,6 +2999,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="flex flex-wrap items-center gap-2">
             <button id="timetableParseDayButton" type="button" onclick="timetableParseDayText()" class="rounded-xl bg-cyan-800 hover:bg-cyan-900 disabled:opacity-50 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-magnifying-glass ml-1"></i> تحليل ومراجعة اليوم</button>
             <button id="timetableSaveDayButton" type="button" onclick="timetableSaveDayText()" disabled class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ اليوم / الأسبوع في المسودة</button>
+            <button id="timetableResumeWeekButton" type="button" onclick="timetableResumeWeeklyDraft()" class="rounded-xl bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-rotate-left ml-1"></i> استعادة آخر مسودة</button>
             <button id="timetableActivateWeekButton" type="button" onclick="timetableActivateWeek()" disabled class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-40 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-circle-check ml-1"></i> اعتماد الأسبوع بعد اكتماله</button>
           </div>
           <div id="timetableWeeklyDraftStatus" class="hidden rounded-2xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
@@ -8948,6 +8949,46 @@ async function timetableActivateWeek() {
   } catch(error) {
     timetableWeeklySetStatus(error?.message || "لم يتم اعتماد الأسبوع. راجع اكتمال الأيام وربط أسماء المعلمين.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
+}
+
+async function timetableResumeWeeklyDraft() {
+  if (activeUser?.type !== "admin") {
+    timetableWeeklySetStatus("استعادة مسودة الأسبوع متاحة لمدير النظام العام فقط.", "error");
+    return;
+  }
+  const button = document.getElementById("timetableResumeWeekButton");
+  const old = button?.innerHTML;
+  if (button) { button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ استرجاع المسودة...'; }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
+    const response = await appAuthRequest({action:"timetable_get_weekly_draft"},token);
+    const draft = response?.draft;
+    if (!draft) {
+      timetableWeeklyDraftId = null;
+      timetableWeeklyDraftDays = new Set();
+      const activate = document.getElementById("timetableActivateWeekButton");
+      if (activate) activate.disabled = true;
+      timetableWeeklySetStatus("لا توجد مسودة أسبوعية محفوظة لاستعادتها.", "info");
+      return;
+    }
+    timetableWeeklyDraftId = draft.id;
+    timetableWeeklyDraftDays = new Set(Array.isArray(draft.weekdays) ? draft.weekdays : []);
+    const activate = document.getElementById("timetableActivateWeekButton");
+    if (activate) activate.disabled = timetableWeeklyDraftDays.size !== 5;
+    const savedDays = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].filter(day => timetableWeeklyDraftDays.has(day));
+    timetableWeeklySetStatus(
+      "تم استرجاع مسودة الأسبوع رقم " + draft.version + ". الأيام المحفوظة: " +
+      (savedDays.join("، ") || "لا توجد أيام") + ". عدد المعلمين: " + (draft.teacherCount || 0) +
+      "؛ الخانات المحفوظة: " + (draft.cellCount || 0) +
+      ". يمكنك متابعة إدخال الأيام الناقصة، أو إعادة تحليل يوم محفوظ لتحديثه بعد المراجعة.",
+      "success"
+    );
+  } catch (error) {
+    timetableWeeklySetStatus(error?.message || "تعذر استرجاع مسودة الأسبوع.", "error");
+  } finally {
+    if (button) { button.disabled = false; button.innerHTML = old; }
+  }
 }
 
 async function timetableImportWorkbook() {
