@@ -65,3 +65,17 @@ export async function resolveTimetablePrincipal(
   if (!await store.hasTimetableAccess(type, name)) return null;
   return { type, name };
 }
+
+
+/** Actions available to an explicitly authorized non-admin timetable account. */
+export function canUseTimetableAction(principalType: TimetablePrincipalType, action: string): boolean {
+  if (principalType === "admin") return true;
+  return new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_timetable_get_own",
+    "timetable_list_imports",
+    "timetable_get_import",
+    "timetable_list_owner_candidates",
+  ]).has(action);
+}
