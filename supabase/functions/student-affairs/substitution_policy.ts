@@ -27,9 +27,12 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     if((entry.status??"teaching")!=="free") current.isFree=false;
     cells.set(entry.teacherId,current);
   }
-  const assigned=new Set(assignments.filter(a=>sameCell(a,{weekday,period})&&a.status!=="cancelled").map(a=>a.substituteTeacherId));
+  const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
+  const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})).map(a=>a.substituteTeacherId));
+  const workload=new Map<string,number>();
+  for(const assignment of activeAssignments) workload.set(assignment.substituteTeacherId,(workload.get(assignment.substituteTeacherId)??0)+1);
   return teachers.filter(t=>t.id!==absentTeacherId)
     .filter(t=>includeOtherDepartments||t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
-    .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>a.name.localeCompare(b.name,"ar"));
+    .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>(workload.get(a.id)??0)-(workload.get(b.id)??0)||a.name.localeCompare(b.name,"ar"));
 }
