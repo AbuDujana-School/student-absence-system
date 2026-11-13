@@ -3031,7 +3031,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           </div>
         </div>
         </div>
-        <div id="timetableTeacherWeeklyLookup" class="rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+        <div id="timetableTeacherWeeklyLookup" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">استعراض الجدول الأسبوعي للمعلم</h3><p class="mt-1 text-xs text-slate-500">ابحث باسم المعلم الكامل لعرض حصصه وفراغه واجتماعاته في النسخة الأسبوعية المعتمدة. الخانة غير الموجودة لا تُعرض كفراغ.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
             <input id="timetableTeacherLookupName" type="search" maxlength="160" placeholder="اكتب اسم المعلم كما هو مسجل في النظام" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white">
@@ -9331,6 +9331,7 @@ function timetableRenderTeacherList() {
 }
 async function timetableLoadImports() {
   if (!timetableCanAccess || activeUser?.type !== 'admin') return;
+  document.getElementById("timetableTeacherWeeklyLookup")?.classList.remove("hidden");
   if (activeUser?.type === "admin") await timetableLoadAccessManagement();
   const host = document.getElementById("timetableSavedImportList");
   const panel = document.getElementById("timetableSavedImports");
