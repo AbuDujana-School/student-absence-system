@@ -1099,7 +1099,9 @@ async function handle(req: Request) {
           .select("id,version_id,absent_teacher_name,weekday,assignment_date")
           .eq("id",assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
         if(assignmentLookupError)throw assignmentLookupError;
-        if(!assignment||assignment.weekday!==weekday)return reply(404,{error:"تكليف الاحتياط غير موجود في اليوم المحدد."});
+        const cancellationDate=String(body.assignmentDate || "");
+        if(!assignment||assignment.weekday!==weekday||(assignment.assignment_date&&assignment.assignment_date!==cancellationDate))
+          return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
         const absentRow=teacherRows.find((item:any)=>item.name===assignment.absent_teacher_name&&item.role==="teacher");
         if(!absentRow)return reply(404,{error:"تعذر العثور على قسم المعلم الغائب."});
         if(principal.type!=="admin"&&absentRow.department!==actorDepartment) {
