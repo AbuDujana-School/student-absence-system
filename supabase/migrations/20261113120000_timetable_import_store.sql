@@ -45,9 +45,12 @@ create table if not exists public.timetable_import_records (
   source_sheet text not null,
   source_row integer not null check (source_row > 0),
   origin text not null default 'imported' check (origin in ('imported','manual')),
+  source_data jsonb check (source_data is null or jsonb_typeof(source_data) = 'object'),
   record_data jsonb not null check (jsonb_typeof(record_data) = 'object'),
   weekday text,
   period integer check (period is null or period between 1 and 20),
+  modified_by text,
+  modified_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   unique (import_id, source_sheet, source_row)
@@ -170,13 +173,13 @@ begin
       end if;
       insert into public.timetable_import_records (
         import_id, import_teacher_id, teacher_source_name, source_sheet,
-        source_row, origin, record_data, weekday, period
+        source_row, origin, source_data, record_data, weekday, period
       ) values (
         v_import_id, v_teacher_id,
         left(coalesce(v_record->>'teacherSourceName',''),200),
         left(v_record->>'sourceSheet',120),
         (v_record->>'sourceRow')::integer,
-        'imported', v_record,
+        'imported', v_record, v_record,
         nullif(v_record->>'weekday',''),
         nullif(v_record->>'period','')::integer
       ) on conflict (import_id, source_sheet, source_row) do nothing;
@@ -196,13 +199,13 @@ begin
       end if;
       insert into public.timetable_import_records (
         import_id, import_teacher_id, teacher_source_name, source_sheet,
-        source_row, origin, record_data, weekday, period
+        source_row, origin, source_data, record_data, weekday, period
       ) values (
         v_import_id, null,
         left(coalesce(v_record->>'teacherSourceName',''),200),
         left(v_record->>'sourceSheet',120),
         (v_record->>'sourceRow')::integer,
-        'imported', v_record,
+        'imported', v_record, v_record,
         nullif(v_record->>'weekday',''),
         nullif(v_record->>'period','')::integer
       ) on conflict (import_id, source_sheet, source_row) do nothing;
@@ -226,3 +229,164 @@ $function$;
 
 revoke all on function public.save_timetable_import(jsonb) from public, anon, authenticated;
 grant execute on function public.save_timetable_import(jsonb) to service_role;
+
+
+create or replace function public.mutate_timetable_import_record(p_payload jsonb)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $function$
+declare
+  v_mode text := coalesce(p_payload->>'mode','');
+  v_import_id uuid := (p_payload->>'import_id')::uuid;
+  v_record_id uuid := nullif(p_payload->>'record_id','')::uuid;
+  v_actor text := left(btrim(coalesce(p_payload->>'actor_name','')),160);
+  v_record public.timetable_import_records%rowtype;
+  v_teacher_id uuid;
+  v_teacher_name text;
+  v_record_data jsonb := p_payload->'record_data';
+  v_weekday text;
+  v_period integer;
+  v_class text;
+  v_group text;
+  v_room text;
+  v_source_row integer;
+begin
+  if v_import_id is null or v_actor = '' or v_mode not in ('add','update','delete') then
+    raise exception 'Invalid timetable record mutation';
+  end if;
+
+  perform 1 from public.timetable_imports
+    where id = v_import_id and status = 'draft'
+    for update;
+  if not found then raise exception 'لا يمكن تعديل هذه النسخة؛ يجب أن تكون مسودة.'; end if;
+
+  if v_mode in ('update','delete') then
+    select * into v_record
+      from public.timetable_import_records
+      where id = v_record_id and import_id = v_import_id
+      for update;
+    if not found then raise exception 'سجل الحصة المطلوب غير موجود.'; end if;
+  end if;
+
+  if v_mode = 'delete' then
+    insert into public.timetable_import_audit (
+      import_id, record_id, action, actor_type, actor_name, before_data
+    ) values (
+      v_import_id, v_record.id, 'record_deleted', 'admin', v_actor, v_record.record_data
+    );
+    delete from public.timetable_import_records where id = v_record.id;
+    return jsonb_build_object('ok',true,'mode','delete','record_id',v_record.id);
+  end if;
+
+  if jsonb_typeof(v_record_data) <> 'object' then
+    raise exception 'بيانات الحصة غير صالحة.';
+  end if;
+
+  v_teacher_name := left(btrim(coalesce(v_record_data->>'teacherSourceName','')),200);
+  if v_teacher_name = '' then raise exception 'يجب تحديد المعلم للحصة.'; end if;
+
+  select count(*), min(id)
+    into v_source_row, v_teacher_id
+    from public.timetable_import_teachers t
+   where t.import_id = v_import_id
+     and t.match_status <> 'ambiguous'
+     and (
+       lower(t.source_name) = lower(v_teacher_name)
+       or exists (
+         select 1 from jsonb_array_elements_text(t.aliases) alias(value)
+          where lower(alias.value) = lower(v_teacher_name)
+       )
+     );
+  if coalesce(v_source_row,0) <> 1 then
+    raise exception 'اسم المعلم غير مطابق أو ملتبس ضمن هذه النسخة.';
+  end if;
+
+  v_weekday := nullif(btrim(coalesce(v_record_data->>'weekday','')),'');
+  v_period := nullif(v_record_data->>'period','')::integer;
+  if (v_weekday is null) <> (v_period is null) then
+    raise exception 'يجب إدخال اليوم ورقم الحصة معاً أو تركهما فارغين معاً.';
+  end if;
+  if v_period is not null and v_period not between 1 and 20 then
+    raise exception 'رقم الحصة خارج النطاق المسموح.';
+  end if;
+
+  v_class := nullif(btrim(coalesce(v_record_data->>'className','')),'');
+  v_group := nullif(btrim(coalesce(v_record_data->>'groupName','')),'');
+  v_room := nullif(btrim(coalesce(v_record_data->>'rooms','')),'');
+
+  if v_weekday is not null then
+    if exists (
+      select 1 from public.timetable_import_records r
+       where r.import_id = v_import_id
+         and r.id is distinct from v_record_id
+         and r.weekday = v_weekday and r.period = v_period
+         and r.import_teacher_id = v_teacher_id
+    ) then raise exception 'تعارض: المعلم لديه حصة أخرى في اليوم والفترة نفسيهما.'; end if;
+
+    if v_class is not null and exists (
+      select 1 from public.timetable_import_records r
+       where r.import_id = v_import_id
+         and r.id is distinct from v_record_id
+         and r.weekday = v_weekday and r.period = v_period
+         and lower(coalesce(r.record_data->>'className','')) = lower(v_class)
+         and (
+           lower(coalesce(r.record_data->>'groupName','')) = lower(coalesce(v_group,''))
+           or lower(coalesce(r.record_data->>'groupName','')) = 'الفصل بالكامل'
+           or lower(coalesce(v_group,'')) = 'الفصل بالكامل'
+         )
+    ) then raise exception 'تعارض: الشعبة أو مجموعتها مرتبطة بحصة أخرى في الفترة نفسها.'; end if;
+
+    if v_room is not null and exists (
+      select 1 from public.timetable_import_records r
+       where r.import_id = v_import_id
+         and r.id is distinct from v_record_id
+         and r.weekday = v_weekday and r.period = v_period
+         and lower(coalesce(r.record_data->>'rooms','')) = lower(v_room)
+    ) then raise exception 'تعارض: الغرفة محجوزة في اليوم والفترة نفسيهما.'; end if;
+  end if;
+
+  if v_mode = 'update' then
+    update public.timetable_import_records
+       set import_teacher_id = v_teacher_id,
+           teacher_source_name = v_teacher_name,
+           record_data = v_record_data,
+           weekday = v_weekday,
+           period = v_period,
+           origin = 'manual',
+           modified_by = v_actor,
+           modified_at = now(),
+           updated_at = now()
+     where id = v_record.id;
+    insert into public.timetable_import_audit (
+      import_id, record_id, action, actor_type, actor_name, before_data, after_data
+    ) values (
+      v_import_id, v_record.id, 'record_updated', 'admin', v_actor, v_record.record_data, v_record_data
+    );
+    return jsonb_build_object('ok',true,'mode','update','record_id',v_record.id);
+  end if;
+
+  select coalesce(max(source_row),0) + 1 into v_source_row
+    from public.timetable_import_records
+   where import_id = v_import_id and source_sheet = 'manual';
+  insert into public.timetable_import_records (
+    import_id, import_teacher_id, teacher_source_name, source_sheet,
+    source_row, origin, source_data, record_data, weekday, period,
+    modified_by, modified_at
+  ) values (
+    v_import_id, v_teacher_id, v_teacher_name, 'manual',
+    v_source_row, 'manual', null, v_record_data, v_weekday, v_period,
+    v_actor, now()
+  ) returning * into v_record;
+  insert into public.timetable_import_audit (
+    import_id, record_id, action, actor_type, actor_name, after_data
+  ) values (
+    v_import_id, v_record.id, 'record_added', 'admin', v_actor, v_record_data
+  );
+  return jsonb_build_object('ok',true,'mode','add','record_id',v_record.id);
+end;
+$function$;
+
+revoke all on function public.mutate_timetable_import_record(jsonb) from public, anon, authenticated;
+grant execute on function public.mutate_timetable_import_record(jsonb) to service_role;
