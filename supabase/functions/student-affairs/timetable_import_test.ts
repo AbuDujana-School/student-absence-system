@@ -265,4 +265,12 @@ Deno.test("parses teacher period references including weekday ranges without fil
   if (parseTeacherPeriodNotes("").periods.length !== 0) {
     throw new Error("An empty source field must not imply any schedule state");
   }
+  const duplicates = parseTeacherPeriodNotes("الأحد: 1, 1-2; الأحد: 2");
+  if (duplicates.periods.length !== 2) {
+    throw new Error("Repeated period references should be deduplicated");
+  }
+  const malformed = parseTeacherPeriodNotes("الأحد: 1, 8-9; الجمعة: 2; نص غير معروف");
+  if (!malformed.warnings.length) {
+    throw new Error("Malformed or unsupported period notes should be surfaced for review");
+  }
 });
