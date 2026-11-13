@@ -10,7 +10,7 @@ import {
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
-import { parseTimetableDay } from "./timetable_grid.ts";
+import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -969,6 +969,8 @@ async function handle(req: Request) {
         return reply(400, { error: "أدخل نص يوم دراسي صحيحاً لا يتجاوز الحد المسموح." });
       }
       const parsed = parseTimetableDay(weekday, sourceText);
+      // The current school roster has 69 teachers; enforce this on the server for both preview and save.
+      validateSchoolTeacherCount(parsed, 69);
       const { data: directory, error: directoryError } = await db
         .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
       if (directoryError) throw directoryError;
