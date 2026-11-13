@@ -287,33 +287,42 @@ begin
   v_teacher_name := left(btrim(coalesce(v_record_data->>'teacherSourceName','')),200);
   if v_teacher_name = '' then raise exception 'يجب تحديد المعلم للحصة.'; end if;
 
-  select count(*)
-    into v_source_row
+  select count(*) into v_source_row
     from public.timetable_import_teachers t
    where t.import_id = v_import_id
      and t.match_status <> 'ambiguous'
-     and (
-       lower(t.source_name) = lower(v_teacher_name)
-       or exists (
-         select 1 from jsonb_array_elements_text(t.aliases) alias(value)
-          where lower(alias.value) = lower(v_teacher_name)
-       )
-     );
-  if coalesce(v_source_row,0) <> 1 then
+     and lower(t.source_name) = lower(v_teacher_name);
+  if v_source_row = 1 then
+    select t.id into v_teacher_id
+      from public.timetable_import_teachers t
+     where t.import_id = v_import_id
+       and t.match_status <> 'ambiguous'
+       and lower(t.source_name) = lower(v_teacher_name)
+     limit 1;
+  elsif v_source_row > 1 then
     raise exception 'اسم المعلم غير مطابق أو ملتبس ضمن هذه النسخة.';
-  end if;
-  select t.id into v_teacher_id
-    from public.timetable_import_teachers t
-   where t.import_id = v_import_id
-     and t.match_status <> 'ambiguous'
-     and (
-       lower(t.source_name) = lower(v_teacher_name)
-       or exists (
+  else
+    select count(*) into v_source_row
+      from public.timetable_import_teachers t
+     where t.import_id = v_import_id
+       and t.match_status <> 'ambiguous'
+       and exists (
+         select 1 from jsonb_array_elements_text(t.aliases) alias(value)
+          where lower(alias.value) = lower(v_teacher_name)
+       );
+    if coalesce(v_source_row,0) <> 1 then
+      raise exception 'اسم المعلم غير مطابق أو ملتبس ضمن هذه النسخة.';
+    end if;
+    select t.id into v_teacher_id
+      from public.timetable_import_teachers t
+     where t.import_id = v_import_id
+       and t.match_status <> 'ambiguous'
+       and exists (
          select 1 from jsonb_array_elements_text(t.aliases) alias(value)
           where lower(alias.value) = lower(v_teacher_name)
        )
-     )
-   limit 1;
+     limit 1;
+  end if;
 
   v_weekday := nullif(btrim(coalesce(v_record_data->>'weekday','')),'');
   v_period := nullif(v_record_data->>'period','')::integer;
