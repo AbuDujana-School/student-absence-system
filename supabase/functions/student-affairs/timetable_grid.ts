@@ -51,7 +51,19 @@ function parsePeriod(value: string): number | null {
 function parseClassSections(value: string): string[] {
   const text=value.trim();
   if (!text || ["فراغ","فارغ","غير واضح","-"].includes(normalizedKey(text))) return [];
-  return Array.from(new Set(text.split(/[،,؛;\n]+/).map(v=>v.trim()).filter(Boolean)));
+  const sections = text.split(/[،,؛;\n]+/).map(v=>v.trim()).filter(Boolean).flatMap((part) => {
+    // Some source rows concatenate two class codes without punctuation, e.g. 6/11/7/11.
+    // Interpret an even sequence of 4+ numeric slash-separated tokens as adjacent pairs.
+    // Preserve ordinary two-part codes (e.g. 6/11) and any non-numeric/ambiguous source verbatim.
+    const tokens = part.split("/").map(token => token.trim());
+    if (tokens.length >= 4 && tokens.length % 2 === 0 && tokens.every(token => /^\\d+$/.test(token))) {
+      const pairs: string[] = [];
+      for (let index = 0; index < tokens.length; index += 2) pairs.push(tokens[index] + "/" + tokens[index + 1]);
+      return pairs;
+    }
+    return [part];
+  });
+  return Array.from(new Set(sections));
 }
 function emptyTotals(): Record<TimetableCellStatus,number> {
   return {teaching:0,free:0,meeting:0,activity:0,other:0,unclear:0};
