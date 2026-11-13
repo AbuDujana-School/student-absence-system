@@ -4302,8 +4302,8 @@ function saNoticeBuildPages(students,perPage=3){
   }
   return pages;
 }
-function saNoticeFitCards(){
-  const root=document.getElementById("saNoticePrintRoot");if(!root)return true;
+function saNoticeFitCards(scope){
+  const root=scope||document.getElementById("saNoticePrintRoot");if(!root)return true;
   let overflow=0;
   root.querySelectorAll(".sa-notice-card").forEach(card=>{
     card.removeAttribute("data-fit-failed");
@@ -4355,29 +4355,83 @@ function saNoticeFitCards(){
   return overflow===0;
 }
 let saNoticePreviewFitRun=0;
+let saNoticePreviewReady=Promise.resolve(true);
 function saNoticeRenderPreview(students,perPage=3){
   const capacity=Math.max(1,Math.min(3,Number(perPage)||3));
-  const pages=saNoticeBuildPages(students,capacity),root=document.getElementById("saNoticePrintRoot");
+  const root=document.getElementById("saNoticePrintRoot");
+  const initialPages=saNoticeBuildPages(students,capacity);
   const run=++saNoticePreviewFitRun;
-  root.innerHTML=pages.map((page,pageIndex)=>{
+  root.innerHTML=initialPages.map((page,pageIndex)=>{
     const cards=page.items.map(student=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
     return '<section class="sa-notice-page notice-page-'+page.level+'" data-page="'+(pageIndex+1)+'" data-capacity="'+capacity+'">'+cards+'</section>';
   }).join("");
-  const fitAfterFonts=()=>requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    if(run!==saNoticePreviewFitRun)return;
-    if(saNoticeFitCards())return;
-    if(capacity>1){
-      const nextCapacity=capacity-1;
-      saNoticeSetStatus(nextCapacity===2
-        ?"بعض الإشعارات تحتاج مساحة أكبر؛ تم تحويل الصفحات المتأثرة إلى توزيع طالبين في الصفحة للمحافظة على وضوح النص وجميع المخالفات."
-        :"هناك إشعار استثنائي يحتاج مساحة صفحة كاملة؛ يجري تخصيص صفحة مستقلة له حتى لا يُقص أي تفصيل.",false);
-      saNoticeRenderPreview(students,nextCapacity);
-      return;
+  const ready=Promise.resolve(document.fonts?.ready||Promise.resolve()).then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))).then(()=>{
+    if(run!==saNoticePreviewFitRun)return false;
+    // Re-pack one page at a time: keep three students wherever they fit,
+    // reduce only the page containing unusually long notices, and preserve every event.
+    const ordered=initialPages.flatMap(page=>page.items);
+    root.innerHTML="";
+    let cursor=0,pageNumber=0,usedTwo=0,usedOne=0,failed=false;
+    while(cursor<ordered.length){
+      let accepted=false;
+      for(let pageCapacity=3;pageCapacity>=1;pageCapacity--){
+        const items=ordered.slice(cursor,cursor+pageCapacity);
+        const section=document.createElement("section");
+        section.className="sa-notice-page notice-page-"+(pageCapacity===3?"three":pageCapacity===2?"two":"one");
+        section.dataset.page=String(pageNumber+1);
+        section.dataset.capacity=String(pageCapacity);
+        section.innerHTML=items.map(student=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
+        root.appendChild(section);
+        void section.offsetHeight;
+        if(saNoticeFitCards(section)){
+          pageNumber++;
+          cursor+=items.length;
+          if(pageCapacity===2)usedTwo++;
+          if(pageCapacity===1)usedOne++;
+          accepted=true;
+          break;
+        }
+        root.removeChild(section);
+      }
+      if(!accepted){
+        // A single notice that still cannot fit is never clipped or silently omitted.
+        const student=ordered[cursor];
+        const section=document.createElement("section");
+        section.className="sa-notice-page notice-page-one";
+        section.dataset.page=String(pageNumber+1);
+        section.dataset.capacity="1";
+        section.innerHTML=saNoticeBuildCard(student,students.indexOf(student));
+        root.appendChild(section);
+        saNoticeFitCards(section);
+        section.querySelector(".sa-notice-card")?.setAttribute("data-fit-failed","true");
+        failed=true;
+        pageNumber++;
+        cursor++;
+      }
     }
-    saNoticeSetStatus("تعذر احتواء إشعار حتى في صفحة كاملة. لم تتم الطباعة ولم تُحذف أي مخالفة؛ راجع بيانات الإشعار الطويل.",true);
-  }));
-  if(document.fonts?.ready)document.fonts.ready.then(fitAfterFonts);else fitAfterFonts();
-  return pages.length;
+    const summary=document.getElementById("saNoticePreviewSummary");
+    if(summary){
+      summary.textContent=summary.textContent
+        .replace(/صفحات A4 ([^)]*):s*[d٠-٩]+/,"صفحات A4 (حتى 3 طلاب): "+pageNumber);
+    }
+    if(failed){
+      saNoticeSetStatus("يوجد إشعار طويل جداً لا يتسع حتى في صفحة مستقلة. أوقفنا الطباعة حفاظاً على جميع التفاصيل؛ لم تُحذف أي مخالفة.",true);
+      return false;
+    }
+    if(usedTwo||usedOne){
+      const details=[];
+      if(usedTwo)details.push(usedTwo+" صفحة لطالبين");
+      if(usedOne)details.push(usedOne+" صفحة لطالب واحد");
+      saNoticeSetStatus("تم استغلال الصفحات: 3 طلاب في الصفحة متى أمكن، مع تخصيص "+details.join(" و")+" للتنبيهات الأطول حتى تبقى كاملة وواضحة.",false);
+    }
+    return true;
+  }).catch(error=>{
+    console.error("Notice page fitting failed:",error);
+    saNoticeSetStatus("تعذر ضبط توزيع صفحات التنبيهات. لم تتم الطباعة.",true);
+    return false;
+  });
+  saNoticePreviewReady=ready;
+  return initialPages.length;
 }
 async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
@@ -4501,21 +4555,10 @@ async function saPrintAutomaticNotices(){
   if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
   try{
     await saNoticeWaitForLayout();
-    if(!saNoticeFitCards()){
-      // First exception: use two generous notice areas per A4 sheet.
-      saNoticeSetStatus("نضبط توزيع بعض الإشعارات على طالبين في الصفحة حتى تبقى جميع التفاصيل واضحة.",false);
-      saNoticeRenderPreview(saNoticeLastGenerated,2);
-      await saNoticeWaitForLayout();
-    }
-    if(!saNoticeFitCards()){
-      // Last-resort exception for an unusually long notice: dedicate a full sheet.
-      saNoticeSetStatus("يوجد إشعار استثنائي طويل؛ خُصصت له صفحة كاملة حفاظاً على كل تفاصيله.",false);
-      saNoticeRenderPreview(saNoticeLastGenerated,1);
-      await saNoticeWaitForLayout();
-    }
-    if(!saNoticeFitCards()){
-      saNoticeSetStatus("حتى الصفحة الكاملة لا تستوعب محتوى أحد الإشعارات. لم نطبع الملف ولم نحذف أي مخالفة؛ راجع معاينة الإشعار الطويل.",true);
-      showToast("أوقفنا الطباعة لأن المحتوى لا يتسع حتى في صفحة كاملة.", "error");
+    const fitted=await saNoticePreviewReady;
+    if(fitted===false||!saNoticeFitCards()){
+      saNoticeSetStatus("تعذر احتواء أحد التنبيهات دون قصّ المحتوى. لم نطبع الملف ولم نحذف أي مخالفة؛ راجع الإشعار الطويل.",true);
+      showToast("أوقفنا الطباعة حفاظاً على اكتمال التنبيهات.","error");
       return;
     }
     document.body.classList.add("sa-notice-print-mode");
