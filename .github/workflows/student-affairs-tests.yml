@@ -383,7 +383,7 @@ jobs:
             -- A candidate in another department is hidden by default, then allowed only after explicit expansion.
             BEGIN
               PERFORM public.create_timetable_substitution(jsonb_build_object(
-                'version_id',v_version_id::text,'weekday','الأحد','period',1,
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
                 'actor_type','admin','actor_name','synthetic-admin',
@@ -395,7 +395,7 @@ jobs:
             IF NOT v_cross_department_blocked THEN RAISE EXCEPTION 'cross-department candidate was not blocked by default'; END IF;
 
             v_substitution := public.create_timetable_substitution(jsonb_build_object(
-              'version_id',v_version_id::text,'weekday','الأحد','period',1,
+              'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
               'absent_teacher_name','synthetic-arabic-teacher',
               'substitute_teacher_name','synthetic-math-teacher',
               'actor_type','admin','actor_name','synthetic-admin',
@@ -406,7 +406,7 @@ jobs:
             END IF;
             BEGIN
               PERFORM public.create_timetable_substitution(jsonb_build_object(
-                'version_id',v_version_id::text,'weekday','الأحد','period',1,
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
                 'actor_type','admin','actor_name','synthetic-admin',
