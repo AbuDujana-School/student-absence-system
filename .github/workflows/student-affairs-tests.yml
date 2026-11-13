@@ -11,6 +11,7 @@ on:
       - "main"
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
+      - "feature/smart-substitution-system"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
@@ -48,6 +49,16 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
+      - name: Apply isolated timetable import migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
+      - name: Apply isolated timetable owner reassignment migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113133000_timetable_owner_reassignment.sql
+      - name: Apply isolated complete weekly timetable grid migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
+      - name: Apply isolated atomic timetable substitution workflow migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
+      - name: Apply timetable import audit actor migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113190000_timetable_import_audit_actor.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -88,6 +99,456 @@ jobs:
           END $do$;
           RESET ROLE;
           SELECT 'isolated official notice ledger integration checks passed' AS result;
+          SQL
+      - name: Verify timetable import isolation, snapshots, edits and audit trail
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $do$
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_access_permissions'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_imports'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_teachers'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_records'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_audit'::regclass) THEN
+              RAISE EXCEPTION 'timetable import RLS is not enabled on every table';
+            END IF;
+            IF has_table_privilege('anon','public.timetable_access_permissions','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_access_permissions','SELECT')
+              OR has_table_privilege('anon','public.timetable_imports','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_imports','SELECT')
+              OR has_table_privilege('anon','public.timetable_import_records','INSERT')
+              OR has_table_privilege('authenticated','public.timetable_import_records','UPDATE')
+              OR has_function_privilege('anon','public.save_timetable_import(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.mutate_timetable_import_record(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'browser roles can access timetable import storage';
+            END IF;
+            IF NOT has_table_privilege('service_role','public.timetable_access_permissions','INSERT')
+              OR NOT has_table_privilege('service_role','public.timetable_access_permissions','SELECT')
+              OR NOT has_table_privilege('service_role','public.timetable_imports','INSERT')
+              OR NOT has_table_privilege('service_role','public.timetable_import_records','UPDATE')
+              OR NOT has_function_privilege('service_role','public.save_timetable_import(jsonb)','EXECUTE')
+              OR NOT has_function_privilege('service_role','public.mutate_timetable_import_record(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'service_role is missing timetable import privileges';
+            END IF;
+          END $do$;
+          SET ROLE service_role;
+          DO $do$
+          DECLARE
+            v_saved jsonb;
+            v_import_id uuid;
+            v_record_id uuid;
+            v_added_id uuid;
+            v_payload jsonb;
+            v_conflict_blocked boolean := false;
+            v_invalid_weekday_blocked boolean := false;
+            v_count integer;
+            v_audit_count integer;
+          BEGIN
+            v_saved := public.save_timetable_import('{
+              "file_name":"synthetic-timetable.xlsx",
+              "actor_name":"synthetic-admin",
+              "result":{
+                "sourceSheets":["المعلمون","الحصص"],
+                "hasWeeklyPlacements":false,
+                "totals":{"importedTeacherRows":1,"importedLessonRecords":1,"referenceRows":1,"placementRows":0},
+                "referenceData":{"المعلمون":[]},
+                "teachers":[{
+                  "sourceName":"synthetic-teacher","normalizedName":"synthetic-teacher",
+                  "matchedTeacherName":"synthetic-teacher","matchStatus":"matched",
+                  "aliases":["synthetic-teacher"],
+                  "records":[{
+                    "sourceSheet":"الحصص","sourceRow":2,"teacherSourceName":"synthetic-teacher",
+                    "teacherMatchStatus":"matched","className":"9/1","groupName":"الفصل بالكامل",
+                    "subject":"رياضيات","duration":"مفردة","periodsPerWeek":1,
+                    "availableRooms":"","cycle":"كل الأسابيع","sharedTeachers":"","rooms":"",
+                    "raw":{"المعلم":"synthetic-teacher"},"weekday":null,"period":null
+                  }]
+                }],
+                "unassignedRecords":[]
+              }
+            }'::jsonb);
+            v_import_id := (v_saved->>'import_id')::uuid;
+            SELECT id INTO v_record_id FROM public.timetable_import_records WHERE import_id=v_import_id LIMIT 1;
+
+            v_payload := jsonb_build_object(
+              'mode','update','import_id',v_import_id,'record_id',v_record_id,'actor_name','synthetic-admin','actor_type','admin',
+              'record_data',jsonb_build_object(
+                'teacherSourceName','synthetic-teacher','className','9/1','groupName','الفصل بالكامل',
+                'subject','رياضيات معدلة','duration','مفردة','periodsPerWeek',1,
+                'rooms','','availableRooms','','weekday','الأحد','period',1,
+                'raw',jsonb_build_object('edited',true)
+              )
+            );
+            PERFORM public.mutate_timetable_import_record(v_payload);
+
+            IF NOT EXISTS (
+              SELECT 1 FROM public.timetable_import_records
+               WHERE id=v_record_id AND origin='manual' AND modified_by='synthetic-admin'
+                 AND weekday='الأحد' AND period=1
+                 AND record_data->>'subject'='رياضيات معدلة'
+                 AND source_data->>'subject'='رياضيات'
+            ) THEN
+              RAISE EXCEPTION 'record edit did not preserve original source snapshot';
+            END IF;
+
+            v_payload := jsonb_build_object(
+              'mode','add','import_id',v_import_id,'actor_name','synthetic-admin','actor_type','admin',
+              'record_data',jsonb_build_object(
+                'teacherSourceName','synthetic-teacher','className','9/2','groupName','الفصل بالكامل',
+                'subject','علوم','duration','مفردة','periodsPerWeek',1,
+                'rooms','','availableRooms','','weekday','الأحد','period',2,'raw','{}'::jsonb
+              )
+            );
+            v_saved := public.mutate_timetable_import_record(v_payload);
+            v_added_id := (v_saved->>'record_id')::uuid;
+
+            BEGIN
+              PERFORM public.mutate_timetable_import_record(jsonb_build_object(
+                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin','actor_type','admin',
+                'record_data',jsonb_build_object(
+                  'teacherSourceName','synthetic-teacher','className','9/3','groupName','الفصل بالكامل',
+                  'subject','تاريخ','duration','مفردة','periodsPerWeek',1,
+                  'rooms','','availableRooms','','weekday','الأحد','period',1,'raw','{}'::jsonb
+                )
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('تعارض' in SQLERRM) > 0 THEN v_conflict_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_conflict_blocked THEN RAISE EXCEPTION 'teacher period conflict was not blocked'; END IF;
+
+            BEGIN
+              PERFORM public.mutate_timetable_import_record(jsonb_build_object(
+                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin','actor_type','admin',
+                'record_data',jsonb_build_object(
+                  'teacherSourceName','synthetic-teacher','className','9/4','groupName','الفصل بالكامل',
+                  'subject','جغرافيا','duration','مفردة','periodsPerWeek',1,
+                  'rooms','','availableRooms','','weekday','الجمعة','period',3,'raw','{}'::jsonb
+                )
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('يوم الدراسة غير صالح' in SQLERRM) > 0 THEN v_invalid_weekday_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_invalid_weekday_blocked THEN RAISE EXCEPTION 'invalid school weekday was not blocked'; END IF;
+
+            PERFORM public.mutate_timetable_import_record(jsonb_build_object(
+              'mode','delete','import_id',v_import_id,'record_id',v_added_id,'actor_name','synthetic-admin','actor_type','admin'
+            ));
+            SELECT count(*) INTO v_count FROM public.timetable_import_records WHERE import_id=v_import_id;
+            SELECT count(*) INTO v_audit_count FROM public.timetable_import_audit WHERE import_id=v_import_id;
+            IF v_count <> 1 OR v_audit_count <> 4 THEN
+              RAISE EXCEPTION 'timetable record mutations or audit history count failed';
+            END IF;
+          END $do$;
+          RESET ROLE;
+          SELECT 'isolated timetable import persistence and audit checks passed' AS result;
+          SQL
+      - name: Verify manual timetable owner reassignment and audit history
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE public.teachers (
+            name text primary key,
+            role text not null,
+            permissions jsonb not null default '{}'::jsonb
+          );
+          INSERT INTO public.teachers(name,role,permissions)
+          VALUES ('synthetic-arabic-teacher','teacher','{"category":"اللغة العربية"}'::jsonb);
+          SET ROLE service_role;
+          DO $do$
+          DECLARE
+            v_saved jsonb;
+            v_import_id uuid;
+            v_result jsonb;
+            v_owner text;
+            v_source text;
+            v_status text;
+            v_audit_count integer;
+          BEGIN
+            v_saved := public.save_timetable_import('{
+              "file_name":"synthetic-owner.xlsx",
+              "actor_name":"synthetic-admin",
+              "result":{
+                "sourceSheets":["المعلمون","العقد"],
+                "hasWeeklyPlacements":false,
+                "totals":{"importedTeacherRows":1,"importedLessonRecords":0,"referenceRows":0,"placementRows":0},
+                "referenceData":{},
+                "teachers":[{
+                  "sourceName":"س فيزياء","normalizedName":"س فيزياء",
+                  "matchedTeacherName":null,"matchStatus":"unmatched",
+                  "aliases":["س فيزياء"],"records":[]
+                }],
+                "unassignedRecords":[]
+              }
+            }'::jsonb);
+            v_import_id := (v_saved->>'import_id')::uuid;
+
+            v_result := public.reassign_timetable_import_owner(jsonb_build_object(
+              'import_id',v_import_id,'source_name','س فيزياء',
+              'teacher_name','synthetic-arabic-teacher','actor_name','synthetic-admin','actor_type','admin'
+            ));
+            SELECT source_name, matched_teacher_name, match_status
+              INTO v_source, v_owner, v_status
+              FROM public.timetable_import_teachers
+             WHERE import_id=v_import_id;
+            IF v_source <> 'س فيزياء' OR v_owner <> 'synthetic-arabic-teacher' OR v_status <> 'matched' THEN
+              RAISE EXCEPTION 'manual owner assignment did not preserve source name and set the selected owner';
+            END IF;
+
+            PERFORM public.reassign_timetable_import_owner(jsonb_build_object(
+              'import_id',v_import_id,'source_name','س فيزياء',
+              'teacher_name','','actor_name','synthetic-admin','actor_type','admin'
+            ));
+            SELECT matched_teacher_name, match_status INTO v_owner, v_status
+              FROM public.timetable_import_teachers WHERE import_id=v_import_id;
+            SELECT count(*) INTO v_audit_count FROM public.timetable_import_audit WHERE import_id=v_import_id;
+            IF v_owner IS NOT NULL OR v_status <> 'unmatched' OR v_audit_count <> 3 THEN
+              RAISE EXCEPTION 'clearing owner or audit trail failed';
+            END IF;
+          END $do$;
+          RESET ROLE;
+          SELECT 'isolated manual timetable owner reassignment checks passed' AS result;
+          SQL
+      - name: Verify complete weekly grid, RLS, activation and separate assignments
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO public.teachers(name,role,permissions)
+          VALUES ('synthetic-math-teacher','teacher','{"category":"الرياضيات"}'::jsonb)
+          ON CONFLICT (name) DO NOTHING;
+          GRANT SELECT ON public.teachers TO service_role;
+          DO $do$
+          DECLARE
+            v_saved jsonb;
+            v_activated jsonb;
+            v_version_id uuid;
+            v_teachers jsonb;
+            v_day text;
+            v_days text[] := ARRAY['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+            v_cell_count integer;
+            v_assignment_count integer;
+            v_duplicate_blocked boolean := false;
+            v_substitution jsonb;
+            v_cancelled_substitution jsonb;
+            v_cancelled_status text;
+            v_cross_department_blocked boolean := false;
+            v_wrong_department_actor_blocked boolean := false;
+            v_busy_candidate_blocked boolean := false;
+            v_wrong_date_blocked boolean := false;
+            v_duplicate_substitution_blocked boolean := false;
+            v_substitution_audit_count integer;
+          BEGIN
+            v_teachers := jsonb_build_array(
+              jsonb_build_object(
+                'sourceName','synthetic-arabic-teacher',
+                'matchedTeacherName','synthetic-arabic-teacher',
+                'matchStatus','matched','pdfPage',2,
+                'cells',(SELECT jsonb_agg(jsonb_build_object(
+                  'period',p,'status',CASE WHEN p=7 THEN 'free' ELSE 'teaching' END,
+                  'classSections',CASE WHEN p=7 THEN '[]'::jsonb ELSE jsonb_build_array('9/'||p::text) END,
+                  'subject',CASE WHEN p=7 THEN 'فراغ' ELSE 'اللغة العربية' END,
+                  'sourceClass',CASE WHEN p=7 THEN 'فراغ' ELSE '9/'||p::text END,
+                  'sourceSubject',CASE WHEN p=7 THEN 'فراغ' ELSE 'اللغة العربية' END,
+                  'sourceStatus',CASE WHEN p=7 THEN 'فراغ' ELSE 'تدريس' END
+                ) ORDER BY p) FROM generate_series(1,7) p)
+              ),
+              jsonb_build_object(
+                'sourceName','synthetic-math-teacher',
+                'matchedTeacherName','synthetic-math-teacher',
+                'matchStatus','matched','pdfPage',3,
+                'cells',(SELECT jsonb_agg(jsonb_build_object(
+                  'period',p,'status',CASE WHEN p=1 THEN 'free' ELSE 'teaching' END,
+                  'classSections',CASE WHEN p=1 THEN '[]'::jsonb ELSE jsonb_build_array('10/'||p::text) END,
+                  'subject',CASE WHEN p=1 THEN 'فراغ' ELSE 'الرياضيات' END,
+                  'sourceClass',CASE WHEN p=1 THEN 'فراغ' ELSE '10/'||p::text END,
+                  'sourceSubject',CASE WHEN p=1 THEN 'فراغ' ELSE 'الرياضيات' END,
+                  'sourceStatus',CASE WHEN p=1 THEN 'فراغ' ELSE 'تدريس' END
+                ) ORDER BY p) FROM generate_series(1,7) p)
+              )
+            );
+            SET ROLE service_role;
+            FOREACH v_day IN ARRAY v_days LOOP
+              v_saved := public.save_timetable_weekly_day(jsonb_build_object(
+                'weekday',v_day,'actor_name','synthetic-admin','actor_type','admin','teachers',v_teachers,
+                'version_id',CASE WHEN v_version_id IS NULL THEN NULL ELSE v_version_id::text END
+              ));
+              v_version_id := (v_saved->>'version_id')::uuid;
+            END LOOP;
+            SELECT count(*) INTO v_cell_count FROM public.timetable_weekly_cells WHERE version_id=v_version_id;
+            IF v_cell_count <> 70 THEN RAISE EXCEPTION 'Expected 70 explicit cells for two teachers across five days, got %',v_cell_count; END IF;
+
+            -- Replacing one day must be idempotent and keep the complete grid count stable.
+            PERFORM public.save_timetable_weekly_day(jsonb_build_object(
+              'weekday','الأحد','actor_name','synthetic-admin','actor_type','admin','teachers',v_teachers,'version_id',v_version_id::text
+            ));
+            SELECT count(*) INTO v_cell_count FROM public.timetable_weekly_cells WHERE version_id=v_version_id;
+            IF v_cell_count <> 70 THEN RAISE EXCEPTION 'Replacing a day introduced duplicate cells'; END IF;
+
+            v_activated := public.activate_timetable_weekly_version(jsonb_build_object(
+              'version_id',v_version_id::text,'actor_name','synthetic-admin','actor_type','admin'
+            ));
+            IF v_activated->>'status' <> 'active' OR (v_activated->>'cell_count')::integer <> 70 THEN
+              RAISE EXCEPTION 'Weekly schedule activation did not return the expected complete grid';
+            END IF;
+            -- A candidate in another department is hidden by default, then allowed only after explicit expansion.
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
+                'include_other_departments',false
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('قسم آخر' in SQLERRM)>0 THEN v_cross_department_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_cross_department_blocked THEN RAISE EXCEPTION 'cross-department candidate was not blocked by default'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','teacher','actor_name','synthetic-math-teacher',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('صلاحية إدارة احتياط' in SQLERRM)>0 THEN v_wrong_department_actor_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_wrong_department_actor_blocked THEN RAISE EXCEPTION 'coordinator from another department was not blocked'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',2,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('فراغ مؤكد' in SQLERRM)>0 THEN v_busy_candidate_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_busy_candidate_blocked THEN RAISE EXCEPTION 'busy candidate was not rejected'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-16',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('غير صالحة' in SQLERRM)>0 THEN v_wrong_date_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_wrong_date_blocked THEN RAISE EXCEPTION 'weekday/date mismatch was not rejected'; END IF;
+
+            v_substitution := public.create_timetable_substitution(jsonb_build_object(
+              'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+              'absent_teacher_name','synthetic-arabic-teacher',
+              'substitute_teacher_name','synthetic-math-teacher',
+              'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
+              'include_other_departments',true
+            ));
+            IF v_substitution->>'status'<>'assigned' OR v_substitution->>'teacher_name'<>'synthetic-math-teacher' THEN
+              RAISE EXCEPTION 'atomic substitution assignment did not return the expected result';
+            END IF;
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception OR unique_violation THEN
+              IF position('مسبقاً' in SQLERRM)>0 OR position('duplicate key' in SQLERRM)>0 THEN
+                v_duplicate_substitution_blocked := true;
+              ELSE RAISE;
+              END IF;
+            END;
+            IF NOT v_duplicate_substitution_blocked THEN RAISE EXCEPTION 'duplicate replacement for the same absent lesson was not blocked'; END IF;
+
+            v_cancelled_substitution := public.cancel_timetable_substitution(jsonb_build_object(
+              'assignment_id',v_substitution->>'assignment_id','actor_type','admin','actor_name','synthetic-admin','actor_type','admin'
+            ));
+            IF v_cancelled_substitution->>'status'<>'cancelled' THEN RAISE EXCEPTION 'substitution cancellation did not update status'; END IF;
+            SELECT status INTO v_cancelled_status FROM public.timetable_assignments
+              WHERE id=(v_substitution->>'assignment_id')::uuid;
+            IF v_cancelled_status<>'cancelled' THEN RAISE EXCEPTION 'cancelled substitution remains active'; END IF;
+            SELECT count(*) INTO v_substitution_audit_count FROM public.timetable_assignment_audit
+              WHERE assignment_id=(v_substitution->>'assignment_id')::uuid AND action IN ('created','cancelled');
+            IF v_substitution_audit_count<>2 THEN RAISE EXCEPTION 'substitution create/cancel audit trail is incomplete'; END IF;
+
+            IF (SELECT count(*) FROM public.timetable_weekly_versions WHERE status='active') <> 1 THEN
+              RAISE EXCEPTION 'There must be exactly one active timetable version';
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM public.timetable_weekly_cells
+              WHERE version_id=v_version_id AND matched_teacher_name='synthetic-arabic-teacher'
+                AND weekday='الأحد' AND period=7 AND cell_status='free'
+            ) THEN RAISE EXCEPTION 'Explicit free cell was not preserved in the base timetable'; END IF;
+
+            -- Substitution is an overlay; it must not mutate the original free cell.
+            INSERT INTO public.timetable_assignments(
+              version_id,teacher_name,assignment_type,weekday,period,class_sections,subject,
+              absent_teacher_name,status,created_by
+            ) VALUES (
+              v_version_id,'synthetic-arabic-teacher','substitution','الأحد',7,'["9/1"]'::jsonb,
+              'اللغة العربية','synthetic-absent','assigned','synthetic-admin'
+            );
+            BEGIN
+              INSERT INTO public.timetable_assignments(
+                version_id,teacher_name,assignment_type,weekday,period,class_sections,subject,status,created_by
+              ) VALUES (
+                v_version_id,'synthetic-arabic-teacher','duty','الأحد',7,'[]'::jsonb,
+                '','assigned','synthetic-admin'
+              );
+            EXCEPTION WHEN unique_violation THEN
+              v_duplicate_blocked := true;
+            END;
+            IF NOT v_duplicate_blocked THEN RAISE EXCEPTION 'Double assignment in the same teacher period was not blocked'; END IF;
+            SELECT count(*) INTO v_assignment_count FROM public.timetable_assignments
+             WHERE version_id=v_version_id AND teacher_name='synthetic-arabic-teacher' AND weekday='الأحد' AND period=7;
+            IF v_assignment_count <> 1 THEN RAISE EXCEPTION 'Assignment overlay record was not persisted'; END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM public.timetable_weekly_cells
+              WHERE version_id=v_version_id AND matched_teacher_name='synthetic-arabic-teacher'
+                AND weekday='الأحد' AND period=7 AND cell_status='free'
+            ) THEN RAISE EXCEPTION 'Substitution assignment overwrote the original timetable cell'; END IF;
+            RESET ROLE;
+          END $do$;
+          DO $do$
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_versions'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_cells'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_audit'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_assignments'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_assignment_audit'::regclass) THEN
+              RAISE EXCEPTION 'Weekly timetable RLS is not enabled on every table';
+            END IF;
+            IF has_table_privilege('anon','public.timetable_weekly_cells','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_weekly_cells','SELECT')
+              OR has_table_privilege('anon','public.timetable_assignments','INSERT')
+              OR has_table_privilege('authenticated','public.timetable_assignments','INSERT')
+              OR has_table_privilege('anon','public.timetable_assignment_audit','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_assignment_audit','SELECT')
+              OR has_function_privilege('anon','public.create_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.create_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('anon','public.cancel_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.cancel_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('anon','public.save_timetable_weekly_day(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.activate_timetable_weekly_version(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'Browser roles must not access weekly timetable storage or RPCs directly';
+            END IF;
+            IF NOT has_table_privilege('service_role','public.timetable_weekly_cells','INSERT')
+              OR NOT has_table_privilege('service_role','public.timetable_assignments','INSERT')
+              OR NOT has_function_privilege('service_role','public.save_timetable_weekly_day(jsonb)','EXECUTE')
+              OR NOT has_function_privilege('service_role','public.activate_timetable_weekly_version(jsonb)','EXECUTE')
+              OR NOT has_table_privilege('service_role','public.timetable_assignment_audit','INSERT')
+              OR NOT has_function_privilege('service_role','public.create_timetable_substitution(jsonb)','EXECUTE')
+              OR NOT has_function_privilege('service_role','public.cancel_timetable_substitution(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'service_role is missing weekly timetable privileges';
+            END IF;
+          END $do$;
+          SELECT 'isolated complete weekly timetable grid checks passed' AS result;
           SQL
       - name: Verify RLS, grants, and session lifecycle
         run: |
@@ -232,5 +693,13 @@ jobs:
         run: deno test supabase/functions/student-affairs/competition_response_policy_test.ts
       - name: Run teacher permission sync regression tests
         run: deno test --allow-read=index.html supabase/functions/student-affairs/teacher_permission_sync_test.ts
+      - name: Run timetable import parser tests
+        run: deno test supabase/functions/student-affairs/timetable_import_test.ts
+      - name: Run full weekly timetable text parser tests
+        run: deno test supabase/functions/student-affairs/timetable_grid_test.ts
+      - name: Run substitution eligibility tests
+        run: deno test supabase/functions/student-affairs/substitution_policy_test.ts
+      - name: Type-check timetable and substitution policy modules
+        run: deno check supabase/functions/student-affairs/timetable_import.ts supabase/functions/student-affairs/timetable_grid.ts supabase/functions/student-affairs/substitution_policy.ts
       - name: Type-check Edge Function
         run: deno check supabase/functions/student-affairs/index.ts

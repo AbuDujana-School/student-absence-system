@@ -1,0 +1,26 @@
+name: Timetable management tests
+
+on:
+  push:
+    branches:
+      - feature/smart-substitution-system
+    paths:
+      - "supabase/functions/timetable-management/**"
+  pull_request:
+    paths:
+      - "supabase/functions/timetable-management/**"
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+      - name: Type-check timetable management
+        run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
+      - name: Run timetable unit tests
+        run: deno test supabase/functions/timetable-management/tests

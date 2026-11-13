@@ -1,0 +1,630 @@
+/**
+ * Excel timetable workbook parser.
+ *
+ * Converts SheetJS sheet_to_json({ header: 1, defval: null }) rows into a
+ * lossless import preview. It intentionally does NOT invent weekday/period
+ * placements from weekly lesson counts or teacher availability notes.
+ */
+
+export type CellValue = string | number | boolean | Date | null | undefined;
+export type WorkbookRows = Record<string, CellValue[][]>;
+
+export interface SystemTeacher {
+  id?: string;
+  name: string;
+  departmentId?: string;
+  departmentName?: string;
+}
+
+export interface ImportedTeacher {
+  sourceName: string;
+  normalizedName: string;
+  matchedTeacherId: string | null;
+  matchedTeacherName: string | null;
+  matchedDepartmentId?: string | null;
+  matchedDepartmentName?: string | null;
+  matchStatus: "matched" | "unmatched" | "ambiguous";
+  aliases: string[];
+  /** Structured day/period references stated in the teacher sheet's التفريغ field; semantics remain unconfirmed. */
+  teacherPeriodNotes: Array<{ weekday: string; period: number }>;
+  teacherPeriodNotesRaw: string;
+  teacherPeriodNotesWarnings: string[];
+  records: ImportedLessonRecord[];
+}
+
+export interface ImportedLessonRecord {
+  id: string;
+  sourceSheet: string;
+  sourceRow: number;
+  teacherSourceName: string;
+  teacherMatchStatus: ImportedTeacher["matchStatus"];
+  className: string;
+  groupName: string;
+  subject: string;
+  duration: string;
+  periodsPerWeek: number | null;
+  availableRooms: string;
+  cycle: string;
+  sharedTeachers: string;
+  rooms: string;
+  raw: Record<string, CellValue>;
+  weekday: string | null;
+  period: number | null;
+}
+
+export interface ImportedReferenceRow {
+  sourceSheet: string;
+  sourceRow: number;
+  values: Record<string, CellValue>;
+}
+
+export interface WorkbookImportResult {
+  schemaVersion: 1;
+  sourceSheets: string[];
+  teachers: ImportedTeacher[];
+  unmatchedTeacherNames: string[];
+  ambiguousTeacherNames: string[];
+  unassignedRecords: ImportedLessonRecord[];
+  referenceData: Record<string, ImportedReferenceRow[]>;
+  placements: ImportedLessonRecord[];
+  hasWeeklyPlacements: boolean;
+  warnings: string[];
+  totals: {
+    importedTeacherRows: number;
+    importedLessonRecords: number;
+    referenceRows: number;
+    placementRows: number;
+  };
+}
+
+const SHEET_ALIASES = {
+  lessons: ["الحصص", "الحصة", "الدروس"],
+  classes: ["الفصول", "الشعب", "الصفوف"],
+  rooms: ["الغرف الدراسية", "الغرف", "القاعات"],
+  subjects: ["المواد", "المادة"],
+  teachers: ["المعلمون", "المعلمين", "المعلم"],
+  classContracts: ["العقود الفصول", "عقود الفصول", "عقود الشعب"],
+  contracts: ["العقد", "العقود"],
+} as const;
+
+function clean(value: CellValue): string {
+  if (value === null || value === undefined) return "";
+  return String(value).replace(/\u00a0/g, " ").replace(/[\u200e\u200f\u202a-\u202e]/g, "").trim();
+}
+
+export function normalizeArabicName(value: CellValue): string {
+  return clean(value)
+    .normalize("NFKC")
+    .replace(/[\u064b-\u065f\u0670\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ى/g, "ي")
+    .replace(/ؤ/g, "و")
+    .replace(/ئ/g, "ي")
+    .replace(/ة/g, "ه")
+    .replace(/[ـ.,،؛:()\[\]{}]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("ar");
+}
+
+
+/** Matching-only tokens: keep the original source spelling in the import record. */
+function teacherNameTokens(value: CellValue): string[] {
+  return normalizeArabicName(value)
+    .replace(/عبدال/g, "عبد ال")
+    .replace(/(^|\s)(?:بن|ابن)(?=\s|$)/g, "$1")
+    .split(/\s+/)
+    .filter(Boolean);
+}
+
+function isOrderedSubsequence(needle: string[], haystack: string[]): boolean {
+  if (!needle.length) return false;
+  let index = 0;
+  for (const token of haystack) {
+    if (token === needle[index]) index++;
+    if (index === needle.length) return true;
+  }
+  return false;
+}
+
+/**
+ * The timetable workbook contains both a detailed name and a short alias,
+ * while the live system commonly stores first name + family name. Prefer
+ * evidence from the detailed name; use the alias as a strong fallback.
+ */
+function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher): number {
+  const fullKey = normalizeArabicName(source.sourceName);
+  const candidateKey = normalizeArabicName(candidate.name);
+  if (fullKey && fullKey === candidateKey) return 120;
+
+  const fullTokens = teacherNameTokens(source.sourceName);
+  const candidateTokens = teacherNameTokens(candidate.name);
+  const aliasExact = source.aliases.some((alias) => normalizeArabicName(alias) === candidateKey);
+  if (!fullTokens.length || !candidateTokens.length) return aliasExact ? 82 : 0;
+
+  let score = 0;
+  if (fullTokens[0] === candidateTokens[0]) score += 35;
+  if (fullTokens[fullTokens.length - 1] === candidateTokens[candidateTokens.length - 1]) score += 35;
+
+  if (isOrderedSubsequence(candidateTokens, fullTokens)) {
+    score += 20 + Math.max(0, candidateTokens.length - 2) * 4;
+  }
+
+  const isPrefix = candidateTokens.every((token, index) => fullTokens[index] === token);
+  if (isPrefix) score += 25;
+
+  const interiorMatches = candidateTokens.slice(1, -1)
+    .filter((token) => fullTokens.includes(token)).length;
+  score += interiorMatches * 5;
+
+  // An exact workbook alias is useful, but cannot override stronger detailed-name evidence.
+  if (aliasExact) score = Math.max(score, 82);
+  return score;
+}
+
+/**
+ * Explicit identity confirmations supplied by the school.
+ * Keys are detailed workbook teacher names; values are existing system teacher names.
+ * Short aliases are deliberately not used as keys because they may be shared.
+ */
+const CONFIRMED_TEACHER_LINKS: Record<string, string> = {
+  [normalizeArabicName("س فيزياء")]: normalizeArabicName("محمد البشير"),
+  [normalizeArabicName("محمد جمعة ناصر السعدي")]: normalizeArabicName("محمد جمعة السعدي"),
+  [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله السعدي"),
+};
+
+/** Reuse the reviewed workbook identity-matching rules for pasted timetable day imports. */
+export function matchSystemTeacherName(sourceName: string, systemTeachers: SystemTeacher[]): {
+  teacherName: string | null;
+  matchStatus: "matched" | "unmatched" | "ambiguous";
+} {
+  const source: ImportedTeacher = {
+    sourceName,
+    normalizedName: normalizeArabicName(sourceName),
+    matchedTeacherId: null,
+    matchedTeacherName: null,
+    matchStatus: "unmatched",
+    aliases: [sourceName],
+    teacherPeriodNotes: [],
+    teacherPeriodNotesRaw: "",
+    teacherPeriodNotesWarnings: [],
+    records: [],
+  };
+  const resolved = resolveSystemTeacher(source, systemTeachers);
+  return {
+    teacherName: resolved.teacher?.name ?? null,
+    matchStatus: resolved.teacher ? "matched" : resolved.ambiguous ? "ambiguous" : "unmatched",
+  };
+}
+
+function resolveSystemTeacher(
+  source: ImportedTeacher,
+  systemTeachers: SystemTeacher[],
+): { teacher: SystemTeacher | null; ambiguous: boolean } {
+  const confirmedTarget = CONFIRMED_TEACHER_LINKS[normalizeArabicName(source.sourceName)];
+  if (confirmedTarget) {
+    const confirmedMatches = systemTeachers.filter(
+      (teacher) => normalizeArabicName(teacher.name) === confirmedTarget,
+    );
+    if (confirmedMatches.length === 1) return { teacher: confirmedMatches[0], ambiguous: false };
+    // When the confirmed account is present, use it. If this particular school directory
+    // does not contain that target, fall through to confidence-scored detailed-name matching.
+    // This supports the same detailed source label in separate directories without guessing.
+    if (confirmedMatches.length > 1) return { teacher: null, ambiguous: true };
+  }
+
+  const ranked = systemTeachers
+    .map((teacher) => ({ teacher, score: scoreTeacherCandidate(source, teacher) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.teacher.name.localeCompare(b.teacher.name, "ar"));
+
+  if (!ranked.length || ranked[0].score < 78) return { teacher: null, ambiguous: false };
+  const secondScore = ranked[1]?.score ?? -1;
+  if (secondScore >= 78 && ranked[0].score - secondScore < 5) {
+    return { teacher: null, ambiguous: true };
+  }
+  return { teacher: ranked[0].teacher, ambiguous: false };
+}
+
+function normalizeSubjectName(value: CellValue): string {
+  const source = clean(value);
+  const key = normalizeArabicName(source);
+  if (!key) return "";
+  if (["حصه دينيه", "دينيه"].includes(key)) return "تربية إسلامية";
+  if (["عربي", "لغه عربيه", "اللغه العربيه"].includes(key)) return "اللغة العربية";
+  if (["انجليزي", "انجليزيه", "لغه انجليزيه", "اللغه الانجليزيه"].includes(key)) return "اللغة الإنجليزية";
+  if (["رياضيات", "الرياضيات"].includes(key)) return "الرياضيات";
+  if (key === "اجتماع الاسلاميه" || key === "اجتماع التربيه الاسلاميه") return "اجتماع التربية الإسلامية";
+  return source;
+}
+
+function normalizeHeader(value: CellValue): string {
+  return normalizeArabicName(value).replace(/\s+/g, "");
+}
+
+function firstValue(row: Record<string, CellValue>, candidates: string[]): string {
+  const wanted = new Set(candidates.map(normalizeHeader));
+  for (const [key, value] of Object.entries(row)) {
+    if (wanted.has(normalizeHeader(key))) {
+      const text = clean(value);
+      if (text) return text;
+    }
+  }
+  return "";
+}
+
+function findHeaderRow(rows: CellValue[][]): number {
+  for (let i = 0; i < Math.min(rows.length, 12); i++) {
+    const values = rows[i] || [];
+    const filled = values.filter((v) => clean(v)).length;
+    if (filled >= 2) return i;
+  }
+  return -1;
+}
+
+function rowsToObjects(rows: CellValue[][]): Array<{ rowNumber: number; values: Record<string, CellValue> }> {
+  const headerIndex = findHeaderRow(rows);
+  if (headerIndex < 0) return [];
+  const headers = (rows[headerIndex] || []).map((v, i) => clean(v) || `عمود ${i + 1}`);
+  const output: Array<{ rowNumber: number; values: Record<string, CellValue> }> = [];
+  for (let i = headerIndex + 1; i < rows.length; i++) {
+    const cells = rows[i] || [];
+    if (!cells.some((v) => clean(v))) continue;
+    const values: Record<string, CellValue> = {};
+    headers.forEach((header, index) => {
+      if (header) values[header] = cells[index] ?? null;
+    });
+    output.push({ rowNumber: i + 1, values });
+  }
+  return output;
+}
+
+function findSheet(sheets: WorkbookRows, aliases: readonly string[]): string | null {
+  const wanted = new Set(aliases.map(normalizeArabicName));
+  return Object.keys(sheets).find((name) => wanted.has(normalizeArabicName(name))) || null;
+}
+
+function valueByHeader(row: Record<string, CellValue>, candidates: string[]): CellValue {
+  const wanted = new Set(candidates.map(normalizeHeader));
+  for (const [key, value] of Object.entries(row)) {
+    if (wanted.has(normalizeHeader(key))) return value;
+  }
+  return null;
+}
+
+function parseCount(value: CellValue): number | null {
+  const text = clean(value).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(",", ".");
+  if (!text) return null;
+  const match = text.match(/-?\d+(?:\.\d+)?/);
+  if (!match) return null;
+  const number = Number(match[0]);
+  return Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+const SCHOOL_WEEKDAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"] as const;
+
+/**
+ * Parse day/period references in the teacher sheet's التفريغ field without
+ * assigning a meaning such as free, busy, or unavailable. A separate teacher
+ * clarification exists for a specific record, but the field's general semantics
+ * conflict with other explicit daily teaching records and must remain unconfirmed.
+ * Empty or malformed text is never expanded into any schedule state.
+ */
+export function parseTeacherPeriodNotes(value: CellValue): {
+  periods: Array<{ weekday: string; period: number }>;
+  warnings: string[];
+} {
+  const raw = clean(value);
+  const periods: Array<{ weekday: string; period: number }> = [];
+  const warnings: string[] = [];
+  if (!raw) return { periods, warnings };
+  const seen = new Set<string>();
+  for (const part of raw.split(/[;؛]/).map((item) => item.trim()).filter(Boolean)) {
+    const colon = part.indexOf(":");
+    if (colon < 0) {
+      warnings.push(part);
+      continue;
+    }
+    const dayText = part.slice(0, colon).trim();
+    const periodText = part.slice(colon + 1).replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+    const dayRange = dayText.split(/\s*[-–—]\s*/).map((day) => normalizeArabicName(day));
+    const dayStart = SCHOOL_WEEKDAYS.findIndex((day) => normalizeArabicName(day) === dayRange[0]);
+    const dayEnd = dayRange.length === 1
+      ? dayStart
+      : SCHOOL_WEEKDAYS.findIndex((day) => normalizeArabicName(day) === dayRange[1]);
+    if (dayStart < 0 || dayEnd < dayStart) {
+      warnings.push(part);
+      continue;
+    }
+    const selectedDays = SCHOOL_WEEKDAYS.slice(dayStart, dayEnd + 1);
+    const selectedPeriods: number[] = [];
+    for (const token of periodText.split(/[,،]/).map((item) => item.trim()).filter(Boolean)) {
+      const match = token.match(/^(\d+)\s*(?:[-–—]\s*(\d+))?$/);
+      if (!match) {
+        warnings.push(part);
+        continue;
+      }
+      const first = Number(match[1]);
+      const last = Number(match[2] || match[1]);
+      if (first < 1 || last > 7 || last < first) {
+        warnings.push(part);
+        continue;
+      }
+      for (let period = first; period <= last; period++) selectedPeriods.push(period);
+    }
+    for (const weekday of selectedDays) {
+      for (const period of selectedPeriods) {
+        const key = weekday + ":" + period;
+        if (!seen.has(key)) {
+          seen.add(key);
+          periods.push({ weekday, period });
+        }
+      }
+    }
+  }
+  return { periods, warnings: Array.from(new Set(warnings)) };
+}
+
+function buildTeacherDirectory(
+  rows: Array<{ rowNumber: number; values: Record<string, CellValue> }>,
+  systemTeachers: SystemTeacher[],
+): { teachers: ImportedTeacher[]; aliasMap: Map<string, Set<string>> } {
+  const byId = new Map(systemTeachers.map((t) => [String(t.id ?? t.name), t]));
+  const aliasMap = new Map<string, Set<string>>();
+  const imported = new Map<string, ImportedTeacher>();
+
+  for (const item of rows) {
+    const name = firstValue(item.values, ["الاسم", "الإسم", "اسم"]);
+    if (!name) continue;
+    const shortName = firstValue(item.values, ["الاختصار", "الإختصار", "الاسم المختصر"]);
+    const key = normalizeArabicName(name);
+    if (!key) continue;
+    const aliases = [name, shortName].filter(Boolean);
+    const freeText = firstValue(item.values, ["التفريغ"]);
+    const parsedFree = parseTeacherPeriodNotes(freeText);
+    const current = imported.get(key) || {
+      sourceName: name,
+      normalizedName: key,
+      matchedTeacherId: null,
+      matchedTeacherName: null,
+      matchStatus: "unmatched" as const,
+      aliases: [],
+      teacherPeriodNotes: [],
+      teacherPeriodNotesRaw: "",
+      teacherPeriodNotesWarnings: [],
+      records: [],
+    };
+    current.aliases = Array.from(new Set([...current.aliases, ...aliases]));
+    if (freeText) {
+      current.teacherPeriodNotesRaw = current.teacherPeriodNotesRaw
+        ? current.teacherPeriodNotesRaw + "; " + freeText
+        : freeText;
+      const merged = new Map(current.teacherPeriodNotes.map((entry) => [entry.weekday + ":" + entry.period, entry]));
+      for (const entry of parsedFree.periods) merged.set(entry.weekday + ":" + entry.period, entry);
+      current.teacherPeriodNotes = Array.from(merged.values());
+      current.teacherPeriodNotesWarnings = Array.from(new Set([...current.teacherPeriodNotesWarnings, ...parsedFree.warnings]));
+    }
+    imported.set(key, current);
+  }
+
+  for (const teacher of imported.values()) {
+    const resolved = resolveSystemTeacher(teacher, systemTeachers);
+    if (resolved.teacher) {
+      const match = resolved.teacher;
+      teacher.matchedTeacherId = String(match.id ?? match.name);
+      teacher.matchedTeacherName = match.name;
+      teacher.matchedDepartmentId = match.departmentId || match.departmentName || null;
+      teacher.matchedDepartmentName = match.departmentName || match.departmentId || null;
+      teacher.matchStatus = "matched";
+    } else if (resolved.ambiguous) {
+      teacher.matchStatus = "ambiguous";
+    }
+    for (const alias of teacher.aliases) {
+      const key = normalizeArabicName(alias);
+      if (!aliasMap.has(key)) aliasMap.set(key, new Set());
+      aliasMap.get(key)!.add(teacher.normalizedName);
+    }
+  }
+  return { teachers: Array.from(imported.values()), aliasMap };
+}
+
+function identifyTeacher(
+  sourceName: string,
+  directory: ImportedTeacher[],
+): ImportedTeacher | null {
+  const key = normalizeArabicName(sourceName);
+  if (!key) return null;
+  const matches = directory.filter((teacher) =>
+    teacher.aliases.some((alias) => normalizeArabicName(alias) === key)
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+
+function parseLessonRows(
+  sheetName: string,
+  rows: CellValue[][],
+  directory: ImportedTeacher[],
+): { records: ImportedLessonRecord[]; unassigned: ImportedLessonRecord[]; placements: ImportedLessonRecord[] } {
+  const objects = rowsToObjects(rows);
+  const records: ImportedLessonRecord[] = [];
+  const unassigned: ImportedLessonRecord[] = [];
+  const placements: ImportedLessonRecord[] = [];
+  let inheritedTeacher = "";
+  let inheritedClass = "";
+
+  for (const item of objects) {
+    const values = item.values;
+    const teacherCell = firstValue(values, ["المعلم", "المعلمون", "اسم المعلم"]);
+    const classCell = firstValue(values, ["الشعب", "الشعبة", "الفصل", "الصف"]);
+    const subject = normalizeSubjectName(firstValue(values, ["المادة", "اسم المادة"]));
+    const group = firstValue(values, ["المجموعة", "التقسيم"]);
+    const isTeacherHeader = !!teacherCell && !classCell && !subject;
+    const isClassHeader = !!classCell && !teacherCell && !subject;
+
+    if (isTeacherHeader) {
+      inheritedTeacher = teacherCell;
+      continue;
+    }
+    if (isClassHeader) {
+      inheritedClass = classCell;
+      continue;
+    }
+
+    const teacherName = teacherCell || inheritedTeacher;
+    const className = classCell || inheritedClass;
+    if (!teacherName && !className && !subject) continue;
+
+    const day = firstValue(values, ["اليوم", "يوم", "اليوم الدراسي"]);
+    const periodText = firstValue(values, ["الحصة", "رقم الحصة", "الفترة", "رقم الفترة"]);
+    const period = parseCount(periodText);
+    const match = identifyTeacher(teacherName, directory);
+    const record: ImportedLessonRecord = {
+      id: `${normalizeArabicName(sheetName)}:${item.rowNumber}`,
+      sourceSheet: sheetName,
+      sourceRow: item.rowNumber,
+      teacherSourceName: teacherName,
+      teacherMatchStatus: match?.matchStatus || (teacherName ? "unmatched" : "unmatched"),
+      className,
+      groupName: group,
+      subject,
+      duration: firstValue(values, ["المدة", "مدة الحصة"]),
+      periodsPerWeek: parseCount(valueByHeader(values, ["الحصص/الأسبوع", "الحصص الاسبوعية", "عدد الحصص"])),
+      availableRooms: firstValue(values, ["الغرف الدراسية المتاحة", "الغرف المتاحة"]),
+      cycle: firstValue(values, ["الدورة", "دورة"]),
+      sharedTeachers: firstValue(values, ["معلم مشارك في المادة", "المعلم المشارك", "معلم مشارك"]),
+      rooms: firstValue(values, ["الغرف الدراسية", "الغرفة"]),
+      raw: { ...values },
+      weekday: day || null,
+      period: day && period !== null ? period : null,
+    };
+    records.push(record);
+    if (match) match.records.push(record);
+    else unassigned.push(record);
+    if (record.weekday && record.period !== null) placements.push(record);
+  }
+  return { records, unassigned, placements };
+}
+
+export function parseTimetableWorkbook(
+  sheets: WorkbookRows,
+  systemTeachers: SystemTeacher[] = [],
+): WorkbookImportResult {
+  const warnings: string[] = [];
+  const sourceSheets = Object.keys(sheets);
+  const teacherSheet = findSheet(sheets, SHEET_ALIASES.teachers);
+  const teacherRows = teacherSheet ? rowsToObjects(sheets[teacherSheet]) : [];
+  const { teachers } = buildTeacherDirectory(teacherRows, systemTeachers);
+
+  if (!teacherSheet) warnings.push("لم يتم العثور على ورقة المعلمين؛ ستحتاج مطابقة الأسماء يدوياً.");
+  if (!findSheet(sheets, SHEET_ALIASES.lessons)) warnings.push("لم يتم العثور على ورقة الحصص.");
+
+  const referenceData: Record<string, ImportedReferenceRow[]> = {};
+  if (teacherSheet) {
+    // Preserve all teacher-level constraints (MWD, EXH, DAYS, <a,b>, availability notes, etc.)
+    // verbatim so later scheduling rules can be defined without losing source data.
+    referenceData[teacherSheet] = teacherRows.map((row) => ({
+      sourceSheet: teacherSheet,
+      sourceRow: row.rowNumber,
+      values: row.values,
+    }));
+  }
+  for (const [key, aliases] of Object.entries(SHEET_ALIASES)) {
+    const sheetName = findSheet(sheets, aliases);
+    if (!sheetName || key === "teachers" || key === "lessons" || key === "contracts" || key === "classContracts") continue;
+    referenceData[sheetName] = rowsToObjects(sheets[sheetName]).map((row) => ({
+      sourceSheet: sheetName,
+      sourceRow: row.rowNumber,
+      values: row.values,
+    }));
+  }
+
+  const allRecords: ImportedLessonRecord[] = [];
+  const unassignedRecords: ImportedLessonRecord[] = [];
+  const placements: ImportedLessonRecord[] = [];
+  for (const key of ["lessons", "contracts", "classContracts"] as const) {
+    const sheetName = findSheet(sheets, SHEET_ALIASES[key]);
+    if (!sheetName) continue;
+    const parsed = parseLessonRows(sheetName, sheets[sheetName], teachers);
+    allRecords.push(...parsed.records);
+    unassignedRecords.push(...parsed.unassigned);
+    placements.push(...parsed.placements);
+  }
+
+  // Keep every teacher name found in lesson/contract rows visible, even when
+  // the workbook's teacher directory omitted it or the system has no match.
+  const unresolvedRecords: ImportedLessonRecord[] = [];
+  for (const record of unassignedRecords) {
+    const key = normalizeArabicName(record.teacherSourceName);
+    if (!key) {
+      unresolvedRecords.push(record);
+      continue;
+    }
+    const importedMatches = teachers.filter((item) => item.aliases.some((alias) => normalizeArabicName(alias) === key));
+    if (importedMatches.length > 1) {
+      const ambiguousTeacher: ImportedTeacher = {
+        sourceName: record.teacherSourceName,
+        normalizedName: key,
+        matchedTeacherId: null,
+        matchedTeacherName: null,
+        matchStatus: "ambiguous",
+        aliases: [record.teacherSourceName],
+        teacherPeriodNotes: [],
+        teacherPeriodNotesRaw: "",
+        teacherPeriodNotesWarnings: [],
+        records: [record],
+      };
+      teachers.push(ambiguousTeacher);
+      record.teacherMatchStatus = "ambiguous";
+      unresolvedRecords.push(record);
+      continue;
+    }
+    let teacher = importedMatches[0] || null;
+    if (!teacher) {
+      const systemMatches = systemTeachers.filter((item) => normalizeArabicName(item.name) === key);
+      const uniqueMatch = systemMatches.length === 1 ? systemMatches[0] : null;
+      teacher = {
+        sourceName: record.teacherSourceName,
+        normalizedName: key,
+        matchedTeacherId: uniqueMatch ? String(uniqueMatch.id ?? uniqueMatch.name) : null,
+        matchedTeacherName: uniqueMatch?.name ?? null,
+        matchStatus: uniqueMatch ? "matched" : systemMatches.length > 1 ? "ambiguous" : "unmatched",
+        aliases: [record.teacherSourceName],
+        teacherPeriodNotes: [],
+        teacherPeriodNotesRaw: "",
+        teacherPeriodNotesWarnings: [],
+        records: [],
+      };
+      teachers.push(teacher);
+    }
+    teacher.records.push(record);
+    record.teacherMatchStatus = teacher.matchStatus;
+    if (teacher.matchStatus !== "matched") unresolvedRecords.push(record);
+  }
+  unassignedRecords.splice(0, unassignedRecords.length, ...unresolvedRecords);
+  const unmatchedTeacherNames = teachers.filter((t) => t.matchStatus === "unmatched").map((t) => t.sourceName);
+  const ambiguousTeacherNames = teachers.filter((t) => t.matchStatus === "ambiguous").map((t) => t.sourceName);
+  if (!placements.length) {
+    warnings.push("لم تُعثر على أعمدة واضحة لليوم ورقم الحصة؛ عُرضت بيانات العقود والحصص دون إنشاء جدول أسبوعي افتراضي.");
+  }
+  if (unmatchedTeacherNames.length) warnings.push(`يوجد ${unmatchedTeacherNames.length} اسم معلم يحتاج إلى مطابقة مع سجل النظام.`);
+  if (ambiguousTeacherNames.length) warnings.push(`يوجد ${ambiguousTeacherNames.length} اسم معلم ملتبس يحتاج إلى مراجعة.`);
+
+  return {
+    schemaVersion: 1,
+    sourceSheets,
+    teachers,
+    unmatchedTeacherNames,
+    ambiguousTeacherNames,
+    unassignedRecords,
+    referenceData,
+    placements,
+    hasWeeklyPlacements: placements.length > 0,
+    warnings,
+    totals: {
+      importedTeacherRows: teachers.length,
+      importedLessonRecords: allRecords.length,
+      referenceRows: Object.values(referenceData).reduce((sum, rows) => sum + rows.length, 0),
+      placementRows: placements.length,
+    },
+  };
+}

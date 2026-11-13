@@ -9,6 +9,9 @@ import {
   type AppLoginCandidate, type AppPrincipal,
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
+import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
+import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
+import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -746,6 +749,17 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
+async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
+  if (principal.type === "admin") return true;
+  const { data, error } = await db.from("timetable_access_permissions")
+    .select("can_access")
+    .eq("principal_type", principal.type)
+    .eq("principal_name", principal.name)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.can_access === true;
+}
+
 async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
@@ -838,6 +852,581 @@ async function handle(req: Request) {
       if (error) throw error;
       return reply(200, { token, expires_at: expires, principal: { type: principal.type, name: principal.name }, permissions: await permissionsFor(principal) });
     } catch (e) { console.error("Student affairs login failed:", e); return reply(500, { error: "تعذر إتمام التحقق الآمن حالياً" }); }
+  }
+  if (["timetable_check_access","timetable_list_access","timetable_set_access"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+
+      if (body.action === "timetable_check_access") {
+        const canAccess = await hasTimetableAccess(principal);
+        return reply(200, { canAccess, isAdmin: principal.type === "admin" });
+      }
+
+      if (principal.type !== "admin") {
+        return reply(403, { error: "إدارة صلاحيات الجداول متاحة لمدير النظام العام فقط." });
+      }
+
+      if (body.action === "timetable_list_access") {
+        const [{ data: teachers, error: teachersError }, { data: grants, error: grantsError }] = await Promise.all([
+          db.from("teachers").select("name,role,permissions").order("name"),
+          db.from("timetable_access_permissions").select("principal_type,principal_name,can_access,updated_by,updated_at"),
+        ]);
+        if (teachersError) throw teachersError;
+        if (grantsError) throw grantsError;
+        const grantMap = new Map((grants || []).map((row: any) => [row.principal_type + ":" + row.principal_name, row]));
+        const users = (teachers || []).filter((item: any) => item.role === "teacher" || item.role === "custom").map((item: any) => {
+          const type = item.role === "custom" ? "custom" : "teacher";
+          const grant = grantMap.get(type + ":" + String(item.name)) as any;
+          return {
+            principal_type: type,
+            principal_name: String(item.name),
+            category: typeof item.permissions?.category === "string" ? item.permissions.category : "",
+            can_access: grant?.can_access === true,
+            updated_by: grant?.updated_by || null,
+            updated_at: grant?.updated_at || null,
+          };
+        });
+        return reply(200, { users });
+      }
+
+      const principalType = String(body.principalType || "");
+      const principalName = String(body.principalName || "").trim();
+      const canAccess = body.canAccess === true;
+      if (!["teacher","custom"].includes(principalType) || !principalName || principalName.length > 160 || typeof body.canAccess !== "boolean") {
+        return reply(400, { error: "بيانات صلاحية الجداول غير صالحة." });
+      }
+      const { data: target, error: targetError } = await db.from("teachers")
+        .select("name,role").eq("name", principalName).maybeSingle();
+      if (targetError) throw targetError;
+      if (!target || (principalType === "custom" ? target.role !== "custom" : target.role === "custom")) {
+        return reply(404, { error: "المستخدم المحدد غير موجود أو نوع حسابه لا يطابق الاختيار." });
+      }
+      const { error } = await db.from("timetable_access_permissions").upsert({
+        principal_type: principalType,
+        principal_name: principalName,
+        can_access: canAccess,
+        updated_by: principal.name,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "principal_type,principal_name" });
+      if (error) throw error;
+      return reply(200, { ok: true, principalType, principalName, canAccess });
+    } catch (error) {
+      console.error("Timetable access permission request failed:", error);
+      return reply(500, { error: "تعذر تحديث صلاحية الجداول. تحقق من migration التطوير." });
+    }
+  }
+  if (["timetable_parse_day","timetable_save_weekly_day","timetable_activate_weekly_version","timetable_get_weekly_draft"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "إدارة الجدول الأسبوعي متاحة لمدير النظام العام فقط." });
+      }
+
+      if (body.action === "timetable_get_weekly_draft") {
+        const { data: draft, error: draftError } = await db.from("timetable_weekly_versions")
+          .select("id,version,expected_teacher_count,created_at")
+          .eq("status", "draft").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (draftError) throw draftError;
+        if (!draft) return reply(200, { ok: true, draft: null });
+        const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+          .select("weekday,teacher_source_name").eq("version_id", draft.id);
+        if (cellsError) throw cellsError;
+        const rows = cells || [];
+        return reply(200, {
+          ok: true,
+          draft: {
+            id: draft.id,
+            version: draft.version,
+            expectedTeacherCount: draft.expected_teacher_count,
+            weekdays: [...new Set(rows.map((row: any) => String(row.weekday || "")).filter(Boolean))],
+            teacherCount: new Set(rows.map((row: any) => String(row.teacher_source_name || ""))).size,
+            cellCount: rows.length,
+            createdAt: draft.created_at,
+          },
+        });
+      }
+
+      if (body.action === "timetable_activate_weekly_version") {
+        const versionId = String(body.versionId || "");
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(versionId)) {
+          return reply(400, { error: "رقم نسخة الجدول غير صالح." });
+        }
+        const { data, error } = await db.rpc("activate_timetable_weekly_version", {
+          p_payload: { version_id: versionId, actor_name: principal.name },
+        });
+        if (error) throw error;
+        return reply(200, { ok: true, result: data });
+      }
+
+      const weekday = String(body.weekday || "");
+      const sourceText = String(body.text || "");
+      if (!sourceText.trim() || sourceText.length > 500000) {
+        return reply(400, { error: "أدخل نص يوم دراسي صحيحاً لا يتجاوز الحد المسموح." });
+      }
+      const parsed = parseTimetableDay(weekday, sourceText);
+      // The current school roster has 69 teachers; enforce this on the server for both preview and save.
+      validateSchoolTeacherCount(parsed, 69);
+      const { data: directory, error: directoryError } = await db
+        .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
+      if (directoryError) throw directoryError;
+      const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
+        name: String(teacher.name || ""),
+        departmentId: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+      })).filter((teacher: SystemTeacher) => teacher.name);
+      const matchedTeachers = parsed.teachers.map((teacher) => {
+        const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
+        return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
+      });
+      const matchingTotals = {
+        matched: matchedTeachers.filter((teacher) => teacher.matchStatus === "matched").length,
+        unmatched: matchedTeachers.filter((teacher) => teacher.matchStatus === "unmatched").length,
+        ambiguous: matchedTeachers.filter((teacher) => teacher.matchStatus === "ambiguous").length,
+      };
+
+      if (body.action === "timetable_parse_day") {
+        return reply(200, {
+          ok: true, weekday: parsed.weekday, teachers: matchedTeachers,
+          totals: parsed.totals, totalCells: parsed.totalCells, matchingTotals,
+        });
+      }
+
+      const versionId = body.versionId ? String(body.versionId) : null;
+      if (versionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(versionId)) {
+        return reply(400, { error: "رقم المسودة غير صالح." });
+      }
+      const { data, error } = await db.rpc("save_timetable_weekly_day", {
+        p_payload: {
+          version_id: versionId,
+          weekday: parsed.weekday,
+          teachers: matchedTeachers,
+          actor_name: principal.name,
+        },
+      });
+      if (error) throw error;
+      return reply(200, { ok: true, result: data, matchingTotals });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      console.error("Weekly timetable day operation failed:", error);
+      return reply(400, { error: message || "تعذر معالجة اليوم. راجع النص والخانات ثم أعد المحاولة." });
+    }
+  }
+
+  if (body?.action === "timetable_teacher_weekly_get") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "استعراض جداول جميع المعلمين متاح لمدير النظام العام فقط." });
+      }
+      const teacherName = String(body.teacherName || "").trim();
+      const versionId = body.versionId ? String(body.versionId) : "";
+      if (!teacherName || teacherName.length > 160) {
+        return reply(400, { error: "أدخل اسم المعلم كاملاً." });
+      }
+      if (versionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(versionId)) {
+        return reply(400, { error: "رقم نسخة الجدول غير صالح." });
+      }
+      let versionQuery = db.from("timetable_weekly_versions")
+        .select("id,version,status,activated_at");
+      versionQuery = versionId ? versionQuery.eq("id", versionId) : versionQuery.eq("status", "active");
+      const { data: timetableVersion, error: versionError } = await versionQuery.maybeSingle();
+      if (versionError) throw versionError;
+      if (!timetableVersion) {
+        return reply(404, { error: versionId ? "نسخة الجدول المطلوبة غير موجودة." : "لا توجد نسخة أسبوعية معتمدة حالياً." });
+      }
+      const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+        .select("weekday,period,cell_status,class_sections,subject,source_page,teacher_source_name,matched_teacher_name,match_status")
+        .eq("version_id", timetableVersion.id)
+        .eq("matched_teacher_name", teacherName)
+        .order("weekday")
+        .order("period");
+      if (cellsError) throw cellsError;
+      const weekdayOrder = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      const orderedCells = (cells || []).sort((a: any, b: any) =>
+        weekdayOrder.indexOf(String(a.weekday)) - weekdayOrder.indexOf(String(b.weekday)) ||
+        Number(a.period) - Number(b.period)
+      );
+      if (!orderedCells.length) {
+        return reply(404, { error: "لم يُعثر على جدول مرتبط بهذا الاسم في النسخة المحددة. تحقق من الاسم أو ربطه بحساب المعلم." });
+      }
+      return reply(200, {
+        ok: true,
+        teacherName,
+        version: timetableVersion,
+        cells: orderedCells,
+        expectedCellCount: 35,
+        actualCellCount: orderedCells.length,
+        complete: orderedCells.length === 35,
+      });
+    } catch (error) {
+      console.error("Admin teacher weekly timetable lookup failed:", error);
+      return reply(500, { error: "تعذر استعراض جدول المعلم حالياً." });
+    }
+  }
+
+  if (body?.action === "teacher_timetable_get_own") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "teacher") {
+        return reply(403, { error: "عرض الجدول الشخصي متاح لحساب المعلم فقط." });
+      }
+      const { data: activeVersion, error: versionError } = await db.from("timetable_weekly_versions")
+        .select("id,version,status,activated_at").eq("status", "active").maybeSingle();
+      if (versionError) throw versionError;
+      if (!activeVersion) return reply(200, { ok: true, teacherName: principal.name, version: null, cells: [], assignments: [] });
+      const [{ data: cells, error: cellsError }, { data: assignments, error: assignmentsError }] = await Promise.all([
+        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page")
+          .eq("version_id", activeVersion.id).eq("matched_teacher_name", principal.name),
+        db.from("timetable_assignments").select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,absent_teacher_name,status")
+          .eq("version_id", activeVersion.id).eq("teacher_name", principal.name).neq("status", "cancelled"),
+      ]);
+      if (cellsError) throw cellsError;
+      if (assignmentsError) throw assignmentsError;
+      const weekdayOrder = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      const sortCells = (left: any, right: any) =>
+        weekdayOrder.indexOf(left.weekday) - weekdayOrder.indexOf(right.weekday) || left.period - right.period;
+      return reply(200, {
+        ok: true, teacherName: principal.name, version: activeVersion,
+        cells: (cells || []).sort(sortCells),
+        assignments: (assignments || []).sort(sortCells),
+      });
+    } catch (error) {
+      console.error("Teacher personal timetable read failed:", error);
+      return reply(500, { error: "تعذر تحميل الجدول الشخصي حالياً." });
+    }
+  }
+
+  if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) return reply(401, { error: "تعذر التحقق من المستخدم الحالي." });
+      if (principal.type !== "admin" && !(await hasTimetableAccess(principal))) {
+        return reply(403, { error: "لا تملك صلاحية منظومة الجداول والاحتياط." });
+      }
+
+      const weekday = String(body.weekday || "");
+      const allowedDays = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      if (!allowedDays.includes(weekday)) return reply(400, { error: "اختر يوماً دراسياً صحيحاً." });
+
+      const { data: activeVersion, error: versionError } = await db.from("timetable_weekly_versions")
+        .select("id,version,status").eq("status","active").maybeSingle();
+      if (versionError) throw versionError;
+      if (!activeVersion) return reply(200, { ok:true, active:false, absentTeachers:[], lessons:[] });
+
+      const [{ data: directory, error: directoryError }, { data: dayCells, error: cellsError }] = await Promise.all([
+        db.from("teachers").select("name,role,permissions").in("role",["teacher","custom"]).order("name"),
+        db.from("timetable_weekly_cells")
+          .select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
+          .eq("version_id",activeVersion.id).eq("weekday",weekday),
+      ]);
+      if (directoryError) throw directoryError;
+      if (cellsError) throw cellsError;
+
+      const teacherRows = (directory || []).map((item:any) => ({
+        name:String(item.name || ""),
+        role:String(item.role || ""),
+        department:String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
+      })).filter((item:any)=>item.name);
+      const actorDirectoryRow = teacherRows.find((item:any)=>item.name===principal.name);
+      const actorDepartment = actorDirectoryRow?.department || "";
+      if (principal.type !== "admin" && !actorDepartment) {
+        return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
+      }
+
+      const absentTeacherName = String(body.absentTeacherName || "").trim();
+      const includeOtherDepartments = body.includeOtherDepartments === true;
+      if (body.action === "timetable_substitution_cancel") {
+        const assignmentId=String(body.assignmentId || "");
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(assignmentId)) {
+          return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
+        }
+        const {data: assignment,error: assignmentLookupError}=await db.from("timetable_assignments")
+          .select("id,version_id,absent_teacher_name,weekday,assignment_date")
+          .eq("id",assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
+        if(assignmentLookupError)throw assignmentLookupError;
+        const cancellationDate=String(body.assignmentDate || "");
+        if(!assignment||assignment.weekday!==weekday||(assignment.assignment_date&&assignment.assignment_date!==cancellationDate))
+          return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
+        const absentRow=teacherRows.find((item:any)=>item.name===assignment.absent_teacher_name&&item.role==="teacher");
+        if(!absentRow)return reply(404,{error:"تعذر العثور على قسم المعلم الغائب."});
+        if(principal.type!=="admin"&&absentRow.department!==actorDepartment) {
+          return reply(403,{error:"لا تملك صلاحية إلغاء تكليف هذا القسم."});
+        }
+        const {data,error}=await db.rpc("cancel_timetable_substitution",{
+          p_payload:{assignment_id:assignmentId,actor_name:principal.name,actor_type:principal.type},
+        });
+        if(error)throw error;
+        return reply(200,{ok:true,assignment:data});
+      }
+      if (absentTeacherName) {
+        const absentDirectoryRow = teacherRows.find((item:any)=>item.name===absentTeacherName);
+        if (!absentDirectoryRow || absentDirectoryRow.role!=="teacher") return reply(404,{error:"المعلم المحدد غير موجود في دليل المعلمين."});
+        if (principal.type !== "admin" && absentDirectoryRow.department !== actorDepartment) {
+          return reply(403,{error:"يمكنك إدارة احتياط معلمي قسمك فقط."});
+        }
+      }
+
+      if (body.action === "timetable_substitution_save") {
+        const period = Number(body.period);
+        const assignmentDate = String(body.assignmentDate || "");
+        if (!absentTeacherName || !String(body.substituteTeacherName || "").trim()
+          || !Number.isInteger(period) || period < 1 || period > 7
+          || !/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate)) {
+          return reply(400,{error:"حدد تاريخ الغياب والمعلم الغائب والبديل والحصة."});
+        }
+        const { data, error } = await db.rpc("create_timetable_substitution", {
+          p_payload: {
+            version_id:activeVersion.id, weekday, period, assignment_date:assignmentDate,
+            absent_teacher_name:absentTeacherName,
+            substitute_teacher_name:String(body.substituteTeacherName).trim(),
+            actor_name:principal.name, actor_type:principal.type,
+            include_other_departments:includeOtherDepartments,
+          },
+        });
+        if (error) throw error;
+        return reply(201,{ok:true,assignment:data});
+      }
+
+      const date = String(body.assignmentDate || "");
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return reply(400,{error:"تاريخ الغياب غير صالح."});
+      const absentTeachers = Array.from(new Set((dayCells || [])
+        .filter((cell:any)=>cell.cell_status==="teaching" && cell.matched_teacher_name)
+        .filter((cell:any)=>teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.role==="teacher")
+        .filter((cell:any)=>principal.type==="admin" || teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.department===actorDepartment)
+        .map((cell:any)=>String(cell.matched_teacher_name))))
+        .sort((a,b)=>a.localeCompare(b,"ar"));
+      if (!absentTeacherName) {
+        return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
+      }
+
+      const timetable:TimetableEntry[]=(dayCells || []).filter((cell:any)=>cell.matched_teacher_name).map((cell:any)=>({
+        teacherId:String(cell.matched_teacher_name),weekday:String(cell.weekday),period:Number(cell.period),
+        className:Array.isArray(cell.class_sections)?cell.class_sections.join("، "):"",
+        subject:String(cell.subject || ""),status:cell.cell_status,
+      }));
+      const lessons = getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
+      const { data: assignmentRows, error: assignmentError } = await db.from("timetable_assignments")
+        .select("id,source_cell_id,teacher_name,weekday,period,status,assignment_date")
+        .eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
+      if (assignmentError) throw assignmentError;
+      const selectedDate = date ? new Date(date+"T12:00:00") : null;
+      const weekStart = selectedDate ? new Date(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate()-selectedDate.getDay(),12) : null;
+      const weekEnd = weekStart ? new Date(weekStart.getFullYear(),weekStart.getMonth(),weekStart.getDate()+4,12) : null;
+      const toLocalIsoDate=(value:Date)=>value.getFullYear()+"-"+String(value.getMonth()+1).padStart(2,"0")+"-"+String(value.getDate()).padStart(2,"0");
+      const assignments:SubstitutionAssignment[]=(assignmentRows || [])
+        .filter((item:any)=>!item.assignment_date || !weekStart ||
+          (item.assignment_date>=toLocalIsoDate(weekStart) && item.assignment_date<=toLocalIsoDate(weekEnd!)))
+        .map((item:any)=>({substituteTeacherId:String(item.teacher_name),weekday:String(item.weekday),
+          period:Number(item.period),assignmentDate:item.assignment_date || null,status:item.status}));
+      const candidates:SubstitutionTeacher[]=teacherRows.filter((item:any)=>item.role==="teacher").map((item:any)=>({
+        id:item.name,name:item.name,departmentId:item.department,
+      }));
+      const lessonOptions=lessons.map((lesson)=>{
+        const eligible=getAvailableSubstitutionCandidates({
+          teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,
+          weekday,period:lesson.period,departmentId:teacherRows.find((item:any)=>item.name===absentTeacherName)?.department || "",
+          includeOtherDepartments,assignmentDate:date || undefined,
+        });
+        const sourceCell=(dayCells || []).find((cell:any)=>cell.matched_teacher_name===absentTeacherName && Number(cell.period)===lesson.period);
+        const existing=(assignmentRows || []).find((item:any)=>item.source_cell_id===sourceCell?.id &&
+          (!date || !item.assignment_date || item.assignment_date===date) && item.status!=="cancelled");
+        return {...lesson,candidates:eligible,assignment:existing?{
+          id:existing.id,substituteTeacherName:String(existing.teacher_name),status:String(existing.status),
+        }:null};
+      });
+      return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,
+        lessons:lessonOptions,includeOtherDepartments});
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      console.error("Timetable substitution operation failed:",error);
+      return reply(400,{error:message || "تعذر إتمام إجراء الاحتياط. تحقق من البيانات ثم أعد المحاولة."});
+    }
+  }
+
+  if (body?.action === "timetable_preview") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
+      }
+      const sheets = body?.sheets;
+      if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
+        return reply(400, { error: "بيانات ملف Excel غير صالحة." });
+      }
+      const sheetNames = Object.keys(sheets);
+      if (!sheetNames.length || sheetNames.length > 20) {
+        return reply(400, { error: "عدد أوراق العمل غير صالح." });
+      }
+      let rowCount = 0, cellCount = 0;
+      for (const [name, rows] of Object.entries(sheets)) {
+        if (typeof name !== "string" || !Array.isArray(rows)) return reply(400, { error: "بنية ورقة العمل غير صالحة." });
+        rowCount += rows.length;
+        for (const row of rows) {
+          if (!Array.isArray(row)) return reply(400, { error: "توجد بيانات صف غير صالحة في ملف Excel." });
+          cellCount += row.length;
+        }
+      }
+      if (rowCount > 5000 || cellCount > 100000) {
+        return reply(413, { error: "حجم بيانات الجدول أكبر من الحد المسموح للمعاينة. قلّص نطاق البيانات الفعلية في ملف Excel." });
+      }
+      const { data: directory, error: directoryError } = await db
+        .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
+      if (directoryError) throw directoryError;
+      const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
+        name: String(teacher.name || ""),
+        departmentId: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+      })).filter((teacher: SystemTeacher) => teacher.name);
+      const result = parseTimetableWorkbook(sheets, systemTeachers);
+      return reply(200, {
+        ok: true,
+        fileName: String(body.fileName || "ملف Excel").slice(0, 180),
+        importedAt: new Date().toISOString(),
+        importedBy: principal.name,
+        result,
+      });
+    } catch (error) {
+      console.error("Timetable workbook preview failed:", error);
+      return reply(500, { error: "تعذر تحليل ملف الجدول. تحقق من بنية الملف ثم أعد المحاولة." });
+    }
+  }
+  if (body?.action === "timetable_save_import") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
+      }
+      const sheets = body?.sheets;
+      if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
+        return reply(400, { error: "بيانات ملف Excel غير صالحة." });
+      }
+      const sheetNames = Object.keys(sheets);
+      if (!sheetNames.length || sheetNames.length > 20) return reply(400, { error: "عدد أوراق العمل غير صالح." });
+      let rowCount = 0, cellCount = 0;
+      for (const [name, rows] of Object.entries(sheets)) {
+        if (typeof name !== "string" || !Array.isArray(rows)) return reply(400, { error: "بنية ورقة العمل غير صالحة." });
+        rowCount += rows.length;
+        for (const row of rows) {
+          if (!Array.isArray(row)) return reply(400, { error: "توجد بيانات صف غير صالحة في ملف Excel." });
+          cellCount += row.length;
+        }
+      }
+      if (rowCount > 5000 || cellCount > 100000) {
+        return reply(413, { error: "حجم بيانات الجدول أكبر من الحد المسموح للاستيراد." });
+      }
+      const { data: directory, error: directoryError } = await db
+        .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
+      if (directoryError) throw directoryError;
+      const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
+        name: String(teacher.name || ""),
+        departmentId: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+      })).filter((teacher: SystemTeacher) => teacher.name);
+      const parsed = parseTimetableWorkbook(sheets, systemTeachers);
+      const { data, error } = await db.rpc("save_timetable_import", {
+        p_payload: {
+          file_name: String(body.fileName || "ملف Excel").slice(0,180),
+          actor_name: principal.name,
+          result: parsed,
+        },
+      });
+      if (error) throw error;
+      return reply(200, { ok: true, saved: data });
+    } catch (error) {
+      console.error("Timetable import persistence failed:", error);
+      return reply(500, { error: "تعذر حفظ نسخة الجدول. تأكد من تطبيق migration الخاصة بالتطوير أولاً." });
+    }
+  }
+  if (["timetable_list_imports","timetable_get_import","timetable_mutate_record","timetable_list_owner_candidates","timetable_reassign_owner"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || !(await hasTimetableAccess(principal))) {
+        return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
+      }
+
+      if (body.action === "timetable_list_imports") {
+        const { data, error } = await db.from("timetable_imports")
+          .select("id,version,file_name,imported_by_name,status,has_weekly_placements,source_sheets,summary,created_at")
+          .order("created_at", { ascending: false }).limit(30);
+        if (error) throw error;
+        return reply(200, { imports: data || [] });
+      }
+
+      if (body.action === "timetable_list_owner_candidates") {
+        const { data, error } = await db.from("teachers")
+          .select("name,role,permissions").eq("role", "teacher").order("name");
+        if (error) throw error;
+        return reply(200, { teachers: (data || []).map((item: any) => ({
+          name: String(item.name || ""),
+          department: String(item.permissions?.category || item.permissions?.department_name || item.permissions?.department_id || "")
+        })).filter((item: any) => item.name) });
+      }
+
+      const importId = String(body.importId || "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(importId)) {
+        return reply(400, { error: "معرّف نسخة الجدول غير صالح." });
+      }
+
+      if (body.action === "timetable_get_import") {
+        const [{ data: imported, error: importError }, { data: teachers, error: teachersError }, { data: records, error: recordsError }] = await Promise.all([
+          db.from("timetable_imports").select("*").eq("id", importId).maybeSingle(),
+          db.from("timetable_import_teachers").select("*").eq("import_id", importId).order("source_name"),
+          db.from("timetable_import_records").select("*").eq("import_id", importId).order("source_sheet").order("source_row"),
+        ]);
+        if (importError) throw importError;
+        if (teachersError) throw teachersError;
+        if (recordsError) throw recordsError;
+        if (!imported) return reply(404, { error: "نسخة الجدول غير موجودة." });
+        return reply(200, { imported, teachers: teachers || [], records: records || [] });
+      }
+
+
+      if (body.action === "timetable_reassign_owner") {
+        const sourceName = String(body.sourceName || "").trim();
+        const teacherName = String(body.teacherName || "").trim();
+        if (!sourceName || sourceName.length > 200 || teacherName.length > 200) {
+          return reply(400, { error: "بيانات مالك الجدول غير صالحة." });
+        }
+        const { data, error } = await db.rpc("reassign_timetable_import_owner", {
+          p_payload: { import_id: importId, source_name: sourceName, teacher_name: teacherName, actor_name: principal.name },
+        });
+        if (error) throw error;
+        return reply(200, { result: data });
+      }
+
+      if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) {
+        return reply(400, { error: "بيانات تعديل الحصة غير صالحة." });
+      }
+      const { data, error } = await db.rpc("mutate_timetable_import_record", {
+        p_payload: { ...body.payload, import_id: importId, actor_name: principal.name },
+      });
+      if (error) throw error;
+      return reply(200, { result: data });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("تعارض") || message.includes("مسودة") || message.includes("المعلم غير مطابق") || message.includes("غير موجود")) {
+        return reply(409, { error: message });
+      }
+      console.error("Timetable administration request failed:", error);
+      return reply(500, { error: "تعذر تنفيذ عملية إدارة الجدول. تحقق من تطبيق migration التطوير." });
+    }
   }
   if (body?.action === "competition_finalize") {
     try {
