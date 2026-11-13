@@ -4412,7 +4412,7 @@ function saNoticeRenderPreview(students,perPage=3){
     const summary=document.getElementById("saNoticePreviewSummary");
     if(summary){
       summary.textContent=summary.textContent
-        .replace(/صفحات A4 ([^)]*):s*[d٠-٩]+/,"صفحات A4 (حتى 3 طلاب): "+pageNumber);
+        .replace(/صفحات A4 \([^)]*\):\s*[\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pageNumber);
     }
     if(failed){
       saNoticeSetStatus("يوجد إشعار طويل جداً لا يتسع حتى في صفحة مستقلة. أوقفنا الطباعة حفاظاً على جميع التفاصيل؛ لم تُحذف أي مخالفة.",true);
