@@ -1,6 +1,22 @@
 -- Versioned timetable imports and append-only change history.
 -- Apply only to an isolated development database after review; never run on production during this phase.
 
+
+-- Independent module access; deliberately separate from attendance, behavior,
+-- duty and Student Affairs permission stores.
+create table if not exists public.timetable_access_permissions (
+  principal_type text not null check (principal_type in ('teacher','custom')),
+  principal_name text not null check (length(btrim(principal_name)) > 0),
+  can_access boolean not null default false,
+  updated_by text not null check (length(btrim(updated_by)) > 0),
+  updated_at timestamptz not null default now(),
+  primary key (principal_type, principal_name)
+);
+
+alter table public.timetable_access_permissions enable row level security;
+revoke all on table public.timetable_access_permissions from public, anon, authenticated;
+grant all on table public.timetable_access_permissions to service_role;
+
 create table if not exists public.timetable_imports (
   id uuid primary key default gen_random_uuid(),
   version integer not null default 1 check (version > 0),
