@@ -325,6 +325,9 @@ jobs:
             v_duplicate_blocked boolean := false;
             v_substitution jsonb;
             v_cross_department_blocked boolean := false;
+            v_wrong_department_actor_blocked boolean := false;
+            v_busy_candidate_blocked boolean := false;
+            v_wrong_date_blocked boolean := false;
             v_duplicate_substitution_blocked boolean := false;
             v_substitution_audit_count integer;
           BEGIN
@@ -393,6 +396,45 @@ jobs:
               IF position('قسم آخر' in SQLERRM)>0 THEN v_cross_department_blocked := true; ELSE RAISE; END IF;
             END;
             IF NOT v_cross_department_blocked THEN RAISE EXCEPTION 'cross-department candidate was not blocked by default'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','teacher','actor_name','synthetic-math-teacher',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('صلاحية إدارة احتياط' in SQLERRM)>0 THEN v_wrong_department_actor_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_wrong_department_actor_blocked THEN RAISE EXCEPTION 'coordinator from another department was not blocked'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',2,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('فراغ مؤكد' in SQLERRM)>0 THEN v_busy_candidate_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_busy_candidate_blocked THEN RAISE EXCEPTION 'busy candidate was not rejected'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-16',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('غير صالحة' in SQLERRM)>0 THEN v_wrong_date_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_wrong_date_blocked THEN RAISE EXCEPTION 'weekday/date mismatch was not rejected'; END IF;
 
             v_substitution := public.create_timetable_substitution(jsonb_build_object(
               'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
