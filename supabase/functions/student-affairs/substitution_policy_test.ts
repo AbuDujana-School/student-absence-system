@@ -60,3 +60,19 @@ Deno.test("status-less legacy cells are conservatively occupied",()=>{
  const result=getAvailableSubstitutionCandidates({teachers,timetable:[{teacherId:"free",weekday:"الأحد",period:4,className:""}],assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"});
  if(result.some(t=>t.id==="free"))throw new Error("A legacy record without an explicit free status must not be offered");
 });
+
+Deno.test("eligible candidates are ranked by the lowest active substitution load",()=>{
+ const balanced=[...timetable,
+  {teacherId:"free2",weekday:"الأحد",period:4,className:"",status:"free" as const}
+ ];
+ const load:SubstitutionAssignment[]=[
+  {substituteTeacherId:"free",weekday:"الاثنين",period:1,status:"confirmed"},
+  {substituteTeacherId:"free",weekday:"الثلاثاء",period:2,status:"assigned"},
+  {substituteTeacherId:"free2",weekday:"الأربعاء",period:3,status:"cancelled"},
+ ];
+ const candidates=getAvailableSubstitutionCandidates({
+  teachers:[...teachers,{id:"free2",name:"أحمد",departmentId:"arabic"}],
+  timetable:balanced,assignments:load,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"
+ });
+ if(candidates[0]?.id!=="free2"||candidates[1]?.id!=="free")throw new Error("Candidates should be ranked by active assignment load, ignoring cancelled assignments");
+});
