@@ -29,7 +29,7 @@ Deno.test("daily parser preserves all seven periods and normalizes Islamic subje
   equal(parsed.teachers.length, 2, "Teacher count");
   equal(parsed.totalCells, 14, "Cell count");
   equal(parsed.totals.teaching, 2, "Teaching cells");
-  equal(parsed.totals.free, 9, "Free cells");
+  equal(parsed.totals.free, 10, "Free cells");
   equal(parsed.totals.meeting, 1, "Meeting cells");
   equal(parsed.totals.unclear, 1, "Unclear cells");
   equal(parsed.teachers[0].cells[0].subject, "التربية الإسلامية", "Canonical subject");
