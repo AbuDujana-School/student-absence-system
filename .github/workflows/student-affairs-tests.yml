@@ -11,6 +11,7 @@ on:
       - "main"
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
+      - "feature/smart-substitution-system"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
@@ -48,6 +49,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
+      - name: Apply isolated timetable import migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -88,6 +91,128 @@ jobs:
           END $do$;
           RESET ROLE;
           SELECT 'isolated official notice ledger integration checks passed' AS result;
+          SQL
+      - name: Verify timetable import isolation, snapshots, edits and audit trail
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $do$
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_imports'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_teachers'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_records'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_audit'::regclass) THEN
+              RAISE EXCEPTION 'timetable import RLS is not enabled on every table';
+            END IF;
+            IF has_table_privilege('anon','public.timetable_imports','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_imports','SELECT')
+              OR has_table_privilege('anon','public.timetable_import_records','INSERT')
+              OR has_table_privilege('authenticated','public.timetable_import_records','UPDATE')
+              OR has_function_privilege('anon','public.save_timetable_import(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.mutate_timetable_import_record(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'browser roles can access timetable import storage';
+            END IF;
+            IF NOT has_table_privilege('service_role','public.timetable_imports','INSERT')
+              OR NOT has_table_privilege('service_role','public.timetable_import_records','UPDATE')
+              OR NOT has_function_privilege('service_role','public.save_timetable_import(jsonb)','EXECUTE')
+              OR NOT has_function_privilege('service_role','public.mutate_timetable_import_record(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'service_role is missing timetable import privileges';
+            END IF;
+          END $do$;
+          SET ROLE service_role;
+          DO $do$
+          DECLARE
+            v_saved jsonb;
+            v_import_id uuid;
+            v_record_id uuid;
+            v_added_id uuid;
+            v_payload jsonb;
+            v_conflict_blocked boolean := false;
+            v_count integer;
+            v_audit_count integer;
+          BEGIN
+            v_saved := public.save_timetable_import('{
+              "file_name":"synthetic-timetable.xlsx",
+              "actor_name":"synthetic-admin",
+              "result":{
+                "sourceSheets":["المعلمون","الحصص"],
+                "hasWeeklyPlacements":false,
+                "totals":{"importedTeacherRows":1,"importedLessonRecords":1,"referenceRows":1,"placementRows":0},
+                "referenceData":{"المعلمون":[]},
+                "teachers":[{
+                  "sourceName":"synthetic-teacher","normalizedName":"synthetic-teacher",
+                  "matchedTeacherName":"synthetic-teacher","matchStatus":"matched",
+                  "aliases":["synthetic-teacher"],
+                  "records":[{
+                    "sourceSheet":"الحصص","sourceRow":2,"teacherSourceName":"synthetic-teacher",
+                    "teacherMatchStatus":"matched","className":"9/1","groupName":"الفصل بالكامل",
+                    "subject":"رياضيات","duration":"مفردة","periodsPerWeek":1,
+                    "availableRooms":"","cycle":"كل الأسابيع","sharedTeachers":"","rooms":"",
+                    "raw":{"المعلم":"synthetic-teacher"},"weekday":null,"period":null
+                  }]
+                }],
+                "unassignedRecords":[]
+              }
+            }'::jsonb);
+            v_import_id := (v_saved->>'import_id')::uuid;
+            SELECT id INTO v_record_id FROM public.timetable_import_records WHERE import_id=v_import_id LIMIT 1;
+
+            v_payload := jsonb_build_object(
+              'mode','update','import_id',v_import_id,'record_id',v_record_id,'actor_name','synthetic-admin',
+              'record_data',jsonb_build_object(
+                'teacherSourceName','synthetic-teacher','className','9/1','groupName','الفصل بالكامل',
+                'subject','رياضيات معدلة','duration','مفردة','periodsPerWeek',1,
+                'rooms','','availableRooms','','weekday','الأحد','period',1,
+                'raw',jsonb_build_object('edited',true)
+              )
+            );
+            PERFORM public.mutate_timetable_import_record(v_payload);
+
+            IF NOT EXISTS (
+              SELECT 1 FROM public.timetable_import_records
+               WHERE id=v_record_id AND origin='manual' AND modified_by='synthetic-admin'
+                 AND weekday='الأحد' AND period=1
+                 AND record_data->>'subject'='رياضيات معدلة'
+                 AND source_data->>'subject'='رياضيات'
+            ) THEN
+              RAISE EXCEPTION 'record edit did not preserve original source snapshot';
+            END IF;
+
+            v_payload := jsonb_build_object(
+              'mode','add','import_id',v_import_id,'actor_name','synthetic-admin',
+              'record_data',jsonb_build_object(
+                'teacherSourceName','synthetic-teacher','className','9/2','groupName','الفصل بالكامل',
+                'subject','علوم','duration','مفردة','periodsPerWeek',1,
+                'rooms','','availableRooms','','weekday','الأحد','period',2,'raw','{}'::jsonb
+              )
+            );
+            v_saved := public.mutate_timetable_import_record(v_payload);
+            v_added_id := (v_saved->>'record_id')::uuid;
+
+            BEGIN
+              PERFORM public.mutate_timetable_import_record(jsonb_build_object(
+                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin',
+                'record_data',jsonb_build_object(
+                  'teacherSourceName','synthetic-teacher','className','9/3','groupName','الفصل بالكامل',
+                  'subject','تاريخ','duration','مفردة','periodsPerWeek',1,
+                  'rooms','','availableRooms','','weekday','الأحد','period',1,'raw','{}'::jsonb
+                )
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('تعارض' in SQLERRM) > 0 THEN v_conflict_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_conflict_blocked THEN RAISE EXCEPTION 'teacher period conflict was not blocked'; END IF;
+
+            PERFORM public.mutate_timetable_import_record(jsonb_build_object(
+              'mode','delete','import_id',v_import_id,'record_id',v_added_id,'actor_name','synthetic-admin'
+            ));
+            SELECT count(*) INTO v_count FROM public.timetable_import_records WHERE import_id=v_import_id;
+            SELECT count(*) INTO v_audit_count FROM public.timetable_import_audit WHERE import_id=v_import_id;
+            IF v_count <> 1 OR v_audit_count <> 4 THEN
+              RAISE EXCEPTION 'timetable record mutations or audit history count failed';
+            END IF;
+          END $do$;
+          RESET ROLE;
+          SELECT 'isolated timetable import persistence and audit checks passed' AS result;
           SQL
       - name: Verify RLS, grants, and session lifecycle
         run: |
@@ -232,5 +357,11 @@ jobs:
         run: deno test supabase/functions/student-affairs/competition_response_policy_test.ts
       - name: Run teacher permission sync regression tests
         run: deno test --allow-read=index.html supabase/functions/student-affairs/teacher_permission_sync_test.ts
+      - name: Run timetable import parser tests
+        run: deno test supabase/functions/student-affairs/timetable_import_test.ts
+      - name: Run substitution eligibility tests
+        run: deno test supabase/functions/student-affairs/substitution_policy_test.ts
+      - name: Type-check timetable and substitution policy modules
+        run: deno check supabase/functions/student-affairs/timetable_import.ts supabase/functions/student-affairs/substitution_policy.ts
       - name: Type-check Edge Function
         run: deno check supabase/functions/student-affairs/index.ts
