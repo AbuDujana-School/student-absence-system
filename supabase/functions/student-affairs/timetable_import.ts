@@ -21,6 +21,8 @@ export interface ImportedTeacher {
   normalizedName: string;
   matchedTeacherId: string | null;
   matchedTeacherName: string | null;
+  matchedDepartmentId?: string | null;
+  matchedDepartmentName?: string | null;
   matchStatus: "matched" | "unmatched" | "ambiguous";
   aliases: string[];
   records: ImportedLessonRecord[];
@@ -214,6 +216,8 @@ function buildTeacherDirectory(
       const match = Array.from(matches.values())[0];
       teacher.matchedTeacherId = String(match.id ?? match.name);
       teacher.matchedTeacherName = match.name;
+      teacher.matchedDepartmentId = match.departmentId || match.departmentName || null;
+      teacher.matchedDepartmentName = match.departmentName || match.departmentId || null;
       teacher.matchStatus = "matched";
     } else if (matches.size > 1) {
       teacher.matchStatus = "ambiguous";
