@@ -1,6 +1,7 @@
 import {
   normalizeArabicName,
   parseTimetableWorkbook,
+  parseDeclaredTeacherFreePeriods,
   type CellValue,
 } from "./timetable_import.ts";
 
@@ -229,5 +230,28 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
   }
   if (!result.unassignedRecords.some((record) => record.teacherSourceName === "محمد السعدي" && record.teacherMatchStatus === "ambiguous")) {
     throw new Error("A lesson with only the shared short alias must remain unassigned");
+  }
+});
+
+
+Deno.test("parses explicit teacher free periods including weekday ranges without filling blanks", () => {
+  const parsed = parseDeclaredTeacherFreePeriods("الأحد: 1, 4-6; الأربعاء: 5-7; الخميس: 4-7");
+  if (parsed.periods.length !== 10) throw new Error("Expected 10 explicit free-period cells");
+  if (!parsed.periods.some((item) => item.weekday === "الأحد" && item.period === 1)) {
+    throw new Error("Sunday period 1 should be parsed");
+  }
+  if (!parsed.periods.some((item) => item.weekday === "الأربعاء" && item.period === 7)) {
+    throw new Error("Wednesday period 7 should be parsed");
+  }
+  const week = parseDeclaredTeacherFreePeriods("الأحد-الخميس: 7");
+  if (week.periods.length !== 5 || week.periods.some((item) => item.period !== 7)) {
+    throw new Error("Sunday-to-Thursday range should expand to period 7 on five days");
+  }
+  const majid = parseDeclaredTeacherFreePeriods("الخميس: 1-7");
+  if (majid.periods.length !== 7 || majid.periods.some((item) => item.weekday !== "الخميس")) {
+    throw new Error("Majid's confirmed Thursday 1-7 should be represented as seven explicit free cells");
+  }
+  if (parseDeclaredTeacherFreePeriods("").periods.length !== 0) {
+    throw new Error("An empty source field must not imply that every period is free");
   }
 });
