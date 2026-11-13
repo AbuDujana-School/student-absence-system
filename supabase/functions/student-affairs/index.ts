@@ -11,6 +11,7 @@ import {
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay } from "./timetable_grid.ts";
+import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -1045,6 +1046,120 @@ async function handle(req: Request) {
     } catch (error) {
       console.error("Teacher personal timetable read failed:", error);
       return reply(500, { error: "تعذر تحميل الجدول الشخصي حالياً." });
+    }
+  }
+
+  if (["timetable_substitution_preview","timetable_substitution_save"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) return reply(401, { error: "تعذر التحقق من المستخدم الحالي." });
+      if (principal.type !== "admin" && !(await hasTimetableAccess(principal))) {
+        return reply(403, { error: "لا تملك صلاحية منظومة الجداول والاحتياط." });
+      }
+
+      const weekday = String(body.weekday || "");
+      const allowedDays = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      if (!allowedDays.includes(weekday)) return reply(400, { error: "اختر يوماً دراسياً صحيحاً." });
+
+      const { data: activeVersion, error: versionError } = await db.from("timetable_weekly_versions")
+        .select("id,version,status").eq("status","active").maybeSingle();
+      if (versionError) throw versionError;
+      if (!activeVersion) return reply(200, { ok:true, active:false, absentTeachers:[], lessons:[] });
+
+      const [{ data: directory, error: directoryError }, { data: dayCells, error: cellsError }] = await Promise.all([
+        db.from("teachers").select("name,role,permissions").eq("role","teacher").order("name"),
+        db.from("timetable_weekly_cells")
+          .select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
+          .eq("version_id",activeVersion.id).eq("weekday",weekday),
+      ]);
+      if (directoryError) throw directoryError;
+      if (cellsError) throw cellsError;
+
+      const teacherRows = (directory || []).map((item:any) => ({
+        name:String(item.name || ""),
+        department:String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
+      })).filter((item:any)=>item.name);
+      const actorDirectoryRow = teacherRows.find((item:any)=>item.name===principal.name);
+      const actorDepartment = actorDirectoryRow?.department || "";
+      if (principal.type !== "admin" && !actorDepartment) {
+        return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
+      }
+
+      const absentTeacherName = String(body.absentTeacherName || "").trim();
+      const includeOtherDepartments = body.includeOtherDepartments === true;
+      if (absentTeacherName) {
+        const absentDirectoryRow = teacherRows.find((item:any)=>item.name===absentTeacherName);
+        if (!absentDirectoryRow) return reply(404,{error:"المعلم المحدد غير موجود في دليل المعلمين."});
+        if (principal.type !== "admin" && absentDirectoryRow.department !== actorDepartment) {
+          return reply(403,{error:"يمكنك إدارة احتياط معلمي قسمك فقط."});
+        }
+      }
+
+      if (body.action === "timetable_substitution_save") {
+        const period = Number(body.period);
+        const assignmentDate = String(body.assignmentDate || "");
+        if (!absentTeacherName || !String(body.substituteTeacherName || "").trim()
+          || !Number.isInteger(period) || period < 1 || period > 7
+          || !/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate)) {
+          return reply(400,{error:"حدد تاريخ الغياب والمعلم الغائب والبديل والحصة."});
+        }
+        const { data, error } = await db.rpc("create_timetable_substitution", {
+          p_payload: {
+            version_id:activeVersion.id, weekday, period, assignment_date:assignmentDate,
+            absent_teacher_name:absentTeacherName,
+            substitute_teacher_name:String(body.substituteTeacherName).trim(),
+            actor_name:principal.name, actor_type:principal.type,
+            include_other_departments:includeOtherDepartments,
+          },
+        });
+        if (error) throw error;
+        return reply(201,{ok:true,assignment:data});
+      }
+
+      const date = String(body.assignmentDate || "");
+      if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return reply(400,{error:"تاريخ الغياب غير صالح."});
+      const absentTeachers = Array.from(new Set((dayCells || [])
+        .filter((cell:any)=>cell.cell_status==="teaching" && cell.matched_teacher_name)
+        .filter((cell:any)=>principal.type==="admin" || teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.department===actorDepartment)
+        .map((cell:any)=>String(cell.matched_teacher_name))))
+        .sort((a,b)=>a.localeCompare(b,"ar"));
+      if (!absentTeacherName) {
+        return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
+      }
+
+      const timetable:TimetableEntry[]=(dayCells || []).filter((cell:any)=>cell.matched_teacher_name).map((cell:any)=>({
+        teacherId:String(cell.matched_teacher_name),weekday:String(cell.weekday),period:Number(cell.period),
+        className:Array.isArray(cell.class_sections)?cell.class_sections.join("، "):"",
+        subject:String(cell.subject || ""),status:cell.cell_status,
+      }));
+      const lessons = getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
+      const { data: assignmentRows, error: assignmentError } = await db.from("timetable_assignments")
+        .select("teacher_name,weekday,period,status,assignment_date")
+        .eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
+      if (assignmentError) throw assignmentError;
+      const assignments:SubstitutionAssignment[]=(assignmentRows || [])
+        .filter((item:any)=>item.weekday===weekday && (!date || !item.assignment_date || item.assignment_date===date))
+        .map((item:any)=>({substituteTeacherId:String(item.teacher_name),weekday:String(item.weekday),
+          period:Number(item.period),status:item.status}));
+      const candidates:SubstitutionTeacher[]=teacherRows.map((item:any)=>({
+        id:item.name,name:item.name,departmentId:item.department,
+      }));
+      const lessonOptions=lessons.map((lesson)=>{
+        const eligible=getAvailableSubstitutionCandidates({
+          teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,
+          weekday,period:lesson.period,departmentId:teacherRows.find((item:any)=>item.name===absentTeacherName)?.department || "",
+          includeOtherDepartments,
+        });
+        return {...lesson,candidates:eligible};
+      });
+      return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,
+        lessons:lessonOptions,includeOtherDepartments});
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      console.error("Timetable substitution operation failed:",error);
+      return reply(400,{error:message || "تعذر إتمام إجراء الاحتياط. تحقق من البيانات ثم أعد المحاولة."});
     }
   }
 
