@@ -132,6 +132,7 @@ jobs:
             v_added_id uuid;
             v_payload jsonb;
             v_conflict_blocked boolean := false;
+            v_invalid_weekday_blocked boolean := false;
             v_count integer;
             v_audit_count integer;
           BEGIN
@@ -206,6 +207,20 @@ jobs:
               IF position('تعارض' in SQLERRM) > 0 THEN v_conflict_blocked := true; ELSE RAISE; END IF;
             END;
             IF NOT v_conflict_blocked THEN RAISE EXCEPTION 'teacher period conflict was not blocked'; END IF;
+
+            BEGIN
+              PERFORM public.mutate_timetable_import_record(jsonb_build_object(
+                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin',
+                'record_data',jsonb_build_object(
+                  'teacherSourceName','synthetic-teacher','className','9/4','groupName','الفصل بالكامل',
+                  'subject','جغرافيا','duration','مفردة','periodsPerWeek',1,
+                  'rooms','','availableRooms','','weekday','الجمعة','period',3,'raw','{}'::jsonb
+                )
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('يوم الدراسة غير صالح' in SQLERRM) > 0 THEN v_invalid_weekday_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_invalid_weekday_blocked THEN RAISE EXCEPTION 'invalid school weekday was not blocked'; END IF;
 
             PERFORM public.mutate_timetable_import_record(jsonb_build_object(
               'mode','delete','import_id',v_import_id,'record_id',v_added_id,'actor_name','synthetic-admin'
