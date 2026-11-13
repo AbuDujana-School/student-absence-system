@@ -943,7 +943,7 @@ async function handle(req: Request) {
             id: draft.id,
             version: draft.version,
             expectedTeacherCount: draft.expected_teacher_count,
-            weekdays: [...new Set(rows.map((row: any) => String(row.weekday || ""))].filter(Boolean)],
+            weekdays: [...new Set(rows.map((row: any) => String(row.weekday || "")).filter(Boolean))],
             teacherCount: new Set(rows.map((row: any) => String(row.teacher_source_name || ""))).size,
             cellCount: rows.length,
             createdAt: draft.created_at,
