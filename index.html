@@ -4312,16 +4312,21 @@ function saNoticeFitCards(scope){
     const eventCount=Number(card.querySelectorAll(".notice-items li").length)||1;
     const textLength=(card.querySelector(".notice-items")?.innerText||"").length;
     const density=Math.max(eventCount,textLength/95);
-    // Times New Roman 12pt is the starting point for every notice.
-    // Fit is measured from rendered DOM dimensions; spacing is compressed before
-    // font size, and page capacity is reduced only if a card still cannot fit.
+    // Fit each notice against its actual rendered height. First use the full
+    // available card space, then progressively tighten spacing and typography.
+    // Three students remain the target per A4 page; the caller only falls back
+    // to two/one when a complete, readable three-card page cannot be achieved.
     const baseFont=12;
     const levels=[
       {shrink:0,line:1.42,item:1.25,block:1.15,pad:2.6},
-      {shrink:.25,line:1.34,item:.95,block:.9,pad:2.2},
-      {shrink:.5,line:1.26,item:.65,block:.65,pad:1.8},
-      {shrink:.85,line:1.18,item:.35,block:.35,pad:1.3},
-      {shrink:1.2,line:1.12,item:.15,block:.15,pad:1}
+      {shrink:.25,line:1.36,item:1.0,block:.95,pad:2.2},
+      {shrink:.5,line:1.30,item:.75,block:.75,pad:1.8},
+      {shrink:.8,line:1.24,item:.5,block:.5,pad:1.4},
+      {shrink:1.1,line:1.18,item:.3,block:.35,pad:1.1},
+      {shrink:1.5,line:1.14,item:.2,block:.25,pad:.9},
+      {shrink:2.0,line:1.11,item:.12,block:.18,pad:.7},
+      {shrink:2.6,line:1.08,item:.08,block:.12,pad:.5},
+      {shrink:3.2,line:1.06,item:.04,block:.08,pad:.4}
     ];
     let fitted=false;
     for(let i=0;i<levels.length;i++){
