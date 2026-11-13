@@ -3205,7 +3205,8 @@ function showPrompt(message, options = {}) {
 }
 
 
-const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
+const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://wawplttrpiinoukpjqqx.supabase.co/functions/v1/student-affairs";
+const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://wawplttrpiinoukpjqqx.supabase.co/functions/v1/timetable-management";
 const SA_DEV_ANON_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionSelectedTeacherId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
@@ -3307,7 +3308,9 @@ async function appAuthRequest(body, token) { if(IS_UI_REVIEW_PREVIEW) throw new 
   const headers = { "Content-Type": "application/json", apikey: SA_DEV_ANON_KEY };
   if (token) headers.Authorization = "Bearer " + token;
   let response;
-  try { response = await fetch(SA_API_URL, { method: "POST", headers, body: JSON.stringify(body), cache: "no-store" }); }
+  const action = String(body?.action || "");
+  const requestUrl = action.startsWith("timetable_") || action === "teacher_timetable_get_own" ? TIMETABLE_API_URL : SA_API_URL;
+  try { response = await fetch(requestUrl, { method: "POST", headers, body: JSON.stringify(body), cache: "no-store" }); }
   catch (networkError) { const error = new Error("تعذر الاتصال بخدمة تسجيل الدخول الآمن."); error.status = 0; throw error; }
   let data = {}; try { data = await response.json(); } catch (error) {}
   if (!response.ok) { const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن."); error.status = response.status; throw error; }
