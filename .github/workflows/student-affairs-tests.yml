@@ -57,6 +57,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
       - name: Apply isolated atomic timetable substitution workflow migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
+      - name: Apply timetable import audit actor migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113190000_timetable_import_audit_actor.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -169,7 +171,7 @@ jobs:
             SELECT id INTO v_record_id FROM public.timetable_import_records WHERE import_id=v_import_id LIMIT 1;
 
             v_payload := jsonb_build_object(
-              'mode','update','import_id',v_import_id,'record_id',v_record_id,'actor_name','synthetic-admin',
+              'mode','update','import_id',v_import_id,'record_id',v_record_id,'actor_name','synthetic-admin','actor_type','admin',
               'record_data',jsonb_build_object(
                 'teacherSourceName','synthetic-teacher','className','9/1','groupName','الفصل بالكامل',
                 'subject','رياضيات معدلة','duration','مفردة','periodsPerWeek',1,
@@ -190,7 +192,7 @@ jobs:
             END IF;
 
             v_payload := jsonb_build_object(
-              'mode','add','import_id',v_import_id,'actor_name','synthetic-admin',
+              'mode','add','import_id',v_import_id,'actor_name','synthetic-admin','actor_type','admin',
               'record_data',jsonb_build_object(
                 'teacherSourceName','synthetic-teacher','className','9/2','groupName','الفصل بالكامل',
                 'subject','علوم','duration','مفردة','periodsPerWeek',1,
@@ -202,7 +204,7 @@ jobs:
 
             BEGIN
               PERFORM public.mutate_timetable_import_record(jsonb_build_object(
-                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin',
+                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin','actor_type','admin',
                 'record_data',jsonb_build_object(
                   'teacherSourceName','synthetic-teacher','className','9/3','groupName','الفصل بالكامل',
                   'subject','تاريخ','duration','مفردة','periodsPerWeek',1,
@@ -216,7 +218,7 @@ jobs:
 
             BEGIN
               PERFORM public.mutate_timetable_import_record(jsonb_build_object(
-                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin',
+                'mode','add','import_id',v_import_id,'actor_name','synthetic-admin','actor_type','admin',
                 'record_data',jsonb_build_object(
                   'teacherSourceName','synthetic-teacher','className','9/4','groupName','الفصل بالكامل',
                   'subject','جغرافيا','duration','مفردة','periodsPerWeek',1,
@@ -229,7 +231,7 @@ jobs:
             IF NOT v_invalid_weekday_blocked THEN RAISE EXCEPTION 'invalid school weekday was not blocked'; END IF;
 
             PERFORM public.mutate_timetable_import_record(jsonb_build_object(
-              'mode','delete','import_id',v_import_id,'record_id',v_added_id,'actor_name','synthetic-admin'
+              'mode','delete','import_id',v_import_id,'record_id',v_added_id,'actor_name','synthetic-admin','actor_type','admin'
             ));
             SELECT count(*) INTO v_count FROM public.timetable_import_records WHERE import_id=v_import_id;
             SELECT count(*) INTO v_audit_count FROM public.timetable_import_audit WHERE import_id=v_import_id;
@@ -281,7 +283,7 @@ jobs:
 
             v_result := public.reassign_timetable_import_owner(jsonb_build_object(
               'import_id',v_import_id,'source_name','س فيزياء',
-              'teacher_name','synthetic-arabic-teacher','actor_name','synthetic-admin'
+              'teacher_name','synthetic-arabic-teacher','actor_name','synthetic-admin','actor_type','admin'
             ));
             SELECT source_name, matched_teacher_name, match_status
               INTO v_source, v_owner, v_status
@@ -293,7 +295,7 @@ jobs:
 
             PERFORM public.reassign_timetable_import_owner(jsonb_build_object(
               'import_id',v_import_id,'source_name','س فيزياء',
-              'teacher_name','','actor_name','synthetic-admin'
+              'teacher_name','','actor_name','synthetic-admin','actor_type','admin'
             ));
             SELECT matched_teacher_name, match_status INTO v_owner, v_status
               FROM public.timetable_import_teachers WHERE import_id=v_import_id;
@@ -364,7 +366,7 @@ jobs:
             SET ROLE service_role;
             FOREACH v_day IN ARRAY v_days LOOP
               v_saved := public.save_timetable_weekly_day(jsonb_build_object(
-                'weekday',v_day,'actor_name','synthetic-admin','teachers',v_teachers,
+                'weekday',v_day,'actor_name','synthetic-admin','actor_type','admin','teachers',v_teachers,
                 'version_id',CASE WHEN v_version_id IS NULL THEN NULL ELSE v_version_id::text END
               ));
               v_version_id := (v_saved->>'version_id')::uuid;
@@ -374,13 +376,13 @@ jobs:
 
             -- Replacing one day must be idempotent and keep the complete grid count stable.
             PERFORM public.save_timetable_weekly_day(jsonb_build_object(
-              'weekday','الأحد','actor_name','synthetic-admin','teachers',v_teachers,'version_id',v_version_id::text
+              'weekday','الأحد','actor_name','synthetic-admin','actor_type','admin','teachers',v_teachers,'version_id',v_version_id::text
             ));
             SELECT count(*) INTO v_cell_count FROM public.timetable_weekly_cells WHERE version_id=v_version_id;
             IF v_cell_count <> 70 THEN RAISE EXCEPTION 'Replacing a day introduced duplicate cells'; END IF;
 
             v_activated := public.activate_timetable_weekly_version(jsonb_build_object(
-              'version_id',v_version_id::text,'actor_name','synthetic-admin'
+              'version_id',v_version_id::text,'actor_name','synthetic-admin','actor_type','admin'
             ));
             IF v_activated->>'status' <> 'active' OR (v_activated->>'cell_count')::integer <> 70 THEN
               RAISE EXCEPTION 'Weekly schedule activation did not return the expected complete grid';
@@ -391,7 +393,7 @@ jobs:
                 'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
-                'actor_type','admin','actor_name','synthetic-admin',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
                 'include_other_departments',false
               ));
             EXCEPTION WHEN raise_exception THEN
@@ -417,7 +419,7 @@ jobs:
                 'version_id',v_version_id::text,'weekday','الأحد','period',2,'assignment_date','2026-11-15',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
-                'actor_type','admin','actor_name','synthetic-admin',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
                 'include_other_departments',true
               ));
             EXCEPTION WHEN raise_exception THEN
@@ -430,7 +432,7 @@ jobs:
                 'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-16',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
-                'actor_type','admin','actor_name','synthetic-admin',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
                 'include_other_departments',true
               ));
             EXCEPTION WHEN raise_exception THEN
@@ -442,7 +444,7 @@ jobs:
               'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
               'absent_teacher_name','synthetic-arabic-teacher',
               'substitute_teacher_name','synthetic-math-teacher',
-              'actor_type','admin','actor_name','synthetic-admin',
+              'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
               'include_other_departments',true
             ));
             IF v_substitution->>'status'<>'assigned' OR v_substitution->>'teacher_name'<>'synthetic-math-teacher' THEN
@@ -453,7 +455,7 @@ jobs:
                 'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
-                'actor_type','admin','actor_name','synthetic-admin',
+                'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
                 'include_other_departments',true
               ));
             EXCEPTION WHEN raise_exception OR unique_violation THEN
@@ -465,7 +467,7 @@ jobs:
             IF NOT v_duplicate_substitution_blocked THEN RAISE EXCEPTION 'duplicate replacement for the same absent lesson was not blocked'; END IF;
 
             v_cancelled_substitution := public.cancel_timetable_substitution(jsonb_build_object(
-              'assignment_id',v_substitution->>'assignment_id','actor_type','admin','actor_name','synthetic-admin'
+              'assignment_id',v_substitution->>'assignment_id','actor_type','admin','actor_name','synthetic-admin','actor_type','admin'
             ));
             IF v_cancelled_substitution->>'status'<>'cancelled' THEN RAISE EXCEPTION 'substitution cancellation did not update status'; END IF;
             SELECT status INTO v_cancelled_status FROM public.timetable_assignments
