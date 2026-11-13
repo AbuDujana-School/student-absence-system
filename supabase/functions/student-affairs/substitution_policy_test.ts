@@ -64,12 +64,17 @@ Deno.test("other departments are excluded unless cross-department mode is enable
     absentTeacherId: "absent", weekday: "الأحد", period: 4,
     departmentId: "arabic",
   };
-  const sameDepartment = getAvailableSubstitutionCandidates(base);
+  const crossDepartmentFreeTimetable = timetable.filter((entry) => entry.teacherId !== "other");
+  const sameDepartment = getAvailableSubstitutionCandidates({
+    ...base,
+    timetable: crossDepartmentFreeTimetable,
+  });
   if (sameDepartment.some((teacher) => teacher.id === "other")) {
     throw new Error("Cross-department teacher appeared before opt-in");
   }
   const expanded = getAvailableSubstitutionCandidates({
     ...base,
+    timetable: crossDepartmentFreeTimetable,
     includeOtherDepartments: true,
   });
   if (!expanded.some((teacher) => teacher.id === "other")) {
