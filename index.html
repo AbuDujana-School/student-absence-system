@@ -2992,10 +2992,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div id="timetableTextImportPanel" class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-paste ml-1 text-cyan-700"></i> إدخال الجدول اليومي من نص PDF</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">الصق التفريغ النصي الكامل لليوم، وسيتم إنشاء سبع خانات صريحة لكل معلم، بما فيها الفراغ والاجتماعات والخانات غير الواضحة.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
-            <div><label for="timetableTextWeekday" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اليوم الدراسي</label><select id="timetableTextWeekday" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select></div>
+            <div><label for="timetableTextWeekday" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اليوم الدراسي</label><select id="timetableTextWeekday" onchange="timetableInvalidateDayPreview()" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select></div>
             <div class="text-[10px] text-slate-500">أدخل اليوم كاملاً من أول معلم إلى آخر معلم. يمكن أن يكون النص مقسماً إلى أجزاء متتابعة داخل نفس الحقل.</div>
           </div>
-          <textarea id="timetableDayText" rows="14" dir="rtl" spellcheck="false" placeholder="الصق هنا تفريغ اليوم، مع اسم كل معلم وصفحة PDF والحصص السبع..." class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-xs leading-7 text-slate-800 dark:text-white outline-none focus:border-cyan-500"></textarea>
+          <div class="rounded-2xl border border-dashed border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 p-4 space-y-2"><label for="timetableTextFile" class="block text-xs font-black text-slate-700 dark:text-slate-200"><i class="fa-solid fa-file-lines ml-1 text-cyan-700"></i> تحميل تفريغ اليوم من ملف نصي (Notepad)</label><input id="timetableTextFile" type="file" accept=".txt,.text,text/plain" onchange="timetableReadTextFile(event)" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-800 file:px-4 file:py-2.5 file:text-xs file:font-bold file:text-white"><p class="text-[10px] text-slate-500">اختر ملف TXT محفوظاً من المفكرة، أو اتركه فارغاً والصق النص مباشرة في المربع أدناه. سيتم تحميل النص محلياً في المتصفح دون رفع ملف إلى خادم خارجي.</p></div><textarea id="timetableDayText" rows="14" oninput="timetableHandleDayTextInput()" dir="rtl" spellcheck="false" placeholder="الصق هنا نص اليوم كما أرسلته: اليوم الثاني: الاثنين، ثم اسم المعلم وحصصه السبع..." class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-xs leading-7 text-slate-800 dark:text-white outline-none focus:border-cyan-500"></textarea>
           <div class="flex flex-wrap items-center gap-2">
             <button id="timetableParseDayButton" type="button" onclick="timetableParseDayText()" class="rounded-xl bg-cyan-800 hover:bg-cyan-900 disabled:opacity-50 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-magnifying-glass ml-1"></i> تحليل ومراجعة اليوم</button>
             <button id="timetableSaveDayButton" type="button" onclick="timetableSaveDayText()" disabled class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-40 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ اليوم في مسودة الأسبوع</button>
@@ -8701,7 +8701,7 @@ function timetableRenderDayPreview() {
       const sections = (cell.classSections || []).join("، ") || "—";
       return '<td class="min-w-[118px] p-2 align-top"><div class="rounded-xl border p-2 '+cls+'"><div class="font-black text-[10px] break-words">'+timetableEsc(sections)+'</div><div class="mt-1 text-[9px] font-black">'+label+'</div><div class="mt-1 text-[9px] opacity-80 break-words">'+timetableEsc(cell.subject || cell.sourceSubject || "")+'</div></div></td>';
     }).join("");
-    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="min-w-[190px] p-3 align-top"><div class="font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</div><div class="mt-1 text-[9px] text-slate-500">'+timetableEsc(teacher.matchedTeacherName || "لم يربط بحساب")+'</div><div class="mt-2">'+matchBadge(teacher.matchStatus)+'</div><div class="mt-1 text-[9px] text-slate-400">صفحة PDF: '+timetableEsc(teacher.pdfPage)+'</div></td>'+cells+'</tr>';
+    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="min-w-[190px] p-3 align-top"><div class="font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</div><div class="mt-1 text-[9px] text-slate-500">'+timetableEsc(teacher.matchedTeacherName || "لم يربط بحساب")+'</div><div class="mt-2">'+matchBadge(teacher.matchStatus)+'</div><div class="mt-1 text-[9px] text-slate-400">صفحة PDF: '+timetableEsc(teacher.pdfPage || "غير محددة")+'</div></td>'+cells+'</tr>';
   }).join("");
   host.innerHTML = '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">'+summary.map(function(item){return '<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3"><div class="text-[9px] text-slate-500">'+item[0]+'</div><div class="mt-1 text-lg font-black text-slate-800 dark:text-white tabular-nums">'+item[1]+'</div></div>';}).join("")+'</div>'+
     '<div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-500"><span>مطابقة الأسماء: '+(matching.matched||0)+' مرتبطة</span><span>· '+(matching.unmatched||0)+' غير مرتبطة</span><span>· '+(matching.ambiguous||0)+' ملتبسة</span></div>'+
@@ -8709,6 +8709,54 @@ function timetableRenderDayPreview() {
   host.classList.remove("hidden");
   const saveButton = document.getElementById("timetableSaveDayButton");
   if (saveButton) saveButton.disabled = false;
+}
+function timetableFindDayInText(sourceText) {
+  const text = String(sourceText || "");
+  const match = text.match(/^\\s*(?:جدول\\s+)?اليوم(?:\\s+\\S+)?\\s*:\\s*(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\\s*$/m)
+    || text.match(/^\\s*جدول\\s+يوم\\s+(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\\s*$/m);
+  return match ? match[1] : null;
+}
+function timetableInvalidateDayPreview() {
+  timetableDayImportPreview = null;
+  const saveButton = document.getElementById("timetableSaveDayButton");
+  if (saveButton) saveButton.disabled = true;
+  document.getElementById("timetableDayPreview")?.classList.add("hidden");
+}
+function timetableHandleDayTextInput() {
+  const sourceText = document.getElementById("timetableDayText")?.value || "";
+  timetableInvalidateDayPreview();
+  const detectedDay = timetableFindDayInText(sourceText);
+  const weekdaySelect = document.getElementById("timetableTextWeekday");
+  if (detectedDay && weekdaySelect) weekdaySelect.value = detectedDay;
+}
+async function timetableReadTextFile(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if (!file) return;
+  try {
+    if (!/\\.(txt|text)$/i.test(file.name)) throw new Error("اختر ملفاً نصياً بامتداد TXT.");
+    if (file.size > 1024 * 1024) throw new Error("حجم الملف يتجاوز 1 ميجابايت. قسّم التفريغ إلى ملفات أصغر.");
+    const bytes = await file.arrayBuffer();
+    let sourceText;
+    try {
+      sourceText = new TextDecoder("utf-8", {fatal:true}).decode(bytes);
+    } catch {
+      sourceText = new TextDecoder("windows-1256").decode(bytes);
+    }
+    sourceText = sourceText.replace(/^\\uFEFF/, "").replace(/\\u0000/g, "");
+    if (!sourceText.trim()) throw new Error("الملف النصي فارغ.");
+    if (sourceText.length > 500000) throw new Error("النص يتجاوز الحد الأقصى المسموح به وهو 500 ألف حرف.");
+    const textarea = document.getElementById("timetableDayText");
+    if (!textarea) throw new Error("تعذر العثور على مربع نص الجدول.");
+    textarea.value = sourceText;
+    timetableHandleDayTextInput();
+    const detectedDay = timetableFindDayInText(sourceText);
+    timetableWeeklySetStatus("تم تحميل الملف «" + file.name + "» إلى مربع النص." + (detectedDay ? " وتم التعرف على يوم " + detectedDay + " تلقائياً." : " اختر اليوم من القائمة إذا لم يظهر في عنوان النص.") + " اضغط «تحليل ومراجعة اليوم» قبل الحفظ.", "success");
+  } catch (error) {
+    timetableWeeklySetStatus(error?.message || "تعذر قراءة الملف النصي.", "error");
+  } finally {
+    if (input) input.value = "";
+  }
 }
 async function timetableParseDayText() {
   const weekday = document.getElementById("timetableTextWeekday")?.value || "";
