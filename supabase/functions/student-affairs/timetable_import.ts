@@ -103,6 +103,90 @@ export function normalizeArabicName(value: CellValue): string {
     .toLocaleLowerCase("ar");
 }
 
+
+/** Matching-only tokens: keep the original source spelling in the import record. */
+function teacherNameTokens(value: CellValue): string[] {
+  return normalizeArabicName(value)
+    .replace(/عبدال/g, "عبد ال")
+    .replace(/(^|\\s)(?:بن|ابن)(?=\\s|$)/g, "$1")
+    .split(/\\s+/)
+    .filter(Boolean);
+}
+
+function isOrderedSubsequence(needle: string[], haystack: string[]): boolean {
+  if (!needle.length) return false;
+  let index = 0;
+  for (const token of haystack) {
+    if (token === needle[index]) index++;
+    if (index === needle.length) return true;
+  }
+  return false;
+}
+
+/**
+ * The timetable workbook contains both a detailed name and a short alias,
+ * while the live system commonly stores first name + family name. Prefer
+ * evidence from the detailed name; use the alias as a strong fallback.
+ */
+function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher): number {
+  const fullKey = normalizeArabicName(source.sourceName);
+  const candidateKey = normalizeArabicName(candidate.name);
+  if (fullKey && fullKey === candidateKey) return 120;
+
+  const fullTokens = teacherNameTokens(source.sourceName);
+  const candidateTokens = teacherNameTokens(candidate.name);
+  const aliasExact = source.aliases.some((alias) => normalizeArabicName(alias) === candidateKey);
+  if (!fullTokens.length || !candidateTokens.length) return aliasExact ? 82 : 0;
+
+  let score = 0;
+  if (fullTokens[0] === candidateTokens[0]) score += 35;
+  if (fullTokens[fullTokens.length - 1] === candidateTokens[candidateTokens.length - 1]) score += 35;
+
+  if (isOrderedSubsequence(candidateTokens, fullTokens)) {
+    score += 20 + Math.max(0, candidateTokens.length - 2) * 4;
+  }
+
+  const isPrefix = candidateTokens.every((token, index) => fullTokens[index] === token);
+  if (isPrefix) score += 25;
+
+  const interiorMatches = candidateTokens.slice(1, -1)
+    .filter((token) => fullTokens.includes(token)).length;
+  score += interiorMatches * 5;
+
+  // An exact workbook alias is useful, but cannot override stronger detailed-name evidence.
+  if (aliasExact) score = Math.max(score, 82);
+  return score;
+}
+
+function resolveSystemTeacher(
+  source: ImportedTeacher,
+  systemTeachers: SystemTeacher[],
+): { teacher: SystemTeacher | null; ambiguous: boolean } {
+  const ranked = systemTeachers
+    .map((teacher) => ({ teacher, score: scoreTeacherCandidate(source, teacher) }))
+    .filter((item) => item.score > 0)
+    .sort((a, b) => b.score - a.score || a.teacher.name.localeCompare(b.teacher.name, "ar"));
+
+  if (!ranked.length || ranked[0].score < 78) return { teacher: null, ambiguous: false };
+  const secondScore = ranked[1]?.score ?? -1;
+  if (secondScore >= 78 && ranked[0].score - secondScore < 5) {
+    return { teacher: null, ambiguous: true };
+  }
+  return { teacher: ranked[0].teacher, ambiguous: false };
+}
+
+function normalizeSubjectName(value: CellValue): string {
+  const source = clean(value);
+  const key = normalizeArabicName(source);
+  if (!key) return "";
+  if (["حصة دينيه", "حصه دينيه", "دينيه"].includes(key)) return "تربية إسلامية";
+  if (["عربي", "لغه عربيه", "اللغة العربيه"].includes(key)) return "اللغة العربية";
+  if (["انجليزي", "انجليزيه", "لغه انجليزيه", "اللغة الانجليزيه"].includes(key)) return "اللغة الإنجليزية";
+  if (["رياضيات", "الرياضيات"].includes(key)) return "الرياضيات";
+  if (key === "اجتماع الاسلاميه" || key === "اجتماع التربيه الاسلاميه") return "اجتماع التربية الإسلامية";
+  return source;
+}
+
 function normalizeHeader(value: CellValue): string {
   return normalizeArabicName(value).replace(/\s+/g, "");
 }
@@ -195,31 +279,15 @@ function buildTeacherDirectory(
   }
 
   for (const teacher of imported.values()) {
-    const fullNameKey = normalizeArabicName(teacher.sourceName);
-    const fullNameMatches = systemTeachers.filter((systemTeacher) =>
-      normalizeArabicName(systemTeacher.name) === fullNameKey
-    );
-    const matches = new Map<string, SystemTeacher>();
-    // An exact full-name match takes precedence over a short alias that may
-    // coincidentally equal another teacher's full name.
-    const candidates = fullNameMatches.length
-      ? fullNameMatches
-      : systemTeachers.filter((systemTeacher) =>
-        teacher.aliases.slice(1).some((alias) =>
-          normalizeArabicName(systemTeacher.name) === normalizeArabicName(alias)
-        )
-      );
-    for (const candidate of candidates) {
-      matches.set(String(candidate.id ?? candidate.name), candidate);
-    }
-    if (matches.size === 1) {
-      const match = Array.from(matches.values())[0];
+    const resolved = resolveSystemTeacher(teacher, systemTeachers);
+    if (resolved.teacher) {
+      const match = resolved.teacher;
       teacher.matchedTeacherId = String(match.id ?? match.name);
       teacher.matchedTeacherName = match.name;
       teacher.matchedDepartmentId = match.departmentId || match.departmentName || null;
       teacher.matchedDepartmentName = match.departmentName || match.departmentId || null;
       teacher.matchStatus = "matched";
-    } else if (matches.size > 1) {
+    } else if (resolved.ambiguous) {
       teacher.matchStatus = "ambiguous";
     }
     for (const alias of teacher.aliases) {
@@ -259,7 +327,7 @@ function parseLessonRows(
     const values = item.values;
     const teacherCell = firstValue(values, ["المعلم", "المعلمون", "اسم المعلم"]);
     const classCell = firstValue(values, ["الشعب", "الشعبة", "الفصل", "الصف"]);
-    const subject = firstValue(values, ["المادة", "اسم المادة"]);
+    const subject = normalizeSubjectName(firstValue(values, ["المادة", "اسم المادة"]));
     const group = firstValue(values, ["المجموعة", "التقسيم"]);
     const isTeacherHeader = !!teacherCell && !classCell && !subject;
     const isClassHeader = !!classCell && !teacherCell && !subject;
