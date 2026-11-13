@@ -8727,6 +8727,114 @@ function timetableRenderDayPreview() {
   }
   host.classList.remove("hidden");
 }
+function timetableFindDayInText(sourceText) {
+  const text = String(sourceText || "");
+  const match = text.match(/^\s*(?:جدول\s+)?اليوم(?:\s+\S+)?\s*:\s*(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/m)
+    || text.match(/^\s*جدول\s+يوم\s+(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/m);
+  return match ? match[1] : null;
+}
+function timetableInvalidateDayPreview() {
+  timetableDayImportPreview = null;
+  const saveButton = document.getElementById("timetableSaveDayButton");
+  if (saveButton) {
+    saveButton.disabled = true;
+    saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ اليوم / الأسبوع في المسودة';
+  }
+  document.getElementById("timetableDayPreview")?.classList.add("hidden");
+}
+function timetableHandleDayTextInput() {
+  const sourceText = document.getElementById("timetableDayText")?.value || "";
+  timetableInvalidateDayPreview();
+  const detectedDay = timetableFindDayInText(sourceText);
+  const weekdaySelect = document.getElementById("timetableTextWeekday");
+  if (detectedDay && weekdaySelect) weekdaySelect.value = detectedDay;
+}
+function timetableReadTextFile(event) {
+  const input = event?.target;
+  const file = input?.files?.[0];
+  if (!file) return;
+  (async function() {
+    try {
+      if (!/\.(txt|text)$/i.test(file.name)) throw new Error("اختر ملفاً نصياً بامتداد TXT.");
+      if (file.size > 1024 * 1024) throw new Error("حجم الملف يتجاوز 1 ميجابايت. قسّم التفريغ إلى ملفات أصغر.");
+      const bytes = await file.arrayBuffer();
+      let sourceText;
+      try {
+        sourceText = new TextDecoder("utf-8", {fatal:true}).decode(bytes);
+      } catch {
+        sourceText = new TextDecoder("windows-1256").decode(bytes);
+      }
+      sourceText = sourceText.replace(/^\uFEFF/, "").replace(/\u0000/g, "");
+      if (!sourceText.trim()) throw new Error("الملف النصي فارغ.");
+      if (sourceText.length > 500000) throw new Error("النص يتجاوز الحد الأقصى المسموح به وهو 500 ألف حرف.");
+      const textarea = document.getElementById("timetableDayText");
+      if (!textarea) throw new Error("تعذر العثور على مربع نص الجدول.");
+      textarea.value = sourceText;
+      timetableHandleDayTextInput();
+      const dayCount = timetableFindDayHeadings(sourceText).length;
+      timetableWeeklySetStatus("تم تحميل الملف «" + file.name + "» إلى مربع النص." + (dayCount === 5 ? " تم اكتشاف الأيام الخمسة تلقائياً." : dayCount === 1 ? " تم التعرف على يوم " + timetableFindDayInText(sourceText) + " تلقائياً." : " اختر اليوم من القائمة إذا لم يظهر في عنوان النص.") + " اضغط «تحليل ومراجعة اليوم» قبل الحفظ.", "success");
+    } catch (error) {
+      timetableWeeklySetStatus(error?.message || "تعذر قراءة الملف النصي.", "error");
+    } finally {
+      if (input) input.value = "";
+    }
+  })();
+}
+function timetableFindDayHeadings(sourceText) {
+  const lines = String(sourceText || "").split(/\r?\n/);
+  const headings = [];
+  for (let index = 0; index < lines.length; index++) {
+    const line = lines[index].trim();
+    const match = line.match(/^(?:جدول\s+)?اليوم(?:\s+\S+)?\s*:\s*(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/)
+      || line.match(/^جدول\s+يوم\s+(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/);
+    if (match) headings.push({weekday:match[1],lineIndex:index});
+  }
+  return headings;
+}
+function timetableSplitDailyText(sourceText, fallbackWeekday) {
+  const lines = String(sourceText || "").split(/\r?\n/);
+  const headings = timetableFindDayHeadings(sourceText);
+  if (!headings.length) return [{weekday:fallbackWeekday,text:sourceText}];
+  if (headings.length === 1) return [{weekday:headings[0].weekday,text:sourceText}];
+  const required = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+  const seen = new Set();
+  for (const heading of headings) {
+    if (seen.has(heading.weekday)) throw new Error("عنوان يوم " + heading.weekday + " مكرر في النص. اترك لكل يوم قسماً واحداً فقط.");
+    seen.add(heading.weekday);
+  }
+  const missing = required.filter(day => !seen.has(day));
+  if (missing.length) throw new Error("تم العثور على أكثر من يوم، لكن النص لا يحتوي الأيام الخمسة. الأيام الناقصة: " + missing.join("، ") + ". يمكنك إدخال كل يوم منفرداً.");
+  return headings.map((heading,index) => {
+    const start = index === 0 ? 0 : heading.lineIndex;
+    const end = index + 1 < headings.length ? headings[index + 1].lineIndex : lines.length;
+    return {weekday:heading.weekday,text:lines.slice(start,end).join("\n").trim()};
+  }).sort((left,right)=>required.indexOf(left.weekday)-required.indexOf(right.weekday));
+}
+function timetableNormalizeNameKey(value) {
+  return String(value || "").normalize("NFKC").replace(/[\u064b-\u065f\u0670\u0640]/g,"")
+    .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim();
+}
+function timetableValidateWeeklyTeacherSets(days) {
+  if (!Array.isArray(days) || days.length !== 5) throw new Error("استيراد الأسبوع الكامل يتطلب الأيام الخمسة.");
+  const reference = days[0];
+  const referenceNames = (reference.teachers || []).map(teacher =>
+    timetableNormalizeNameKey(teacher.matchStatus === "matched" && teacher.matchedTeacherName ? teacher.matchedTeacherName : teacher.sourceName)
+  ).sort();
+  if (new Set(referenceNames).size !== referenceNames.length) {
+    throw new Error("يوجد أكثر من اسم مصدر مرتبط بحساب المعلم نفسه في يوم " + reference.weekday + ". راجع مطابقة الأسماء قبل المتابعة.");
+  }
+  for (const day of days.slice(1)) {
+    const names = (day.teachers || []).map(teacher =>
+      timetableNormalizeNameKey(teacher.matchStatus === "matched" && teacher.matchedTeacherName ? teacher.matchedTeacherName : teacher.sourceName)
+    ).sort();
+    if (names.length !== referenceNames.length || names.some((name,index)=>name !== referenceNames[index])) {
+      throw new Error("قائمة المعلمين في يوم " + day.weekday + " لا تطابق قائمة يوم " + reference.weekday + ". لا يمكن حفظ أسبوع ناقص أو بأسماء غير متطابقة.");
+    }
+    if (new Set(names).size !== names.length) {
+      throw new Error("توجد أسماء متعددة مرتبطة بالمعلم نفسه في يوم " + day.weekday + ". راجع المطابقة أولاً.");
+    }
+  }
+}
 async function timetableParseDayText() {
   const selectedWeekday = document.getElementById("timetableTextWeekday")?.value || "";
   const sourceText = document.getElementById("timetableDayText")?.value || "";
