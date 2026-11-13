@@ -351,3 +351,25 @@ The school explicitly confirmed these identity links for timetable import:
 - The short alias **محمد السعدي** by itself is shared and must never identify either teacher automatically; records containing only that alias remain unresolved for manual review.
 
 The parser now applies the three confirmed links only when the detailed source name matches and exactly one existing system teacher matches the confirmed target. It does not create, rename, merge, or modify teacher accounts. A regression test covers all three confirmed links and verifies that the shared short alias remains ambiguous.
+
+
+## Atomic substitution workflow — implemented on the development branch
+
+The following development-only components are now present:
+
+- Server-side preview of the absent teacher's explicit teaching periods for a selected school date.
+- Candidate filtering requires exactly one explicit `free` cell in the same period; teaching, meetings, activities, unclear cells, missing cells, and duplicate cells are not eligible.
+- Default candidates are restricted to the absent teacher's department. The coordinator must explicitly enable cross-department candidates to widen the list.
+- Eligible candidates are ranked by active substitution assignments in the selected school week, then by name. Ranking never overrides availability or conflict checks.
+- The API validates the signed application session and the independent timetable access grant. Non-admin coordinators are restricted to their own department.
+- An additive migration adds date-specific assignment uniqueness, a server-only atomic assignment RPC, and an append-only assignment audit table.
+- A replacement is stored as an overlay on the source timetable; the original teacher's teaching cell is never modified.
+- The interface supports assigning one substitute per absent lesson, showing saved assignments, and cancelling a non-completed assignment with an audit record.
+- The integration workflow now covers cross-department opt-in, department authorization, busy-candidate rejection, weekday/date consistency, duplicate prevention, cancellation, audit records, RLS, and RPC grants.
+
+### Remaining verification and data gate
+
+- The GitHub Actions workflow has been extended, but the latest run result has not been retrieved in this session. The Vercel check is currently failing at the hosting provider's build-rate limit; this is not evidence of a source-code test failure.
+- The five original daily teacher transcripts are not present in the currently retrievable context as complete verbatim datasets. Only partial facts and the Thursday summary are available. Do not synthesize or activate a timetable from those fragments.
+- The weekly schedule must remain inactive until the exact five day transcripts are restored, parsed, reviewed, all teacher identities are resolved, and the 35 cells per teacher are verified.
+- No migration has been applied to the school database, no Edge Function deployed, no production data changed, and no merge or production publish performed.
