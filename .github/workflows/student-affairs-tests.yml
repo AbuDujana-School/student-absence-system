@@ -55,6 +55,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113133000_timetable_owner_reassignment.sql
       - name: Apply isolated complete weekly timetable grid migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
+      - name: Apply isolated atomic timetable substitution workflow migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -321,6 +323,10 @@ jobs:
             v_cell_count integer;
             v_assignment_count integer;
             v_duplicate_blocked boolean := false;
+            v_substitution jsonb;
+            v_cross_department_blocked boolean := false;
+            v_duplicate_substitution_blocked boolean := false;
+            v_substitution_audit_count integer;
           BEGIN
             v_teachers := jsonb_build_array(
               jsonb_build_object(
@@ -341,12 +347,12 @@ jobs:
                 'matchedTeacherName','synthetic-math-teacher',
                 'matchStatus','matched','pdfPage',3,
                 'cells',(SELECT jsonb_agg(jsonb_build_object(
-                  'period',p,'status',CASE WHEN p=6 THEN 'free' ELSE 'teaching' END,
-                  'classSections',CASE WHEN p=6 THEN '[]'::jsonb ELSE jsonb_build_array('10/'||p::text) END,
-                  'subject',CASE WHEN p=6 THEN 'فراغ' ELSE 'الرياضيات' END,
-                  'sourceClass',CASE WHEN p=6 THEN 'فراغ' ELSE '10/'||p::text END,
+                  'period',p,'status',CASE WHEN p=1 THEN 'free' ELSE 'teaching' END,
+                  'classSections',CASE WHEN p=1 THEN '[]'::jsonb ELSE jsonb_build_array('10/'||p::text) END,
+                  'subject',CASE WHEN p=1 THEN 'فراغ' ELSE 'الرياضيات' END,
+                  'sourceClass',CASE WHEN p=1 THEN 'فراغ' ELSE '10/'||p::text END,
                   'sourceSubject',CASE WHEN p=6 THEN 'فراغ' ELSE 'الرياضيات' END,
-                  'sourceStatus',CASE WHEN p=6 THEN 'فراغ' ELSE 'تدريس' END
+                  'sourceStatus',CASE WHEN p=1 THEN 'فراغ' ELSE 'تدريس' END
                 ) ORDER BY p) FROM generate_series(1,7) p)
               )
             );
@@ -374,6 +380,49 @@ jobs:
             IF v_activated->>'status' <> 'active' OR (v_activated->>'cell_count')::integer <> 70 THEN
               RAISE EXCEPTION 'Weekly schedule activation did not return the expected complete grid';
             END IF;
+            -- A candidate in another department is hidden by default, then allowed only after explicit expansion.
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin',
+                'include_other_departments',false
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('قسم آخر' in SQLERRM)>0 THEN v_cross_department_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_cross_department_blocked THEN RAISE EXCEPTION 'cross-department candidate was not blocked by default'; END IF;
+
+            v_substitution := public.create_timetable_substitution(jsonb_build_object(
+              'version_id',v_version_id::text,'weekday','الأحد','period',1,
+              'absent_teacher_name','synthetic-arabic-teacher',
+              'substitute_teacher_name','synthetic-math-teacher',
+              'actor_type','admin','actor_name','synthetic-admin',
+              'include_other_departments',true
+            ));
+            IF v_substitution->>'status'<>'assigned' OR v_substitution->>'teacher_name'<>'synthetic-math-teacher' THEN
+              RAISE EXCEPTION 'atomic substitution assignment did not return the expected result';
+            END IF;
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception OR unique_violation THEN
+              IF position('مسبقاً' in SQLERRM)>0 OR position('duplicate key' in SQLERRM)>0 THEN
+                v_duplicate_substitution_blocked := true;
+              ELSE RAISE;
+              END IF;
+            END;
+            IF NOT v_duplicate_substitution_blocked THEN RAISE EXCEPTION 'duplicate replacement for the same absent lesson was not blocked'; END IF;
+            SELECT count(*) INTO v_substitution_audit_count FROM public.timetable_assignment_audit
+              WHERE assignment_id=(v_substitution->>'assignment_id')::uuid AND action='created';
+            IF v_substitution_audit_count<>1 THEN RAISE EXCEPTION 'substitution audit record was not written'; END IF;
+
             IF (SELECT count(*) FROM public.timetable_weekly_versions WHERE status='active') <> 1 THEN
               RAISE EXCEPTION 'There must be exactly one active timetable version';
             END IF;
@@ -417,13 +466,18 @@ jobs:
             IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_versions'::regclass)
               OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_cells'::regclass)
               OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_audit'::regclass)
-              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_assignments'::regclass) THEN
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_assignments'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_assignment_audit'::regclass) THEN
               RAISE EXCEPTION 'Weekly timetable RLS is not enabled on every table';
             END IF;
             IF has_table_privilege('anon','public.timetable_weekly_cells','SELECT')
               OR has_table_privilege('authenticated','public.timetable_weekly_cells','SELECT')
               OR has_table_privilege('anon','public.timetable_assignments','INSERT')
               OR has_table_privilege('authenticated','public.timetable_assignments','INSERT')
+              OR has_table_privilege('anon','public.timetable_assignment_audit','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_assignment_audit','SELECT')
+              OR has_function_privilege('anon','public.create_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.create_timetable_substitution(jsonb)','EXECUTE')
               OR has_function_privilege('anon','public.save_timetable_weekly_day(jsonb)','EXECUTE')
               OR has_function_privilege('authenticated','public.activate_timetable_weekly_version(jsonb)','EXECUTE') THEN
               RAISE EXCEPTION 'Browser roles must not access weekly timetable storage or RPCs directly';
@@ -431,7 +485,9 @@ jobs:
             IF NOT has_table_privilege('service_role','public.timetable_weekly_cells','INSERT')
               OR NOT has_table_privilege('service_role','public.timetable_assignments','INSERT')
               OR NOT has_function_privilege('service_role','public.save_timetable_weekly_day(jsonb)','EXECUTE')
-              OR NOT has_function_privilege('service_role','public.activate_timetable_weekly_version(jsonb)','EXECUTE') THEN
+              OR NOT has_function_privilege('service_role','public.activate_timetable_weekly_version(jsonb)','EXECUTE')
+              OR NOT has_table_privilege('service_role','public.timetable_assignment_audit','INSERT')
+              OR NOT has_function_privilege('service_role','public.create_timetable_substitution(jsonb)','EXECUTE') THEN
               RAISE EXCEPTION 'service_role is missing weekly timetable privileges';
             END IF;
           END $do$;
