@@ -747,6 +747,17 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
+async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
+  if (principal.type === "admin") return true;
+  const { data, error } = await db.from("timetable_access_permissions")
+    .select("can_access")
+    .eq("principal_type", principal.type)
+    .eq("principal_name", principal.name)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.can_access === true;
+}
+
 async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
@@ -840,13 +851,78 @@ async function handle(req: Request) {
       return reply(200, { token, expires_at: expires, principal: { type: principal.type, name: principal.name }, permissions: await permissionsFor(principal) });
     } catch (e) { console.error("Student affairs login failed:", e); return reply(500, { error: "تعذر إتمام التحقق الآمن حالياً" }); }
   }
+  if (["timetable_check_access","timetable_list_access","timetable_set_access"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+
+      if (body.action === "timetable_check_access") {
+        const canAccess = await hasTimetableAccess(principal);
+        return reply(200, { canAccess, isAdmin: principal.type === "admin" });
+      }
+
+      if (principal.type !== "admin") {
+        return reply(403, { error: "إدارة صلاحيات الجداول متاحة لمدير النظام العام فقط." });
+      }
+
+      if (body.action === "timetable_list_access") {
+        const [{ data: teachers, error: teachersError }, { data: grants, error: grantsError }] = await Promise.all([
+          db.from("teachers").select("name,role,permissions").order("name"),
+          db.from("timetable_access_permissions").select("principal_type,principal_name,can_access,updated_by,updated_at"),
+        ]);
+        if (teachersError) throw teachersError;
+        if (grantsError) throw grantsError;
+        const grantMap = new Map((grants || []).map((row: any) => [row.principal_type + ":" + row.principal_name, row]));
+        const users = (teachers || []).filter((item: any) => item.role === "teacher" || item.role === "custom").map((item: any) => {
+          const type = item.role === "custom" ? "custom" : "teacher";
+          const grant = grantMap.get(type + ":" + String(item.name)) as any;
+          return {
+            principal_type: type,
+            principal_name: String(item.name),
+            category: typeof item.permissions?.category === "string" ? item.permissions.category : "",
+            can_access: grant?.can_access === true,
+            updated_by: grant?.updated_by || null,
+            updated_at: grant?.updated_at || null,
+          };
+        });
+        return reply(200, { users });
+      }
+
+      const principalType = String(body.principalType || "");
+      const principalName = String(body.principalName || "").trim();
+      const canAccess = body.canAccess === true;
+      if (!["teacher","custom"].includes(principalType) || !principalName || principalName.length > 160 || typeof body.canAccess !== "boolean") {
+        return reply(400, { error: "بيانات صلاحية الجداول غير صالحة." });
+      }
+      const { data: target, error: targetError } = await db.from("teachers")
+        .select("name,role").eq("name", principalName).maybeSingle();
+      if (targetError) throw targetError;
+      if (!target || (principalType === "custom" ? target.role !== "custom" : target.role === "custom")) {
+        return reply(404, { error: "المستخدم المحدد غير موجود أو نوع حسابه لا يطابق الاختيار." });
+      }
+      const { error } = await db.from("timetable_access_permissions").upsert({
+        principal_type: principalType,
+        principal_name: principalName,
+        can_access: canAccess,
+        updated_by: principal.name,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "principal_type,principal_name" });
+      if (error) throw error;
+      return reply(200, { ok: true, principalType, principalName, canAccess });
+    } catch (error) {
+      console.error("Timetable access permission request failed:", error);
+      return reply(500, { error: "تعذر تحديث صلاحية الجداول. تحقق من migration التطوير." });
+    }
+  }
   if (body?.action === "timetable_preview") {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || principal.type !== "admin") {
-        return reply(403, { error: "استيراد الجدول متاح لمدير النظام العام فقط." });
+      if (!principal || !(await hasTimetableAccess(principal))) {
+        return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
       const sheets = body?.sheets;
       if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
@@ -894,8 +970,8 @@ async function handle(req: Request) {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || principal.type !== "admin") {
-        return reply(403, { error: "حفظ استيراد الجدول متاح لمدير النظام العام فقط." });
+      if (!principal || !(await hasTimetableAccess(principal))) {
+        return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
       const sheets = body?.sheets;
       if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
@@ -943,8 +1019,8 @@ async function handle(req: Request) {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || principal.type !== "admin") {
-        return reply(403, { error: "إدارة الجداول متاحة لمدير النظام العام فقط." });
+      if (!principal || !(await hasTimetableAccess(principal))) {
+        return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
 
       if (body.action === "timetable_list_imports") {
