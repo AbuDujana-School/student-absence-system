@@ -2993,7 +2993,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-paste ml-1 text-cyan-700"></i> إدخال الجدول اليومي من نص PDF</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يمكنك لصق تفريغ يوم واحد أو الأسبوع كاملاً بعناوين الأيام الخمسة. سيُنشئ النظام سبع خانات صريحة لكل معلم يومياً، بما فيها التدريس والفراغ والاجتماعات والخانات غير الواضحة.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
             <div><label for="timetableTextWeekday" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اليوم الدراسي</label><select id="timetableTextWeekday" onchange="timetableInvalidateDayPreview()" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select></div>
-            <div class="text-[10px] text-slate-500">أدخل اليوم كاملاً من أول معلم إلى آخر معلم. يمكن أن يكون النص مقسماً إلى أجزاء متتابعة داخل نفس الحقل.</div>
+            <div class="text-[10px] text-slate-500">ألصق تفريغ اليوم أو الأسبوع كاملاً. يدعم النظام أيضاً الصفوف المفصولة بعلامة Tab بهذا الترتيب: اسم المعلم، اليوم، رقم الحصة، الصف والشعبة، المادة، الحالة، الملاحظة.</div>
           </div>
           <div class="rounded-2xl border border-dashed border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 p-4 space-y-2"><label for="timetableTextFile" class="block text-xs font-black text-slate-700 dark:text-slate-200"><i class="fa-solid fa-file-lines ml-1 text-cyan-700"></i> تحميل تفريغ اليوم من ملف نصي (Notepad)</label><input id="timetableTextFile" type="file" accept=".txt,.text,text/plain" onchange="timetableReadTextFile(event)" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-800 file:px-4 file:py-2.5 file:text-xs file:font-bold file:text-white"><p class="text-[10px] text-slate-500">اختر ملف TXT محفوظاً من المفكرة ليوم واحد أو للأسبوع كاملاً، أو الصق النص مباشرة أدناه. إذا احتوى النص عناوين الأيام الخمسة فسيتعرف عليها النظام ويحللها معاً.</p></div><textarea id="timetableDayText" rows="14" oninput="timetableHandleDayTextInput()" dir="rtl" spellcheck="false" placeholder="الصق هنا نص اليوم أو الأيام الخمسة: اليوم الثاني: الاثنين، ثم اسم المعلم وحصصه السبع..." class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-xs leading-7 text-slate-800 dark:text-white outline-none focus:border-cyan-500"></textarea>
           <div class="flex flex-wrap items-center gap-2">
@@ -8693,7 +8693,7 @@ function timetableBuildDayPreviewMarkup(preview) {
       const label = labels[cell.status] || "أخرى";
       const cls = colors[cell.status] || colors.other;
       const sections = (cell.classSections || []).join("، ") || "—";
-      return '<td class="min-w-[118px] p-2 align-top"><div class="rounded-xl border p-2 '+cls+'"><div class="font-black text-[10px] break-words">'+timetableEsc(sections)+'</div><div class="mt-1 text-[9px] font-black">'+label+'</div><div class="mt-1 text-[9px] opacity-80 break-words">'+timetableEsc(cell.subject || cell.sourceSubject || "")+'</div></div></td>';
+      return '<td class="min-w-[118px] p-2 align-top"><div class="rounded-xl border p-2 '+cls+'"><div class="font-black text-[10px] break-words">'+timetableEsc(sections)+'</div><div class="mt-1 text-[9px] font-black">'+label+'</div><div class="mt-1 text-[9px] opacity-80 break-words">'+timetableEsc(cell.subject || cell.sourceSubject || "")+'</div>'+(cell.sourceNote?'<div class="mt-1 border-t border-current/15 pt-1 text-[8px] opacity-75 break-words">ملاحظة: '+timetableEsc(cell.sourceNote)+'</div>':'')+'</div></td>';
     }).join("");
     return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="min-w-[190px] p-3 align-top"><div class="font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</div><div class="mt-1 text-[9px] text-slate-500">'+timetableEsc(teacher.matchedTeacherName || "لم يربط بحساب")+'</div><div class="mt-2">'+matchBadge(teacher.matchStatus)+'</div><div class="mt-1 text-[9px] text-slate-400">صفحة PDF: '+timetableEsc(teacher.pdfPage || "غير محددة")+'</div></td>'+cells+'</tr>';
   }).join("");
@@ -8731,7 +8731,9 @@ function timetableFindDayInText(sourceText) {
   const text = String(sourceText || "");
   const match = text.match(/^\s*(?:جدول\s+)?اليوم(?:\s+\S+)?\s*:\s*(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/m)
     || text.match(/^\s*جدول\s+يوم\s+(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/m);
-  return match ? match[1] : null;
+  if (match) return match[1];
+  const tabularDays = timetableFindTabularDays(text);
+  return tabularDays.length === 1 ? tabularDays[0] : null;
 }
 function timetableInvalidateDayPreview() {
   timetableDayImportPreview = null;
@@ -8771,7 +8773,7 @@ function timetableReadTextFile(event) {
       if (!textarea) throw new Error("تعذر العثور على مربع نص الجدول.");
       textarea.value = sourceText;
       timetableHandleDayTextInput();
-      const dayCount = timetableFindDayHeadings(sourceText).length;
+      const dayCount = timetableFindDayHeadings(sourceText).length || timetableFindTabularDays(sourceText).length;
       timetableWeeklySetStatus("تم تحميل الملف «" + file.name + "» إلى مربع النص." + (dayCount === 5 ? " تم اكتشاف الأيام الخمسة تلقائياً." : dayCount === 1 ? " تم التعرف على يوم " + timetableFindDayInText(sourceText) + " تلقائياً." : " اختر اليوم من القائمة إذا لم يظهر في عنوان النص.") + " اضغط «تحليل ومراجعة اليوم» قبل الحفظ.", "success");
     } catch (error) {
       timetableWeeklySetStatus(error?.message || "تعذر قراءة الملف النصي.", "error");
@@ -8791,10 +8793,43 @@ function timetableFindDayHeadings(sourceText) {
   }
   return headings;
 }
+function timetableFindTabularRows(sourceText) {
+  const groups = new Map();
+  const required = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+  for (const rawLine of String(sourceText || "").split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line.includes("\t")) continue;
+    const fields = line.split("\t").map(value => value.trim());
+    if (fields.length < 6) continue;
+    const weekday = required.find(day => timetableNormalizeNameKey(fields[1]) === timetableNormalizeNameKey(day));
+    if (!weekday) continue;
+    if (!groups.has(weekday)) groups.set(weekday, []);
+    groups.get(weekday).push(rawLine);
+  }
+  return groups;
+}
+function timetableFindTabularDays(sourceText) {
+  return Array.from(timetableFindTabularRows(sourceText).keys());
+}
 function timetableSplitDailyText(sourceText, fallbackWeekday) {
   const lines = String(sourceText || "").split(/\r?\n/);
   const headings = timetableFindDayHeadings(sourceText);
-  if (!headings.length) return [{weekday:fallbackWeekday,text:sourceText}];
+  if (!headings.length) {
+    const tabularRows = timetableFindTabularRows(sourceText);
+    if (tabularRows.size) {
+      const required = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      const days = Array.from(tabularRows.keys());
+      if (days.length > 1 && days.length !== 5) {
+        const missing = required.filter(day => !tabularRows.has(day));
+        throw new Error("تم التعرف على جدول مفصول بعلامات تبويب لكنه لا يحتوي الأيام الخمسة. الأيام الناقصة: " + missing.join("، ") + ". أكمل التفريغ قبل استيراد الأسبوع.");
+      }
+      return days.sort((a,b)=>required.indexOf(a)-required.indexOf(b)).map(weekday => ({
+        weekday,
+        text: tabularRows.get(weekday).join("\n")
+      }));
+    }
+    return [{weekday:fallbackWeekday,text:sourceText}];
+  }
   if (headings.length === 1) return [{weekday:headings[0].weekday,text:sourceText}];
   const required = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
   const seen = new Set();
