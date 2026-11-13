@@ -8495,5 +8495,144 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   const timer=setInterval(()=>{mount("sa");mount("rep");if(document.getElementById("saCombinedTab")&&document.getElementById("repCombinedTab"))clearInterval(timer);},500);
 })();
 </script>
+<script>
+/* Timetable Excel import: secure server-side preview and teacher review. */
+let timetableImportPreview = null;
+let timetableSelectedTeacherIndex = -1;
+function timetableEsc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, function(ch) {
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];
+  });
+}
+function timetableSetStatus(message, kind) {
+  const el = document.getElementById("timetableImportStatus");
+  if (!el) return;
+  const palette = kind === "error" ? "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300" :
+    kind === "success" ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" :
+    "border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200";
+  el.className = "rounded-2xl border px-4 py-3 text-xs font-bold " + palette;
+  el.textContent = message;
+  el.classList.remove("hidden");
+}
+async function timetableImportWorkbook() {
+  const input = document.getElementById("timetableExcelFile");
+  const file = input && input.files && input.files[0];
+  const button = document.getElementById("timetableImportButton");
+  if (!file) { timetableSetStatus("اختر ملف Excel أولاً.", "error"); return; }
+  if (activeUser?.type !== "admin") { timetableSetStatus("هذه الخاصية متاحة لمدير النظام العام فقط.", "error"); return; }
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) { timetableSetStatus("جلسة مدير النظام غير متاحة. سجّل الدخول مجدداً.", "error"); return; }
+  if (!window.XLSX) { timetableSetStatus("تعذر تحميل مكتبة قراءة Excel. حدّث الصفحة وحاول مرة أخرى.", "error"); return; }
+  const oldLabel = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل...';
+  try {
+    const workbook = XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:true});
+    const sheets = {};
+    for (const sheetName of workbook.SheetNames) {
+      const worksheet = workbook.Sheets[sheetName];
+      const rawRows = XLSX.utils.sheet_to_json(worksheet, {header:1, raw:true, defval:null, blankrows:false});
+      const compactRows = [];
+      for (const row of rawRows) {
+        let last = row.length - 1;
+        while (last >= 0 && (row[last] === null || row[last] === undefined || String(row[last]).trim() === "")) last--;
+        if (last < 0) continue;
+        compactRows.push(row.slice(0,last+1).map(function(value) {
+          return value instanceof Date ? value.toISOString() : value;
+        }));
+      }
+      if (compactRows.length) sheets[sheetName] = compactRows;
+    }
+    const rowCount = Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
+    if (!rowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
+    const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
+    timetableImportPreview = result;
+    timetableSelectedTeacherIndex = -1;
+    timetableRenderPreview();
+    timetableSetStatus("اكتمل تحليل الملف. اختر معلماً لمراجعة جميع سجلات حصصه وعقوده.", "success");
+  } catch (error) {
+    timetableSetStatus(error && error.message ? error.message : "تعذر تحليل ملف Excel.", "error");
+  } finally {
+    button.disabled = false;
+    button.innerHTML = oldLabel;
+  }
+}
+function timetableRenderPreview() {
+  const preview = timetableImportPreview;
+  if (!preview || !preview.result) return;
+  const result = preview.result;
+  document.getElementById("timetableImportResults")?.classList.remove("hidden");
+  const meta = document.getElementById("timetableImportMeta");
+  meta.classList.remove("hidden");
+  const metaItems = [
+    ["اسم الملف",preview.fileName],
+    ["وقت المعاينة",new Date(preview.importedAt).toLocaleString("ar-OM")],
+    ["منفذ المعاينة",preview.importedBy],
+    ["أوراق العمل",(result.sourceSheets || []).join("، ")]
+  ];
+  meta.innerHTML = metaItems.map(function(item) {
+    return '<div class="rounded-xl bg-slate-50 dark:bg-slate-900 p-3"><div class="text-[10px] text-slate-500 mb-1">'+timetableEsc(item[0])+'</div><div class="text-xs font-black text-slate-800 dark:text-white break-words">'+timetableEsc(item[1])+'</div></div>';
+  }).join("");
+  const stats = [
+    ["المعلمون",result.totals.importedTeacherRows],
+    ["سجلات الحصص والعقود",result.totals.importedLessonRecords],
+    ["البيانات المرجعية",result.totals.referenceRows],
+    ["توزيعات أسبوعية صريحة",result.totals.placementRows]
+  ];
+  document.getElementById("timetableImportStats").innerHTML = stats.map(function(item) {
+    return '<div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"><div class="text-[10px] font-bold text-slate-500">'+timetableEsc(item[0])+'</div><div class="text-2xl font-black text-slate-800 dark:text-white mt-1">'+timetableEsc(item[1])+'</div></div>';
+  }).join("");
+  const warnings = (result.warnings || []).slice();
+  if (!result.hasWeeklyPlacements) warnings.unshift("لم يُعثر على توزيع صريح للأيام وأرقام الحصص؛ لن يتم إنشاء جدول أسبوعي افتراضي.");
+  document.getElementById("timetableImportWarnings").innerHTML = warnings.map(function(message) {
+    return '<div class="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs font-bold text-amber-900 dark:text-amber-200"><i class="fa-solid fa-circle-exclamation ml-1"></i>'+timetableEsc(message)+'</div>';
+  }).join("");
+  document.getElementById("timetableTeacherCount").textContent = result.teachers.length + " معلماً";
+  timetableRenderTeacherList();
+}
+function timetableRenderTeacherList() {
+  const result = timetableImportPreview && timetableImportPreview.result;
+  const host = document.getElementById("timetableTeacherList");
+  if (!result || !host) return;
+  const query = String(document.getElementById("timetableTeacherSearch")?.value || "").trim().toLocaleLowerCase("ar");
+  const teachers = result.teachers.map(function(teacher,index){return {teacher:teacher,index:index};}).filter(function(item) {
+    const teacher = item.teacher;
+    return !query || teacher.sourceName.toLocaleLowerCase("ar").includes(query) ||
+      (teacher.aliases || []).some(function(alias){return alias.toLocaleLowerCase("ar").includes(query);});
+  });
+  if (!teachers.length) {
+    host.innerHTML = '<div class="p-6 text-center text-xs text-slate-400">لا توجد أسماء مطابقة.</div>';
+    return;
+  }
+  host.innerHTML = teachers.map(function(item) {
+    const teacher = item.teacher, index = item.index;
+    const selected = index === timetableSelectedTeacherIndex;
+    const matched = teacher.matchStatus === "matched";
+    const ambiguous = teacher.matchStatus === "ambiguous";
+    const label = matched ? "مطابق للنظام" : ambiguous ? "اسم ملتبس" : "يحتاج مطابقة";
+    const color = matched ? "text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40" : "text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/40";
+    return '<button type="button" onclick="timetableSelectTeacher('+index+')" class="w-full text-right p-4 transition-colors '+(selected?'bg-cyan-50 dark:bg-cyan-950/40':'hover:bg-slate-50 dark:hover:bg-slate-900/60')+'"><div class="flex items-start justify-between gap-2"><span class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</span><span class="shrink-0 text-[9px] font-bold rounded-lg px-2 py-1 '+color+'">'+label+'</span></div><div class="flex items-center justify-between mt-2 text-[10px] text-slate-500"><span>'+teacher.records.length+' سجل</span><span>عرض التفاصيل <i class="fa-solid fa-chevron-left mr-1"></i></span></div></button>';
+  }).join("");
+}
+function timetableSelectTeacher(index) {
+  const teachers = timetableImportPreview?.result?.teachers || [];
+  const teacher = teachers[index];
+  if (!teacher) return;
+  timetableSelectedTeacherIndex = index;
+  timetableRenderTeacherList();
+  const status = teacher.matchStatus === "matched" ? "مطابق لسجل المعلمين في النظام" :
+    teacher.matchStatus === "ambiguous" ? "الاسم ملتبس ويحتاج مراجعة المطابقة" : "لم تتم مطابقة الاسم مع سجل المعلمين";
+  const records = teacher.records || [];
+  const rows = records.map(function(record) {
+    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="p-3 text-xs">'+timetableEsc(record.sourceSheet)+'<div class="text-[10px] text-slate-400">صف '+timetableEsc(record.sourceRow)+'</div></td><td class="p-3 text-xs font-bold">'+timetableEsc(record.className || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.subject || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.groupName || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.duration || "—")+'</td><td class="p-3 text-xs font-black">'+timetableEsc(record.periodsPerWeek ?? "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.rooms || record.availableRooms || "—")+'</td></tr>';
+  }).join("");
+  const aliases = (teacher.aliases || []).slice(1).map(timetableEsc).join("، ");
+  document.getElementById("timetableTeacherDetails").innerHTML =
+    '<div class="flex flex-wrap items-start justify-between gap-3 mb-4"><div><h3 class="text-base font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</h3><p class="text-[10px] text-slate-500 mt-1">'+status+'</p></div><span class="rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 px-3 py-1.5 text-[10px] font-bold">'+records.length+' سجل مستخرج</span></div>'+
+    (aliases?'<p class="text-[10px] text-slate-500 mb-3">الأسماء المختصرة: '+aliases+'</p>':'')+
+    (records.length?'<div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"><table class="min-w-[760px] w-full text-right"><thead class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3 text-[10px]">المصدر</th><th class="p-3 text-[10px]">الشعبة</th><th class="p-3 text-[10px]">المادة</th><th class="p-3 text-[10px]">المجموعة</th><th class="p-3 text-[10px]">المدة</th><th class="p-3 text-[10px]">أسبوعياً</th><th class="p-3 text-[10px]">الغرفة</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-8 text-center text-xs text-slate-400">لا توجد سجلات حصص مرتبطة بهذا الاسم.</div>');
+}
+</script>
+
 </body>
 </html>
