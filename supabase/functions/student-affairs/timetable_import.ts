@@ -342,17 +342,23 @@ export function parseTimetableWorkbook(
 
   // Keep every teacher name found in lesson/contract rows visible, even when
   // the workbook's teacher directory omitted it or the system has no match.
+  const unresolvedRecords: ImportedLessonRecord[] = [];
   for (const record of unassignedRecords) {
     const key = normalizeArabicName(record.teacherSourceName);
-    if (!key) continue;
+    if (!key) {
+      unresolvedRecords.push(record);
+      continue;
+    }
     let teacher = teachers.find((item) => item.aliases.some((alias) => normalizeArabicName(alias) === key));
     if (!teacher) {
+      const systemMatches = systemTeachers.filter((item) => normalizeArabicName(item.name) === key);
+      const uniqueMatch = systemMatches.length === 1 ? systemMatches[0] : null;
       teacher = {
         sourceName: record.teacherSourceName,
         normalizedName: key,
-        matchedTeacherId: null,
-        matchedTeacherName: null,
-        matchStatus: "unmatched",
+        matchedTeacherId: uniqueMatch ? String(uniqueMatch.id ?? uniqueMatch.name) : null,
+        matchedTeacherName: uniqueMatch?.name ?? null,
+        matchStatus: uniqueMatch ? "matched" : systemMatches.length > 1 ? "ambiguous" : "unmatched",
         aliases: [record.teacherSourceName],
         records: [],
       };
@@ -360,7 +366,9 @@ export function parseTimetableWorkbook(
     }
     teacher.records.push(record);
     record.teacherMatchStatus = teacher.matchStatus;
+    if (teacher.matchStatus !== "matched") unresolvedRecords.push(record);
   }
+  unassignedRecords.splice(0, unassignedRecords.length, ...unresolvedRecords);
   const unmatchedTeacherNames = teachers.filter((t) => t.matchStatus === "unmatched").map((t) => t.sourceName);
   const ambiguousTeacherNames = teachers.filter((t) => t.matchStatus === "ambiguous").map((t) => t.sourceName);
   if (!placements.length) {
