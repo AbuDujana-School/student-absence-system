@@ -921,7 +921,7 @@ async function handle(req: Request) {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !(await hasTimetableAccess(principal))) {
+      if (!principal || principal.type !== "admin") {
         return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
       const sheets = body?.sheets;
@@ -970,7 +970,7 @@ async function handle(req: Request) {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !(await hasTimetableAccess(principal))) {
+      if (!principal || principal.type !== "admin") {
         return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
       const sheets = body?.sheets;
