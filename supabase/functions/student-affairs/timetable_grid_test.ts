@@ -168,3 +168,15 @@ Deno.test("rejects tab-separated rows with a conflicting weekday or conflicting 
  try{parseTimetableDay("الأحد",conflict);}catch(error){rejectedConflict=String(error).includes("متعارض");}
  if(!rejectedDay||!rejectedConflict)throw new Error("Mismatched day and conflicting same-period rows must be rejected");
 });
+
+Deno.test("splits concatenated parallel class codes while preserving the original source text",()=>{
+ const combined=sample
+   .replace("6/11، 7/11","6/11/7/11");
+ const result=parseTimetableDay("الخميس",combined);
+ const cell=result.teachers[0].cells.find(value=>value.period===4);
+ if(!cell||cell.classSections.join("|")!=="6/11|7/11")throw new Error("Concatenated class codes should be parsed as two parallel sections");
+ if(cell.sourceClass!=="6/11/7/11")throw new Error("Original source class text must remain unchanged");
+ const three=combined.replace("6/11/7/11","1/12/6/12/7/12/8/12");
+ const threeResult=parseTimetableDay("الخميس",three).teachers[0].cells.find(value=>value.period===4);
+ if(!threeResult||threeResult.classSections.join("|")!=="1/12|6/12|7/12|8/12")throw new Error("Multiple concatenated class pairs should all be retained");
+});
