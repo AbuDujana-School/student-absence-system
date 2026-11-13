@@ -53,6 +53,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
       - name: Apply isolated timetable owner reassignment migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113133000_timetable_owner_reassignment.sql
+      - name: Apply isolated complete weekly timetable grid migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -301,6 +303,139 @@ jobs:
           RESET ROLE;
           SELECT 'isolated manual timetable owner reassignment checks passed' AS result;
           SQL
+      - name: Verify complete weekly grid, RLS, activation and separate assignments
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          INSERT INTO public.teachers(name,role,permissions)
+          VALUES ('synthetic-math-teacher','teacher','{"category":"الرياضيات"}'::jsonb)
+          ON CONFLICT (name) DO NOTHING;
+          DO $do$
+          DECLARE
+            v_saved jsonb;
+            v_activated jsonb;
+            v_version_id uuid;
+            v_teachers jsonb;
+            v_day text;
+            v_days text[] := ARRAY['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+            v_cell_count integer;
+            v_assignment_count integer;
+            v_duplicate_blocked boolean := false;
+          BEGIN
+            v_teachers := jsonb_build_array(
+              jsonb_build_object(
+                'sourceName','synthetic-arabic-teacher',
+                'matchedTeacherName','synthetic-arabic-teacher',
+                'matchStatus','matched','pdfPage',2,
+                'cells',(SELECT jsonb_agg(jsonb_build_object(
+                  'period',p,'status',CASE WHEN p=7 THEN 'free' ELSE 'teaching' END,
+                  'classSections',CASE WHEN p=7 THEN '[]'::jsonb ELSE jsonb_build_array('9/'||p::text) END,
+                  'subject',CASE WHEN p=7 THEN 'فراغ' ELSE 'اللغة العربية' END,
+                  'sourceClass',CASE WHEN p=7 THEN 'فراغ' ELSE '9/'||p::text END,
+                  'sourceSubject',CASE WHEN p=7 THEN 'فراغ' ELSE 'اللغة العربية' END,
+                  'sourceStatus',CASE WHEN p=7 THEN 'فراغ' ELSE 'تدريس' END
+                ) ORDER BY p) FROM generate_series(1,7) p)
+              ),
+              jsonb_build_object(
+                'sourceName','synthetic-math-teacher',
+                'matchedTeacherName','synthetic-math-teacher',
+                'matchStatus','matched','pdfPage',3,
+                'cells',(SELECT jsonb_agg(jsonb_build_object(
+                  'period',p,'status',CASE WHEN p=6 THEN 'free' ELSE 'teaching' END,
+                  'classSections',CASE WHEN p=6 THEN '[]'::jsonb ELSE jsonb_build_array('10/'||p::text) END,
+                  'subject',CASE WHEN p=6 THEN 'فراغ' ELSE 'الرياضيات' END,
+                  'sourceClass',CASE WHEN p=6 THEN 'فراغ' ELSE '10/'||p::text END,
+                  'sourceSubject',CASE WHEN p=6 THEN 'فراغ' ELSE 'الرياضيات' END,
+                  'sourceStatus',CASE WHEN p=6 THEN 'فراغ' ELSE 'تدريس' END
+                ) ORDER BY p) FROM generate_series(1,7) p)
+              )
+            );
+            SET ROLE service_role;
+            FOREACH v_day IN ARRAY v_days LOOP
+              v_saved := public.save_timetable_weekly_day(jsonb_build_object(
+                'weekday',v_day,'actor_name','synthetic-admin','teachers',v_teachers,
+                'version_id',CASE WHEN v_version_id IS NULL THEN NULL ELSE v_version_id::text END
+              ));
+              v_version_id := (v_saved->>'version_id')::uuid;
+            END LOOP;
+            SELECT count(*) INTO v_cell_count FROM public.timetable_weekly_cells WHERE version_id=v_version_id;
+            IF v_cell_count <> 70 THEN RAISE EXCEPTION 'Expected 70 explicit cells for two teachers across five days, got %',v_cell_count; END IF;
+
+            -- Replacing one day must be idempotent and keep the complete grid count stable.
+            PERFORM public.save_timetable_weekly_day(jsonb_build_object(
+              'weekday','الأحد','actor_name','synthetic-admin','teachers',v_teachers,'version_id',v_version_id::text
+            ));
+            SELECT count(*) INTO v_cell_count FROM public.timetable_weekly_cells WHERE version_id=v_version_id;
+            IF v_cell_count <> 70 THEN RAISE EXCEPTION 'Replacing a day introduced duplicate cells'; END IF;
+
+            v_activated := public.activate_timetable_weekly_version(jsonb_build_object(
+              'version_id',v_version_id::text,'actor_name','synthetic-admin'
+            ));
+            IF v_activated->>'status' <> 'active' OR (v_activated->>'cell_count')::integer <> 70 THEN
+              RAISE EXCEPTION 'Weekly schedule activation did not return the expected complete grid';
+            END IF;
+            IF (SELECT count(*) FROM public.timetable_weekly_versions WHERE status='active') <> 1 THEN
+              RAISE EXCEPTION 'There must be exactly one active timetable version';
+            END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM public.timetable_weekly_cells
+              WHERE version_id=v_version_id AND matched_teacher_name='synthetic-arabic-teacher'
+                AND weekday='الأحد' AND period=7 AND cell_status='free'
+            ) THEN RAISE EXCEPTION 'Explicit free cell was not preserved in the base timetable'; END IF;
+
+            -- Substitution is an overlay; it must not mutate the original free cell.
+            INSERT INTO public.timetable_assignments(
+              version_id,teacher_name,assignment_type,weekday,period,class_sections,subject,
+              absent_teacher_name,status,created_by
+            ) VALUES (
+              v_version_id,'synthetic-arabic-teacher','substitution','الأحد',7,'["9/1"]'::jsonb,
+              'اللغة العربية','synthetic-absent','assigned','synthetic-admin'
+            );
+            BEGIN
+              INSERT INTO public.timetable_assignments(
+                version_id,teacher_name,assignment_type,weekday,period,class_sections,subject,status,created_by
+              ) VALUES (
+                v_version_id,'synthetic-arabic-teacher','duty','الأحد',7,'[]'::jsonb,
+                '','assigned','synthetic-admin'
+              );
+            EXCEPTION WHEN unique_violation THEN
+              v_duplicate_blocked := true;
+            END;
+            IF NOT v_duplicate_blocked THEN RAISE EXCEPTION 'Double assignment in the same teacher period was not blocked'; END IF;
+            SELECT count(*) INTO v_assignment_count FROM public.timetable_assignments
+             WHERE version_id=v_version_id AND teacher_name='synthetic-arabic-teacher' AND weekday='الأحد' AND period=7;
+            IF v_assignment_count <> 1 THEN RAISE EXCEPTION 'Assignment overlay record was not persisted'; END IF;
+            IF NOT EXISTS (
+              SELECT 1 FROM public.timetable_weekly_cells
+              WHERE version_id=v_version_id AND matched_teacher_name='synthetic-arabic-teacher'
+                AND weekday='الأحد' AND period=7 AND cell_status='free'
+            ) THEN RAISE EXCEPTION 'Substitution assignment overwrote the original timetable cell'; END IF;
+            RESET ROLE;
+          END $do$;
+          DO $do$
+          BEGIN
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_versions'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_cells'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_weekly_audit'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.timetable_assignments'::regclass) THEN
+              RAISE EXCEPTION 'Weekly timetable RLS is not enabled on every table';
+            END IF;
+            IF has_table_privilege('anon','public.timetable_weekly_cells','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_weekly_cells','SELECT')
+              OR has_table_privilege('anon','public.timetable_assignments','INSERT')
+              OR has_table_privilege('authenticated','public.timetable_assignments','INSERT')
+              OR has_function_privilege('anon','public.save_timetable_weekly_day(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.activate_timetable_weekly_version(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'Browser roles must not access weekly timetable storage or RPCs directly';
+            END IF;
+            IF NOT has_table_privilege('service_role','public.timetable_weekly_cells','INSERT')
+              OR NOT has_table_privilege('service_role','public.timetable_assignments','INSERT')
+              OR NOT has_function_privilege('service_role','public.save_timetable_weekly_day(jsonb)','EXECUTE')
+              OR NOT has_function_privilege('service_role','public.activate_timetable_weekly_version(jsonb)','EXECUTE') THEN
+              RAISE EXCEPTION 'service_role is missing weekly timetable privileges';
+            END IF;
+          END $do$;
+          SELECT 'isolated complete weekly timetable grid checks passed' AS result;
+          SQL
       - name: Verify RLS, grants, and session lifecycle
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -446,9 +581,11 @@ jobs:
         run: deno test --allow-read=index.html supabase/functions/student-affairs/teacher_permission_sync_test.ts
       - name: Run timetable import parser tests
         run: deno test supabase/functions/student-affairs/timetable_import_test.ts
+      - name: Run full weekly timetable text parser tests
+        run: deno test supabase/functions/student-affairs/timetable_grid_test.ts
       - name: Run substitution eligibility tests
         run: deno test supabase/functions/student-affairs/substitution_policy_test.ts
       - name: Type-check timetable and substitution policy modules
-        run: deno check supabase/functions/student-affairs/timetable_import.ts supabase/functions/student-affairs/substitution_policy.ts
+        run: deno check supabase/functions/student-affairs/timetable_import.ts supabase/functions/student-affairs/timetable_grid.ts supabase/functions/student-affairs/substitution_policy.ts
       - name: Type-check Edge Function
         run: deno check supabase/functions/student-affairs/index.ts
