@@ -340,3 +340,14 @@ The draft review now supports an explicit **تبديل مالك الجدول** a
 - Fixed an escaped-whitespace regular expression in Arabic name tokenization that caused the detailed-name disambiguation test to fail.
 - GitHub Actions on the feature branch passed both jobs: inline JavaScript syntax and policy/type tests; isolated PostgreSQL migration, RLS, timetable persistence, and owner reassignment tests.
 - This remains development-only. No migration was applied to the school's Supabase project, no Edge Function was deployed, and `main` was not changed.
+
+## School-confirmed teacher identity corrections — 2026-11-13
+
+The school explicitly confirmed these identity links for timetable import:
+
+- Workbook label **س فيزياء** belongs to the existing system teacher **محمد البشير**.
+- **محمد جمعة ناصر السعدي** is the Arabic teacher stored in the system as **محمد جمعة الساعدي**.
+- **محمد عبدالله حمود الساعدي** is the life-skills teacher stored in the system as **محمد عبدالله الساعدي** (department: مواد المهارات الحياتية).
+- The short alias **محمد السعدي** by itself is shared and must never identify either teacher automatically; records containing only that alias remain unresolved for manual review.
+
+The parser now applies the three confirmed links only when the detailed source name matches and exactly one existing system teacher matches the confirmed target. It does not create, rename, merge, or modify teacher accounts. A regression test covers all three confirmed links and verifies that the shared short alias remains ambiguous.
