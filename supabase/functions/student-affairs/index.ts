@@ -1014,7 +1014,7 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر حفظ نسخة الجدول. تأكد من تطبيق migration الخاصة بالتطوير أولاً." });
     }
   }
-  if (["timetable_list_imports","timetable_get_import","timetable_mutate_record"].includes(String(body?.action || ""))) {
+  if (["timetable_list_imports","timetable_get_import","timetable_mutate_record","timetable_list_owner_candidates","timetable_reassign_owner"].includes(String(body?.action || ""))) {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
@@ -1029,6 +1029,16 @@ async function handle(req: Request) {
           .order("created_at", { ascending: false }).limit(30);
         if (error) throw error;
         return reply(200, { imports: data || [] });
+      }
+
+      if (body.action === "timetable_list_owner_candidates") {
+        const { data, error } = await db.from("teachers")
+          .select("name,role,permissions").eq("role", "teacher").order("name");
+        if (error) throw error;
+        return reply(200, { teachers: (data || []).map((item: any) => ({
+          name: String(item.name || ""),
+          department: String(item.permissions?.category || item.permissions?.department_name || item.permissions?.department_id || "")
+        })).filter((item: any) => item.name) });
       }
 
       const importId = String(body.importId || "");
@@ -1047,6 +1057,20 @@ async function handle(req: Request) {
         if (recordsError) throw recordsError;
         if (!imported) return reply(404, { error: "نسخة الجدول غير موجودة." });
         return reply(200, { imported, teachers: teachers || [], records: records || [] });
+      }
+
+
+      if (body.action === "timetable_reassign_owner") {
+        const sourceName = String(body.sourceName || "").trim();
+        const teacherName = String(body.teacherName || "").trim();
+        if (!sourceName || sourceName.length > 200 || teacherName.length > 200) {
+          return reply(400, { error: "بيانات مالك الجدول غير صالحة." });
+        }
+        const { data, error } = await db.rpc("reassign_timetable_import_owner", {
+          p_payload: { import_id: importId, source_name: sourceName, teacher_name: teacherName, actor_name: principal.name },
+        });
+        if (error) throw error;
+        return reply(200, { result: data });
       }
 
       if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) {
