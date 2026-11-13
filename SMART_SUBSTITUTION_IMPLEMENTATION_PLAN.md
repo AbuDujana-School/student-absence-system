@@ -373,3 +373,19 @@ The following development-only components are now present:
 - The five original daily teacher transcripts are not present in the currently retrievable context as complete verbatim datasets. Only partial facts and the Thursday summary are available. Do not synthesize or activate a timetable from those fragments.
 - The weekly schedule must remain inactive until the exact five day transcripts are restored, parsed, reviewed, all teacher identities are resolved, and the 35 cells per teacher are verified.
 - No migration has been applied to the school database, no Edge Function deployed, no production data changed, and no merge or production publish performed.
+
+
+## Structured teacher period-note parsing — 2026-11-13
+
+The importer now parses weekday/period expressions in the teacher sheet's `التفريغ` column into structured references (including weekday ranges and period ranges) while retaining the exact raw source text and parse warnings. This is a syntax-only extraction: it does **not** classify those references as free, teaching, or unavailable periods.
+
+This distinction is required because the workbook's teacher period-note expressions conflict with the user's explicitly transcribed day-by-day teaching records for at least one teacher (احمد خالد محمد السالمى). A specific user clarification identifies مجيد العجمي's Thursday 1–7 as free, but that does not establish a safe global interpretation for every teacher's `التفريغ` expression. The weekly grid must continue to use the explicit daily records and administrator review; no period-note expression is allowed to overwrite a confirmed daily teaching or meeting cell.
+
+Workbook audit from the original file:
+- 69 teacher records were found.
+- 31 teacher records contain non-empty `التفريغ` text.
+- Those values produce 195 distinct day/period references after syntax parsing.
+- 38 empty fields remain empty/unknown; they are not expanded into free periods.
+- The parser unit tests cover Arabic weekday names, weekday ranges, period lists/ranges, duplicate suppression, malformed entries, and the no-inference rule for empty values.
+
+The source and tests were committed only to `feature/smart-substitution-system`. Automated CI has not yet been verified for these latest commits. No migration, deployment, production write, merge, or publication was performed.
