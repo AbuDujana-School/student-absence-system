@@ -74,7 +74,7 @@ async function handle(req: Request) {
 
   const action = String(body.action || "");
   if (!canUseTimetableAction(principal.type, action)) {
-    return reply(403, { error: "يمكن للحساب المصرح له استعراض الجداول والنسخ فقط؛ عمليات التعديل متاحة للمدير." });
+    return reply(403, { error: "يمكن لمنسق القسم المخوّل إدارة احتياط قسمه فقط؛ بقية عمليات تعديل الجداول متاحة لمدير النظام." });
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
