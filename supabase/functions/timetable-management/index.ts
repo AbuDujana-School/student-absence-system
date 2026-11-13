@@ -79,7 +79,7 @@ async function handle(req: Request) {
 
   const action = String(body.action || "");
   const teacherReadOnlyActions = new Set(["health", "timetable_check_access", "teacher_timetable_get_own"]);
-  if (principal.type === "teacher" && !teacherReadOnlyActions.has(action)) {
+  if (principal.type !== "admin" && !teacherReadOnlyActions.has(action)) {
     return reply(403, { error: "يمكن للمعلم استعراض جدوله الشخصي فقط." });
   }
 
