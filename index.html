@@ -2989,6 +2989,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <button id="timetableImportButton" type="button" onclick="timetableImportWorkbook()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-cloud-arrow-up ml-1"></i> تحليل الملف</button>
           </div>
           <div id="timetableImportStatus" class="hidden rounded-2xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div class="flex justify-end"><button id="timetableSaveButton" type="button" onclick="timetableSaveImport()" class="hidden rounded-xl bg-cyan-800 hover:bg-cyan-900 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة</button></div>
           <div id="timetableImportMeta" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
         </div>
         <div id="timetableImportResults" class="hidden space-y-4">
@@ -8498,6 +8499,8 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 <script>
 /* Timetable Excel import: secure server-side preview and teacher review. */
 let timetableImportPreview = null;
+let timetablePendingWorkbook = null;
+let timetableSavedImport = null;
 let timetableSelectedTeacherIndex = -1;
 function timetableEsc(value) {
   return String(value ?? "").replace(/[&<>"']/g, function(ch) {
@@ -8546,6 +8549,10 @@ async function timetableImportWorkbook() {
     const rowCount = Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
     if (!rowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
+    timetablePendingWorkbook = {fileName:file.name,sheets:sheets};
+    timetableSavedImport = null;
+    const saveButton = document.getElementById("timetableSaveButton");
+    if (saveButton) { saveButton.disabled = false; saveButton.classList.remove("hidden"); saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة'; }
     timetableImportPreview = result;
     timetableSelectedTeacherIndex = -1;
     timetableRenderPreview();
@@ -8557,6 +8564,33 @@ async function timetableImportWorkbook() {
     button.innerHTML = oldLabel;
   }
 }
+
+async function timetableSaveImport() {
+  const button = document.getElementById("timetableSaveButton");
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (activeUser?.type !== "admin" || !token) { timetableSetStatus("يلزم تسجيل الدخول بحساب مدير النظام لحفظ الجدول.", "error"); return; }
+  if (!timetablePendingWorkbook || !timetablePendingWorkbook.sheets) { timetableSetStatus("أعد تحليل ملف Excel قبل الحفظ.", "error"); return; }
+  if (timetableSavedImport) { timetableSetStatus("هذه النسخة محفوظة بالفعل. أعد رفع الملف لإنشاء نسخة استيراد جديدة.", "success"); return; }
+  const original = button.innerHTML;
+  button.disabled = true;
+  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الحفظ...';
+  try {
+    const result = await appAuthRequest({
+      action:"timetable_save_import",
+      fileName:timetablePendingWorkbook.fileName,
+      sheets:timetablePendingWorkbook.sheets
+    }, token);
+    timetableSavedImport = result.saved;
+    button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
+    button.disabled = true;
+    timetableSetStatus("حُفظت نسخة مسودة بنجاح. رقم النسخة: "+(result.saved?.version || 1)+" — رقم الاستيراد: "+(result.saved?.import_id || ""), "success");
+  } catch (error) {
+    button.disabled = false;
+    button.innerHTML = original;
+    timetableSetStatus(error?.message || "تعذر حفظ نسخة الجدول.", "error");
+  }
+}
+
 function timetableRenderPreview() {
   const preview = timetableImportPreview;
   if (!preview || !preview.result) return;
