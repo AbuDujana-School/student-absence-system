@@ -7123,7 +7123,7 @@ function switchAdminTab(tab) {
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
-  if (tab === 'timetable') timetableLoadImports();
+  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
