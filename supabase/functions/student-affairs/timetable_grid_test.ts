@@ -130,3 +130,41 @@ Deno.test("rejects a daily message whose heading conflicts with the selected day
  try{parseTimetableDay("الأحد",schoolMessageFormat);}catch(error){rejected=String(error).includes("اليوم المختار");}
  if(!rejected)throw new Error("A weekday mismatch must not be silently accepted");
 });
+
+const tabSeparatedDay=`اليوم: الأحد
+اسم المعلم	اليوم	الحصة	الصف والشعبة	المادة	الحالة	الملاحظات
+عبدالهادي عبدالله محمد البلوشي	الأحد	1	1-Dec	الرياضيات المتقدمة	تدريس	مجموعة اختيارية 1
+عبدالهادي عبدالله محمد البلوشي	الأحد	2	فراغ	فراغ	فارغ	حصة فراغ
+عبدالهادي عبدالله محمد البلوشي	الأحد	3	3/12	الرياضيات المتقدمة	تدريس	
+عبدالهادي عبدالله محمد البلوشي	الأحد	4	اجتماع المادة	الرياضيات المتقدمة	اجتماع المادة	اجتماع القسم
+عبدالهادي عبدالله محمد البلوشي	الأحد	5	5/12	الرياضيات المتقدمة	تدريس	
+عبدالهادي عبدالله محمد البلوشي	الأحد	6	غير واضح	غير واضح	غير واضح	راجع المصدر
+عبدالهادي عبدالله محمد البلوشي	الأحد	7	فراغ	فراغ	فارغ	حصة فراغ`;
+Deno.test("parses the original tab-separated timetable rows and preserves optional notes",()=>{
+ const result=parseTimetableDay("الأحد",tabSeparatedDay);
+ const teacher=result.teachers[0];
+ if(result.teachers.length!==1||result.totalCells!==7)throw new Error("Expected one teacher and seven weekly-grid cells");
+ if(teacher.sourceName!=="عبدالهادي عبدالله محمد البلوشي")throw new Error("Full teacher name must be retained");
+ if(teacher.cells[0].classSections[0]!=="1-Dec")throw new Error("Class section source value was not retained");
+ if(teacher.cells[0].sourceNote!=="مجموعة اختيارية 1")throw new Error("Optional group note was not retained");
+ if(teacher.cells[1].status!=="free")throw new Error("Explicit empty status should be free");
+ if(teacher.cells[3].status!=="meeting")throw new Error("Subject meeting should be classified as meeting");
+ if(teacher.cells[5].status!=="unclear")throw new Error("Unclear cells must remain unclear");
+});
+Deno.test("merges multiple tab-separated classes for the same teacher period only when the subject and status agree",()=>{
+ const rows=tabSeparatedDay.replace("عبدالهادي عبدالله محمد البلوشي\tالأحد\t2\tفراغ\tفراغ\tفارغ\tحصة فراغ",
+   "عبدالهادي عبدالله محمد البلوشي\tالأحد\t1\t2-Dec\tالرياضيات المتقدمة\tتدريس\tمجموعة اختيارية 2\nعبدالهادي عبدالله محمد البلوشي\tالأحد\t2\tفراغ\tفراغ\tفارغ\tحصة فراغ");
+ const result=parseTimetableDay("الأحد",rows);
+ const first=result.teachers[0].cells.find(cell=>cell.period===1)!;
+ if(first.classSections.join("|")!=="1-Dec|2-Dec")throw new Error("Parallel class sections should be retained in one period cell");
+ if(!first.sourceNote?.includes("مجموعة اختيارية 2"))throw new Error("Notes from merged group rows should be retained");
+});
+Deno.test("rejects tab-separated rows with a conflicting weekday or conflicting period assignment",()=>{
+ const wrongDay=tabSeparatedDay.replace("\tالأحد\t1\t","\tالاثنين\t1\t");
+ const conflict=tabSeparatedDay.replace("عبدالهادي عبدالله محمد البلوشي\tالأحد\t2\tفراغ\tفراغ\tفارغ\tحصة فراغ",
+   "عبدالهادي عبدالله محمد البلوشي\tالأحد\t1\t2-Dec\tاللغة العربية\tتدريس\tمجموعة أخرى");
+ let rejectedDay=false,rejectedConflict=false;
+ try{parseTimetableDay("الأحد",wrongDay);}catch(error){rejectedDay=String(error).includes("ليس يوم");}
+ try{parseTimetableDay("الأحد",conflict);}catch(error){rejectedConflict=String(error).includes("متعارض");}
+ if(!rejectedDay||!rejectedConflict)throw new Error("Mismatched day and conflicting same-period rows must be rejected");
+});
