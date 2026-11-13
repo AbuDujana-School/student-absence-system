@@ -166,7 +166,7 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
 const CONFIRMED_TEACHER_LINKS: Record<string, string> = {
   [normalizeArabicName("س فيزياء")]: normalizeArabicName("محمد البشير"),
   [normalizeArabicName("محمد جمعة ناصر السعدي")]: normalizeArabicName("محمد جمعة السعدي"),
-  [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله الساعدي"),
+  [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله السعدي"),
 };
 
 /** Reuse the reviewed workbook identity-matching rules for pasted timetable day imports. */
