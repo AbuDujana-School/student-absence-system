@@ -1069,7 +1069,7 @@ async function handle(req: Request) {
       if (!activeVersion) return reply(200, { ok:true, active:false, absentTeachers:[], lessons:[] });
 
       const [{ data: directory, error: directoryError }, { data: dayCells, error: cellsError }] = await Promise.all([
-        db.from("teachers").select("name,role,permissions").eq("role","teacher").order("name"),
+        db.from("teachers").select("name,role,permissions").in("role",["teacher","custom"]).order("name"),
         db.from("timetable_weekly_cells")
           .select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
           .eq("version_id",activeVersion.id).eq("weekday",weekday),
@@ -1079,6 +1079,7 @@ async function handle(req: Request) {
 
       const teacherRows = (directory || []).map((item:any) => ({
         name:String(item.name || ""),
+        role:String(item.role || ""),
         department:String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
       })).filter((item:any)=>item.name);
       const actorDirectoryRow = teacherRows.find((item:any)=>item.name===principal.name);
@@ -1091,7 +1092,7 @@ async function handle(req: Request) {
       const includeOtherDepartments = body.includeOtherDepartments === true;
       if (absentTeacherName) {
         const absentDirectoryRow = teacherRows.find((item:any)=>item.name===absentTeacherName);
-        if (!absentDirectoryRow) return reply(404,{error:"المعلم المحدد غير موجود في دليل المعلمين."});
+        if (!absentDirectoryRow || absentDirectoryRow.role!=="teacher") return reply(404,{error:"المعلم المحدد غير موجود في دليل المعلمين."});
         if (principal.type !== "admin" && absentDirectoryRow.department !== actorDepartment) {
           return reply(403,{error:"يمكنك إدارة احتياط معلمي قسمك فقط."});
         }
@@ -1122,6 +1123,7 @@ async function handle(req: Request) {
       if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return reply(400,{error:"تاريخ الغياب غير صالح."});
       const absentTeachers = Array.from(new Set((dayCells || [])
         .filter((cell:any)=>cell.cell_status==="teaching" && cell.matched_teacher_name)
+        .filter((cell:any)=>teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.role==="teacher")
         .filter((cell:any)=>principal.type==="admin" || teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.department===actorDepartment)
         .map((cell:any)=>String(cell.matched_teacher_name))))
         .sort((a,b)=>a.localeCompare(b,"ar"));
@@ -1148,7 +1150,7 @@ async function handle(req: Request) {
           (item.assignment_date>=toLocalIsoDate(weekStart) && item.assignment_date<=toLocalIsoDate(weekEnd!)))
         .map((item:any)=>({substituteTeacherId:String(item.teacher_name),weekday:String(item.weekday),
           period:Number(item.period),assignmentDate:item.assignment_date || null,status:item.status}));
-      const candidates:SubstitutionTeacher[]=teacherRows.map((item:any)=>({
+      const candidates:SubstitutionTeacher[]=teacherRows.filter((item:any)=>item.role==="teacher").map((item:any)=>({
         id:item.name,name:item.name,departmentId:item.department,
       }));
       const lessonOptions=lessons.map((lesson)=>{
