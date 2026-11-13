@@ -3032,6 +3032,17 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
         </div>
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
+        <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">تاريخ الغياب<input id="timetableSubstitutionDate" type="date" value="" onchange="timetableLoadSubstitutionOptions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
+            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
+            <label class="text-xs font-bold text-slate-600 dark:text-slate-300 sm:col-span-2">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="">اختر المعلم الغائب</option></select></label>
+          </div>
+          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetablePreviewSubstitutions()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
+          <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div id="timetableSubstitutionResults" class="space-y-3"></div>
+        </div>
         <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
       </section>
         <div id="timetableRecordEditor" class="hidden fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
@@ -7123,7 +7134,7 @@ function switchAdminTab(tab) {
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
-  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); }
+  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
@@ -8567,6 +8578,7 @@ let timetableEditorOriginalData = null;
 let timetableSelectedTeacherIndex = -1;
 let timetableCanAccess = false;
 let timetableAccessUsers = [];
+let timetableSubstitutionContext = null;
 function timetableEsc(value) {
   return String(value ?? "").replace(/[&<>"']/g, function(ch) {
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];
@@ -8989,6 +9001,100 @@ async function timetableResumeWeeklyDraft() {
   } finally {
     if (button) { button.disabled = false; button.innerHTML = old; }
   }
+}
+
+function timetableSubstitutionGetDate() {
+  const input = document.getElementById("timetableSubstitutionDate");
+  if (input && !input.value) input.value = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
+  const value = input?.value || "";
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) throw new Error("حدد تاريخ الغياب أولاً.");
+  const parts = value.split("-").map(Number);
+  const date = new Date(parts[0],parts[1]-1,parts[2],12,0,0);
+  if (date.getFullYear()!==parts[0] || date.getMonth()!==parts[1]-1 || date.getDate()!==parts[2]) throw new Error("تاريخ الغياب غير صحيح.");
+  const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
+  const weekday = days[date.getDay()];
+  if (date.getDay()>4) throw new Error("الاحتياط متاح لأيام الدراسة من الأحد إلى الخميس فقط.");
+  const dayInput = document.getElementById("timetableSubstitutionWeekday");
+  if (dayInput) dayInput.value = weekday;
+  return {date:value,weekday};
+}
+function timetableSubstitutionSetStatus(message,kind="info") {
+  const el=document.getElementById("timetableSubstitutionStatus");
+  if(!el)return;
+  el.textContent=message;
+  el.className="rounded-xl border px-4 py-3 text-xs font-bold "+(kind==="error"?"border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300":kind==="success"?"border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200":"border-cyan-200 bg-cyan-50 text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200");
+  el.classList.remove("hidden");
+}
+async function timetableLoadSubstitutionOptions() {
+  const panel=document.getElementById("timetableSubstitutionPanel");
+  if(!panel)return;
+  if(activeUser?.type!=="admin"&&!timetableCanAccess)return;
+  panel.classList.remove("hidden");
+  try{
+    const {date,weekday}=timetableSubstitutionGetDate();
+    const token=appAuthSession?.token||readAppAuthToken();
+    if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+    const response=await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date},token);
+    if(!response.active){
+      timetableSubstitutionContext=null;
+      document.getElementById("timetableSubstitutionAbsentTeacher").innerHTML='<option value="">لا يوجد جدول أسبوعي معتمد</option>';
+      document.getElementById("timetableSubstitutionResults").innerHTML="";
+      timetableSubstitutionSetStatus("لا يوجد جدول أسبوعي نشط. يجب اعتماد جدول الأيام الخمسة أولاً.","info");
+      return;
+    }
+    const select=document.getElementById("timetableSubstitutionAbsentTeacher");
+    const previous=select.value;
+    select.innerHTML='<option value="">اختر المعلم الغائب</option>'+(response.absentTeachers||[]).map(name=>'<option value="'+timetableEsc(name)+'">'+timetableEsc(name)+'</option>').join("");
+    if((response.absentTeachers||[]).includes(previous))select.value=previous;
+    timetableSubstitutionContext={date,weekday,version:response.version};
+    timetableSubstitutionSetStatus("الجدول النشط رقم "+response.version.version+" — اختر المعلم الغائب لعرض حصصه والبدلاء المتاحين.","success");
+    if(select.value)await timetablePreviewSubstitutions();
+    else document.getElementById("timetableSubstitutionResults").innerHTML="";
+  }catch(error){
+    timetableSubstitutionSetStatus(error?.message||"تعذر تحميل قائمة المعلمين.","error");
+  }
+}
+async function timetablePreviewSubstitutions() {
+  const host=document.getElementById("timetableSubstitutionResults");
+  const absent=document.getElementById("timetableSubstitutionAbsentTeacher")?.value||"";
+  if(!absent){if(host)host.innerHTML="";return;}
+  try{
+    const {date,weekday}=timetableSubstitutionGetDate();
+    const token=appAuthSession?.token||readAppAuthToken();
+    const includeOtherDepartments=document.getElementById("timetableSubstitutionOtherDepartments")?.checked===true;
+    const response=await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName:absent,includeOtherDepartments},token);
+    timetableSubstitutionContext={date,weekday,absentTeacherName:absent,version:response.version};
+    timetableRenderSubstitutionLessons(response);
+  }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر تحميل حصص المعلم الغائب.","error");}
+}
+function timetableRenderSubstitutionLessons(response) {
+  const host=document.getElementById("timetableSubstitutionResults");
+  if(!host)return;
+  const lessons=response.lessons||[];
+  if(!lessons.length){host.innerHTML='<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-xs text-slate-500">لا توجد حصص تدريس مسجلة لهذا المعلم في هذا اليوم.</div>';return;}
+  host.innerHTML=lessons.map(lesson=>{
+    const candidates=lesson.candidates||[];
+    const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+'</option>').join("");
+    return '<article class="rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><div class="text-xs font-black text-slate-800 dark:text-white">الحصة '+lesson.period+'</div><span class="text-[10px] text-slate-500">'+timetableEsc(lesson.className||"الشعبة غير محددة")+' — '+timetableEsc(lesson.subject||"المادة غير محددة")+'</span></div>'+(candidates.length?'<div class="flex flex-col sm:flex-row gap-2"><select data-substitution-candidate="'+lesson.period+'" class="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs"><option value="">اختر المعلم البديل</option>'+options+'</select><button type="button" data-substitution-save="'+lesson.period+'" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-3 text-xs font-black text-white">تعيين البديل</button></div>':'<div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-200">لا يوجد معلم متاح بفراغ مؤكد في هذه الحصة ضمن النطاق المحدد.</div>')+'</article>';
+  }).join("");
+  host.querySelectorAll("[data-substitution-save]").forEach(button=>button.addEventListener("click",()=>{
+    const period=Number(button.getAttribute("data-substitution-save"));
+    const select=host.querySelector('[data-substitution-candidate="'+period+'"]');
+    timetableSaveSubstitution(period,select?.value||"");
+  }));
+  timetableSubstitutionSetStatus("تم العثور على "+lessons.length+" حصة تدريس. اختر بديلاً مستقلاً لكل حصة ثم عيّنه.","success");
+}
+async function timetableSaveSubstitution(period,substituteTeacherName) {
+  const context=timetableSubstitutionContext;
+  if(!context||!substituteTeacherName){timetableSubstitutionSetStatus("اختر معلماً بديلاً أولاً.","error");return;}
+  try{
+    const token=appAuthSession?.token||readAppAuthToken();
+    const includeOtherDepartments=document.getElementById("timetableSubstitutionOtherDepartments")?.checked===true;
+    await appAuthRequest({action:"timetable_substitution_save",weekday:context.weekday,assignmentDate:context.date,
+      absentTeacherName:context.absentTeacherName,substituteTeacherName,period,includeOtherDepartments},token);
+    timetableSubstitutionSetStatus("تم تعيين "+substituteTeacherName+" بديلاً في الحصة "+period+".","success");
+    await timetablePreviewSubstitutions();
+  }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
 }
 
 async function timetableImportWorkbook() {
