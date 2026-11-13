@@ -121,6 +121,18 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
 /** Parse a single day. Input may use one teacher section with seven labelled cells or one tab-separated row per teacher/period:
  * teacher name, weekday, period, class, subject, status, optional note.
  */
+
+/** Enforce the school's reviewed teacher roster size at the import boundary. */
+export function validateSchoolTeacherCount(day: ParsedTimetableDay, expectedCount: number): void {
+  if (!Number.isInteger(expectedCount) || expectedCount < 1) {
+    throw new Error("عدد المعلمين المتوقع غير صالح.");
+  }
+  if (day.teachers.length !== expectedCount) {
+    throw new Error("يجب أن يحتوي يوم " + day.weekday + " على " + expectedCount +
+      " معلماً بالضبط؛ الموجود " + day.teachers.length + ". راجع التفريغ قبل الحفظ.");
+  }
+}
+
 export function parseTimetableDay(weekday: string, sourceText: string): ParsedTimetableDay {
   const day=weekdayFromSource(weekday);
   if (!day) throw new Error("يجب تحديد يوم دراسي صحيح من الأحد إلى الخميس.");
