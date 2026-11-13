@@ -358,6 +358,9 @@ begin
   if v_period is not null and v_period not between 1 and 20 then
     raise exception 'رقم الحصة خارج النطاق المسموح.';
   end if;
+  if v_weekday is not null and v_weekday not in ('الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس') then
+    raise exception 'يوم الدراسة غير صالح.';
+  end if;
 
   v_class := nullif(btrim(coalesce(v_record_data->>'className','')),'');
   v_group := nullif(btrim(coalesce(v_record_data->>'groupName','')),'');
