@@ -120,3 +120,46 @@ These are design names, not approved production schema. Inspect existing migrati
 - [ ] Implement importer, schedule editor, permissions, and substitution workflow.
 - [ ] Run automated and manual regression/security tests.
 - [ ] Obtain explicit user approval before any merge or deployment.
+
+
+## Clarification from the school: use this exact workbook as the only upload source
+
+The school confirmed that the seven-sheet workbook `ورقة1.xlsx` is the exact workbook that must be uploaded through the admin dashboard; no second final-placement export is expected.
+
+This changes the import design: the importer must treat the workbook as a timetable-construction input, not as a pre-populated weekly placement grid. It must build a fixed, repeatable timetable-generation workflow from the workbook's contracts and constraints, then allow the administrator to review and edit the generated schedule.
+
+### Confirmed workbook semantics and constraints to preserve
+
+- `الحصص`, `العقود الفصول`, and `العقد` describe teaching contracts, class/group, subject, duration, weekly lesson count, cycle, and room constraints. These records are not already assigned to weekdays and periods.
+- `المعلمون` contains the teacher's full source name in column B and an abbreviation/short name in column C. Use column C as an explicit alias when matching to the existing school teacher directory, in addition to normalized full-name matching.
+- The teacher `التفريغ` column contains weekday/period expressions, such as `الأحد: 1, 4-6; الأربعاء: 5-7; الخميس: 4-7`. Parse these expressions into structured weekday-period constraints, preserving the raw source text.
+- The workbook also contains class, room, and subject `التفريغ` fields. Parse them through the same constraint pipeline, but do not assume their precise meaning until the school timetable software's semantics are verified.
+- The workbook includes additional constraint fields such as teacher `مدرس الفصل`, `الربط بالمادة`, `النوافذ`, `MWD`, `EXH`, `DAYS`, and `<a,b>`; retain these fields in the import model rather than discarding unfamiliar columns.
+
+### Fixed timetable reconstruction workflow
+
+1. Import all seven sheets and preserve source sheet/row/cell references.
+2. Normalize and reconcile teacher full names, teacher abbreviations, classes, subjects, rooms, and contract/group references.
+3. Convert weekly lesson counts and durations into required lesson units. Handle double periods and group splits according to the source contract fields.
+4. Parse all weekday/period restrictions and room/class restrictions into typed constraints.
+5. Build a weekly timetable-generation problem for the school's actual teaching days and periods. Do not hard-code a guessed school week or number of periods; derive it from valid workbook constraints where possible and expose a small admin configuration step where it cannot be established safely.
+6. Use a deterministic constraint solver with a fixed seed/tie-break order so repeated runs with unchanged input and settings produce the same proposed timetable. The solver must enforce teacher, class, room, group, duration, weekly-load, and availability constraints; report infeasible contracts rather than silently dropping or moving them.
+7. Produce a **proposed generated timetable**, not an asserted copy of the source timetable. Show every scheduled lesson by weekday, period, class, subject, and teacher.
+8. Give the administrator a full editable timetable grid and an exception list for unresolved names, missing constraints, unscheduled lessons, double-bookings, and impossible combinations.
+9. Require administrator review and explicit activation before the generated timetable becomes the source of truth for substitution availability.
+10. Keep solver version, input workbook hash, configuration, seed, run timestamp, warnings, manual edits, and activated version in the audit history. Re-running generation must not overwrite manual edits or an active version without explicit confirmation.
+
+### Critical semantic validation before solver implementation
+
+The word `التفريغ` may mean unavailable periods, released periods, or a specific timetable-software constraint. Do not invert its meaning based on the label alone. Build a preview showing each parsed restriction and ask the administrator to confirm the interpretation before the first generation. Likewise, validate the meaning of MWD/EXH/DAYS/`<a,b>`, the school's actual weekday/period structure, and the contract cycle/duration fields against the source timetable application or a confirmed sample.
+
+### Acceptance rule
+
+A generated schedule is acceptable only if:
+- every required weekly lesson unit is scheduled exactly as contracted, or explicitly reported as unresolved;
+- no teacher, class, group, or room conflict exists;
+- all confirmed availability and duration constraints are obeyed;
+- all ambiguous source data is surfaced for review;
+- an administrator can edit and validate every placement before activation.
+
+No timetable-generation output may be used for substitution assignments until it has passed these checks and been activated by the administrator.
