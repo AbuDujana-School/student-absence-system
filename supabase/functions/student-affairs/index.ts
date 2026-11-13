@@ -1139,10 +1139,15 @@ async function handle(req: Request) {
         .select("teacher_name,weekday,period,status,assignment_date")
         .eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
       if (assignmentError) throw assignmentError;
+      const selectedDate = date ? new Date(date+"T12:00:00") : null;
+      const weekStart = selectedDate ? new Date(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate()-selectedDate.getDay(),12) : null;
+      const weekEnd = weekStart ? new Date(weekStart.getFullYear(),weekStart.getMonth(),weekStart.getDate()+4,12) : null;
+      const toLocalIsoDate=(value:Date)=>value.getFullYear()+"-"+String(value.getMonth()+1).padStart(2,"0")+"-"+String(value.getDate()).padStart(2,"0");
       const assignments:SubstitutionAssignment[]=(assignmentRows || [])
-        .filter((item:any)=>item.weekday===weekday && (!date || !item.assignment_date || item.assignment_date===date))
+        .filter((item:any)=>!item.assignment_date || !weekStart ||
+          (item.assignment_date>=toLocalIsoDate(weekStart) && item.assignment_date<=toLocalIsoDate(weekEnd!)))
         .map((item:any)=>({substituteTeacherId:String(item.teacher_name),weekday:String(item.weekday),
-          period:Number(item.period),status:item.status}));
+          period:Number(item.period),assignmentDate:item.assignment_date || null,status:item.status}));
       const candidates:SubstitutionTeacher[]=teacherRows.map((item:any)=>({
         id:item.name,name:item.name,departmentId:item.department,
       }));
@@ -1150,7 +1155,7 @@ async function handle(req: Request) {
         const eligible=getAvailableSubstitutionCandidates({
           teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,
           weekday,period:lesson.period,departmentId:teacherRows.find((item:any)=>item.name===absentTeacherName)?.department || "",
-          includeOtherDepartments,
+          includeOtherDepartments,assignmentDate:date || undefined,
         });
         return {...lesson,candidates:eligible};
       });
