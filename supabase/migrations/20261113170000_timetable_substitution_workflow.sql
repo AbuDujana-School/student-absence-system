@@ -77,6 +77,9 @@ begin
     where version_id=v_version_id and matched_teacher_name=v_absent_name
       and weekday=v_weekday and period=v_period and cell_status='teaching';
   if not found then raise exception 'لا توجد حصة تدريس مسجلة للمعلم الغائب في هذه الفترة.'; end if;
+  if jsonb_array_length(v_absent_cell.class_sections)=0 or btrim(coalesce(v_absent_cell.subject,''))='' then
+    raise exception 'بيانات صف أو مادة الحصة الغائبة غير مكتملة؛ لا يمكن إنشاء تكليف احتياط آمن.';
+  end if;
 
   select coalesce(permissions->>'category',permissions->>'department_id',permissions->>'department_name','')
     into v_absent_department from public.teachers where name=v_absent_name and role='teacher';
