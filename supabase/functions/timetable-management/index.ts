@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
-import { resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
+import { canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -73,13 +73,7 @@ async function handle(req: Request) {
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
 
   const action = String(body.action || "");
-  const importReadActions = new Set([
-    "timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates",
-  ]);
-  const teacherReadOnlyActions = new Set([
-    "health", "timetable_check_access", "teacher_timetable_get_own", ...importReadActions,
-  ]);
-  if (principal.type !== "admin" && !teacherReadOnlyActions.has(action)) {
+  if (!canUseTimetableAction(principal.type, action)) {
     return reply(403, { error: "يمكن للحساب المصرح له استعراض الجداول والنسخ فقط؛ عمليات التعديل متاحة للمدير." });
   }
 
