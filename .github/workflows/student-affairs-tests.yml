@@ -324,6 +324,8 @@ jobs:
             v_assignment_count integer;
             v_duplicate_blocked boolean := false;
             v_substitution jsonb;
+            v_cancelled_substitution jsonb;
+            v_cancelled_status text;
             v_cross_department_blocked boolean := false;
             v_wrong_department_actor_blocked boolean := false;
             v_busy_candidate_blocked boolean := false;
@@ -461,9 +463,17 @@ jobs:
               END IF;
             END;
             IF NOT v_duplicate_substitution_blocked THEN RAISE EXCEPTION 'duplicate replacement for the same absent lesson was not blocked'; END IF;
+
+            v_cancelled_substitution := public.cancel_timetable_substitution(jsonb_build_object(
+              'assignment_id',v_substitution->>'assignment_id','actor_type','admin','actor_name','synthetic-admin'
+            ));
+            IF v_cancelled_substitution->>'status'<>'cancelled' THEN RAISE EXCEPTION 'substitution cancellation did not update status'; END IF;
+            SELECT status INTO v_cancelled_status FROM public.timetable_assignments
+              WHERE id=(v_substitution->>'assignment_id')::uuid;
+            IF v_cancelled_status<>'cancelled' THEN RAISE EXCEPTION 'cancelled substitution remains active'; END IF;
             SELECT count(*) INTO v_substitution_audit_count FROM public.timetable_assignment_audit
-              WHERE assignment_id=(v_substitution->>'assignment_id')::uuid AND action='created';
-            IF v_substitution_audit_count<>1 THEN RAISE EXCEPTION 'substitution audit record was not written'; END IF;
+              WHERE assignment_id=(v_substitution->>'assignment_id')::uuid AND action IN ('created','cancelled');
+            IF v_substitution_audit_count<>2 THEN RAISE EXCEPTION 'substitution create/cancel audit trail is incomplete'; END IF;
 
             IF (SELECT count(*) FROM public.timetable_weekly_versions WHERE status='active') <> 1 THEN
               RAISE EXCEPTION 'There must be exactly one active timetable version';
@@ -520,6 +530,8 @@ jobs:
               OR has_table_privilege('authenticated','public.timetable_assignment_audit','SELECT')
               OR has_function_privilege('anon','public.create_timetable_substitution(jsonb)','EXECUTE')
               OR has_function_privilege('authenticated','public.create_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('anon','public.cancel_timetable_substitution(jsonb)','EXECUTE')
+              OR has_function_privilege('authenticated','public.cancel_timetable_substitution(jsonb)','EXECUTE')
               OR has_function_privilege('anon','public.save_timetable_weekly_day(jsonb)','EXECUTE')
               OR has_function_privilege('authenticated','public.activate_timetable_weekly_version(jsonb)','EXECUTE') THEN
               RAISE EXCEPTION 'Browser roles must not access weekly timetable storage or RPCs directly';
@@ -529,7 +541,8 @@ jobs:
               OR NOT has_function_privilege('service_role','public.save_timetable_weekly_day(jsonb)','EXECUTE')
               OR NOT has_function_privilege('service_role','public.activate_timetable_weekly_version(jsonb)','EXECUTE')
               OR NOT has_table_privilege('service_role','public.timetable_assignment_audit','INSERT')
-              OR NOT has_function_privilege('service_role','public.create_timetable_substitution(jsonb)','EXECUTE') THEN
+              OR NOT has_function_privilege('service_role','public.create_timetable_substitution(jsonb)','EXECUTE')
+              OR NOT has_function_privilege('service_role','public.cancel_timetable_substitution(jsonb)','EXECUTE') THEN
               RAISE EXCEPTION 'service_role is missing weekly timetable privileges';
             END IF;
           END $do$;
