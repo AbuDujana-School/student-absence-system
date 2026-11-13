@@ -19,9 +19,7 @@ const cors = {
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers: cors });
 }
-type TimetablePrincipal = { type: "admin" | "teacher" | "custom"; name: string };
-
-async function requirePrincipal(req:const timetableAuthStore: TimetableAuthStore = {
+const timetableAuthStore: TimetableAuthStore = {
   async findSession(tokenHash, nowIso) {
     const { data, error } = await db.from("app_sessions")
       .select("principal_type,principal_name,expires_at")
@@ -51,7 +49,9 @@ async function requirePrincipal(req:const timetableAuthStore: TimetableAuthStore
 async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
   return resolveTimetablePrincipal(req.headers.get("authorization"), timetableAuthStore);
 }
-1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+
+function validUuid(value: unknown): value is string {
+  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 async function teacherDirectory() {
   const { data, error } = await db.from("teachers").select("name,role,permissions").in("role", ["teacher","custom"]).order("name");
