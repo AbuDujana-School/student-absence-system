@@ -309,6 +309,7 @@ jobs:
           INSERT INTO public.teachers(name,role,permissions)
           VALUES ('synthetic-math-teacher','teacher','{"category":"الرياضيات"}'::jsonb)
           ON CONFLICT (name) DO NOTHING;
+          GRANT SELECT ON public.teachers TO service_role;
           DO $do$
           DECLARE
             v_saved jsonb;
