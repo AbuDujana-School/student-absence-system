@@ -9,7 +9,8 @@ import {
   type AppLoginCandidate, type AppPrincipal,
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
-import { parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
+import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
+import { parseTimetableDay } from "./timetable_grid.ts";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -916,6 +917,113 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر تحديث صلاحية الجداول. تحقق من migration التطوير." });
     }
   }
+  if (["timetable_parse_day","timetable_save_weekly_day","timetable_activate_weekly_version"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "إدارة الجدول الأسبوعي متاحة لمدير النظام العام فقط." });
+      }
+
+      if (body.action === "timetable_activate_weekly_version") {
+        const versionId = String(body.versionId || "");
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(versionId)) {
+          return reply(400, { error: "رقم نسخة الجدول غير صالح." });
+        }
+        const { data, error } = await db.rpc("activate_timetable_weekly_version", {
+          p_payload: { version_id: versionId, actor_name: principal.name },
+        });
+        if (error) throw error;
+        return reply(200, { ok: true, result: data });
+      }
+
+      const weekday = String(body.weekday || "");
+      const sourceText = String(body.text || "");
+      if (!sourceText.trim() || sourceText.length > 500000) {
+        return reply(400, { error: "أدخل نص يوم دراسي صحيحاً لا يتجاوز الحد المسموح." });
+      }
+      const parsed = parseTimetableDay(weekday, sourceText);
+      const { data: directory, error: directoryError } = await db
+        .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
+      if (directoryError) throw directoryError;
+      const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
+        name: String(teacher.name || ""),
+        departmentId: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+      })).filter((teacher: SystemTeacher) => teacher.name);
+      const matchedTeachers = parsed.teachers.map((teacher) => {
+        const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
+        return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
+      });
+      const matchingTotals = {
+        matched: matchedTeachers.filter((teacher) => teacher.matchStatus === "matched").length,
+        unmatched: matchedTeachers.filter((teacher) => teacher.matchStatus === "unmatched").length,
+        ambiguous: matchedTeachers.filter((teacher) => teacher.matchStatus === "ambiguous").length,
+      };
+
+      if (body.action === "timetable_parse_day") {
+        return reply(200, {
+          ok: true, weekday: parsed.weekday, teachers: matchedTeachers,
+          totals: parsed.totals, totalCells: parsed.totalCells, matchingTotals,
+        });
+      }
+
+      const versionId = body.versionId ? String(body.versionId) : null;
+      if (versionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(versionId)) {
+        return reply(400, { error: "رقم المسودة غير صالح." });
+      }
+      const { data, error } = await db.rpc("save_timetable_weekly_day", {
+        p_payload: {
+          version_id: versionId,
+          weekday: parsed.weekday,
+          teachers: matchedTeachers,
+          actor_name: principal.name,
+        },
+      });
+      if (error) throw error;
+      return reply(200, { ok: true, result: data, matchingTotals });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      console.error("Weekly timetable day operation failed:", error);
+      return reply(400, { error: message || "تعذر معالجة اليوم. راجع النص والخانات ثم أعد المحاولة." });
+    }
+  }
+
+  if (body?.action === "teacher_timetable_get_own") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "teacher") {
+        return reply(403, { error: "عرض الجدول الشخصي متاح لحساب المعلم فقط." });
+      }
+      const { data: activeVersion, error: versionError } = await db.from("timetable_weekly_versions")
+        .select("id,version,status,activated_at").eq("status", "active").maybeSingle();
+      if (versionError) throw versionError;
+      if (!activeVersion) return reply(200, { ok: true, teacherName: principal.name, version: null, cells: [], assignments: [] });
+      const [{ data: cells, error: cellsError }, { data: assignments, error: assignmentsError }] = await Promise.all([
+        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page")
+          .eq("version_id", activeVersion.id).eq("matched_teacher_name", principal.name),
+        db.from("timetable_assignments").select("id,assignment_type,weekday,period,class_sections,subject,absent_teacher_name,status")
+          .eq("version_id", activeVersion.id).eq("teacher_name", principal.name).neq("status", "cancelled"),
+      ]);
+      if (cellsError) throw cellsError;
+      if (assignmentsError) throw assignmentsError;
+      const weekdayOrder = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      const sortCells = (left: any, right: any) =>
+        weekdayOrder.indexOf(left.weekday) - weekdayOrder.indexOf(right.weekday) || left.period - right.period;
+      return reply(200, {
+        ok: true, teacherName: principal.name, version: activeVersion,
+        cells: (cells || []).sort(sortCells),
+        assignments: (assignments || []).sort(sortCells),
+      });
+    } catch (error) {
+      console.error("Teacher personal timetable read failed:", error);
+      return reply(500, { error: "تعذر تحميل الجدول الشخصي حالياً." });
+    }
+  }
+
   if (body?.action === "timetable_preview") {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
