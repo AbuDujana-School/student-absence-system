@@ -277,6 +277,12 @@ begin
       v_import_id, v_record.id, 'record_deleted', 'admin', v_actor, v_record.record_data
     );
     delete from public.timetable_import_records where id = v_record.id;
+    update public.timetable_imports
+       set has_weekly_placements = exists (
+         select 1 from public.timetable_import_records
+          where import_id = v_import_id and weekday is not null and period is not null
+       ), updated_at = now()
+     where id = v_import_id;
     return jsonb_build_object('ok',true,'mode','delete','record_id',v_record.id);
   end if;
 
@@ -336,6 +342,9 @@ begin
   v_class := nullif(btrim(coalesce(v_record_data->>'className','')),'');
   v_group := nullif(btrim(coalesce(v_record_data->>'groupName','')),'');
   v_room := nullif(btrim(coalesce(v_record_data->>'rooms','')),'');
+  if v_class is null or btrim(coalesce(v_record_data->>'subject','')) = '' then
+    raise exception 'يجب تحديد الشعبة والمادة للحصة.';
+  end if;
 
   if v_weekday is not null then
     if exists (
@@ -385,6 +394,12 @@ begin
     ) values (
       v_import_id, v_record.id, 'record_updated', 'admin', v_actor, v_record.record_data, v_record_data
     );
+    update public.timetable_imports
+       set has_weekly_placements = exists (
+         select 1 from public.timetable_import_records
+          where import_id = v_import_id and weekday is not null and period is not null
+       ), updated_at = now()
+     where id = v_import_id;
     return jsonb_build_object('ok',true,'mode','update','record_id',v_record.id);
   end if;
 
@@ -405,6 +420,12 @@ begin
   ) values (
     v_import_id, v_record.id, 'record_added', 'admin', v_actor, v_record_data
   );
+  update public.timetable_imports
+     set has_weekly_placements = exists (
+       select 1 from public.timetable_import_records
+        where import_id = v_import_id and weekday is not null and period is not null
+     ), updated_at = now()
+   where id = v_import_id;
   return jsonb_build_object('ok',true,'mode','add','record_id',v_record.id);
 end;
 $function$;
