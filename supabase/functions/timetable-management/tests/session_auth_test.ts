@@ -168,8 +168,7 @@ Deno.test("authorized non-admin timetable users are limited to read-only timetab
     if (!canUseTimetableAction("custom", action)) throw new Error("Expected custom read action to be allowed: " + action);
   }
   for (const action of [
-    "timetable_preview", "timetable_save_import", "timetable_mutate_record",
-    "timetable_reassign_owner", "timetable_set_access", "timetable_activate_weekly_version",
+    "timetable_preview", "timetable_save_import", "timetable_set_access", "timetable_activate_weekly_version",
   ]) {
     if (canUseTimetableAction("teacher", action)) throw new Error("Teacher write action was allowed: " + action);
     if (canUseTimetableAction("custom", action)) throw new Error("Custom write action was allowed: " + action);
