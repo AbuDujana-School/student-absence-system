@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
+import { resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -18,45 +19,39 @@ const cors = {
 function reply(status: number, body: Record<string, unknown>) {
   return new Response(JSON.stringify(body), { status, headers: cors });
 }
-async function sha256(value: string) {
-  const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
-  return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
-}
 type TimetablePrincipal = { type: "admin" | "teacher" | "custom"; name: string };
 
-async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
-  const authorization = req.headers.get("authorization") || "";
-  const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization.trim());
-  if (!match) return null;
-  const tokenHash = await sha256(match[1].toLowerCase());
-  const { data: session, error: sessionError } = await db.from("app_sessions")
-    .select("principal_type,principal_name,expires_at")
-    .eq("token_hash", tokenHash)
-    .gt("expires_at", new Date().toISOString())
-    .maybeSingle();
-  if (sessionError || !session || typeof session.principal_name !== "string") return null;
-
-  if (session.principal_type === "admin" && session.principal_name === "مدير النظام العام") {
-    const { data: setting, error } = await db.from("school_settings")
+async function requirePrincipal(req:const timetableAuthStore: TimetableAuthStore = {
+  async findSession(tokenHash, nowIso) {
+    const { data, error } = await db.from("app_sessions")
+      .select("principal_type,principal_name,expires_at")
+      .eq("token_hash", tokenHash)
+      .gt("expires_at", nowIso)
+      .maybeSingle();
+    return error || !data ? null : data;
+  },
+  async hasAdminCredential() {
+    const { data, error } = await db.from("school_settings")
       .select("value").eq("key", "admin_pin").maybeSingle();
-    if (error || !setting?.value?.hash || !setting?.value?.salt) return null;
-    return { type: "admin", name: session.principal_name };
-  }
-  if (session.principal_type === "teacher" || session.principal_type === "custom") {
-    const expectedRole = session.principal_type;
-    const { data: teacher, error: teacherError } = await db.from("teachers")
-      .select("name,role").eq("name", session.principal_name).maybeSingle();
-    if (teacherError || !teacher || teacher.role !== expectedRole) return null;
-    const { data: access, error: accessError } = await db.from("timetable_access_permissions")
-      .select("can_access").eq("principal_type", expectedRole)
-      .eq("principal_name", teacher.name).maybeSingle();
-    if (accessError || access?.can_access !== true) return null;
-    return { type: expectedRole, name: teacher.name };
-  }
-  return null;
+    return !error && !!data?.value?.hash && !!data?.value?.salt;
+  },
+  async findTeacher(name) {
+    const { data, error } = await db.from("teachers")
+      .select("name,role").eq("name", name).maybeSingle();
+    return error || !data ? null : { name: String(data.name), role: String(data.role) };
+  },
+  async hasTimetableAccess(type, name) {
+    const { data, error } = await db.from("timetable_access_permissions")
+      .select("can_access").eq("principal_type", type)
+      .eq("principal_name", name).maybeSingle();
+    return !error && data?.can_access === true;
+  },
+};
+
+async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
+  return resolveTimetablePrincipal(req.headers.get("authorization"), timetableAuthStore);
 }
-function validUuid(value: unknown): value is string {
-  return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 async function teacherDirectory() {
   const { data, error } = await db.from("teachers").select("name,role,permissions").in("role", ["teacher","custom"]).order("name");
