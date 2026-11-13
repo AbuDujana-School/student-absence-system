@@ -938,6 +938,58 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر حفظ نسخة الجدول. تأكد من تطبيق migration الخاصة بالتطوير أولاً." });
     }
   }
+  if (["timetable_list_imports","timetable_get_import","timetable_mutate_record"].includes(String(body?.action || ""))) {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "إدارة الجداول متاحة لمدير النظام العام فقط." });
+      }
+
+      if (body.action === "timetable_list_imports") {
+        const { data, error } = await db.from("timetable_imports")
+          .select("id,version,file_name,imported_by_name,status,has_weekly_placements,source_sheets,summary,created_at")
+          .order("created_at", { ascending: false }).limit(30);
+        if (error) throw error;
+        return reply(200, { imports: data || [] });
+      }
+
+      const importId = String(body.importId || "");
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(importId)) {
+        return reply(400, { error: "معرّف نسخة الجدول غير صالح." });
+      }
+
+      if (body.action === "timetable_get_import") {
+        const [{ data: imported, error: importError }, { data: teachers, error: teachersError }, { data: records, error: recordsError }] = await Promise.all([
+          db.from("timetable_imports").select("*").eq("id", importId).maybeSingle(),
+          db.from("timetable_import_teachers").select("*").eq("import_id", importId).order("source_name"),
+          db.from("timetable_import_records").select("*").eq("import_id", importId).order("source_sheet").order("source_row"),
+        ]);
+        if (importError) throw importError;
+        if (teachersError) throw teachersError;
+        if (recordsError) throw recordsError;
+        if (!imported) return reply(404, { error: "نسخة الجدول غير موجودة." });
+        return reply(200, { imported, teachers: teachers || [], records: records || [] });
+      }
+
+      if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) {
+        return reply(400, { error: "بيانات تعديل الحصة غير صالحة." });
+      }
+      const { data, error } = await db.rpc("mutate_timetable_import_record", {
+        p_payload: { ...body.payload, import_id: importId, actor_name: principal.name },
+      });
+      if (error) throw error;
+      return reply(200, { result: data });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("تعارض") || message.includes("مسودة") || message.includes("المعلم غير مطابق") || message.includes("غير موجود")) {
+        return reply(409, { error: message });
+      }
+      console.error("Timetable administration request failed:", error);
+      return reply(500, { error: "تعذر تنفيذ عملية إدارة الجدول. تحقق من تطبيق migration التطوير." });
+    }
+  }
   if (body?.action === "competition_finalize") {
     try {
       const expected = await getCompetitionCronSecret();
