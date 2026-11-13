@@ -318,3 +318,25 @@ This requirement does not change the confirmed rule that a blank cell in the app
 - الخادم يعيد التحقق من الصلاحية في كل طلب للمعاينة والحفظ وفتح النسخ والتعديل والحذف؛ إخفاء التبويب ليس وسيلة الحماية الوحيدة.
 - إدارة المنح والإلغاء متاحة لمدير النظام العام فقط.
 - تمت إضافة فحوص RLS والمنح الخاصة بجدول الصلاحيات إلى اختبار PostgreSQL المعزول.
+
+
+## Manual timetable-owner assignment — implemented
+
+The school clarified that a workbook teacher label may be a placeholder or ambiguous short name (for example, `س فيزياء`). The importer must preserve that source label and its lesson/contract rows without inventing a system identity.
+
+The draft review now supports an explicit **تبديل مالك الجدول** action for each imported teacher group:
+- The source name and all imported records remain unchanged and visible.
+- The administrator can select an existing teacher account from the live system teacher directory, or leave the owner unresolved for later.
+- The selected system teacher and department are stored separately from the workbook source name.
+- Unresolved or ambiguous entries remain marked **مالك غير محدد** until manually assigned.
+- Reassignment is restricted to a saved draft, validated server-side against an existing teacher account, and recorded in the timetable audit log with before/after owner values.
+- Duplicate source names are rejected for reassignment until their ambiguity is resolved.
+- No teacher account is created, renamed, merged, or deleted by this operation.
+
+### Verification
+
+- Added an isolated PostgreSQL migration test for assigning an unresolved source label to a registered teacher, clearing the assignment again, and checking the audit history.
+- Extended the workflow to apply the additive owner-reassignment migration in the isolated test database.
+- Fixed an escaped-whitespace regular expression in Arabic name tokenization that caused the detailed-name disambiguation test to fail.
+- GitHub Actions on the feature branch passed both jobs: inline JavaScript syntax and policy/type tests; isolated PostgreSQL migration, RLS, timetable persistence, and owner reassignment tests.
+- This remains development-only. No migration was applied to the school's Supabase project, no Edge Function was deployed, and `main` was not changed.
