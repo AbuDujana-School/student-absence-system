@@ -1,4 +1,4 @@
-import { parseTimetableDay } from "./timetable_grid.ts";
+import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 const sample=`جدول يوم الخميس
 1. معلم تجريبي (صفحة PDF: 2)
 الحصة الأولى:
@@ -179,4 +179,16 @@ Deno.test("splits concatenated parallel class codes while preserving the origina
  const three=combined.replace("6/11/7/11","1/12/6/12/7/12/8/12");
  const threeResult=parseTimetableDay("الخميس",three).teachers[0].cells.find(value=>value.period===4);
  if(!threeResult||threeResult.classSections.join("|")!=="1/12|6/12|7/12|8/12")throw new Error("Multiple concatenated class pairs should all be retained");
+});
+
+Deno.test("enforces the exact expected teacher count without weakening seven-period validation",()=>{
+ const day=parseTimetableDay("الخميس",sample);
+ let rejected=false;
+ try {
+   const synthetic={...day,teachers:[...day.teachers,...day.teachers]};
+   validateSchoolTeacherCount(synthetic,69);
+ } catch(error) {
+   rejected=String(error).includes("69 معلماً بالضبط");
+ }
+ if(!rejected)throw new Error("A day with the wrong number of teachers must be rejected");
 });
