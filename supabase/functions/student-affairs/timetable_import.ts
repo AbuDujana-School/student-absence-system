@@ -106,8 +106,9 @@ function normalizeHeader(value: CellValue): string {
 }
 
 function firstValue(row: Record<string, CellValue>, candidates: string[]): string {
+  const wanted = new Set(candidates.map(normalizeHeader));
   for (const [key, value] of Object.entries(row)) {
-    if (candidates.includes(normalizeHeader(key))) {
+    if (wanted.has(normalizeHeader(key))) {
       const text = clean(value);
       if (text) return text;
     }
