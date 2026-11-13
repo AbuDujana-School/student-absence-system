@@ -14,7 +14,7 @@ export interface ParsedTimetableDay {
 const PERIOD_WORDS: Record<string, number> = {
   "الاولى":1,"الأولى":1,"الاول":1,"الأول":1,"الثانية":2,"الثانيه":2,
   "الثالثة":3,"الثالثه":3,"الرابعة":4,"الرابعه":4,"الخامسة":5,"الخامسه":5,
-  "السادسة":6,"السادسه":7,"السابعة":7,"السابعه":7
+  "السادسة":6,"السادسه":6,"السابعة":7,"السابعه":7
 };
 function cleanLine(value: string): string {
   return value.replace(/\u00a0/g," ").replace(/[\u200e\u200f\u202a-\u202e]/g,"").trim();
