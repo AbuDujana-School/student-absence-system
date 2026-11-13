@@ -146,6 +146,14 @@ function findSheet(sheets: WorkbookRows, aliases: readonly string[]): string | n
   return Object.keys(sheets).find((name) => wanted.has(normalizeArabicName(name))) || null;
 }
 
+function valueByHeader(row: Record<string, CellValue>, candidates: string[]): CellValue {
+  const wanted = new Set(candidates.map(normalizeHeader));
+  for (const [key, value] of Object.entries(row)) {
+    if (wanted.has(normalizeHeader(key))) return value;
+  }
+  return null;
+}
+
 function parseCount(value: CellValue): number | null {
   const text = clean(value).replace(/[٠-٩]/g, (d) => String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).replace(",", ".");
   if (!text) return null;
@@ -270,7 +278,7 @@ function parseLessonRows(
       groupName: group,
       subject,
       duration: firstValue(values, ["المدة", "مدة الحصة"]),
-      periodsPerWeek: parseCount(values[Object.keys(values).find((key) => ["الحصص/الأسبوع", "الحصص الاسبوعية", "عدد الحصص"].includes(normalizeHeader(key))) || ""]),
+      periodsPerWeek: parseCount(valueByHeader(values, ["الحصص/الأسبوع", "الحصص الاسبوعية", "عدد الحصص"])),
       availableRooms: firstValue(values, ["الغرف الدراسية المتاحة", "الغرف المتاحة"]),
       cycle: firstValue(values, ["الدورة", "دورة"]),
       sharedTeachers: firstValue(values, ["معلم مشارك في المادة", "المعلم المشارك", "معلم مشارك"]),
@@ -323,6 +331,27 @@ export function parseTimetableWorkbook(
     placements.push(...parsed.placements);
   }
 
+  // Keep every teacher name found in lesson/contract rows visible, even when
+  // the workbook's teacher directory omitted it or the system has no match.
+  for (const record of unassignedRecords) {
+    const key = normalizeArabicName(record.teacherSourceName);
+    if (!key) continue;
+    let teacher = teachers.find((item) => item.aliases.some((alias) => normalizeArabicName(alias) === key));
+    if (!teacher) {
+      teacher = {
+        sourceName: record.teacherSourceName,
+        normalizedName: key,
+        matchedTeacherId: null,
+        matchedTeacherName: null,
+        matchStatus: "unmatched",
+        aliases: [record.teacherSourceName],
+        records: [],
+      };
+      teachers.push(teacher);
+    }
+    teacher.records.push(record);
+    record.teacherMatchStatus = teacher.matchStatus;
+  }
   const unmatchedTeacherNames = teachers.filter((t) => t.matchStatus === "unmatched").map((t) => t.sourceName);
   const ambiguousTeacherNames = teachers.filter((t) => t.matchStatus === "ambiguous").map((t) => t.sourceName);
   if (!placements.length) {
