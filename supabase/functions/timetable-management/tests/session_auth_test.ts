@@ -154,3 +154,25 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
     throw new Error("Empty teacher name was accepted");
   }
 });
+
+
+import { canUseTimetableAction } from "../session_auth.ts";
+
+Deno.test("authorized non-admin timetable users are limited to read-only timetable and import views", () => {
+  const allowed = [
+    "health", "timetable_check_access", "teacher_timetable_get_own",
+    "timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates",
+  ];
+  for (const action of allowed) {
+    if (!canUseTimetableAction("teacher", action)) throw new Error("Expected read action to be allowed: " + action);
+    if (!canUseTimetableAction("custom", action)) throw new Error("Expected custom read action to be allowed: " + action);
+  }
+  for (const action of [
+    "timetable_preview", "timetable_save_import", "timetable_mutate_record",
+    "timetable_reassign_owner", "timetable_set_access", "timetable_activate_weekly_version",
+  ]) {
+    if (canUseTimetableAction("teacher", action)) throw new Error("Teacher write action was allowed: " + action);
+    if (canUseTimetableAction("custom", action)) throw new Error("Custom write action was allowed: " + action);
+    if (!canUseTimetableAction("admin", action)) throw new Error("Administrator action was denied: " + action);
+  }
+});
