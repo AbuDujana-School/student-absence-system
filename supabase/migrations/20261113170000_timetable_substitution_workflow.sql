@@ -160,6 +160,7 @@ declare
   v_assignment public.timetable_assignments%rowtype;
   v_absent_department text;
   v_actor_department text;
+  v_before jsonb;
 begin
   if v_assignment_id is null or v_actor_name='' or v_actor_type not in ('admin','teacher','custom') then
     raise exception 'بيانات إلغاء تكليف الاحتياط غير صالحة.';
@@ -173,6 +174,8 @@ begin
   if v_assignment.status not in ('assigned','confirmed') then
     raise exception 'لا يمكن إلغاء تكليف مكتمل أو غير نشط.';
   end if;
+  v_before := jsonb_build_object('teacher_name',v_assignment.teacher_name,'absent_teacher_name',v_assignment.absent_teacher_name,
+    'weekday',v_assignment.weekday,'period',v_assignment.period,'assignment_date',v_assignment.assignment_date,'status',v_assignment.status);
 
   if v_actor_type<>'admin' then
     select coalesce(permissions->>'category',permissions->>'department_id',permissions->>'department_name','')
@@ -191,8 +194,7 @@ begin
     assignment_id,version_id,action,actor_name,before_data,after_data
   ) values (
     v_assignment.id,v_assignment.version_id,'cancelled',v_actor_name,
-    jsonb_build_object('teacher_name',v_assignment.teacher_name,'absent_teacher_name',v_assignment.absent_teacher_name,
-      'weekday',v_assignment.weekday,'period',v_assignment.period,'assignment_date',v_assignment.assignment_date,'status','assigned'),
+    v_before,
     jsonb_build_object('status','cancelled')
   );
   return jsonb_build_object('assignment_id',v_assignment.id,'status',v_assignment.status);
