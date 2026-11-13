@@ -110,3 +110,24 @@ Deno.test("does not silently assign a shared short-name alias to the wrong teach
     throw new Error("Ambiguous records must remain unassigned for administrator review");
   }
 });
+
+
+Deno.test("prefers exact full teacher name over another teacher matching a short alias", () => {
+  const result = parseTimetableWorkbook({
+    "المعلمون": rows(
+      ["الإسم", "الإختصار"],
+      ["أحمد خالد", "سعيد"],
+    ),
+    "الحصص": rows(
+      ["المعلم", "الشعب", "المادة", "الحصص/الأسبوع"],
+      ["أحمد خالد", "صف 4", "رياضيات", "3"],
+    ),
+  }, [
+    { id: "t1", name: "أحمد خالد" },
+    { id: "t2", name: "سعيد" },
+  ]);
+  const imported = result.teachers.find((teacher) => teacher.sourceName === "أحمد خالد");
+  if (!imported || imported.matchStatus !== "matched" || imported.matchedTeacherId !== "t1") {
+    throw new Error("Exact full-name match should take precedence over a short-alias collision");
+  }
+});
