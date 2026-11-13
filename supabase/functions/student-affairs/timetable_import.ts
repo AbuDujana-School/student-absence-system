@@ -349,7 +349,23 @@ export function parseTimetableWorkbook(
       unresolvedRecords.push(record);
       continue;
     }
-    let teacher = teachers.find((item) => item.aliases.some((alias) => normalizeArabicName(alias) === key));
+    const importedMatches = teachers.filter((item) => item.aliases.some((alias) => normalizeArabicName(alias) === key));
+    if (importedMatches.length > 1) {
+      const ambiguousTeacher: ImportedTeacher = {
+        sourceName: record.teacherSourceName,
+        normalizedName: key,
+        matchedTeacherId: null,
+        matchedTeacherName: null,
+        matchStatus: "ambiguous",
+        aliases: [record.teacherSourceName],
+        records: [record],
+      };
+      teachers.push(ambiguousTeacher);
+      record.teacherMatchStatus = "ambiguous";
+      unresolvedRecords.push(record);
+      continue;
+    }
+    let teacher = importedMatches[0] || null;
     if (!teacher) {
       const systemMatches = systemTeachers.filter((item) => normalizeArabicName(item.name) === key);
       const uniqueMatch = systemMatches.length === 1 ? systemMatches[0] : null;
