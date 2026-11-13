@@ -873,8 +873,8 @@ async function handle(req: Request) {
       if (directoryError) throw directoryError;
       const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
         name: String(teacher.name || ""),
-        departmentId: typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
-        departmentName: typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+        departmentId: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.category === "string" ? teacher.permissions.category : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
       })).filter((teacher: SystemTeacher) => teacher.name);
       const result = parseTimetableWorkbook(sheets, systemTeachers);
       return reply(200, {
