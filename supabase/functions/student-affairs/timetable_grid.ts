@@ -89,16 +89,16 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
   for(let i=0;i<lines.length;i++){
     const line=cleanLine(lines[i]);if(!line)continue;
     // Accept the daily export headings used in the school's five source messages.
-    const dayHeading=line.match(/^(?:جدول\\s+)?اليوم(?:\\s+\\S+)?\\s*:\\s*(.+)$/)
-      || line.match(/^جدول\\s+يوم\\s+(.+)$/);
+    const dayHeading=line.match(/^(?:جدول\s+)?اليوم(?:\s+\S+)?\s*:\s*(.+)$/)
+      || line.match(/^جدول\s+يوم\s+(.+)$/);
     if(dayHeading){
       const declaredDay=SCHOOL_WEEKDAYS.find(value=>normalizedKey(value)===normalizedKey(dayHeading[1]));
       if(!declaredDay)throw new Error("اسم اليوم في العنوان غير معروف عند السطر "+(i+1)+": "+dayHeading[1]);
       if(declaredDay!==day)throw new Error("النص يحتوي على جدول يوم "+declaredDay+" بينما اليوم المختار هو "+day+".");
       continue;
     }
-    const namedTeacher=line.match(/^[-•]?\\s*اسم\\s*المعلم\\s*:\\s*(.+?)\\s*$/);
-    const numberedTeacher=line.match(/^\\s*\\d+[.)]\\s*(.+?)(?:\\s*\\(\\s*صفحة\\s*PDF\\s*:\\s*(\\d+)\\s*\\))?\\s*$/i);
+    const namedTeacher=line.match(/^[-•]?\s*اسم\s*المعلم\s*:\s*(.+?)\s*$/);
+    const numberedTeacher=line.match(/^\s*\d+[.)]\s*(.+?)(?:\s*\(\s*صفحة\s*PDF\s*:\s*(\d+)\s*\))?\s*$/i);
     const teacherHeader=namedTeacher||numberedTeacher;
     if(teacherHeader){
       finishTeacher();
@@ -108,9 +108,9 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
       teacher={sourceName:name,pdfPage:numberedTeacher&&numberedTeacher[2]?Number(numberedTeacher[2]):null,cells:[]};
       continue;
     }
-    const pageOnly=line.match(/^صفحة\\s*PDF\\s*:\\s*(\\d+)$/i);
+    const pageOnly=line.match(/^صفحة\s*PDF\s*:\s*(\d+)$/i);
     if(pageOnly&&teacher&&!teacher.cells.length&&!cell){teacher.pdfPage=Number(pageOnly[1]);continue;}
-    const p=line.match(/^الحصة\\s+(.+?)\\s*:\\s*$/);
+    const p=line.match(/^الحصة\s+(.+?)\s*:\s*$/);
     if(p){
       finishCell();
       if(!teacher)throw new Error("ظهرت حصة قبل اسم المعلم عند السطر "+(i+1)+".");
