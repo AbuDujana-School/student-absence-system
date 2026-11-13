@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
-import { matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
@@ -73,9 +73,134 @@ async function handle(req: Request) {
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
 
   const action = String(body.action || "");
-  const teacherReadOnlyActions = new Set(["health", "timetable_check_access", "teacher_timetable_get_own"]);
+  const importReadActions = new Set([
+    "timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates",
+  ]);
+  const teacherReadOnlyActions = new Set([
+    "health", "timetable_check_access", "teacher_timetable_get_own", ...importReadActions,
+  ]);
   if (principal.type !== "admin" && !teacherReadOnlyActions.has(action)) {
-    return reply(403, { error: "يمكن للمعلم استعراض جدوله الشخصي فقط." });
+    return reply(403, { error: "يمكن للحساب المصرح له استعراض الجداول والنسخ فقط؛ عمليات التعديل متاحة للمدير." });
+  }
+
+  if (["timetable_preview", "timetable_save_import"].includes(action)) {
+    if (principal.type !== "admin") return reply(403, { error: "استيراد الجداول متاح لمدير النظام العام فقط." });
+    const sheets = body?.sheets;
+    if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
+      return reply(400, { error: "بيانات ملف Excel غير صالحة." });
+    }
+    const sheetNames = Object.keys(sheets);
+    if (!sheetNames.length || sheetNames.length > 20) return reply(400, { error: "عدد أوراق العمل غير صالح." });
+    let rowCount = 0, cellCount = 0;
+    for (const [name, rows] of Object.entries(sheets)) {
+      if (typeof name !== "string" || !Array.isArray(rows)) return reply(400, { error: "بنية ورقة العمل غير صالحة." });
+      rowCount += rows.length;
+      for (const row of rows) {
+        if (!Array.isArray(row)) return reply(400, { error: "توجد بيانات صف غير صالحة في ملف Excel." });
+        cellCount += row.length;
+      }
+    }
+    if (rowCount > 5000 || cellCount > 100000) {
+      return reply(413, { error: action === "timetable_preview"
+        ? "حجم بيانات الجدول أكبر من الحد المسموح للمعاينة."
+        : "حجم بيانات الجدول أكبر من الحد المسموح للاستيراد." });
+    }
+    try {
+      const { data: directory, error: directoryError } = await db.from("teachers")
+        .select("name,role,permissions").eq("role", "teacher").order("name");
+      if (directoryError) throw directoryError;
+      const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
+        name: String(teacher.name || ""),
+        departmentId: typeof teacher.permissions?.category === "string" ? teacher.permissions.category
+          : typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.category === "string" ? teacher.permissions.category
+          : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+      })).filter((teacher: SystemTeacher) => teacher.name);
+      const parsed = parseTimetableWorkbook(sheets, systemTeachers);
+      if (action === "timetable_preview") {
+        return reply(200, {
+          ok: true, fileName: String(body.fileName || "ملف Excel").slice(0, 180),
+          importedAt: new Date().toISOString(), importedBy: principal.name, result: parsed,
+        });
+      }
+      const { data, error } = await db.rpc("save_timetable_import", {
+        p_payload: { file_name: String(body.fileName || "ملف Excel").slice(0, 180), actor_name: principal.name, result: parsed },
+      });
+      if (error) throw error;
+      return reply(200, { ok: true, saved: data });
+    } catch (error) {
+      console.error("Timetable import operation failed:", error instanceof Error ? error.message : "unknown");
+      return reply(action === "timetable_preview" ? 500 : 500, {
+        error: action === "timetable_preview"
+          ? "تعذر تحليل ملف الجدول. تحقق من بنية الملف ثم أعد المحاولة."
+          : "تعذر حفظ نسخة الجدول. تحقق من تطبيق migration الخاصة بالتطوير أولاً.",
+      });
+    }
+  }
+
+  if (["timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates",
+       "timetable_mutate_record", "timetable_reassign_owner"].includes(action)) {
+    if (["timetable_mutate_record", "timetable_reassign_owner"].includes(action) && principal.type !== "admin") {
+      return reply(403, { error: "تعديل سجلات الاستيراد وإعادة تعيين المالك متاحان للمدير فقط." });
+    }
+    try {
+      if (action === "timetable_list_imports") {
+        const { data, error } = await db.from("timetable_imports")
+          .select("id,version,file_name,imported_by_name,status,has_weekly_placements,source_sheets,summary,created_at")
+          .order("created_at", { ascending: false }).limit(30);
+        if (error) throw error;
+        return reply(200, { imports: data || [] });
+      }
+      if (action === "timetable_list_owner_candidates") {
+        const { data, error } = await db.from("teachers")
+          .select("name,role,permissions").eq("role", "teacher").order("name");
+        if (error) throw error;
+        return reply(200, { teachers: (data || []).map((item: any) => ({
+          name: String(item.name || ""),
+          department: String(item.permissions?.category || item.permissions?.department_name || item.permissions?.department_id || ""),
+        })).filter((item: any) => item.name) });
+      }
+      if (!validUuid(body.importId)) return reply(400, { error: "معرّف نسخة الجدول غير صالح." });
+      if (action === "timetable_get_import") {
+        const [{ data: imported, error: importError }, { data: teachers, error: teachersError }, { data: records, error: recordsError }] = await Promise.all([
+          db.from("timetable_imports").select("*").eq("id", body.importId).maybeSingle(),
+          db.from("timetable_import_teachers").select("*").eq("import_id", body.importId).order("source_name"),
+          db.from("timetable_import_records").select("*").eq("import_id", body.importId).order("source_sheet").order("source_row"),
+        ]);
+        if (importError) throw importError;
+        if (teachersError) throw teachersError;
+        if (recordsError) throw recordsError;
+        if (!imported) return reply(404, { error: "نسخة الجدول غير موجودة." });
+        return reply(200, { imported, teachers: teachers || [], records: records || [] });
+      }
+      if (action === "timetable_reassign_owner") {
+        const sourceName = String(body.sourceName || "").trim();
+        const teacherName = String(body.teacherName || "").trim();
+        if (!sourceName || sourceName.length > 200 || teacherName.length > 200) {
+          return reply(400, { error: "بيانات مالك الجدول غير صالحة." });
+        }
+        const { data, error } = await db.rpc("reassign_timetable_import_owner", {
+          p_payload: { import_id: body.importId, source_name: sourceName, teacher_name: teacherName, actor_name: principal.name },
+        });
+        if (error) throw error;
+        return reply(200, { result: data });
+      }
+      if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) {
+        return reply(400, { error: "بيانات تعديل الحصة غير صالحة." });
+      }
+      const { data, error } = await db.rpc("mutate_timetable_import_record", {
+        p_payload: { ...body.payload, import_id: body.importId, actor_name: principal.name },
+      });
+      if (error) throw error;
+      return reply(200, { result: data });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "";
+      if (message.includes("تعارض") || message.includes("مسودة") || message.includes("المعلم غير مطابق") || message.includes("غير موجود")) {
+        return reply(409, { error: message });
+      }
+      console.error("Timetable import administration failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تنفيذ عملية إدارة الجدول. تحقق من تطبيق migration التطوير." });
+    }
   }
 
   if (action === "health") {
