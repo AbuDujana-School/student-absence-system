@@ -9077,7 +9077,7 @@ function timetableRenderSubstitutionLessons(response) {
     const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+'</option>').join("");
     const assignment=lesson.assignment;
     const action=assignment
-      ? '<div class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-200">تم تعيين البديل: '+timetableEsc(assignment.substituteTeacherName)+' — الحالة: '+timetableEsc(assignment.status)+'</div>'
+      ? '<div class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-2"><span>تم تعيين البديل: '+timetableEsc(assignment.substituteTeacherName)+' — الحالة: '+timetableEsc(assignment.status)+'</span><button type="button" data-substitution-cancel="'+timetableEsc(assignment.id)+'" class="rounded-lg border border-red-300 px-3 py-2 text-[10px] font-black text-red-700 dark:text-red-300">إلغاء التكليف</button></div>'
       : candidates.length
         ? '<div class="flex flex-col sm:flex-row gap-2"><select data-substitution-candidate="'+lesson.period+'" class="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs"><option value="">اختر المعلم البديل</option>'+options+'</select><button type="button" data-substitution-save="'+lesson.period+'" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-3 text-xs font-black text-white">تعيين البديل</button></div>'
         : '<div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-200">لا يوجد معلم متاح بفراغ مؤكد في هذه الحصة ضمن النطاق المحدد.</div>';
@@ -9088,7 +9088,21 @@ function timetableRenderSubstitutionLessons(response) {
     const select=host.querySelector('[data-substitution-candidate="'+period+'"]');
     timetableSaveSubstitution(period,select?.value||"");
   }));
+  host.querySelectorAll("[data-substitution-cancel]").forEach(button=>button.addEventListener("click",()=>{
+    timetableCancelSubstitution(button.getAttribute("data-substitution-cancel"));
+  }));
   timetableSubstitutionSetStatus("تمت مراجعة "+lessons.length+" حصة تدريس. يظهر التكليف المحفوظ بجانب الحصة، وتُعرض البدائل المتاحة للحصص غير المسندة.","success");
+}
+async function timetableCancelSubstitution(assignmentId) {
+  const context=timetableSubstitutionContext;
+  if(!context||!assignmentId)return;
+  if(!window.confirm("هل تريد إلغاء تكليف الاحتياط المحدد؟"))return;
+  try{
+    const token=appAuthSession?.token||readAppAuthToken();
+    await appAuthRequest({action:"timetable_substitution_cancel",weekday:context.weekday,assignmentId},token);
+    timetableSubstitutionSetStatus("تم إلغاء تكليف الاحتياط. أصبح بالإمكان إعادة توزيع الحصة.","success");
+    await timetablePreviewSubstitutions();
+  }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر إلغاء تكليف الاحتياط.","error");}
 }
 async function timetableSaveSubstitution(period,substituteTeacherName) {
   const context=timetableSubstitutionContext;
