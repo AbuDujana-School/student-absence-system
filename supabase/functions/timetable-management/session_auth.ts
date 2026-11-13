@@ -77,7 +77,5 @@ export function canUseTimetableAction(principalType: TimetablePrincipalType, act
     "timetable_list_imports",
     "timetable_get_import",
     "timetable_list_owner_candidates",
-    "timetable_mutate_record",
-    "timetable_reassign_owner",
   ]).has(action);
 }
