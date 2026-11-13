@@ -25,10 +25,10 @@ export interface ImportedTeacher {
   matchedDepartmentName?: string | null;
   matchStatus: "matched" | "unmatched" | "ambiguous";
   aliases: string[];
-  /** Explicit free periods stated in the teacher sheet's التفريغ field. */
-  declaredFreePeriods: Array<{ weekday: string; period: number }>;
-  declaredFreePeriodsRaw: string;
-  freePeriodsParseWarnings: string[];
+  /** Structured day/period references stated in the teacher sheet's التفريغ field; semantics remain unconfirmed. */
+  teacherPeriodNotes: Array<{ weekday: string; period: number }>;
+  teacherPeriodNotesRaw: string;
+  teacherPeriodNotesWarnings: string[];
   records: ImportedLessonRecord[];
 }
 
@@ -185,9 +185,9 @@ export function matchSystemTeacherName(sourceName: string, systemTeachers: Syste
     matchedTeacherName: null,
     matchStatus: "unmatched",
     aliases: [sourceName],
-    declaredFreePeriods: [],
-    declaredFreePeriodsRaw: "",
-    freePeriodsParseWarnings: [],
+    teacherPeriodNotes: [],
+    teacherPeriodNotesRaw: "",
+    teacherPeriodNotesWarnings: [],
     records: [],
   };
   const resolved = resolveSystemTeacher(source, systemTeachers);
@@ -304,12 +304,13 @@ function parseCount(value: CellValue): number | null {
 const SCHOOL_WEEKDAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"] as const;
 
 /**
- * Parse the teacher sheet's explicit التفريغ entries as free periods.
- * This interpretation is based on the school's clarification (e.g. مجيد العجمي:
- * الخميس 1-7 means free for all seven periods). Empty or malformed text is never
- * expanded into free time; raw text and parse warnings remain available for review.
+ * Parse day/period references in the teacher sheet's التفريغ field without
+ * assigning a meaning such as free, busy, or unavailable. A separate teacher
+ * clarification exists for a specific record, but the field's general semantics
+ * conflict with other explicit daily teaching records and must remain unconfirmed.
+ * Empty or malformed text is never expanded into any schedule state.
  */
-export function parseDeclaredTeacherFreePeriods(value: CellValue): {
+export function parseTeacherPeriodNotes(value: CellValue): {
   periods: Array<{ weekday: string; period: number }>;
   warnings: string[];
 } {
@@ -380,7 +381,7 @@ function buildTeacherDirectory(
     if (!key) continue;
     const aliases = [name, shortName].filter(Boolean);
     const freeText = firstValue(item.values, ["التفريغ"]);
-    const parsedFree = parseDeclaredTeacherFreePeriods(freeText);
+    const parsedFree = parseTeacherPeriodNotes(freeText);
     const current = imported.get(key) || {
       sourceName: name,
       normalizedName: key,
@@ -388,20 +389,20 @@ function buildTeacherDirectory(
       matchedTeacherName: null,
       matchStatus: "unmatched" as const,
       aliases: [],
-      declaredFreePeriods: [],
-      declaredFreePeriodsRaw: "",
-      freePeriodsParseWarnings: [],
+      teacherPeriodNotes: [],
+      teacherPeriodNotesRaw: "",
+      teacherPeriodNotesWarnings: [],
       records: [],
     };
     current.aliases = Array.from(new Set([...current.aliases, ...aliases]));
     if (freeText) {
-      current.declaredFreePeriodsRaw = current.declaredFreePeriodsRaw
-        ? current.declaredFreePeriodsRaw + "; " + freeText
+      current.teacherPeriodNotesRaw = current.teacherPeriodNotesRaw
+        ? current.teacherPeriodNotesRaw + "; " + freeText
         : freeText;
-      const merged = new Map(current.declaredFreePeriods.map((entry) => [entry.weekday + ":" + entry.period, entry]));
+      const merged = new Map(current.teacherPeriodNotes.map((entry) => [entry.weekday + ":" + entry.period, entry]));
       for (const entry of parsedFree.periods) merged.set(entry.weekday + ":" + entry.period, entry);
-      current.declaredFreePeriods = Array.from(merged.values());
-      current.freePeriodsParseWarnings = Array.from(new Set([...current.freePeriodsParseWarnings, ...parsedFree.warnings]));
+      current.teacherPeriodNotes = Array.from(merged.values());
+      current.teacherPeriodNotesWarnings = Array.from(new Set([...current.teacherPeriodNotesWarnings, ...parsedFree.warnings]));
     }
     imported.set(key, current);
   }
@@ -567,9 +568,9 @@ export function parseTimetableWorkbook(
         matchedTeacherName: null,
         matchStatus: "ambiguous",
         aliases: [record.teacherSourceName],
-        declaredFreePeriods: [],
-        declaredFreePeriodsRaw: "",
-        freePeriodsParseWarnings: [],
+        teacherPeriodNotes: [],
+        teacherPeriodNotesRaw: "",
+        teacherPeriodNotesWarnings: [],
         records: [record],
       };
       teachers.push(ambiguousTeacher);
@@ -588,9 +589,9 @@ export function parseTimetableWorkbook(
         matchedTeacherName: uniqueMatch?.name ?? null,
         matchStatus: uniqueMatch ? "matched" : systemMatches.length > 1 ? "ambiguous" : "unmatched",
         aliases: [record.teacherSourceName],
-        declaredFreePeriods: [],
-        declaredFreePeriodsRaw: "",
-        freePeriodsParseWarnings: [],
+        teacherPeriodNotes: [],
+        teacherPeriodNotesRaw: "",
+        teacherPeriodNotesWarnings: [],
         records: [],
       };
       teachers.push(teacher);
