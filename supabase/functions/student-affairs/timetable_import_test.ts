@@ -136,3 +136,59 @@ Deno.test("prefers exact full teacher name over another teacher matching a short
     throw new Error("Exact full-name match should take precedence over a short-alias collision");
   }
 });
+
+Deno.test("matches detailed names to abbreviated system names without confusing duplicate aliases", () => {
+  const result = parseTimetableWorkbook({
+    "المعلمون": rows(
+      ["الإسم", "الإختصار"],
+      ["محمد جمعة ناصر السعدي", "محمد السعدي"],
+      ["محمد عبدالله حمود السعدي", "محمد السعدي"],
+      ["كردي ربيع بكري حسين", "كردي حسين"],
+      ["عاطف محمد محمد إمام", "عاطف إمام"],
+      ["اسم غير معروف", "اسم غير معروف"],
+    ),
+    "الحصص": rows(
+      ["المعلم", "الشعب", "المادة", "الحصص/الأسبوع"],
+      ["محمد جمعة ناصر السعدي", "صف 1", "عربي", "2"],
+      ["محمد عبدالله حمود السعدي", "صف 2", "رياضيات", "2"],
+      ["كردي ربيع بكري حسين", "صف 3", "علوم", "2"],
+      ["عاطف محمد محمد إمام", "صف 4", "حصة دينية", "2"],
+      ["اسم غير معروف", "صف 5", "إنجليزي", "2"],
+    ),
+  }, [
+    { id: "t1", name: "محمد السعدي" },
+    { id: "t2", name: "محمد عبدالله السعدي" },
+    { id: "t3", name: "كردي ربيع" },
+    { id: "t4", name: "عاطف محمد" },
+  ]);
+
+  const bySource = new Map(result.teachers.map((teacher) => [teacher.sourceName, teacher]));
+  if (bySource.get("محمد جمعة ناصر السعدي")?.matchedTeacherId !== "t1") {
+    throw new Error("The first detailed محمد السعدي record should map to the matching short system name");
+  }
+  if (bySource.get("محمد عبدالله حمود السعدي")?.matchedTeacherId !== "t2") {
+    throw new Error("The detailed عبدالله token should disambiguate محمد عبدالله السعدي");
+  }
+  if (bySource.get("كردي ربيع بكري حسين")?.matchedTeacherId !== "t3") {
+    throw new Error("A detailed full name should match a system first+middle-name abbreviation");
+  }
+  if (bySource.get("عاطف محمد محمد إمام")?.matchedTeacherId !== "t4") {
+    throw new Error("A detailed full name should match a system first+middle-name abbreviation");
+  }
+  if (bySource.get("اسم غير معروف")?.matchStatus !== "unmatched") {
+    throw new Error("Unknown identities must remain unlinked");
+  }
+  const religiousLesson = bySource.get("عاطف محمد محمد إمام")?.records[0];
+  if (religiousLesson?.subject !== "تربية إسلامية") {
+    throw new Error("The religious lesson label should be normalized to the approved subject name");
+  }
+  if (bySource.get("محمد جمعة ناصر السعدي")?.records[0]?.subject !== "اللغة العربية") {
+    throw new Error("Arabic subject shorthand should be normalized");
+  }
+  if (bySource.get("محمد عبدالله حمود السعدي")?.records[0]?.subject !== "الرياضيات") {
+    throw new Error("Mathematics subject shorthand should be normalized");
+  }
+  if (bySource.get("اسم غير معروف")?.records[0]?.subject !== "اللغة الإنجليزية") {
+    throw new Error("English subject shorthand should be normalized");
+  }
+});
