@@ -88,3 +88,25 @@ Deno.test("a substitution from another date does not block the same weekly perio
  ]});
  if(sameDate.some(t=>t.id==="free"))throw new Error("An assignment on the selected date did not block the candidate");
 });
+
+Deno.test("explicit other and unclear cells are never offered as free",()=>{
+ const nonFree=[...timetable,
+  {teacherId:"other-status",weekday:"الأحد",period:4,className:"",status:"other" as const}
+ ];
+ const candidates=getAvailableSubstitutionCandidates({
+  teachers:[...teachers,{id:"other-status",name:"حسن",departmentId:"arabic"}],
+  timetable:nonFree,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"
+ });
+ if(candidates.some(t=>["other-status","meeting","unknown"].includes(t.id))) {
+  throw new Error("Other, meeting, and unclear cells must never be treated as free");
+ }
+});
+Deno.test("duplicate cells for one teacher are not considered a confirmed free period",()=>{
+ const duplicated=[...timetable,
+  {teacherId:"free",weekday:"الأحد",period:4,className:"duplicate",status:"free" as const}
+ ];
+ const candidates=getAvailableSubstitutionCandidates({
+  teachers,timetable:duplicated,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"
+ });
+ if(candidates.some(t=>t.id==="free"))throw new Error("A duplicated timetable cell was offered as a free candidate");
+});
