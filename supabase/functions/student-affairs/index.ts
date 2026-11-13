@@ -889,6 +889,55 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر تحليل ملف الجدول. تحقق من بنية الملف ثم أعد المحاولة." });
     }
   }
+  if (body?.action === "timetable_save_import") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "حفظ استيراد الجدول متاح لمدير النظام العام فقط." });
+      }
+      const sheets = body?.sheets;
+      if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
+        return reply(400, { error: "بيانات ملف Excel غير صالحة." });
+      }
+      const sheetNames = Object.keys(sheets);
+      if (!sheetNames.length || sheetNames.length > 20) return reply(400, { error: "عدد أوراق العمل غير صالح." });
+      let rowCount = 0, cellCount = 0;
+      for (const [name, rows] of Object.entries(sheets)) {
+        if (typeof name !== "string" || !Array.isArray(rows)) return reply(400, { error: "بنية ورقة العمل غير صالحة." });
+        rowCount += rows.length;
+        for (const row of rows) {
+          if (!Array.isArray(row)) return reply(400, { error: "توجد بيانات صف غير صالحة في ملف Excel." });
+          cellCount += row.length;
+        }
+      }
+      if (rowCount > 5000 || cellCount > 100000) {
+        return reply(413, { error: "حجم بيانات الجدول أكبر من الحد المسموح للاستيراد." });
+      }
+      const { data: directory, error: directoryError } = await db
+        .from("teachers").select("name,role,permissions").neq("role", "custom").order("name");
+      if (directoryError) throw directoryError;
+      const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
+        name: String(teacher.name || ""),
+        departmentId: typeof teacher.permissions?.department_id === "string" ? teacher.permissions.department_id : undefined,
+        departmentName: typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
+      })).filter((teacher: SystemTeacher) => teacher.name);
+      const parsed = parseTimetableWorkbook(sheets, systemTeachers);
+      const { data, error } = await db.rpc("save_timetable_import", {
+        p_payload: {
+          file_name: String(body.fileName || "ملف Excel").slice(0,180),
+          actor_name: principal.name,
+          result: parsed,
+        },
+      });
+      if (error) throw error;
+      return reply(200, { ok: true, saved: data });
+    } catch (error) {
+      console.error("Timetable import persistence failed:", error);
+      return reply(500, { error: "تعذر حفظ نسخة الجدول. تأكد من تطبيق migration الخاصة بالتطوير أولاً." });
+    }
+  }
   if (body?.action === "competition_finalize") {
     try {
       const expected = await getCompetitionCronSecret();
