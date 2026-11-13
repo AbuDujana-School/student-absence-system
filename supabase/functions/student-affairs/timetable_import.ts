@@ -309,6 +309,15 @@ export function parseTimetableWorkbook(
   if (!findSheet(sheets, SHEET_ALIASES.lessons)) warnings.push("لم يتم العثور على ورقة الحصص.");
 
   const referenceData: Record<string, ImportedReferenceRow[]> = {};
+  if (teacherSheet) {
+    // Preserve all teacher-level constraints (MWD, EXH, DAYS, <a,b>, availability notes, etc.)
+    // verbatim so later scheduling rules can be defined without losing source data.
+    referenceData[teacherSheet] = teacherRows.map((row) => ({
+      sourceSheet: teacherSheet,
+      sourceRow: row.rowNumber,
+      values: row.values,
+    }));
+  }
   for (const [key, aliases] of Object.entries(SHEET_ALIASES)) {
     const sheetName = findSheet(sheets, aliases);
     if (!sheetName || key === "teachers" || key === "lessons" || key === "contracts" || key === "classContracts") continue;
