@@ -25,6 +25,10 @@ export interface ImportedTeacher {
   matchedDepartmentName?: string | null;
   matchStatus: "matched" | "unmatched" | "ambiguous";
   aliases: string[];
+  /** Explicit free periods stated in the teacher sheet's التفريغ field. */
+  declaredFreePeriods: Array<{ weekday: string; period: number }>;
+  declaredFreePeriodsRaw: string;
+  freePeriodsParseWarnings: string[];
   records: ImportedLessonRecord[];
 }
 
@@ -181,6 +185,9 @@ export function matchSystemTeacherName(sourceName: string, systemTeachers: Syste
     matchedTeacherName: null,
     matchStatus: "unmatched",
     aliases: [sourceName],
+    declaredFreePeriods: [],
+    declaredFreePeriodsRaw: "",
+    freePeriodsParseWarnings: [],
     records: [],
   };
   const resolved = resolveSystemTeacher(source, systemTeachers);
@@ -294,6 +301,69 @@ function parseCount(value: CellValue): number | null {
   return Number.isFinite(number) && number >= 0 ? number : null;
 }
 
+const SCHOOL_WEEKDAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"] as const;
+
+/**
+ * Parse the teacher sheet's explicit التفريغ entries as free periods.
+ * This interpretation is based on the school's clarification (e.g. مجيد العجمي:
+ * الخميس 1-7 means free for all seven periods). Empty or malformed text is never
+ * expanded into free time; raw text and parse warnings remain available for review.
+ */
+export function parseDeclaredTeacherFreePeriods(value: CellValue): {
+  periods: Array<{ weekday: string; period: number }>;
+  warnings: string[];
+} {
+  const raw = clean(value);
+  const periods: Array<{ weekday: string; period: number }> = [];
+  const warnings: string[] = [];
+  if (!raw) return { periods, warnings };
+  const seen = new Set<string>();
+  for (const part of raw.split(/[;؛]/).map((item) => item.trim()).filter(Boolean)) {
+    const colon = part.indexOf(":");
+    if (colon < 0) {
+      warnings.push(part);
+      continue;
+    }
+    const dayText = part.slice(0, colon).trim();
+    const periodText = part.slice(colon + 1).replace(/[٠-٩]/g, (digit) => String("٠١٢٣٤٥٦٧٨٩".indexOf(digit)));
+    const dayRange = dayText.split(/\s*[-–—]\s*/).map((day) => normalizeArabicName(day));
+    const dayStart = SCHOOL_WEEKDAYS.findIndex((day) => normalizeArabicName(day) === dayRange[0]);
+    const dayEnd = dayRange.length === 1
+      ? dayStart
+      : SCHOOL_WEEKDAYS.findIndex((day) => normalizeArabicName(day) === dayRange[1]);
+    if (dayStart < 0 || dayEnd < dayStart) {
+      warnings.push(part);
+      continue;
+    }
+    const selectedDays = SCHOOL_WEEKDAYS.slice(dayStart, dayEnd + 1);
+    const selectedPeriods: number[] = [];
+    for (const token of periodText.split(/[,،]/).map((item) => item.trim()).filter(Boolean)) {
+      const match = token.match(/^(\d+)\s*(?:[-–—]\s*(\d+))?$/);
+      if (!match) {
+        warnings.push(part);
+        continue;
+      }
+      const first = Number(match[1]);
+      const last = Number(match[2] || match[1]);
+      if (first < 1 || last > 7 || last < first) {
+        warnings.push(part);
+        continue;
+      }
+      for (let period = first; period <= last; period++) selectedPeriods.push(period);
+    }
+    for (const weekday of selectedDays) {
+      for (const period of selectedPeriods) {
+        const key = weekday + ":" + period;
+        if (!seen.has(key)) {
+          seen.add(key);
+          periods.push({ weekday, period });
+        }
+      }
+    }
+  }
+  return { periods, warnings: Array.from(new Set(warnings)) };
+}
+
 function buildTeacherDirectory(
   rows: Array<{ rowNumber: number; values: Record<string, CellValue> }>,
   systemTeachers: SystemTeacher[],
@@ -309,6 +379,8 @@ function buildTeacherDirectory(
     const key = normalizeArabicName(name);
     if (!key) continue;
     const aliases = [name, shortName].filter(Boolean);
+    const freeText = firstValue(item.values, ["التفريغ"]);
+    const parsedFree = parseDeclaredTeacherFreePeriods(freeText);
     const current = imported.get(key) || {
       sourceName: name,
       normalizedName: key,
@@ -316,9 +388,21 @@ function buildTeacherDirectory(
       matchedTeacherName: null,
       matchStatus: "unmatched" as const,
       aliases: [],
+      declaredFreePeriods: [],
+      declaredFreePeriodsRaw: "",
+      freePeriodsParseWarnings: [],
       records: [],
     };
     current.aliases = Array.from(new Set([...current.aliases, ...aliases]));
+    if (freeText) {
+      current.declaredFreePeriodsRaw = current.declaredFreePeriodsRaw
+        ? current.declaredFreePeriodsRaw + "; " + freeText
+        : freeText;
+      const merged = new Map(current.declaredFreePeriods.map((entry) => [entry.weekday + ":" + entry.period, entry]));
+      for (const entry of parsedFree.periods) merged.set(entry.weekday + ":" + entry.period, entry);
+      current.declaredFreePeriods = Array.from(merged.values());
+      current.freePeriodsParseWarnings = Array.from(new Set([...current.freePeriodsParseWarnings, ...parsedFree.warnings]));
+    }
     imported.set(key, current);
   }
 
@@ -483,6 +567,9 @@ export function parseTimetableWorkbook(
         matchedTeacherName: null,
         matchStatus: "ambiguous",
         aliases: [record.teacherSourceName],
+        declaredFreePeriods: [],
+        declaredFreePeriodsRaw: "",
+        freePeriodsParseWarnings: [],
         records: [record],
       };
       teachers.push(ambiguousTeacher);
@@ -501,6 +588,9 @@ export function parseTimetableWorkbook(
         matchedTeacherName: uniqueMatch?.name ?? null,
         matchStatus: uniqueMatch ? "matched" : systemMatches.length > 1 ? "ambiguous" : "unmatched",
         aliases: [record.teacherSourceName],
+        declaredFreePeriods: [],
+        declaredFreePeriodsRaw: "",
+        freePeriodsParseWarnings: [],
         records: [],
       };
       teachers.push(teacher);
