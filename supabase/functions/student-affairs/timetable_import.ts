@@ -179,9 +179,9 @@ function normalizeSubjectName(value: CellValue): string {
   const source = clean(value);
   const key = normalizeArabicName(source);
   if (!key) return "";
-  if (["حصة دينيه", "حصه دينيه", "دينيه"].includes(key)) return "تربية إسلامية";
-  if (["عربي", "لغه عربيه", "اللغة العربيه"].includes(key)) return "اللغة العربية";
-  if (["انجليزي", "انجليزيه", "لغه انجليزيه", "اللغة الانجليزيه"].includes(key)) return "اللغة الإنجليزية";
+  if (["حصه دينيه", "دينيه"].includes(key)) return "تربية إسلامية";
+  if (["عربي", "لغه عربيه", "اللغه العربيه"].includes(key)) return "اللغة العربية";
+  if (["انجليزي", "انجليزيه", "لغه انجليزيه", "اللغه الانجليزيه"].includes(key)) return "اللغة الإنجليزية";
   if (["رياضيات", "الرياضيات"].includes(key)) return "الرياضيات";
   if (key === "اجتماع الاسلاميه" || key === "اجتماع التربيه الاسلاميه") return "اجتماع التربية الإسلامية";
   return source;
