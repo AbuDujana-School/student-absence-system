@@ -455,3 +455,13 @@ Latest source verification:
 - Branch comparison: 168 commits ahead of `main`, 0 behind.
 - Latest combined status still reports only the Vercel build-rate-limit failure; a passing Deno/GitHub Actions run has not been verified.
 - No deployment or database migration was performed.
+
+
+## Substitution safety regression coverage — 2026-11-13
+
+Added policy tests to ensure:
+- Explicit `other`, `meeting`, and `unclear` timetable states are never offered as free substitutes.
+- Duplicate rows for the same teacher/day/period do not create a false free-period candidate.
+- Existing tests continue to cover missing cells, occupied cells, existing assignments, cancellation, department scope, date-specific conflicts, and workload ranking.
+
+These tests are committed but remain unexecuted until the GitHub Actions workflow can be observed running successfully. The latest feature branch comparison is 170 commits ahead of `main`, 0 behind. The latest commit currently has no combined status entries; this is not a passing test result.
