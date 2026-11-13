@@ -32,7 +32,7 @@ function statusFromSource(value: string): TimetableCellStatus {
   if (["فراغ","فارغ","فارغه","حصة فراغ","حصة فارغه"].includes(key)) return "free";
   if (["اجتماع","اجتماع قسم","اجتماع اداري","اجتماع الماده","اجتماع القسم","اجتماع المواد"].includes(key)) return "meeting";
   if (["نشاط","نشاط مدرسي","مناوبة"].includes(key)) return "activity";
-  if (["اخرى","حاله اخرى","ارتباط"].includes(key)) return "other";
+  if (["اخري","حاله اخري","ارتباط"].includes(key)) return "other";
   if (["غير واضح","غير واضحه","غير مقروء","غير مقروءه"].includes(key)) return "unclear";
   // Unknown source labels are not safely classifiable; preserve their raw value
   // and keep them out of free-period substitution eligibility.
