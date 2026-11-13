@@ -192,14 +192,22 @@ function buildTeacherDirectory(
   }
 
   for (const teacher of imported.values()) {
+    const fullNameKey = normalizeArabicName(teacher.sourceName);
+    const fullNameMatches = systemTeachers.filter((systemTeacher) =>
+      normalizeArabicName(systemTeacher.name) === fullNameKey
+    );
     const matches = new Map<string, SystemTeacher>();
-    for (const alias of teacher.aliases) {
-      const key = normalizeArabicName(alias);
-      for (const systemTeacher of systemTeachers) {
-        if (normalizeArabicName(systemTeacher.name) === key) {
-          matches.set(String(systemTeacher.id ?? systemTeacher.name), systemTeacher);
-        }
-      }
+    // An exact full-name match takes precedence over a short alias that may
+    // coincidentally equal another teacher's full name.
+    const candidates = fullNameMatches.length
+      ? fullNameMatches
+      : systemTeachers.filter((systemTeacher) =>
+        teacher.aliases.slice(1).some((alias) =>
+          normalizeArabicName(systemTeacher.name) === normalizeArabicName(alias)
+        )
+      );
+    for (const candidate of candidates) {
+      matches.set(String(candidate.id ?? candidate.name), candidate);
     }
     if (matches.size === 1) {
       const match = Array.from(matches.values())[0];
