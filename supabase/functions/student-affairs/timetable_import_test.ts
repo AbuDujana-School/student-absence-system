@@ -156,7 +156,7 @@ Deno.test("matches detailed names to abbreviated system names without confusing 
       ["اسم غير معروف", "صف 5", "إنجليزي", "2"],
     ),
   }, [
-    { id: "t1", name: "محمد جمعة الساعدي" },
+    { id: "t1", name: "محمد جمعة السعدي" },
     { id: "t2", name: "محمد عبدالله السعدي" },
     { id: "t3", name: "كردي ربيع" },
     { id: "t4", name: "عاطف محمد" },
@@ -210,7 +210,7 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
     ),
   }, [
     { id: "physics", name: "محمد البشير", departmentId: "الفيزياء", departmentName: "الفيزياء" },
-    { id: "arabic", name: "محمد جمعة الساعدي", departmentId: "اللغة العربية", departmentName: "اللغة العربية" },
+    { id: "arabic", name: "محمد جمعة السعدي", departmentId: "اللغة العربية", departmentName: "اللغة العربية" },
     { id: "life-skills", name: "محمد عبدالله الساعدي", departmentId: "مواد المهارات الحياتية", departmentName: "مواد المهارات الحياتية" },
   ]);
 
@@ -219,7 +219,7 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
     throw new Error("The confirmed physics placeholder must map to the existing محمد البشير account");
   }
   if (bySource.get("محمد جمعة ناصر السعدي")?.matchedTeacherId !== "arabic") {
-    throw new Error("محمد جمعة ناصر السعدي must map to the Arabic teacher محمد جمعة الساعدي");
+    throw new Error("محمد جمعة ناصر السعدي must map to the Arabic teacher محمد جمعة السعدي");
   }
   if (bySource.get("محمد عبدالله حمود السعدي")?.matchedTeacherId !== "life-skills") {
     throw new Error("محمد عبدالله حمود الساعدي must map to the life-skills teacher محمد عبدالله الساعدي");
