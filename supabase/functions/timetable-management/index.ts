@@ -88,7 +88,60 @@ async function handle(req: Request) {
   }
 
   if (action === "timetable_check_access") {
-    return reply(200, { canAccess: true, isAdmin: principal.type === "admin", isTeacher: principal.type === "teacher" });
+    return reply(200, { canAccess: true, isAdmin: principal.type === "admin", isTeacher: principal.type === "teacher" || principal.type === "custom" });
+  }
+
+  if (action === "timetable_list_access") {
+    if (principal.type !== "admin") return reply(403, { error: "إدارة صلاحيات الجداول متاحة لمدير النظام العام فقط." });
+    try {
+      const [{ data: teachers, error: teachersError }, { data: grants, error: grantsError }] = await Promise.all([
+        db.from("teachers").select("name,role,permissions").order("name"),
+        db.from("timetable_access_permissions").select("principal_type,principal_name,can_access,updated_by,updated_at"),
+      ]);
+      if (teachersError) throw teachersError;
+      if (grantsError) throw grantsError;
+      const grantMap = new Map((grants || []).map((row: any) => [row.principal_type + ":" + row.principal_name, row]));
+      const users = (teachers || []).filter((item: any) => item.role === "teacher" || item.role === "custom").map((item: any) => {
+        const type = item.role === "custom" ? "custom" : "teacher";
+        const grant = grantMap.get(type + ":" + String(item.name)) as any;
+        return {
+          principal_type: type, principal_name: String(item.name),
+          category: typeof item.permissions?.category === "string" ? item.permissions.category : "",
+          can_access: grant?.can_access === true,
+          updated_by: grant?.updated_by || null, updated_at: grant?.updated_at || null,
+        };
+      });
+      return reply(200, { users });
+    } catch (error) {
+      console.error("Timetable access list failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحميل صلاحيات الجداول." });
+    }
+  }
+
+  if (action === "timetable_set_access") {
+    if (principal.type !== "admin") return reply(403, { error: "إدارة صلاحيات الجداول متاحة لمدير النظام العام فقط." });
+    const principalType = String(body.principalType || "");
+    const principalName = String(body.principalName || "").trim();
+    if (!["teacher", "custom"].includes(principalType) || !principalName || principalName.length > 160 || typeof body.canAccess !== "boolean") {
+      return reply(400, { error: "بيانات صلاحية الجداول غير صالحة." });
+    }
+    try {
+      const { data: target, error: targetError } = await db.from("teachers")
+        .select("name,role").eq("name", principalName).maybeSingle();
+      if (targetError) throw targetError;
+      if (!target || (principalType === "custom" ? target.role !== "custom" : target.role !== "teacher")) {
+        return reply(404, { error: "المستخدم المحدد غير موجود أو نوع حسابه لا يطابق الاختيار." });
+      }
+      const { error } = await db.from("timetable_access_permissions").upsert({
+        principal_type: principalType, principal_name: principalName,
+        can_access: body.canAccess, updated_by: principal.name, updated_at: new Date().toISOString(),
+      }, { onConflict: "principal_type,principal_name" });
+      if (error) throw error;
+      return reply(200, { ok: true, principalType, principalName, canAccess: body.canAccess });
+    } catch (error) {
+      console.error("Timetable access permission update failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحديث صلاحية الجداول." });
+    }
   }
 
   if (["timetable_parse_day","timetable_save_weekly_day","timetable_get_weekly_draft","timetable_activate_weekly_version"].includes(String(body.action || ""))) {
