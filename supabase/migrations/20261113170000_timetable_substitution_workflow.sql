@@ -147,5 +147,59 @@ begin
 end;
 $function$;
 
+create or replace function public.cancel_timetable_substitution(p_payload jsonb)
+returns jsonb
+language plpgsql
+security invoker
+set search_path = public, pg_temp
+as $function$
+declare
+  v_assignment_id uuid := nullif(p_payload->>'assignment_id','')::uuid;
+  v_actor_name text := left(btrim(coalesce(p_payload->>'actor_name','')),160);
+  v_actor_type text := coalesce(p_payload->>'actor_type','');
+  v_assignment public.timetable_assignments%rowtype;
+  v_absent_department text;
+  v_actor_department text;
+begin
+  if v_assignment_id is null or v_actor_name='' or v_actor_type not in ('admin','teacher','custom') then
+    raise exception 'بيانات إلغاء تكليف الاحتياط غير صالحة.';
+  end if;
+  select * into v_assignment from public.timetable_assignments
+    where id=v_assignment_id and assignment_type='substitution' for update;
+  if not found then raise exception 'تكليف الاحتياط غير موجود.'; end if;
+  if v_assignment.status='cancelled' then
+    return jsonb_build_object('assignment_id',v_assignment.id,'status','cancelled','already_cancelled',true);
+  end if;
+  if v_assignment.status not in ('assigned','confirmed') then
+    raise exception 'لا يمكن إلغاء تكليف مكتمل أو غير نشط.';
+  end if;
+
+  if v_actor_type<>'admin' then
+    select coalesce(permissions->>'category',permissions->>'department_id',permissions->>'department_name','')
+      into v_absent_department from public.teachers where name=v_assignment.absent_teacher_name and role='teacher';
+    if not found then raise exception 'تعذر التحقق من قسم المعلم الغائب.'; end if;
+    select coalesce(permissions->>'category',permissions->>'department_id',permissions->>'department_name','')
+      into v_actor_department from public.teachers where name=v_actor_name and role in ('teacher','custom');
+    if not found or v_actor_department='' or v_absent_department='' or v_actor_department<>v_absent_department then
+      raise exception 'لا تملك صلاحية إلغاء تكليف هذا القسم.';
+    end if;
+  end if;
+
+  update public.timetable_assignments set status='cancelled',updated_at=now()
+    where id=v_assignment.id returning * into v_assignment;
+  insert into public.timetable_assignment_audit(
+    assignment_id,version_id,action,actor_name,before_data,after_data
+  ) values (
+    v_assignment.id,v_assignment.version_id,'cancelled',v_actor_name,
+    jsonb_build_object('teacher_name',v_assignment.teacher_name,'absent_teacher_name',v_assignment.absent_teacher_name,
+      'weekday',v_assignment.weekday,'period',v_assignment.period,'assignment_date',v_assignment.assignment_date,'status','assigned'),
+    jsonb_build_object('status','cancelled')
+  );
+  return jsonb_build_object('assignment_id',v_assignment.id,'status',v_assignment.status);
+end;
+$function$;
+
 revoke all on function public.create_timetable_substitution(jsonb) from public,anon,authenticated;
 grant execute on function public.create_timetable_substitution(jsonb) to service_role;
+revoke all on function public.cancel_timetable_substitution(jsonb) from public,anon,authenticated;
+grant execute on function public.cancel_timetable_substitution(jsonb) to service_role;
