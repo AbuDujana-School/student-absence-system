@@ -8710,7 +8710,8 @@ async function timetableLoadSavedImport(importId) {
       return {
         id:item.id, sourceName:item.source_name, normalizedName:item.normalized_name,
         matchedTeacherId:null, matchedTeacherName:item.matched_teacher_name,
-        matchStatus:item.match_status, aliases:item.aliases || [], records:[]
+        matchStatus:item.match_status, matchedDepartmentId:item.matched_department_id || null,
+        matchedDepartmentName:item.matched_department_name || null, aliases:item.aliases || [], records:[]
       };
     });
     records.forEach(function(record) {
