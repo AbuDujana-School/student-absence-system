@@ -8578,6 +8578,7 @@ async function timetableImportWorkbook() {
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
     timetablePendingWorkbook = {fileName:file.name,sheets:sheets};
     timetableSavedImport = null;
+    timetableActiveImport = null;
     const saveButton = document.getElementById("timetableSaveButton");
     if (saveButton) { saveButton.disabled = false; saveButton.classList.remove("hidden"); saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة'; }
     timetableImportPreview = result;
