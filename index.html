@@ -8754,7 +8754,8 @@ function timetableRenderTeacherList() {
   const teachers = result.teachers.map(function(teacher,index){return {teacher:teacher,index:index};}).filter(function(item) {
     const teacher = item.teacher;
     return !query || teacher.sourceName.toLocaleLowerCase("ar").includes(query) ||
-      (teacher.aliases || []).some(function(alias){return alias.toLocaleLowerCase("ar").includes(query);});
+      (teacher.aliases || []).some(function(alias){return alias.toLocaleLowerCase("ar").includes(query);}) ||
+      String(teacher.matchedTeacherName || "").toLocaleLowerCase("ar").includes(query);
   });
   if (!teachers.length) {
     host.innerHTML = '<div class="p-6 text-center text-xs text-slate-400">لا توجد أسماء مطابقة.</div>';
@@ -8763,11 +8764,12 @@ function timetableRenderTeacherList() {
   host.innerHTML = teachers.map(function(item) {
     const teacher = item.teacher, index = item.index;
     const selected = index === timetableSelectedTeacherIndex;
-    const matched = teacher.matchStatus === "matched";
+    const matched = teacher.matchStatus === "matched" && !!teacher.matchedTeacherName;
     const ambiguous = teacher.matchStatus === "ambiguous";
-    const label = matched ? "مطابق للنظام" : ambiguous ? "اسم ملتبس" : "يحتاج مطابقة";
+    const label = matched ? "مالك محدد" : ambiguous ? "اسم ملتبس" : "مالك غير محدد";
     const color = matched ? "text-emerald-700 bg-emerald-50 dark:text-emerald-300 dark:bg-emerald-950/40" : "text-amber-700 bg-amber-50 dark:text-amber-300 dark:bg-amber-950/40";
-    return '<button type="button" onclick="timetableSelectTeacher('+index+')" class="w-full text-right p-4 transition-colors '+(selected?'bg-cyan-50 dark:bg-cyan-950/40':'hover:bg-slate-50 dark:hover:bg-slate-900/60')+'"><div class="flex items-start justify-between gap-2"><span class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</span><span class="shrink-0 text-[9px] font-bold rounded-lg px-2 py-1 '+color+'">'+label+'</span></div><div class="flex items-center justify-between mt-2 text-[10px] text-slate-500"><span>'+teacher.records.length+' سجل</span><span>عرض التفاصيل <i class="fa-solid fa-chevron-left mr-1"></i></span></div></button>';
+    const owner = matched ? '<div class="mt-1 text-[10px] text-emerald-700 dark:text-emerald-300">المالك: '+timetableEsc(teacher.matchedTeacherName)+'</div>' : '<div class="mt-1 text-[10px] text-amber-700 dark:text-amber-300">يحتاج إلى تحديد مالك الجدول</div>';
+    return '<button type="button" onclick="timetableSelectTeacher('+index+')" class="w-full text-right p-4 transition-colors '+(selected?'bg-cyan-50 dark:bg-cyan-950/40':'hover:bg-slate-50 dark:hover:bg-slate-900/60')+'"><div class="flex items-start justify-between gap-2"><span class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</span><span class="shrink-0 text-[9px] font-bold rounded-lg px-2 py-1 '+color+'">'+label+'</span></div>'+owner+'<div class="flex items-center justify-between mt-2 text-[10px] text-slate-500"><span>'+teacher.records.length+' سجل</span><span>عرض التفاصيل <i class="fa-solid fa-chevron-left mr-1"></i></span></div></button>';
   }).join("");
 }
 async function timetableLoadImports() {
@@ -8927,8 +8929,7 @@ function timetableSelectTeacher(index) {
   if (!teacher) return;
   timetableSelectedTeacherIndex = index;
   timetableRenderTeacherList();
-  const status = teacher.matchStatus === "matched" ? "مطابق لسجل المعلمين في النظام" :
-    teacher.matchStatus === "ambiguous" ? "الاسم ملتبس ويحتاج مراجعة المطابقة" : "لم تتم مطابقة الاسم مع سجل المعلمين";
+  const status = teacher.matchedTeacherName ? "مالك الجدول: " + teacher.matchedTeacherName : teacher.matchStatus === "ambiguous" ? "اسم غير محسوم — يلزم تحديد مالك الجدول" : "مالك الجدول غير محدد — يمكنك ربطه لاحقاً";
   const records = teacher.records || [];
   const departmentLine = teacher.matchedDepartmentName ? '<p class="text-[10px] text-cyan-700 dark:text-cyan-300 mt-1">القسم / التخصص: '+timetableEsc(teacher.matchedDepartmentName)+'</p>' : '';
   const editable = !!(timetableActiveImport && timetableActiveImport.status === "draft");
@@ -8941,9 +8942,54 @@ function timetableSelectTeacher(index) {
   const aliases = (teacher.aliases || []).slice(1).map(timetableEsc).join("، ");
   const actionHeader = editable ? '<th class="p-3 text-[10px]">الإجراءات</th>' : "";
   document.getElementById("timetableTeacherDetails").innerHTML =
-    '<div class="flex flex-wrap items-start justify-between gap-3 mb-4"><div><h3 class="text-base font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</h3><p class="text-[10px] text-slate-500 mt-1">'+status+'</p></div><div class="flex items-center gap-2"><span class="rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 px-3 py-1.5 text-[10px] font-bold">'+records.length+' سجل مستخرج</span>'+(editable?'<button type="button" onclick="timetableOpenEditor(null)" class="rounded-xl bg-emerald-700 px-3 py-2 text-[10px] font-black text-white">+ إضافة حصة</button>':'')+'</div></div>'+
-    (aliases?'<p class="text-[10px] text-slate-500 mb-3">الأسماء المختصرة: '+aliases+'</p>':'')+
+    '<div class="flex flex-wrap items-start justify-between gap-3 mb-4"><div><h3 class="text-base font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</h3><p class="text-[10px] text-slate-500 mt-1">'+status+'</p></div><div class="flex items-center gap-2"><span class="rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 px-3 py-1.5 text-[10px] font-bold">'+records.length+' سجل مستخرج</span>'+(editable?'<button type="button" onclick="timetableOpenOwnerSwitcher()" class="rounded-xl border border-cyan-300 dark:border-cyan-700 text-cyan-800 dark:text-cyan-200 px-3 py-2 text-[10px] font-black">تبديل مالك الجدول</button><button type="button" onclick="timetableOpenEditor(null)" class="rounded-xl bg-emerald-700 px-3 py-2 text-[10px] font-black text-white">+ إضافة حصة</button>':'')+'</div></div>'+
+    (aliases?'<p class="text-[10px] text-slate-500 mb-3">الأسماء المختصرة: '+aliases+'</p>':'')+(teacher.matchedTeacherName?'<p class="text-[10px] text-emerald-700 dark:text-emerald-300 mb-3">مالك الجدول المعتمد: '+timetableEsc(teacher.matchedTeacherName)+(teacher.matchedDepartmentName?' — '+timetableEsc(teacher.matchedDepartmentName):'')+'</p>':'<p class="text-[10px] text-amber-700 dark:text-amber-300 mb-3">هذا الجدول محفوظ باسم المصدر، ولم يُحدد مالكه في النظام بعد.</p>')+
     (records.length?'<div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"><table class="min-w-[820px] w-full text-right"><thead class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3 text-[10px]">المصدر</th><th class="p-3 text-[10px]">الشعبة</th><th class="p-3 text-[10px]">المادة</th><th class="p-3 text-[10px]">المجموعة</th><th class="p-3 text-[10px]">المدة</th><th class="p-3 text-[10px]">أسبوعياً</th><th class="p-3 text-[10px]">اليوم</th><th class="p-3 text-[10px]">الحصة</th><th class="p-3 text-[10px]">الغرفة</th>'+actionHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-8 text-center text-xs text-slate-400">لا توجد سجلات حصص مرتبطة بهذا الاسم.</div>');
+}
+
+
+async function timetableOpenOwnerSwitcher() {
+  const teacher = timetableImportPreview?.result?.teachers?.[timetableSelectedTeacherIndex];
+  if (!teacher || !timetableActiveImport || timetableActiveImport.status !== "draft") {
+    timetableSetStatus("تبديل مالك الجدول متاح على النسخ المسودة فقط.", "error"); return;
+  }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const response = await appAuthRequest({action:"timetable_list_owner_candidates"}, token);
+    const candidates = response.teachers || [];
+    if (!candidates.length) { timetableSetStatus("لا توجد أسماء معلمين متاحة للاختيار.", "error"); return; }
+    let modal = document.getElementById("timetableOwnerSwitcher");
+    if (!modal) {
+      modal = document.createElement("div");
+      modal.id = "timetableOwnerSwitcher";
+      modal.className = "fixed inset-0 z-[95] bg-slate-950/70 backdrop-blur-sm p-3 flex items-center justify-center";
+      document.body.appendChild(modal);
+    }
+    modal.innerHTML = '<div class="w-full max-w-lg rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-5 space-y-4 shadow-2xl"><div class="flex items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white">تبديل مالك الجدول</h3><p class="text-[11px] text-slate-500 mt-1">الاسم في الملف: '+timetableEsc(teacher.sourceName)+' — ستبقى جميع الحصص كما هي.</p></div><button type="button" onclick="timetableCloseOwnerSwitcher()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800">×</button></div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300">اختر المعلم الصحيح من النظام<select id="timetableOwnerCandidate" class="mt-2 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-white"><option value="">— اترك المالك غير محدد —</option>'+candidates.map(function(item){return '<option value="'+timetableEsc(item.name)+'" '+(teacher.matchedTeacherName===item.name?'selected':'')+'>'+timetableEsc(item.name)+(item.department?' — '+timetableEsc(item.department):'')+'</option>';}).join("")+'</select></label><p class="text-[10px] text-slate-500">يمكنك إبقاء الاسم دون ربط الآن، والعودة إليه لاحقاً. لن يتم حذف الاسم الأصلي أو أي سجل من الملف.</p><div id="timetableOwnerError" class="hidden rounded-xl bg-red-50 text-red-700 p-3 text-xs"></div><div class="flex gap-2 justify-end"><button type="button" onclick="timetableCloseOwnerSwitcher()" class="rounded-xl border border-slate-300 dark:border-slate-600 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" onclick="timetableSaveOwner()" class="rounded-xl bg-cyan-700 text-white px-4 py-2 text-xs font-black">حفظ المالك</button></div></div>';
+  } catch (error) { timetableSetStatus(error?.message || "تعذر تحميل قائمة المعلمين.", "error"); }
+}
+function timetableCloseOwnerSwitcher() { document.getElementById("timetableOwnerSwitcher")?.remove(); }
+async function timetableSaveOwner() {
+  const teacher = timetableImportPreview?.result?.teachers?.[timetableSelectedTeacherIndex];
+  const errorBox = document.getElementById("timetableOwnerError");
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!teacher || !timetableActiveImport || !token) return;
+  const selectedName = document.getElementById("timetableOwnerCandidate")?.value || "";
+  const button = document.querySelector("#timetableOwnerSwitcher button[onclick='timetableSaveOwner()']");
+  if (button) { button.disabled = true; button.textContent = "جارٍ الحفظ..."; }
+  try {
+    await appAuthRequest({action:"timetable_reassign_owner",importId:timetableActiveImport.id,sourceName:teacher.sourceName,teacherName:selectedName},token);
+    const importId = timetableActiveImport.id;
+    const sourceName = teacher.sourceName;
+    timetableCloseOwnerSwitcher();
+    await timetableLoadSavedImport(importId);
+    const index = (timetableImportPreview?.result?.teachers || []).findIndex(function(item){return item.sourceName === sourceName;});
+    if (index >= 0) timetableSelectTeacher(index);
+    timetableSetStatus(selectedName ? "تم ربط الجدول بالمعلم المحدد مع الاحتفاظ بالاسم الأصلي وسجل المراجعة." : "تم ترك مالك الجدول غير محدد. يمكنك ربطه لاحقاً.", "success");
+  } catch (error) {
+    if (errorBox) { errorBox.textContent = error?.message || "تعذر تبديل مالك الجدول."; errorBox.classList.remove("hidden"); }
+    if (button) { button.disabled = false; button.textContent = "حفظ المالك"; }
+  }
 }
 
 </script>
