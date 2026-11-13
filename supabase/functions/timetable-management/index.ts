@@ -22,17 +22,33 @@ async function sha256(value: string) {
   const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-async function requireAdmin(req: Request) {
-  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
-  if (!/^[a-f0-9]{64}$/i.test(token)) return null;
-  const tokenHash = await sha256(token);
-  const { data, error } = await db.from("student_affairs_sessions")
+type TimetablePrincipal = { type: "admin" | "teacher"; name: string };
+
+async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
+  const authorization = req.headers.get("authorization") || "";
+  const match = /^Bearer\\s+([a-f0-9]{64})$/i.exec(authorization.trim());
+  if (!match) return null;
+  const tokenHash = await sha256(match[1].toLowerCase());
+  const { data: session, error: sessionError } = await db.from("app_sessions")
     .select("principal_type,principal_name,expires_at")
     .eq("token_hash", tokenHash)
     .gt("expires_at", new Date().toISOString())
     .maybeSingle();
-  if (error || !data || data.principal_type !== "admin" || data.principal_name !== "مدير النظام العام") return null;
-  return { type: "admin" as const, name: data.principal_name as string };
+  if (sessionError || !session || typeof session.principal_name !== "string") return null;
+
+  if (session.principal_type === "admin" && session.principal_name === "مدير النظام العام") {
+    const { data: setting, error } = await db.from("school_settings")
+      .select("value").eq("key", "admin_pin").maybeSingle();
+    if (error || !setting?.value?.hash || !setting?.value?.salt) return null;
+    return { type: "admin", name: session.principal_name };
+  }
+  if (session.principal_type === "teacher") {
+    const { data: teacher, error } = await db.from("teachers")
+      .select("name,role").eq("name", session.principal_name).maybeSingle();
+    if (error || !teacher || teacher.role !== "teacher") return null;
+    return { type: "teacher", name: teacher.name };
+  }
+  return null;
 }
 function validUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
@@ -53,15 +69,21 @@ async function handle(req: Request) {
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any;
   try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
-  const principal = await requireAdmin(req);
-  if (!principal) return reply(401, { error: "انتهت جلسة المدير أو لا تملك صلاحية إدارة الجداول." });
+  const principal = await requirePrincipal(req);
+  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
 
-  if (body.action === "health") {
+  const action = String(body.action || "");
+  const teacherReadOnlyActions = new Set(["health", "timetable_check_access", "teacher_timetable_get_own"]);
+  if (principal.type === "teacher" && !teacherReadOnlyActions.has(action)) {
+    return reply(403, { error: "يمكن للمعلم استعراض جدوله الشخصي فقط." });
+  }
+
+  if (action === "health") {
     return reply(200, { ok: true, service: "timetable-management", authenticated: true, scope: "timetable-only" });
   }
 
-  if (body.action === "timetable_check_access") {
-    return reply(200, { canAccess: true, isAdmin: true });
+  if (action === "timetable_check_access") {
+    return reply(200, { canAccess: true, isAdmin: principal.type === "admin", isTeacher: principal.type === "teacher" });
   }
 
   if (["timetable_parse_day","timetable_save_weekly_day","timetable_get_weekly_draft","timetable_activate_weekly_version"].includes(String(body.action || ""))) {
@@ -130,6 +152,9 @@ async function handle(req: Request) {
     try {
       const teacherName = String(body.teacherName || "").trim();
       if (!teacherName || teacherName.length > 160) return reply(400, { error: "أدخل اسم المعلم كاملاً." });
+      if (principal.type !== "admin" && teacherName !== principal.name) {
+        return reply(403, { error: "لا يمكنك استعراض جدول معلم آخر." });
+      }
       let query = db.from("timetable_weekly_versions").select("id,version,status,activated_at");
       query = validUuid(body.versionId) ? query.eq("id", body.versionId) : query.eq("status", "active");
       const { data: version, error } = await query.maybeSingle();
