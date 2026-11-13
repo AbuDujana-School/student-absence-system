@@ -39,7 +39,7 @@ export async function resolveTimetablePrincipal(
   now = Date.now(),
 ): Promise<TimetablePrincipal | null> {
   if (typeof authorization !== "string" || !Number.isFinite(now)) return null;
-  const match = /^Bearer\\s+([a-f0-9]{64})$/i.exec(authorization.trim());
+  const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization.trim());
   if (!match) return null;
 
   const tokenHash = await sha256(match[1].toLowerCase());
