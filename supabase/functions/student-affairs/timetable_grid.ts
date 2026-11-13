@@ -42,7 +42,8 @@ function subjectFromSource(value: string): string {
 function parsePeriod(value: string): number | null {
   const text=normalizedKey(value).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
   if (/^[1-7]$/.test(text)) return Number(text);
-  return PERIOD_WORDS[text] ?? null;
+  const normalizedWords = new Map(Object.entries(PERIOD_WORDS).map(([word, number]) => [normalizedKey(word), number]));
+  return normalizedWords.get(text) ?? null;
 }
 function parseClassSections(value: string): string[] {
   const text=value.trim();
