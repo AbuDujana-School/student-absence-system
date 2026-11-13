@@ -8838,6 +8838,7 @@ function timetableSelectTeacher(index) {
   const status = teacher.matchStatus === "matched" ? "مطابق لسجل المعلمين في النظام" :
     teacher.matchStatus === "ambiguous" ? "الاسم ملتبس ويحتاج مراجعة المطابقة" : "لم تتم مطابقة الاسم مع سجل المعلمين";
   const records = teacher.records || [];
+  const departmentLine = teacher.matchedDepartmentName ? '<p class="text-[10px] text-cyan-700 dark:text-cyan-300 mt-1">القسم / التخصص: '+timetableEsc(teacher.matchedDepartmentName)+'</p>' : '';
   const editable = !!(timetableActiveImport && timetableActiveImport.status === "draft");
   const rows = records.map(function(record) {
     const actions = editable && record.dbRecordId
