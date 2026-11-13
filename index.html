@@ -5373,7 +5373,7 @@ async function finalizeLoginState() {
   document.getElementById('activeUserName').textContent = activeUser.name;
 
   const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin === true || isAdminAuthorized();
-  const singlePermission = !isAdmin ? getSingleAdminPermission(activeUser) : null;
+  const singlePermission = !isAdmin && !timetableCanAccess ? getSingleAdminPermission(activeUser) : null;
   const adminBtn = document.getElementById('adminPanelBtn');
   if (adminBtn) {
     const buttonIcon = adminBtn.querySelector('i');
