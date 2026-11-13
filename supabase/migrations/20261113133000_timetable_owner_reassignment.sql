@@ -21,6 +21,7 @@ declare
   v_target record;
   v_old_owner text;
   v_old_status text;
+  v_source_count integer;
 begin
   if v_import_id is null or v_source_name = '' or v_actor = '' then
     raise exception 'بيانات تبديل مالك الجدول غير مكتملة.';
@@ -31,11 +32,16 @@ begin
    for update;
   if not found then raise exception 'يمكن تبديل مالك الجدول في النسخة المسودة فقط.'; end if;
 
+  select count(*) into v_source_count
+    from public.timetable_import_teachers
+   where import_id = v_import_id and source_name = v_source_name;
+  if v_source_count = 0 then raise exception 'اسم المصدر غير موجود في نسخة الجدول.'; end if;
+  if v_source_count > 1 then raise exception 'اسم المصدر مكرر ولا يمكن تبديل مالكه قبل معالجة التكرار.'; end if;
+
   select * into v_import_teacher
     from public.timetable_import_teachers
    where import_id = v_import_id and source_name = v_source_name
    for update;
-  if not found then raise exception 'اسم المصدر غير موجود في نسخة الجدول.'; end if;
 
   v_old_owner := v_import_teacher.matched_teacher_name;
   v_old_status := v_import_teacher.match_status;
