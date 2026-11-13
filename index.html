@@ -9077,7 +9077,7 @@ function timetableRenderSubstitutionLessons(response) {
     const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+'</option>').join("");
     const assignment=lesson.assignment;
     const assignmentStatus=assignment?.status==="confirmed"?"مؤكد":assignment?.status==="completed"?"مكتمل":"مسند";
-    const assignmentInfo=assignment
+    const action=assignment
       ? '<div class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-200 flex flex-wrap items-center justify-between gap-2"><span>تم تعيين البديل: '+timetableEsc(assignment.substituteTeacherName)+' — الحالة: '+assignmentStatus+'</span>'+(assignment.status==="completed"?'':'<button type="button" data-substitution-cancel="'+timetableEsc(assignment.id)+'" class="rounded-lg border border-red-300 px-3 py-2 text-[10px] font-black text-red-700 dark:text-red-300">إلغاء التكليف</button>')+'</div>'
       : candidates.length
         ? '<div class="flex flex-col sm:flex-row gap-2"><select data-substitution-candidate="'+lesson.period+'" class="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs"><option value="">اختر المعلم البديل</option>'+options+'</select><button type="button" data-substitution-save="'+lesson.period+'" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-3 text-xs font-black text-white">تعيين البديل</button></div>'
