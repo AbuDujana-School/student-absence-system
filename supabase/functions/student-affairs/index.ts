@@ -917,13 +917,37 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر تحديث صلاحية الجداول. تحقق من migration التطوير." });
     }
   }
-  if (["timetable_parse_day","timetable_save_weekly_day","timetable_activate_weekly_version"].includes(String(body?.action || ""))) {
+  if (["timetable_parse_day","timetable_save_weekly_day","timetable_activate_weekly_version","timetable_get_weekly_draft"].includes(String(body?.action || ""))) {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
         return reply(403, { error: "إدارة الجدول الأسبوعي متاحة لمدير النظام العام فقط." });
+      }
+
+      if (body.action === "timetable_get_weekly_draft") {
+        const { data: draft, error: draftError } = await db.from("timetable_weekly_versions")
+          .select("id,version,expected_teacher_count,created_at")
+          .eq("status", "draft").order("created_at", { ascending: false }).limit(1).maybeSingle();
+        if (draftError) throw draftError;
+        if (!draft) return reply(200, { ok: true, draft: null });
+        const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+          .select("weekday,teacher_source_name").eq("version_id", draft.id);
+        if (cellsError) throw cellsError;
+        const rows = cells || [];
+        return reply(200, {
+          ok: true,
+          draft: {
+            id: draft.id,
+            version: draft.version,
+            expectedTeacherCount: draft.expected_teacher_count,
+            weekdays: [...new Set(rows.map((row: any) => String(row.weekday || ""))].filter(Boolean)],
+            teacherCount: new Set(rows.map((row: any) => String(row.teacher_source_name || ""))).size,
+            cellCount: rows.length,
+            createdAt: draft.created_at,
+          },
+        });
       }
 
       if (body.action === "timetable_activate_weekly_version") {
