@@ -346,7 +346,7 @@ The draft review now supports an explicit **تبديل مالك الجدول** a
 The school explicitly confirmed these identity links for timetable import:
 
 - Workbook label **س فيزياء** belongs to the existing system teacher **محمد البشير**.
-- **محمد جمعة ناصر السعدي** is the Arabic teacher stored in the system as **محمد جمعة الساعدي**.
+- **محمد جمعة ناصر السعدي** is the Arabic teacher stored in the system as **محمد جمعة السعدي**.
 - **محمد عبدالله حمود الساعدي** is the life-skills teacher stored in the system as **محمد عبدالله الساعدي** (department: مواد المهارات الحياتية).
 - The short alias **محمد السعدي** by itself is shared and must never identify either teacher automatically; records containing only that alias remain unresolved for manual review.
 
