@@ -418,3 +418,27 @@ This is a read-only view; it does not edit the active schedule or create assignm
 3. Run end-to-end tests for the five-day import, name matching, save/resume draft, activation, teacher lookup, candidate preview, substitution save/cancel, and date-specific double-booking.
 4. Review the UI on mobile and desktop and run regressions for all existing school workflows.
 5. Obtain explicit approval before merge or deployment.
+
+
+## Supabase environment and deployment audit — 2026-11-13
+
+Read-only inspection of the connected Supabase projects confirmed two separate environments:
+
+- The production project is healthy and currently has the existing school tables and records. Its migration history ends at the existing notice-ledger migration; it does **not** include any of the four new timetable migrations. Its deployed `student-affairs` Edge Function is version 49 and does not contain the timetable weekly-grid/lookup actions.
+- The development project is healthy but its database currently has the baseline Student Affairs schema only, no school timetable tables, and no school roster/data rows. Its deployed `student-affairs` Edge Function is version 7 and likewise does not contain the new timetable actions.
+- The Git feature branch contains the timetable migrations and latest source changes, but neither Supabase environment has received those changes. This is expected at this stage and is not a deployment failure.
+- No migration was applied, no Edge Function was deployed, and no table contents, credentials, permissions, or production records were changed during this audit.
+
+### Advisor observations (read-only)
+
+- Development: four INFO notices report RLS-enabled server-only Student Affairs tables with no direct policies; four INFO unused-index notices; one WARN about overlapping read policies on `teacher_access`.
+- Production: seven INFO notices report RLS-enabled server-only tables with no direct policies; one WARN for an existing `import_jsonbin_data` function without a fixed search path; one WARN for the `pg_net` extension in `public`; and existing performance warnings for overlapping permissive policies and duplicate teacher-name indexes.
+- These findings concern the existing application schema and were not changed as part of timetable work. In particular, broad edits to the existing attendance, behavior, teachers, or permissions policies are out of scope without a separate approved security review.
+
+### Verification gates updated
+
+1. Keep production untouched.
+2. Prepare a reproducible isolated PostgreSQL test run for all five timetable migrations and the Deno tests. The repository workflow already contains isolated PostgreSQL integration checks and Deno checks for the new parser/grid/substitution modules.
+3. Resolve why the latest GitHub Actions push run is not visible through the currently available PR-only workflow-run lookup; the Vercel rate-limit status alone is not a substitute for backend test results.
+4. Provision or refresh a dedicated development database only after an approved, controlled migration rehearsal. Do not seed it with production student records or credentials.
+5. Only after migration and Edge Function checks pass in development, request explicit authorization before any production deployment.
