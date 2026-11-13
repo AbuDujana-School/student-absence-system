@@ -442,3 +442,16 @@ Read-only inspection of the connected Supabase projects confirmed two separate e
 3. Resolve why the latest GitHub Actions push run is not visible through the currently available PR-only workflow-run lookup; the Vercel rate-limit status alone is not a substitute for backend test results.
 4. Provision or refresh a dedicated development database only after an approved, controlled migration rehearsal. Do not seed it with production student records or credentials.
 5. Only after migration and Edge Function checks pass in development, request explicit authorization before any production deployment.
+
+
+## Conservative source-status classification — 2026-11-13
+
+The daily timetable parser previously mapped any unrecognized source status to the generic `other` state. This could make an unfamiliar label appear more definite than the source supports. It now maps only explicit `أخرى` / `حالة أخرى` / `ارتباط` labels to `other`; recognized teaching, free, meeting, activity, and unclear labels retain their dedicated states; every other unrecognized label becomes `unclear`. The original source label remains preserved in `sourceStatus`.
+
+Added a regression test proving that an unknown label remains `unclear`, its original text is retained, and an explicit `أخرى` remains `other`. This prevents unknown entries from being mistaken for confirmed free periods by the substitution candidate engine.
+
+Latest source verification:
+- Both parser source and test changes are present on `feature/smart-substitution-system`.
+- Branch comparison: 168 commits ahead of `main`, 0 behind.
+- Latest combined status still reports only the Vercel build-rate-limit failure; a passing Deno/GitHub Actions run has not been verified.
+- No deployment or database migration was performed.
