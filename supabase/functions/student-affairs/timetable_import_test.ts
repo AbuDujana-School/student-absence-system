@@ -33,12 +33,16 @@ Deno.test("imports lesson contracts by teacher without inventing weekly placemen
     "العقد": rows(["المعلم", "الشعب", "المجموعة", "المادة", "المدة", "الحصص/الأسبوع"], ["أحمد خالد محمد السالمي", null, null, null, null, "5"], [null, "الحادي عشر/1", "الفصل بالكامل", "الرياضيات", "مفردة", "5"]),
   };
   const result = parseTimetableWorkbook(workbook, [
-    { id: "t1", name: "أحمد خالد محمد السالمي" },
-    { id: "t2", name: "سعيد عبدالله" },
+    { id: "t1", name: "أحمد خالد محمد السالمي", departmentId: "الرياضيات", departmentName: "الرياضيات" },
+    { id: "t2", name: "سعيد عبدالله", departmentId: "العلوم", departmentName: "العلوم" },
   ]);
   if (result.teachers.length !== 2) throw new Error("Expected two imported teachers");
-  if (result.teachers.find((t) => t.matchedTeacherId === "t1")?.records.length !== 3) {
+  const matchedTeacher = result.teachers.find((t) => t.matchedTeacherId === "t1");
+  if (matchedTeacher?.records.length !== 3) {
     throw new Error("Expected all source records to remain attached to the matching teacher");
+  }
+  if (matchedTeacher.matchedDepartmentId !== "الرياضيات" || matchedTeacher.matchedDepartmentName !== "الرياضيات") {
+    throw new Error("The matched teacher's department scope should be carried into the imported timetable");
   }
   if (result.hasWeeklyPlacements || result.placements.length !== 0) {
     throw new Error("Weekly placements must not be inferred from weekly lesson counts");
