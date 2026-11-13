@@ -3031,6 +3031,15 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           </div>
         </div>
         </div>
+        <div id="timetableTeacherWeeklyLookup" class="rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">استعراض الجدول الأسبوعي للمعلم</h3><p class="mt-1 text-xs text-slate-500">ابحث باسم المعلم الكامل لعرض حصصه وفراغه واجتماعاته في النسخة الأسبوعية المعتمدة. الخانة غير الموجودة لا تُعرض كفراغ.</p></div>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
+            <input id="timetableTeacherLookupName" type="search" maxlength="160" placeholder="اكتب اسم المعلم كما هو مسجل في النظام" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white">
+            <button id="timetableTeacherLookupButton" type="button" onclick="timetableLookupTeacherWeeklyGrid()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black">عرض الجدول</button>
+          </div>
+          <div id="timetableTeacherLookupStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div id="timetableTeacherLookupResults" class="hidden overflow-x-auto"></div>
+        </div>
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
@@ -9003,6 +9012,69 @@ async function timetableResumeWeeklyDraft() {
     timetableWeeklySetStatus(error?.message || "تعذر استرجاع مسودة الأسبوع.", "error");
   } finally {
     if (button) { button.disabled = false; button.innerHTML = old; }
+  }
+}
+
+function timetableTeacherLookupSetStatus(message, kind="info") {
+  const el=document.getElementById("timetableTeacherLookupStatus");
+  if(!el)return;
+  el.textContent=message;
+  el.className="rounded-xl border px-4 py-3 text-xs font-bold "+(kind==="error"
+    ?"border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300"
+    :kind==="success"
+      ?"border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
+      :"border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200");
+  el.classList.remove("hidden");
+}
+async function timetableLookupTeacherWeeklyGrid() {
+  const name=document.getElementById("timetableTeacherLookupName")?.value.trim()||"";
+  const button=document.getElementById("timetableTeacherLookupButton");
+  const host=document.getElementById("timetableTeacherLookupResults");
+  if(activeUser?.type!=="admin") {
+    timetableTeacherLookupSetStatus("هذه الخاصية متاحة لمدير النظام العام فقط.","error");
+    return;
+  }
+  if(!name) {
+    timetableTeacherLookupSetStatus("اكتب اسم المعلم كاملاً أولاً.","error");
+    return;
+  }
+  const old=button?.innerHTML;
+  if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحميل...';}
+  if(host){host.classList.add("hidden");host.innerHTML="";}
+  try {
+    const token=appAuthSession?.token||readAppAuthToken();
+    if(!token)throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
+    const response=await appAuthRequest({action:"timetable_teacher_weekly_get",teacherName:name},token);
+    const days=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+    const labels={teaching:"تدريس",free:"فراغ",meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضح"};
+    const classes={
+      teaching:"bg-blue-50 border-blue-200 text-blue-800 dark:bg-blue-950/30 dark:border-blue-900 dark:text-blue-200",
+      free:"bg-emerald-50 border-emerald-200 text-emerald-800 dark:bg-emerald-950/30 dark:border-emerald-900 dark:text-emerald-200",
+      meeting:"bg-amber-50 border-amber-200 text-amber-800 dark:bg-amber-950/30 dark:border-amber-900 dark:text-amber-200",
+      activity:"bg-violet-50 border-violet-200 text-violet-800 dark:bg-violet-950/30 dark:border-violet-900 dark:text-violet-200",
+      other:"bg-slate-50 border-slate-200 text-slate-700 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200",
+      unclear:"bg-rose-50 border-rose-200 text-rose-800 dark:bg-rose-950/30 dark:border-rose-900 dark:text-rose-200"
+    };
+    const cells=response.cells||[];
+    const cellMap=new Map(cells.map(cell=>[cell.weekday+":"+cell.period,cell]));
+    const grid=days.map(day=>{
+      const periodCells=Array.from({length:7},(_,index)=>{
+        const period=index+1,cell=cellMap.get(day+":"+period);
+        if(!cell)return '<div class="min-w-[112px] rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3 text-center text-[10px] text-slate-400"><div class="font-black mb-1">الحصة '+period+'</div>غير مسجلة</div>';
+        const status=String(cell.cell_status||"other");
+        const section=Array.isArray(cell.class_sections)?cell.class_sections.join("، "):"";
+        const details=[section,cell.subject].filter(Boolean).join(" · ");
+        return '<div class="min-w-[112px] rounded-xl border p-3 '+(classes[status]||classes.other)+'"><div class="text-[10px] font-black mb-1">الحصة '+period+'</div><div class="text-[11px] font-black">'+timetableEsc(labels[status]||"أخرى")+'</div><div class="mt-1 text-[10px] break-words">'+timetableEsc(details||"—")+'</div></div>';
+      }).join("");
+      return '<section class="mb-4"><h4 class="font-black text-xs text-slate-700 dark:text-slate-200 mb-2">'+day+'</h4><div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">'+periodCells+'</div></section>';
+    }).join("");
+    host.innerHTML='<div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 p-3"><div class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(response.teacherName)+'</div><div class="text-[10px] text-slate-500">النسخة '+timetableEsc(response.version?.version)+' · '+response.actualCellCount+' من 35 خانة'+(response.complete?"":" · غير مكتمل")+'</div></div>'+grid;
+    host.classList.remove("hidden");
+    timetableTeacherLookupSetStatus(response.complete?"تم تحميل الجدول الأسبوعي الكامل.":"تم تحميل البيانات المتاحة، لكن بعض الخانات غير مسجلة. لا تُعامل الخانات الناقصة كفراغ.",response.complete?"success":"info");
+  } catch(error) {
+    timetableTeacherLookupSetStatus(error?.message||"تعذر استعراض جدول المعلم.","error");
+  } finally {
+    if(button){button.disabled=false;button.innerHTML=old;}
   }
 }
 
