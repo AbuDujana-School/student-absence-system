@@ -1,103 +1,62 @@
 import {
-  getAbsentTeacherLessons,
-  getAvailableSubstitutionCandidates,
-  type SubstitutionTeacher,
-  type TimetableEntry,
-  type SubstitutionAssignment,
+  getAbsentTeacherLessons,getAvailableSubstitutionCandidates,
+  type SubstitutionTeacher,type TimetableEntry,type SubstitutionAssignment,
 } from "./substitution_policy.ts";
-
-const teachers: SubstitutionTeacher[] = [
-  { id: "absent", name: "أحمد السالمي", departmentId: "arabic" },
-  { id: "free", name: "خالد السالمي", departmentId: "arabic" },
-  { id: "busy", name: "سعيد", departmentId: "arabic" },
-  { id: "assigned", name: "ماجد", departmentId: "arabic" },
-  { id: "other", name: "علي", departmentId: "islamic" },
+const teachers:SubstitutionTeacher[]=[
+  {id:"absent",name:"أحمد السالمي",departmentId:"arabic"},
+  {id:"free",name:"خالد السالمي",departmentId:"arabic"},
+  {id:"busy",name:"سعيد",departmentId:"arabic"},
+  {id:"assigned",name:"ماجد",departmentId:"arabic"},
+  {id:"other",name:"علي",departmentId:"islamic"},
+  {id:"meeting",name:"ناصر",departmentId:"arabic"},
+  {id:"unknown",name:"سالم",departmentId:"arabic"},
+  {id:"missing",name:"فهد",departmentId:"arabic"},
 ];
-
-const timetable: TimetableEntry[] = [
-  { teacherId: "absent", weekday: "الأحد", period: 4, className: "11 أول", subject: "العربية" },
-  { teacherId: "absent", weekday: "الأحد", period: 7, className: "10/2" },
-  { teacherId: "busy", weekday: "الأحد", period: 4, className: "11 أول" },
-  { teacherId: "other", weekday: "الأحد", period: 4, className: "9/1" },
+const timetable:TimetableEntry[]=[
+  {teacherId:"absent",weekday:"الأحد",period:4,className:"11 أول",subject:"العربية",status:"teaching"},
+  {teacherId:"absent",weekday:"الأحد",period:7,className:"10/2",status:"teaching"},
+  {teacherId:"free",weekday:"الأحد",period:4,className:"",status:"free"},
+  {teacherId:"busy",weekday:"الأحد",period:4,className:"11/2",status:"teaching"},
+  {teacherId:"assigned",weekday:"الأحد",period:4,className:"",status:"free"},
+  {teacherId:"other",weekday:"الأحد",period:4,className:"",status:"free"},
+  {teacherId:"meeting",weekday:"الأحد",period:4,className:"",status:"meeting"},
+  {teacherId:"unknown",weekday:"الأحد",period:4,className:"",status:"unclear"},
 ];
-
-const assignments: SubstitutionAssignment[] = [
-  { substituteTeacherId: "assigned", weekday: "الأحد", period: 4, status: "confirmed" },
+const assignments:SubstitutionAssignment[]=[
+  {substituteTeacherId:"assigned",weekday:"الأحد",period:4,status:"confirmed"},
 ];
-
-Deno.test("empty timetable cell means the teacher is available", () => {
-  const result = getAvailableSubstitutionCandidates({
-    teachers, timetable, assignments,
-    absentTeacherId: "absent", weekday: "الأحد", period: 4,
-    departmentId: "arabic",
-  });
-  if (result.length !== 1 || result[0].id !== "free") {
-    throw new Error("Only the teacher with an empty cell should be available");
-  }
+Deno.test("only an explicit free cell is eligible",()=>{
+ const result=getAvailableSubstitutionCandidates({teachers,timetable,assignments,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"});
+ if(result.length!==1||result[0].id!=="free")throw new Error("Only the explicitly free teacher should be available");
 });
-
-Deno.test("teacher with a class in the selected period is excluded", () => {
-  const result = getAvailableSubstitutionCandidates({
-    teachers, timetable, assignments,
-    absentTeacherId: "absent", weekday: "الأحد", period: 4,
-    departmentId: "arabic",
-  });
-  if (result.some((teacher) => teacher.id === "busy")) {
-    throw new Error("A teacher with a scheduled class was incorrectly offered");
-  }
+Deno.test("a missing timetable cell is not assumed to be free",()=>{
+ const result=getAvailableSubstitutionCandidates({teachers,timetable,assignments,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"});
+ if(result.some(t=>t.id==="missing"))throw new Error("A missing cell was incorrectly offered");
 });
-
-Deno.test("teacher already assigned to another substitution in the same cell is excluded", () => {
-  const result = getAvailableSubstitutionCandidates({
-    teachers, timetable, assignments,
-    absentTeacherId: "absent", weekday: "الأحد", period: 4,
-    departmentId: "arabic",
-  });
-  if (result.some((teacher) => teacher.id === "assigned")) {
-    throw new Error("A teacher already assigned in this period was offered again");
-  }
+Deno.test("teaching, meeting and unclear cells are ineligible",()=>{
+ const result=getAvailableSubstitutionCandidates({teachers,timetable,assignments,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"});
+ for(const id of ["busy","meeting","unknown"])if(result.some(t=>t.id===id))throw new Error(id+" should not be eligible");
 });
-
-Deno.test("other departments are excluded unless cross-department mode is enabled", () => {
-  const base = {
-    teachers, timetable, assignments,
-    absentTeacherId: "absent", weekday: "الأحد", period: 4,
-    departmentId: "arabic",
-  };
-  const crossDepartmentFreeTimetable = timetable.filter((entry) => entry.teacherId !== "other");
-  const sameDepartment = getAvailableSubstitutionCandidates({
-    ...base,
-    timetable: crossDepartmentFreeTimetable,
-  });
-  if (sameDepartment.some((teacher) => teacher.id === "other")) {
-    throw new Error("Cross-department teacher appeared before opt-in");
-  }
-  const expanded = getAvailableSubstitutionCandidates({
-    ...base,
-    timetable: crossDepartmentFreeTimetable,
-    includeOtherDepartments: true,
-  });
-  if (!expanded.some((teacher) => teacher.id === "other")) {
-    throw new Error("Cross-department teacher did not appear after opt-in");
-  }
+Deno.test("active assignment blocks a free teacher but cancelled assignment does not",()=>{
+ const base={teachers,timetable,assignments,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"};
+ const active=getAvailableSubstitutionCandidates(base);
+ if(active.some(t=>t.id==="assigned"))throw new Error("Already assigned teacher was offered again");
+ const cancelled=getAvailableSubstitutionCandidates({...base,assignments:[{substituteTeacherId:"free",weekday:"الأحد",period:4,status:"cancelled"}]});
+ if(!cancelled.some(t=>t.id==="free"))throw new Error("Cancelled assignment incorrectly blocked the teacher");
 });
-
-Deno.test("absent teacher lessons are listed only for the chosen day and ordered by period", () => {
-  const lessons = getAbsentTeacherLessons(timetable, "absent", "الأحد");
-  if (lessons.length !== 2 || lessons[0].period !== 4 || lessons[1].period !== 7) {
-    throw new Error("Absent teacher's lessons were not filtered and sorted correctly");
-  }
+Deno.test("department scope is strict unless explicitly expanded",()=>{
+ const base={teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"};
+ const local=getAvailableSubstitutionCandidates(base);
+ if(local.some(t=>t.id==="other"))throw new Error("Cross-department teacher appeared without opt-in");
+ const expanded=getAvailableSubstitutionCandidates({...base,includeOtherDepartments:true});
+ if(!expanded.some(t=>t.id==="other"))throw new Error("Cross-department free teacher did not appear after opt-in");
 });
-
-Deno.test("cancelled substitution assignment does not block a free teacher", () => {
-  const result = getAvailableSubstitutionCandidates({
-    teachers,
-    timetable: timetable.filter((entry) => entry.teacherId !== "busy" && entry.teacherId !== "other"),
-    assignments: [{ substituteTeacherId: "free", weekday: "الأحد", period: 4, status: "cancelled" }],
-    absentTeacherId: "absent", weekday: "الأحد", period: 4,
-    departmentId: "arabic",
-  });
-  if (!result.some((teacher) => teacher.id === "free")) {
-    throw new Error("Cancelled assignment incorrectly blocked the teacher");
-  }
+Deno.test("absent teacher lesson extraction ignores non-teaching cells",()=>{
+ const data=[...timetable,{teacherId:"absent",weekday:"الأحد",period:2,className:"",status:"free" as const}];
+ const lessons=getAbsentTeacherLessons(data,"absent","الأحد");
+ if(lessons.length!==2||lessons[0].period!==4||lessons[1].period!==7)throw new Error("Only teaching cells should appear in absent lessons");
+});
+Deno.test("status-less legacy cells are conservatively occupied",()=>{
+ const result=getAvailableSubstitutionCandidates({teachers,timetable:[{teacherId:"free",weekday:"الأحد",period:4,className:""}],assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"});
+ if(result.some(t=>t.id==="free"))throw new Error("A legacy record without an explicit free status must not be offered");
 });
