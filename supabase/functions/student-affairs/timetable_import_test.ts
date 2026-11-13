@@ -82,8 +82,9 @@ Deno.test("keeps unmatched teacher records visible for manual review", () => {
   if (!result.unmatchedTeacherNames.includes("اسم غير موجود بالنظام")) {
     throw new Error("Unmatched names should be reported");
   }
-  if (result.unassignedRecords.length !== 1) {
-    throw new Error("Unmatched teacher lesson record should remain in the unassigned list");
+  const unmatchedTeacher = result.teachers.find((teacher) => teacher.sourceName === "اسم غير موجود بالنظام");
+  if (!unmatchedTeacher || unmatchedTeacher.matchStatus !== "unmatched" || unmatchedTeacher.records.length !== 1) {
+    throw new Error("Unmatched teacher and its lesson should remain visible together for manual review");
   }
 });
 
