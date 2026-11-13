@@ -9075,14 +9075,20 @@ function timetableRenderSubstitutionLessons(response) {
   host.innerHTML=lessons.map(lesson=>{
     const candidates=lesson.candidates||[];
     const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+'</option>').join("");
-    return '<article class="rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><div class="text-xs font-black text-slate-800 dark:text-white">الحصة '+lesson.period+'</div><span class="text-[10px] text-slate-500">'+timetableEsc(lesson.className||"الشعبة غير محددة")+' — '+timetableEsc(lesson.subject||"المادة غير محددة")+'</span></div>'+(candidates.length?'<div class="flex flex-col sm:flex-row gap-2"><select data-substitution-candidate="'+lesson.period+'" class="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs"><option value="">اختر المعلم البديل</option>'+options+'</select><button type="button" data-substitution-save="'+lesson.period+'" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-3 text-xs font-black text-white">تعيين البديل</button></div>':'<div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-200">لا يوجد معلم متاح بفراغ مؤكد في هذه الحصة ضمن النطاق المحدد.</div>')+'</article>';
+    const assignment=lesson.assignment;
+    const action=assignment
+      ? '<div class="rounded-xl bg-emerald-50 dark:bg-emerald-950/30 p-3 text-xs font-bold text-emerald-800 dark:text-emerald-200">تم تعيين البديل: '+timetableEsc(assignment.substituteTeacherName)+' — الحالة: '+timetableEsc(assignment.status)+'</div>'
+      : candidates.length
+        ? '<div class="flex flex-col sm:flex-row gap-2"><select data-substitution-candidate="'+lesson.period+'" class="min-w-0 flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs"><option value="">اختر المعلم البديل</option>'+options+'</select><button type="button" data-substitution-save="'+lesson.period+'" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 px-5 py-3 text-xs font-black text-white">تعيين البديل</button></div>'
+        : '<div class="rounded-xl bg-amber-50 dark:bg-amber-950/30 p-3 text-xs text-amber-800 dark:text-amber-200">لا يوجد معلم متاح بفراغ مؤكد في هذه الحصة ضمن النطاق المحدد.</div>';
+    return '<article class="rounded-2xl border border-slate-200 dark:border-slate-700 p-4 space-y-3"><div class="flex flex-wrap items-center justify-between gap-2"><div class="text-xs font-black text-slate-800 dark:text-white">الحصة '+lesson.period+'</div><span class="text-[10px] text-slate-500">'+timetableEsc(lesson.className||"الشعبة غير محددة")+' — '+timetableEsc(lesson.subject||"المادة غير محددة")+'</span></div>'+action+'</article>';
   }).join("");
   host.querySelectorAll("[data-substitution-save]").forEach(button=>button.addEventListener("click",()=>{
     const period=Number(button.getAttribute("data-substitution-save"));
     const select=host.querySelector('[data-substitution-candidate="'+period+'"]');
     timetableSaveSubstitution(period,select?.value||"");
   }));
-  timetableSubstitutionSetStatus("تم العثور على "+lessons.length+" حصة تدريس. اختر بديلاً مستقلاً لكل حصة ثم عيّنه.","success");
+  timetableSubstitutionSetStatus("تمت مراجعة "+lessons.length+" حصة تدريس. يظهر التكليف المحفوظ بجانب الحصة، وتُعرض البدائل المتاحة للحصص غير المسندة.","success");
 }
 async function timetableSaveSubstitution(period,substituteTeacherName) {
   const context=timetableSubstitutionContext;
