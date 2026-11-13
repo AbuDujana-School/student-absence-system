@@ -2,7 +2,7 @@
 export interface SubstitutionTeacher { id:string; name:string; departmentId:string; }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
-export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; status?:"assigned"|"confirmed"|"cancelled"; }
+export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
