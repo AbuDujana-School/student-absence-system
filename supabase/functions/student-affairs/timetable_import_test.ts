@@ -1,7 +1,7 @@
 import {
   normalizeArabicName,
   parseTimetableWorkbook,
-  parseDeclaredTeacherFreePeriods,
+  parseTeacherPeriodNotes,
   type CellValue,
 } from "./timetable_import.ts";
 
@@ -234,24 +234,24 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
 });
 
 
-Deno.test("parses explicit teacher free periods including weekday ranges without filling blanks", () => {
-  const parsed = parseDeclaredTeacherFreePeriods("الأحد: 1, 4-6; الأربعاء: 5-7; الخميس: 4-7");
-  if (parsed.periods.length !== 11) throw new Error("Expected 11 explicit free-period cells");
+Deno.test("parses teacher period references including weekday ranges without filling blanks", () => {
+  const parsed = parseTeacherPeriodNotes("الأحد: 1, 4-6; الأربعاء: 5-7; الخميس: 4-7");
+  if (parsed.periods.length !== 11) throw new Error("Expected 11 explicit day/period references");
   if (!parsed.periods.some((item) => item.weekday === "الأحد" && item.period === 1)) {
     throw new Error("Sunday period 1 should be parsed");
   }
   if (!parsed.periods.some((item) => item.weekday === "الأربعاء" && item.period === 7)) {
     throw new Error("Wednesday period 7 should be parsed");
   }
-  const week = parseDeclaredTeacherFreePeriods("الأحد-الخميس: 7");
+  const week = parseTeacherPeriodNotes("الأحد-الخميس: 7");
   if (week.periods.length !== 5 || week.periods.some((item) => item.period !== 7)) {
     throw new Error("Sunday-to-Thursday range should expand to period 7 on five days");
   }
-  const majid = parseDeclaredTeacherFreePeriods("الخميس: 1-7");
+  const majid = parseTeacherPeriodNotes("الخميس: 1-7");
   if (majid.periods.length !== 7 || majid.periods.some((item) => item.weekday !== "الخميس")) {
-    throw new Error("Majid's confirmed Thursday 1-7 should be represented as seven explicit free cells");
+    throw new Error("Majid's confirmed Thursday 1-7 should be represented as seven explicit schedule states");
   }
-  if (parseDeclaredTeacherFreePeriods("").periods.length !== 0) {
-    throw new Error("An empty source field must not imply that every period is free");
+  if (parseTeacherPeriodNotes("").periods.length !== 0) {
+    throw new Error("An empty source field must not imply any schedule state");
   }
 });
