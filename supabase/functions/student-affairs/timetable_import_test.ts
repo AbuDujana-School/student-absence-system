@@ -86,3 +86,27 @@ Deno.test("keeps unmatched teacher records visible for manual review", () => {
     throw new Error("Unmatched teacher lesson record should remain in the unassigned list");
   }
 });
+
+
+Deno.test("does not silently assign a shared short-name alias to the wrong teacher", () => {
+  const result = parseTimetableWorkbook({
+    "المعلمون": rows(
+      ["الإسم", "الإختصار"],
+      ["سعيد أحمد", "سعيد"],
+      ["سعيد علي", "سعيد"],
+    ),
+    "الحصص": rows(
+      ["المعلم", "الشعب", "المادة", "الحصص/الأسبوع"],
+      ["سعيد", "صف 3", "علوم", "2"],
+    ),
+  }, [
+    { id: "t1", name: "سعيد أحمد" },
+    { id: "t2", name: "سعيد علي" },
+  ]);
+  if (!result.ambiguousTeacherNames.includes("سعيد")) {
+    throw new Error("Shared aliases should be reported as ambiguous");
+  }
+  if (result.unassignedRecords.length !== 1 || result.unassignedRecords[0].teacherMatchStatus !== "ambiguous") {
+    throw new Error("Ambiguous records must remain unassigned for administrator review");
+  }
+});
