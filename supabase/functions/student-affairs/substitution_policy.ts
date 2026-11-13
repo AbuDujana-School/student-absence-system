@@ -32,7 +32,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   const workload=new Map<string,number>();
   for(const assignment of activeAssignments) workload.set(assignment.substituteTeacherId,(workload.get(assignment.substituteTeacherId)??0)+1);
   return teachers.filter(t=>t.id!==absentTeacherId)
-    .filter(t=>includeOtherDepartments||t.departmentId===departmentId)
+    .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>(workload.get(a.id)??0)-(workload.get(b.id)??0)||a.name.localeCompare(b.name,"ar"));
 }
