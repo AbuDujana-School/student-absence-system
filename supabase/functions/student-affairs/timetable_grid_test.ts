@@ -192,3 +192,13 @@ Deno.test("enforces the exact expected teacher count without weakening seven-per
  }
  if(!rejected)throw new Error("A day with the wrong number of teachers must be rejected");
 });
+
+Deno.test("enforces the reviewed school teacher count without changing parsed cells",()=>{
+ const oneTeacher=parseTimetableDay("الخميس",sample);
+ validateSchoolTeacherCount(oneTeacher,1);
+ let wrongCount=false,invalidExpected=false;
+ try{validateSchoolTeacherCount(oneTeacher,69);}catch(error){wrongCount=String(error).includes("69 معلماً");}
+ try{validateSchoolTeacherCount(oneTeacher,0);}catch{invalidExpected=true;}
+ if(!wrongCount||!invalidExpected)throw new Error("Teacher-count validation must reject an incomplete roster and invalid expected counts");
+ if(oneTeacher.totalCells!==7||oneTeacher.teachers[0].cells.length!==7)throw new Error("Roster validation must not mutate timetable cells");
+});
