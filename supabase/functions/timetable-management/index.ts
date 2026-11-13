@@ -26,7 +26,7 @@ type TimetablePrincipal = { type: "admin" | "teacher" | "custom"; name: string }
 
 async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
   const authorization = req.headers.get("authorization") || "";
-  const match = /^Bearer\\s+([a-f0-9]{64})$/i.exec(authorization.trim());
+  const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization.trim());
   if (!match) return null;
   const tokenHash = await sha256(match[1].toLowerCase());
   const { data: session, error: sessionError } = await db.from("app_sessions")
