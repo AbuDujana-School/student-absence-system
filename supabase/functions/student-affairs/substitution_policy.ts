@@ -2,7 +2,7 @@
 export interface SubstitutionTeacher { id:string; name:string; departmentId:string; }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
-export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
+export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
@@ -19,7 +19,7 @@ export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:str
 }
 /** Missing, duplicated, meeting, activity, other and unclear cells are never treated as free. */
 export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
-  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false}=query;
+  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate}=query;
   const cells=new Map<string,{count:number;isFree:boolean}>();
   for(const entry of timetable.filter(e=>sameCell(e,{weekday,period}))){
     const current=cells.get(entry.teacherId)??{count:0,isFree:true};
@@ -28,7 +28,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     cells.set(entry.teacherId,current);
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
-  const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})).map(a=>a.substituteTeacherId));
+  const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(!assignmentDate||!a.assignmentDate||a.assignmentDate===assignmentDate)).map(a=>a.substituteTeacherId));
   const workload=new Map<string,number>();
   for(const assignment of activeAssignments) workload.set(assignment.substituteTeacherId,(workload.get(assignment.substituteTeacherId)??0)+1);
   return teachers.filter(t=>t.id!==absentTeacherId)
