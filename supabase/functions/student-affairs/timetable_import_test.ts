@@ -156,7 +156,7 @@ Deno.test("matches detailed names to abbreviated system names without confusing 
       ["اسم غير معروف", "صف 5", "إنجليزي", "2"],
     ),
   }, [
-    { id: "t1", name: "محمد السعدي" },
+    { id: "t1", name: "محمد جمعة الساعدي" },
     { id: "t2", name: "محمد عبدالله السعدي" },
     { id: "t3", name: "كردي ربيع" },
     { id: "t4", name: "عاطف محمد" },
@@ -190,5 +190,44 @@ Deno.test("matches detailed names to abbreviated system names without confusing 
   }
   if (bySource.get("اسم غير معروف")?.records[0]?.subject !== "اللغة الإنجليزية") {
     throw new Error("English subject shorthand should be normalized");
+  }
+});
+
+Deno.test("uses the school's confirmed teacher identity mappings without collapsing duplicate short aliases", () => {
+  const result = parseTimetableWorkbook({
+    "المعلمون": rows(
+      ["الإسم", "الإختصار"],
+      ["س فيزياء", "س فيزياء"],
+      ["محمد جمعة ناصر السعدي", "محمد السعدي"],
+      ["محمد عبدالله حمود السعدي", "محمد السعدي"],
+    ),
+    "الحصص": rows(
+      ["المعلم", "الشعب", "المادة", "الحصص/الأسبوع"],
+      ["س فيزياء", "صف 6", "فيزياء", "2"],
+      ["محمد جمعة ناصر السعدي", "صف 7", "عربي", "2"],
+      ["محمد عبدالله حمود السعدي", "صف 8", "مهارات حياتية", "2"],
+      ["محمد السعدي", "صف 9", "عربي", "1"],
+    ),
+  }, [
+    { id: "physics", name: "محمد البشير", departmentId: "الفيزياء", departmentName: "الفيزياء" },
+    { id: "arabic", name: "محمد جمعة الساعدي", departmentId: "اللغة العربية", departmentName: "اللغة العربية" },
+    { id: "life-skills", name: "محمد عبدالله الساعدي", departmentId: "مواد المهارات الحياتية", departmentName: "مواد المهارات الحياتية" },
+  ]);
+
+  const bySource = new Map(result.teachers.map((teacher) => [teacher.sourceName, teacher]));
+  if (bySource.get("س فيزياء")?.matchedTeacherId !== "physics") {
+    throw new Error("The confirmed physics placeholder must map to the existing محمد البشير account");
+  }
+  if (bySource.get("محمد جمعة ناصر السعدي")?.matchedTeacherId !== "arabic") {
+    throw new Error("محمد جمعة ناصر السعدي must map to the Arabic teacher محمد جمعة الساعدي");
+  }
+  if (bySource.get("محمد عبدالله حمود السعدي")?.matchedTeacherId !== "life-skills") {
+    throw new Error("محمد عبدالله حمود الساعدي must map to the life-skills teacher محمد عبدالله الساعدي");
+  }
+  if (!result.ambiguousTeacherNames.includes("محمد السعدي")) {
+    throw new Error("The shared short alias محمد السعدي must remain ambiguous when used alone");
+  }
+  if (!result.unassignedRecords.some((record) => record.teacherSourceName === "محمد السعدي" && record.teacherMatchStatus === "ambiguous")) {
+    throw new Error("A lesson with only the shared short alias must remain unassigned");
   }
 });
