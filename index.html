@@ -6324,13 +6324,14 @@ function printHorizontalBehaviorReport() {
 
 /* ============ Admin modal ============ */
 function openAdminModal() {
+  if (activeUser?.type !== 'admin') await timetableRefreshAccess();
   const isAdmin = activeUser?.type === 'admin' || activeUser?.permissions?.admin || isAdminAuthorized();
   const singlePermission = !isAdmin ? getSingleAdminPermission(activeUser) : null;
   if (singlePermission) {
     openSinglePermissionModule(singlePermission);
     return;
   }
-  const hasAny = hasAnyPermission(activeUser);
+  const hasAny = hasAnyPermission(activeUser) || timetableCanAccess;
 
   if (isAdmin || hasAny) {
     // إذا كان مديراً أو لديه أي صلاحية، افتح اللوحة مباشرة
@@ -6368,7 +6369,7 @@ function setupRolePermissions() {
     const dashboardTab = document.getElementById('tab-dashboard'); if (dashboardTab) dashboardTab.style.display = 'flex';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
-    const timetableTab = document.getElementById('tab-timetable'); if (timetableTab) timetableTab.style.display = activeUser?.type === 'admin' ? 'flex' : 'none';
+    const timetableTab = document.getElementById('tab-timetable'); if (timetableTab) timetableTab.style.display = 'flex';
     switchAdminTab('dashboard');
   } else if (isAdminAuthorized() || activeUser?.permissions?.admin) {
     text.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة";
@@ -6397,7 +6398,8 @@ function setupRolePermissions() {
       if (allow && !first && id !== 'students' && id !== 'teachers') first = id;
     });
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = activeUser?.permissions?.studentAffairs === true ? 'flex' : 'none';
-    const timetableTab = document.getElementById('tab-timetable'); if (timetableTab) timetableTab.style.display = 'none';
+    const timetableTab = document.getElementById('tab-timetable'); if (timetableTab) timetableTab.style.display = timetableCanAccess ? 'flex' : 'none';
+    if (timetableCanAccess && !first) first = 'timetable';
     if (first) switchAdminTab(first);
   }
   const beneficiaryTab = document.getElementById('tab-beneficiaries');
@@ -6819,7 +6821,7 @@ function renderAdminOverview() {
 }
 function initAdminDashboard() {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
-  const has = (k) => isA || !!(activeUser?.permissions?.[k]);
+  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : (isA || !!(activeUser?.permissions?.[k]));
   const activitySection = document.getElementById('dashboardTeachersActivity');
   if (activitySection) activitySection.classList.toggle('hidden', !has('teachers'));
   const metricsSection = document.getElementById('dashboardMetricsSection');
@@ -7066,7 +7068,7 @@ function switchAdminTab(tab) {
   const has = (k) => isA || !!(activeUser?.permissions?.[k]);
   const canDashboard = isA || hasMultipleAdminPermissions(activeUser);
   const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
-  if (tab === 'timetable' && activeUser?.type !== 'admin') { showToast('استيراد الجدول متاح لمدير النظام العام فقط.', 'error'); return; }
+  if (tab === 'timetable' && activeUser?.type !== 'admin' && !timetableCanAccess) { showToast('لا تملك صلاحية منظومة الجداول والاحتياط.', 'error'); return; }
   if (tab === 'dashboard' ? !canDashboard : tab === 'beneficiaries' ? !canBeneficiaries : !has(tab)) return;
   document.getElementById('sec-dashboard')?.classList.add('hidden');
   document.getElementById('sec-beneficiaries')?.classList.add('hidden');
@@ -8536,6 +8538,8 @@ let timetableEditorRecordId = null;
 let timetableEditorMode = "add";
 let timetableEditorOriginalData = null;
 let timetableSelectedTeacherIndex = -1;
+let timetableCanAccess = false;
+let timetableAccessUsers = [];
 function timetableEsc(value) {
   return String(value ?? "").replace(/[&<>"']/g, function(ch) {
     return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch];
@@ -8551,12 +8555,85 @@ function timetableSetStatus(message, kind) {
   el.textContent = message;
   el.classList.remove("hidden");
 }
+
+async function timetableRefreshAccess() {
+  if (activeUser?.type === "admin") {
+    timetableCanAccess = true;
+    return true;
+  }
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token || !activeUser) { timetableCanAccess = false; return false; }
+  try {
+    const result = await appAuthRequest({action:"timetable_check_access"},token);
+    timetableCanAccess = result.canAccess === true;
+  } catch (error) {
+    timetableCanAccess = false;
+  }
+  const tab = document.getElementById("tab-timetable");
+  if (tab) tab.style.display = timetableCanAccess ? "flex" : "none";
+  return timetableCanAccess;
+}
+async function timetableLoadAccessManagement() {
+  const panel = document.getElementById("timetableAccessManagement");
+  const host = document.getElementById("timetableAccessList");
+  if (activeUser?.type !== "admin" || !panel || !host) return;
+  panel.classList.remove("hidden");
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const response = await appAuthRequest({action:"timetable_list_access"},token);
+    timetableAccessUsers = response.users || [];
+    timetableRenderAccessList();
+  } catch (error) {
+    host.innerHTML = '<p class="p-4 text-xs text-red-600">تعذر تحميل قائمة صلاحيات الجداول.</p>';
+  }
+}
+function timetableRenderAccessList() {
+  const host = document.getElementById("timetableAccessList");
+  if (!host) return;
+  const query = String(document.getElementById("timetableAccessSearch")?.value || "").trim().toLocaleLowerCase("ar");
+  const users = timetableAccessUsers.filter(function(user) {
+    return !query || user.principal_name.toLocaleLowerCase("ar").includes(query) || String(user.category || "").toLocaleLowerCase("ar").includes(query);
+  });
+  if (!users.length) { host.innerHTML = '<p class="p-4 text-xs text-slate-400">لا توجد حسابات مطابقة.</p>'; return; }
+  host.innerHTML = users.map(function(user) {
+    const typeLabel = user.principal_type === "custom" ? "مستخدم مخصص" : "معلم";
+    return '<label class="flex items-center justify-between gap-3 p-3 hover:bg-slate-50 dark:hover:bg-slate-900/50"><span class="min-w-0"><strong class="block text-xs text-slate-800 dark:text-white">'+timetableEsc(user.principal_name)+'</strong><small class="text-[10px] text-slate-500">'+typeLabel+(user.category?' · '+timetableEsc(user.category):'')+'</small></span><span class="flex items-center gap-2 shrink-0"><span class="text-[10px] font-bold text-slate-500">السماح بالدخول</span><input type="checkbox" class="timetable-access-checkbox h-4 w-4 accent-indigo-700" data-type="'+timetableEsc(user.principal_type)+'" data-name="'+timetableEsc(user.principal_name)+'" '+(user.can_access?'checked':'')+'></span></label>';
+  }).join("");
+}
+async function timetableSaveAccessChanges() {
+  const button = document.getElementById("timetableAccessSaveButton");
+  const status = document.getElementById("timetableAccessStatus");
+  if (activeUser?.type !== "admin") return;
+  const token = appAuthSession?.token || readAppAuthToken();
+  const inputs = Array.from(document.querySelectorAll("#timetableAccessList .timetable-access-checkbox"));
+  button.disabled = true;
+  const original = button.textContent;
+  button.textContent = "جارٍ الحفظ...";
+  try {
+    for (const input of inputs) {
+      await appAuthRequest({
+        action:"timetable_set_access",
+        principalType:input.dataset.type,
+        principalName:input.dataset.name,
+        canAccess:input.checked
+      },token);
+    }
+    if (status) status.textContent = "تم حفظ صلاحيات الجداول والاحتياط.";
+    await timetableLoadAccessManagement();
+  } catch (error) {
+    if (status) status.textContent = error?.message || "تعذر حفظ بعض الصلاحيات.";
+  } finally {
+    button.disabled = false;
+    button.textContent = original;
+  }
+}
+
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
   const file = input && input.files && input.files[0];
   const button = document.getElementById("timetableImportButton");
   if (!file) { timetableSetStatus("اختر ملف Excel أولاً.", "error"); return; }
-  if (activeUser?.type !== "admin") { timetableSetStatus("هذه الخاصية متاحة لمدير النظام العام فقط.", "error"); return; }
+  if (!timetableCanAccess) { timetableSetStatus("لا تملك صلاحية منظومة الجداول والاحتياط.", "error"); return; }
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token) { timetableSetStatus("جلسة مدير النظام غير متاحة. سجّل الدخول مجدداً.", "error"); return; }
   if (!window.XLSX) { timetableSetStatus("تعذر تحميل مكتبة قراءة Excel. حدّث الصفحة وحاول مرة أخرى.", "error"); return; }
@@ -8603,7 +8680,7 @@ async function timetableImportWorkbook() {
 async function timetableSaveImport() {
   const button = document.getElementById("timetableSaveButton");
   const token = appAuthSession?.token || readAppAuthToken();
-  if (activeUser?.type !== "admin" || !token) { timetableSetStatus("يلزم تسجيل الدخول بحساب مدير النظام لحفظ الجدول.", "error"); return; }
+  if (!timetableCanAccess || !token) { timetableSetStatus("يلزم امتلاك صلاحية منظومة الجداول والاحتياط لحفظ الجدول.", "error"); return; }
   if (!timetablePendingWorkbook || !timetablePendingWorkbook.sheets) { timetableSetStatus("أعد تحليل ملف Excel قبل الحفظ.", "error"); return; }
   if (timetableSavedImport) { timetableSetStatus("هذه النسخة محفوظة بالفعل. أعد رفع الملف لإنشاء نسخة استيراد جديدة.", "success"); return; }
   const original = button.innerHTML;
@@ -8686,7 +8763,8 @@ function timetableRenderTeacherList() {
   }).join("");
 }
 async function timetableLoadImports() {
-  if (activeUser?.type !== "admin") return;
+  if (!timetableCanAccess) return;
+  if (activeUser?.type === "admin") await timetableLoadAccessManagement();
   const host = document.getElementById("timetableSavedImportList");
   const panel = document.getElementById("timetableSavedImports");
   if (!host || !panel) return;
