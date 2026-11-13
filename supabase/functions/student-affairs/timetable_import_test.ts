@@ -55,6 +55,17 @@ Deno.test("imports lesson contracts by teacher without inventing weekly placemen
   if (!rawTeacher || rawTeacher["MWD (1)"] !== "-" || rawTeacher["التفريغ"] !== "الأحد: 1, 4-6") {
     throw new Error("Teacher scheduling constraints must be preserved exactly as imported");
   }
+  const importedTeacher = result.teachers.find((teacher) => teacher.sourceName === "أحمد خالد محمد السالمي");
+  if (
+    !importedTeacher ||
+    importedTeacher.teacherPeriodNotesRaw !== "الأحد: 1, 4-6" ||
+    importedTeacher.teacherPeriodNotes.length !== 4
+  ) {
+    throw new Error("Teacher period notes should be parsed structurally while retaining their exact raw text");
+  }
+  if (importedTeacher.teacherPeriodNotesWarnings.length) {
+    throw new Error("Valid teacher period notes should not produce parser warnings");
+  }
   if (result.teachers.find((t) => t.matchedTeacherId === "t1")?.records[0]?.periodsPerWeek !== 5) {
     throw new Error("Weekly lesson count should be parsed without inferring a weekday/period placement");
   }
@@ -249,7 +260,7 @@ Deno.test("parses teacher period references including weekday ranges without fil
   }
   const majid = parseTeacherPeriodNotes("الخميس: 1-7");
   if (majid.periods.length !== 7 || majid.periods.some((item) => item.weekday !== "الخميس")) {
-    throw new Error("Majid's confirmed Thursday 1-7 should be represented as seven explicit schedule states");
+    throw new Error("Thursday 1-7 should be represented as seven period references without assigning a meaning");
   }
   if (parseTeacherPeriodNotes("").periods.length !== 0) {
     throw new Error("An empty source field must not imply any schedule state");
