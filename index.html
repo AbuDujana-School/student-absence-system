@@ -8,6 +8,7 @@
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -2467,6 +2468,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <button onclick="switchAdminTab('sync')" id="tab-sync" data-permission="sync" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-cloud-arrow-up text-cyan-500"></i><span>المزامنة</span></button>
         <button onclick="switchAdminTab('security')" id="tab-security" data-permission="security" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-shield-halved text-emerald-500"></i><span>الأمان</span></button>
         <button onclick="openStudentAffairsView()" id="tab-studentAffairs" data-permission="studentAffairs" style="display:none" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white hover:border-emerald-300 dark:hover:border-emerald-700 transition-all"><i class="fa-solid fa-graduation-cap text-indigo-500"></i><span>شؤون الطلبة</span></button>
+        <button onclick="switchAdminTab('timetable')" id="tab-timetable" style="display:none" class="admin-tab menu-tab-btn flex items-center justify-center gap-2 p-3 rounded-xl border border-cyan-200 bg-white dark:bg-slate-800 shadow-sm font-bold text-slate-700 dark:text-white"><i class="fa-solid fa-file-excel text-emerald-600"></i><span>الجداول والاحتياط</span></button>
       </div>
 
       <section id="sec-beneficiaries" class="hidden space-y-6" dir="rtl">
@@ -2973,6 +2975,35 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
       </div>
 
+      <section id="sec-timetable" class="hidden space-y-5" dir="rtl">
+        <div class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-gradient-to-l from-slate-950 via-cyan-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl">
+          <div class="flex flex-wrap items-center justify-between gap-4">
+            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">استيراد الجدول</h2><p class="mt-2 text-xs text-cyan-100">ارفع ملف Excel لقراءة أوراقه وربط سجلات الحصص بأسماء المعلمين ومراجعتها.</p></div>
+            <span class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl text-emerald-200"><i class="fa-solid fa-file-excel"></i></span>
+          </div>
+        </div>
+        <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel بصيغتي XLSX وXLS.</p></div>
+          <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
+            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
+            <button id="timetableImportButton" type="button" onclick="timetableImportWorkbook()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-cloud-arrow-up ml-1"></i> تحليل الملف</button>
+          </div>
+          <div id="timetableImportStatus" class="hidden rounded-2xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div id="timetableImportMeta" class="hidden grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+        </div>
+        <div id="timetableImportResults" class="hidden space-y-4">
+          <div id="timetableImportStats" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+          <div id="timetableImportWarnings" class="space-y-2"></div>
+          <div class="grid grid-cols-1 lg:grid-cols-[minmax(260px,0.8fr)_minmax(0,1.7fr)] gap-4 items-start">
+            <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 overflow-hidden">
+              <div class="p-4 border-b border-slate-100 dark:border-slate-700 space-y-3"><div class="flex items-center justify-between gap-2"><h3 class="font-black text-sm text-slate-800 dark:text-white">المعلمون المستخرجون</h3><span id="timetableTeacherCount" class="text-[10px] font-bold rounded-lg px-2.5 py-1"></span></div><input id="timetableTeacherSearch" type="search" oninput="timetableRenderTeacherList()" placeholder="ابحث باسم المعلم..." class="w-full rounded-xl border border-slate-200 dark:border-slate-600 bg-slate-50 dark:bg-slate-900 px-3 py-2.5 text-xs text-slate-800 dark:text-white outline-none"></div>
+              <div id="timetableTeacherList" class="max-h-[620px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700"></div>
+            </div>
+            <div id="timetableTeacherDetails" class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 min-h-[260px]"><div class="text-center py-12 text-xs text-slate-400">اختر معلماً لعرض سجلات حصصه وعقوده.</div></div>
+          </div>
+        </div>
+        <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. حفظ النسخ والتعديلات وسجل المراجعة سيأتي بعد تجهيز التخزين الآمن.</div>
+      </section>
       <div id="sec-security" class="hidden space-y-6">
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 space-y-4">
           <h5 class="font-extrabold text-xs text-slate-800 dark:text-white"><i class="fa-solid fa-key"></i> تغيير رمز المدير</h5>
