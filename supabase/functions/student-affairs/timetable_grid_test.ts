@@ -202,3 +202,13 @@ Deno.test("enforces the reviewed school teacher count without changing parsed ce
  if(!wrongCount||!invalidExpected)throw new Error("Teacher-count validation must reject an incomplete roster and invalid expected counts");
  if(oneTeacher.totalCells!==7||oneTeacher.teachers[0].cells.length!==7)throw new Error("Roster validation must not mutate timetable cells");
 });
+
+Deno.test("keeps unknown timetable status labels unclear rather than guessing",()=>{
+ const unknown=sample.replace("- الحالة: تدريس","- الحالة: حالة غير معروفة");
+ const result=parseTimetableDay("الخميس",unknown);
+ if(result.teachers[0].cells[0].status!=="unclear")throw new Error("Unknown source status must remain unclear");
+ if(result.teachers[0].cells[0].sourceStatus!=="حالة غير معروفة")throw new Error("Unknown source status text must be preserved");
+ const explicitOther=sample.replace("- الحالة: تدريس","- الحالة: أخرى");
+ const other=parseTimetableDay("الخميس",explicitOther);
+ if(other.teachers[0].cells[0].status!=="other")throw new Error("Explicit other status should remain other");
+});
