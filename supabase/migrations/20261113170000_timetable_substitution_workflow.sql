@@ -42,7 +42,8 @@ as $function$
 declare
   v_version_id uuid := nullif(p_payload->>'version_id','')::uuid;
   v_weekday text := p_payload->>'weekday';
-  v_period integer := nullif(p_payload->>'period','')::integer;\n  v_date date := nullif(p_payload->>'assignment_date','')::date;
+  v_period integer := nullif(p_payload->>'period','')::integer;
+  v_date date := nullif(p_payload->>'assignment_date','')::date;
   v_absent_name text := left(btrim(coalesce(p_payload->>'absent_teacher_name','')),160);
   v_substitute_name text := left(btrim(coalesce(p_payload->>'substitute_teacher_name','')),160);
   v_actor_name text := left(btrim(coalesce(p_payload->>'actor_name','')),160);
@@ -50,21 +51,24 @@ declare
   v_include_other boolean := coalesce((p_payload->>'include_other_departments')::boolean,false);
   v_active_id uuid;
   v_absent_cell public.timetable_weekly_cells%rowtype;
-  v_candidate_cell public.timetable_weekly_cells%rowtype;
   v_absent_department text;
   v_candidate_department text;
   v_actor_department text;
   v_candidate_free_count integer;
   v_assignment public.timetable_assignments%rowtype;
 begin
-  if v_version_id is null or v_weekday not in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')
+  if v_version_id is null or v_date is null
+    or v_weekday not in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')
+    or v_weekday is distinct from (case extract(dow from v_date)
+      when 0 then 'الأحد' when 1 then 'الاثنين' when 2 then 'الثلاثاء'
+      when 3 then 'الأربعاء' when 4 then 'الخميس' else 'خارج أيام الدراسة' end)
     or v_period not between 1 and 7 or v_absent_name='' or v_substitute_name=''
     or v_actor_name='' or v_actor_type not in ('admin','teacher','custom')
     or v_absent_name=v_substitute_name then
     raise exception 'بيانات تكليف الاحتياط غير مكتملة أو غير صالحة.';
   end if;
 
-  perform pg_advisory_xact_lock(hashtext('timetable_substitution:'||v_version_id::text||':'||v_weekday||':'||v_period::text));
+  perform pg_advisory_xact_lock(hashtext('timetable_substitution:'||v_version_id::text||':'||v_date::text||':'||v_period::text));
   select id into v_active_id from public.timetable_weekly_versions
     where id=v_version_id and status='active' for share;
   if v_active_id is null then raise exception 'الجدول المحدد ليس النسخة الأسبوعية النشطة.'; end if;
@@ -90,6 +94,9 @@ begin
     end if;
   end if;
 
+  if not v_include_other and (v_absent_department='' or v_candidate_department='') then
+    raise exception 'تعذر التحقق من قسم المعلم الغائب أو البديل. راجع تصنيف المعلمين.';
+  end if;
   if not v_include_other and v_candidate_department is distinct from v_absent_department then
     raise exception 'المعلم المرشح من قسم آخر. فعّل خيار إظهار الأقسام الأخرى أولاً.';
   end if;
@@ -97,26 +104,28 @@ begin
   select count(*) into v_candidate_free_count
     from public.timetable_weekly_cells
     where version_id=v_version_id and matched_teacher_name=v_substitute_name
-      and weekday=v_weekday and period=(p_payload->>'period')::integer and cell_status='free';
+      and weekday=v_weekday and period=v_period and cell_status='free';
   if v_candidate_free_count<>1 then raise exception 'المعلم المرشح ليس لديه فراغ مؤكد في هذه الحصة.'; end if;
 
-  if exists (select 1 from public.timetable_assignments where source_cell_id=v_absent_cell.id
-    and assignment_type='substitution' and status in ('assigned','confirmed','completed')) then
-    raise exception 'تم تعيين بديل لهذه الحصة مسبقاً.';
-  end if;
+  if exists (
+    select 1 from public.timetable_assignments
+    where source_cell_id=v_absent_cell.id and assignment_type='substitution'
+      and status in ('assigned','confirmed','completed')
+      and (assignment_date=v_date or (assignment_date is null and weekday=v_weekday))
+  ) then raise exception 'تم تعيين بديل لهذه الحصة مسبقاً.'; end if;
 
   if exists (
     select 1 from public.timetable_assignments
     where version_id=v_version_id and teacher_name=v_substitute_name
-      and weekday=v_weekday and period=(p_payload->>'period')::integer
-      and status in ('assigned','confirmed','completed')
+      and period=v_period and status in ('assigned','confirmed','completed')
+      and (assignment_date=v_date or (assignment_date is null and weekday=v_weekday))
   ) then raise exception 'المعلم المرشح لديه تكليف آخر في الحصة نفسها.'; end if;
 
   insert into public.timetable_assignments(
-    version_id,teacher_name,assignment_type,weekday,period,class_sections,subject,
+    version_id,teacher_name,assignment_type,weekday,period,assignment_date,class_sections,subject,
     absent_teacher_name,source_cell_id,status,created_by
   ) values (
-    v_version_id,v_substitute_name,'substitution',v_weekday,(p_payload->>'period')::smallint,
+    v_version_id,v_substitute_name,'substitution',v_weekday,v_period::smallint,v_date,
     v_absent_cell.class_sections,v_absent_cell.subject,v_absent_name,v_absent_cell.id,'assigned',v_actor_name
   ) returning * into v_assignment;
 
@@ -125,7 +134,8 @@ begin
   ) values (
     v_assignment.id,v_version_id,'created',v_actor_name,
     jsonb_build_object('substitute_teacher_name',v_substitute_name,'absent_teacher_name',v_absent_name,
-      'weekday',v_weekday,'period',v_assignment.period,'assignment_date',v_date,'class_sections',v_assignment.class_sections,'subject',v_assignment.subject)
+      'weekday',v_weekday,'period',v_assignment.period,'assignment_date',v_date,
+      'class_sections',v_assignment.class_sections,'subject',v_assignment.subject)
   );
 
   return jsonb_build_object('assignment_id',v_assignment.id,'status',v_assignment.status,
