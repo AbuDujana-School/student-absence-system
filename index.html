@@ -2988,6 +2988,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableAccessList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-100 dark:border-slate-700"><p class="p-4 text-xs text-slate-400">جارٍ تحميل المستخدمين...</p></div>
           <div class="flex flex-wrap items-center justify-between gap-3"><span id="timetableAccessStatus" class="text-[10px] text-slate-500"></span><button id="timetableAccessSaveButton" type="button" onclick="timetableSaveAccessChanges()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 px-5 py-2.5 text-xs font-black text-white">حفظ الصلاحيات</button></div>
         </div>
+        <div id="timetableAdminImportPanel">
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel بصيغتي XLSX وXLS.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
@@ -3013,6 +3014,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <div id="timetableTeacherDetails" class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 min-h-[260px]"><div class="text-center py-12 text-xs text-slate-400">اختر معلماً لعرض سجلات حصصه وعقوده.</div></div>
           </div>
         </div>
+        </div>
+        <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
       </section>
         <div id="timetableRecordEditor" class="hidden fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
@@ -6404,6 +6407,9 @@ function setupRolePermissions() {
     if (first) switchAdminTab(first);
   }
   if (activeUser?.type !== 'admin') document.getElementById('timetableAccessManagement')?.classList.add('hidden');
+  const timetableAdmin = activeUser?.type === 'admin';
+  document.getElementById('timetableAdminImportPanel')?.classList.toggle('hidden', !timetableAdmin);
+  document.getElementById('timetableAdminImportNotice')?.classList.toggle('hidden', timetableAdmin);
   const beneficiaryTab = document.getElementById('tab-beneficiaries');
   if (beneficiaryTab) {
     const isSingleModule = isSinglePermissionMode();
@@ -8765,7 +8771,7 @@ function timetableRenderTeacherList() {
   }).join("");
 }
 async function timetableLoadImports() {
-  if (!timetableCanAccess) return;
+  if (!timetableCanAccess || activeUser?.type !== 'admin') return;
   if (activeUser?.type === "admin") await timetableLoadAccessManagement();
   const host = document.getElementById("timetableSavedImportList");
   const panel = document.getElementById("timetableSavedImports");
