@@ -56,7 +56,7 @@ function parseClassSections(value: string): string[] {
     // Interpret an even sequence of 4+ numeric slash-separated tokens as adjacent pairs.
     // Preserve ordinary two-part codes (e.g. 6/11) and any non-numeric/ambiguous source verbatim.
     const tokens = part.split("/").map(token => token.trim());
-    if (tokens.length >= 4 && tokens.length % 2 === 0 && tokens.every(token => /^\\d+$/.test(token))) {
+    if (tokens.length >= 4 && tokens.length % 2 === 0 && tokens.every(token => /^\d+$/.test(token))) {
       const pairs: string[] = [];
       for (let index = 0; index < tokens.length; index += 2) pairs.push(tokens[index] + "/" + tokens[index + 1]);
       return pairs;
