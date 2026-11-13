@@ -1,0 +1,77 @@
+name: Cloudflare Pages development preview
+
+on:
+  push:
+    branches:
+      - feature/smart-substitution-system
+    paths:
+      - "index.html"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "icons/**"
+      - ".github/workflows/cloudflare-pages-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cloudflare-pages-development-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-preview:
+    name: Deploy development preview only
+    runs-on: ubuntu-latest
+    environment: cloudflare-preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PAGES_PROJECT_NAME: abu-dujana-school-preview
+    steps:
+      - name: Checkout development branch
+        uses: actions/checkout@v4
+
+      - name: Verify Cloudflare credentials are configured
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN GitHub environment secret"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID GitHub environment secret"; exit 1; }
+
+      - name: Prepare a strict public-only site directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .cloudflare-pages-dist
+          mkdir -p .cloudflare-pages-dist/icons
+          cp index.html manifest.webmanifest sw.js .cloudflare-pages-dist/
+          cp icons/icon-192.png icons/icon-512.png icons/icon-512-maskable.png .cloudflare-pages-dist/icons/
+          test -s .cloudflare-pages-dist/index.html
+          test -s .cloudflare-pages-dist/manifest.webmanifest
+          test -s .cloudflare-pages-dist/sw.js
+          test -s .cloudflare-pages-dist/icons/icon-192.png
+          test -s .cloudflare-pages-dist/icons/icon-512.png
+          test -s .cloudflare-pages-dist/icons/icon-512-maskable.png
+          echo "Files prepared for public deployment:"
+          find .cloudflare-pages-dist -type f -printf '%P\n' | sort
+
+      - name: Install Wrangler
+        run: npm install --global wrangler@4
+
+      - name: Ensure the isolated Pages project exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! wrangler pages project list | grep -Fq "$PAGES_PROJECT_NAME"; then
+            wrangler pages project create "$PAGES_PROJECT_NAME" --production-branch main
+          fi
+
+      - name: Deploy preview from the development branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          wrangler pages deploy .cloudflare-pages-dist \
+            --project-name "$PAGES_PROJECT_NAME" \
+            --branch feature/smart-substitution-system \
+            --commit-hash "$GITHUB_SHA" \
+            --commit-message "$GITHUB_SHA"
