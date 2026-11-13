@@ -22,7 +22,7 @@ async function sha256(value: string) {
   const bytes = new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value)));
   return Array.from(bytes).map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
-type TimetablePrincipal = { type: "admin" | "teacher"; name: string };
+type TimetablePrincipal = { type: "admin" | "teacher" | "custom"; name: string };
 
 async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
   const authorization = req.headers.get("authorization") || "";
@@ -42,11 +42,16 @@ async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null
     if (error || !setting?.value?.hash || !setting?.value?.salt) return null;
     return { type: "admin", name: session.principal_name };
   }
-  if (session.principal_type === "teacher") {
-    const { data: teacher, error } = await db.from("teachers")
+  if (session.principal_type === "teacher" || session.principal_type === "custom") {
+    const expectedRole = session.principal_type;
+    const { data: teacher, error: teacherError } = await db.from("teachers")
       .select("name,role").eq("name", session.principal_name).maybeSingle();
-    if (error || !teacher || teacher.role !== "teacher") return null;
-    return { type: "teacher", name: teacher.name };
+    if (teacherError || !teacher || teacher.role !== expectedRole) return null;
+    const { data: access, error: accessError } = await db.from("timetable_access_permissions")
+      .select("can_access").eq("principal_type", expectedRole)
+      .eq("principal_name", teacher.name).maybeSingle();
+    if (accessError || access?.can_access !== true) return null;
+    return { type: expectedRole, name: teacher.name };
   }
   return null;
 }
