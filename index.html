@@ -8865,6 +8865,9 @@ function timetableNormalizeNameKey(value) {
 function timetableValidateWeeklyTeacherSets(days) {
   if (!Array.isArray(days) || days.length !== 5) throw new Error("استيراد الأسبوع الكامل يتطلب الأيام الخمسة.");
   const reference = days[0];
+  if ((reference.teachers || []).length !== 69) {
+    throw new Error("يجب أن يحتوي كل يوم على 69 معلماً بالضبط. الموجود في يوم " + reference.weekday + ": " + (reference.teachers || []).length + ".");
+  }
   const referenceNames = (reference.teachers || []).map(teacher =>
     timetableNormalizeNameKey(teacher.matchStatus === "matched" && teacher.matchedTeacherName ? teacher.matchedTeacherName : teacher.sourceName)
   ).sort();
