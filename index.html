@@ -9099,7 +9099,7 @@ async function timetableCancelSubstitution(assignmentId) {
   if(!window.confirm("هل تريد إلغاء تكليف الاحتياط المحدد؟"))return;
   try{
     const token=appAuthSession?.token||readAppAuthToken();
-    await appAuthRequest({action:"timetable_substitution_cancel",weekday:context.weekday,assignmentId},token);
+    await appAuthRequest({action:"timetable_substitution_cancel",weekday:context.weekday,assignmentDate:context.date,assignmentId},token);
     timetableSubstitutionSetStatus("تم إلغاء تكليف الاحتياط. أصبح بالإمكان إعادة توزيع الحصة.","success");
     await timetablePreviewSubstitutions();
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر إلغاء تكليف الاحتياط.","error");}
