@@ -116,7 +116,9 @@ These are design names, not approved production schema. Inspect existing migrati
 - [x] Verify branch exists and is identical to `main` at creation.
 - [x] Inspect the uploaded workbook's seven worksheets and identify the absence of final day/period placements.
 - [x] Inspect the current server-side session/authorization entry points.
-- [ ] Complete parser contract and representative test fixtures (synthetic data only).
+- [ ] Complete parser contract and representative workbook fixtures (synthetic data only).
+- [x] Add an isolated, database-independent substitution eligibility policy and synthetic test cases for blank cells, occupied cells, duplicate substitution assignments, department scope, and cancelled assignments.
+- [x] Run a Node.js 22 TypeScript-stripping smoke check of the availability policy (5 assertions passed). The repository's Deno test runner is not installed in the working environment, so the committed Deno test file has not yet been executed.
 - [ ] Implement importer, schedule editor, permissions, and substitution workflow.
 - [ ] Run automated and manual regression/security tests.
 - [ ] Obtain explicit user approval before any merge or deployment.
