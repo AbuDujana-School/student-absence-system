@@ -945,7 +945,7 @@ async function handle(req: Request) {
         return reply(413, { error: "حجم بيانات الجدول أكبر من الحد المسموح للمعاينة. قلّص نطاق البيانات الفعلية في ملف Excel." });
       }
       const { data: directory, error: directoryError } = await db
-        .from("teachers").select("name,role,permissions").neq("role", "custom").order("name");
+        .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
       if (directoryError) throw directoryError;
       const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
         name: String(teacher.name || ""),
@@ -992,7 +992,7 @@ async function handle(req: Request) {
         return reply(413, { error: "حجم بيانات الجدول أكبر من الحد المسموح للاستيراد." });
       }
       const { data: directory, error: directoryError } = await db
-        .from("teachers").select("name,role,permissions").neq("role", "custom").order("name");
+        .from("teachers").select("name,role,permissions").eq("role", "teacher").order("name");
       if (directoryError) throw directoryError;
       const systemTeachers: SystemTeacher[] = (directory || []).map((teacher: any) => ({
         name: String(teacher.name || ""),
