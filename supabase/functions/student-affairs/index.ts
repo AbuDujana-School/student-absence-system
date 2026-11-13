@@ -1049,7 +1049,7 @@ async function handle(req: Request) {
     }
   }
 
-  if (["timetable_substitution_preview","timetable_substitution_save"].includes(String(body?.action || ""))) {
+  if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel"].includes(String(body?.action || ""))) {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
@@ -1090,6 +1090,27 @@ async function handle(req: Request) {
 
       const absentTeacherName = String(body.absentTeacherName || "").trim();
       const includeOtherDepartments = body.includeOtherDepartments === true;
+      if (body.action === "timetable_substitution_cancel") {
+        const assignmentId=String(body.assignmentId || "");
+        if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(assignmentId)) {
+          return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
+        }
+        const {data: assignment,error: assignmentLookupError}=await db.from("timetable_assignments")
+          .select("id,version_id,absent_teacher_name,weekday,assignment_date")
+          .eq("id",assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
+        if(assignmentLookupError)throw assignmentLookupError;
+        if(!assignment||assignment.weekday!==weekday)return reply(404,{error:"تكليف الاحتياط غير موجود في اليوم المحدد."});
+        const absentRow=teacherRows.find((item:any)=>item.name===assignment.absent_teacher_name&&item.role==="teacher");
+        if(!absentRow)return reply(404,{error:"تعذر العثور على قسم المعلم الغائب."});
+        if(principal.type!=="admin"&&absentRow.department!==actorDepartment) {
+          return reply(403,{error:"لا تملك صلاحية إلغاء تكليف هذا القسم."});
+        }
+        const {data,error}=await db.rpc("cancel_timetable_substitution",{
+          p_payload:{assignment_id:assignmentId,actor_name:principal.name,actor_type:principal.type},
+        });
+        if(error)throw error;
+        return reply(200,{ok:true,assignment:data});
+      }
       if (absentTeacherName) {
         const absentDirectoryRow = teacherRows.find((item:any)=>item.name===absentTeacherName);
         if (!absentDirectoryRow || absentDirectoryRow.role!=="teacher") return reply(404,{error:"المعلم المحدد غير موجود في دليل المعلمين."});
