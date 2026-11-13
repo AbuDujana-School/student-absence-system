@@ -1030,7 +1030,7 @@ async function handle(req: Request) {
       const [{ data: cells, error: cellsError }, { data: assignments, error: assignmentsError }] = await Promise.all([
         db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page")
           .eq("version_id", activeVersion.id).eq("matched_teacher_name", principal.name),
-        db.from("timetable_assignments").select("id,assignment_type,weekday,period,class_sections,subject,absent_teacher_name,status")
+        db.from("timetable_assignments").select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,absent_teacher_name,status")
           .eq("version_id", activeVersion.id).eq("teacher_name", principal.name).neq("status", "cancelled"),
       ]);
       if (cellsError) throw cellsError;
@@ -1138,7 +1138,7 @@ async function handle(req: Request) {
       }));
       const lessons = getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
       const { data: assignmentRows, error: assignmentError } = await db.from("timetable_assignments")
-        .select("teacher_name,weekday,period,status,assignment_date")
+        .select("id,source_cell_id,teacher_name,weekday,period,status,assignment_date")
         .eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
       if (assignmentError) throw assignmentError;
       const selectedDate = date ? new Date(date+"T12:00:00") : null;
@@ -1159,7 +1159,12 @@ async function handle(req: Request) {
           weekday,period:lesson.period,departmentId:teacherRows.find((item:any)=>item.name===absentTeacherName)?.department || "",
           includeOtherDepartments,assignmentDate:date || undefined,
         });
-        return {...lesson,candidates:eligible};
+        const sourceCell=(dayCells || []).find((cell:any)=>cell.matched_teacher_name===absentTeacherName && Number(cell.period)===lesson.period);
+        const existing=(assignmentRows || []).find((item:any)=>item.source_cell_id===sourceCell?.id &&
+          (!date || !item.assignment_date || item.assignment_date===date) && item.status!=="cancelled");
+        return {...lesson,candidates:eligible,assignment:existing?{
+          id:existing.id,substituteTeacherName:String(existing.teacher_name),status:String(existing.status),
+        }:null};
       });
       return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,
         lessons:lessonOptions,includeOtherDepartments});
