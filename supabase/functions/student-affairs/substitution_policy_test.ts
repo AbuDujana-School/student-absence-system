@@ -76,3 +76,15 @@ Deno.test("eligible candidates are ranked by the lowest active substitution load
  });
  if(candidates[0]?.id!=="free2"||candidates[1]?.id!=="free")throw new Error("Candidates should be ranked by active assignment load, ignoring cancelled assignments");
 });
+
+Deno.test("a substitution from another date does not block the same weekly period",()=>{
+ const query={teachers,timetable,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic",assignmentDate:"2026-11-15"};
+ const previousDate=getAvailableSubstitutionCandidates({...query,assignments:[
+  {substituteTeacherId:"free",weekday:"الأحد",period:4,assignmentDate:"2026-11-08",status:"confirmed"}
+ ]});
+ if(!previousDate.some(t=>t.id==="free"))throw new Error("A prior week's assignment incorrectly blocked this date");
+ const sameDate=getAvailableSubstitutionCandidates({...query,assignments:[
+  {substituteTeacherId:"free",weekday:"الأحد",period:4,assignmentDate:"2026-11-15",status:"confirmed"}
+ ]});
+ if(sameDate.some(t=>t.id==="free"))throw new Error("An assignment on the selected date did not block the candidate");
+});
