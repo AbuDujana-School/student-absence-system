@@ -389,3 +389,32 @@ Workbook audit from the original file:
 - The parser unit tests cover Arabic weekday names, weekday ranges, period lists/ranges, duplicate suppression, malformed entries, and the no-inference rule for empty values.
 
 The source and tests were committed only to `feature/smart-substitution-system`. Automated CI has not yet been verified for these latest commits. No migration, deployment, production write, merge, or publication was performed.
+
+
+## Admin teacher weekly timetable lookup — 2026-11-13
+
+Added an administrator-only read endpoint, `timetable_teacher_weekly_get`, and a matching panel in the **الجداول والاحتياط** area:
+- The administrator enters the teacher's full system name.
+- The server validates the application session and requires the system administrator principal; non-admin users cannot call this action.
+- The endpoint reads only the selected teacher's linked cells from the active weekly version and returns version metadata plus the expected/actual cell count.
+- The interface renders all five weekdays and seven periods, with separate labels for teaching, free, meeting, activity, other, and unclear states.
+- Missing cells are rendered as **غير مسجلة**, never as free periods.
+- The panel is hidden for non-admin users.
+
+This is a read-only view; it does not edit the active schedule or create assignments. The endpoint and UI changes are confined to `feature/smart-substitution-system`.
+
+## Latest verification snapshot — 2026-11-13
+
+- The feature branch remains isolated from `main`; the latest comparison reports 163 commits ahead and 0 behind.
+- No merge, deployment, migration application, or production data write was performed.
+- The repository status endpoint reports a Vercel check failure whose target identifies a build-rate-limit/plan limit; this is not evidence of a passing build.
+- The GitHub workflow wrapper available in this environment only reports pull-request-triggered runs; no successful automated test run for these latest commits has been verified.
+- The Deno unit tests remain committed but not executed in this environment. Treat all new code as pending runtime/build verification until the repository CI can run successfully.
+
+### Remaining acceptance gates
+
+1. Run the full Deno test suite and frontend build in CI.
+2. Verify the new admin teacher lookup endpoint against an isolated development database, including non-admin 403, unknown teacher 404, active timetable with 35 cells, and incomplete data handling.
+3. Run end-to-end tests for the five-day import, name matching, save/resume draft, activation, teacher lookup, candidate preview, substitution save/cancel, and date-specific double-booking.
+4. Review the UI on mobile and desktop and run regressions for all existing school workflows.
+5. Obtain explicit approval before merge or deployment.
