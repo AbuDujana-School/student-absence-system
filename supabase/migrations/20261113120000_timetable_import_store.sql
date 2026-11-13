@@ -29,6 +29,8 @@ create table if not exists public.timetable_import_teachers (
   source_name text not null check (length(btrim(source_name)) > 0),
   normalized_name text not null,
   matched_teacher_name text,
+  matched_department_id text,
+  matched_department_name text,
   match_status text not null check (match_status in ('matched','unmatched','ambiguous')),
   aliases jsonb not null default '[]'::jsonb check (jsonb_typeof(aliases) = 'array'),
   created_at timestamptz not null default now()
@@ -153,12 +155,14 @@ begin
 
     insert into public.timetable_import_teachers (
       import_id, source_name, normalized_name, matched_teacher_name,
-      match_status, aliases
+      matched_department_id, matched_department_name, match_status, aliases
     ) values (
       v_import_id,
       left(btrim(v_teacher->>'sourceName'),200),
       left(coalesce(v_teacher->>'normalizedName',''),240),
       nullif(left(btrim(coalesce(v_teacher->>'matchedTeacherName','')),200),''),
+      nullif(left(btrim(coalesce(v_teacher->>'matchedDepartmentId','')),160),''),
+      nullif(left(btrim(coalesce(v_teacher->>'matchedDepartmentName','')),160),''),
       v_teacher->>'matchStatus',
       v_teacher->'aliases'
     ) returning id into v_teacher_id;
