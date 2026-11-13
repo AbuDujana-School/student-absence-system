@@ -108,8 +108,8 @@ export function normalizeArabicName(value: CellValue): string {
 function teacherNameTokens(value: CellValue): string[] {
   return normalizeArabicName(value)
     .replace(/عبدال/g, "عبد ال")
-    .replace(/(^|\\s)(?:بن|ابن)(?=\\s|$)/g, "$1")
-    .split(/\\s+/)
+    .replace(/(^|\s)(?:بن|ابن)(?=\s|$)/g, "$1")
+    .split(/\s+/)
     .filter(Boolean);
 }
 
