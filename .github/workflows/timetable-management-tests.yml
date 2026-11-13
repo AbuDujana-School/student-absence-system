@@ -20,5 +20,7 @@ jobs:
         uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
+      - name: Type-check timetable management
+        run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
       - name: Run timetable unit tests
-        run: deno test --no-check supabase/functions/timetable-management/tests
+        run: deno test supabase/functions/timetable-management/tests
