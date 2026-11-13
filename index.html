@@ -8524,6 +8524,9 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 let timetableImportPreview = null;
 let timetablePendingWorkbook = null;
 let timetableSavedImport = null;
+let timetableActiveImport = null;
+let timetableEditorRecordId = null;
+let timetableEditorMode = "add";
 let timetableSelectedTeacherIndex = -1;
 function timetableEsc(value) {
   return String(value ?? "").replace(/[&<>"']/g, function(ch) {
@@ -8607,6 +8610,8 @@ async function timetableSaveImport() {
     button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
     button.disabled = true;
     timetableSetStatus("حُفظت نسخة مسودة بنجاح. رقم النسخة: "+(result.saved?.version || 1)+" — رقم الاستيراد: "+(result.saved?.import_id || ""), "success");
+    await timetableLoadImports();
+    if (result.saved?.import_id) await timetableLoadSavedImport(result.saved.import_id);
   } catch (error) {
     button.disabled = false;
     button.innerHTML = original;
@@ -8671,6 +8676,151 @@ function timetableRenderTeacherList() {
     return '<button type="button" onclick="timetableSelectTeacher('+index+')" class="w-full text-right p-4 transition-colors '+(selected?'bg-cyan-50 dark:bg-cyan-950/40':'hover:bg-slate-50 dark:hover:bg-slate-900/60')+'"><div class="flex items-start justify-between gap-2"><span class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</span><span class="shrink-0 text-[9px] font-bold rounded-lg px-2 py-1 '+color+'">'+label+'</span></div><div class="flex items-center justify-between mt-2 text-[10px] text-slate-500"><span>'+teacher.records.length+' سجل</span><span>عرض التفاصيل <i class="fa-solid fa-chevron-left mr-1"></i></span></div></button>';
   }).join("");
 }
+async function timetableLoadImports() {
+  if (activeUser?.type !== "admin") return;
+  const host = document.getElementById("timetableSavedImportList");
+  const panel = document.getElementById("timetableSavedImports");
+  if (!host || !panel) return;
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const response = await appAuthRequest({action:"timetable_list_imports"}, token);
+    const imports = response.imports || [];
+    if (!imports.length) { panel.classList.remove("hidden"); host.innerHTML = '<p class="text-[10px] text-slate-400">لا توجد نسخ محفوظة حتى الآن.</p>'; return; }
+    panel.classList.remove("hidden");
+    host.innerHTML = imports.map(function(item) {
+      const date = new Date(item.created_at).toLocaleString("ar-OM");
+      const status = item.status === "draft" ? "مسودة" : item.status === "approved" ? "معتمد" : item.status === "active" ? "نشط" : item.status;
+      return '<button type="button" onclick="timetableLoadSavedImport(\''+timetableEsc(item.id)+'\')" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-right hover:border-cyan-400"><div class="flex flex-wrap justify-between gap-2"><strong class="text-xs text-slate-800 dark:text-white">'+timetableEsc(item.file_name)+'</strong><span class="text-[10px] font-bold text-cyan-700 dark:text-cyan-300">'+timetableEsc(status)+' · v'+timetableEsc(item.version)+'</span></div><div class="mt-1 text-[10px] text-slate-500">'+timetableEsc(date)+' · '+timetableEsc(item.imported_by_name)+'</div></button>';
+    }).join("");
+  } catch (error) {
+    panel.classList.remove("hidden");
+    host.innerHTML = '<p class="text-[10px] text-amber-700 dark:text-amber-300">تعذر تحميل النسخ المحفوظة. قد تحتاج قاعدة التطوير إلى تطبيق migration أولاً.</p>';
+  }
+}
+async function timetableLoadSavedImport(importId) {
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const response = await appAuthRequest({action:"timetable_get_import",importId:importId}, token);
+    const imported = response.imported;
+    const records = response.records || [];
+    const teachers = (response.teachers || []).map(function(item) {
+      return {
+        id:item.id, sourceName:item.source_name, normalizedName:item.normalized_name,
+        matchedTeacherId:null, matchedTeacherName:item.matched_teacher_name,
+        matchStatus:item.match_status, aliases:item.aliases || [], records:[]
+      };
+    });
+    records.forEach(function(record) {
+      const teacher = teachers.find(function(item){return item.id === record.import_teacher_id;});
+      const data = Object.assign({}, record.record_data || {}, {
+        sourceSheet:record.source_sheet, sourceRow:record.source_row,
+        teacherSourceName:record.teacher_source_name, dbRecordId:record.id,
+        origin:record.origin
+      });
+      if (teacher) teacher.records.push(data);
+    });
+    timetableActiveImport = imported;
+    timetableImportPreview = {
+      fileName:imported.file_name, importedAt:imported.created_at, importedBy:imported.imported_by_name,
+      result:{
+        sourceSheets:imported.source_sheets || [], teachers:teachers,
+        totals:imported.summary || {importedTeacherRows:teachers.length,importedLessonRecords:records.length,referenceRows:0,placementRows:0},
+        hasWeeklyPlacements:imported.has_weekly_placements === true, warnings:[]
+      }
+    };
+    timetableSelectedTeacherIndex = -1;
+    const saveButton = document.getElementById("timetableSaveButton");
+    if (saveButton) saveButton.classList.add("hidden");
+    timetableRenderPreview();
+    timetableSetStatus("تم فتح النسخة المحفوظة. يمكنك مراجعة سجلات المعلمين وتعديل المسودة.", "success");
+  } catch (error) {
+    timetableSetStatus(error?.message || "تعذر فتح النسخة المحفوظة.", "error");
+  }
+}
+function timetableOpenEditor(recordId) {
+  if (!timetableActiveImport || timetableActiveImport.status !== "draft") {
+    timetableSetStatus("التعديل متاح على النسخ المسودة فقط.", "error"); return;
+  }
+  const teacher = timetableImportPreview?.result?.teachers?.[timetableSelectedTeacherIndex];
+  if (!teacher) return;
+  timetableEditorRecordId = recordId || null;
+  timetableEditorMode = recordId ? "update" : "add";
+  let record = null;
+  if (recordId) record = (teacher.records || []).find(function(item){return item.dbRecordId === recordId;});
+  if (recordId && !record) { timetableSetStatus("تعذر العثور على سجل الحصة المطلوب.", "error"); return; }
+  const teacherSelect = document.getElementById("timetableEditTeacher");
+  const availableTeachers = timetableImportPreview.result.teachers.filter(function(item){return item.matchStatus !== "ambiguous";});
+  teacherSelect.innerHTML = availableTeachers.map(function(item) {
+    return '<option value="'+timetableEsc(item.sourceName)+'">'+timetableEsc(item.sourceName)+'</option>';
+  }).join("");
+  const data = record || {teacherSourceName:teacher.sourceName,className:"",subject:"",groupName:"",duration:"",periodsPerWeek:"",rooms:"",availableRooms:"",weekday:"",period:""};
+  const values = {
+    timetableEditTeacher:data.teacherSourceName || teacher.sourceName,
+    timetableEditClass:data.className || "", timetableEditSubject:data.subject || "",
+    timetableEditGroup:data.groupName || "", timetableEditDuration:data.duration || "",
+    timetableEditWeekly:data.periodsPerWeek ?? "", timetableEditRoom:data.rooms || "",
+    timetableEditAvailableRooms:data.availableRooms || "", timetableEditWeekday:data.weekday || "",
+    timetableEditPeriod:data.period ?? ""
+  };
+  Object.keys(values).forEach(function(id){const el=document.getElementById(id);if(el)el.value=values[id];});
+  document.getElementById("timetableEditorTitle").textContent = recordId ? "تعديل سجل الحصة" : "إضافة سجل حصة";
+  document.getElementById("timetableEditorSave").textContent = recordId ? "حفظ التعديل" : "إضافة الحصة";
+  document.getElementById("timetableEditorError").classList.add("hidden");
+  document.getElementById("timetableRecordEditor").classList.remove("hidden");
+}
+function timetableCloseEditor() {
+  document.getElementById("timetableRecordEditor")?.classList.add("hidden");
+  timetableEditorRecordId = null;
+}
+async function timetableSaveRecord() {
+  const errorBox = document.getElementById("timetableEditorError");
+  const button = document.getElementById("timetableEditorSave");
+  const token = appAuthSession?.token || readAppAuthToken();
+  const weekday = document.getElementById("timetableEditWeekday").value;
+  const periodText = document.getElementById("timetableEditPeriod").value.trim();
+  if (!timetableActiveImport || !token) return;
+  if (!!weekday !== !!periodText) { errorBox.textContent = "أدخل اليوم ورقم الحصة معاً، أو اتركهما فارغين معاً."; errorBox.classList.remove("hidden"); return; }
+  const weeklyText = document.getElementById("timetableEditWeekly").value.trim();
+  const recordData = {
+    teacherSourceName:document.getElementById("timetableEditTeacher").value,
+    className:document.getElementById("timetableEditClass").value.trim(),
+    subject:document.getElementById("timetableEditSubject").value.trim(),
+    groupName:document.getElementById("timetableEditGroup").value.trim(),
+    duration:document.getElementById("timetableEditDuration").value.trim(),
+    periodsPerWeek:weeklyText === "" ? null : Number(weeklyText),
+    rooms:document.getElementById("timetableEditRoom").value.trim(),
+    availableRooms:document.getElementById("timetableEditAvailableRooms").value.trim(),
+    weekday:weekday || null,
+    period:periodText === "" ? null : Number(periodText),
+    raw:{}
+  };
+  if (!recordData.className || !recordData.subject) { errorBox.textContent = "أدخل الشعبة والمادة قبل الحفظ."; errorBox.classList.remove("hidden"); return; }
+  const original = button.textContent;
+  button.disabled = true; button.textContent = "جارٍ الحفظ...";
+  try {
+    const payload = {mode:timetableEditorMode,record_data:recordData};
+    if (timetableEditorRecordId) payload.record_id = timetableEditorRecordId;
+    await appAuthRequest({action:"timetable_mutate_record",importId:timetableActiveImport.id,payload:payload},token);
+    const importId = timetableActiveImport.id;
+    timetableCloseEditor();
+    await timetableLoadSavedImport(importId);
+    timetableSetStatus("تم حفظ التعديل مع تسجيله في سجل المراجعة.", "success");
+  } catch (error) {
+    errorBox.textContent = error?.message || "تعذر حفظ سجل الحصة.";
+    errorBox.classList.remove("hidden");
+  } finally {
+    button.disabled = false; button.textContent = original;
+  }
+}
+async function timetableDeleteRecord(recordId) {
+  if (!timetableActiveImport || timetableActiveImport.status !== "draft" || !confirm("هل تريد حذف سجل الحصة هذا من المسودة؟ سيُحفظ أثر الحذف في سجل المراجعة.")) return;
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_mutate_record",importId:timetableActiveImport.id,payload:{mode:"delete",record_id:recordId}},token);
+    await timetableLoadSavedImport(timetableActiveImport.id);
+    timetableSetStatus("تم حذف السجل من المسودة وتسجيل العملية في سجل المراجعة.", "success");
+  } catch (error) { timetableSetStatus(error?.message || "تعذر حذف سجل الحصة.", "error"); }
+}
 function timetableSelectTeacher(index) {
   const teachers = timetableImportPreview?.result?.teachers || [];
   const teacher = teachers[index];
@@ -8680,15 +8830,21 @@ function timetableSelectTeacher(index) {
   const status = teacher.matchStatus === "matched" ? "مطابق لسجل المعلمين في النظام" :
     teacher.matchStatus === "ambiguous" ? "الاسم ملتبس ويحتاج مراجعة المطابقة" : "لم تتم مطابقة الاسم مع سجل المعلمين";
   const records = teacher.records || [];
+  const editable = !!(timetableActiveImport && timetableActiveImport.status === "draft");
   const rows = records.map(function(record) {
-    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="p-3 text-xs">'+timetableEsc(record.sourceSheet)+'<div class="text-[10px] text-slate-400">صف '+timetableEsc(record.sourceRow)+'</div></td><td class="p-3 text-xs font-bold">'+timetableEsc(record.className || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.subject || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.groupName || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.duration || "—")+'</td><td class="p-3 text-xs font-black">'+timetableEsc(record.periodsPerWeek ?? "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.rooms || record.availableRooms || "—")+'</td></tr>';
+    const actions = editable && record.dbRecordId
+      ? '<td class="p-3 text-xs whitespace-nowrap"><button type="button" onclick="timetableOpenEditor(\''+timetableEsc(record.dbRecordId)+'\')" class="text-cyan-700 dark:text-cyan-300 font-black ml-2">تعديل</button><button type="button" onclick="timetableDeleteRecord(\''+timetableEsc(record.dbRecordId)+'\')" class="text-red-600 font-black">حذف</button></td>'
+      : editable ? '<td class="p-3 text-xs text-slate-400">—</td>' : "";
+    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="p-3 text-xs">'+timetableEsc(record.sourceSheet)+'<div class="text-[10px] text-slate-400">صف '+timetableEsc(record.sourceRow)+'</div></td><td class="p-3 text-xs font-bold">'+timetableEsc(record.className || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.subject || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.groupName || "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.duration || "—")+'</td><td class="p-3 text-xs font-black">'+timetableEsc(record.periodsPerWeek ?? "—")+'</td><td class="p-3 text-xs">'+timetableEsc(record.rooms || record.availableRooms || "—")+'</td>'+actions+'</tr>';
   }).join("");
   const aliases = (teacher.aliases || []).slice(1).map(timetableEsc).join("، ");
+  const actionHeader = editable ? '<th class="p-3 text-[10px]">الإجراءات</th>' : "";
   document.getElementById("timetableTeacherDetails").innerHTML =
-    '<div class="flex flex-wrap items-start justify-between gap-3 mb-4"><div><h3 class="text-base font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</h3><p class="text-[10px] text-slate-500 mt-1">'+status+'</p></div><span class="rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 px-3 py-1.5 text-[10px] font-bold">'+records.length+' سجل مستخرج</span></div>'+
+    '<div class="flex flex-wrap items-start justify-between gap-3 mb-4"><div><h3 class="text-base font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</h3><p class="text-[10px] text-slate-500 mt-1">'+status+'</p></div><div class="flex items-center gap-2"><span class="rounded-xl bg-cyan-50 dark:bg-cyan-950/50 text-cyan-800 dark:text-cyan-200 px-3 py-1.5 text-[10px] font-bold">'+records.length+' سجل مستخرج</span>'+(editable?'<button type="button" onclick="timetableOpenEditor(null)" class="rounded-xl bg-emerald-700 px-3 py-2 text-[10px] font-black text-white">+ إضافة حصة</button>':'')+'</div></div>'+
     (aliases?'<p class="text-[10px] text-slate-500 mb-3">الأسماء المختصرة: '+aliases+'</p>':'')+
-    (records.length?'<div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"><table class="min-w-[760px] w-full text-right"><thead class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3 text-[10px]">المصدر</th><th class="p-3 text-[10px]">الشعبة</th><th class="p-3 text-[10px]">المادة</th><th class="p-3 text-[10px]">المجموعة</th><th class="p-3 text-[10px]">المدة</th><th class="p-3 text-[10px]">أسبوعياً</th><th class="p-3 text-[10px]">الغرفة</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-8 text-center text-xs text-slate-400">لا توجد سجلات حصص مرتبطة بهذا الاسم.</div>');
+    (records.length?'<div class="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-700"><table class="min-w-[820px] w-full text-right"><thead class="bg-slate-50 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3 text-[10px]">المصدر</th><th class="p-3 text-[10px]">الشعبة</th><th class="p-3 text-[10px]">المادة</th><th class="p-3 text-[10px]">المجموعة</th><th class="p-3 text-[10px]">المدة</th><th class="p-3 text-[10px]">أسبوعياً</th><th class="p-3 text-[10px]">الغرفة</th>'+actionHeader+'</tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="rounded-xl border border-dashed border-slate-300 dark:border-slate-600 p-8 text-center text-xs text-slate-400">لا توجد سجلات حصص مرتبطة بهذا الاسم.</div>');
 }
+
 </script>
 
 </body>
