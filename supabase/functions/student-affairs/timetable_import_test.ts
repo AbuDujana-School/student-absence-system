@@ -236,7 +236,7 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
 
 Deno.test("parses explicit teacher free periods including weekday ranges without filling blanks", () => {
   const parsed = parseDeclaredTeacherFreePeriods("الأحد: 1, 4-6; الأربعاء: 5-7; الخميس: 4-7");
-  if (parsed.periods.length !== 10) throw new Error("Expected 10 explicit free-period cells");
+  if (parsed.periods.length !== 11) throw new Error("Expected 11 explicit free-period cells");
   if (!parsed.periods.some((item) => item.weekday === "الأحد" && item.period === 1)) {
     throw new Error("Sunday period 1 should be parsed");
   }
