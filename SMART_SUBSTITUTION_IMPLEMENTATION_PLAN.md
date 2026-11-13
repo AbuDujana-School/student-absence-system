@@ -163,3 +163,28 @@ A generated schedule is acceptable only if:
 - an administrator can edit and validate every placement before activation.
 
 No timetable-generation output may be used for substitution assignments until it has passed these checks and been activated by the administrator.
+
+
+## Confirmed substitution availability rule (school clarification — 2026-11-13)
+
+The school explicitly confirmed how availability is read from the teacher timetable grid:
+
+- A blank teacher cell for a weekday and period means the teacher has no scheduled class and is available to be considered for substitution.
+- A cell containing a class/section (for example, `11 أول`) means the teacher is teaching and is ineligible for substitution in that period.
+- Availability must be evaluated against the active, administrator-approved timetable, not inferred from weekly lesson totals or from the teacher `التفريغ` text field.
+- When an absent teacher and weekday are selected, list only that teacher's scheduled lessons for that day. Each lesson has its own period-specific candidate list.
+- By default, candidates must belong to the absent teacher's department and have a blank timetable cell in that exact period.
+- A teacher already assigned to another substitution in the same weekday/period is also ineligible.
+- Teachers from other departments are excluded unless the coordinator explicitly enables cross-department selection.
+- Candidate availability is a hard eligibility rule. Fairness/load may be used later to order eligible candidates only; it cannot make a busy teacher eligible.
+- The source workbook contains contracts and constraints rather than a pre-filled day/period grid. The timetable construction/review stage must therefore produce the explicit weekly grid first. Blank cells in that approved grid then represent availability exactly as described above.
+- The meaning of the separate source `التفريغ` constraint fields and the remaining solver codes still requires validation; this clarification does not reinterpret those fields.
+
+### First isolated implementation slice
+
+A pure, database-independent substitution policy module and synthetic tests are added before UI/database integration. It provides:
+- absent-teacher lessons for a selected weekday, ordered by period;
+- period-specific candidate filtering using the active timetable;
+- strict same-department default scope;
+- exclusion of occupied teachers and teachers already assigned in the same period;
+- explicit opt-in for cross-department candidates.
