@@ -1017,6 +1017,60 @@ async function handle(req: Request) {
     }
   }
 
+  if (body?.action === "timetable_teacher_weekly_get") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "استعراض جداول جميع المعلمين متاح لمدير النظام العام فقط." });
+      }
+      const teacherName = String(body.teacherName || "").trim();
+      const versionId = body.versionId ? String(body.versionId) : "";
+      if (!teacherName || teacherName.length > 160) {
+        return reply(400, { error: "أدخل اسم المعلم كاملاً." });
+      }
+      if (versionId && !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(versionId)) {
+        return reply(400, { error: "رقم نسخة الجدول غير صالح." });
+      }
+      let versionQuery = db.from("timetable_weekly_versions")
+        .select("id,version,status,activated_at");
+      versionQuery = versionId ? versionQuery.eq("id", versionId) : versionQuery.eq("status", "active");
+      const { data: timetableVersion, error: versionError } = await versionQuery.maybeSingle();
+      if (versionError) throw versionError;
+      if (!timetableVersion) {
+        return reply(404, { error: versionId ? "نسخة الجدول المطلوبة غير موجودة." : "لا توجد نسخة أسبوعية معتمدة حالياً." });
+      }
+      const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+        .select("weekday,period,cell_status,class_sections,subject,source_page,teacher_source_name,matched_teacher_name,match_status")
+        .eq("version_id", timetableVersion.id)
+        .eq("matched_teacher_name", teacherName)
+        .order("weekday")
+        .order("period");
+      if (cellsError) throw cellsError;
+      const weekdayOrder = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+      const orderedCells = (cells || []).sort((a: any, b: any) =>
+        weekdayOrder.indexOf(String(a.weekday)) - weekdayOrder.indexOf(String(b.weekday)) ||
+        Number(a.period) - Number(b.period)
+      );
+      if (!orderedCells.length) {
+        return reply(404, { error: "لم يُعثر على جدول مرتبط بهذا الاسم في النسخة المحددة. تحقق من الاسم أو ربطه بحساب المعلم." });
+      }
+      return reply(200, {
+        ok: true,
+        teacherName,
+        version: timetableVersion,
+        cells: orderedCells,
+        expectedCellCount: 35,
+        actualCellCount: orderedCells.length,
+        complete: orderedCells.length === 35,
+      });
+    } catch (error) {
+      console.error("Admin teacher weekly timetable lookup failed:", error);
+      return reply(500, { error: "تعذر استعراض جدول المعلم حالياً." });
+    }
+  }
+
   if (body?.action === "teacher_timetable_get_own") {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
