@@ -62,7 +62,7 @@ begin
     or v_weekday is distinct from (case extract(dow from v_date)
       when 0 then 'الأحد' when 1 then 'الاثنين' when 2 then 'الثلاثاء'
       when 3 then 'الأربعاء' when 4 then 'الخميس' else 'خارج أيام الدراسة' end)
-    or v_period not between 1 and 7 or v_absent_name='' or v_substitute_name=''
+    or v_period is null or v_period not between 1 and 7 or v_absent_name='' or v_substitute_name=''
     or v_actor_name='' or v_actor_type not in ('admin','teacher','custom')
     or v_absent_name=v_substitute_name then
     raise exception 'بيانات تكليف الاحتياط غير مكتملة أو غير صالحة.';
