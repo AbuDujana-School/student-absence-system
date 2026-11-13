@@ -190,3 +190,28 @@ A pure, database-independent substitution policy module and synthetic tests are 
 - strict same-department default scope;
 - exclusion of occupied teachers and teachers already assigned in the same period;
 - explicit opt-in for cross-department candidates.
+
+
+## New admin interface requirement: "استيراد الجدول" and teacher-by-teacher review
+
+The school clarified the expected workflow and presentation for the import area:
+
+1. Inside **الجداول والاحتياط**, provide a clearly named feature/section **استيراد الجدول**.
+2. The administrator uploads the Excel workbook in this section.
+3. After parsing, display the imported schedule data below the upload area as a browsable list of **all teachers** found in the workbook, not merely a success message or aggregate import summary.
+4. Each teacher row/card shows the teacher's name and a clear **عرض الجدول** action. Opening it displays that teacher's schedule in a weekly day/period layout, with each lesson showing its class/section and any available subject/group/room details.
+5. Provide a per-teacher **تعديل** action. The administrator can edit an existing lesson, add a missing lesson, and remove an incorrect lesson. Changes must be validated and saved as a new reviewed revision, with who/when audit information.
+6. The edit view must make the weekday and period explicit. It must not let the administrator accidentally create a teacher/class/room/group double-booking. Show validation errors before saving.
+7. Show import provenance and state: source workbook/version, last import, whether the teacher's data is linked to an existing system teacher, and whether the displayed schedule is draft, reviewed, or active.
+8. Imported rows and manually added/edited rows must remain distinguishable in the audit history. A subsequent re-import must show a diff and must not silently erase administrator edits.
+9. The administrator can review teachers one by one, and should also have a school-wide overview/search/filter so that a large teacher list remains usable on mobile and desktop.
+
+### Important data-integrity condition
+
+The inspected `ورقة1.xlsx` contains teacher/lesson contracts, class, subject, duration, weekly lesson counts, and constraints, but the inspection did not find explicit weekday + period placements in its lesson rows. Therefore, the interface must not fabricate a weekly grid from contract totals. The import screen must:
+- display all imported teacher/contract information immediately, grouped by teacher, so the administrator can inspect what was extracted;
+- if the workbook actually contains a day/period placement field in a later validated format, render those placements in the weekly timetable grid;
+- if day/period placements are absent (as in the inspected workbook), clearly label the grouped records as **بيانات الحصص المستوردة — بانتظار توزيع الأيام والحصص**, and provide the timetable-generation/review workflow as a separate stage before showing a real weekly grid;
+- after the administrator creates or approves day/period placements, show the full editable weekly timetable for every teacher, including blank cells which are subsequently used to determine substitution availability.
+
+This requirement does not change the confirmed rule that a blank cell in the approved weekly timetable means available for substitution and a populated cell means busy.
