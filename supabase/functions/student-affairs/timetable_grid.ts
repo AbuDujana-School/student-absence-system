@@ -6,7 +6,7 @@ export interface ParsedTimetableCell {
   period: number; classSections: string[]; subject: string; status: TimetableCellStatus;
   sourceClass: string; sourceSubject: string; sourceStatus: string;
 }
-export interface ParsedTimetableTeacher { sourceName: string; pdfPage: number; cells: ParsedTimetableCell[]; }
+export interface ParsedTimetableTeacher { sourceName: string; pdfPage: number | null; cells: ParsedTimetableCell[]; }
 export interface ParsedTimetableDay {
   weekday: SchoolWeekday; teachers: ParsedTimetableTeacher[];
   totals: Record<TimetableCellStatus, number>; totalCells: number; warnings: string[];
@@ -27,7 +27,7 @@ function statusFromSource(value: string): TimetableCellStatus {
   const key=normalizedKey(value);
   if (["تدريس","درس","حصة تدريس"].includes(key)) return "teaching";
   if (["فراغ","فارغ","فارغه","حصة فراغ"].includes(key)) return "free";
-  if (["اجتماع","اجتماع قسم","اجتماع اداري"].includes(key)) return "meeting";
+  if (["اجتماع","اجتماع قسم","اجتماع اداري","اجتماع الماده","اجتماع القسم","اجتماع المواد"].includes(key)) return "meeting";
   if (["نشاط","نشاط مدرسي","مناوبة"].includes(key)) return "activity";
   if (["غير واضح","غير واضحه","غير مقروء","غير مقروءه"].includes(key)) return "unclear";
   return "other";
@@ -88,14 +88,29 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
   const lines=sourceText.split(/\r?\n/);
   for(let i=0;i<lines.length;i++){
     const line=cleanLine(lines[i]);if(!line)continue;
-    const head=line.match(/^\s*\d+[.)]\s*(.+?)\s*\(\s*صفحة\s*PDF\s*:\s*(\d+)\s*\)\s*$/i);
-    if(head){
-      finishTeacher();
-      const name=cleanLine(head[1]),key=normalizedKey(name);
-      if(!name||seenNames.has(key))throw new Error("اسم المعلم فارغ أو مكرر عند السطر "+(i+1)+": "+name);
-      seenNames.add(key);teacher={sourceName:name,pdfPage:Number(head[2]),cells:[]};continue;
+    // Accept the daily export headings used in the school's five source messages.
+    const dayHeading=line.match(/^(?:جدول\\s+)?اليوم(?:\\s+\\S+)?\\s*:\\s*(.+)$/)
+      || line.match(/^جدول\\s+يوم\\s+(.+)$/);
+    if(dayHeading){
+      const declaredDay=SCHOOL_WEEKDAYS.find(value=>normalizedKey(value)===normalizedKey(dayHeading[1]));
+      if(!declaredDay)throw new Error("اسم اليوم في العنوان غير معروف عند السطر "+(i+1)+": "+dayHeading[1]);
+      if(declaredDay!==day)throw new Error("النص يحتوي على جدول يوم "+declaredDay+" بينما اليوم المختار هو "+day+".");
+      continue;
     }
-    const p=line.match(/^الحصة\s+(.+?)\s*:\s*$/);
+    const namedTeacher=line.match(/^[-•]?\\s*اسم\\s*المعلم\\s*:\\s*(.+?)\\s*$/);
+    const numberedTeacher=line.match(/^\\s*\\d+[.)]\\s*(.+?)(?:\\s*\\(\\s*صفحة\\s*PDF\\s*:\\s*(\\d+)\\s*\\))?\\s*$/i);
+    const teacherHeader=namedTeacher||numberedTeacher;
+    if(teacherHeader){
+      finishTeacher();
+      const name=cleanLine(namedTeacher?namedTeacher[1]:numberedTeacher![1]),key=normalizedKey(name);
+      if(!name||seenNames.has(key))throw new Error("اسم المعلم فارغ أو مكرر عند السطر "+(i+1)+": "+name);
+      seenNames.add(key);
+      teacher={sourceName:name,pdfPage:numberedTeacher&&numberedTeacher[2]?Number(numberedTeacher[2]):null,cells:[]};
+      continue;
+    }
+    const pageOnly=line.match(/^صفحة\\s*PDF\\s*:\\s*(\\d+)$/i);
+    if(pageOnly&&teacher&&!teacher.cells.length&&!cell){teacher.pdfPage=Number(pageOnly[1]);continue;}
+    const p=line.match(/^الحصة\\s+(.+?)\\s*:\\s*$/);
     if(p){
       finishCell();
       if(!teacher)throw new Error("ظهرت حصة قبل اسم المعلم عند السطر "+(i+1)+".");
@@ -114,7 +129,7 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
     }
   }
   finishTeacher();
-  if(!teachers.length)throw new Error("لم أتعرف على أسماء المعلمين. تأكد من نمط: 1. اسم المعلم (صفحة PDF: 2).");
+  if(!teachers.length)throw new Error("لم أتعرف على أسماء المعلمين. استخدم «اسم المعلم: الاسم» أو «1. الاسم»، ثم أدرج الحصص السبع.");
   const totalCells=teachers.reduce((sum,v)=>sum+v.cells.length,0);
   if(totalCells!==teachers.length*7)throw new Error("عدد خانات الجدول لا يساوي سبع حصص لكل معلم.");
   return {weekday:day,teachers,totals,totalCells,warnings};
