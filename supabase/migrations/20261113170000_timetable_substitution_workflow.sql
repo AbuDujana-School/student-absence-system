@@ -13,6 +13,9 @@ create table if not exists public.timetable_assignment_audit (
 );
 create index if not exists timetable_assignment_audit_version_idx
   on public.timetable_assignment_audit(version_id,created_at desc);
+create unique index if not exists timetable_assignments_one_substitute_per_source_idx
+  on public.timetable_assignments(source_cell_id)
+  where assignment_type='substitution' and source_cell_id is not null and status in ('assigned','confirmed','completed');
 alter table public.timetable_assignment_audit enable row level security;
 revoke all on table public.timetable_assignment_audit from public,anon,authenticated;
 grant all on table public.timetable_assignment_audit to service_role;
@@ -38,6 +41,7 @@ declare
   v_absent_department text;
   v_candidate_department text;
   v_actor_department text;
+  v_candidate_free_count integer;
   v_assignment public.timetable_assignments%rowtype;
 begin
   if v_version_id is null or v_weekday not in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')
@@ -77,11 +81,16 @@ begin
     raise exception 'المعلم المرشح من قسم آخر. فعّل خيار إظهار الأقسام الأخرى أولاً.';
   end if;
 
-  select count(*) into v_period
+  select count(*) into v_candidate_free_count
     from public.timetable_weekly_cells
     where version_id=v_version_id and matched_teacher_name=v_substitute_name
       and weekday=v_weekday and period=(p_payload->>'period')::integer and cell_status='free';
-  if v_period<>1 then raise exception 'المعلم المرشح ليس لديه فراغ مؤكد في هذه الحصة.'; end if;
+  if v_candidate_free_count<>1 then raise exception 'المعلم المرشح ليس لديه فراغ مؤكد في هذه الحصة.'; end if;
+
+  if exists (select 1 from public.timetable_assignments where source_cell_id=v_absent_cell.id
+    and assignment_type='substitution' and status in ('assigned','confirmed','completed')) then
+    raise exception 'تم تعيين بديل لهذه الحصة مسبقاً.';
+  end if;
 
   if exists (
     select 1 from public.timetable_assignments
