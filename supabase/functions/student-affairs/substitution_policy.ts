@@ -6,7 +6,7 @@ export interface SubstitutionAssignment { substituteTeacherId:string; weekday:st
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
-  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean;
+  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean; assignmentDate?:string;
 }
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
   return a.weekday===b.weekday && a.period===b.period;
