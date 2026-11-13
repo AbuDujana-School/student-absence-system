@@ -97,13 +97,16 @@ jobs:
           psql -v ON_ERROR_STOP=1 <<'SQL'
           DO $do$
           BEGIN
-            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_imports'::regclass)
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_access_permissions'::regclass)
+              OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_imports'::regclass)
               OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_teachers'::regclass)
               OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_records'::regclass)
               OR NOT (SELECT relrowsecurity FROM pg_class WHERE oid = 'public.timetable_import_audit'::regclass) THEN
               RAISE EXCEPTION 'timetable import RLS is not enabled on every table';
             END IF;
-            IF has_table_privilege('anon','public.timetable_imports','SELECT')
+            IF has_table_privilege('anon','public.timetable_access_permissions','SELECT')
+              OR has_table_privilege('authenticated','public.timetable_access_permissions','SELECT')
+              OR has_table_privilege('anon','public.timetable_imports','SELECT')
               OR has_table_privilege('authenticated','public.timetable_imports','SELECT')
               OR has_table_privilege('anon','public.timetable_import_records','INSERT')
               OR has_table_privilege('authenticated','public.timetable_import_records','UPDATE')
@@ -111,7 +114,9 @@ jobs:
               OR has_function_privilege('authenticated','public.mutate_timetable_import_record(jsonb)','EXECUTE') THEN
               RAISE EXCEPTION 'browser roles can access timetable import storage';
             END IF;
-            IF NOT has_table_privilege('service_role','public.timetable_imports','INSERT')
+            IF NOT has_table_privilege('service_role','public.timetable_access_permissions','INSERT')
+              OR NOT has_table_privilege('service_role','public.timetable_access_permissions','SELECT')
+              OR NOT has_table_privilege('service_role','public.timetable_imports','INSERT')
               OR NOT has_table_privilege('service_role','public.timetable_import_records','UPDATE')
               OR NOT has_function_privilege('service_role','public.save_timetable_import(jsonb)','EXECUTE')
               OR NOT has_function_privilege('service_role','public.mutate_timetable_import_record(jsonb)','EXECUTE') THEN
