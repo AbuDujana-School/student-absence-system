@@ -32,6 +32,17 @@ jobs:
       - name: Checkout development branch
         uses: actions/checkout@v4
 
+      - name: Block production backend references in the preview bundle
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -n -F "ylsocrvwqibptuwfzbke.supabase.co" index.html manifest.webmanifest sw.js; then
+            echo "::error::Production Supabase endpoint detected; refusing to publish preview."
+            exit 1
+          fi
+          grep -q -F "wawplttrpiinoukpjqqx.supabase.co" index.html
+          echo "Preview bundle points to the isolated development Supabase project."
+
       - name: Verify Cloudflare credentials are configured
         shell: bash
         run: |
