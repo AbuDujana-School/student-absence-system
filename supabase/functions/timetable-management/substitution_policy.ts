@@ -36,3 +36,22 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>(workload.get(a.id)??0)-(workload.get(b.id)??0)||a.name.localeCompare(b.name,"ar"));
 }
+
+/** List only absent teachers the current coordinator is allowed to see. */
+export function getVisibleAbsentTeachers(
+  cells: Array<{ matchedTeacherName: string | null; status: string }>,
+  directory: Array<{ name: string; role: string; departmentId: string }>,
+  actorDepartmentId: string,
+  isAdmin: boolean,
+): string[] {
+  const teachers = new Map(directory.map((teacher) => [teacher.name, teacher]));
+  return Array.from(new Set(cells
+    .filter((cell) => cell.status === "teaching" && !!cell.matchedTeacherName)
+    .filter((cell) => {
+      const teacher = teachers.get(cell.matchedTeacherName as string);
+      return !!teacher && teacher.role === "teacher" &&
+        (isAdmin || (!!actorDepartmentId && teacher.departmentId === actorDepartmentId));
+    })
+    .map((cell) => String(cell.matchedTeacherName))))
+    .sort((a, b) => a.localeCompare(b, "ar"));
+}
