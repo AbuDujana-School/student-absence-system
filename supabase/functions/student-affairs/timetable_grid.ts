@@ -21,7 +21,7 @@ function cleanLine(value: string): string {
 }
 function normalizedKey(value: string): string {
   return value.normalize("NFKC").replace(/[\u064b-\u065f\u0670\u0640]/g,"")
-    .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/\s+/g," ").trim();
+    .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim();
 }
 function statusFromSource(value: string): TimetableCellStatus {
   const key=normalizedKey(value);
