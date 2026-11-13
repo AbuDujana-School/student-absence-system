@@ -8528,6 +8528,7 @@ let timetableSavedImport = null;
 let timetableActiveImport = null;
 let timetableEditorRecordId = null;
 let timetableEditorMode = "add";
+let timetableEditorOriginalData = null;
 let timetableSelectedTeacherIndex = -1;
 function timetableEsc(value) {
   return String(value ?? "").replace(/[&<>"']/g, function(ch) {
@@ -8750,6 +8751,7 @@ function timetableOpenEditor(recordId) {
   let record = null;
   if (recordId) record = (teacher.records || []).find(function(item){return item.dbRecordId === recordId;});
   if (recordId && !record) { timetableSetStatus("تعذر العثور على سجل الحصة المطلوب.", "error"); return; }
+  timetableEditorOriginalData = record ? Object.assign({}, record) : null;
   const teacherSelect = document.getElementById("timetableEditTeacher");
   const availableTeachers = timetableImportPreview.result.teachers.filter(function(item){return item.matchStatus !== "ambiguous";});
   teacherSelect.innerHTML = availableTeachers.map(function(item) {
@@ -8773,6 +8775,7 @@ function timetableOpenEditor(recordId) {
 function timetableCloseEditor() {
   document.getElementById("timetableRecordEditor")?.classList.add("hidden");
   timetableEditorRecordId = null;
+  timetableEditorOriginalData = null;
 }
 async function timetableSaveRecord() {
   const errorBox = document.getElementById("timetableEditorError");
@@ -8783,7 +8786,7 @@ async function timetableSaveRecord() {
   if (!timetableActiveImport || !token) return;
   if (!!weekday !== !!periodText) { errorBox.textContent = "أدخل اليوم ورقم الحصة معاً، أو اتركهما فارغين معاً."; errorBox.classList.remove("hidden"); return; }
   const weeklyText = document.getElementById("timetableEditWeekly").value.trim();
-  const recordData = {
+  const recordData = Object.assign({}, timetableEditorOriginalData || {}, {
     teacherSourceName:document.getElementById("timetableEditTeacher").value,
     className:document.getElementById("timetableEditClass").value.trim(),
     subject:document.getElementById("timetableEditSubject").value.trim(),
@@ -8794,8 +8797,10 @@ async function timetableSaveRecord() {
     availableRooms:document.getElementById("timetableEditAvailableRooms").value.trim(),
     weekday:weekday || null,
     period:periodText === "" ? null : Number(periodText),
-    raw:{}
-  };
+    raw:(timetableEditorOriginalData && timetableEditorOriginalData.raw) || {}
+  });
+  delete recordData.dbRecordId;
+  delete recordData.origin;
   if (!recordData.className || !recordData.subject) { errorBox.textContent = "أدخل الشعبة والمادة قبل الحفظ."; errorBox.classList.remove("hidden"); return; }
   const original = button.textContent;
   button.disabled = true; button.textContent = "جارٍ الحفظ...";
