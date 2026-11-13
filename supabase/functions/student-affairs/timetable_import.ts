@@ -158,10 +158,31 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
   return score;
 }
 
+/**
+ * Explicit identity confirmations supplied by the school.
+ * Keys are detailed workbook teacher names; values are existing system teacher names.
+ * Short aliases are deliberately not used as keys because they may be shared.
+ */
+const CONFIRMED_TEACHER_LINKS: Record<string, string> = {
+  [normalizeArabicName("س فيزياء")]: normalizeArabicName("محمد البشير"),
+  [normalizeArabicName("محمد جمعة ناصر السعدي")]: normalizeArabicName("محمد جمعة الساعدي"),
+  [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله الساعدي"),
+};
+
 function resolveSystemTeacher(
   source: ImportedTeacher,
   systemTeachers: SystemTeacher[],
 ): { teacher: SystemTeacher | null; ambiguous: boolean } {
+  const confirmedTarget = CONFIRMED_TEACHER_LINKS[normalizeArabicName(source.sourceName)];
+  if (confirmedTarget) {
+    const confirmedMatches = systemTeachers.filter(
+      (teacher) => normalizeArabicName(teacher.name) === confirmedTarget,
+    );
+    if (confirmedMatches.length === 1) return { teacher: confirmedMatches[0], ambiguous: false };
+    // A school-confirmed mapping must still resolve to exactly one existing account.
+    return { teacher: null, ambiguous: confirmedMatches.length > 1 };
+  }
+
   const ranked = systemTeachers
     .map((teacher) => ({ teacher, score: scoreTeacherCandidate(source, teacher) }))
     .filter((item) => item.score > 0)
