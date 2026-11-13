@@ -51,6 +51,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
       - name: Apply isolated timetable import migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
+      - name: Apply isolated timetable owner reassignment migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113133000_timetable_owner_reassignment.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -233,6 +235,71 @@ jobs:
           END $do$;
           RESET ROLE;
           SELECT 'isolated timetable import persistence and audit checks passed' AS result;
+          SQL
+      - name: Verify manual timetable owner reassignment and audit history
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE TABLE public.teachers (
+            name text primary key,
+            role text not null,
+            permissions jsonb not null default '{}'::jsonb
+          );
+          INSERT INTO public.teachers(name,role,permissions)
+          VALUES ('synthetic-arabic-teacher','teacher','{"category":"اللغة العربية"}'::jsonb);
+          SET ROLE service_role;
+          DO $do$
+          DECLARE
+            v_saved jsonb;
+            v_import_id uuid;
+            v_result jsonb;
+            v_owner text;
+            v_source text;
+            v_status text;
+            v_audit_count integer;
+          BEGIN
+            v_saved := public.save_timetable_import('{
+              "file_name":"synthetic-owner.xlsx",
+              "actor_name":"synthetic-admin",
+              "result":{
+                "sourceSheets":["المعلمون","العقد"],
+                "hasWeeklyPlacements":false,
+                "totals":{"importedTeacherRows":1,"importedLessonRecords":0,"referenceRows":0,"placementRows":0},
+                "referenceData":{},
+                "teachers":[{
+                  "sourceName":"س فيزياء","normalizedName":"س فيزياء",
+                  "matchedTeacherName":null,"matchStatus":"unmatched",
+                  "aliases":["س فيزياء"],"records":[]
+                }],
+                "unassignedRecords":[]
+              }
+            }'::jsonb);
+            v_import_id := (v_saved->>'import_id')::uuid;
+
+            v_result := public.reassign_timetable_import_owner(jsonb_build_object(
+              'import_id',v_import_id,'source_name','س فيزياء',
+              'teacher_name','synthetic-arabic-teacher','actor_name','synthetic-admin'
+            ));
+            SELECT source_name, matched_teacher_name, match_status
+              INTO v_source, v_owner, v_status
+              FROM public.timetable_import_teachers
+             WHERE import_id=v_import_id;
+            IF v_source <> 'س فيزياء' OR v_owner <> 'synthetic-arabic-teacher' OR v_status <> 'matched' THEN
+              RAISE EXCEPTION 'manual owner assignment did not preserve source name and set the selected owner';
+            END IF;
+
+            PERFORM public.reassign_timetable_import_owner(jsonb_build_object(
+              'import_id',v_import_id,'source_name','س فيزياء',
+              'teacher_name','','actor_name','synthetic-admin'
+            ));
+            SELECT matched_teacher_name, match_status INTO v_owner, v_status
+              FROM public.timetable_import_teachers WHERE import_id=v_import_id;
+            SELECT count(*) INTO v_audit_count FROM public.timetable_import_audit WHERE import_id=v_import_id;
+            IF v_owner IS NOT NULL OR v_status <> 'unmatched' OR v_audit_count <> 3 THEN
+              RAISE EXCEPTION 'clearing owner or audit trail failed';
+            END IF;
+          END $do$;
+          RESET ROLE;
+          SELECT 'isolated manual timetable owner reassignment checks passed' AS result;
           SQL
       - name: Verify RLS, grants, and session lifecycle
         run: |
