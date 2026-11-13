@@ -13,9 +13,22 @@ create table if not exists public.timetable_assignment_audit (
 );
 create index if not exists timetable_assignment_audit_version_idx
   on public.timetable_assignment_audit(version_id,created_at desc);
-create unique index if not exists timetable_assignments_one_substitute_per_source_idx
+alter table public.timetable_assignments add column if not exists assignment_date date;
+drop index if exists public.timetable_assignments_no_double_booking_idx;
+create unique index if not exists timetable_assignments_no_double_booking_date_idx
+  on public.timetable_assignments(version_id,teacher_name,assignment_date,period)
+  where assignment_date is not null and status in ('assigned','confirmed','completed');
+create unique index if not exists timetable_assignments_no_double_booking_legacy_idx
+  on public.timetable_assignments(version_id,teacher_name,weekday,period)
+  where assignment_date is null and status in ('assigned','confirmed','completed');
+create unique index if not exists timetable_assignments_one_substitute_per_source_date_idx
+  on public.timetable_assignments(source_cell_id,assignment_date)
+  where assignment_type='substitution' and source_cell_id is not null
+    and assignment_date is not null and status in ('assigned','confirmed','completed');
+create unique index if not exists timetable_assignments_one_substitute_per_source_legacy_idx
   on public.timetable_assignments(source_cell_id)
-  where assignment_type='substitution' and source_cell_id is not null and status in ('assigned','confirmed','completed');
+  where assignment_type='substitution' and source_cell_id is not null
+    and assignment_date is null and status in ('assigned','confirmed','completed');
 alter table public.timetable_assignment_audit enable row level security;
 revoke all on table public.timetable_assignment_audit from public,anon,authenticated;
 grant all on table public.timetable_assignment_audit to service_role;
@@ -29,7 +42,7 @@ as $function$
 declare
   v_version_id uuid := nullif(p_payload->>'version_id','')::uuid;
   v_weekday text := p_payload->>'weekday';
-  v_period integer := nullif(p_payload->>'period','')::integer;
+  v_period integer := nullif(p_payload->>'period','')::integer;\n  v_date date := nullif(p_payload->>'assignment_date','')::date;
   v_absent_name text := left(btrim(coalesce(p_payload->>'absent_teacher_name','')),160);
   v_substitute_name text := left(btrim(coalesce(p_payload->>'substitute_teacher_name','')),160);
   v_actor_name text := left(btrim(coalesce(p_payload->>'actor_name','')),160);
@@ -112,12 +125,12 @@ begin
   ) values (
     v_assignment.id,v_version_id,'created',v_actor_name,
     jsonb_build_object('substitute_teacher_name',v_substitute_name,'absent_teacher_name',v_absent_name,
-      'weekday',v_weekday,'period',v_assignment.period,'class_sections',v_assignment.class_sections,'subject',v_assignment.subject)
+      'weekday',v_weekday,'period',v_assignment.period,'assignment_date',v_date,'class_sections',v_assignment.class_sections,'subject',v_assignment.subject)
   );
 
   return jsonb_build_object('assignment_id',v_assignment.id,'status',v_assignment.status,
     'teacher_name',v_assignment.teacher_name,'absent_teacher_name',v_assignment.absent_teacher_name,
-    'weekday',v_assignment.weekday,'period',v_assignment.period);
+    'weekday',v_assignment.weekday,'period',v_assignment.period,'assignment_date',v_assignment.assignment_date);
 end;
 $function$;
 
