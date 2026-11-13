@@ -8712,8 +8712,8 @@ function timetableRenderDayPreview() {
 }
 function timetableFindDayInText(sourceText) {
   const text = String(sourceText || "");
-  const match = text.match(/^\\s*(?:جدول\\s+)?اليوم(?:\\s+\\S+)?\\s*:\\s*(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\\s*$/m)
-    || text.match(/^\\s*جدول\\s+يوم\\s+(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\\s*$/m);
+  const match = text.match(/^\s*(?:جدول\s+)?اليوم(?:\s+\S+)?\s*:\s*(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/m)
+    || text.match(/^\s*جدول\s+يوم\s+(الأحد|الاثنين|الثلاثاء|الأربعاء|الخميس)\s*$/m);
   return match ? match[1] : null;
 }
 function timetableInvalidateDayPreview() {
@@ -8734,7 +8734,7 @@ async function timetableReadTextFile(event) {
   const file = input?.files?.[0];
   if (!file) return;
   try {
-    if (!/\\.(txt|text)$/i.test(file.name)) throw new Error("اختر ملفاً نصياً بامتداد TXT.");
+    if (!/\.(txt|text)$/i.test(file.name)) throw new Error("اختر ملفاً نصياً بامتداد TXT.");
     if (file.size > 1024 * 1024) throw new Error("حجم الملف يتجاوز 1 ميجابايت. قسّم التفريغ إلى ملفات أصغر.");
     const bytes = await file.arrayBuffer();
     let sourceText;
@@ -8743,7 +8743,7 @@ async function timetableReadTextFile(event) {
     } catch {
       sourceText = new TextDecoder("windows-1256").decode(bytes);
     }
-    sourceText = sourceText.replace(/^\\uFEFF/, "").replace(/\\u0000/g, "");
+    sourceText = sourceText.replace(/^\uFEFF/, "").replace(/\u0000/g, "");
     if (!sourceText.trim()) throw new Error("الملف النصي فارغ.");
     if (sourceText.length > 500000) throw new Error("النص يتجاوز الحد الأقصى المسموح به وهو 500 ألف حرف.");
     const textarea = document.getElementById("timetableDayText");
