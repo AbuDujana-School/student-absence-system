@@ -134,9 +134,6 @@ async function handle(req: Request) {
 
   if (["timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates",
        "timetable_mutate_record", "timetable_reassign_owner"].includes(action)) {
-    if (["timetable_mutate_record", "timetable_reassign_owner"].includes(action) && principal.type !== "admin") {
-      return reply(403, { error: "تعديل سجلات الاستيراد وإعادة تعيين المالك متاحان للمدير فقط." });
-    }
     try {
       if (action === "timetable_list_imports") {
         const { data, error } = await db.from("timetable_imports")
@@ -174,7 +171,7 @@ async function handle(req: Request) {
           return reply(400, { error: "بيانات مالك الجدول غير صالحة." });
         }
         const { data, error } = await db.rpc("reassign_timetable_import_owner", {
-          p_payload: { import_id: body.importId, source_name: sourceName, teacher_name: teacherName, actor_name: principal.name },
+          p_payload: { import_id: body.importId, source_name: sourceName, teacher_name: teacherName, actor_name: principal.name, actor_type: principal.type },
         });
         if (error) throw error;
         return reply(200, { result: data });
@@ -183,7 +180,7 @@ async function handle(req: Request) {
         return reply(400, { error: "بيانات تعديل الحصة غير صالحة." });
       }
       const { data, error } = await db.rpc("mutate_timetable_import_record", {
-        p_payload: { ...body.payload, import_id: body.importId, actor_name: principal.name },
+        p_payload: { ...body.payload, import_id: body.importId, actor_name: principal.name, actor_type: principal.type },
       });
       if (error) throw error;
       return reply(200, { result: data });
