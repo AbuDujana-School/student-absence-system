@@ -44,7 +44,7 @@ Deno.test("rejects a teacher when one period is missing",()=>{
  if(!rejected)throw new Error("A six-period teacher record must be rejected");
 });
 Deno.test("rejects incomplete cell fields rather than filling them with defaults",()=>{
- const incomplete=sample.replace("- الحالة: تدريس","",1);
+ const incomplete=sample.replace("- الحالة: تدريس","");
  let rejected=false;
  try{parseTimetableDay("الخميس",incomplete);}catch(error){rejected=String(error).includes("الحالة");}
  if(!rejected)throw new Error("Missing status should fail validation");
