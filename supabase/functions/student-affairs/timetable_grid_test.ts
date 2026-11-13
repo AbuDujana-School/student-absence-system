@@ -56,3 +56,77 @@ Deno.test("rejects duplicate teacher names and invalid weekdays",()=>{
  try{parseTimetableDay("الجمعة",sample);}catch{rejectedDay=true;}
  if(!rejectedDuplicate||!rejectedDay)throw new Error("Duplicate teachers and unsupported days must be rejected");
 });
+
+const schoolMessageFormat=`اليوم الثاني: الاثنين
+اسم المعلم: أحمد خالد محمد السالمي
+الحصة الأولى:
+- الصف والشعبة: 2/12
+- المادة: التربية الاسلامية
+- الحالة: تدريس
+الحصة الثانية:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة الثالثة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة الرابعة:
+- الصف والشعبة: 1/12
+- المادة: التربية الاسلامية
+- الحالة: تدريس
+الحصة الخامسة:
+- الصف والشعبة: اجتماع المادة
+- المادة: التربية الاسلامية
+- الحالة: اجتماع المادة
+الحصة السادسة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة السابعة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+
+اسم المعلم: معلم ثانٍ
+الحصة الأولى:
+- الصف والشعبة: 3/12
+- المادة: اللغة العربية
+- الحالة: تدريس
+الحصة الثانية:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة الثالثة:
+- الصف والشعبة: 4/12
+- المادة: اللغة العربية
+- الحالة: تدريس
+الحصة الرابعة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة الخامسة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة السادسة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ
+الحصة السابعة:
+- الصف والشعبة: فراغ
+- المادة: فراغ
+- الحالة: فراغ`;
+Deno.test("parses the original school message format with named teachers and day heading",()=>{
+ const result=parseTimetableDay("الاثنين",schoolMessageFormat);
+ if(result.teachers.length!==2||result.totalCells!==14)throw new Error("Expected two teachers and fourteen explicit cells");
+ if(result.teachers[0].sourceName!=="أحمد خالد محمد السالمي")throw new Error("Full teacher source name was not preserved");
+ if(result.teachers[0].pdfPage!==null)throw new Error("Missing PDF page should remain unknown, not fabricated");
+ if(result.teachers[0].cells[4].status!=="meeting")throw new Error("Subject meeting should be classified as meeting");
+ if(result.teachers[0].cells[1].status!=="free")throw new Error("Explicit free period was not recognized");
+});
+Deno.test("rejects a daily message whose heading conflicts with the selected day",()=>{
+ let rejected=false;
+ try{parseTimetableDay("الأحد",schoolMessageFormat);}catch(error){rejected=String(error).includes("اليوم المختار");}
+ if(!rejected)throw new Error("A weekday mismatch must not be silently accepted");
+});
