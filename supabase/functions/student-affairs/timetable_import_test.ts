@@ -211,7 +211,7 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
   }, [
     { id: "physics", name: "محمد البشير", departmentId: "الفيزياء", departmentName: "الفيزياء" },
     { id: "arabic", name: "محمد جمعة السعدي", departmentId: "اللغة العربية", departmentName: "اللغة العربية" },
-    { id: "life-skills", name: "محمد عبدالله الساعدي", departmentId: "مواد المهارات الحياتية", departmentName: "مواد المهارات الحياتية" },
+    { id: "life-skills", name: "محمد عبدالله السعدي", departmentId: "مواد المهارات الحياتية", departmentName: "مواد المهارات الحياتية" },
   ]);
 
   const bySource = new Map(result.teachers.map((teacher) => [teacher.sourceName, teacher]));
@@ -222,7 +222,7 @@ Deno.test("uses the school's confirmed teacher identity mappings without collaps
     throw new Error("محمد جمعة ناصر السعدي must map to the Arabic teacher محمد جمعة السعدي");
   }
   if (bySource.get("محمد عبدالله حمود السعدي")?.matchedTeacherId !== "life-skills") {
-    throw new Error("محمد عبدالله حمود الساعدي must map to the life-skills teacher محمد عبدالله الساعدي");
+    throw new Error("محمد عبدالله حمود السعدي must map to the existing life-skills account محمد عبدالله السعدي");
   }
   if (!result.ambiguousTeacherNames.includes("محمد السعدي")) {
     throw new Error("The shared short alias محمد السعدي must remain ambiguous when used alone");
