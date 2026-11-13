@@ -72,7 +72,7 @@ Deno.test("eligible candidates are ranked by the lowest active substitution load
  ];
  const candidates=getAvailableSubstitutionCandidates({
   teachers:[...teachers,{id:"free2",name:"أحمد",departmentId:"arabic"}],
-  timetable:balanced,assignments:load,absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"
+  timetable:balanced,assignments:[...assignments,...load],absentTeacherId:"absent",weekday:"الأحد",period:4,departmentId:"arabic"
  });
  if(candidates[0]?.id!=="free2"||candidates[1]?.id!=="free")throw new Error("Candidates should be ranked by active assignment load, ignoring cancelled assignments");
 });
