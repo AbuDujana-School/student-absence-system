@@ -403,23 +403,23 @@ async function handle(req: Request) {
       if (Array.isArray(body.teachers)) {
         // Structured editor payload: values were explicitly reviewed by the administrator.
         // The SQL RPC still validates every teacher, cell, day, period and owner before writing.
-        if (body.teachers.length !== 69) return reply(400, { error: "يجب أن يحتوي اليوم على 69 معلماً بالضبط." });
+        if (body.teachers.length < 1 || body.teachers.length > 500) return reply(400, { error: "عدد المعلمين في اليوم غير صالح." });
         matchedTeachers = body.teachers.map((teacher: any) => {
           const sourceName = String(teacher?.sourceName || "").trim();
           const matchedTeacherName = String(teacher?.matchedTeacherName || "").trim();
           const matchStatus = matchedTeacherName ? "matched" : (teacher?.matchStatus === "ambiguous" ? "ambiguous" : "unmatched");
-          if (!sourceName || !Array.isArray(teacher?.cells) || teacher.cells.length !== 7) {
-            throw new Error("بيانات المعلم أو حصصه السبع غير مكتملة.");
+          if (!sourceName || !Array.isArray(teacher?.cells) || ![7,8].includes(teacher.cells.length)) {
+            throw new Error("بيانات المعلم أو حصصه غير مكتملة: يجب أن يحتوي على 7 أو 8 حصص.");
           }
           return { ...teacher, sourceName, matchedTeacherName: matchedTeacherName || null, matchStatus };
         });
         parsed = {
           weekday, teachers: matchedTeachers,
           totals: { teaching: 0, free: 0, meeting: 0, activity: 0, other: 0, unclear: 0 },
-          totalCells: matchedTeachers.length * 7,
+          totalCells: matchedTeachers.reduce((sum: number, teacher: any) => sum + teacher.cells.length, 0),
         };
         for (const teacher of matchedTeachers) for (const cell of teacher.cells) {
-          if (!Number.isInteger(Number(cell.period)) || Number(cell.period) < 1 || Number(cell.period) > 7) {
+          if (!Number.isInteger(Number(cell.period)) || Number(cell.period) < 1 || Number(cell.period) > matchedTeachers[0].cells.length) {
             throw new Error("رقم حصة غير صالح في بيانات المعلم " + teacher.sourceName + ".");
           }
           if (!["teaching","free","meeting","activity","other","unclear"].includes(cell.status)
@@ -433,7 +433,7 @@ async function handle(req: Request) {
         const sourceText = String(body.text || "");
         if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً." });
         parsed = parseTimetableDay(weekday, sourceText);
-        validateSchoolTeacherCount(parsed, 69);
+        if (!parsed.teachers.length || parsed.teachers.length > 500) throw new Error("عدد المعلمين في النص غير صالح.");
         matchedTeachers = parsed.teachers.map((teacher: any) => {
           const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
           return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
@@ -450,7 +450,7 @@ async function handle(req: Request) {
       const versionId = body.versionId == null || body.versionId === "" ? null : body.versionId;
       if (versionId !== null && !validUuid(versionId)) return reply(400, { error: "رقم المسودة غير صالح." });
       const { data, error } = await db.rpc("save_timetable_weekly_day", {
-        p_payload: { version_id: versionId, weekday: parsed.weekday, teachers: matchedTeachers, actor_name: principal.name },
+        p_payload: { version_id: versionId, weekday: parsed.weekday, teachers: matchedTeachers, period_count: matchedTeachers[0]?.cells?.length || 7, actor_name: principal.name },
       });
       if (error) throw error;
       return reply(200, { ok: true, result: data, matchingTotals });
@@ -467,7 +467,7 @@ async function handle(req: Request) {
       if (principal.type !== "admin" && teacherName !== principal.name) {
         return reply(403, { error: "لا يمكنك استعراض جدول معلم آخر." });
       }
-      let query = db.from("timetable_weekly_versions").select("id,version,status,activated_at");
+      let query = db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count");
       query = validUuid(body.versionId) ? query.eq("id", body.versionId) : query.eq("status", "active");
       const { data: version, error } = await query.maybeSingle();
       if (error) throw error;
@@ -479,7 +479,7 @@ async function handle(req: Request) {
       const order = new Map(DAYS.map((day, i) => [day, i]));
       const sorted = (cells || []).sort((a: any,b: any) => (order.get(a.weekday) ?? 99)-(order.get(b.weekday) ?? 99) || Number(a.period)-Number(b.period));
       if (!sorted.length) return reply(404, { error: "لم يُعثر على جدول مرتبط بهذا الاسم." });
-      return reply(200, { ok: true, teacherName, version, cells: sorted, expectedCellCount: 35, actualCellCount: sorted.length, complete: sorted.length === 35 });
+      return reply(200, { ok: true, teacherName, version, cells: sorted, expectedCellCount: 5 * Number(version.period_count || 7), actualCellCount: sorted.length, complete: sorted.length === 5 * Number(version.period_count || 7) });
     } catch (error) {
       console.error("Teacher weekly timetable read failed:", error instanceof Error ? error.message : "unknown");
       return reply(500, { error: "تعذر استعراض جدول المعلم." });
