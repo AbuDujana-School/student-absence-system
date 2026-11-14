@@ -8834,14 +8834,14 @@ function timetableRecountPreviewDay(day) {
 }
 function timetableSerializePreviewDay(day) {
   const labels = {teaching:"تدريس",free:"فراغ",meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضح"};
-  const safe = value => String(value == null ? "" : value).split("\\t").join(" ").split("\\r").join(" ").split("\\n").join(" ").trim();
+  const safe = value => String(value == null ? "" : value).split("\t").join(" ").split("\r").join(" ").split("\n").join(" ").trim();
   const rows = [];
   (day.teachers || []).forEach(teacher => (teacher.cells || []).slice().sort((a,b)=>a.period-b.period).forEach(cell => {
     const sourceClass = safe((cell.classSections || []).join("، ") || cell.sourceClass || (cell.status === "free" ? "فراغ" : "غير محدد"));
     const sourceSubject = safe(cell.sourceSubject || cell.subject || labels[cell.status] || "غير محدد");
     const sourceStatus = safe(cell.sourceStatus || labels[cell.status] || "غير واضح");
-    rows.push([safe(teacher.sourceName),safe(day.weekday),String(cell.period),sourceClass,sourceSubject,sourceStatus,safe(cell.sourceNote)].join("\\t"));
-  })); return rows.join("\\n");
+    rows.push([safe(teacher.sourceName),safe(day.weekday),String(cell.period),sourceClass,sourceSubject,sourceStatus,safe(cell.sourceNote)].join("\t"));
+  })); return rows.join("\n");
 }
 function timetableOpenWeeklyCellEditor(dayIndex, teacherIndex, period) {
   if (activeUser?.type !== "admin") return;
