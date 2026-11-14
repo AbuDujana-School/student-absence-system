@@ -7750,7 +7750,7 @@ async function deleteTeacher(idx) {
   await saveSystemDataToCloud();
   await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
   renderTeachersList();
-  showToast('تم الحذف.', 'info');
+  showToast('أُخفي الحساب محلياً؛ حذف سجله من الخادم لم يُنفذ وهو بانتظار المراجعة.', 'info');
   if (activeUser?.type === 'teacher' && activeUser?.name === t.name) { showToast('تم حذف حسابك.', 'error'); setTimeout(() => _performLogout(), 800); }
 }
 function openPermissionsModal(idx) {
