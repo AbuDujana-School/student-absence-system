@@ -410,10 +410,6 @@ async function handle(req: Request) {
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
       const {data:assignmentRows,error:assignmentError}=await db.from("timetable_assignments").select("id,source_cell_id,teacher_name,weekday,period,status,assignment_date").eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
       if(assignmentError)throw assignmentError;
-      const selectedDate=date?new Date(date+"T12:00:00"):null;
-      const weekStart=selectedDate?new Date(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate()-selectedDate.getDay(),12):null;
-      const weekEnd=weekStart?new Date(weekStart.getFullYear(),weekStart.getMonth(),weekStart.getDate()+4,12):null;
-      const iso=(v:Date)=>v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
       const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,status:x.status}));
