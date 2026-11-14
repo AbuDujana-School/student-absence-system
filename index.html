@@ -4811,9 +4811,33 @@ function isAdminAuthorized() { if (activeUser?.type === 'admin') return true; tr
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
 
 /* ============ Cloud helpers ============ */
-function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch(e) { return []; } }
-function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch(e) {} }
-async function queueCloudDelete(table, filters) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); updateSyncStatus(false, `${arr.length} طلب حذف بانتظار المراجعة`); return false; }
+let pendingDeleteQueueCache = null;
+function getPendingDeletes() {
+  if (Array.isArray(pendingDeleteQueueCache)) return pendingDeleteQueueCache;
+  try {
+    const parsed = JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]');
+    pendingDeleteQueueCache = Array.isArray(parsed) ? parsed : [];
+  } catch(e) { pendingDeleteQueueCache = []; }
+  return pendingDeleteQueueCache;
+}
+function setPendingDeletes(arr) {
+  pendingDeleteQueueCache = Array.isArray(arr) ? arr : [];
+  try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(pendingDeleteQueueCache)); return true; }
+  catch(e) { return false; }
+}
+async function queueCloudDelete(table, filters) {
+  const arr = getPendingDeletes();
+  if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() });
+  const localStorageSaved = setPendingDeletes(arr);
+  const indexedDbSaved = await persistOfflineState();
+  if (!localStorageSaved && !indexedDbSaved) {
+    updateSyncStatus(false, 'تعذر تأمين طلب الحذف محلياً؛ لم يُنفذ على الخادم');
+    showToast('تعذر حفظ طلب الحذف محلياً. لم يُحذف أي سجل من الخادم.', 'error');
+    return false;
+  }
+  updateSyncStatus(false, `${arr.length} طلب حذف بانتظار المراجعة`);
+  return false;
+}
 // Fail-closed protection: queued deletions are retained for review and are never auto-executed.
 async function flushPendingDeletes() { return false; }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
