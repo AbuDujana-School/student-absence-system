@@ -89,6 +89,7 @@ export function canUseTimetableAction(
     "teacher_timetable_get_own",
     "timetable_portal_revoke_individual_grant",
   ]).has(action);
+  if (principalType === "teacher" && action === "timetable_portal_revoke_individual_grant") return true;
   return new Set([
     "health",
     "timetable_check_access",
