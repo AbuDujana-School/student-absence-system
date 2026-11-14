@@ -237,17 +237,25 @@ async function handle(req: Request) {
       // preserve existing timetable-management access and keep the new portal off.
       if (versionError) throw versionError;
       let hasPersonalSchedule = false;
-      if (version && principal.type === "teacher") {
-        const { data: ownCells, error: ownError } = await db.from("timetable_weekly_cells")
-          .select("id").eq("version_id", version.id).eq("matched_teacher_name", principal.name)
-          .eq("cell_status", "teaching").limit(1);
-        if (ownError) throw ownError;
-        hasPersonalSchedule = Array.isArray(ownCells) && ownCells.length > 0;
+      let hasIndividualGrant = false;
+      if (principal.type === "teacher") {
+        const { data: grant, error: grantError } = await db.from("teacher_timetable_portal_grants")
+          .select("teacher_name").eq("teacher_name", principal.name).eq("active", true).maybeSingle();
+        if (grantError) throw grantError;
+        hasIndividualGrant = !!grant;
+        if (version) {
+          const { data: ownCells, error: ownError } = await db.from("timetable_weekly_cells")
+            .select("id").eq("version_id", version.id).eq("matched_teacher_name", principal.name)
+            .eq("cell_status", "teaching").limit(1);
+          if (ownError) throw ownError;
+          hasPersonalSchedule = Array.isArray(ownCells) && ownCells.length > 0;
+        }
       }
       return reply(200, {
         canAccess: principal.type === "admin" || principal.portalOnly !== true,
         teacherPortalEnabled: !settingError && setting?.enabled === true,
         hasPersonalSchedule,
+        hasIndividualGrant,
         isAdmin: principal.type === "admin",
         isTeacher: principal.type === "teacher" || principal.type === "custom",
       });
