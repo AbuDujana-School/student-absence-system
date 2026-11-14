@@ -34,29 +34,61 @@ self.onmessage = async (event) => {
 };
 async function parseWorkbookInWorker(buffer) {
   try {
+    const MAX_FILE_BYTES = 20 * 1024 * 1024;
+    if (!(buffer instanceof ArrayBuffer) || buffer.byteLength === 0) {
+      throw new Error("ملف Excel فارغ أو غير صالح.");
+    }
+    if (buffer.byteLength > MAX_FILE_BYTES) {
+      throw new Error("حجم الملف يتجاوز 20 ميجابايت. قسّم الملف ثم أعد المحاولة.");
+    }
     if (typeof XLSX === "undefined") {
       importScripts("https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js");
     }
     const workbook=XLSX.read(buffer,{type:"array",cellDates:true});
     const sheets={};
     const names=workbook.SheetNames||[];
-    let rowCount=0;
+    if (!names.length || names.length > 20) throw new Error("يجب أن يحتوي الملف على ورقة واحدة إلى 20 ورقة.");
+    let rowCount=0, cellCount=0;
     for(let index=0;index<names.length;index++){
       const sheetName=names[index];
+      if (typeof sheetName !== "string" || !sheetName.trim() || sheetName.length > 120) {
+        throw new Error("اسم إحدى أوراق العمل غير صالح.");
+      }
       const worksheet=workbook.Sheets[sheetName];
       const rawRows=XLSX.utils.sheet_to_json(worksheet,{header:1,raw:true,defval:null,blankrows:false});
+      if (rawRows.length > 5000 || rowCount + rawRows.length > 5000) {
+        throw new Error("تجاوز الملف الحد المسموح وهو 5000 صف.");
+      }
       const compactRows=[];
       for(const row of rawRows){
+        if (!Array.isArray(row)) throw new Error("توجد بنية صف غير صالحة في ورقة " + sheetName + ".");
         let last=row.length-1;
         while(last>=0&&(row[last]===null||row[last]===undefined||String(row[last]).trim()===""))last--;
-        if(last<0)continue;
-        compactRows.push(row.slice(0,last+1).map(value=>value instanceof Date?value.toISOString():value));
+        if(last<0) continue;
+        const compact=row.slice(0,last+1).map(value=>{
+          if (typeof value === "string" && value.length > 10000) {
+            throw new Error("يوجد نص يتجاوز 10000 حرف في ورقة " + sheetName + ".");
+          }
+          if (typeof value === "number" && !Number.isFinite(value)) {
+            throw new Error("توجد قيمة رقمية غير صالحة في ورقة " + sheetName + ".");
+          }
+          if (value !== null && value !== undefined && !["string","number","boolean"].includes(typeof value) && !(value instanceof Date)) {
+            throw new Error("توجد قيمة خلية غير مدعومة في ورقة " + sheetName + ".");
+          }
+          return value instanceof Date ? value.toISOString() : value;
+        });
+        cellCount += compact.length;
+        if (cellCount > 100000) throw new Error("تجاوز الملف الحد المسموح وهو 100000 خلية.");
+        compactRows.push(compact);
       }
-      if(compactRows.length){sheets[sheetName]=compactRows;rowCount+=compactRows.length;}
+      rowCount += rawRows.length;
+      if(compactRows.length) sheets[sheetName]=compactRows;
       self.postMessage({type:"progress",processed:index+1,total:names.length,percent:Math.round((index+1)/Math.max(names.length,1)*100),message:"قراءة الورقة "+(index+1)+" من "+names.length+": "+sheetName});
       await new Promise(resolve=>setTimeout(resolve,0));
     }
-    self.postMessage({type:"complete",sheets,rowCount,sheetCount:names.length});
+    const compactRowCount=Object.values(sheets).reduce((sum,rows)=>sum+rows.length,0);
+    if (!compactRowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
+    self.postMessage({type:"complete",sheets,rowCount:compactRowCount,cellCount,sheetCount:names.length});
   } catch(error) {
     self.postMessage({type:"error",message:error?.message||"تعذر قراءة ملف Excel داخل العامل."});
   }

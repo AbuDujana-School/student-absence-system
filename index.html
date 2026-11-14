@@ -9660,6 +9660,9 @@ timetableInitExcelDropZone();
 
 async function timetableParseWorkbookInWorker(file) {
   if(typeof Worker==="undefined") throw new Error("المتصفح لا يدعم المعالجة في الخلفية. افتح التطبيق من متصفح حديث.");
+  const MAX_FILE_BYTES=20*1024*1024;
+  if(!file||!Number.isFinite(file.size)||file.size<=0) throw new Error("ملف Excel فارغ أو غير صالح.");
+  if(file.size>MAX_FILE_BYTES) throw new Error("حجم الملف يتجاوز 20 ميجابايت. قسّم الملف ثم أعد المحاولة.");
   const worker=new Worker("timetable-text.worker.js");
   const panel=document.getElementById("timetableExcelWorkerProgress");
   const bar=document.getElementById("timetableExcelWorkerProgressBar");
@@ -9669,19 +9672,68 @@ async function timetableParseWorkbookInWorker(file) {
   try {
     const buffer=await file.arrayBuffer();
     return await new Promise((resolve,reject)=>{
+      let settled=false;
+      const finish=(error,result)=>{
+        if(settled)return;
+        settled=true;
+        clearTimeout(timeoutId);
+        worker.terminate();
+        if(error)reject(error);else resolve(result);
+      };
+      const timeoutId=setTimeout(()=>finish(new Error("استغرق تحليل الملف أكثر من دقيقة. جرّب ملفاً أصغر ثم أعد المحاولة.")),60000);
       worker.onmessage=(event)=>{
         const data=event.data||{};
         if(data.type==="progress"){
           if(bar)bar.style.width=data.percent+"%";
           if(value)value.textContent=data.percent+"%";
           if(label)label.textContent=data.message||("معالجة "+data.processed+" من "+data.total+" أوراق");
-        } else if(data.type==="complete") resolve(data);
-        else if(data.type==="error") reject(new Error(data.message||"تعذر تحليل ملف Excel."));
+        } else if(data.type==="complete") finish(null,data);
+        else if(data.type==="error") finish(new Error(data.message||"تعذر تحليل ملف Excel."));
       };
-      worker.onerror=()=>reject(new Error("تعذر تشغيل عامل تحليل Excel."));
+      worker.onerror=()=>finish(new Error("تعذر تشغيل عامل تحليل Excel."));
+      worker.onmessageerror=()=>finish(new Error("تعذر استلام نتيجة تحليل ملف Excel."));
       worker.postMessage({type:"parseWorkbook",buffer},[buffer]);
     });
-  } finally { worker.terminate(); }
+  } finally {
+    worker.terminate();
+    panel?.classList.add("hidden");
+  }
+}
+function timetableCreateImportIdempotencyKey() {
+  if (window.crypto && typeof window.crypto.randomUUID === "function") return window.crypto.randomUUID();
+  const bytes = new Uint8Array(16);
+  window.crypto.getRandomValues(bytes);
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, value => value.toString(16).padStart(2, "0")).join("");
+  return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
+}
+async function timetableImportAttemptForFile(file, sheets) {
+  const fileName = String(file?.name || "ملف Excel").slice(0, 180);
+  const actorName = String(activeUser?.name || "");
+  if (!window.crypto?.subtle) {
+    throw new Error("المتصفح لا يدعم التحقق الآمن من ملف الاستيراد. حدّث المتصفح ثم حاول مجدداً.");
+  }
+  const fingerprintPayload = JSON.stringify({ file_name: fileName, actor_name: actorName, sheets });
+  const digest = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(fingerprintPayload));
+  const fingerprint = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
+  const storageKey = "timetableImportAttempt:" + fingerprint;
+  let idempotencyKey = "";
+  try {
+    idempotencyKey = localStorage.getItem(storageKey) || "";
+  } catch (_) {
+    throw new Error("تعذر الوصول إلى التخزين الآمن لمحاولة الاستيراد. فعّل تخزين المتصفح ثم أعد المحاولة.");
+  }
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
+    idempotencyKey = timetableCreateImportIdempotencyKey();
+    try {
+      localStorage.setItem(storageKey, idempotencyKey);
+      if (localStorage.getItem(storageKey) !== idempotencyKey) throw new Error("Storage verification failed");
+    } catch (_) {
+      throw new Error("تعذر حفظ معرّف محاولة الاستيراد على هذا الجهاز؛ لم يتم إرسال طلب الحفظ لتجنب إنشاء نسخة مكررة.");
+    }
+  }
+  return { idempotencyKey, storageKey };
 }
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
@@ -9700,7 +9752,13 @@ async function timetableImportWorkbook() {
     const rowCount=parsedWorkbook.rowCount||Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
     if (!rowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
-    timetablePendingWorkbook = {fileName:file.name,sheets:sheets};
+    const importAttempt = await timetableImportAttemptForFile(file, sheets);
+    timetablePendingWorkbook = {
+      fileName:file.name,
+      sheets:sheets,
+      idempotencyKey:importAttempt.idempotencyKey,
+      idempotencyStorageKey:importAttempt.storageKey
+    };
     timetableSavedImport = null;
     timetableActiveImport = null;
     const saveButton = document.getElementById("timetableSaveButton");
@@ -9732,14 +9790,22 @@ async function timetableSaveImport() {
     const result = await appAuthRequest({
       action:"timetable_save_import",
       fileName:timetablePendingWorkbook.fileName,
-      sheets:timetablePendingWorkbook.sheets
+      sheets:timetablePendingWorkbook.sheets,
+      idempotencyKey:timetablePendingWorkbook.idempotencyKey
     }, token);
+    if (!result?.saved?.import_id) throw new Error("لم يصل تأكيد صالح من الخادم. أعد المحاولة دون إعادة تحليل الملف.");
+    await timetableLoadImports();
+    const loaded = await timetableLoadSavedImport(result.saved.import_id);
+    if (loaded !== true) throw new Error("تم تأكيد الحفظ من الخادم، لكن تعذر تحديث تفاصيل النسخة في الواجهة. أعد المحاولة لاستعادة نفس عملية الحفظ دون إنشاء نسخة مكررة.");
     timetableSavedImport = result.saved;
+    try {
+      if (timetablePendingWorkbook.idempotencyStorageKey) {
+        localStorage.removeItem(timetablePendingWorkbook.idempotencyStorageKey);
+      }
+    } catch (_) {}
     button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
     button.disabled = true;
     timetableSetStatus("حُفظت نسخة مسودة بنجاح. رقم النسخة: "+(result.saved?.version || 1)+" — رقم الاستيراد: "+(result.saved?.import_id || ""), "success");
-    await timetableLoadImports();
-    if (result.saved?.import_id) await timetableLoadSavedImport(result.saved.import_id);
   } catch (error) {
     button.disabled = false;
     button.innerHTML = original;
@@ -9866,8 +9932,10 @@ async function timetableLoadSavedImport(importId) {
     if (saveButton) saveButton.classList.add("hidden");
     timetableRenderPreview();
     timetableSetStatus("تم فتح النسخة المحفوظة. يمكنك مراجعة سجلات المعلمين وتعديل المسودة.", "success");
+    return true;
   } catch (error) {
     timetableSetStatus(error?.message || "تعذر فتح النسخة المحفوظة.", "error");
+    return false;
   }
 }
 function timetableOpenEditor(recordId) {

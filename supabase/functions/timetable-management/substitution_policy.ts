@@ -30,7 +30,8 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
   const historyFor=(teacherId:string)=>activeAssignments.filter(a=>
-    a.substituteTeacherId===teacherId&&a.assignmentType!=="duty"&&
+    a.substituteTeacherId===teacherId&&
+    (a.assignmentType==="substitution"||!a.assignmentType)&&
     (!assignmentDate||!a.assignmentDate||a.assignmentDate<=assignmentDate)
   );
   const historicalScore=(history:SubstitutionAssignment[]):number=>
@@ -60,21 +61,24 @@ export function calculateSubstitutionWorkloadScore(
   referenceDate?:string,
   targetPeriod?:number,
 ):number {
-  const active=assignments.filter(a=>a.status!=="cancelled");
+  const active=assignments.filter(a=>a.status!=="cancelled"&&(a.assignmentType==="substitution"||!a.assignmentType));
   const reference=referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)
     ? new Date(referenceDate+"T12:00:00Z") : null;
   const dayMs=86400000;
   let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
   for(const assignment of active){
-    total++;
-    if(!reference || !assignment.assignmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(assignment.assignmentDate)) continue;
-    const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
-    const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
-    if(age<0) continue;
-    if(age<90) last90++;
-    if(age<30) last30++;
-    if(age<7) last7++;
-    if(age===0) { sameDay++; if(targetPeriod && Math.abs(assignment.period-targetPeriod)===1) adjacent++; }
+    if(reference && assignment.assignmentDate && /^\d{4}-\d{2}-\d{2}$/.test(assignment.assignmentDate)){
+      const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
+      const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
+      if(age<0) continue; // Future assignments must never affect a past/current fairness decision.
+      total++;
+      if(age<90) last90++;
+      if(age<30) last30++;
+      if(age<7) last7++;
+      if(age===0) { sameDay++; if(targetPeriod && Math.abs(assignment.period-targetPeriod)===1) adjacent++; }
+    } else {
+      total++; // Undated legacy substitution rows remain part of cumulative history.
+    }
   }
   // Total history prevents gaming by waiting out a short rolling window.
   return total + last90*2 + last30*3 + last7*4 + sameDay*8 + adjacent*4;

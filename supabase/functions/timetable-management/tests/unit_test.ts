@@ -1,5 +1,5 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
-import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
@@ -158,7 +158,8 @@ Deno.test("candidate score is weekly teaching quota plus twice prior substitutio
     { substituteTeacherId: "lower", weekday: "الاثنين", period: 1, assignmentType: "substitution", status: "assigned" as const },
     { substituteTeacherId: "lower", weekday: "الثلاثاء", period: 1, assignmentType: "substitution", status: "confirmed" as const },
     { substituteTeacherId: "lower", weekday: "الأربعاء", period: 1, assignmentType: "duty", status: "confirmed" as const },
-    { substituteTeacherId: "lower", weekday: "الخميس", period: 1, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
+    { substituteTeacherId: "lower", weekday: "الخميس", period: 1, assignmentType: "supervision", status: "confirmed" as const },
+    { substituteTeacherId: "lower", weekday: "الخميس", period: 2, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
   ];
   const ranked = getAvailableSubstitutionCandidates({
     teachers, timetable, assignments, absentTeacherId: "absent",
@@ -241,4 +242,35 @@ Deno.test("department coordinators cannot browse full timetable imports or teach
   }
   equal(canUseTimetableAction("custom", "timetable_substitution_preview"), true, "Authorized coordinator retains scoped substitution preview");
   equal(canUseTimetableAction("custom", "timetable_substitution_save"), true, "Authorized coordinator retains scoped substitution save");
+});
+
+Deno.test("cumulative substitution score excludes future, cancelled, duty and supervision rows", () => {
+  const assignments = [
+    { substituteTeacherId: "t1", weekday: "الأحد", period: 1, assignmentDate: "2026-11-13", assignmentType: "substitution", status: "completed" as const },
+    { substituteTeacherId: "t1", weekday: "الأحد", period: 2, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
+    { substituteTeacherId: "t1", weekday: "الاثنين", period: 2, assignmentDate: "2026-11-12", assignmentType: "duty", status: "confirmed" as const },
+    { substituteTeacherId: "t1", weekday: "الثلاثاء", period: 2, assignmentDate: "2026-11-11", assignmentType: "supervision", status: "confirmed" as const },
+    { substituteTeacherId: "t1", weekday: "الأربعاء", period: 2, assignmentDate: "2026-11-10", assignmentType: "substitution", status: "cancelled" as const },
+  ];
+  const score = calculateSubstitutionWorkloadScore(assignments, "2026-11-14");
+  equal(score, 1 + 2 + 3 + 4, "Only the one prior active substitution contributes to total and recency score");
+});
+
+Deno.test("workbook schema validation rejects malformed rows, unsupported cells and resource overages", () => {
+  const malformed = validateWorkbookSchema({
+    "جدول الأحد": [
+      ["اسم المعلم", "الحصة"],
+      "صف غير صالح",
+      ["معلم", { unsupported: true }],
+      ["نص طويل".repeat(2000)],
+    ],
+  });
+  equal(malformed.valid, false, "Malformed workbook must be rejected");
+  assert(malformed.errors.some(issue => issue.code === "invalid_row"), "Invalid row must be reported");
+  assert(malformed.errors.some(issue => issue.code === "invalid_cell"), "Unsupported cell must be reported");
+  assert(malformed.errors.some(issue => issue.code === "cell_too_long"), "Oversized cell text must be reported");
+
+  const tooManyRows = validateWorkbookSchema({ "جدول": Array.from({ length: 5001 }, () => ["x"]) });
+  equal(tooManyRows.valid, false, "Workbook exceeding the row limit must be rejected");
+  assert(tooManyRows.rowCount > 5000, "Row count must be reported");
 });

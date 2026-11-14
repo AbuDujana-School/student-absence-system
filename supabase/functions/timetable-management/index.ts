@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
-import { matchSystemTeacherName, parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
@@ -53,6 +53,11 @@ async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null
 function validUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
+async function timetableImportRequestHash(fileName: string, actorName: string, sheets: unknown): Promise<string> {
+  const canonicalPayload = JSON.stringify({ file_name: fileName, actor_name: actorName, sheets });
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalPayload));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
 async function teacherDirectory() {
   const { data, error } = await db.from("teachers").select("name,role,permissions").in("role", ["teacher","custom"]).order("name");
   if (error) throw error;
@@ -81,24 +86,18 @@ async function handle(req: Request) {
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
     if (principal.type !== "admin") return reply(403, { error: "استيراد الجداول متاح لمدير النظام العام فقط." });
     const sheets = body?.sheets;
-    if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
-      return reply(400, { error: "بيانات ملف Excel غير صالحة." });
-    }
-    const sheetNames = Object.keys(sheets);
-    if (!sheetNames.length || sheetNames.length > 20) return reply(400, { error: "عدد أوراق العمل غير صالح." });
-    let rowCount = 0, cellCount = 0;
-    for (const [name, rows] of Object.entries(sheets)) {
-      if (typeof name !== "string" || !Array.isArray(rows)) return reply(400, { error: "بنية ورقة العمل غير صالحة." });
-      rowCount += rows.length;
-      for (const row of rows) {
-        if (!Array.isArray(row)) return reply(400, { error: "توجد بيانات صف غير صالحة في ملف Excel." });
-        cellCount += row.length;
-      }
-    }
-    if (rowCount > 5000 || cellCount > 100000) {
-      return reply(413, { error: action === "timetable_preview"
-        ? "حجم بيانات الجدول أكبر من الحد المسموح للمعاينة."
-        : "حجم بيانات الجدول أكبر من الحد المسموح للاستيراد." });
+    const schema = validateWorkbookSchema(sheets);
+    if (!schema.valid) {
+      const detail = schema.errors.slice(0, 8).map(issue =>
+        (issue.sheet ? "ورقة " + issue.sheet + "، " : "") +
+        (issue.row ? "صف " + issue.row + "، " : "") +
+        (issue.column ? "عمود " + issue.column + ": " : "") + issue.message
+      ).join("؛ ");
+      const tooLarge = schema.rowCount > 5000 || schema.cellCount > 100000;
+      return reply(tooLarge ? 413 : 400, {
+        error: "تعذر التحقق من بنية ملف الجدول: " + detail,
+        validation: { valid: false, rowCount: schema.rowCount, cellCount: schema.cellCount, errors: schema.errors },
+      });
     }
     try {
       const { data: directory, error: directoryError } = await db.from("teachers")
@@ -121,8 +120,20 @@ async function handle(req: Request) {
           importedAt: new Date().toISOString(), importedBy: principal.name, result: parsed,
         });
       }
+      const idempotencyKey = String(body.idempotencyKey || "");
+      if (!validUuid(idempotencyKey)) {
+        return reply(400, { error: "معرّف محاولة حفظ المسودة غير صالح. أعد اختيار الملف ثم حاول مجدداً." });
+      }
+      const fileName = String(body.fileName || "ملف Excel").slice(0, 180);
+      const requestHash = await timetableImportRequestHash(fileName, principal.name, sheets);
       const { data, error } = await db.rpc("save_timetable_import", {
-        p_payload: { file_name: String(body.fileName || "ملف Excel").slice(0, 180), actor_name: principal.name, result: parsed },
+        p_payload: {
+          file_name: fileName,
+          actor_name: principal.name,
+          idempotency_key: idempotencyKey,
+          request_hash: requestHash,
+          result: parsed,
+        },
       });
       if (error) throw error;
       return reply(200, { ok: true, saved: data });

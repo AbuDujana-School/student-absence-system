@@ -1,24 +1,56 @@
-name: Timetable management tests
+name: Timetable management tests # Isolated timetable hardening regression suite (date-boundary fix)
 
 on:
   push:
     branches:
       - feature/smart-substitution-system
       - feature/timetable-robust-fairness-v2
+      - feature/timetable-hardening-fixes-20261114
       - main
     paths:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
+      - "index.html"
+      - "timetable-text.worker.js"
+      - "supabase/migrations/**"
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"
+      - "index.html"
+      - "timetable-text.worker.js"
+      - "supabase/migrations/**"
 
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: timetable_test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d timetable_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/timetable_test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Run timetable import SQL integration test in isolated PostgreSQL
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114150000_timetable_import_idempotency.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/timetable_import_idempotency.sql
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
@@ -26,4 +58,22 @@ jobs:
       - name: Type-check timetable management
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
       - name: Run timetable unit tests
-        run: deno test supabase/functions/timetable-management/tests
+        run: deno test --allow-read=supabase/migrations supabase/functions/timetable-management/tests
+      - name: Check timetable worker JavaScript syntax
+        run: node --check timetable-text.worker.js
+      - name: Check timetable import UI JavaScript syntax
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const html = fs.readFileSync("index.html", "utf8");
+          const marker = "async function timetableImportAttemptForFile(file, sheets)";
+          const markerIndex = html.indexOf(marker);
+          if (markerIndex < 0) throw new Error("Timetable import UI script was not found");
+          const scriptStart = html.lastIndexOf("<script", markerIndex);
+          const scriptOpenEnd = html.indexOf(">", scriptStart);
+          const scriptEnd = html.indexOf("</script>", scriptOpenEnd);
+          if (scriptStart < 0 || scriptOpenEnd < 0 || scriptEnd < 0) {
+            throw new Error("Timetable import UI script boundaries are invalid");
+          }
+          new Function(html.slice(scriptOpenEnd + 1, scriptEnd));
+          NODE
