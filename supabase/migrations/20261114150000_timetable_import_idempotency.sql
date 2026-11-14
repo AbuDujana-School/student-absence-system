@@ -61,11 +61,11 @@ begin
 
   v_import_id := null;
   insert into public.timetable_imports (
-    id, version, idempotency_key, request_hash,
+    version, idempotency_key, request_hash,
     file_name, imported_by_type, imported_by_name, status,
     has_weekly_placements, source_sheets, summary, reference_data
   ) values (
-    v_import_id, 1, v_idempotency_key, v_request_hash,
+    1, v_idempotency_key, v_request_hash,
     v_file_name, 'admin', v_actor, 'draft',
     coalesce((p_payload->'result'->>'hasWeeklyPlacements')::boolean,false),
     v_sheets, coalesce(p_payload->'result'->'totals','{}'::jsonb),
