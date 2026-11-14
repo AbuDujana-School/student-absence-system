@@ -8853,8 +8853,8 @@ async function timetableToggleTeacherPortal() {
   if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
   const nextEnabled = !teacherPortalEnabled;
   const message = nextEnabled
-    ? "سيظهر الجدول الشخصي تلقائياً للمعلمين المرتبطين في الجدول الأسبوعي النشط ولديهم حصص تدريس. هل تريد التفعيل؟"
-    : "سيتم إخفاء أيقونة الجدول الشخصي عن المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
+    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين في الجدول الأسبوعي النشط ولديهم حصص تدريس. هل تريد التفعيل؟"
+    : "سيتم إيقاف العرض العام، وسيبقى الجدول متاحاً فقط للمعلمين الذين لديهم صلاحية فردية مفعّلة. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
   const confirmed = await showConfirm(message, {danger: !nextEnabled});
   if (!confirmed) return;
   const button = document.getElementById("teacherTimetablePortalToggle");
@@ -8862,7 +8862,7 @@ async function timetableToggleTeacherPortal() {
   try {
     const token = appAuthSession?.token || readAppAuthToken();
     await appAuthRequest({action:"timetable_portal_set_enabled",enabled:nextEnabled},token);
-    showToast(nextEnabled ? "تم تفعيل ظهور الجداول للمعلمين المرتبطين." : "تم إيقاف ظهور الجداول للمعلمين.", "success");
+    showToast(nextEnabled ? "تم تفعيل العرض العام للمعلمين المرتبطين." : "تم إيقاف العرض العام؛ بقيت المنح الفردية فعّالة.", "success");
     await timetableLoadPortalStatus();
     if (activeUser?.type === "admin") teacherPortalCanAccess = false;
   } catch (error) {
