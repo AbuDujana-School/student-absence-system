@@ -8864,7 +8864,7 @@ function teacherTimetableCurrentPeriod() {
   const day = weekdayMap[now.weekday] || "";
   if (!SCHOOL_DAYS.includes(day)) return {day,period:null};
   const periods = dutyData().periods || [];
-  for (let index = 0; index < periods.length; index++) {
+  for (let index = 0; index < Math.min(7, periods.length); index++) {
     const start = toMinutes(periods[index]?.start), end = toMinutes(periods[index]?.end);
     if (start !== null && end !== null && end > start && now.minutes >= start && now.minutes < end) {
       return {day,period:index+1};
@@ -8901,7 +8901,7 @@ function teacherTimetableRender() {
       const subject = substitution?.subject || cell?.subject || "";
       let tone = "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-white dark:text-slate-800";
       if (substitution) tone = "border-rose-200 bg-rose-100 text-rose-900";
-      else if (isCurrent) tone = "border-blue-300 bg-blue-100 text-blue-900 ring-2 ring-blue-300/70";
+      else if (isCurrent && cell?.cell_status === "teaching") tone = "border-blue-300 bg-blue-100 text-blue-900 ring-2 ring-blue-300/70";
       else if (cell?.cell_status === "teaching") tone = "border-emerald-200 bg-emerald-100 text-emerald-900";
       const label = substitution ? '<span class="inline-flex rounded-md bg-rose-200 px-2 py-1 text-[10px] font-black text-rose-900">حصة احتياط</span>'
         : cell?.cell_status === "teaching" ? '<span class="text-xs font-black">' + timetableEsc(classText || "صف غير محدد") + '</span>'
@@ -8909,7 +8909,7 @@ function teacherTimetableRender() {
         : '<span class="text-[10px] font-bold">' + timetableEsc(({meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضحة"}[cell.cell_status] || "—")) + '</span>';
       const subjectLine = (substitution || cell?.cell_status === "teaching") && subject
         ? '<span class="mt-1 block text-[10px] font-semibold opacity-75">' + timetableEsc(subject) + '</span>' : "";
-      const nowBadge = isCurrent ? '<span class="rounded-md bg-blue-600 px-2 py-0.5 text-[9px] font-black text-white">الآن</span>' : "";
+      const nowBadge = isCurrent && (cell?.cell_status === "teaching" || substitution) ? '<span class="rounded-md bg-blue-600 px-2 py-0.5 text-[9px] font-black text-white">الآن</span>' : "";
       return '<div class="flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2 ' + tone + '"><div class="min-w-0"><div class="mb-1 flex flex-wrap items-center gap-1"><span class="text-[10px] font-black opacity-70">' + timetableEsc(periodNamesMap[period]) + '</span>' + nowBadge + '</div>' + label + subjectLine + '</div></div>';
     }).join("");
     const isToday = current.day === day;
