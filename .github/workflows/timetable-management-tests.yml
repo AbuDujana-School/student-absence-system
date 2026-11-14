@@ -1,4 +1,4 @@
-name: Timetable management tests # Isolated timetable hardening regression suite
+name: Timetable management tests # Isolated timetable hardening regression suite (date-boundary fix)
 
 on:
   push:
