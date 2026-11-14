@@ -158,10 +158,9 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
 
 import { canUseTimetableAction } from "../session_auth.ts";
 
-Deno.test("authorized non-admin users can manage substitutions through department-scoped server checks", () => {
+Deno.test("authorized non-admin users can manage only department-scoped substitution actions", () => {
   const allowed = [
     "health", "timetable_check_access", "teacher_timetable_get_own",
-    "timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates",
     "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
   ];
   for (const action of allowed) {
