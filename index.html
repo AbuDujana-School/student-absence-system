@@ -10129,12 +10129,9 @@ async function timetableDailyShareWhatsApp() {
     return;
   }
   await timetableDailyRefreshAll();
-  let message = "*📋 كشف الاحتياط اليومي*
-";
+  let message = "*📋 كشف الاحتياط اليومي*\n";
   const date = document.getElementById("timetableSubstitutionDate")?.value || "";
-  message += "📅 التاريخ: "+date+"
-
-";
+  message += "📅 التاريخ: "+date+"\n\n";
   let count = 0;
   for (const absentName of timetableDailyAbsentTeachers) {
     const response = timetableDailyPreviewByAbsent.get(absentName);
