@@ -1,5 +1,5 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
-import { matchSystemTeacherName } from "../timetable_import.ts";
+import { matchSystemTeacherName, validateWorkbookSchema } from "../timetable_import.ts";
 import { calculateTeacherWorkload, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -143,4 +143,19 @@ Deno.test("supervision assignments block same-slot substitution candidates", () 
   });
   equal(candidates.length, 1, "A teacher with a duty in the same slot must be excluded");
   equal(candidates[0].id, "free", "Only the teacher without a conflicting duty remains");
+});
+
+
+Deno.test("workbook schema validator reports invalid sheet rows and cell values", () => {
+  const result = validateWorkbookSchema({
+    "جدول الأحد": [
+      ["اسم المعلم", "الحصة"],
+      "صف غير صحيح",
+      ["معلم", { unsupported: true }],
+    ],
+  });
+  equal(result.valid, false, "Invalid workbook must be rejected");
+  assert(result.errors.length >= 2, "Validation report must include actionable issues");
+  assert(result.errors.some(issue => issue.code === "invalid_row"), "Invalid row should be identified");
+  assert(result.errors.some(issue => issue.code === "invalid_cell"), "Invalid cell should be identified");
 });
