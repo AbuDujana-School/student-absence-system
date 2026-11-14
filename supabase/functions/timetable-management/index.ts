@@ -387,6 +387,33 @@ async function handle(req: Request) {
         if ((unclearCount || 0) > 0) return reply(409, {
           error: "لا يمكن اعتماد الجدول قبل مراجعة وتصحيح " + unclearCount + " خانة غير واضحة. افتح الخانات البرتقالية وعدّل تصنيفها أولاً.",
         });
+
+        // Class schedules are derived from the same teacher cells. Block approval
+        // when a class-period is empty or has more than one teacher assignment.
+        const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
+          .select("period_count").eq("id", body.versionId).eq("status", "draft").maybeSingle();
+        if (versionError) throw versionError;
+        if (!version) return reply(404, { error: "نسخة المسودة غير موجودة أو لم تعد قابلة للاعتماد." });
+        const { data: classSourceCells, error: classCellsError } = await db.from("timetable_weekly_cells")
+          .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name")
+          .eq("version_id", body.versionId);
+        if (classCellsError) throw classCellsError;
+        const classSummaries = aggregateClassTimetables(classSourceCells || [], DAYS, Number(version.period_count || 7));
+        const classVacancies = classSummaries.reduce((sum, item) => sum + item.vacancies.length, 0);
+        const classConflicts = classSummaries.reduce((sum, item) => sum + item.conflicts.length, 0);
+        if (classVacancies || classConflicts) return reply(409, {
+          error: "لا يمكن اعتماد الجدول قبل معالجة جداول الصفوف: " + classVacancies +
+            " شاغر و" + classConflicts + " تعارض. راجع تبويب «جداول الصفوف».",
+          classValidation: {
+            vacancies: classVacancies,
+            conflicts: classConflicts,
+            affectedClasses: classSummaries.filter(item => !item.complete).map(item => ({
+              className: item.className,
+              vacancies: item.vacancies,
+              conflicts: item.conflicts,
+            })),
+          },
+        });
         const { data, error } = await db.rpc("activate_timetable_weekly_version", {
           p_payload: { version_id: body.versionId, actor_name: principal.name },
         });
