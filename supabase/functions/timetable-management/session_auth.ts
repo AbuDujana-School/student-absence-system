@@ -87,6 +87,7 @@ export function canUseTimetableAction(
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
+    "timetable_portal_revoke_individual_grant",
   ]).has(action);
   return new Set([
     "health",
