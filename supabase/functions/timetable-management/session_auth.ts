@@ -3,6 +3,8 @@ export type TimetablePrincipalType = "admin" | "teacher" | "custom";
 export interface TimetablePrincipal {
   type: TimetablePrincipalType;
   name: string;
+  /** A linked teacher with portal-only access; cannot manage timetables or substitutions. */
+  portalOnly?: boolean;
 }
 
 export interface TimetableSessionLookup {
@@ -21,6 +23,7 @@ export interface TimetableAuthStore {
   hasAdminCredential(): Promise<boolean>;
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
+  hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
 }
 
 async function sha256(value: string): Promise<string> {
@@ -30,8 +33,10 @@ async function sha256(value: string): Promise<string> {
 
 /**
  * Resolve a timetable identity only from a valid, active general-app session.
- * Teacher access is additionally gated by the current teacher role and an
- * explicit timetable permission; the caller never supplies an identity name.
+ * Staff management access requires an explicit timetable permission. A teacher
+ * with a linked active schedule may receive a narrower, portal-only identity
+ * when the school-wide teacher timetable portal is enabled. The caller never
+ * supplies an identity name.
  */
 export async function resolveTimetablePrincipal(
   authorization: unknown,
@@ -62,14 +67,27 @@ export async function resolveTimetablePrincipal(
   const name = session.principal_name;
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
-  if (!await store.hasTimetableAccess(type, name)) return null;
-  return { type, name };
+  if (await store.hasTimetableAccess(type, name)) return { type, name };
+  if (type === "teacher" && store.hasLinkedTeacherPortalAccess
+    && await store.hasLinkedTeacherPortalAccess(name)) {
+    return { type, name, portalOnly: true };
+  }
+  return null;
 }
 
 
 /** Actions available to an explicitly authorized non-admin timetable account. */
-export function canUseTimetableAction(principalType: TimetablePrincipalType, action: string): boolean {
+export function canUseTimetableAction(
+  principalType: TimetablePrincipalType,
+  action: string,
+  portalOnly = false,
+): boolean {
   if (principalType === "admin") return true;
+  if (portalOnly) return new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_timetable_get_own",
+  ]).has(action);
   return new Set([
     "health",
     "timetable_check_access",
