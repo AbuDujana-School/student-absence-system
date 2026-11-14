@@ -82,8 +82,13 @@ async function handle(req: Request) {
     const sheets = body?.sheets;
     const schema = validateWorkbookSchema(sheets);
     if (!schema.valid) {
+      const detail = schema.errors.slice(0, 8).map(issue =>
+        (issue.sheet ? "ورقة " + issue.sheet + "، " : "") +
+        (issue.row ? "صف " + issue.row + "، " : "") +
+        (issue.column ? "عمود " + issue.column + ": " : "") + issue.message
+      ).join("؛ ");
       return reply(schema.rowCount > 5000 || schema.cellCount > 100000 ? 413 : 400, {
-        error: "تعذر قبول ملف الجدول بسبب أخطاء في بنية البيانات. راجع تقرير التحقق.",
+        error: "أخطاء التحقق من ملف الجدول: " + detail,
         validation: { valid: false, rowCount: schema.rowCount, cellCount: schema.cellCount, errors: schema.errors },
       });
     }
