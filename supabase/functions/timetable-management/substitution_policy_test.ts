@@ -58,3 +58,15 @@ Deno.test("cancelled duty assignments do not block availability",()=>{
   });
   if(!result.some(t=>t.id==="duty-assigned"))throw new Error("Cancelled duty assignment should not block availability");
 });
+
+Deno.test("duty assignments block availability but do not inflate substitution workload",()=>{
+  const assignments:SubstitutionAssignment[]=[
+    {substituteTeacherId:"low",weekday,period:1,status:"assigned",assignmentType:"duty"},
+    {substituteTeacherId:"low",weekday,period:2,status:"assigned",assignmentType:"substitution",assignmentDate:"2026-11-15"},
+  ];
+  const result=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments,absentTeacherId:"absent",weekday,period,departmentId:"math",assignmentDate:"2026-11-14",
+  });
+  const low=result.find(t=>t.id==="low");
+  if(low?.workloadScore!==10)throw new Error("Only previous substitution assignments should affect the base-quota score");
+});
