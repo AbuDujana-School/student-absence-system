@@ -307,8 +307,18 @@ async function handle(req: Request) {
       const systemTeachers: SystemTeacher[] = directory.filter((t: any) => t.role === "teacher").map((t: any) => ({
         name: t.name, departmentId: t.departmentId, departmentName: t.departmentName,
       }));
+      const teacherMatches = body.action === "timetable_save_weekly_day" && body.teacherMatches && typeof body.teacherMatches === "object" && !Array.isArray(body.teacherMatches)
+        ? body.teacherMatches as Record<string, unknown> : {};
       const matchedTeachers = parsed.teachers.map((teacher) => {
         const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
+        const requestedName = Object.prototype.hasOwnProperty.call(teacherMatches, teacher.sourceName)
+          ? String(teacherMatches[teacher.sourceName] || "").trim() : null;
+        if (requestedName !== null) {
+          if (!requestedName) return { ...teacher, matchedTeacherName: null, matchStatus: "unmatched" as const };
+          const selected = systemTeachers.find((item) => item.name === requestedName);
+          if (!selected) throw new Error("المعلم المحدد للربط غير موجود في قائمة معلمي المدرسة: " + requestedName);
+          return { ...teacher, matchedTeacherName: selected.name, matchStatus: "matched" as const };
+        }
         return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
       });
       const matchingTotals = {
