@@ -62,7 +62,7 @@ export function calculateSubstitutionWorkloadScore(
   targetPeriod?:number,
 ):number {
   const active=assignments.filter(a=>a.status!=="cancelled"&&(a.assignmentType==="substitution"||!a.assignmentType));
-  const reference=referenceDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(referenceDate)
+  const reference=referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)
     ? new Date(referenceDate+"T12:00:00Z") : null;
   const dayMs=86400000;
   let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
