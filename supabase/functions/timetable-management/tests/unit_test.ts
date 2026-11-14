@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, resolveSubstitutionDutyDay, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -245,4 +245,13 @@ Deno.test("personal and category duty days exclude teachers from substitution", 
   });
   equal(ranked.length, 1, "Teacher assigned to the duty day must be excluded");
   equal(ranked[0].id, "free", "Only the non-duty teacher remains eligible");
+});
+
+
+Deno.test("personal duty day overrides the configured department day", () => {
+  const days = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+  const configured = { "اللغة العربية":"الأحد", "الرياضيات":"الأربعاء" };
+  equal(resolveSubstitutionDutyDay("الخميس","اللغة العربية",configured,days),"الخميس","Personal duty day override");
+  equal(resolveSubstitutionDutyDay("","اللغة العربية",configured,days),"الأحد","Category fallback");
+  equal(resolveSubstitutionDutyDay("الجمعة","قسم غير معروف",configured,days),"","Invalid duty day must not block school-day candidates");
 });
