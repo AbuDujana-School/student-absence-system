@@ -231,7 +231,8 @@ async function handle(req: Request) {
         db.from("teacher_timetable_portal_settings").select("enabled").eq("id", true).maybeSingle(),
         db.from("timetable_weekly_versions").select("id").eq("status", "active").maybeSingle(),
       ]);
-      if (settingError) throw settingError;
+      // The additive portal migration may not yet be deployed. In that case,
+      // preserve existing timetable-management access and keep the new portal off.
       if (versionError) throw versionError;
       let hasPersonalSchedule = false;
       if (version && principal.type === "teacher") {
