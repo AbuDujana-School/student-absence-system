@@ -3108,7 +3108,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel وCSV مع مراجعة المطابقة قبل الحفظ.</p></div>
           <div class="rounded-2xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 space-y-3 mb-4">
-  <div><h4 class="font-black text-sm text-indigo-900 dark:text-indigo-100">استيراد الجدول الأسبوعي من PDF</h4><p class="mt-1 text-xs text-slate-600 dark:text-slate-300">يقرأ جميع الصفحات والنصوص وخطوط حدود الخانات، ثم يبني خمسة أيام × سبع حصص لكل معلم في معاينة قابلة للتعديل. ينشئ مسودة جديدة مستقلة ولا يستبدل أي مسودة سابقة.</p></div>
+  <div><h4 class="font-black text-sm text-indigo-900 dark:text-indigo-100">استيراد الجدول الأسبوعي من PDF</h4><p class="mt-1 text-xs text-slate-600 dark:text-slate-300">يقرأ جميع الصفحات والنصوص وخطوط حدود الخانات، ثم يبني خمسة أيام × 7 أو 8 حصص وفق الملف لكل معلم في معاينة قابلة للتعديل. ينشئ مسودة جديدة مستقلة ولا يستبدل أي مسودة سابقة.</p></div>
   <div id="timetablePdfDropZone" class="tt-drop" role="button" tabindex="0" onclick="document.getElementById('timetablePdfFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetablePdfFile').click()}"><div class="text-2xl mb-2">📄</div><strong class="text-sm text-slate-800 dark:text-white">اسحب ملف PDF كاملاً هنا أو انقر لاختياره</strong><p class="mt-1 text-[10px] text-slate-500">PDF · حتى 20 ميجابايت · 150 صفحة كحد أقصى</p></div>
   <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end"><div><label for="timetablePdfFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">ملف جدول الحصص PDF</label><input id="timetablePdfFile" type="file" accept=".pdf,application/pdf" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-indigo-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div><button id="timetablePdfImportButton" type="button" onclick="timetableImportPdf()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-file-pdf ml-1"></i> تحليل PDF وإنشاء المعاينة</button></div>
   <div id="timetablePdfWorkerProgress" class="hidden rounded-xl border border-indigo-200 dark:border-indigo-900 bg-white/70 dark:bg-slate-900/60 p-3 space-y-2" role="status" aria-live="polite"><div class="flex items-center justify-between gap-2 text-[10px] font-bold text-indigo-900 dark:text-indigo-100"><span id="timetablePdfWorkerProgressLabel">تهيئة قارئ PDF...</span><span id="timetablePdfWorkerProgressValue">0%</span></div><div class="h-2 overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-900"><div id="timetablePdfWorkerProgressBar" class="h-full rounded-full bg-indigo-700 transition-all" style="width:0%"></div></div></div>
@@ -9369,7 +9369,9 @@ async function timetableParseDayText() {
     timetableRenderDayPreview();
     if (results.length === 5) {
       const teacherCount = results[0].teachers.length;
-      timetableWeeklySetStatus("اكتمل تحليل الأيام الخمسة: " + teacherCount + " معلماً × 35 خانة = " + (teacherCount*35) + " خانة أسبوعية. راجع كل يوم قبل الحفظ.", "success");
+      const periodCount = results[0].teachers[0]?.cells?.length || 0;
+      const weeklyCells = results.reduce((sum,day)=>sum+day.totalCells,0);
+      timetableWeeklySetStatus("اكتمل تحليل الأيام الخمسة: " + teacherCount + " معلماً × " + periodCount + " حصص × 5 أيام = " + weeklyCells + " خانة أسبوعية. راجع كل يوم قبل الحفظ.", "success");
     } else {
       const result = results[0];
       timetableWeeklySetStatus("اكتمل تحليل " + result.teachers.length + " معلماً و" + result.totalCells + " خانة ليوم " + result.weekday + ". راجع الصفوف والأسماء قبل الحفظ.", "success");
@@ -9544,7 +9546,7 @@ async function timetableLookupTeacherWeeklyGrid() {
     const cells=response.cells||[];
     const cellMap=new Map(cells.map(cell=>[cell.weekday+":"+cell.period,cell]));
     const grid=days.map(day=>{
-      const periodCells=Array.from({length:7},(_,index)=>{
+      const periodCells=Array.from({length:Number(response.version?.period_count||7)},(_,index)=>{
         const period=index+1,cell=cellMap.get(day+":"+period);
         if(!cell)return '<div class="min-w-[112px] rounded-xl border border-dashed border-slate-300 dark:border-slate-700 p-3 text-center text-[10px] text-slate-400"><div class="font-black mb-1">الحصة '+period+'</div>غير مسجلة</div>';
         const status=String(cell.cell_status||"other");
@@ -9554,7 +9556,7 @@ async function timetableLookupTeacherWeeklyGrid() {
       }).join("");
       return '<section class="mb-4"><h4 class="font-black text-xs text-slate-700 dark:text-slate-200 mb-2">'+day+'</h4><div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">'+periodCells+'</div></section>';
     }).join("");
-    host.innerHTML='<div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 p-3"><div class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(response.teacherName)+'</div><div class="text-[10px] text-slate-500">النسخة '+timetableEsc(response.version?.version)+' · '+response.actualCellCount+' من 35 خانة'+(response.complete?"":" · غير مكتمل")+'</div></div>'+grid;
+    host.innerHTML='<div class="mb-4 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-slate-50 dark:bg-slate-900 p-3"><div class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(response.teacherName)+'</div><div class="text-[10px] text-slate-500">النسخة '+timetableEsc(response.version?.version)+' · '+response.actualCellCount+' من '+(5*Number(response.version?.period_count||7))+' خانة'+(response.complete?"":" · غير مكتمل")+'</div></div>'+grid;
     host.classList.remove("hidden");
     timetableTeacherLookupSetStatus(response.complete?"تم تحميل الجدول الأسبوعي الكامل.":"تم تحميل البيانات المتاحة، لكن بعض الخانات غير مسجلة. لا تُعامل الخانات الناقصة كفراغ.",response.complete?"success":"info");
   } catch(error) {
