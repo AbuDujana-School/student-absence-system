@@ -87,7 +87,9 @@ export function canUseTimetableAction(
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
+    "timetable_portal_revoke_individual_grant",
   ]).has(action);
+  if (principalType === "teacher" && action === "timetable_portal_revoke_individual_grant") return true;
   return new Set([
     "health",
     "timetable_check_access",
@@ -102,3 +104,14 @@ export function canUseTimetableAction(
 export function canIncludeOtherDepartments(principalType: TimetablePrincipalType, requested: unknown): boolean {
   return principalType === "admin" && requested === true;
 }
+
+
+Deno.test("teachers may only invoke the self-revoke action, not individual grant management", () => {
+  if (!canUseTimetableAction("teacher", "timetable_portal_revoke_individual_grant")) {
+    throw new Error("Teacher could not revoke own individual portal grant");
+  }
+  for (const action of ["timetable_portal_set_individual_grant", "timetable_portal_list_individual_grants"]) {
+    if (canUseTimetableAction("teacher", action)) throw new Error("Teacher gained individual grant administration: " + action);
+    if (canUseTimetableAction("custom", action)) throw new Error("Custom account gained individual grant administration: " + action);
+  }
+});
