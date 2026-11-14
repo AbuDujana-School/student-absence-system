@@ -132,3 +132,13 @@ Deno.test("destructive UI actions do not claim that server-side deletion complet
     "حذفها من الخادم لم يُنفذ وهو بانتظار المراجعة"
   ]) assert(html.includes(message), "Missing clear local-only deletion notice: " + message);
 });
+
+
+Deno.test("pending deletion intent survives localStorage failure through the durable snapshot path", () => {
+  const queue = section("let pendingDeleteQueueCache = null;", "async function flushPendingDeletes()");
+  assert(queue.includes("pendingDeleteQueueCache = Array.isArray(arr) ? arr : []"), "Deletion intent must remain in memory if localStorage is unavailable");
+  assert(queue.includes("const localStorageSaved = setPendingDeletes(arr)"), "Queueing must verify localStorage persistence");
+  assert(queue.includes("const indexedDbSaved = await persistOfflineState()"), "Queueing must attempt durable IndexedDB persistence");
+  assert(queue.includes("if (!localStorageSaved && !indexedDbSaved)"), "Queueing must report failure if both local persistence paths fail");
+  assert(!queue.includes("sb.from("), "Queueing deletion intent must never write to Supabase");
+});
