@@ -9709,13 +9709,13 @@ function timetableCreateImportIdempotencyKey() {
   return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
 }
 function timetableImportAttemptForFile(file) {
-  const fingerprint = [file.name, file.size, file.lastModified].join("::");
+  const fingerprint = [String(activeUser?.name || ""), file.name, file.size, file.lastModified].join("::");
   const storageKey = "timetableImportAttempt:" + encodeURIComponent(fingerprint);
   let idempotencyKey = "";
-  try { idempotencyKey = sessionStorage.getItem(storageKey) || ""; } catch (_) {}
+  try { idempotencyKey = localStorage.getItem(storageKey) || ""; } catch (_) {}
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
     idempotencyKey = timetableCreateImportIdempotencyKey();
-    try { sessionStorage.setItem(storageKey, idempotencyKey); } catch (_) {}
+    try { localStorage.setItem(storageKey, idempotencyKey); } catch (_) {}
   }
   return { idempotencyKey, storageKey };
 }
@@ -9781,7 +9781,7 @@ async function timetableSaveImport() {
     timetableSavedImport = result.saved;
     try {
       if (timetablePendingWorkbook.idempotencyStorageKey) {
-        sessionStorage.removeItem(timetablePendingWorkbook.idempotencyStorageKey);
+        localStorage.removeItem(timetablePendingWorkbook.idempotencyStorageKey);
       }
     } catch (_) {}
     button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
