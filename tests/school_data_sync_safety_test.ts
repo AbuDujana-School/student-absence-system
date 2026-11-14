@@ -76,3 +76,17 @@ Deno.test("cloud writes stop if neither local persistence layer can confirm a sn
   const firstWrite = save.search(/robustUpsert\s*\(|sb\.from\([^)]*\)\.upsert\s*\(/);
   assert(guard >= 0 && firstWrite > guard, "No cloud write may happen before at least one local persistence layer succeeds");
 });
+
+
+Deno.test("queued deletions remain local and are reapplied after cloud data is merged", () => {
+  const helper = section("function applyPendingLocalDeletions()", "function markOfflineDatabaseForUpload()");
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  for (const table of ["classes", "students", "attendance", "behaviors", "teachers", "duty_reports"]) {
+    assert(helper.includes("item.table === '" + table + "'"), "Pending " + table + " deletions must be reflected in the local view");
+  }
+  assert(helper.includes("dirtySets.classes.delete(name)"), "A locally deleted class must not be re-upserted by the dirty class set");
+  assert(helper.includes("dirtySets.attendance.delete(key)"), "A locally deleted attendance record must not be re-upserted");
+  assert(load.indexOf("mergeDirtyLocalState(pendingLocalState)") < load.indexOf("applyPendingLocalDeletions()"), "Queued deletions must be applied after dirty edits are merged");
+  assert(load.indexOf("applyPendingLocalDeletions()") < load.indexOf("cloudDataLoadState = 'ready'"), "Deletion overlay must be in place before cloud saves become available");
+  assert(!helper.includes(".from(") && !helper.includes(".delete("), "Applying local deletion intent must not contact Supabase");
+});
