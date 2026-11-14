@@ -90,3 +90,14 @@ Deno.test("queued deletions remain local and are reapplied after cloud data is m
   assert(load.indexOf("applyPendingLocalDeletions()") < load.indexOf("cloudDataLoadState = 'ready'"), "Deletion overlay must be in place before cloud saves become available");
   assert(!helper.includes(".from(") && !helper.includes(".delete("), "Applying local deletion intent must not contact Supabase");
 });
+
+
+Deno.test("local fallback snapshot carries its own dirty markers and pending deletions", () => {
+  const localSave = section("function saveToLocalStorageSafe()", "function loadDirtySetsFromLocal()");
+  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
+  assert(localSave.includes("__offlineDirtySets: dirtyObj"), "The fallback database snapshot must carry its dirty markers atomically");
+  assert(localSave.includes("__offlinePendingDeletes: pendingDeletes"), "The fallback database snapshot must carry queued deletions");
+  assert(restore.includes("const localDirtySets = localDb.__offlineDirtySets"), "Fallback restore must recover embedded dirty markers");
+  assert(restore.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
+  assert(restore.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
+});
