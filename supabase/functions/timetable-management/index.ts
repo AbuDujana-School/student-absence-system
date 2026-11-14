@@ -401,13 +401,19 @@ async function handle(req: Request) {
         const classSummaries = aggregateClassTimetables(classSourceCells || [], DAYS, Number(version.period_count || 7));
         const classVacancies = classSummaries.reduce((sum, item) => sum + item.vacancies.length, 0);
         const classConflicts = classSummaries.reduce((sum, item) => sum + item.conflicts.length, 0);
-        if (classVacancies || classConflicts) return reply(409, {
-          error: "لا يمكن اعتماد الجدول قبل معالجة جداول الصفوف: " + classVacancies +
-            " شاغر و" + classConflicts + " تعارض. راجع تبويب «جداول الصفوف».",
+        // Empty class periods are potential gaps, not proven vacancies: a class
+        // may legitimately have a free period. Keep reporting them for review,
+        // but only confirmed overlapping assignments block activation.
+        if (classConflicts) return reply(409, {
+          error: "لا يمكن اعتماد الجدول قبل معالجة تعارضات جداول الصفوف: " +
+            classConflicts + " تعارض. راجع تبويب «جداول الصفوف».",
           classValidation: {
             vacancies: classVacancies,
             conflicts: classConflicts,
-            affectedClasses: classSummaries.filter(item => !item.complete).map(item => ({
+            vacancyWarning: classVacancies > 0
+              ? "توجد فترات غير محددة للصفوف؛ قد تكون فترات حرة طبيعية، لذا تُعرض للمراجعة ولا تمنع الاعتماد وحدها."
+              : null,
+            affectedClasses: classSummaries.filter(item => item.vacancies.length || item.conflicts.length).map(item => ({
               className: item.className,
               vacancies: item.vacancies,
               conflicts: item.conflicts,
