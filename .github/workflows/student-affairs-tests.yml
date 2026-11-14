@@ -684,6 +684,8 @@ jobs:
               subprocess.run(["node", "--check", str(path)], check=True)
           print(f"Checked {len(scripts)} inline script blocks")
           PY
+      - name: Run school data sync safety regression tests
+        run: deno test --allow-read=index.html tests/school_data_sync_safety_test.ts
       - name: Verify general app session migration safety contract
         run: |
           python - <<'PY'

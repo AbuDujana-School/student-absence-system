@@ -4811,10 +4811,35 @@ function isAdminAuthorized() { if (activeUser?.type === 'admin') return true; tr
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
 
 /* ============ Cloud helpers ============ */
-function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch(e) { return []; } }
-function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch(e) {} }
-async function queueCloudDelete(table, filters) { try { let q = sb.from(table).delete(); for (const [k,v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; } catch(e) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); return false; } }
-async function flushPendingDeletes() { const arr = getPendingDeletes(); if (!arr.length) return; const remaining = []; for (const item of arr) { try { let q = sb.from(item.table).delete(); for (const [k,v] of Object.entries(item.filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; } catch(e) { remaining.push(item); } } setPendingDeletes(remaining); await persistOfflineState(); }
+let pendingDeleteQueueCache = null;
+function getPendingDeletes() {
+  if (Array.isArray(pendingDeleteQueueCache)) return pendingDeleteQueueCache;
+  try {
+    const parsed = JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]');
+    pendingDeleteQueueCache = Array.isArray(parsed) ? parsed : [];
+  } catch(e) { pendingDeleteQueueCache = []; }
+  return pendingDeleteQueueCache;
+}
+function setPendingDeletes(arr) {
+  pendingDeleteQueueCache = Array.isArray(arr) ? arr : [];
+  try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(pendingDeleteQueueCache)); return true; }
+  catch(e) { return false; }
+}
+async function queueCloudDelete(table, filters) {
+  const arr = getPendingDeletes();
+  if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() });
+  const localStorageSaved = setPendingDeletes(arr);
+  const indexedDbSaved = await persistOfflineState();
+  if (!localStorageSaved && !indexedDbSaved) {
+    updateSyncStatus(false, 'تعذر تأمين طلب الحذف محلياً؛ لم يُنفذ على الخادم');
+    showToast('تعذر حفظ طلب الحذف محلياً. لم يُحذف أي سجل من الخادم.', 'error');
+    return false;
+  }
+  updateSyncStatus(false, `${arr.length} طلب حذف بانتظار المراجعة`);
+  return false;
+}
+// Fail-closed protection: queued deletions are retained for review and are never auto-executed.
+async function flushPendingDeletes() { return false; }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
   const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -4913,7 +4938,23 @@ async function restoreOfflineState() {
   try {
     const database=await openOfflineDatabase();
     const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
-    if(!snapshot?.db||typeof snapshot.db!=='object') return false;
+    if(!snapshot?.db||typeof snapshot.db!=='object') {
+      // IndexedDB may be unavailable in older browsers or restricted sessions.
+      // Restore the localStorage cache before cloud loading captures dirty local edits.
+      const saved = localStorage.getItem('abuDujana_db_v30');
+      if (!saved) return false;
+      const localDb = JSON.parse(saved);
+      if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
+      const localDirtySets = localDb.__offlineDirtySets;
+      const localPendingDeletes = localDb.__offlinePendingDeletes;
+      delete localDb.__offlineDirtySets;
+      delete localDb.__offlinePendingDeletes;
+      db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
+      db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
+      if (localDirtySets) restoreDirtySetsObject(localDirtySets); else loadDirtySetsFromLocal();
+      if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
+      return true;
+    }
     db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
     db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
     restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
@@ -4938,6 +4979,36 @@ function mergeDirtyLocalState(snapshot) {
   if(d.custom_categories)db.customCategories=cloneOfflineValue(local.customCategories||[]);
   if(d.duty_module){const records=db.dutyModule.records||[];db.dutyModule=normalizeDutyModule(local.dutyModule);db.dutyModule.records=records;}
 }
+function applyPendingLocalDeletions() {
+  // Keep deletion requests local and visible as pending; never execute them against Supabase here.
+  for (const item of getPendingDeletes()) {
+    const filters = item?.filters || {};
+    const name = typeof filters.name === 'string' ? filters.name : '';
+    const key = typeof filters.record_key === 'string' ? filters.record_key : '';
+    if (item.table === 'classes' && name) {
+      db.classes = (db.classes || []).filter(value => value !== name);
+      delete db.students[name];
+      dirtySets.classes.delete(name);
+      dirtySets.students.delete(name);
+    } else if (item.table === 'students' && typeof filters.class_name === 'string' && typeof filters.student_name === 'string') {
+      const list = db.students?.[filters.class_name] || [];
+      db.students[filters.class_name] = list.filter(value => value !== filters.student_name);
+    } else if (item.table === 'attendance' && key) {
+      delete db.attendance[key];
+      dirtySets.attendance.delete(key);
+    } else if (item.table === 'behaviors' && key) {
+      delete db.behaviors[key];
+      dirtySets.behaviors.delete(key);
+    } else if (item.table === 'teachers' && name) {
+      if (filters.role === 'teacher' || !filters.role) db.teachers = (db.teachers || []).filter(value => value.name !== name);
+      if (filters.role === 'custom' || !filters.role) db.customUsers = (db.customUsers || []).filter(value => value.name !== name);
+      if (!(db.teachers || []).some(value => value.name === name) && !(db.customUsers || []).some(value => value.name === name)) dirtySets.teachers.delete(name);
+    } else if (item.table === 'duty_reports' && filters.id !== undefined) {
+      db.dutyModule.records = (db.dutyModule.records || []).filter(value => String(value.id) !== String(filters.id));
+      dirtySets.duty_reports.delete(String(filters.id));
+    }
+  }
+}
 function markOfflineDatabaseForUpload() {
   (db.classes||[]).forEach(c=>{dirtySets.classes.add(c);dirtySets.students.add(c);});
   (db.teachers||[]).forEach(t=>dirtySets.teachers.add(t.name));(db.customUsers||[]).forEach(u=>dirtySets.teachers.add(u.name));
@@ -4950,10 +5021,9 @@ function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
 }
 async function retryOfflineSyncSilently() {
-  if (!navigator.onLine || !hasPendingOfflineChanges() || offlineAutoSyncInProgress) return;
-  offlineAutoSyncInProgress = true;
-  try { await saveSystemDataToCloud({ silent: true }); }
-  finally { offlineAutoSyncInProgress = false; }
+  // Pending local changes require an explicit, user-initiated review/sync.
+  // Never push cached school records automatically after reconnect or tab resume.
+  return false;
 }
 
 /* ============ LocalStorage ============ */
@@ -4961,22 +5031,25 @@ function saveToLocalStorageSafe() {
   try {
     const cutoff = getTrustedDate(); cutoff.setDate(cutoff.getDate() - 14);
     const cutoffStr = formatDateOman(cutoff);
-    const safeDb = { ...db, attendance: {}, behaviors: {} };
-    Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr) safeDb.attendance[k] = db.attendance[k]; });
-    Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr) safeDb.behaviors[k] = db.behaviors[k]; });
-    const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module, custom_categories: dirtySets.custom_categories };
-    try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
+    const dirtyObj = serializeDirtySets();
+    const pendingDeletes = getPendingDeletes();
+    const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, attendance: {}, behaviors: {} };
+    Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.attendance.has(k)) safeDb.attendance[k] = db.attendance[k]; });
+    Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.behaviors.has(k)) safeDb.behaviors[k] = db.behaviors[k]; });
+    try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) { throw e; }
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
+    return true;
   } catch(e) {
     const quotaExceeded = e?.name === 'QuotaExceededError' || e?.code === 22 || e?.code === 1014;
     if (quotaExceeded) {
       // localStorage is only a cache; preserve the complete offline snapshot in IndexedDB.
       void persistOfflineState().catch(storageError => console.warn('IndexedDB fallback failed; keep the current in-memory state and retry sync.', storageError));
       console.warn('LocalStorage quota reached; saved the durable snapshot through IndexedDB when available.', e);
-      return;
+      return false;
     }
     console.warn('LocalStorage cache write failed; IndexedDB remains the durable store when available.', e);
+    return false;
   }
 }
 function loadDirtySetsFromLocal() {
@@ -5022,7 +5095,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   await restoreOfflineState();
   syncServerTime();
   await loadSystemDataFromCloud();
-  await migrateCredentialsIfNeeded();
   await checkExistingSession();
   document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -5033,7 +5105,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
   });
   window.addEventListener('online', () => {
-    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - جارِ المزامنة" : "تم الاتصال");
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - التغييرات المحلية بانتظار مراجعة يدوية" : "تم الاتصال");
     setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
   });
   window.addEventListener('pageshow', () => {
@@ -5075,7 +5147,9 @@ async function migrateCredentialsIfNeeded() {
   if (needsSave) await saveSystemDataToCloud();
 }
 
+let cloudDataLoadState = 'not-started';
 async function loadSystemDataFromCloud() {
+  cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
   loadDirtySetsFromLocal();
@@ -5083,66 +5157,20 @@ async function loadSystemDataFromCloud() {
   const pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحميل...");
   try {
-    await flushPendingDeletes();
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
       fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
       fetchAllPaginated('teachers', '*'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
     ]);
-    const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
-    if (empty) {
-      const saved = localStorage.getItem('abuDujana_db_v30');
-      if (offlineSnapshotAvailable || saved) {
-        try {
-          if (saved && !offlineSnapshotAvailable) db = { ...db, ...JSON.parse(saved), version: 27 };
-          else if (offlineSnapshot) db = { ...db, ...offlineSnapshot, version: 27 };
-          if (!db.customUsers) db.customUsers = [];
-          if (!db.behaviors) db.behaviors = {};
-          if (!db.customCategories) db.customCategories = [];
-          db.dutyModule = normalizeDutyModule(db.dutyModule);
-          Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
-          markOfflineDatabaseForUpload();
-          await persistOfflineState();
-          updateSyncStatus(false, "جارِ رفع النسخة المحلية...");
-          await saveSystemDataToCloud();
-          return true;
-        } catch(e) { console.warn('local snapshot restore failed', e); }
-      }
-      await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
-    }
-    
-    let classesFixed = false;
-    const oldClassesMap = {}; 
-
-    if (classesData.length > 0) {
-      const rawClasses = classesData.map(r => r.name);
-      db.classes = [...new Set(rawClasses.map(c => {
-        if (c && c.includes('/')) {
-          const parts = String(c).split('/');
-          if (parts.length === 2 && DEFAULT_CLASSES.includes(`${parts[1]}/${parts[0]}`)) {
-            oldClassesMap[c] = `${parts[1]}/${parts[0]}`;
-            return `${parts[1]}/${parts[0]}`;
-          }
-        }
-        return c;
-      }))];
-
-      if (Object.keys(oldClassesMap).length > 0) {
-        classesFixed = true;
-        for (const oldC of Object.keys(oldClassesMap)) {
-          await queueCloudDelete('classes', { name: oldC });
-          await queueCloudDelete('students', { class_name: oldC });
-        }
-        sortClassesList(db.classes).forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
-      }
-    } else {
-      db.classes = [...DEFAULT_CLASSES]; 
-      sortClassesList(db.classes).forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
-    }
+    const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
+    if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
+    // Preserve the exact class names returned by the server. No automatic rename,
+    // delete, or cascade-like remapping of students and related records.
+    db.classes = [...new Set(classesData.map(r => r.name))];
 
     db.students = {};
     studentsData.forEach(r => {
       let cn = r.class_name;
-      if (classesFixed && oldClassesMap[cn]) { cn = oldClassesMap[cn]; }
+      // Keep the server's class_name exactly as stored; no legacy rename mapping.
       if (!db.students[cn]) db.students[cn] = [];
       if (!db.students[cn].includes(r.student_name)) { db.students[cn].push(r.student_name); }
     });
@@ -5167,65 +5195,40 @@ async function loadSystemDataFromCloud() {
     try {
       const drData = await fetchAllPaginated('duty_reports', '*');
       db.dutyModule.records = drData.filter(r => r.class_name !== '__CLEAN__').map(r => {
-        let cn = r.class_name;
-        if (classesFixed && oldClassesMap[cn]) {
-          cn = oldClassesMap[cn];
-          dirtySets.duty_reports.add(String(r.id));
-        }
+        const cn = r.class_name;
         return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
       });
-    } catch(e) {}
+    } catch(e) { throw new Error('تعذر تحميل سجلات تقارير المناوبة؛ أُوقف التحميل الآمن.', { cause: e }); }
 
     db.attendance = {};
     for (const r of attendanceData) {
-      let cn = r.class_name;
-      let newKey = r.record_key;
-      if (classesFixed && oldClassesMap[cn]) {
-        cn = oldClassesMap[cn];
-        const lu = r.record_key.lastIndexOf('_');
-        if (lu !== -1) {
-          const prefix = r.record_key.substring(0, lu);
-          const fu = prefix.indexOf('_');
-          if (fu !== -1) { newKey = `${prefix.substring(0, fu)}_${cn}_${r.record_key.substring(lu + 1)}`; }
-        }
-        if (newKey !== r.record_key) { await queueCloudDelete('attendance', { record_key: r.record_key }); }
-      }
+      const cn = r.class_name;
+      const newKey = r.record_key;
       if (!db.attendance[newKey] || new Date(r.updated_at) > new Date(db.attendance[newKey].timestamp)) {
         db.attendance[newKey] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
-        if (newKey !== r.record_key) dirtySets.attendance.add(newKey);
       }
     }
 
     db.behaviors = {};
     for (const r of behaviorsData) {
-      let cn = r.class_name;
-      let newKey = r.record_key;
-      if (classesFixed && oldClassesMap[cn]) {
-        cn = oldClassesMap[cn];
-        const lu = r.record_key.lastIndexOf('_');
-        if (lu !== -1) {
-          const prefix = r.record_key.substring(0, lu);
-          const fu = prefix.indexOf('_');
-          if (fu !== -1) { newKey = `${prefix.substring(0, fu)}_${cn}_${r.record_key.substring(lu + 1)}`; }
-        }
-        if (newKey !== r.record_key) { await queueCloudDelete('behaviors', { record_key: r.record_key }); }
-      }
+      const cn = r.class_name;
+      const newKey = r.record_key;
       if (!db.behaviors[newKey] || new Date(r.updated_at) > new Date(db.behaviors[newKey].timestamp)) {
         db.behaviors[newKey] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
-        if (newKey !== r.record_key) dirtySets.behaviors.add(newKey);
       }
     }
 
     mergeDirtyLocalState(pendingLocalState);
-    if (classesFixed || dirtySets.classes.size > 0 || dirtySets.teachers.size > 0 || dirtySets.students.size > 0 || dirtySets.attendance.size > 0 || dirtySets.behaviors.size > 0 || dirtySets.duty_reports.size > 0 || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
-       await saveSystemDataToCloud();
-    }
+    applyPendingLocalDeletions();
+    cloudDataLoadState = 'ready';
+    // Loading is read-only: preserve local pending changes without pushing them.
     saveToLocalStorageSafe();
     await persistOfflineState();
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length;
     updateSyncStatus(!pendingSync, pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
     return true;
   } catch(e) {
+    cloudDataLoadState = 'failed';
     console.error('Cloud load failed:', e);
     const saved = localStorage.getItem('abuDujana_db_v30');
     if (offlineSnapshotAvailable || saved) {
@@ -5239,18 +5242,23 @@ async function loadSystemDataFromCloud() {
         loadDirtySetsFromLocal();
         await persistOfflineState();
         updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");
-        return true;
+        return false;
       } catch(pe) { console.warn('Local fallback restore failed', pe); }
     }
-    await initDefaults(); updateSyncStatus(false, "تعذر الاتصال ولا توجد نسخة محلية"); return false;
+    updateSyncStatus(false, "تعذر التحميل؛ أُوقف الحفظ السحابي لحماية البيانات"); return false;
   }
 }
 
 async function saveSystemDataToCloud(options = {}) {
+  if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
   updateSyncStatus(true, "جارِ الحفظ...");
-  saveToLocalStorageSafe();
+  const localCacheSaved = saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
-  if (!durableSaved) updateSyncStatus(false, "تحذير: تعذر تأكيد التخزين المحلي");
+  if (!localCacheSaved && !durableSaved) {
+    updateSyncStatus(false, "تعذر حفظ نسخة محلية آمنة؛ أُوقف الإرسال السحابي");
+    if (!options.silent) showToast("تعذر تأمين نسخة محلية من التعديلات. لم تُرسل إلى الخادم.", "error");
+    return false;
+  }
   try {
     if (dirtySets.classes.size > 0) { const rows = [...dirtySets.classes].map(n => ({ name: n })); await robustUpsert('classes', rows, 'name', 200); dirtySets.classes.clear(); }
     if (dirtySets.teachers.size > 0) {
@@ -5298,10 +5306,10 @@ async function saveSystemDataToCloud(options = {}) {
       dirtySets.duty_reports.clear();
     }
     if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
-    await flushPendingDeletes();
     saveToLocalStorageSafe();
     await persistOfflineState();
-    updateSyncStatus(true, "متزامن");
+    const pendingDeleteCount = getPendingDeletes().length;
+    updateSyncStatus(!pendingDeleteCount, pendingDeleteCount ? `تم حفظ التعديلات؛ ${pendingDeleteCount} طلب حذف بانتظار المراجعة` : "متزامن");
     return true;
   } catch(error) {
     console.error('Cloud save failed:', error);
@@ -5314,15 +5322,18 @@ async function saveSystemDataToCloud(options = {}) {
 }
 
 function forceSyncWithCloud() {
-  if (attendanceDirty || behaviorDirty || dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
-    showConfirm('لديك تغييرات غير محفوظة قد تُستبدل. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
+  if (attendanceDirty || behaviorDirty) {
+    showToast('احفظ تغييرات الرصد الحالية قبل تحديث بيانات الخادم.', 'error');
+    return;
+  }
+  if (hasPendingOfflineChanges()) {
+    showConfirm('سيتم جلب بيانات الخادم مع الاحتفاظ بالتعديلات المحلية المعلّمة. لن تُرفع التغييرات المحلية أو تُنفذ طلبات الحذف تلقائياً. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
     return;
   }
   doForceSync();
 }
 function doForceSync() {
   loadSystemDataFromCloud().then(async (success) => {
-    if (success) await migrateCredentialsIfNeeded();
     showToast(success ? 'تم التحديث!' : 'تعذر الجلب.', success ? 'success' : 'error');
     if (success && activeUser) {
       try {
@@ -5339,7 +5350,7 @@ function updateSyncStatus(isSynced, text) {
   if (!ind || !txt) return;
   txt.textContent = text || (isSynced ? "متزامن" : "محلي");
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
-  else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر للمزامنة"; }
+  else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر لتحديث بيانات الخادم؛ لا يرفع التغييرات المحلية"; }
 }
 
 async function initDefaults() {
@@ -5416,9 +5427,8 @@ async function handleUserLogin(e) {
       loginAttempts = 0; loginLockedUntil = 0;
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
-      if (await isLegacyHash(pin, found.record)) {
-        try { const rec = await createPinRecord(pin); found.record.hash = rec.hash; found.record.salt = rec.salt; if (found.user.type === "admin") dirtySets.admin_pin = true; else dirtySets.teachers.add(found.user.name); await saveSystemDataToCloud(); } catch(error) {}
-      }
+      // Preserve existing credential records during login. Credential upgrades require
+      // a separately reviewed, explicit migration; never rewrite stored PIN hashes here.
       await finalizeLoginState();
     } else { throw new Error("استجابة تسجيل الدخول الآمن غير مكتملة."); }
     if (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true) { try { await saLogin(pin); } catch(saError) { console.warn("Student Affairs session not established:", saError); saSession = null; try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {} } }
@@ -7231,7 +7241,7 @@ async function saveBulkStudents() {
   const success = await saveSystemDataToCloud();
   for (const st of rm) await queueCloudDelete('students', { class_name: s, student_name: st });
   loadAdminStudentsList();
-  showToast(success ? (rm.length ? `تم. حُذف ${rm.length}.` : 'تم.') : 'حُفظ محلياً.', success ? 'success' : 'info');
+  showToast(success ? (rm.length ? `تم تحديث القائمة؛ إزالة ${rm.length} من الخادم بانتظار المراجعة.` : 'تم.') : 'حُفظ محلياً.', success ? 'success' : 'info');
 }
 function handleStudentFileImport(e) {
   const f = e.target.files[0]; if (!f) return;
@@ -7256,7 +7266,7 @@ async function removeStudent(className, idx) {
   Object.entries(db.attendance).forEach(([k, s]) => { if (parseAttendanceKey(k).className === className && s.records && s.records[n] !== undefined) { delete s.records[n]; dirtySets.attendance.add(k); } });
   Object.entries(db.behaviors).forEach(([k, s]) => { if (parseAttendanceKey(k).className === className && s.records && s.records[n] !== undefined) { delete s.records[n]; dirtySets.behaviors.add(k); } });
   await saveSystemDataToCloud(); await queueCloudDelete('students', { class_name: className, student_name: n });
-  loadAdminStudentsList(); showToast('تم الحذف.', 'info');
+  loadAdminStudentsList(); showToast('أُزيل الطالب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
 }
 async function addNewClassPrompt() {
   const name = await showPrompt('اسم الصف الجديد:', { title: 'إضافة صف', okText: 'إضافة' });
@@ -7273,14 +7283,14 @@ async function addNewClassPrompt() {
 async function deleteCurrentClass() {
   const s = document.getElementById('adminClassSelect').value; if (!s) return;
   const ok = await showConfirm(`حذف صف ${s}؟`, { danger: true }); if (!ok) return;
-  db.classes = db.classes.filter(c => c !== s); dirtySets.classes.add(s); delete db.students[s];
+  db.classes = db.classes.filter(c => c !== s); dirtySets.classes.delete(s); delete db.students[s];
   const ak = Object.keys(db.attendance).filter(k => parseAttendanceKey(k).className === s); ak.forEach(k => { delete db.attendance[k]; dirtySets.attendance.add(k); });
   const bk = Object.keys(db.behaviors).filter(k => parseAttendanceKey(k).className === s); bk.forEach(k => { delete db.behaviors[k]; dirtySets.behaviors.add(k); });
   await saveSystemDataToCloud(); await queueCloudDelete('classes', { name: s }); await queueCloudDelete('students', { class_name: s });
   for (const k of ak) await queueCloudDelete('attendance', { record_key: k });
   for (const k of bk) await queueCloudDelete('behaviors', { record_key: k });
   populateAdminClassSelect(); populateReportClassSelect(); populateBehaviorReportClassSelect(); loadAdminStudentsList(); renderClassesGrid();
-  showToast(`حذف ${s}.`, 'info');
+  showToast(`أُخفي الصف ${s} محلياً؛ حذف بياناته من الخادم بانتظار المراجعة.`, 'info');
 }
 
 /* ============ Teachers admin ============ */
@@ -7334,7 +7344,7 @@ async function deleteCustomCategory(cat) {
   populateCategoryDropdowns();
   renderSubjectDutyDays();
   renderTeachersList();
-  showToast('تم الحذف.', 'info');
+  showToast('أُخفي الحساب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
 }
 
 async function setCategoryDutyDay(category, day) {
@@ -7706,7 +7716,7 @@ async function editTeacherName(idx) {
     renderTeachersList(); showToast('فشل التحديث. لم يتم تغيير الاسم.', 'error'); return;
   }
   await queueCloudDelete('teachers', { name: oldName, role: 'teacher' });
-  renderTeachersList(); showToast('تم تحديث الاسم.', 'success');
+  renderTeachersList(); showToast('تم تحديث الاسم؛ إزالة السجل القديم من الخادم بانتظار المراجعة.', 'info');
   if (activeUser?.name === oldName) {
     activeUser.name = trimmed;
     document.getElementById('activeUserName').textContent = trimmed;
@@ -7739,7 +7749,7 @@ async function deleteTeacher(idx) {
   await saveSystemDataToCloud();
   await queueCloudDelete('teachers', { name: t.name, role: 'teacher' });
   renderTeachersList();
-  showToast('تم الحذف.', 'info');
+  showToast('أُخفي الحساب محلياً؛ حذف سجله من الخادم لم يُنفذ وهو بانتظار المراجعة.', 'info');
   if (activeUser?.type === 'teacher' && activeUser?.name === t.name) { showToast('تم حذف حسابك.', 'error'); setTimeout(() => _performLogout(), 800); }
 }
 function openPermissionsModal(idx) {
@@ -7834,7 +7844,7 @@ async function deleteCustomUser(idx) {
   db.customUsers.splice(idx, 1); dirtySets.teachers.add(u.name);
   await saveSystemDataToCloud();
   await queueCloudDelete('teachers', { name: u.name, role: 'custom' });
-  renderCustomUsersList(); showToast('تم الحذف.', 'info');
+  renderCustomUsersList(); showToast('أُخفي الحساب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
 }
 
 /* ============ Admin PIN & reset ============ */
@@ -7866,7 +7876,7 @@ async function executeFullReset() {
   for (const k of ak) await queueCloudDelete('attendance', { record_key: k });
   for (const k of bk) await queueCloudDelete('behaviors', { record_key: k });
   document.getElementById('resetPin1').value = ''; document.getElementById('resetPin2').value = '';
-  showToast('تم التصفير!', 'success'); initAdminDashboard();
+  showToast('تم إخفاء السجلات محلياً فقط؛ حذفها من الخادم لم يُنفذ وهو بانتظار المراجعة.', 'info'); initAdminDashboard();
 }
 
 /* ============ Alerts & Daily ============ */
