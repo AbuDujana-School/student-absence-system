@@ -88,7 +88,7 @@ Deno.test("queued deletions remain local and are reapplied after cloud data is m
   assert(helper.includes("dirtySets.attendance.delete(key)"), "A locally deleted attendance record must not be re-upserted");
   assert(load.indexOf("mergeDirtyLocalState(pendingLocalState)") < load.indexOf("applyPendingLocalDeletions()"), "Queued deletions must be applied after dirty edits are merged");
   assert(load.indexOf("applyPendingLocalDeletions()") < load.indexOf("cloudDataLoadState = 'ready'"), "Deletion overlay must be in place before cloud saves become available");
-  assert(!helper.includes(".from(") && !helper.includes(".delete("), "Applying local deletion intent must not contact Supabase");
+  assert(!helper.includes("sb.from(") && !helper.includes("flushPendingDeletes("), "Applying local deletion intent must not contact Supabase");
 });
 
 
