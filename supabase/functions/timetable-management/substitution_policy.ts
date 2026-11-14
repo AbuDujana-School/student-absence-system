@@ -18,6 +18,7 @@ export interface WorkloadBreakdown {
   historicalAssignments:number; weeklyAssignments:number; dailyAssignments:number; lastAssignmentDate:string|null;
   adjacentPeriodAssignments:number; score:number;
 }
+export type RankedSubstitutionTeacher = SubstitutionTeacher & { workload:WorkloadBreakdown };
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
   return a.weekday===b.weekday && a.period===b.period;
 }
