@@ -8,6 +8,17 @@ export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
   absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean; assignmentDate?:string; versionId?:string;
 }
+/** Resolve a teacher's personal duty-day override, then fall back to the configured department duty day. */
+export function resolveSubstitutionDutyDay(
+  personalDutyDay:string,
+  category:string,
+  subjectDays:Record<string,string>,
+  schoolDays:string[],
+):string {
+  if(schoolDays.includes(personalDutyDay)) return personalDutyDay;
+  const configured=String(subjectDays[category]||"");
+  return schoolDays.includes(configured) ? configured : "";
+}
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
   return a.weekday===b.weekday && a.period===b.period;
 }
