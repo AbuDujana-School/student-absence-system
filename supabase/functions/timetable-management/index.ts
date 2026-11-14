@@ -533,114 +533,32 @@ async function handle(req: Request) {
       const subject = String(body.subject || "").trim();
       if (!className || className.length > 100 || !DAYS.includes(weekday) ||
           !Number.isInteger(period) || period < 1 || period > 8 ||
-          !teacherName || teacherName.length > 160 || !subject || subject.length > 160) {
+          !teacherName || teacherName.length > 160 || !subject || subject.length > 160 ||
+          (body.versionId != null && body.versionId !== "" && !validUuid(body.versionId))) {
         return reply(400, { error: "بيانات إسناد الحصة غير مكتملة أو غير صالحة." });
       }
-      const { data: teacher, error: teacherError } = await db.from("teachers")
-        .select("name").eq("name", teacherName).eq("role", "teacher").maybeSingle();
-      if (teacherError) throw teacherError;
-      if (!teacher) return reply(404, { error: "المعلم المحدد غير موجود في فهرس المعلمين." });
-
-      let versionQuery = db.from("timetable_weekly_versions")
-        .select("id,version,status,period_count,expected_teacher_count,source_label")
-        .eq("status", "active");
-      if (validUuid(body.versionId)) versionQuery = db.from("timetable_weekly_versions")
-        .select("id,version,status,period_count,expected_teacher_count,source_label")
-        .eq("id", body.versionId);
-      const { data: sourceVersion, error: sourceVersionError } = await versionQuery.maybeSingle();
-      if (sourceVersionError) throw sourceVersionError;
-      if (!sourceVersion || !["active","draft"].includes(sourceVersion.status)) {
-        return reply(404, { error: "النسخة المحددة غير موجودة أو لا تقبل التعديل." });
-      }
-      if (period > Number(sourceVersion.period_count || 7)) return reply(400, { error: "رقم الحصة يتجاوز عدد حصص اليوم في هذه النسخة." });
-
-      let targetVersionId = sourceVersion.id;
-      let targetVersionNumber = sourceVersion.version;
-      if (sourceVersion.status === "active") {
-        const { data: latestVersion, error: latestVersionError } = await db.from("timetable_weekly_versions")
-          .select("version").order("version", { ascending: false }).limit(1).maybeSingle();
-        if (latestVersionError) throw latestVersionError;
-        const nextVersionNumber = Number(latestVersion?.version || 0) + 1;
-        const { data: created, error: createError } = await db.from("timetable_weekly_versions")
-          .insert({
-            version: nextVersionNumber,
-            status: "draft",
-            period_count: sourceVersion.period_count || 7,
-            expected_teacher_count: sourceVersion.expected_teacher_count,
-            source_label: "مراجعة يدوية للنسخة " + sourceVersion.version,
-            created_by: principal.name,
-          }).select("id,version").single();
-        if (createError) throw createError;
-        targetVersionId = created.id;
-        targetVersionNumber = created.version;
-        const { data: sourceCells, error: sourceCellsError } = await db.from("timetable_weekly_cells")
-          .select("*").eq("version_id", sourceVersion.id).range(0,9999);
-        if (sourceCellsError) throw sourceCellsError;
-        const clonedCells = (sourceCells || []).map((cell: any) => {
-          const { id, created_at, updated_at, ...rest } = cell;
-          return { ...rest, version_id: targetVersionId };
-        });
-        if (clonedCells.length) {
-          const { error: cloneError } = await db.from("timetable_weekly_cells").insert(clonedCells);
-          if (cloneError) throw cloneError;
-        }
-      }
-
-      const { data: targetCells, error: targetCellsError } = await db.from("timetable_weekly_cells")
-        .select("id,teacher_source_name,matched_teacher_name,weekday,period,cell_status,class_sections")
-        .eq("version_id", targetVersionId).eq("matched_teacher_name", teacherName)
-        .eq("weekday", weekday).eq("period", period);
-      if (targetCellsError) throw targetCellsError;
-      const availableCell = (targetCells || []).find((cell: any) =>
-        String(cell.cell_status) === "free" &&
-        (!Array.isArray(cell.class_sections) || cell.class_sections.length === 0));
-      if (!availableCell) return reply(409, {
-        error: "المعلم المحدد ليس لديه حصة فراغ متاحة في هذا الوقت. اختر معلماً آخر.",
-        reviewVersionId: sourceVersion.status === "active" ? targetVersionId : undefined,
-      });
-
-      const { data: classRows, error: classRowsError } = await db.from("timetable_weekly_cells")
-        .select("id").eq("version_id", targetVersionId).contains("class_sections", [className]).limit(1);
-      if (classRowsError) throw classRowsError;
-      if (!classRows?.length) return reply(404, { error: "الصف أو الشعبة غير موجود في جدول النسخة الحالية." });
-
-      const { data: allAtSlot, error: allAtSlotError } = await db.from("timetable_weekly_cells")
-        .select("class_sections,matched_teacher_name").eq("version_id", targetVersionId)
-        .eq("weekday", weekday).eq("period", period);
-      if (allAtSlotError) throw allAtSlotError;
-      const alreadyAssigned = (allAtSlot || []).some((cell: any) =>
-        Array.isArray(cell.class_sections) && cell.class_sections.map((value: unknown) => String(value).trim()).includes(className));
-      if (alreadyAssigned) return reply(409, { error: "الصف لديه تكليف مسجل بالفعل في هذه الحصة. راجع التعارضات أولاً." });
-
-      const { error: updateError } = await db.from("timetable_weekly_cells").update({
-        cell_status: "teaching",
-        class_sections: [className],
-        subject,
-        source_data: {
-          status: "teaching", classSections: [className], subject,
-          sourceClass: className, sourceSubject: subject, sourceStatus: "إسناد يدوي من جدول الصفوف",
-          sourceNote: "إسناد يدوي بواسطة " + principal.name,
-          manualAssignment: true,
+      const { data, error } = await db.rpc("assign_timetable_class_vacancy", {
+        p_payload: {
+          class_name: className, weekday, period, teacher_name: teacherName,
+          subject, actor_name: principal.name,
+          version_id: validUuid(body.versionId) ? body.versionId : null,
         },
-        updated_at: new Date().toISOString(),
-      }).eq("id", availableCell.id).eq("version_id", targetVersionId);
-      if (updateError) throw updateError;
-      const { error: auditError } = await db.from("timetable_weekly_audit").insert({
-        version_id: targetVersionId, action: "day_replaced", weekday,
-        actor_name: principal.name,
-        after_data: { action: "class_vacancy_assigned", className, teacherName, subject, period },
       });
-      if (auditError) throw auditError;
+      if (error) throw error;
       return reply(200, {
-        ok: true, reviewRequired: sourceVersion.status === "active",
-        versionId: targetVersionId, version: targetVersionNumber,
-        message: sourceVersion.status === "active"
-          ? "حُفظ التعديل في نسخة مراجعة جديدة. راجعها ثم اعتمدها لنشر التغيير."
-          : "حُفظ الإسناد في المسودة، وتم تحديث مصدر جدول المعلم والصف معاً.",
+        ok: true,
+        reviewRequired: data?.review_required === true,
+        versionId: data?.version_id,
+        version: data?.version,
+        message: data?.review_required === true
+          ? "حُفظ التعديل ذرياً في نسخة مراجعة جديدة. راجعها ثم اعتمدها لنشر التغيير."
+          : "حُفظ الإسناد في المسودة مع سجل التدقيق ضمن عملية واحدة.",
       });
     } catch (error) {
-      console.error("Class vacancy assignment failed:", error instanceof Error ? error.message : "unknown");
-      return reply(400, { error: error instanceof Error ? error.message : "تعذر إسناد الحصة." });
+      const message = error instanceof Error ? error.message : "تعذر إسناد الحصة.";
+      console.error("Class vacancy assignment failed:", message);
+      const status = /غير موجود|ليس لديه حصة فراغ|مسجل بالفعل|لا تقبل التعديل|يتجاوز عدد حصص/i.test(message) ? 409 : 400;
+      return reply(status, { error: message });
     }
   }
 
