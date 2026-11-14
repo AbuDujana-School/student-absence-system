@@ -30,10 +30,12 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
   const score=(teacher:SubstitutionTeacher):number=>{
-    const history=activeAssignments.filter(a=>a.substituteTeacherId===teacher.id);
+    const history=activeAssignments.filter(a=>a.substituteTeacherId===teacher.id &&
+      (a.assignmentType===undefined||a.assignmentType==="substitution") &&
+      (!assignmentDate||!a.assignmentDate||a.assignmentDate<=assignmentDate));
     // When the complete weekly grid is available, use the requested transparent
-    // base teaching quota + twice the active substitution history. Keep the
-    // legacy recency-weighted score for callers that do not provide a quota.
+    // base teaching quota + twice the previous active substitution history.
+    // Keep the legacy recency-weighted score for callers without a quota.
     return Number.isFinite(teacher.baseQuota)
       ? Number(teacher.baseQuota) + history.length * 2
       : calculateSubstitutionWorkloadScore(history,assignmentDate,period);
