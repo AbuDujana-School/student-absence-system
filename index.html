@@ -9794,6 +9794,9 @@ async function timetableSaveImport() {
       idempotencyKey:timetablePendingWorkbook.idempotencyKey
     }, token);
     if (!result?.saved?.import_id) throw new Error("لم يصل تأكيد صالح من الخادم. أعد المحاولة دون إعادة تحليل الملف.");
+    await timetableLoadImports();
+    const loaded = await timetableLoadSavedImport(result.saved.import_id);
+    if (loaded !== true) throw new Error("تم تأكيد الحفظ من الخادم، لكن تعذر تحديث تفاصيل النسخة في الواجهة. أعد المحاولة لاستعادة نفس عملية الحفظ دون إنشاء نسخة مكررة.");
     timetableSavedImport = result.saved;
     try {
       if (timetablePendingWorkbook.idempotencyStorageKey) {
@@ -9803,8 +9806,6 @@ async function timetableSaveImport() {
     button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
     button.disabled = true;
     timetableSetStatus("حُفظت نسخة مسودة بنجاح. رقم النسخة: "+(result.saved?.version || 1)+" — رقم الاستيراد: "+(result.saved?.import_id || ""), "success");
-    await timetableLoadImports();
-    if (result.saved?.import_id) await timetableLoadSavedImport(result.saved.import_id);
   } catch (error) {
     button.disabled = false;
     button.innerHTML = original;
@@ -9931,8 +9932,10 @@ async function timetableLoadSavedImport(importId) {
     if (saveButton) saveButton.classList.add("hidden");
     timetableRenderPreview();
     timetableSetStatus("تم فتح النسخة المحفوظة. يمكنك مراجعة سجلات المعلمين وتعديل المسودة.", "success");
+    return true;
   } catch (error) {
     timetableSetStatus(error?.message || "تعذر فتح النسخة المحفوظة.", "error");
+    return false;
   }
 }
 function timetableOpenEditor(recordId) {
