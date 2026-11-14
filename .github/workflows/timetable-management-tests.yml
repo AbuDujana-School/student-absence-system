@@ -5,6 +5,7 @@ on:
     branches:
       - feature/smart-substitution-system
       - feature/timetable-robust-fairness-v2
+      - main
     paths:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
