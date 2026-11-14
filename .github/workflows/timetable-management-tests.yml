@@ -23,9 +23,34 @@ on:
 jobs:
   unit-tests:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: timetable_test
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d timetable_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/timetable_test
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Run timetable import SQL integration test in isolated PostgreSQL
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;"
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114150000_timetable_import_idempotency.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/timetable_import_idempotency.sql
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
