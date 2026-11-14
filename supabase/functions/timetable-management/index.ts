@@ -244,7 +244,7 @@ async function handle(req: Request) {
       }
       return reply(200, {
         canAccess: principal.type === "admin" || principal.portalOnly !== true,
-        teacherPortalEnabled: setting?.enabled === true,
+        teacherPortalEnabled: !settingError && setting?.enabled === true,
         hasPersonalSchedule,
         isAdmin: principal.type === "admin",
         isTeacher: principal.type === "teacher" || principal.type === "custom",
