@@ -44,6 +44,7 @@ jobs:
           CREATE ROLE anon NOLOGIN;
           CREATE ROLE authenticated NOLOGIN;
           CREATE ROLE service_role NOLOGIN BYPASSRLS;
+          CREATE TABLE public.school_settings (key text PRIMARY KEY, value jsonb);
           SQL
       - name: Apply app sessions migration to isolated PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
@@ -59,6 +60,8 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
       - name: Apply timetable import audit actor migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261113190000_timetable_import_audit_actor.sql
+      - name: Apply substitution duty-day database guard
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114100000_timetable_substitution_duty_guard.sql
       - name: Verify official notice ledger isolation and atomic numbering
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -311,8 +314,10 @@ jobs:
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
           INSERT INTO public.teachers(name,role,permissions)
-          VALUES ('synthetic-math-teacher','teacher','{"category":"الرياضيات"}'::jsonb)
-          ON CONFLICT (name) DO NOTHING;
+          VALUES ('synthetic-math-teacher','teacher','{"category":"الرياضيات","dutyDay":"الأحد"}'::jsonb)
+          ON CONFLICT (name) DO UPDATE SET permissions=EXCLUDED.permissions;
+          INSERT INTO public.school_settings(key,value) VALUES ('duty_module','{"subjectDays":{"الرياضيات":"الاثنين"}}'::jsonb)
+          ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value;
           GRANT SELECT ON public.teachers TO service_role;
           DO $do$
           DECLARE
@@ -332,6 +337,8 @@ jobs:
             v_wrong_department_actor_blocked boolean := false;
             v_busy_candidate_blocked boolean := false;
             v_wrong_date_blocked boolean := false;
+            v_personal_duty_blocked boolean := false;
+            v_department_duty_blocked boolean := false;
             v_duplicate_substitution_blocked boolean := false;
             v_substitution_audit_count integer;
           BEGIN
@@ -440,8 +447,35 @@ jobs:
             END;
             IF NOT v_wrong_date_blocked THEN RAISE EXCEPTION 'weekday/date mismatch was not rejected'; END IF;
 
+            -- Database-side guard rejects individual and department duty days.
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('مكلف بالمناوبة' in SQLERRM)>0 THEN v_personal_duty_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_personal_duty_blocked THEN RAISE EXCEPTION 'individual duty-day substitution was not rejected'; END IF;
+
+            BEGIN
+              PERFORM public.create_timetable_substitution(jsonb_build_object(
+                'version_id',v_version_id::text,'weekday','الاثنين','period',1,'assignment_date','2026-11-16',
+                'absent_teacher_name','synthetic-arabic-teacher',
+                'substitute_teacher_name','synthetic-math-teacher',
+                'actor_type','admin','actor_name','synthetic-admin',
+                'include_other_departments',true
+              ));
+            EXCEPTION WHEN raise_exception THEN
+              IF position('مكلف بالمناوبة' in SQLERRM)>0 THEN v_department_duty_blocked := true; ELSE RAISE; END IF;
+            END;
+            IF NOT v_department_duty_blocked THEN RAISE EXCEPTION 'department duty-day substitution was not rejected'; END IF;
+
             v_substitution := public.create_timetable_substitution(jsonb_build_object(
-              'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+              'version_id',v_version_id::text,'weekday','الثلاثاء','period',1,'assignment_date','2026-11-17',
               'absent_teacher_name','synthetic-arabic-teacher',
               'substitute_teacher_name','synthetic-math-teacher',
               'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
@@ -452,7 +486,7 @@ jobs:
             END IF;
             BEGIN
               PERFORM public.create_timetable_substitution(jsonb_build_object(
-                'version_id',v_version_id::text,'weekday','الأحد','period',1,'assignment_date','2026-11-15',
+                'version_id',v_version_id::text,'weekday','الثلاثاء','period',1,'assignment_date','2026-11-17',
                 'absent_teacher_name','synthetic-arabic-teacher',
                 'substitute_teacher_name','synthetic-math-teacher',
                 'actor_type','admin','actor_name','synthetic-admin','actor_type','admin',
