@@ -120,43 +120,49 @@ export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
   return Array.from(unique.values());
 }
 function buildPeriodSpans(page, dayCenters, periodCenters) {
-  const lines=Array.isArray(page.horizontalLines)?page.horizontalLines:[];
-  const edges=new Array(6);
-  for(let i=1;i<5;i++)edges[i]=(dayCenters[i-1]+dayCenters[i])/2;
-  edges[0]=dayCenters[0]-(dayCenters[1]-dayCenters[0])/2;
-  edges[5]=dayCenters[4]+(dayCenters[4]-dayCenters[3])/2;
+  const lines=Array.isArray(page.verticalLines)?page.verticalLines:[];
+  const count=periodCenters.length;
+  const dayEdges=new Array(6);
+  for(let i=1;i<5;i++)dayEdges[i]=(dayCenters[i-1]+dayCenters[i])/2;
+  dayEdges[0]=dayCenters[0]+(dayCenters[0]-dayCenters[1])/2;
+  dayEdges[5]=dayCenters[4]-(dayCenters[3]-dayCenters[4])/2;
   const spansByDay=[];
-  let valid=lines.length>=20;
+  let valid=lines.length>=count*4;
   for(let day=0;day<5;day++){
+    const top=Math.max(dayEdges[day],dayEdges[day+1]),bottom=Math.min(dayEdges[day],dayEdges[day+1]);
     const missing=new Set();let visible=0;
-    for(let period=1;period<=6;period++){
-      const y=(periodCenters[period-1]+periodCenters[period])/2,left=edges[day],right=edges[day+1];
-      const found=lines.some(line=>Math.abs(line.y-y)<=3&&line.x1<=left+3&&line.x2>=right-3);
+    for(let period=1;period<count;period++){
+      const x=(periodCenters[period-1]+periodCenters[period])/2;
+      const found=lines.some(line=>Math.abs(line.x-x)<=3&&line.y1<=bottom+3&&line.y2>=top-3);
       if(found)visible++;else missing.add(period);
     }
-    if(visible<4)valid=false;
-    const spans=new Array(7);let start=1;
-    for(let period=1;period<=6;period++){
+    if(visible<Math.max(2,Math.floor((count-1)*0.55)))valid=false;
+    const spans=new Array(count);let start=1;
+    for(let period=1;period<count;period++){
       if(!missing.has(period)){for(let current=start;current<=period;current++)spans[current-1]={start,end:period};start=period+1;}
     }
-    for(let current=start;current<=7;current++)spans[current-1]={start,end:7};
+    for(let current=start;current<=count;current++)spans[current-1]={start,end:count};
     spansByDay.push(spans);
   }
   return {spansByDay,valid};
 }
 function makePageGrid(page) {
   const dayItems=page.items.map(item=>({item,pos:itemPosition(item),day:dayIndex(item.str)}))
-    .filter(entry=>entry.day>=0&&Number.isFinite(entry.pos.x));
+    .filter(entry=>entry.day>=0&&Number.isFinite(entry.pos.y));
   const dayCenters=WEEKDAYS.map((_,day)=>{
-    const positions=dayItems.filter(entry=>entry.day===day).map(entry=>entry.pos.x);
+    const positions=dayItems.filter(entry=>entry.day===day).map(entry=>entry.pos.y);
     return positions.length?positions.reduce((a,b)=>a+b,0)/positions.length:Number.NaN;
   });
   const timeItems=page.items.map(item=>({item,pos:itemPosition(item),times:parseTimes(item.str)}))
-    .filter(entry=>entry.times.length===2&&Number.isFinite(entry.pos.y)&&entry.pos.x>=65&&entry.pos.x<=125);
-  const periodTimes=timeItems.sort((a,b)=>b.pos.y-a.pos.y).slice(0,7);
-  const periodCenters=periodTimes.map(entry=>entry.pos.y);
+    .filter(entry=>entry.times.length===2&&Number.isFinite(entry.pos.x)&&entry.pos.x>=65);
+  const byColumn=[];
+  for(const entry of timeItems.sort((a,b)=>b.pos.x-a.pos.x)){
+    if(!byColumn.some(existing=>Math.abs(existing.pos.x-entry.pos.x)<8))byColumn.push(entry);
+  }
+  const periodTimes=byColumn.slice(0,8);
+  const periodCenters=periodTimes.map(entry=>entry.pos.x);
   const orderedTimes=periodTimes.map((entry,index)=>({period:index+1,time:entry.times[0]+"–"+entry.times[1]}));
-  return {dayCenters,periodCenters,orderedTimes,...buildPeriodSpans(page,dayCenters,periodCenters)};
+  return {dayCenters,periodCenters,orderedTimes,periodCount:periodCenters.length,...buildPeriodSpans(page,dayCenters,periodCenters)};
 }
 /**
  * @typedef {{period:number,status:string,classSections:string[],subject:string,sourceClass:string,sourceSubject:string,sourceStatus:string,sourceNote:string}} PdfCell
@@ -182,12 +188,12 @@ export function parseTimetablePdfPages(pages) {
     const teacherInfo=teacherNameInfoFromItems(page.items),teacherName=teacherInfo.name,teacherNameOriginal=teacherInfo.original,grid=makePageGrid(page);
     if(!teacherName){
       const aggregateGroupCount=page.items.reduce((sum,item)=>sum+extractClassGroups(item.str).length,0);
-      if(page.pageNumber===1&&grid.periodCenters.length===7&&page.items.length>=100&&aggregateGroupCount>=50){
+      if(page.pageNumber===1&&(grid.periodCenters.length===7||grid.periodCenters.length===8)&&page.items.length>=100&&aggregateGroupCount>=50){
         diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;
       }
       diagnostics.blockingErrors.push("تعذر استخراج اسم المعلم من الصفحة "+page.pageNumber+". لم يتم تجاوزها أو تخمين اسمها.");continue;
     }
-    if(grid.dayCenters.some(value=>!Number.isFinite(value))||grid.periodCenters.length!==7){diagnostics.blockingErrors.push("لم يتم التحقق من عناوين الأيام السبعة أو أوقات الحصص في صفحة المعلم "+page.pageNumber+".");continue;}
+    if(grid.dayCenters.some(value=>!Number.isFinite(value))||![7,8].includes(grid.periodCenters.length)){diagnostics.blockingErrors.push("لم يتم التحقق من عناوين الأيام السبعة أو أوقات الحصص في صفحة المعلم "+page.pageNumber+".");continue;}
     if(!grid.valid){diagnostics.blockingErrors.push("تعذر التحقق من خطوط حدود الخانات في صفحة المعلم "+page.pageNumber+". لم يتم تخمين الخانات الممتدة.");continue;}
     const pageTimes=grid.orderedTimes.map(entry=>entry.time).join("|");
     if(!referenceTimes){referenceTimes=pageTimes;diagnostics.periodTimes=grid.orderedTimes;for(const entry of grid.orderedTimes)timeRows.push([entry.period,entry.time]);}
@@ -195,14 +201,14 @@ export function parseTimetablePdfPages(pages) {
     const teacherKey=normalizePdfArabic(teacherName).replace(/\s+/g," ");
     if(teacherNames.has(teacherKey)){diagnostics.blockingErrors.push("اسم المعلم مكرر في أكثر من صفحة: "+teacherName+" (الصفحة "+page.pageNumber+").");continue;}
     teacherNames.add(teacherKey);teacherRows.push([teacherName,teacherName,""]);diagnostics.teacherPageCount++;
-    const cells=new Map(),weeklyTeacherCells=Array.from({length:5},()=>Array(7).fill(null));
+    const cells=new Map(),weeklyTeacherCells=Array.from({length:5},()=>Array(grid.periodCount).fill(null));
     for(const item of page.items){
       const raw=String(item.str||"").trim();
       if(!raw||/aSc\s*Timetables/i.test(raw)||normalizePdfArabic(raw).includes("تم إنشاء الجدول")||parseTimes(raw).length===2||dayIndex(raw)>=0||/^[1-7]$/.test(normalizeDigits(normalizePdfArabic(raw))))continue;
       const pos=itemPosition(item);if(!Number.isFinite(pos.x)||!Number.isFinite(pos.y))continue;
-      const day=nearestIndex(pos.x,grid.dayCenters),period=nearestIndex(pos.y,grid.periodCenters);
+      const day=nearestIndex(pos.y,grid.dayCenters),period=nearestIndex(pos.x,grid.periodCenters);
       if(day.index<0||period.index<0||day.distance>58||period.distance>66)continue;
-      if(pos.x<Math.min(...grid.dayCenters)-55||pos.x>Math.max(...grid.dayCenters)+55)continue;
+      if(pos.y<Math.min(...grid.dayCenters)-55||pos.y>Math.max(...grid.dayCenters)+55)continue;
       const spanInfo=grid.spansByDay[day.index][period.index],key=day.index+":"+spanInfo.start;
       if(!cells.has(key))cells.set(key,[]);
       cells.get(key).push({item,spanInfo});
@@ -247,7 +253,7 @@ export function parseTimetablePdfPages(pages) {
   if(diagnostics.teacherPageCount>500)diagnostics.blockingErrors.push("عدد صفحات المعلمين يتجاوز الحد المسموح.");
   if(lessonRows.length-1>MAX_ROWS)diagnostics.blockingErrors.push("عدد سجلات الحصص المستخرجة يتجاوز الحد المسموح.");
   if(diagnostics.skippedPages.length)diagnostics.warnings.unshift("تم تجاوز صفحة الملخص رقم "+diagnostics.skippedPages.join("، ")+"؛ لم تُعامل كجدول معلم.");
-  for(const day of weeklyDays){day.totalCells=day.teachers.length*7;for(const teacher of day.teachers)for(const cell of teacher.cells)day.totals[cell.status]++;}
+  for(const day of weeklyDays){day.totalCells=day.teachers.length*(diagnostics.periodTimes.length||7);for(const teacher of day.teachers)for(const cell of teacher.cells)day.totals[cell.status]++;}
   /** @type {Record<string,Array<Array<string|number>>>} */
   const sheets={"المعلمون":teacherRows,"الحصص":lessonRows,"أوقات الحصص":timeRows,"بيانات PDF":metadataRows};
   return {weeklyDays,sheets,diagnostics};
