@@ -142,3 +142,11 @@ Deno.test("pending deletion intent survives localStorage failure through the dur
   assert(queue.includes("if (!localStorageSaved && !indexedDbSaved)"), "Queueing must report failure if both local persistence paths fail");
   assert(!queue.includes("sb.from("), "Queueing deletion intent must never write to Supabase");
 });
+
+
+
+Deno.test("teacher deletion UI does not claim the server record was deleted", () => {
+  const removeTeacher = section("async function deleteTeacher(", "function openPermissionsModal(");
+  assert(removeTeacher.includes("حذف سجله من الخادم لم يُنفذ وهو بانتظار المراجعة"), "Teacher deletion must be described as local-only and pending review");
+  assert(!removeTeacher.includes("showToast('تم الحذف.'"), "Teacher deletion must not report completed server deletion");
+});
