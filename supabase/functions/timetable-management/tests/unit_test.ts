@@ -1,6 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
-import { canIncludeOtherDepartments } from "../session_auth.ts";
+import { canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -189,4 +189,14 @@ Deno.test("only the system administrator can include teachers from other departm
   equal(canIncludeOtherDepartments("teacher", true), false, "Teacher cannot widen department scope by editing request payload");
   equal(canIncludeOtherDepartments("custom", true), false, "Coordinator cannot widen department scope by editing request payload");
   equal(canIncludeOtherDepartments("admin", "true"), false, "Non-boolean values are rejected");
+});
+
+Deno.test("department coordinators cannot browse full timetable imports or teacher directories", () => {
+  for (const action of ["timetable_list_imports", "timetable_get_import", "timetable_list_owner_candidates", "timetable_mutate_record", "timetable_reassign_owner"]) {
+    equal(canUseTimetableAction("teacher", action), false, "Teacher cannot access admin import action: " + action);
+    equal(canUseTimetableAction("custom", action), false, "Coordinator cannot access admin import action: " + action);
+    equal(canUseTimetableAction("admin", action), true, "Administrator retains access: " + action);
+  }
+  equal(canUseTimetableAction("custom", "timetable_substitution_preview"), true, "Authorized coordinator retains scoped substitution preview");
+  equal(canUseTimetableAction("custom", "timetable_substitution_save"), true, "Authorized coordinator retains scoped substitution save");
 });
