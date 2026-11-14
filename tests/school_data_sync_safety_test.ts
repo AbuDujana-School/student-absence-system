@@ -150,3 +150,22 @@ Deno.test("teacher deletion UI does not claim the server record was deleted", ()
   assert(removeTeacher.includes("حذف سجله من الخادم لم يُنفذ وهو بانتظار المراجعة"), "Teacher deletion must be described as local-only and pending review");
   assert(!removeTeacher.includes("showToast('تم الحذف.'"), "Teacher deletion must not report completed server deletion");
 });
+
+
+Deno.test("cloud loading never references removed legacy class-rename globals", () => {
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(!load.includes("classesFixed"), "Cloud loading must not read an undeclared legacy classesFixed flag");
+  assert(!load.includes("oldClassesMap"), "Cloud loading must not remap student class names through a removed legacy map");
+  assert(load.includes("let cn = r.class_name;"), "Student class names must be preserved as stored on the server");
+});
+
+Deno.test("deleting a class locally never marks the deleted class for cloud upsert", () => {
+  const at = html.indexOf("async function deleteClass");
+  const fallbackAt = html.indexOf("async function removeClass");
+  const candidates = [at, fallbackAt, html.indexOf("async function deleteClassPrompt"), html.indexOf("async function removeClassPrompt")].filter(x => x >= 0);
+  const deleteAt = candidates.length ? Math.min(...candidates) : html.indexOf("db.classes = db.classes.filter(c => c !== s);");
+  assert(deleteAt >= 0, "Class deletion handler must exist");
+  const fragment = html.slice(deleteAt, deleteAt + 1800);
+  assert(fragment.includes("dirtySets.classes.delete(s)"), "A locally deleted class must not be queued for class upsert");
+  assert(!fragment.includes("dirtySets.classes.add(s)"), "Deleted class must not be re-created by the next save");
+});
