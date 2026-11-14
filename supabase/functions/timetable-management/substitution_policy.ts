@@ -29,18 +29,22 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
-  const historicalScore=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
-    activeAssignments.filter(a=>a.substituteTeacherId===teacherId&&a.assignmentType!=="duty"),assignmentDate,period
+  const historyFor=(teacherId:string)=>activeAssignments.filter(a=>
+    a.substituteTeacherId===teacherId&&a.assignmentType!=="duty"&&
+    (!assignmentDate||!a.assignmentDate||a.assignmentDate<=assignmentDate)
   );
+  const historicalScore=(history:SubstitutionAssignment[]):number=>
+    calculateSubstitutionWorkloadScore(history,assignmentDate,period);
   return teachers.filter(t=>t.id!==absentTeacherId)
     // Teachers assigned to a school/category duty day are unavailable for substitution that day.
     .filter(t=>!t.dutyDay||t.dutyDay!==weekday)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).map(t=>{
-      const substitutionsCount=activeAssignments.filter(a=>a.substituteTeacherId===t.id&&a.assignmentType!=="duty").length;
+      const history=historyFor(t.id);
+      const substitutionsCount=history.length;
       const weeklyQuota=Math.max(0,Number(t.weeklyQuota)||0);
-      return {...t,substitutionsCount,workloadScore:weeklyQuota+substitutionsCount*2,historicalWorkloadScore:historicalScore(t.id)};
+      return {...t,substitutionsCount,workloadScore:weeklyQuota+substitutionsCount*2,historicalWorkloadScore:historicalScore(history)};
     })
     .sort((a,b)=>(a.workloadScore??0)-(b.workloadScore??0)||(a.historicalWorkloadScore??0)-(b.historicalWorkloadScore??0)||a.name.localeCompare(b.name,"ar"));
 }
