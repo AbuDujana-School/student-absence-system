@@ -1,6 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName } from "../timetable_import.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { calculateTeacherWorkload, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -108,4 +108,39 @@ Deno.test("department coordinators only see absent teachers in their own departm
   equal(scoped[0], "معلم قسم العلوم", "Only own-department teacher should be visible");
   const admin = getVisibleAbsentTeachers(cells, directory, "", true);
   equal(admin.length, 2, "Administrator sees all teaching teachers, excluding custom accounts");
+});
+
+
+Deno.test("substitution ranking balances historical workload and adjacent assignments", () => {
+  const assignments = [
+    { substituteTeacherId: "heavy", weekday: "الأحد", period: 2, assignmentDate: "2026-11-08", status: "completed" as const, assignmentType: "substitution" },
+    { substituteTeacherId: "heavy", weekday: "الاثنين", period: 3, assignmentDate: "2026-11-09", status: "completed" as const, assignmentType: "supervision" },
+    { substituteTeacherId: "light", weekday: "الأحد", period: 6, assignmentDate: "2026-11-08", status: "completed" as const, assignmentType: "substitution" },
+  ];
+  const heavy = calculateTeacherWorkload("heavy", assignments, "الأحد", 3, "2026-11-15");
+  const light = calculateTeacherWorkload("light", assignments, "الأحد", 3, "2026-11-15");
+  assert(heavy.score > light.score, "Historical duty and substitution work must contribute to workload");
+  equal(heavy.semesterAssignments, 2, "All historical active assignments count");
+});
+
+Deno.test("supervision assignments block same-slot substitution candidates", () => {
+  const teachers: SubstitutionTeacher[] = [
+    { id: "free", name: "معلم متاح", departmentId: "science" },
+    { id: "duty", name: "معلم مناوب", departmentId: "science" },
+  ];
+  const timetable: TimetableEntry[] = [
+    { teacherId: "free", weekday: "الأحد", period: 3, className: "", status: "free" },
+    { teacherId: "duty", weekday: "الأحد", period: 3, className: "", status: "free" },
+  ];
+  const candidates = getAvailableSubstitutionCandidates({
+    teachers, timetable,
+    assignments: [{
+      substituteTeacherId: "duty", weekday: "الأحد", period: 3,
+      assignmentDate: "2026-11-15", status: "assigned", assignmentType: "supervision",
+    }],
+    absentTeacherId: "absent", weekday: "الأحد", period: 3,
+    departmentId: "science", assignmentDate: "2026-11-15",
+  });
+  equal(candidates.length, 1, "A teacher with a duty in the same slot must be excluded");
+  equal(candidates[0].id, "free", "Only the teacher without a conflicting duty remains");
 });
