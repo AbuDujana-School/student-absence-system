@@ -10098,7 +10098,9 @@ async function timetableImportPdf() {
     diagnostics.currentDutyTimesMatch=timetablePdfTimesMatch(diagnostics.periodTimes);
     if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
     const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
-    if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||day.teachers.length!==69||day.teachers.some(teacher=>!Array.isArray(teacher.cells)||teacher.cells.length!==7)))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: يجب أن يحتوي كل يوم على 69 معلماً وسبع حصص لكل معلم.");
+    if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||!day.teachers.length||day.teachers.length>500))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: عدد المعلمين في أحد الأيام غير صالح.");
+    const importedPeriodCount=days[0]?.teachers?.[0]?.cells?.length;
+    if(![7,8].includes(importedPeriodCount)||days.some(day=>day.teachers.some(teacher=>!Array.isArray(teacher.cells)||teacher.cells.length!==importedPeriodCount)))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: يجب أن يحتوي كل معلم على العدد نفسه من الحصص (7 أو 8).");
     const token=readAppAuthToken();if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     const candidatesResponse=await appAuthRequest({action:"timetable_list_owner_candidates"},token);
     const candidates=(candidatesResponse?.teachers||[]).filter(item=>String(item?.name||"").trim()),candidateMap=new Map();
