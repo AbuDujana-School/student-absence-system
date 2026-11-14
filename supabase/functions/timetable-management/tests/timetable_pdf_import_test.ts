@@ -1,4 +1,4 @@
-import { extractHorizontalLinesFromOperatorList, normalizePdfSubject, parseTimetablePdfPages } from "../../../../timetable_pdf_import.js";
+import { extractHorizontalLinesFromOperatorList, extractVerticalLinesFromOperatorList, normalizePdfSubject, parseTimetablePdfPages } from "../../../../timetable_pdf_import.js";
 
 function verticalText(str: string, x: number, y: number, width = 50) {
   return { str, transform: [0, 1, -1, 0, x, y], width, height: 9 };
@@ -127,4 +127,14 @@ Deno.test("PDF parser fails closed when grid geometry is unavailable", () => {
   page.horizontalLines=[];
   const parsed=parseTimetablePdfPages([page]);
   if(!parsed.diagnostics.blockingErrors.some(item=>item.includes("حدود الخانات")))throw new Error("A page without verifiable grid lines must block import rather than guess merged cells");
+});
+
+Deno.test("PDF vector path reader extracts vertical cell dividers", () => {
+  const OPS={constructPath:99,moveTo:1,lineTo:2,rectangle:3,curveTo:4,curveTo2:5,curveTo3:6,closePath:7};
+  const operatorList={fnArray:[99],argsArray:[[new Uint8Array([1,2,2]),new Float32Array([310,643,310,538,401,538])]]};
+  const lines=extractVerticalLinesFromOperatorList(operatorList,OPS);
+  if(lines.length!==1||lines[0].x!==310||lines[0].y1!==538||lines[0].y2!==643)throw new Error("The PDF path operator was not converted into a vertical divider");
+  const rectangleList={fnArray:[99],argsArray:[[new Uint8Array([3]),new Float32Array([310,538,4.8,105])]]};
+  const rectangleLines=extractVerticalLinesFromOperatorList(rectangleList,OPS);
+  if(rectangleLines.length!==2||rectangleLines[0].y2-rectangleLines[0].y1!==105)throw new Error("Thin rectangular vertical grid lines must also be extracted");
 });
