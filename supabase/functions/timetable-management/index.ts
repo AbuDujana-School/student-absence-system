@@ -480,6 +480,7 @@ async function handle(req: Request) {
   }
 
   if (body.action === "teacher_timetable_get_own") {
+    if (principal.type !== "teacher") return reply(403, { error: "الجدول الشخصي متاح لحسابات المعلمين المرتبطة فقط." });
     try {
       const { data: portalSetting, error: portalSettingError } = await db.from("teacher_timetable_portal_settings")
         .select("enabled").eq("id", true).maybeSingle();
