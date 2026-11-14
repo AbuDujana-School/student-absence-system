@@ -3108,7 +3108,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel وCSV مع مراجعة المطابقة قبل الحفظ.</p></div>
           <div class="rounded-2xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 space-y-3 mb-4">
-  <div><h4 class="font-black text-sm text-indigo-900 dark:text-indigo-100">استيراد الجدول الأسبوعي من PDF</h4><p class="mt-1 text-xs text-slate-600 dark:text-slate-300">يقرأ جميع الصفحات والنصوص وخطوط حدود الخانات، ثم يبني خمسة أيام × سبع حصص لكل معلم في معاينة قابلة للتعديل. لا يحفظ أو يعتمد الجدول تلقائياً.</p></div>
+  <div><h4 class="font-black text-sm text-indigo-900 dark:text-indigo-100">استيراد الجدول الأسبوعي من PDF</h4><p class="mt-1 text-xs text-slate-600 dark:text-slate-300">يقرأ جميع الصفحات والنصوص وخطوط حدود الخانات، ثم يبني خمسة أيام × سبع حصص لكل معلم في معاينة قابلة للتعديل. ينشئ مسودة جديدة مستقلة ولا يستبدل أي مسودة سابقة.</p></div>
   <div id="timetablePdfDropZone" class="tt-drop" role="button" tabindex="0" onclick="document.getElementById('timetablePdfFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetablePdfFile').click()}"><div class="text-2xl mb-2">📄</div><strong class="text-sm text-slate-800 dark:text-white">اسحب ملف PDF كاملاً هنا أو انقر لاختياره</strong><p class="mt-1 text-[10px] text-slate-500">PDF · حتى 20 ميجابايت · 150 صفحة كحد أقصى</p></div>
   <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end"><div><label for="timetablePdfFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">ملف جدول الحصص PDF</label><input id="timetablePdfFile" type="file" accept=".pdf,application/pdf" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-indigo-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div><button id="timetablePdfImportButton" type="button" onclick="timetableImportPdf()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-file-pdf ml-1"></i> تحليل PDF وإنشاء المعاينة</button></div>
   <div id="timetablePdfWorkerProgress" class="hidden rounded-xl border border-indigo-200 dark:border-indigo-900 bg-white/70 dark:bg-slate-900/60 p-3 space-y-2" role="status" aria-live="polite"><div class="flex items-center justify-between gap-2 text-[10px] font-bold text-indigo-900 dark:text-indigo-100"><span id="timetablePdfWorkerProgressLabel">تهيئة قارئ PDF...</span><span id="timetablePdfWorkerProgressValue">0%</span></div><div class="h-2 overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-900"><div id="timetablePdfWorkerProgressBar" class="h-full rounded-full bg-indigo-700 transition-all" style="width:0%"></div></div></div>
@@ -9405,9 +9405,13 @@ async function timetableSaveDayText() {
   try {
     const token = appAuthSession?.token || readAppAuthToken();
     const saved = [];
+    let targetVersionId = preview.createNewDraft ? (preview.targetVersionId || null) : timetableWeeklyDraftId;
+    if (preview.createNewDraft && !targetVersionId) timetableWeeklyDraftDays = new Set();
     for (const day of days) {
-      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:timetableWeeklyDraftId},token);
-      timetableWeeklyDraftId = response.result.version_id;
+      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:targetVersionId},token);
+      targetVersionId = response.result.version_id;
+      if (preview.createNewDraft) preview.targetVersionId = targetVersionId;
+      timetableWeeklyDraftId = targetVersionId;
       timetableWeeklyDraftDays.add(day.weekday);
       saved.push(day.weekday);
     }
@@ -9423,19 +9427,26 @@ async function timetableSaveDayText() {
 }
 async function timetableSaveSinglePreviewDay(weekday) {
   const preview=timetableDayImportPreview;
+  if (Array.isArray(preview?.periodTimes) && !timetablePdfTimesMatch(preview.periodTimes)) {
+    timetableWeeklySetStatus("أوقات ملف PDF لا تطابق أوقات الحصص في إعدادات duty_module. وحّد الأوقات أولاً؛ لم يُحفظ اليوم.", "error"); return;
+  }
   const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
   const day=days.find(item=>item.weekday===weekday);
   if(!day)return;
-  try {
+  try{
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
-    const response=await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:timetableWeeklyDraftId},token);
-    timetableWeeklyDraftId=response.result.version_id;
+    let targetVersionId=preview?.createNewDraft?(preview.targetVersionId||null):timetableWeeklyDraftId;
+    if(preview?.createNewDraft&&!targetVersionId)timetableWeeklyDraftDays=new Set();
+    const response=await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:targetVersionId},token);
+    targetVersionId=response.result.version_id;
+    if(preview?.createNewDraft)preview.targetVersionId=targetVersionId;
+    timetableWeeklyDraftId=targetVersionId;
     timetableWeeklyDraftDays.add(day.weekday);
     const activate=document.getElementById("timetableActivateWeekButton");
     if(activate)activate.disabled=timetableWeeklyDraftDays.size!==5;
     timetableWeeklySetStatus("تم حفظ يوم "+day.weekday+" مستقلاً في المسودة. يمكنك إكمال بقية الأيام لاحقاً.","success");
-  } catch(error) { timetableWeeklySetStatus(error?.message||"تعذر حفظ اليوم.","error"); }
+  }catch(error){timetableWeeklySetStatus(error?.message||"تعذر حفظ اليوم.","error");}
 }
 async function timetableActivateWeek() {
   if (Array.isArray(timetableDayImportPreview?.periodTimes) && !timetablePdfTimesMatch(timetableDayImportPreview.periodTimes)) {
@@ -10111,7 +10122,10 @@ async function timetableImportPdf() {
     if(collisions.size)for(const day of days)for(const teacher of day.teachers)if(collisions.has(timetableNormalizeNameKey(teacher.sourceName))){teacher.matchStatus="ambiguous";teacher.matchedTeacherName=null;}
     for(const day of days)day.matchingTotals={matched:day.teachers.filter(item=>item.matchStatus==="matched").length,unmatched:day.teachers.filter(item=>item.matchStatus==="unmatched").length,ambiguous:day.teachers.filter(item=>item.matchStatus==="ambiguous").length};
     timetableValidateWeeklyTeacherSets(days);
-    timetableDayImportPreview={days,periodTimes:diagnostics.periodTimes};timetableRenderDayPreview();timetablePdfRenderDiagnostics(diagnostics);
+    timetableWeeklyDraftId=null;timetableWeeklyDraftDays=new Set();
+    timetableDayImportPreview={days,periodTimes:diagnostics.periodTimes,createNewDraft:true,targetVersionId:null};
+    const activateButton=document.getElementById("timetableActivateWeekButton");if(activateButton)activateButton.disabled=true;
+    timetableRenderDayPreview();timetablePdfRenderDiagnostics(diagnostics);
     const unclear=days.reduce((sum,day)=>sum+(day.totals?.unclear||0),0),unmatched=days[0].matchingTotals.unmatched+days[0].matchingTotals.ambiguous;
     const timeMessage=diagnostics.currentDutyTimesMatch?"أوقات الملف مطابقة لإعدادات الحصص الحالية.":"أوقات الملف لا تطابق duty_module؛ تم إيقاف الحفظ حتى توحيدها.";
     timetableWeeklySetStatus("اكتمل تحليل "+diagnostics.pageCount+" صفحة: "+diagnostics.teacherPageCount+" معلماً، و"+days[0].totalCells*5+" خانة أسبوعية. "+timeMessage+" اكتُشفت "+(diagnostics.mergedCells||[]).length+" خانات ممتدة وحُسبت كل منها فترتين. توجد "+unclear+" خانة تحتاج مراجعة، و"+unmatched+" اسماً يحتاج ربطاً أو تأكيداً. راجع الخانات البرتقالية قبل حفظ المسودة.",!diagnostics.currentDutyTimesMatch||unclear||unmatched?"info":"success");
