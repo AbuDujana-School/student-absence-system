@@ -30,11 +30,11 @@
           page.getOperatorList(),
         ]);
         const items=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
-        const horizontalLines=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const horizontalLines=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);\n        const verticalLines=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
         const teacherItems=items.filter(isArabicTeacherName);
         const hasTimeRows=items.filter(item=>/\d{1,2}:\d{2}/.test(normalizeDigits(item.str))).length>=7;
         if(pageNumber>1&&(!teacherItems.length||!hasTimeRows||items.length<12))throw new Error("تعذر التحقق من محتوى الصفحة "+pageNumber+". قد تكون ممسوحة ضوئياً أو غير مطابقة لتخطيط الجدول؛ لم يتم تجاوزها.");
-        pages.push({pageNumber,width:viewport.width,height:viewport.height,items,horizontalLines});
+        pages.push({pageNumber,width:viewport.width,height:viewport.height,items,horizontalLines,verticalLines});
         if(typeof onProgress==="function")onProgress({page:pageNumber,total:document.numPages,percent:Math.round(pageNumber/document.numPages*100),message:"قراءة صفحة "+pageNumber+" من "+document.numPages});
         page.cleanup();
       }
