@@ -2978,9 +2978,36 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <section id="sec-timetable" class="hidden space-y-5" dir="rtl">
         <div class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-gradient-to-l from-slate-950 via-cyan-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl">
           <div class="flex flex-wrap items-center justify-between gap-4">
-            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">استيراد الجدول</h2><p class="mt-2 text-xs text-cyan-100">ارفع ملف Excel لقراءة أوراقه وربط سجلات الحصص بأسماء المعلمين ومراجعتها.</p></div>
+            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">لوحة الجداول والاحتياط الذكية</h2><p class="mt-2 text-xs text-cyan-100">وزّع احتياط اليوم بسرعة، وراجع الجدول العام واعتماده من تبويب الإعدادات.</p></div>
             <span class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl text-emerald-200"><i class="fa-solid fa-file-excel"></i></span>
           </div>
+        </div>
+        <style>
+          #sec-timetable .tt-tabs{display:flex;gap:.5rem;flex-wrap:wrap;border-bottom:1px solid #cbd5e1;padding:.25rem 0 .75rem;margin:.25rem 0 1rem}
+          #sec-timetable .tt-tab{border:1px solid #cbd5e1;border-radius:.85rem;padding:.75rem 1rem;font-size:.78rem;font-weight:900;color:#475569;background:#fff}
+          #sec-timetable .tt-tab[aria-selected="true"]{background:#1e40af;border-color:#1e40af;color:#fff}
+          #sec-timetable .tt-toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
+          #sec-timetable .tt-search{width:100%;border:1px solid #cbd5e1;border-radius:.85rem;padding:.85rem;background:#fff;color:#0f172a}
+          #sec-timetable .tt-suggestions{position:absolute;z-index:30;top:calc(100% + .25rem);inset-inline:0;max-height:15rem;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:.85rem;box-shadow:0 12px 30px #0f172a18}
+          #sec-timetable .tt-suggestion{display:block;width:100%;padding:.7rem .85rem;text-align:right;font-size:.75rem;color:#0f172a}
+          #sec-timetable .tt-suggestion:hover{background:#eff6ff}
+          #sec-timetable .tt-tag{display:inline-flex;align-items:center;gap:.5rem;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:999px;padding:.35rem .7rem;font-size:.72rem;font-weight:900}
+          #sec-timetable .tt-lesson{min-width:0;border:1px solid #e2e8f0;border-radius:1rem;background:#fff;padding:.9rem;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:.65rem;align-items:center}
+          #sec-timetable .tt-lesson-main{grid-column:span 4}
+          #sec-timetable .tt-lesson-choice{grid-column:span 6;min-width:0}
+          #sec-timetable .tt-lesson-actions{grid-column:span 2;display:flex;gap:.35rem;justify-content:flex-end}
+          #sec-timetable .tt-lesson select{width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:.7rem;padding:.7rem;background:#f8fafc;color:#0f172a;font-size:.75rem}
+          #sec-timetable .tt-action{border-radius:.7rem;padding:.65rem .8rem;font-size:.7rem;font-weight:900}
+          #sec-timetable .tt-drop{border:2px dashed #94a3b8;border-radius:1rem;padding:1.5rem;text-align:center;background:#f8fafc;cursor:pointer}
+          #sec-timetable .tt-drop.is-over{border-color:#1d4ed8;background:#eff6ff}
+          @media(max-width:768px){#sec-timetable .tt-lesson{display:block;margin-bottom:.7rem}#sec-timetable .tt-lesson-main,#sec-timetable .tt-lesson-choice,#sec-timetable .tt-lesson-actions{display:block;width:100%;margin-top:.65rem}#sec-timetable .tt-lesson-actions{display:flex;justify-content:flex-start}#sec-timetable .tt-tab{flex:1 1 100%;text-align:center}}
+          @media print{body *{visibility:hidden!important}#sec-timetable,#sec-timetable *{visibility:visible!important}#sec-timetable{position:absolute!important;inset:0!important;width:100%!important;background:#fff!important;color:#000!important}#sec-timetable .tt-no-print,#sec-timetable button,#sec-timetable select{display:none!important}#sec-timetable .tt-lesson{break-inside:avoid;border:1px solid #999!important;color:#000!important}}
+        </style>
+        <div class="tt-dashboard">
+          <nav class="tt-tabs tt-no-print" aria-label="تبويبات الجداول والاحتياط">
+            <button type="button" class="tt-tab" id="timetableDailyTabButton" aria-selected="true" onclick="timetableSwitchDashboardTab('daily')">📅 الاحتياط اليومي</button>
+            <button type="button" class="tt-tab" id="timetableSettingsTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('settings')">⚙️ إعداد وإدارة الجدول العام</button>
+          </nav>
         </div>
         <div id="timetableAccessManagement" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بدخول هذه المنظومة.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
@@ -2988,7 +3015,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableAccessList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-100 dark:border-slate-700"><p class="p-4 text-xs text-slate-400">جارٍ تحميل المستخدمين...</p></div>
           <div class="flex flex-wrap items-center justify-between gap-3"><span id="timetableAccessStatus" class="text-[10px] text-slate-500"></span><button id="timetableAccessSaveButton" type="button" onclick="timetableSaveAccessChanges()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 px-5 py-2.5 text-xs font-black text-white">حفظ الصلاحيات</button></div>
         </div>
-        <div id="timetableAdminImportPanel">
+        <div id="timetableAdminImportPanel" class="hidden">
         <div id="timetableTextImportPanel" class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-paste ml-1 text-cyan-700"></i> إدخال الجدول اليومي من نص PDF</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يمكنك لصق تفريغ يوم واحد أو الأسبوع كاملاً بعناوين الأيام الخمسة. سيُنشئ النظام سبع خانات صريحة لكل معلم يومياً، بما فيها التدريس والفراغ والاجتماعات والخانات غير الواضحة.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
@@ -3010,9 +3037,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableDayPreview" class="hidden space-y-3"></div>
         </div>
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
-          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel بصيغتي XLSX وXLS.</p></div>
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel وCSV مع مراجعة المطابقة قبل الحفظ.</p></div>
+          <div id="timetableExcelDropZone" class="tt-drop tt-no-print" role="button" tabindex="0" onclick="document.getElementById('timetableExcelFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetableExcelFile').click()}">
+            <div class="text-2xl mb-2">📂</div><strong class="text-sm text-slate-800 dark:text-white">اسحب ملف الجدول هنا أو انقر لاختياره</strong><p class="mt-1 text-[10px] text-slate-500">XLSX · XLS · CSV — تتم مراجعة البيانات قبل اعتمادها</p>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
+            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm,.csv" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
             <button id="timetableImportButton" type="button" onclick="timetableImportWorkbook()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-cloud-arrow-up ml-1"></i> تحليل الملف</button>
           </div>
           <div id="timetableExcelWorkerProgress" class="hidden rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-3 space-y-2" role="status" aria-live="polite">
@@ -3051,16 +3081,28 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
+          <div class="tt-toolbar tt-no-print">
+            <div class="relative min-w-0 flex-1" style="min-width:min(100%,260px)">
+              <input id="timetableDailyAbsentSearch" type="search" autocomplete="off" class="tt-search" placeholder="ابحث عن المعلم الغائب ثم اختر اسمه..." oninput="timetableDailyFilterAbsentTeachers(this.value)" onkeydown="if(event.key==='Escape')document.getElementById('timetableDailySuggestions').classList.add('hidden')">
+              <div id="timetableDailySuggestions" class="tt-suggestions hidden"></div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="tt-action bg-blue-800 text-white" onclick="timetableDailyAutoAssign()">⚡ توزيع الاحتياط تلقائياً</button>
+              <button type="button" class="tt-action bg-emerald-600 text-white" onclick="timetableDailyShareWhatsApp()">💬 مشاركة كشف اليوم</button>
+              <button type="button" class="tt-action border border-slate-300 bg-white text-slate-800" onclick="window.print()">🖨️ طباعة الكشف</button>
+            </div>
+          </div>
+          <div id="timetableDailyAbsentTags" class="flex flex-wrap gap-2 min-h-7" aria-live="polite"></div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <label class="text-xs font-bold text-slate-600 dark:text-slate-300">تاريخ الغياب<input id="timetableSubstitutionDate" type="date" value="" onchange="timetableLoadSubstitutionOptions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
             <label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300 sm:col-span-2">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="">اختر المعلم الغائب</option></select></label>
+            <label class="hidden">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()"><option value="">اختر المعلم الغائب</option></select></label>
           </div>
           <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetablePreviewSubstitutions()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
           <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableSubstitutionResults" class="space-y-3"></div>
         </div>
-        <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
+        <div id="timetableSettingsNotice" class="hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
       </section>
         <div id="timetableRecordEditor" class="hidden fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
           <div class="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4">
@@ -7163,7 +7205,7 @@ function switchAdminTab(tab) {
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
-  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
@@ -9245,6 +9287,359 @@ async function timetableSaveSubstitution(period,substituteTeacherName) {
     await timetablePreviewSubstitutions();
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
 }
+
+
+/* Smart daily timetable dashboard: keeps the server as the source of truth. */
+let timetableDailyAbsentTeachers = [];
+let timetableDailyAbsentOptions = [];
+let timetableDailyPreviewByAbsent = new Map();
+let timetableDailyBusy = false;
+
+function timetableSwitchDashboardTab(tab) {
+  const settings = tab === "settings";
+  const isAdmin = activeUser?.type === "admin";
+  ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"].forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings || !isAdmin));
+  const access = document.getElementById("timetableAccessManagement");
+  if (access) access.classList.toggle("hidden", !settings || !isAdmin);
+  const notice = document.getElementById("timetableAdminImportNotice");
+  if (notice) notice.classList.toggle("hidden", !settings || isAdmin);
+  const daily = document.getElementById("timetableSubstitutionPanel");
+  if (daily) daily.classList.toggle("hidden", settings);
+  document.getElementById("timetableDailyTabButton")?.setAttribute("aria-selected", String(!settings));
+  document.getElementById("timetableSettingsTabButton")?.setAttribute("aria-selected", String(settings));
+  if (settings && activeUser?.type === "admin") {
+    timetableLoadImports();
+    timetableLoadAccessManagement();
+  }
+}
+
+function timetableDailyNormalizeName(value) {
+  return String(value || "").normalize("NFKC").replace(/[أإآٱ]/g,"ا").replace(/[ى]/g,"ي")
+    .replace(/[ًٌٍَُِّْـ]/g,"").replace(/\s+/g," ").trim().toLocaleLowerCase("ar");
+}
+
+async function timetableLoadSubstitutionOptions() {
+  const panel = document.getElementById("timetableSubstitutionPanel");
+  if (!panel || (activeUser?.type !== "admin" && !timetableCanAccess)) return;
+  panel.classList.remove("hidden");
+  try {
+    const dateInput = document.getElementById("timetableSubstitutionDate");
+    if (dateInput && !dateInput.value) dateInput.value = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
+    const {date,weekday} = timetableSubstitutionGetDate();
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+    const response = await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date},token);
+    const select = document.getElementById("timetableSubstitutionAbsentTeacher");
+    if (!response.active) {
+      timetableDailyAbsentOptions = [];
+      timetableDailyAbsentTeachers = [];
+      timetableDailyPreviewByAbsent.clear();
+      if (select) select.innerHTML = '<option value="">لا يوجد جدول أسبوعي معتمد</option>';
+      timetableDailyRenderTags();
+      timetableDailyRenderLessons();
+      timetableSubstitutionSetStatus("لا يوجد جدول أسبوعي نشط. يجب اعتماد جدول الأيام الخمسة أولاً.","info");
+      return;
+    }
+    timetableDailyAbsentOptions = response.absentTeachers || [];
+    if (select) select.innerHTML = '<option value="">اختر المعلم الغائب</option>' + timetableDailyAbsentOptions.map(name => '<option value="'+timetableEsc(name)+'">'+timetableEsc(name)+'</option>').join("");
+    timetableSubstitutionContext = {date,weekday,version:response.version};
+    timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(name => timetableDailyAbsentOptions.includes(name));
+    timetableDailyRenderTags();
+    await timetableDailyRefreshAll();
+    timetableSubstitutionSetStatus("الجدول النشط رقم "+response.version.version+" — اختر معلماً أو أكثر لعرض حصصهم.","success");
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "تعذر تحميل قائمة المعلمين.","error");
+  }
+}
+
+function timetableDailyFilterAbsentTeachers(query) {
+  const host = document.getElementById("timetableDailySuggestions");
+  if (!host) return;
+  const q = timetableDailyNormalizeName(query);
+  if (!q) { host.classList.add("hidden"); host.innerHTML = ""; return; }
+  const matches = timetableDailyAbsentOptions.filter(name =>
+    !timetableDailyAbsentTeachers.includes(name) && timetableDailyNormalizeName(name).includes(q)
+  ).slice(0,12);
+  host.innerHTML = matches.map(name =>
+    '<button type="button" class="tt-suggestion" data-tt-add-absent="'+timetableEsc(name)+'">'+timetableEsc(name)+'</button>'
+  ).join("");
+  host.classList.toggle("hidden", matches.length === 0);
+  host.querySelectorAll("[data-tt-add-absent]").forEach(button => button.addEventListener("click", () => {
+    timetableDailyAddAbsent(button.getAttribute("data-tt-add-absent"));
+  }));
+}
+
+async function timetableDailyAddAbsent(name) {
+  if (timetableDailyBusy) return;
+  if (!name || !timetableDailyAbsentOptions.includes(name) || timetableDailyAbsentTeachers.includes(name)) return;
+  timetableDailyAbsentTeachers.push(name);
+  const input = document.getElementById("timetableDailyAbsentSearch");
+  if (input) input.value = "";
+  document.getElementById("timetableDailySuggestions")?.classList.add("hidden");
+  timetableDailyRenderTags();
+  await timetableDailyRefreshOne(name);
+}
+
+async function timetableDailyRemoveAbsent(name) {
+  if (timetableDailyBusy) return;
+  timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(item => item !== name);
+  timetableDailyPreviewByAbsent.delete(name);
+  timetableDailyRenderTags();
+  timetableDailyRenderLessons();
+}
+
+function timetableDailySetBusy(disabled) {
+  ["timetableSubstitutionDate","timetableDailyAbsentSearch","timetableSubstitutionOtherDepartments"].forEach(id => {
+    const control = document.getElementById(id);
+    if (control) control.disabled = disabled;
+  });
+  document.querySelectorAll("#timetableDailyAbsentTags [data-tt-remove-absent]").forEach(button => button.disabled = disabled);
+  document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyAutoAssign]").forEach(button => button.disabled = disabled);
+}
+
+function timetableDailyRenderTags() {
+  const host = document.getElementById("timetableDailyAbsentTags");
+  if (!host) return;
+  host.innerHTML = timetableDailyAbsentTeachers.map(name =>
+    '<span class="tt-tag">'+timetableEsc(name)+'<button type="button" aria-label="إزالة '+timetableEsc(name)+'" data-tt-remove-absent="'+timetableEsc(name)+'">×</button></span>'
+  ).join("");
+  host.querySelectorAll("[data-tt-remove-absent]").forEach(button => button.addEventListener("click", () =>
+    timetableDailyRemoveAbsent(button.getAttribute("data-tt-remove-absent"))
+  ));
+}
+
+async function timetableDailyFetchPreview(absentTeacherName) {
+  const {date,weekday} = timetableSubstitutionGetDate();
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+  const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+  return await appAuthRequest({
+    action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName,includeOtherDepartments
+  },token);
+}
+
+async function timetableDailyRefreshOne(name) {
+  try {
+    const response = await timetableDailyFetchPreview(name);
+    timetableDailyPreviewByAbsent.set(name,response);
+    timetableDailyRenderLessons();
+    return response;
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "تعذر تحميل حصص المعلم المحدد.","error");
+    throw error;
+  }
+}
+
+async function timetableDailyRefreshAll() {
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableDailyPreviewByAbsent.clear();
+    timetableDailyRenderLessons();
+    return;
+  }
+  const results = await Promise.all(timetableDailyAbsentTeachers.map(async name => {
+    try { return [name,await timetableDailyFetchPreview(name)]; }
+    catch (error) { return [name,{error:error?.message || "تعذر تحميل بيانات المعلم."}]; }
+  }));
+  timetableDailyPreviewByAbsent = new Map(results);
+  timetableDailyRenderLessons();
+}
+
+function timetableDailyRenderLessons() {
+  const host = document.getElementById("timetableSubstitutionResults");
+  if (!host) return;
+  const rows = [];
+  for (const absentName of timetableDailyAbsentTeachers) {
+    const response = timetableDailyPreviewByAbsent.get(absentName);
+    if (!response) continue;
+    if (response.error) {
+      rows.push('<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">'+timetableEsc(absentName)+': '+timetableEsc(response.error)+'</div>');
+      continue;
+    }
+    for (const lesson of (response.lessons || [])) {
+      const candidates = lesson.candidates || [];
+      const assignment = lesson.assignment;
+      const status = assignment?.status === "confirmed" ? "مؤكد" : assignment?.status === "completed" ? "مكتمل" : "مسند";
+      const options = candidates.map(candidate =>
+        '<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+' (نصاب: '+Number(candidate.weeklyQuota || 0)+' | احتياط: '+Number(candidate.substitutionsCount || 0)+')</option>'
+      ).join("");
+      let choice = "";
+      if (assignment) {
+        choice = '<div class="rounded-lg bg-emerald-50 p-3 text-xs font-bold text-emerald-800">البديل: '+timetableEsc(assignment.substituteTeacherName)+' — '+status+'</div>';
+      } else if (candidates.length) {
+        choice = '<select data-tt-substitute data-absent="'+timetableEsc(absentName)+'" data-period="'+Number(lesson.period)+'"><option value="">اختر البديل المتاح — '+candidates.length+'</option>'+options+'</select>';
+      } else {
+        choice = '<div class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">لا يوجد بديل بفراغ مؤكد في هذه الحصة ضمن نطاق الصلاحية.</div>';
+      }
+      const actions = assignment && assignment.status !== "completed"
+        ? '<button type="button" class="tt-action border border-red-300 text-red-700" data-tt-cancel="'+timetableEsc(assignment.id)+'">إلغاء</button>'
+        : assignment ? '' : '<span class="text-[10px] text-slate-500">يحفظ الاختيار تلقائياً</span>';
+      const message = 'السلام عليكم، نحيطكم علماً بإسناد حصة احتياط لكم اليوم: الحصة '+lesson.period+'، الصف '+(lesson.className || "غير محدد")+'، المادة '+(lesson.subject || "غير محددة")+'. شاكرين تعاونكم.';
+      const wa = assignment ? '<button type="button" class="tt-action bg-emerald-600 text-white" data-tt-whatsapp="'+timetableEsc(assignment.substituteTeacherName)+'" data-tt-message="'+timetableEsc(message)+'">واتساب</button>' : '';
+      rows.push('<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] text-slate-500">المعلم الغائب</div><strong class="block text-xs text-slate-900">'+timetableEsc(absentName)+'</strong><div class="mt-2 text-xs font-black text-slate-800">الحصة '+Number(lesson.period)+' · '+timetableEsc(lesson.className || "الشعبة غير محددة")+'</div><div class="text-[10px] text-slate-500">'+timetableEsc(lesson.subject || "المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+'</div><div class="tt-lesson-actions">'+actions+wa+'</div></article>');
+    }
+  }
+  host.innerHTML = rows.length ? rows.join("") : '<div class="rounded-xl border border-slate-200 p-5 text-center text-xs text-slate-500">أضف معلماً غائباً لعرض حصصه والبدلاء المتاحين.</div>';
+  host.querySelectorAll("[data-tt-substitute]").forEach(select => select.addEventListener("change", async () => {
+    const absent = select.getAttribute("data-absent");
+    const period = Number(select.getAttribute("data-period"));
+    const substitute = select.value;
+    if (substitute) await timetableDailySaveSubstitution(absent,period,substitute,select);
+  }));
+  host.querySelectorAll("[data-tt-cancel]").forEach(button => button.addEventListener("click", () =>
+    timetableDailyCancelSubstitution(button.getAttribute("data-tt-cancel"))
+  ));
+  host.querySelectorAll("[data-tt-whatsapp]").forEach(button => button.addEventListener("click", () => {
+    const message = button.getAttribute("data-tt-message") || "";
+    window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+  }));
+}
+
+async function timetableDailySaveSubstitution(absentTeacherName,period,substituteTeacherName,control) {
+  if (timetableDailyBusy) return;
+  timetableDailyBusy = true;
+  timetableDailySetBusy(true);
+  if (control) control.disabled = true;
+  try {
+    const {date,weekday} = timetableSubstitutionGetDate();
+    const token = appAuthSession?.token || readAppAuthToken();
+    const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+    await appAuthRequest({
+      action:"timetable_substitution_save",weekday,assignmentDate:date,absentTeacherName,
+      substituteTeacherName,period,includeOtherDepartments
+    },token);
+    timetableSubstitutionSetStatus("تم حفظ تكليف "+substituteTeacherName+" للحصة "+period+" تلقائياً.","success");
+    await timetableDailyRefreshAll();
+  } catch (error) {
+    if (control) control.value = "";
+    timetableSubstitutionSetStatus(error?.message || "تعذر حفظ التكليف؛ لم يتم تغيير السجل.","error");
+    if (control) control.disabled = false;
+  } finally {
+    timetableDailyBusy = false;
+    timetableDailySetBusy(false);
+  }
+}
+
+async function timetableDailyCancelSubstitution(assignmentId) {
+  if (timetableDailyBusy) return;
+  if (!assignmentId || !window.confirm("هل تريد إلغاء تكليف الاحتياط المحدد؟")) return;
+  try {
+    const {date,weekday} = timetableSubstitutionGetDate();
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_substitution_cancel",weekday,assignmentDate:date,assignmentId},token);
+    timetableSubstitutionSetStatus("تم إلغاء التكليف بنجاح.","success");
+    await timetableDailyRefreshAll();
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "تعذر إلغاء التكليف.","error");
+  }
+}
+
+async function timetableDailyAutoAssign() {
+  if (timetableDailyBusy) return;
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableSubstitutionSetStatus("أضف معلماً غائباً واحداً على الأقل قبل التوزيع.","error");
+    return;
+  }
+  timetableDailyBusy = true;
+  timetableDailySetBusy(true);
+  let assigned = 0, skipped = 0, failed = 0;
+  try {
+    for (const absentName of [...timetableDailyAbsentTeachers]) {
+      let first = await timetableDailyFetchPreview(absentName);
+      if (!first.active) throw new Error("لا يوجد جدول أسبوعي نشط.");
+      for (const lesson of (first.lessons || [])) {
+        let current = await timetableDailyFetchPreview(absentName);
+        const freshLesson = (current.lessons || []).find(item => Number(item.period) === Number(lesson.period));
+        if (!freshLesson || freshLesson.assignment) { skipped++; continue; }
+        let saved = false;
+        for (const candidate of (freshLesson.candidates || [])) {
+          try {
+            const {date,weekday} = timetableSubstitutionGetDate();
+            const token = appAuthSession?.token || readAppAuthToken();
+            const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+            await appAuthRequest({
+              action:"timetable_substitution_save",weekday,assignmentDate:date,absentTeacherName:absentName,
+              substituteTeacherName:candidate.name,period:freshLesson.period,includeOtherDepartments
+            },token);
+            assigned++;
+            saved = true;
+            break;
+          } catch (error) {
+            if (error?.status === 401 || error?.status === 403 || error?.status >= 500) throw error;
+            // A concurrent assignment can invalidate a candidate; try the next server-ranked candidate.
+          }
+        }
+        if (!saved) {
+          skipped++;
+          if ((freshLesson.candidates || []).length) failed++;
+        }
+      }
+    }
+    await timetableDailyRefreshAll();
+    timetableSubstitutionSetStatus("اكتمل التوزيع: "+assigned+" تكليف محفوظ، "+skipped+" حصة بلا بديل مؤكد، "+failed+" إخفاق.","success");
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "توقف التوزيع بسبب خطأ. راجع التكليفات المحفوظة قبل إعادة المحاولة.","error");
+  } finally {
+    timetableDailyBusy = false;
+    timetableDailySetBusy(false);
+  }
+}
+
+async function timetableDailyShareWhatsApp() {
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableSubstitutionSetStatus("أضف المعلمين الغائبين أولاً.","error");
+    return;
+  }
+  const popup = window.open('about:blank','_blank');
+  if (!popup) {
+    timetableSubstitutionSetStatus('اسمح بالنوافذ المنبثقة لمشاركة كشف واتساب.','error');
+    return;
+  }
+  await timetableDailyRefreshAll();
+  let message = "*📋 كشف الاحتياط اليومي*\n";
+  const date = document.getElementById("timetableSubstitutionDate")?.value || "";
+  message += "📅 التاريخ: "+date+"\n\n";
+  let count = 0;
+  for (const absentName of timetableDailyAbsentTeachers) {
+    const response = timetableDailyPreviewByAbsent.get(absentName);
+    if (!response || response.error) continue;
+    for (const lesson of (response.lessons || [])) {
+      const assigned = lesson.assignment?.substituteTeacherName || "⚠️ لم يحدد";
+      message += "• "+absentName+" | الحصة "+lesson.period+" | "+(lesson.className || "الشعبة غير محددة")+" | "+(lesson.subject || "المادة غير محددة")+" ← "+assigned+"\n";
+      count++;
+    }
+  }
+  if (!count) {
+    popup.close();
+    timetableSubstitutionSetStatus("لا توجد حصص لعرضها في كشف اليوم.","info");
+    return;
+  }
+  popup.location.href = "https://wa.me/?text="+encodeURIComponent(message);
+}
+
+/* CSV and Excel share the existing worker, validation, draft and review pipeline. */
+function timetableInitExcelDropZone() {
+  const zone = document.getElementById("timetableExcelDropZone");
+  const input = document.getElementById("timetableExcelFile");
+  if (!zone || !input || zone.dataset.ready === "true") return;
+  zone.dataset.ready = "true";
+  zone.addEventListener("dragover", event => { event.preventDefault(); zone.classList.add("is-over"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("is-over"));
+  zone.addEventListener("drop", event => {
+    event.preventDefault();
+    zone.classList.remove("is-over");
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (!/\.(xlsx|xls|xlsm|csv)$/i.test(file.name)) {
+      timetableSetStatus("صيغة الملف غير مدعومة. اختر Excel أو CSV.","error");
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    timetableImportWorkbook();
+  });
+}
+timetableInitExcelDropZone();
 
 async function timetableParseWorkbookInWorker(file) {
   if(typeof Worker==="undefined") throw new Error("المتصفح لا يدعم المعالجة في الخلفية. افتح التطبيق من متصفح حديث.");
