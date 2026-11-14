@@ -3081,7 +3081,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel بصيغتي XLSX وXLS.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
+            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm,.csv" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
             <button id="timetableImportButton" type="button" onclick="timetableImportWorkbook()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-cloud-arrow-up ml-1"></i> تحليل الملف</button>
           </div>
           <div id="timetableExcelWorkerProgress" class="hidden rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-3 space-y-2" role="status" aria-live="polite">
@@ -7223,7 +7223,7 @@ function switchAdminTab(tab) {
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
-  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); if (window.ttDashboardLoadDay) window.ttDashboardLoadDay(); else timetableLoadSubstitutionOptions(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
