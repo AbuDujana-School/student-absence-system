@@ -9153,7 +9153,7 @@ async function timetableSaveDayText() {
     timetableWeeklySetStatus((error?.message || "تعذر حفظ الجدول.") + " الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
 }
-async function timetableSaveSinglePreviewDay(weekday) {
+async async function timetableSaveSinglePreviewDay(weekday) {
   const preview=timetableDayImportPreview;
   const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
   const day=days.find(item=>item.weekday===weekday);
