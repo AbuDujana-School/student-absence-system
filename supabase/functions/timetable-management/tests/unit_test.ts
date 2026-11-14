@@ -148,7 +148,7 @@ Deno.test("teachers assigned to an individual or department duty day are exclude
 
 Deno.test("candidate score is weekly teaching quota plus twice prior substitutions", () => {
   const teachers = [
-    { id: "higher", name: "نصاب أعلى", departmentId: "science", weeklyQuota: 20 },
+    { id: "higher", name: "نصاب أعلى", departmentId: "science", weeklyQuota: 21 },
     { id: "lower", name: "نصاب أقل", departmentId: "science", weeklyQuota: 16 },
   ];
   const timetable = teachers.map((teacher) => ({
@@ -163,7 +163,7 @@ Deno.test("candidate score is weekly teaching quota plus twice prior substitutio
     teachers, timetable, assignments, absentTeacherId: "absent",
     weekday: "الأحد", period: 2, departmentId: "science",
   });
-  equal(ranked[0].id, "higher", "20 workload points should rank ahead of 20? Historical score breaks ties after formula");
+  equal(ranked[0].id, "higher", "A score of 21 should rank ahead of a score of 20");
   equal(ranked.find((teacher) => teacher.id === "lower")?.substitutionsCount, 2, "Duty assignments are not counted as substitutions");
   equal(ranked.find((teacher) => teacher.id === "lower")?.workloadScore, 20, "16 + 2×2 should equal 20");
 });
