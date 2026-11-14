@@ -1,5 +1,5 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
-export interface SubstitutionTeacher { id:string; name:string; departmentId:string; workloadScore?:number; }
+export interface SubstitutionTeacher { id:string; name:string; departmentId:string; baseQuota?:number; dutyWeekday?:string; workloadScore?:number; }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
 export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; versionId?:string; assignmentType?:string; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
@@ -29,13 +29,20 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
-  const score=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
-    activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate,period
-  );
+  const score=(teacher:SubstitutionTeacher):number=>{
+    const history=activeAssignments.filter(a=>a.substituteTeacherId===teacher.id);
+    // When the complete weekly grid is available, use the requested transparent
+    // base teaching quota + twice the active substitution history. Keep the
+    // legacy recency-weighted score for callers that do not provide a quota.
+    return Number.isFinite(teacher.baseQuota)
+      ? Number(teacher.baseQuota) + history.length * 2
+      : calculateSubstitutionWorkloadScore(history,assignmentDate,period);
+  };
   return teachers.filter(t=>t.id!==absentTeacherId)
+    .filter(t=>t.dutyWeekday!==weekday)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
-    .filter(t=>!assigned.has(t.id)).map(t=>({...t,workloadScore:score(t.id)}))
+    .filter(t=>!assigned.has(t.id)).map(t=>({...t,workloadScore:score(t)}))
     .sort((a,b)=>(a.workloadScore??0)-(b.workloadScore??0)||a.name.localeCompare(b.name,"ar"));
 }
 
