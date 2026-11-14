@@ -158,7 +158,8 @@ Deno.test("candidate score is weekly teaching quota plus twice prior substitutio
     { substituteTeacherId: "lower", weekday: "الاثنين", period: 1, assignmentType: "substitution", status: "assigned" as const },
     { substituteTeacherId: "lower", weekday: "الثلاثاء", period: 1, assignmentType: "substitution", status: "confirmed" as const },
     { substituteTeacherId: "lower", weekday: "الأربعاء", period: 1, assignmentType: "duty", status: "confirmed" as const },
-    { substituteTeacherId: "lower", weekday: "الخميس", period: 1, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
+    { substituteTeacherId: "lower", weekday: "الخميس", period: 1, assignmentType: "supervision", status: "confirmed" as const },
+    { substituteTeacherId: "lower", weekday: "الخميس", period: 2, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
   ];
   const ranked = getAvailableSubstitutionCandidates({
     teachers, timetable, assignments, absentTeacherId: "absent",
@@ -241,4 +242,16 @@ Deno.test("department coordinators cannot browse full timetable imports or teach
   }
   equal(canUseTimetableAction("custom", "timetable_substitution_preview"), true, "Authorized coordinator retains scoped substitution preview");
   equal(canUseTimetableAction("custom", "timetable_substitution_save"), true, "Authorized coordinator retains scoped substitution save");
+});
+
+Deno.test("cumulative substitution score excludes future, cancelled, duty and supervision rows", () => {
+  const assignments = [
+    { substituteTeacherId: "t1", weekday: "الأحد", period: 1, assignmentDate: "2026-11-13", assignmentType: "substitution", status: "completed" as const },
+    { substituteTeacherId: "t1", weekday: "الأحد", period: 2, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
+    { substituteTeacherId: "t1", weekday: "الاثنين", period: 2, assignmentDate: "2026-11-12", assignmentType: "duty", status: "confirmed" as const },
+    { substituteTeacherId: "t1", weekday: "الثلاثاء", period: 2, assignmentDate: "2026-11-11", assignmentType: "supervision", status: "confirmed" as const },
+    { substituteTeacherId: "t1", weekday: "الأربعاء", period: 2, assignmentDate: "2026-11-10", assignmentType: "substitution", status: "cancelled" as const },
+  ];
+  const score = calculateSubstitutionWorkloadScore(assignments, "2026-11-14");
+  equal(score, 1 + 2 + 3 + 4, "Only the one prior active substitution contributes to total and recency score");
 });
