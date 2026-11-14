@@ -64,7 +64,7 @@ create table if not exists public.timetable_assignments (
   teacher_name text not null check (length(btrim(teacher_name)) > 0),
   assignment_type text not null check (assignment_type in ('substitution','duty','other')),
   weekday text not null check (weekday in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')),
-  period smallint not null check (period between 1 and 7),
+  period smallint not null check (period between 1 and 8),
   class_sections jsonb not null default '[]'::jsonb check (jsonb_typeof(class_sections) = 'array'),
   subject text not null default '',
   absent_teacher_name text,
