@@ -1,4 +1,4 @@
-name: Timetable management tests
+name: Timetable management tests # Isolated timetable hardening regression suite
 
 on:
   push:
