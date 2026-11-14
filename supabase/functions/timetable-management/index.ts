@@ -2,7 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
+import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, resolveSubstitutionDutyDay, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -82,7 +82,7 @@ async function teacherDirectory() {
   return (data || []).map((item: any) => {
     const category = String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || "");
     const personalDutyDay = String(item.permissions?.dutyDay || "");
-    const dutyDay = SCHOOL_DAYS.includes(personalDutyDay) ? personalDutyDay : String(subjectDays[category] || "");
+    const dutyDay = resolveSubstitutionDutyDay(personalDutyDay, category, subjectDays, DAYS);
     return {
       name: String(item.name || ""),
       role: String(item.role || ""),
