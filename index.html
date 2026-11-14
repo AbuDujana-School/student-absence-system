@@ -3015,7 +3015,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableAccessList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-100 dark:border-slate-700"><p class="p-4 text-xs text-slate-400">جارٍ تحميل المستخدمين...</p></div>
           <div class="flex flex-wrap items-center justify-between gap-3"><span id="timetableAccessStatus" class="text-[10px] text-slate-500"></span><button id="timetableAccessSaveButton" type="button" onclick="timetableSaveAccessChanges()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 px-5 py-2.5 text-xs font-black text-white">حفظ الصلاحيات</button></div>
         </div>
-        <div id="timetableAdminImportPanel">
+        <div id="timetableAdminImportPanel" class="hidden">
         <div id="timetableTextImportPanel" class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-paste ml-1 text-cyan-700"></i> إدخال الجدول اليومي من نص PDF</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يمكنك لصق تفريغ يوم واحد أو الأسبوع كاملاً بعناوين الأيام الخمسة. سيُنشئ النظام سبع خانات صريحة لكل معلم يومياً، بما فيها التدريس والفراغ والاجتماعات والخانات غير الواضحة.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
@@ -3037,9 +3037,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableDayPreview" class="hidden space-y-3"></div>
         </div>
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
-          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel بصيغتي XLSX وXLS.</p></div>
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel وCSV مع مراجعة المطابقة قبل الحفظ.</p></div>
+          <div id="timetableExcelDropZone" class="tt-drop tt-no-print" role="button" tabindex="0" onclick="document.getElementById('timetableExcelFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetableExcelFile').click()}">
+            <div class="text-2xl mb-2">📂</div><strong class="text-sm text-slate-800 dark:text-white">اسحب ملف الجدول هنا أو انقر لاختياره</strong><p class="mt-1 text-[10px] text-slate-500">XLSX · XLS · CSV — تتم مراجعة البيانات قبل اعتمادها</p>
+          </div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
-            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
+            <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm,.csv" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
             <button id="timetableImportButton" type="button" onclick="timetableImportWorkbook()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-cloud-arrow-up ml-1"></i> تحليل الملف</button>
           </div>
           <div id="timetableExcelWorkerProgress" class="hidden rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-3 space-y-2" role="status" aria-live="polite">
@@ -3099,7 +3102,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableSubstitutionResults" class="space-y-3"></div>
         </div>
-        <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
+        <div id="timetableSettingsNotice" class="hidden rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
       </section>
         <div id="timetableRecordEditor" class="hidden fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
           <div class="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4">
