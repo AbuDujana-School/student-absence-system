@@ -485,7 +485,7 @@ async function handle(req: Request) {
       const { data: portalSetting, error: portalSettingError } = await db.from("teacher_timetable_portal_settings")
         .select("enabled").eq("id", true).maybeSingle();
       if (portalSettingError) throw portalSettingError;
-      if (principal.type !== "admin" && portalSetting?.enabled !== true) {
+      if (portalSetting?.enabled !== true) {
         return reply(403, { error: "خدمة الجدول الشخصي غير مفعّلة حالياً من المدير العام." });
       }
       const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at").eq("status","active").maybeSingle();
