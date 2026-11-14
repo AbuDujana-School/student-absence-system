@@ -53,6 +53,11 @@ async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null
 function validUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
+async function timetableImportRequestHash(fileName: string, actorName: string, sheets: unknown): Promise<string> {
+  const canonicalPayload = JSON.stringify({ file_name: fileName, actor_name: actorName, sheets });
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(canonicalPayload));
+  return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
+}
 async function teacherDirectory() {
   const { data, error } = await db.from("teachers").select("name,role,permissions").in("role", ["teacher","custom"]).order("name");
   if (error) throw error;
@@ -115,8 +120,20 @@ async function handle(req: Request) {
           importedAt: new Date().toISOString(), importedBy: principal.name, result: parsed,
         });
       }
+      const idempotencyKey = String(body.idempotencyKey || "");
+      if (!validUuid(idempotencyKey)) {
+        return reply(400, { error: "معرّف محاولة حفظ المسودة غير صالح. أعد اختيار الملف ثم حاول مجدداً." });
+      }
+      const fileName = String(body.fileName || "ملف Excel").slice(0, 180);
+      const requestHash = await timetableImportRequestHash(fileName, principal.name, sheets);
       const { data, error } = await db.rpc("save_timetable_import", {
-        p_payload: { file_name: String(body.fileName || "ملف Excel").slice(0, 180), actor_name: principal.name, result: parsed },
+        p_payload: {
+          file_name: fileName,
+          actor_name: principal.name,
+          idempotency_key: idempotencyKey,
+          request_hash: requestHash,
+          result: parsed,
+        },
       });
       if (error) throw error;
       return reply(200, { ok: true, saved: data });
