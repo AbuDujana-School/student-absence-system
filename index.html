@@ -9377,7 +9377,14 @@ async function timetableDailyAddAbsent(name) {
   if (input) input.value = "";
   document.getElementById("timetableDailySuggestions")?.classList.add("hidden");
   timetableDailyRenderTags();
-  await timetableDailyRefreshOne(name);
+  try {
+    await timetableDailyRefreshOne(name);
+  } catch (error) {
+    // Keep the selected absent teacher visible and render the per-teacher error
+    // instead of leaking an unhandled promise rejection from the suggestion click.
+    timetableDailyPreviewByAbsent.set(name, { error: error?.message || "تعذر تحميل حصص المعلم المحدد." });
+    timetableDailyRenderLessons();
+  }
 }
 
 async function timetableDailyRemoveAbsent(name) {
