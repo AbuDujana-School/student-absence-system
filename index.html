@@ -4926,7 +4926,16 @@ function saveToLocalStorageSafe() {
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full; IndexedDB is the durable store when available.', e); }
+  } catch(e) {
+    const quotaExceeded = e?.name === 'QuotaExceededError' || e?.code === 22 || e?.code === 1014;
+    if (quotaExceeded) {
+      // localStorage is only a cache; preserve the complete offline snapshot in IndexedDB.
+      void persistOfflineState().catch(storageError => console.warn('IndexedDB fallback failed; keep the current in-memory state and retry sync.', storageError));
+      console.warn('LocalStorage quota reached; saved the durable snapshot through IndexedDB when available.', e);
+      return;
+    }
+    console.warn('LocalStorage cache write failed; IndexedDB remains the durable store when available.', e);
+  }
 }
 function loadDirtySetsFromLocal() {
   try {
