@@ -47,8 +47,12 @@ const timetableAuthStore: TimetableAuthStore = {
   },
   async hasLinkedTeacherPortalAccess(name) {
     const { data: setting, error: settingError } = await db.from("teacher_timetable_portal_settings")
-      .select("enabled").eq("id", true).maybeSingle();
+      .select("enabled,selected_teacher_names").eq("id", true).maybeSingle();
     if (settingError || setting?.enabled !== true) return false;
+    const selectedNames = Array.isArray(setting.selected_teacher_names)
+      ? setting.selected_teacher_names.map((value: unknown) => String(value).trim()).filter(Boolean)
+      : [];
+    if (selectedNames.length > 0 && !selectedNames.includes(name)) return false;
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
     if (versionError || !version) return false;
@@ -260,7 +264,7 @@ async function handle(req: Request) {
     if (principal.type !== "admin") return reply(403, { error: "تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط." });
     try {
       const [{ data: setting, error: settingError }, { data: version, error: versionError }] = await Promise.all([
-        db.from("teacher_timetable_portal_settings").select("enabled,updated_by,updated_at").eq("id", true).maybeSingle(),
+        db.from("teacher_timetable_portal_settings").select("enabled,selected_teacher_names,updated_by,updated_at").eq("id", true).maybeSingle(),
         db.from("timetable_weekly_versions").select("id").eq("status", "active").maybeSingle(),
       ]);
       if (settingError) throw settingError;
@@ -279,12 +283,37 @@ async function handle(req: Request) {
       return reply(200, {
         enabled: setting?.enabled === true,
         eligibleTeacherCount,
+        selectedTeacherNames: Array.isArray(setting?.selected_teacher_names) ? setting.selected_teacher_names : [],
+        eligibleTeachers: version ? (await db.from("teachers").select("name").eq("role","teacher").order("name")).data || [] : [],
         updatedBy: setting?.updated_by || null,
         updatedAt: setting?.updated_at || null,
       });
     } catch (error) {
       console.error("Teacher timetable portal status failed:", error instanceof Error ? error.message : "unknown");
       return reply(500, { error: "تعذر تحميل حالة تفعيل الجداول للمعلمين." });
+    }
+  }
+
+  if (action === "timetable_portal_set_custom_teachers") {
+    if (principal.type !== "admin") return reply(403, { error: "تخصيص عرض الجداول متاح لمدير النظام العام فقط." });
+    if (!Array.isArray(body.teacherNames) || body.teacherNames.length > 500) {
+      return reply(400, { error: "قائمة المعلمين المحددين غير صالحة." });
+    }
+    const names = [...new Set(body.teacherNames.map((value: unknown) => String(value || "").trim()).filter((value: string) => value.length > 0))];
+    if (names.some((name: string) => name.length > 160)) return reply(400, { error: "يوجد اسم معلم أطول من الحد المسموح." });
+    try {
+      const { data: teachers, error: teachersError } = await db.from("teachers").select("name").eq("role","teacher").in("name",names);
+      if (teachersError) throw teachersError;
+      const validNames = new Set((teachers || []).map((item: any) => String(item.name)));
+      if (names.some((name: string) => !validNames.has(name))) return reply(400, { error: "تتضمن القائمة اسماً غير موجود في فهرس المعلمين." });
+      const { data, error } = await db.from("teacher_timetable_portal_settings").upsert({
+        id: true, selected_teacher_names: names, updated_by: principal.name, updated_at: new Date().toISOString(),
+      }, { onConflict: "id" }).select("selected_teacher_names").single();
+      if (error) throw error;
+      return reply(200, { ok: true, selectedTeacherNames: data.selected_teacher_names || [] });
+    } catch (error) {
+      console.error("Teacher timetable custom visibility update failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر حفظ قائمة المعلمين المحددين." });
     }
   }
 
