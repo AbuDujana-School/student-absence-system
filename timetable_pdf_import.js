@@ -77,13 +77,12 @@ function isGroupMarker(value) {
 function isOnlyDigitsOrPunctuation(value) {
   return /^[\d\s/.,،؛:()\-]+$/.test(normalizeDigits(normalizePdfArabic(value)));
 }
-function teacherNameFromItems(items) {
-  const candidates = items.map(item => ({ item, pos: itemPosition(item) }))
-    .filter(({ item, pos }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalizePdfArabic(item.str)))
-    .map(({ item }) => normalizePdfArabic(item.str))
-    .filter(text => text.length >= 3 && !text.includes("تم إنشاء الجدول"));
-  candidates.sort((a, b) => b.length - a.length);
-  return candidates[0] || "";
+function teacherNameInfoFromItems(items) {
+  const candidates = items.map(item => ({ item, pos: itemPosition(item), normalized: normalizePdfArabic(item.str) }))
+    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalized))
+    .filter(({ normalized }) => normalized.length >= 3 && !normalized.includes("تم إنشاء الجدول"));
+  candidates.sort((a, b) => b.normalized.length - a.normalized.length);
+  return candidates[0] ? { name: candidates[0].normalized, original: String(candidates[0].item.str || "").trim() } : { name: "", original: "" };
 }
 export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
   const lines = [];
@@ -161,7 +160,7 @@ function makePageGrid(page) {
 }
 /**
  * @typedef {{period:number,status:string,classSections:string[],subject:string,sourceClass:string,sourceSubject:string,sourceStatus:string,sourceNote:string}} PdfCell
- * @typedef {{sourceName:string,pdfPage:number,matchStatus?:string,matchedTeacherName?:string|null,cells:PdfCell[]}} PdfTeacher
+ * @typedef {{sourceName:string,sourceNameOriginal:string,pdfPage:number,matchStatus?:string,matchedTeacherName?:string|null,cells:PdfCell[]}} PdfTeacher
  * @typedef {{weekday:string,teachers:PdfTeacher[],totals:{teaching:number,free:number,meeting:number,activity:number,other:number,unclear:number},totalCells:number,warnings:string[],matchingTotals?:{matched:number,unmatched:number,ambiguous:number}}} PdfDay
  */
 export function parseTimetablePdfPages(pages) {
@@ -180,7 +179,7 @@ export function parseTimetablePdfPages(pages) {
   const weeklyDays=WEEKDAYS.map(weekday=>({weekday,teachers:[],totals:{teaching:0,free:0,meeting:0,activity:0,other:0,unclear:0},totalCells:0,warnings:[]}));
   const teacherNames=new Set();let referenceTimes="";
   for(const page of pages){
-    const teacherName=teacherNameFromItems(page.items),grid=makePageGrid(page);
+    const teacherInfo=teacherNameInfoFromItems(page.items),teacherName=teacherInfo.name,teacherNameOriginal=teacherInfo.original,grid=makePageGrid(page);
     if(!teacherName){
       if(page.pageNumber===1&&grid.periodCenters.length>=7){diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;}
       diagnostics.blockingErrors.push("تعذر استخراج اسم المعلم من الصفحة "+page.pageNumber+". لم يتم تجاوزها أو تخمين اسمها.");continue;
@@ -235,7 +234,7 @@ export function parseTimetablePdfPages(pages) {
     }
     for(let day=0;day<5;day++){
       const cellsForDay=weeklyTeacherCells[day].map((cell,index)=>cell||{period:index+1,status:"free",classSections:[],subject:"",sourceClass:"",sourceSubject:"",sourceStatus:"فراغ",sourceNote:""});
-      weeklyDays[day].teachers.push({sourceName:teacherName,pdfPage:page.pageNumber,cells:cellsForDay});
+      weeklyDays[day].teachers.push({sourceName:teacherName,sourceNameOriginal:teacherNameOriginal,pdfPage:page.pageNumber,cells:cellsForDay});
     }
     diagnostics.teachers.push({page:page.pageNumber,name:teacherName,lessonCount:pageLessonCount});
     metadataRows.push([page.pageNumber,"جدول معلم",teacherName,pageLessonCount]);

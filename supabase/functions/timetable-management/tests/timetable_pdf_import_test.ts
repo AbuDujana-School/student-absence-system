@@ -102,6 +102,7 @@ Deno.test("PDF parser preserves subject-only special cells for manual class revi
   if (rows.length !== 2) throw new Error("A special subject cell without a numeric class must be preserved, not discarded");
   if (rows[1][2] !== "تفريغ العلوم") throw new Error("Science discharge variants were not unified");
   if (rows[1][1] !== "") throw new Error("An unknown class must remain blank rather than be guessed");
+  if (rows[1][7] !== "إ العلوم | إ علوم") throw new Error("The exact source text must be preserved for later review");
   if (!parsed.diagnostics.warnings.some(item => item.includes("لم يتحدد الصف/المجموعة"))) throw new Error("The missing class must be explicitly flagged for review");
 });
 
