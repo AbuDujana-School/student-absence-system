@@ -9608,7 +9608,13 @@ async function timetableSaveClassVacancyAssignment() {
     showStatus(response.message || "تم حفظ الإسناد.");
     await timetableLoadClassWeeklyGrid();
     if (response.reviewRequired) {
-      showStatus("أُنشئت نسخة مراجعة رقم " + response.version + ". التعديل محفوظ فيها ولم يُنشر بعد. " + response.message);
+      timetableClassReviewVersionId = response.versionId;
+      timetableWeeklyDraftId = response.versionId;
+      timetableWeeklyDraftDays = new Set(["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"]);
+      const activateButton = document.getElementById("timetableActivateWeekButton");
+      if (activateButton) activateButton.disabled = false;
+      await timetableLoadClassWeeklyGrid();
+      showStatus("أُنشئت نسخة مراجعة رقم " + response.version + ". راجع التعديل ثم استخدم زر اعتماد النسخة الأسبوعية لنشره. " + response.message);
     }
   } catch (error) {
     showStatus(error?.message || "تعذر حفظ الإسناد.", true);
