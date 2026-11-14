@@ -4813,8 +4813,9 @@ function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adm
 /* ============ Cloud helpers ============ */
 function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch(e) { return []; } }
 function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch(e) {} }
-async function queueCloudDelete(table, filters) { try { let q = sb.from(table).delete(); for (const [k,v] of Object.entries(filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; return true; } catch(e) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); return false; } }
-async function flushPendingDeletes() { const arr = getPendingDeletes(); if (!arr.length) return; const remaining = []; for (const item of arr) { try { let q = sb.from(item.table).delete(); for (const [k,v] of Object.entries(item.filters)) q = q.eq(k, v); const { error } = await q; if (error) throw error; } catch(e) { remaining.push(item); } } setPendingDeletes(remaining); await persistOfflineState(); }
+async function queueCloudDelete(table, filters) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); return false; }
+// Fail-closed protection: queued deletions are retained for review and are never auto-executed.
+async function flushPendingDeletes() { return false; }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
   const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -5022,7 +5023,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   await restoreOfflineState();
   syncServerTime();
   await loadSystemDataFromCloud();
-  await migrateCredentialsIfNeeded();
   await checkExistingSession();
   document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -5075,7 +5075,9 @@ async function migrateCredentialsIfNeeded() {
   if (needsSave) await saveSystemDataToCloud();
 }
 
+let cloudDataLoadState = 'not-started';
 async function loadSystemDataFromCloud() {
+  cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
   loadDirtySetsFromLocal();
@@ -5083,13 +5085,13 @@ async function loadSystemDataFromCloud() {
   const pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحميل...");
   try {
-    await flushPendingDeletes();
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
       fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
       fetchAllPaginated('teachers', '*'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
     ]);
-    const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0;
-    if (empty) {
+    const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
+    if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
+    if (false) {
       const saved = localStorage.getItem('abuDujana_db_v30');
       if (offlineSnapshotAvailable || saved) {
         try {
@@ -5174,8 +5176,9 @@ async function loadSystemDataFromCloud() {
         }
         return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
       });
-    } catch(e) {}
+    } catch(e) { throw new Error('تعذر تحميل سجلات تقارير المناوبة؛ أُوقف التحميل الآمن.', { cause: e }); }
 
+    cloudDataLoadState = 'ready';
     db.attendance = {};
     for (const r of attendanceData) {
       let cn = r.class_name;
@@ -5226,6 +5229,7 @@ async function loadSystemDataFromCloud() {
     updateSyncStatus(!pendingSync, pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
     return true;
   } catch(e) {
+    cloudDataLoadState = 'failed';
     console.error('Cloud load failed:', e);
     const saved = localStorage.getItem('abuDujana_db_v30');
     if (offlineSnapshotAvailable || saved) {
@@ -5242,11 +5246,12 @@ async function loadSystemDataFromCloud() {
         return true;
       } catch(pe) { console.warn('Local fallback restore failed', pe); }
     }
-    await initDefaults(); updateSyncStatus(false, "تعذر الاتصال ولا توجد نسخة محلية"); return false;
+    updateSyncStatus(false, "تعذر التحميل؛ أُوقف الحفظ السحابي لحماية البيانات"); return false;
   }
 }
 
 async function saveSystemDataToCloud(options = {}) {
+  if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
   updateSyncStatus(true, "جارِ الحفظ...");
   saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
@@ -5298,7 +5303,6 @@ async function saveSystemDataToCloud(options = {}) {
       dirtySets.duty_reports.clear();
     }
     if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
-    await flushPendingDeletes();
     saveToLocalStorageSafe();
     await persistOfflineState();
     updateSyncStatus(true, "متزامن");
@@ -5322,7 +5326,6 @@ function forceSyncWithCloud() {
 }
 function doForceSync() {
   loadSystemDataFromCloud().then(async (success) => {
-    if (success) await migrateCredentialsIfNeeded();
     showToast(success ? 'تم التحديث!' : 'تعذر الجلب.', success ? 'success' : 'error');
     if (success && activeUser) {
       try {
