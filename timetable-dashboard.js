@@ -312,6 +312,7 @@
       if (typeof timetableImportWorkbook === "function") timetableImportWorkbook();
     });
     input.setAttribute("accept", ".xlsx,.xls,.xlsm,.csv");
+    input.addEventListener("change", () => { if (input.files?.length && typeof timetableImportWorkbook === "function") timetableImportWorkbook(); });
   }
   function init() {
     if (ttDashboardInitialized) return;
