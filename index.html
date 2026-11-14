@@ -9295,27 +9295,21 @@ function timetableNormalizeNameKey(value) {
     .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim();
 }
 function timetableValidateWeeklyTeacherSets(days) {
+  const weekdays=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
   if (!Array.isArray(days) || days.length !== 5) throw new Error("استيراد الأسبوع الكامل يتطلب الأيام الخمسة.");
-  const reference = days[0];
-  if ((reference.teachers || []).length !== 69) {
-    throw new Error("يجب أن يحتوي كل يوم على 69 معلماً بالضبط. الموجود في يوم " + reference.weekday + ": " + (reference.teachers || []).length + ".");
-  }
-  const referenceNames = (reference.teachers || []).map(teacher =>
-    timetableNormalizeNameKey(teacher.matchStatus === "matched" && teacher.matchedTeacherName ? teacher.matchedTeacherName : teacher.sourceName)
-  ).sort();
-  if (new Set(referenceNames).size !== referenceNames.length) {
-    throw new Error("يوجد أكثر من اسم مصدر مرتبط بحساب المعلم نفسه في يوم " + reference.weekday + ". راجع مطابقة الأسماء قبل المتابعة.");
-  }
-  for (const day of days.slice(1)) {
-    const names = (day.teachers || []).map(teacher =>
-      timetableNormalizeNameKey(teacher.matchStatus === "matched" && teacher.matchedTeacherName ? teacher.matchedTeacherName : teacher.sourceName)
-    ).sort();
-    if (names.length !== referenceNames.length || names.some((name,index)=>name !== referenceNames[index])) {
-      throw new Error("قائمة المعلمين في يوم " + day.weekday + " لا تطابق قائمة يوم " + reference.weekday + ". لا يمكن حفظ أسبوع ناقص أو بأسماء غير متطابقة.");
-    }
-    if (new Set(names).size !== names.length) {
-      throw new Error("توجد أسماء متعددة مرتبطة بالمعلم نفسه في يوم " + day.weekday + ". راجع المطابقة أولاً.");
-    }
+  const ordered=[...days].sort((a,b)=>weekdays.indexOf(a.weekday)-weekdays.indexOf(b.weekday));
+  if (ordered.some((day,index)=>day.weekday!==weekdays[index])) throw new Error("يجب أن تتضمن النسخة الأيام الدراسية الخمسة دون تكرار.");
+  const reference=ordered[0], referenceTeachers=reference.teachers||[];
+  if (!referenceTeachers.length || referenceTeachers.length>500) throw new Error("عدد المعلمين في الملف غير صالح.");
+  const periodCount=referenceTeachers[0]?.cells?.length;
+  if (![7,8].includes(periodCount)) throw new Error("يجب أن يحتوي جدول كل معلم على 7 أو 8 حصص.");
+  const names=referenceTeachers.map(teacher=>timetableNormalizeNameKey(teacher.matchStatus==="matched"&&teacher.matchedTeacherName?teacher.matchedTeacherName:teacher.sourceName)).sort();
+  if(names.some(name=>!name)||new Set(names).size!==names.length) throw new Error("توجد أسماء معلمين فارغة أو مكررة بعد المطابقة في يوم "+reference.weekday+".");
+  for(const day of ordered){
+    const teachers=day.teachers||[];
+    const dayNames=teachers.map(teacher=>timetableNormalizeNameKey(teacher.matchStatus==="matched"&&teacher.matchedTeacherName?teacher.matchedTeacherName:teacher.sourceName)).sort();
+    if(dayNames.length!==names.length||dayNames.some((name,index)=>name!==names[index])) throw new Error("قائمة المعلمين في يوم "+day.weekday+" لا تطابق قائمة يوم "+reference.weekday+".");
+    for(const teacher of teachers) if(!Array.isArray(teacher.cells)||teacher.cells.length!==periodCount) throw new Error("عدد حصص المعلم "+teacher.sourceName+" لا يطابق عدد الحصص في النسخة.");
   }
 }
 function timetablePreflightTextWorker(sourceText) {
@@ -10063,8 +10057,8 @@ timetableInitPdfDropZone();
 
 function timetablePdfTimesMatch(periodTimes) {
   const source=Array.isArray(periodTimes)?periodTimes:[];
-  const configured=(dutyData()?.periods||[]).slice(0,7);
-  if(source.length!==7||configured.length!==7)return false;
+  const configured=(dutyData()?.periods||[]);
+  if(![7,8].includes(source.length)||configured.length!==source.length)return false;
   return source.every((item,index)=>{
     const values=String(item?.time||"").match(/\d{1,2}:\d{2}/g)||[];
     return values.length===2&&toMinutes(values[0])===toMinutes(configured[index]?.start)&&toMinutes(values[1])===toMinutes(configured[index]?.end);
