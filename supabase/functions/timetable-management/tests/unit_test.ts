@@ -127,6 +127,25 @@ Deno.test("cumulative workload score weights recent assignments and ignores canc
   assert(recentScore > oldScore, "Recent cumulative assignments should carry greater weight");
 });
 
+Deno.test("teachers assigned to an individual or department duty day are excluded", () => {
+  const teachers = [
+    { id: "personal-duty", name: "مناوب فردياً", departmentId: "science", dutyDay: "الأحد" },
+    { id: "category-duty", name: "مناوب القسم", departmentId: "science", dutyDay: "الأحد" },
+    { id: "available", name: "متاح", departmentId: "science", dutyDay: "الاثنين" },
+    { id: "no-duty", name: "بدون مناوبة", departmentId: "science" },
+  ];
+  const timetable = teachers.map((teacher) => ({
+    teacherId: teacher.id, weekday: "الأحد", period: 3, className: "", status: "free" as const,
+  }));
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers, timetable, assignments: [], absentTeacherId: "absent",
+    weekday: "الأحد", period: 3, departmentId: "science",
+  });
+  equal(ranked.length, 2, "Both personal and category duty teachers must be excluded");
+  assert(ranked.some((teacher) => teacher.id === "available"), "Teacher assigned to another day remains eligible");
+  assert(ranked.some((teacher) => teacher.id === "no-duty"), "Teacher without a duty day remains eligible");
+});
+
 Deno.test("fairness never makes an occupied teacher eligible", () => {
   const teachers = [
     { id: "busy", name: "معلم مشغول", departmentId: "science" },
