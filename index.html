@@ -3153,6 +3153,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableTeacherLookupStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableTeacherLookupResults" class="hidden min-w-0"></div>
         </div>
+        <div id="timetableClassWeeklyPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white">جداول الصفوف والشُعب</h3><p class="mt-1 text-xs text-slate-500">يُبنى جدول كل صف مباشرة من حصص المعلمين في النسخة المعتمدة. تظهر الشواغر والتعارضات بوضوح ولا تُخفى.</p></div>
+          <div class="flex flex-wrap gap-2"><select id="timetableClassWeeklySelect" class="min-w-[220px] flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="">تحميل الصفوف أولاً</option></select><button id="timetableClassWeeklyLoadButton" type="button" onclick="timetableLoadClassWeeklyGrid()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 text-xs font-black">عرض جدول الصف</button></div>
+          <div id="timetableClassWeeklyStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div id="timetableClassWeeklyResults" class="hidden overflow-x-auto"></div>
+        </div>
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
@@ -9513,6 +9519,37 @@ function timetableTeacherLookupSetStatus(message, kind="info") {
       ?"border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200"
       :"border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200");
   el.classList.remove("hidden");
+}
+async function timetableLoadClassWeeklyGrid() {
+  const button=document.getElementById("timetableClassWeeklyLoadButton");
+  const select=document.getElementById("timetableClassWeeklySelect");
+  const host=document.getElementById("timetableClassWeeklyResults");
+  const status=document.getElementById("timetableClassWeeklyStatus");
+  const setStatus=(message,error=false)=>{if(!status)return;status.textContent=message;status.className="rounded-xl border px-4 py-3 text-xs font-bold "+(error?"border-red-200 bg-red-50 text-red-700":"border-emerald-200 bg-emerald-50 text-emerald-800");status.classList.remove("hidden");};
+  if(activeUser?.type!=="admin"){setStatus("هذه الخاصية متاحة لمدير النظام فقط.",true);return;}
+  const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ تحميل جداول الصفوف...";}
+  try{
+    const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
+    const response=await appAuthRequest({action:"timetable_class_weekly_get"},token);
+    const classes=response.classes||[];
+    if(select){const selected=select.value;select.innerHTML='<option value="">اختر الصف / الشعبة</option>'+classes.map(item=>'<option value="'+timetableEsc(item.className)+'">'+timetableEsc(item.className)+'</option>').join("");if(classes.some(item=>item.className===selected))select.value=selected;}
+    if(!classes.length){host.classList.add("hidden");setStatus("لم تُستخرج أسماء صفوف من النسخة المعتمدة. راجع ربط الصفوف في حصص المعلمين.",true);return;}
+    const chosen=classes.find(item=>item.className===select?.value)||classes[0];if(select&&!select.value)select.value=chosen.className;
+    const periodCount=Number(response.periodCount)||7,weekdays=response.weekdays||["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+    const entries=new Map((chosen.entries||[]).map(item=>[item.weekday+":"+item.period,item]));
+    const conflicts=new Map((chosen.conflicts||[]).map(item=>[item.weekday+":"+item.period,item]));
+    const vacancies=new Set((chosen.vacancies||[]).map(item=>item.weekday+":"+item.period));
+    const rows=weekdays.map(day=>'<tr><th class="sticky right-0 z-10 bg-slate-100 p-3 text-right text-xs font-black">'+timetableEsc(day)+'</th>'+Array.from({length:periodCount},(_,index)=>{
+      const period=index+1,key=day+":"+period,conflict=conflicts.get(key),item=entries.get(key);
+      if(conflict)return '<td class="min-w-[145px] border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800"><strong>تعارض · الحصة '+period+'</strong><div class="mt-1">'+conflict.assignments.map(a=>timetableEsc(a.subject)+" — "+timetableEsc(a.teacherName)).join("<hr class='my-1'>")+'</div></td>';
+      if(vacancies.has(key))return '<td class="min-w-[145px] border border-amber-300 bg-amber-50 p-3 text-center text-[10px] font-black text-amber-800">شاغرة<br>الحصة '+period+'</td>';
+      return '<td class="min-w-[145px] border border-slate-200 bg-white p-2 text-[10px]"><strong class="block text-slate-800">'+timetableEsc(item?.subject||"غير محدد")+'</strong><span class="mt-1 block text-slate-500">'+timetableEsc(item?.teacherName||"المعلم غير مرتبط")+'</span></td>';
+    }).join("")+'</tr>').join("");
+    host.innerHTML='<div class="mb-3 flex flex-wrap gap-2 text-[10px] font-black"><span class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">مكتملة: '+(chosen.entries||[]).length+'</span><span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">شواغر: '+(chosen.vacancies||[]).length+'</span><span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">تعارضات: '+(chosen.conflicts||[]).length+'</span></div><table class="w-full min-w-max border-collapse text-center"><thead><tr><th class="bg-slate-100 p-3 text-right text-xs">اليوم / الحصة</th>'+Array.from({length:periodCount},(_,i)=>'<th class="border bg-slate-100 p-3 text-xs">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table>';
+    host.classList.remove("hidden");
+    setStatus(chosen.complete?"جدول الصف مكتمل ولا توجد شواغر أو تعارضات.":"تنبيه: يوجد "+chosen.vacancies.length+" شاغر و"+chosen.conflicts.length+" تعارض. لا تعتمد النسخة قبل معالجتها.");
+  }catch(error){host?.classList.add("hidden");setStatus(error?.message||"تعذر تحميل جدول الصف.",true);}
+  finally{if(button){button.disabled=false;button.textContent=old||"عرض جدول الصف";}}
 }
 async function timetableLookupTeacherWeeklyGrid() {
   const name=document.getElementById("timetableTeacherLookupName")?.value.trim()||"";
