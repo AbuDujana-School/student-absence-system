@@ -384,7 +384,13 @@ async function handle(req: Request) {
       if (dutySettingsResult.error) throw dutySettingsResult.error;
       if (weeklyLoadResult.error) throw weeklyLoadResult.error;
       const dayCells=dayCellsResult.data||[];
-      const dutySubjectDays=dutySettingsResult.data?.value?.subjectDays||{};
+      const defaultDutySubjectDays:Record<string,string> = {
+        "اللغة العربية":"الأحد","اللغة الإنجليزية":"الاثنين","التربية الإسلامية":"الثلاثاء",
+        "الرياضيات":"الأربعاء","مواد العلوم":"الخميس","مواد المهارات الحياتية":"",
+        "قسم الأخصائيين":"","قسم الإدارة":"",
+      };
+      const configuredDutyDays=dutySettingsResult.data?.value?.subjectDays;
+      const dutySubjectDays={...defaultDutySubjectDays,...(configuredDutyDays&&typeof configuredDutyDays==="object"?configuredDutyDays:{})};
       const weeklyQuotaByTeacher=new Map<string,number>();
       for(const cell of weeklyLoadResult.data||[]){
         if(cell.matched_teacher_name&&cell.cell_status==="teaching"){
@@ -415,6 +421,10 @@ async function handle(req: Request) {
       if(body.action==="timetable_substitution_save") {
         const period=Number(body.period), assignmentDate=String(body.assignmentDate||""), substitute=String(body.substituteTeacherName||"").trim();
         if(!absentTeacherName||!substitute||!Number.isInteger(period)||period<1||period>7||!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate))return reply(400,{error:"حدد التاريخ والمعلم الغائب والبديل والحصة."});
+        const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
+        if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
+        const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
+        if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
         const {data,error}=await db.rpc("create_timetable_substitution",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments}});
         if(error)throw error;
         return reply(201,{ok:true,assignment:data});
