@@ -3159,6 +3159,16 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="flex flex-wrap gap-2"><select id="timetableClassWeeklySelect" class="min-w-[220px] flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="">تحميل الصفوف أولاً</option></select><button id="timetableClassWeeklyLoadButton" type="button" onclick="timetableLoadClassWeeklyGrid()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 text-xs font-black">عرض جدول الصف</button></div>
           <div id="timetableClassWeeklyStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableClassWeeklyResults" class="hidden overflow-x-auto"></div>
+          <div id="timetableClassAssignModal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-slate-950/60 p-4" role="dialog" aria-modal="true" aria-labelledby="timetableClassAssignTitle">
+            <div class="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-2xl space-y-4">
+              <div class="flex items-center justify-between gap-3"><h4 id="timetableClassAssignTitle" class="font-black text-sm text-slate-900 dark:text-white">إسناد الحصة الشاغرة</h4><button type="button" onclick="timetableCloseClassAssignModal()" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="إغلاق">✕</button></div>
+              <p id="timetableClassAssignContext" class="text-xs text-slate-500"></p>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">اسم المعلم الكامل (كما في فهرس المعلمين)<input id="timetableClassAssignTeacher" type="text" maxlength="160" autocomplete="off" class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></label>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">المادة<input id="timetableClassAssignSubject" type="text" maxlength="160" class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></label>
+              <div id="timetableClassAssignStatus" class="hidden rounded-xl border p-3 text-xs font-bold" role="status" aria-live="polite"></div>
+              <div class="flex justify-end gap-2"><button type="button" onclick="timetableCloseClassAssignModal()" class="rounded-xl border px-4 py-3 text-xs font-bold">إلغاء</button><button id="timetableClassAssignSave" type="button" onclick="timetableSaveClassVacancyAssignment()" class="rounded-xl bg-emerald-700 px-5 py-3 text-xs font-black text-white">حفظ الإسناد</button></div>
+            </div>
+          </div>
         </div>
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
@@ -9521,6 +9531,56 @@ function timetableTeacherLookupSetStatus(message, kind="info") {
       :"border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200");
   el.classList.remove("hidden");
 }
+let timetableClassAssignContext = null;
+function timetableOpenClassAssignModal(className, weekday, period) {
+  timetableClassAssignContext = { className, weekday, period };
+  const modal = document.getElementById("timetableClassAssignModal");
+  const context = document.getElementById("timetableClassAssignContext");
+  const status = document.getElementById("timetableClassAssignStatus");
+  if (context) context.textContent = className + " · " + weekday + " · الحصة " + period;
+  if (status) { status.classList.add("hidden"); status.textContent = ""; }
+  modal?.classList.remove("hidden"); modal?.classList.add("flex");
+  document.getElementById("timetableClassAssignTeacher")?.focus();
+}
+function timetableCloseClassAssignModal() {
+  const modal = document.getElementById("timetableClassAssignModal");
+  modal?.classList.add("hidden"); modal?.classList.remove("flex");
+  timetableClassAssignContext = null;
+}
+async function timetableSaveClassVacancyAssignment() {
+  if (!timetableClassAssignContext) return;
+  const button = document.getElementById("timetableClassAssignSave");
+  const status = document.getElementById("timetableClassAssignStatus");
+  const teacherName = document.getElementById("timetableClassAssignTeacher")?.value.trim() || "";
+  const subject = document.getElementById("timetableClassAssignSubject")?.value.trim() || "";
+  const showStatus = (message, error=false) => {
+    if (!status) return;
+    status.textContent = message;
+    status.className = "rounded-xl border p-3 text-xs font-bold " + (error ? "border-red-200 bg-red-50 text-red-700" : "border-emerald-200 bg-emerald-50 text-emerald-800");
+    status.classList.remove("hidden");
+  };
+  if (!teacherName || !subject) { showStatus("أدخل اسم المعلم والمادة.", true); return; }
+  const old = button?.textContent;
+  if (button) { button.disabled = true; button.textContent = "جارٍ الحفظ..."; }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
+    const response = await appAuthRequest({
+      action: "timetable_class_vacancy_assign",
+      ...timetableClassAssignContext, teacherName, subject
+    }, token);
+    showStatus(response.message || "تم حفظ الإسناد.");
+    await timetableLoadClassWeeklyGrid();
+    if (response.reviewRequired) {
+      showStatus("أُنشئت نسخة مراجعة رقم " + response.version + ". التعديل محفوظ فيها ولم يُنشر بعد. " + response.message);
+    }
+  } catch (error) {
+    showStatus(error?.message || "تعذر حفظ الإسناد.", true);
+  } finally {
+    if (button) { button.disabled = false; button.textContent = old || "حفظ الإسناد"; }
+  }
+}
+
 async function timetableLoadClassWeeklyGrid() {
   const button=document.getElementById("timetableClassWeeklyLoadButton");
   const select=document.getElementById("timetableClassWeeklySelect");
@@ -9543,7 +9603,7 @@ async function timetableLoadClassWeeklyGrid() {
     const rows=weekdays.map(day=>'<tr><th class="sticky right-0 z-10 bg-slate-100 p-3 text-right text-xs font-black">'+timetableEsc(day)+'</th>'+Array.from({length:periodCount},(_,index)=>{
       const period=index+1,key=day+":"+period,conflict=conflicts.get(key),item=entries.get(key);
       if(conflict)return '<td class="min-w-[145px] border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800"><strong>تعارض · الحصة '+period+'</strong><div class="mt-1">'+conflict.assignments.map(a=>timetableEsc(a.subject)+" — "+timetableEsc(a.teacherName)).join("<hr class='my-1'>")+'</div></td>';
-      if(vacancies.has(key))return '<td class="min-w-[145px] border border-amber-300 bg-amber-50 p-3 text-center text-[10px] font-black text-amber-800">شاغرة<br>الحصة '+period+'</td>';
+      if(vacancies.has(key))return '<td class="min-w-[145px] border border-amber-300 bg-amber-50 p-2 text-center text-[10px] font-black text-amber-800"><button type="button" class="w-full rounded-lg p-2 hover:bg-amber-100 focus:ring-2 focus:ring-amber-500" onclick="timetableOpenClassAssignModal('+JSON.stringify(chosen.className)+','+JSON.stringify(day)+','+period+')">شاغرة<br>الحصة '+period+'<span class="mt-1 block text-[9px] underline">إسناد معلم</span></button></td>';
       return '<td class="min-w-[145px] border border-slate-200 bg-white p-2 text-[10px]"><strong class="block text-slate-800">'+timetableEsc(item?.subject||"غير محدد")+'</strong><span class="mt-1 block text-slate-500">'+timetableEsc(item?.teacherName||"المعلم غير مرتبط")+'</span></td>';
     }).join("")+'</tr>').join("");
     host.innerHTML='<div class="mb-3 flex flex-wrap gap-2 text-[10px] font-black"><span class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">مكتملة: '+(chosen.entries||[]).length+'</span><span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">شواغر: '+(chosen.vacancies||[]).length+'</span><span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">تعارضات: '+(chosen.conflicts||[]).length+'</span></div><table class="w-full min-w-max border-collapse text-center"><thead><tr><th class="bg-slate-100 p-3 text-right text-xs">اليوم / الحصة</th>'+Array.from({length:periodCount},(_,i)=>'<th class="border bg-slate-100 p-3 text-xs">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table>';
