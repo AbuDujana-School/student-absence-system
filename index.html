@@ -9660,6 +9660,9 @@ timetableInitExcelDropZone();
 
 async function timetableParseWorkbookInWorker(file) {
   if(typeof Worker==="undefined") throw new Error("المتصفح لا يدعم المعالجة في الخلفية. افتح التطبيق من متصفح حديث.");
+  const MAX_FILE_BYTES=20*1024*1024;
+  if(!file||!Number.isFinite(file.size)||file.size<=0) throw new Error("ملف Excel فارغ أو غير صالح.");
+  if(file.size>MAX_FILE_BYTES) throw new Error("حجم الملف يتجاوز 20 ميجابايت. قسّم الملف ثم أعد المحاولة.");
   const worker=new Worker("timetable-text.worker.js");
   const panel=document.getElementById("timetableExcelWorkerProgress");
   const bar=document.getElementById("timetableExcelWorkerProgressBar");
@@ -9669,19 +9672,32 @@ async function timetableParseWorkbookInWorker(file) {
   try {
     const buffer=await file.arrayBuffer();
     return await new Promise((resolve,reject)=>{
+      let settled=false;
+      const finish=(error,result)=>{
+        if(settled)return;
+        settled=true;
+        clearTimeout(timeoutId);
+        worker.terminate();
+        if(error)reject(error);else resolve(result);
+      };
+      const timeoutId=setTimeout(()=>finish(new Error("استغرق تحليل الملف أكثر من دقيقة. جرّب ملفاً أصغر ثم أعد المحاولة.")),60000);
       worker.onmessage=(event)=>{
         const data=event.data||{};
         if(data.type==="progress"){
           if(bar)bar.style.width=data.percent+"%";
           if(value)value.textContent=data.percent+"%";
           if(label)label.textContent=data.message||("معالجة "+data.processed+" من "+data.total+" أوراق");
-        } else if(data.type==="complete") resolve(data);
-        else if(data.type==="error") reject(new Error(data.message||"تعذر تحليل ملف Excel."));
+        } else if(data.type==="complete") finish(null,data);
+        else if(data.type==="error") finish(new Error(data.message||"تعذر تحليل ملف Excel."));
       };
-      worker.onerror=()=>reject(new Error("تعذر تشغيل عامل تحليل Excel."));
+      worker.onerror=()=>finish(new Error("تعذر تشغيل عامل تحليل Excel."));
+      worker.onmessageerror=()=>finish(new Error("تعذر استلام نتيجة تحليل ملف Excel."));
       worker.postMessage({type:"parseWorkbook",buffer},[buffer]);
     });
-  } finally { worker.terminate(); }
+  } finally {
+    worker.terminate();
+    panel?.classList.add("hidden");
+  }
 }
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
