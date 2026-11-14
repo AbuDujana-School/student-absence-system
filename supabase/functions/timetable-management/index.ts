@@ -564,6 +564,11 @@ async function handle(req: Request) {
         reviewVersionId: sourceVersion.status === "active" ? targetVersionId : undefined,
       });
 
+      const { data: classRows, error: classRowsError } = await db.from("timetable_weekly_cells")
+        .select("id").eq("version_id", targetVersionId).contains("class_sections", [className]).limit(1);
+      if (classRowsError) throw classRowsError;
+      if (!classRows?.length) return reply(404, { error: "الصف أو الشعبة غير موجود في جدول النسخة الحالية." });
+
       const { data: allAtSlot, error: allAtSlotError } = await db.from("timetable_weekly_cells")
         .select("class_sections,matched_teacher_name").eq("version_id", targetVersionId)
         .eq("weekday", weekday).eq("period", period);
