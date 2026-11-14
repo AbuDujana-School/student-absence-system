@@ -15,7 +15,7 @@ export interface CandidateQuery {
   includeOtherDepartments?:boolean; assignmentDate?:string; activeVersionId?:string;
 }
 export interface WorkloadBreakdown {
-  semesterAssignments:number; weeklyAssignments:number; dailyAssignments:number;
+  historicalAssignments:number; weeklyAssignments:number; dailyAssignments:number; lastAssignmentDate:string|null;
   adjacentPeriodAssignments:number; score:number;
 }
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
@@ -35,14 +35,16 @@ export function calculateTeacherWorkload(
   const active=assignments.filter(a=>a.substituteTeacherId===teacherId&&isActive(a));
   const daily=active.filter(a=>a.weekday===weekday&&(assignmentDate ? a.assignmentDate===assignmentDate : true));
   const adjacent=daily.filter(a=>Math.abs(a.period-period)===1).length;
-  const semesterAssignments=active.length;
+  const historicalAssignments=active.length;
+  const datedAssignments=active.map(a=>a.assignmentDate||null).filter((value):value is string=>!!value).sort();
+  const lastAssignmentDate=datedAssignments.length?datedAssignments[datedAssignments.length-1]:null;
   const weeklyAssignments=assignmentDate
     ? active.filter(a=>!!a.assignmentDate&&a.assignmentDate>=weekStart(assignmentDate)&&a.assignmentDate<=weekEnd(assignmentDate)).length
     : active.filter(a=>a.weekday===weekday).length;
   const dailyAssignments=daily.length;
   // Duty/supervision and substitution both count toward workload. Cancelled rows do not.
-  const score=semesterAssignments*10+weeklyAssignments*4+dailyAssignments*3+adjacent*5;
-  return {semesterAssignments,weeklyAssignments,dailyAssignments,adjacentPeriodAssignments:adjacent,score};
+  const score=historicalAssignments*10+weeklyAssignments*4+dailyAssignments*3+adjacent*5;
+  return {historicalAssignments,weeklyAssignments,dailyAssignments,adjacentPeriodAssignments:adjacent,lastAssignmentDate,score};
 }
 function weekStart(date:string):string {
   const d=new Date(date+"T12:00:00"); d.setDate(d.getDate()-d.getDay());
@@ -87,7 +89,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     .sort((a,b)=>{
       const aw=(a as SubstitutionTeacher & {workload:WorkloadBreakdown}).workload;
       const bw=(b as SubstitutionTeacher & {workload:WorkloadBreakdown}).workload;
-      return aw.score-bw.score||a.name.localeCompare(b.name,"ar")||a.id.localeCompare(b.id);
+      return aw.score-bw.score||(aw.lastAssignmentDate||"").localeCompare(bw.lastAssignmentDate||"")||a.name.localeCompare(b.name,"ar")||a.id.localeCompare(b.id);
     });
 }
 /** List only absent teachers the current coordinator is allowed to see. */
