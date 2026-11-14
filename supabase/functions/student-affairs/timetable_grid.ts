@@ -14,7 +14,7 @@ export interface ParsedTimetableDay {
 const PERIOD_WORDS: Record<string, number> = {
   "الاولى":1,"الأولى":1,"الاول":1,"الأول":1,"الثانية":2,"الثانيه":2,
   "الثالثة":3,"الثالثه":3,"الرابعة":4,"الرابعه":4,"الخامسة":5,"الخامسه":5,
-  "السادسة":6,"السادسه":6,"السابعة":7,"السابعه":7
+  "السادسة":6,"السادسه":6,"السابعة":7,"السابعه":7,"الثامنة":8,"الثامنه":8,"الثامن":8
 };
 function cleanLine(value: string): string {
   return value.replace(/\u00a0/g," ").replace(/[\u200e\u200f\u202a-\u202e]/g,"").trim();
@@ -47,7 +47,7 @@ function subjectFromSource(value: string): string {
 }
 function parsePeriod(value: string): number | null {
   const text=normalizedKey(value).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-  if (/^[1-7]$/.test(text)) return Number(text);
+  if (/^[1-8]$/.test(text)) return Number(text);
   const normalizedWords = new Map(Object.entries(PERIOD_WORDS).map(([word, number]) => [normalizedKey(word), number]));
   return normalizedWords.get(text) ?? null;
 }
@@ -73,8 +73,8 @@ function emptyTotals(): Record<TimetableCellStatus,number> {
 }
 function validateTeacherGrid(teacher: ParsedTimetableTeacher): void {
   const periods=teacher.cells.map(v=>v.period).sort((a,b)=>a-b);
-  if (periods.length!==7 || periods.some((v,i)=>v!==i+1))
-    throw new Error("المعلم «"+teacher.sourceName+"» لا يحتوي على الحصص السبع كاملة. الموجود: "+(periods.join(", ")||"لا توجد حصص")+".");
+  if (![7,8].includes(periods.length) || periods.some((v,i)=>v!==i+1))
+    throw new Error("المعلم «"+teacher.sourceName+"» يجب أن يحتوي على 7 أو 8 حصص متتابعة دون نقص. الموجود: "+(periods.join(", ")||"لا توجد حصص")+".");
 }
 function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): ParsedTimetableDay | null {
   const teachers: ParsedTimetableTeacher[]=[];
@@ -213,6 +213,7 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
   finishTeacher();
   if(!teachers.length)throw new Error("لم أتعرف على أسماء المعلمين. استخدم «اسم المعلم: الاسم» أو صفوفاً مفصولة بعلامات تبويب.");
   const totalCells=teachers.reduce((sum,v)=>sum+v.cells.length,0);
-  if(totalCells!==teachers.length*7)throw new Error("عدد خانات الجدول لا يساوي سبع حصص لكل معلم.");
+  const periodCount=teachers[0].cells.length;
+  if(![7,8].includes(periodCount)||teachers.some(item=>item.cells.length!==periodCount))throw new Error("يجب أن يحتوي كل معلم على العدد نفسه من الحصص (7 أو 8).");
   return {weekday:day,teachers,totals,totalCells,warnings};
 }
