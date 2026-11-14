@@ -155,11 +155,26 @@ function makePageGrid(page) {
   });
   const timeItems=page.items.map(item=>({item,pos:itemPosition(item),times:parseTimes(item.str)}))
     .filter(entry=>entry.times.length===2&&Number.isFinite(entry.pos.x)&&entry.pos.x>=65);
-  const byColumn=[];
-  for(const entry of timeItems.sort((a,b)=>b.pos.x-a.pos.x)){
-    if(!byColumn.some(existing=>Math.abs(existing.pos.x-entry.pos.x)<8))byColumn.push(entry);
+  const periodLabels=page.items.map(item=>({item,pos:itemPosition(item),label:normalizeDigits(normalizePdfArabic(item.str))}))
+    .filter(entry=>/^[1-8]$/.test(entry.label)&&Number.isFinite(entry.pos.x)&&Number.isFinite(entry.pos.y));
+  const orderedLabels=[];
+  for(const entry of periodLabels.sort((a,b)=>b.pos.x-a.pos.x)){
+    if(!orderedLabels.some(existing=>Math.abs(existing.pos.x-entry.pos.x)<8))orderedLabels.push(entry);
   }
-  const periodTimes=byColumn.slice(0,8);
+  const periodTimes=[];
+  if(orderedLabels.length>=7&&orderedLabels.length<=8){
+    for(const label of orderedLabels){
+      const match=timeItems.filter(entry=>Math.abs(entry.pos.x-label.pos.x)<22)
+        .sort((a,b)=>Math.abs(a.pos.x-label.pos.x)-Math.abs(b.pos.x-label.pos.x))[0];
+      if(match)periodTimes.push(match);
+    }
+  }else{
+    const byColumn=[];
+    for(const entry of timeItems.sort((a,b)=>b.pos.x-a.pos.x)){
+      if(!byColumn.some(existing=>Math.abs(existing.pos.x-entry.pos.x)<8))byColumn.push(entry);
+    }
+    periodTimes.push(...byColumn.slice(0,8));
+  }
   const periodCenters=periodTimes.map(entry=>entry.pos.x);
   const orderedTimes=periodTimes.map((entry,index)=>({period:index+1,time:entry.times[0]+"–"+entry.times[1]}));
   return {dayCenters,periodCenters,orderedTimes,periodCount:periodCenters.length,...buildPeriodSpans(page,dayCenters,periodCenters)};
