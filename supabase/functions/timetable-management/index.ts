@@ -635,7 +635,7 @@ async function handle(req: Request) {
       }));
       const periodCount = Number(version.period_count || 7);
       const classes = aggregateClassTimetables(indexedCells, DAYS, periodCount);
-      return reply(200,{ok:true,version,periodCount,weekdays:DAYS,classes});
+      return reply(200,{ok:true,version,periodCount,weekdays:DAYS,classes,teachers:(teacherIndex||[]).map((teacher:any)=>String(teacher.name||"").trim()).filter(Boolean)});
     } catch (error) {
       console.error("Class weekly timetable read failed:", error instanceof Error ? error.message : "unknown");
       return reply(500,{error:"تعذر إنشاء جداول الصفوف من النسخة المعتمدة."});
