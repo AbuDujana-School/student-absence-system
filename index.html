@@ -8831,7 +8831,7 @@ function timetableRenderDayPreview() {
     const totalCells = preview.days.reduce((sum,day)=>sum+day.totalCells,0);
     host.innerHTML = '<div class="rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-3 text-xs font-black text-cyan-900 dark:text-cyan-100">معاينة أسبوع كامل: '+preview.days.length+' أيام · '+first.teachers.length+' معلماً · '+totalCells+' خانة. افتح كل يوم لمراجعة تفاصيله.</div>'+
       preview.days.map(function(day,index) {
-        return '<details '+(index===0?'open':'')+' class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3"><summary class="cursor-pointer font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(day.weekday)+' — '+day.teachers.length+' معلماً · '+day.totalCells+' خانة</summary><div class="pt-3">'+timetableBuildDayPreviewMarkup(day)+'</div></details>';
+        return '<details '+(index===0?'open':'')+' class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3"><summary class="cursor-pointer font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(day.weekday)+' — '+day.teachers.length+' معلماً · '+day.totalCells+' خانة</summary><div class="pt-3">'+timetableBuildDayPreviewMarkup(day)+'<div class="flex justify-end mt-3"><button type="button" onclick="timetableSaveSinglePreviewDay(\\''+day.weekday+'\\')" class="rounded-xl bg-emerald-700 text-white px-4 py-2 text-xs font-black">حفظ هذا اليوم فقط</button></div></div></details>';
       }).join("");
     const saveButton = document.getElementById("timetableSaveDayButton");
     if (saveButton) {
