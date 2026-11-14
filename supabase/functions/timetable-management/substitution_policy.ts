@@ -1,5 +1,5 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
-export interface SubstitutionTeacher { id:string; name:string; departmentId:string; workloadScore?:number; }
+export interface SubstitutionTeacher { id:string; name:string; departmentId:string; dutyDay?:string; workloadScore?:number; }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
 export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; versionId?:string; assignmentType?:string; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
@@ -33,6 +33,8 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate,period
   );
   return teachers.filter(t=>t.id!==absentTeacherId)
+    // Teachers assigned to a school/category duty day are unavailable for substitution that day.
+    .filter(t=>!t.dutyDay||t.dutyDay!==weekday)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).map(t=>({...t,workloadScore:score(t.id)}))
