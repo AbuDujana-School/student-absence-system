@@ -4950,6 +4950,36 @@ function mergeDirtyLocalState(snapshot) {
   if(d.custom_categories)db.customCategories=cloneOfflineValue(local.customCategories||[]);
   if(d.duty_module){const records=db.dutyModule.records||[];db.dutyModule=normalizeDutyModule(local.dutyModule);db.dutyModule.records=records;}
 }
+function applyPendingLocalDeletions() {
+  // Keep deletion requests local and visible as pending; never execute them against Supabase here.
+  for (const item of getPendingDeletes()) {
+    const filters = item?.filters || {};
+    const name = typeof filters.name === 'string' ? filters.name : '';
+    const key = typeof filters.record_key === 'string' ? filters.record_key : '';
+    if (item.table === 'classes' && name) {
+      db.classes = (db.classes || []).filter(value => value !== name);
+      delete db.students[name];
+      dirtySets.classes.delete(name);
+      dirtySets.students.delete(name);
+    } else if (item.table === 'students' && typeof filters.class_name === 'string' && typeof filters.student_name === 'string') {
+      const list = db.students?.[filters.class_name] || [];
+      db.students[filters.class_name] = list.filter(value => value !== filters.student_name);
+    } else if (item.table === 'attendance' && key) {
+      delete db.attendance[key];
+      dirtySets.attendance.delete(key);
+    } else if (item.table === 'behaviors' && key) {
+      delete db.behaviors[key];
+      dirtySets.behaviors.delete(key);
+    } else if (item.table === 'teachers' && name) {
+      if (filters.role === 'teacher' || !filters.role) db.teachers = (db.teachers || []).filter(value => value.name !== name);
+      if (filters.role === 'custom' || !filters.role) db.customUsers = (db.customUsers || []).filter(value => value.name !== name);
+      if (!(db.teachers || []).some(value => value.name === name) && !(db.customUsers || []).some(value => value.name === name)) dirtySets.teachers.delete(name);
+    } else if (item.table === 'duty_reports' && filters.id !== undefined) {
+      db.dutyModule.records = (db.dutyModule.records || []).filter(value => String(value.id) !== String(filters.id));
+      dirtySets.duty_reports.delete(String(filters.id));
+    }
+  }
+}
 function markOfflineDatabaseForUpload() {
   (db.classes||[]).forEach(c=>{dirtySets.classes.add(c);dirtySets.students.add(c);});
   (db.teachers||[]).forEach(t=>dirtySets.teachers.add(t.name));(db.customUsers||[]).forEach(u=>dirtySets.teachers.add(u.name));
@@ -5159,6 +5189,7 @@ async function loadSystemDataFromCloud() {
     }
 
     mergeDirtyLocalState(pendingLocalState);
+    applyPendingLocalDeletions();
     cloudDataLoadState = 'ready';
     // Loading is read-only: preserve local pending changes without pushing them.
     saveToLocalStorageSafe();
