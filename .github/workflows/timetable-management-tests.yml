@@ -4,8 +4,11 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
+      - feature/sec-timetable-hardening-20261114
     paths:
       - "supabase/functions/timetable-management/**"
+      - "timetable-import.worker.js"
+      - "index.html"
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"
