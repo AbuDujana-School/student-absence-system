@@ -236,11 +236,14 @@ export function parseTimetablePdfPages(pages) {
   const teacherNames=new Set();let referenceTimes="";
   for(const page of pages){
     const teacherInfo=teacherNameInfoFromItems(page.items),teacherName=teacherInfo.name,teacherNameOriginal=teacherInfo.original,grid=makePageGrid(page);
+    // The first page in the supplied aSc PDF is an aggregate school overview,
+    // not an individual teacher timetable. Detect it by its dense class-group
+    // layout and period headings even if text extraction invents a false name.
+    const aggregateGroupCount=page.items.reduce((sum,item)=>sum+extractClassGroups(item.str).length,0);
+    if(page.pageNumber===1&&(grid.periodCenters.length===7||grid.periodCenters.length===8)&&page.items.length>=100&&aggregateGroupCount>=50){
+      diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;
+    }
     if(!teacherName){
-      const aggregateGroupCount=page.items.reduce((sum,item)=>sum+extractClassGroups(item.str).length,0);
-      if(page.pageNumber===1&&(grid.periodCenters.length===7||grid.periodCenters.length===8)&&page.items.length>=100&&aggregateGroupCount>=50){
-        diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;
-      }
       diagnostics.blockingErrors.push("تعذر استخراج اسم المعلم من الصفحة "+page.pageNumber+". لم يتم تجاوزها أو تخمين اسمها.");continue;
     }
     if(grid.dayCenters.some(value=>!Number.isFinite(value))||![7,8].includes(grid.periodCenters.length)){diagnostics.blockingErrors.push("لم يتم التحقق من عناوين الأيام السبعة أو أوقات الحصص في صفحة المعلم "+page.pageNumber+".");continue;}
