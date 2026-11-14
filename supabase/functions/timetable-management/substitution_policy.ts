@@ -6,13 +6,13 @@ export interface SubstitutionAssignment {
   substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null;
   status?:"assigned"|"confirmed"|"cancelled"|"completed";
   /** Includes supervision/duty records as well as substitutions when supplied by the API. */
-  assignmentType?:string;
+  assignmentType?:string; versionId?:string;
 }
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
   absentTeacherId:string; weekday:string; period:number; departmentId:string;
-  includeOtherDepartments?:boolean; assignmentDate?:string;
+  includeOtherDepartments?:boolean; assignmentDate?:string; activeVersionId?:string;
 }
 export interface WorkloadBreakdown {
   semesterAssignments:number; weeklyAssignments:number; dailyAssignments:number;
@@ -24,20 +24,20 @@ function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:numb
 function isActive(a:SubstitutionAssignment):boolean {
   return a.status!=="cancelled";
 }
-function appliesToDate(a:SubstitutionAssignment,date?:string):boolean {
+function appliesToDate(a:SubstitutionAssignment,date?:string,activeVersionId?:string):boolean {
   if(!date) return true;
-  // Legacy rows without a date still block the matching weekday/period.
-  return !a.assignmentDate || a.assignmentDate===date;
+  // Legacy rows without a date are scoped to the active timetable version only.
+  return a.assignmentDate ? a.assignmentDate===date : !!activeVersionId&&a.versionId===activeVersionId;
 }
 export function calculateTeacherWorkload(
   teacherId:string, assignments:SubstitutionAssignment[], weekday:string, period:number, assignmentDate?:string
 ):WorkloadBreakdown {
   const active=assignments.filter(a=>a.substituteTeacherId===teacherId&&isActive(a));
-  const daily=active.filter(a=>a.weekday===weekday&&appliesToDate(a,assignmentDate));
+  const daily=active.filter(a=>a.weekday===weekday&&(assignmentDate ? a.assignmentDate===assignmentDate : true));
   const adjacent=daily.filter(a=>Math.abs(a.period-period)===1).length;
   const semesterAssignments=active.length;
   const weeklyAssignments=assignmentDate
-    ? active.filter(a=>a.assignmentDate ? a.assignmentDate>=weekStart(assignmentDate)&&a.assignmentDate<=weekEnd(assignmentDate) : a.weekday===weekday).length
+    ? active.filter(a=>!!a.assignmentDate&&a.assignmentDate>=weekStart(assignmentDate)&&a.assignmentDate<=weekEnd(assignmentDate)).length
     : active.filter(a=>a.weekday===weekday).length;
   const dailyAssignments=daily.length;
   // Duty/supervision and substitution both count toward workload. Cancelled rows do not.
@@ -67,7 +67,7 @@ export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:str
  * Workload ranking uses all supplied historical assignment rows, not just this week.
  */
 export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
-  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate}=query;
+  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate,activeVersionId}=query;
   const cells=new Map<string,{count:number;isFree:boolean}>();
   for(const entry of timetable.filter(e=>sameCell(e,{weekday,period}))){
     const current=cells.get(entry.teacherId)??{count:0,isFree:true};
@@ -77,7 +77,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   }
   const activeAssignments=assignments.filter(isActive);
   const alreadyBooked=new Set(activeAssignments
-    .filter(a=>sameCell(a,{weekday,period})&&appliesToDate(a,assignmentDate))
+    .filter(a=>sameCell(a,{weekday,period})&&appliesToDate(a,assignmentDate,activeVersionId))
     .map(a=>a.substituteTeacherId));
   return teachers.filter(t=>t.id!==absentTeacherId)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
