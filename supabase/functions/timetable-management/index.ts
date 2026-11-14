@@ -9,6 +9,11 @@ const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+const DEFAULT_SUBJECT_DUTY_DAYS:Record<string,string> = {
+  "اللغة العربية":"الأحد","اللغة الإنجليزية":"الاثنين","التربية الإسلامية":"الثلاثاء",
+  "الرياضيات":"الأربعاء","مواد العلوم":"الخميس","مواد المهارات الحياتية":"",
+  "قسم الأخصائيين":"","قسم الإدارة":"",
+};
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -385,7 +390,7 @@ async function handle(req: Request) {
       if (dutySettingsResult.error) throw dutySettingsResult.error;
       const dayCells=dayCellsResult.data||[];
       const dutyModule=dutySettingsResult.data?.value&&typeof dutySettingsResult.data.value==="object"?dutySettingsResult.data.value:{};
-      const subjectDutyDays=dutyModule.subjectDays&&typeof dutyModule.subjectDays==="object"?dutyModule.subjectDays:{};
+      const subjectDutyDays={...DEFAULT_SUBJECT_DUTY_DAYS,...(dutyModule.subjectDays&&typeof dutyModule.subjectDays==="object"?dutyModule.subjectDays:{})};
       const weeklyTeachingQuota=new Map<string,number>();
       for(const cell of weekCellsResult.data||[]){
         const teacherName=String(cell.matched_teacher_name||"");
