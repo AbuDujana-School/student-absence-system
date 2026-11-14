@@ -181,7 +181,10 @@ export function parseTimetablePdfPages(pages) {
   for(const page of pages){
     const teacherInfo=teacherNameInfoFromItems(page.items),teacherName=teacherInfo.name,teacherNameOriginal=teacherInfo.original,grid=makePageGrid(page);
     if(!teacherName){
-      if(page.pageNumber===1&&grid.periodCenters.length>=7){diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;}
+      const aggregateGroupCount=page.items.reduce((sum,item)=>sum+extractClassGroups(item.str).length,0);
+      if(page.pageNumber===1&&grid.periodCenters.length===7&&page.items.length>=100&&aggregateGroupCount>=50){
+        diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;
+      }
       diagnostics.blockingErrors.push("تعذر استخراج اسم المعلم من الصفحة "+page.pageNumber+". لم يتم تجاوزها أو تخمين اسمها.");continue;
     }
     if(grid.dayCenters.some(value=>!Number.isFinite(value))||grid.periodCenters.length!==7){diagnostics.blockingErrors.push("لم يتم التحقق من عناوين الأيام السبعة أو أوقات الحصص في صفحة المعلم "+page.pageNumber+".");continue;}

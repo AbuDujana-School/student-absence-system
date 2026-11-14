@@ -87,10 +87,15 @@ Deno.test("PDF parser normalizes the two science-discharge spellings", () => {
 Deno.test("PDF parser skips the aggregate first page but blocks a missing teacher page", () => {
   const summary = makeTeacherPage(1);
   summary.items = summary.items.filter(item => !item.str.includes("أحمد خالد"));
+  for(let i=0;i<100;i++)summary.items.push(verticalText("1/9",100,675,20));
   const parsed = parseTimetablePdfPages([summary, makeTeacherPage(2, [
     verticalText("الرياضيات", 114, 675, 50), verticalText("1/12", 143, 675, 40),
   ])]);
   if (parsed.diagnostics.skippedPages[0] !== 1) throw new Error("Aggregate page was not identified");
+  const missingFirstTeacher=makeTeacherPage(1);
+  missingFirstTeacher.items=missingFirstTeacher.items.filter(item=>!item.str.includes("أحمد خالد"));
+  const firstPageFailure=parseTimetablePdfPages([missingFirstTeacher]);
+  if(!firstPageFailure.diagnostics.blockingErrors.length)throw new Error("A first-page teacher schedule without a name must not be silently skipped");
   const broken = parseTimetablePdfPages([makeTeacherPage(2), { pageNumber: 3, width: 595, height: 842, items: [] }]);
   if (!broken.diagnostics.blockingErrors.length) throw new Error("A page without a teacher identity must block the import");
 });
