@@ -117,3 +117,18 @@ Deno.test("successful record saves do not report full sync while deletions remai
   assert(save.includes("updateSyncStatus(!pendingDeleteCount"), "Pending deletions must keep the status unsynced");
   assert(save.includes("طلب حذف بانتظار المراجعة"), "The status must explain why synchronization is incomplete");
 });
+
+
+Deno.test("queued deletions immediately remain visibly pending instead of appearing synced", () => {
+  const queue = section("async function queueCloudDelete(", "// Fail-closed protection");
+  assert(queue.includes("updateSyncStatus(false"), "Queueing a deletion must immediately show an unsynced state");
+  assert(queue.includes("طلب حذف بانتظار المراجعة"), "The sync status must explain that deletion is pending review");
+});
+
+Deno.test("destructive UI actions do not claim that server-side deletion completed", () => {
+  for (const message of [
+    "حذف بياناته من الخادم بانتظار المراجعة",
+    "حذف سجله من الخادم بانتظار المراجعة",
+    "حذفها من الخادم لم يُنفذ وهو بانتظار المراجعة"
+  ]) assert(html.includes(message), "Missing clear local-only deletion notice: " + message);
+});
