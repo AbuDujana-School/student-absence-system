@@ -101,3 +101,19 @@ Deno.test("local fallback snapshot carries its own dirty markers and pending del
   assert(restore.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
   assert(restore.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
 });
+
+
+Deno.test("force refresh cannot discard unsaved attendance or behavior session edits", () => {
+  const refresh = section("function forceSyncWithCloud()", "function updateSyncStatus(");
+  assert(refresh.includes("if (attendanceDirty || behaviorDirty)"), "Refresh must stop while a live attendance or behavior session is dirty");
+  assert(refresh.includes("احفظ تغييرات الرصد الحالية"), "The user must be told to save the active session first");
+  assert(refresh.includes("hasPendingOfflineChanges()"), "Refresh confirmation must account for queued offline work and deletions");
+  assert(refresh.includes("لن تُرفع التغييرات المحلية أو تُنفذ طلبات الحذف تلقائياً"), "Refresh must not imply it uploads or deletes queued work");
+});
+
+Deno.test("successful record saves do not report full sync while deletions remain queued", () => {
+  const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
+  assert(save.includes("const pendingDeleteCount = getPendingDeletes().length"), "Save completion must inspect queued deletions");
+  assert(save.includes("updateSyncStatus(!pendingDeleteCount"), "Pending deletions must keep the status unsynced");
+  assert(save.includes("طلب حذف بانتظار المراجعة"), "The status must explain why synchronization is incomplete");
+});
