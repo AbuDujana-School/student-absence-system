@@ -120,7 +120,7 @@ Deno.test("substitution ranking balances historical workload and adjacent assign
   const heavy = calculateTeacherWorkload("heavy", assignments, "الأحد", 3, "2026-11-15");
   const light = calculateTeacherWorkload("light", assignments, "الأحد", 3, "2026-11-15");
   assert(heavy.score > light.score, "Historical duty and substitution work must contribute to workload");
-  equal(heavy.semesterAssignments, 2, "All historical active assignments count");
+  equal(heavy.historicalAssignments, 2, "All historical active assignments count");
 });
 
 Deno.test("supervision assignments block same-slot substitution candidates", () => {
