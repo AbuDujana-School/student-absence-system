@@ -5170,7 +5170,7 @@ async function loadSystemDataFromCloud() {
     db.students = {};
     studentsData.forEach(r => {
       let cn = r.class_name;
-      if (classesFixed && oldClassesMap[cn]) { cn = oldClassesMap[cn]; }
+      // Keep the server's class_name exactly as stored; no legacy rename mapping.
       if (!db.students[cn]) db.students[cn] = [];
       if (!db.students[cn].includes(r.student_name)) { db.students[cn].push(r.student_name); }
     });
@@ -7284,7 +7284,7 @@ async function addNewClassPrompt() {
 async function deleteCurrentClass() {
   const s = document.getElementById('adminClassSelect').value; if (!s) return;
   const ok = await showConfirm(`حذف صف ${s}؟`, { danger: true }); if (!ok) return;
-  db.classes = db.classes.filter(c => c !== s); dirtySets.classes.add(s); delete db.students[s];
+  db.classes = db.classes.filter(c => c !== s); dirtySets.classes.delete(s); delete db.students[s];
   const ak = Object.keys(db.attendance).filter(k => parseAttendanceKey(k).className === s); ak.forEach(k => { delete db.attendance[k]; dirtySets.attendance.add(k); });
   const bk = Object.keys(db.behaviors).filter(k => parseAttendanceKey(k).className === s); bk.forEach(k => { delete db.behaviors[k]; dirtySets.behaviors.add(k); });
   await saveSystemDataToCloud(); await queueCloudDelete('classes', { name: s }); await queueCloudDelete('students', { class_name: s });
