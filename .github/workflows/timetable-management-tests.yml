@@ -12,11 +12,13 @@ on:
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
       - "timetable-text.worker.js"
+      - "supabase/migrations/**"
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"
       - "index.html"
       - "timetable-text.worker.js"
+      - "supabase/migrations/**"
 
 jobs:
   unit-tests:
@@ -31,6 +33,6 @@ jobs:
       - name: Type-check timetable management
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
       - name: Run timetable unit tests
-        run: deno test supabase/functions/timetable-management/tests
+        run: deno test --allow-read=supabase/migrations supabase/functions/timetable-management/tests
       - name: Check timetable worker JavaScript syntax
         run: node --check timetable-text.worker.js
