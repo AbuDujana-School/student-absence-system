@@ -5427,9 +5427,8 @@ async function handleUserLogin(e) {
       loginAttempts = 0; loginLockedUntil = 0;
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
-      if (await isLegacyHash(pin, found.record)) {
-        try { const rec = await createPinRecord(pin); found.record.hash = rec.hash; found.record.salt = rec.salt; if (found.user.type === "admin") dirtySets.admin_pin = true; else dirtySets.teachers.add(found.user.name); await saveSystemDataToCloud(); } catch(error) {}
-      }
+      // Preserve existing credential records during login. Credential upgrades require
+      // a separately reviewed, explicit migration; never rewrite stored PIN hashes here.
       await finalizeLoginState();
     } else { throw new Error("استجابة تسجيل الدخول الآمن غير مكتملة."); }
     if (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true) { try { await saLogin(pin); } catch(saError) { console.warn("Student Affairs session not established:", saError); saSession = null; try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {} } }
