@@ -62,6 +62,7 @@ async function teacherDirectory() {
     department: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
     departmentId: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
     departmentName: String(item.permissions?.category || item.permissions?.department_name || ""),
+    personalDutyDay: String(item.permissions?.dutyDay || ""),
   })).filter((item: any) => item.name);
 }
 async function handle(req: Request) {
@@ -421,7 +422,7 @@ async function handle(req: Request) {
       const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),status:x.status}));
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
-        dutyDay:String(t.permissions?.dutyDay||dutySubjectDays[t.departmentId]||""),
+        dutyDay:String(t.personalDutyDay||dutySubjectDays[t.departmentId]||""),
       }));
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
