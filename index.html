@@ -6488,8 +6488,10 @@ function printHorizontalReport() {
 }
 function exportAttendanceExcel() {
   const td = document.getElementById('reportDatePicker').value;
-  let csv = "\uFEFFالصف,الحصة,المعلم,الطالب,الحالة\n";
-  sortClassesList(db.classes).forEach(cn => { for (let p = 1; p <= 8; p++) { const sd = db.attendance[`${td}_${cn}_p${p}`]; if (sd?.records) { sortAttendanceIssues(Object.entries(sd.records).filter(([n, s]) => s !== 'present')).forEach(([n, s]) => { const lb = s === 'absent' ? 'غائب' : (s === 'escape' ? 'متسرب' : (s === 'late' ? 'متأخر' : 'خارج')); csv += `${escapeCsvField(formatClassName(cn))},${escapeCsvField('الحصة ' + p)},${escapeCsvField(sd.teacher || 'معلم')},${escapeCsvField(n)},${escapeCsvField(lb)}\n`; }); } } });
+  let csv = "\uFEFFالصف,الحصة,المعلم,الطالب,الحالة
+";
+  sortClassesList(db.classes).forEach(cn => { for (let p = 1; p <= 8; p++) { const sd = db.attendance[`${td}_${cn}_p${p}`]; if (sd?.records) { sortAttendanceIssues(Object.entries(sd.records).filter(([n, s]) => s !== 'present')).forEach(([n, s]) => { const lb = s === 'absent' ? 'غائب' : (s === 'escape' ? 'متسرب' : (s === 'late' ? 'متأخر' : 'خارج')); csv += `${escapeCsvField(formatClassName(cn))},${escapeCsvField('الحصة ' + p)},${escapeCsvField(sd.teacher || 'معلم')},${escapeCsvField(n)},${escapeCsvField(lb)}
+`; }); } } });
   const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `تفريغ_الغياب_${td}.csv`; a.click();
   showToast('تم تنزيل الملف.', 'info');
@@ -7327,7 +7329,8 @@ function loadAdminStudentsList() {
   const s = document.getElementById('adminClassSelect')?.value;
   const list = arabicSort((s && db.students[s]) || []);
   const c = document.getElementById('adminStudentsDisplay');
-  const bi = document.getElementById('bulkStudentsInput'); if (bi && document.activeElement !== bi) bi.value = list.join('\n');
+  const bi = document.getElementById('bulkStudentsInput'); if (bi && document.activeElement !== bi) bi.value = list.join('
+');
   c.innerHTML = list.length === 0 ? `<div class="text-slate-400 text-center py-2 font-bold">لا طلاب.</div>` : '';
   list.forEach((st, i) => { const d = document.createElement('div'); d.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80'; d.innerHTML = `<span class="font-bold">${escapeHtml(st)}</span><button data-class="${escapeHtml(s)}" data-idx="${i}" onclick="removeStudentFromBtn(this)" class="text-red-500 text-xs font-bold px-3 py-1 bg-red-50 rounded-xl">حذف</button>`; c.appendChild(d); });
 }
@@ -7335,7 +7338,8 @@ function removeStudentFromBtn(btn) { removeStudent(btn.dataset.class, parseInt(b
 async function saveBulkStudents() {
   const s = document.getElementById('adminClassSelect').value; if (!s) return;
   const ol = db.students[s] || [];
-  const nl = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('\n').map(x => x.trim()).filter(Boolean))]);
+  const nl = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('
+').map(x => x.trim()).filter(Boolean))]);
   const rm = ol.filter(x => !nl.includes(x));
   db.students[s] = nl; dirtySets.students.add(s);
   if (rm.length > 0) {
@@ -7351,7 +7355,8 @@ function handleStudentFileImport(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = async function(evt) {
-    const lines = evt.target.result.replace(/^\uFEFF/, '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+    const lines = evt.target.result.replace(/^\uFEFF/, '').split(/\r?
+/).map(x => x.trim()).filter(Boolean);
     const s = document.getElementById('adminClassSelect').value;
     if (lines.length > 0) {
       const ol = db.students[s] || []; const nl = arabicSort([...new Set([...ol, ...lines])]); const added = nl.filter(x => !ol.includes(x));
@@ -7717,7 +7722,8 @@ async function bulkAddTeachers(evt) {
   const txt = document.getElementById('bulkTeacherNames').value.trim();
   if (!cat) { showToast('اختر الفئة.', 'error'); return; }
   if (!txt) { showToast('الصق الأسماء.', 'error'); return; }
-  const raw = txt.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
+  const raw = txt.split(/\r?
+/).map(x => x.trim()).filter(Boolean);
   if (raw.length === 0) { showToast('لا أسماء صالحة.', 'error'); return; }
   const uniq = [...new Set(raw)];
   const existing = new Set([...db.teachers.map(t => t.name), ...(db.customUsers || []).map(u => u.name)]);
@@ -7772,18 +7778,26 @@ async function copyPinAndClose() {
   const m = document.getElementById('pinDisplayModal');
   if (m.dataset.bulkPins) {
     const c = JSON.parse(m.dataset.bulkPins);
-    const t = `📋 قائمة الحسابات:\n\n` + c.map(x => `${x.name} (${x.category}): ${x.pin}`).join('\n') + `\n\n⚠️ يجب تغيير الرمز عند أول دخول.`;
+    const t = `📋 قائمة الحسابات:
+
+` + c.map(x => `${x.name} (${x.category}): ${x.pin}`).join('
+') + `
+
+⚠️ يجب تغيير الرمز عند أول دخول.`;
     try { await navigator.clipboard.writeText(t); showToast(`نُسخ ${c.length}.`, 'success'); } catch(e) { showToast('تعذر النسخ.', 'error'); }
     delete m.dataset.bulkPins;
   } else {
     const p = m.dataset.pin, n = m.dataset.name;
-    try { await navigator.clipboard.writeText(`اسم: ${n}\nالرمز: ${p}\n(يجب تغييره)`); showToast('نُسخ.', 'success'); } catch(e) { showToast('تعذر.', 'error'); }
+    try { await navigator.clipboard.writeText(`اسم: ${n}
+الرمز: ${p}
+(يجب تغييره)`); showToast('نُسخ.', 'success'); } catch(e) { showToast('تعذر.', 'error'); }
   }
   m.classList.add('hidden');
 }
 async function showTeacherPin(idx) {
   const t = db.teachers[idx]; if (!t) return;
-  const ok = await showConfirm(`لا يمكن استرجاع الرمز المشفر.\nهل تريد إنشاء رمز جديد لـ (${t.name}) وعرضه الآن؟`, { title: 'إعادة تعيين الرمز', okText: 'إنشاء جديد' });
+  const ok = await showConfirm(`لا يمكن استرجاع الرمز المشفر.
+هل تريد إنشاء رمز جديد لـ (${t.name}) وعرضه الآن؟`, { title: 'إعادة تعيين الرمز', okText: 'إنشاء جديد' });
   if (!ok) return;
   try {
     const pin = await generateUniquePin();
@@ -8202,21 +8216,34 @@ function buildDutyWhatsAppMessage(classes, period) {
   });
 
   let msg = '';
-  msg += `📌 *تقرير المناوبة*\n\n`;
-  msg += `📅 التاريخ: ${date}\n`;
-  msg += `📆 اليوم: ${day}\n`;
-  msg += `⏰ وقت الرصد: ${time}\n`;
-  msg += `🕒 الحصة: *${periodName}*\n`;
-  msg += `👤 المعلم المناوب: *${activeUser?.name || '—'}*\n\n`;
+  msg += `📌 *تقرير المناوبة*
+
+`;
+  msg += `📅 التاريخ: ${date}
+`;
+  msg += `📆 اليوم: ${day}
+`;
+  msg += `⏰ وقت الرصد: ${time}
+`;
+  msg += `🕒 الحصة: *${periodName}*
+`;
+  msg += `👤 المعلم المناوب: *${activeUser?.name || '—'}*
+
+`;
 
   if (sortedClasses.length === 0) {
-    msg += `✅ لا يوجد صف بدون معلم\n\n`;
+    msg += `✅ لا يوجد صف بدون معلم
+
+`;
   } else {
-    msg += `🚨 *الصفوف بدون معلم:*\n`;
+    msg += `🚨 *الصفوف بدون معلم:*
+`;
     sortedClasses.forEach((c, idx) => { 
-      msg += `${idx + 1}- صف *${ltrIsolate(formatClassName(c))}*\n`; 
+      msg += `${idx + 1}- صف *${ltrIsolate(formatClassName(c))}*
+`; 
     });
-    msg += `\n`;
+    msg += `
+`;
   }
 
   msg += `🏫 مدرسة أبو دجانة الأنصاري`;
@@ -8362,10 +8389,12 @@ async function updateDutyRecordStatus(sel) {
 function exportDutyReportsCSV() {
   const recs = dutyData().records || [];
   if (recs.length === 0) { showToast('لا بلاغات.', 'info'); return; }
-  let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة\n';
+  let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة
+';
   recs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).forEach(r => {
     const displayName = r.className === '__CLEAN__' ? 'سليم' : formatClassName(r.className);
-    csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(displayName), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n';
+    csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(displayName), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '
+';
   });
   const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
@@ -9245,7 +9274,8 @@ function timetableReadTextFile(event) {
   })();
 }
 function timetableFindDayHeadings(sourceText) {
-  const lines = String(sourceText || "").split(/\r?\n/);
+  const lines = String(sourceText || "").split(/\r?
+/);
   const headings = [];
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index].trim();
@@ -9258,7 +9288,8 @@ function timetableFindDayHeadings(sourceText) {
 function timetableFindTabularRows(sourceText) {
   const groups = new Map();
   const required = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
-  for (const rawLine of String(sourceText || "").split(/\r?\n/)) {
+  for (const rawLine of String(sourceText || "").split(/\r?
+/)) {
     const line = rawLine.trim();
     if (!line.includes("\t")) continue;
     const fields = line.split("\t").map(value => value.trim());
@@ -9274,7 +9305,8 @@ function timetableFindTabularDays(sourceText) {
   return Array.from(timetableFindTabularRows(sourceText).keys());
 }
 function timetableSplitDailyText(sourceText, fallbackWeekday) {
-  const lines = String(sourceText || "").split(/\r?\n/);
+  const lines = String(sourceText || "").split(/\r?
+/);
   const headings = timetableFindDayHeadings(sourceText);
   if (!headings.length) {
     const tabularRows = timetableFindTabularRows(sourceText);
@@ -9287,7 +9319,8 @@ function timetableSplitDailyText(sourceText, fallbackWeekday) {
       }
       return days.sort((a,b)=>required.indexOf(a)-required.indexOf(b)).map(weekday => ({
         weekday,
-        text: tabularRows.get(weekday).join("\n")
+        text: tabularRows.get(weekday).join("
+")
       }));
     }
     return [{weekday:fallbackWeekday,text:sourceText}];
@@ -9304,7 +9337,8 @@ function timetableSplitDailyText(sourceText, fallbackWeekday) {
   return headings.map((heading,index) => {
     const start = index === 0 ? 0 : heading.lineIndex;
     const end = index + 1 < headings.length ? headings[index + 1].lineIndex : lines.length;
-    return {weekday:heading.weekday,text:lines.slice(start,end).join("\n").trim()};
+    return {weekday:heading.weekday,text:lines.slice(start,end).join("
+").trim()};
   }).sort((left,right)=>required.indexOf(left.weekday)-required.indexOf(right.weekday));
 }
 function timetableNormalizeNameKey(value) {
@@ -9532,7 +9566,8 @@ function timetableTeacherLookupSetStatus(message, kind="info") {
       :"border-indigo-200 bg-indigo-50 text-indigo-800 dark:border-indigo-900 dark:bg-indigo-950/40 dark:text-indigo-200");
   el.classList.remove("hidden");
 }
-let timetableClassAssignContext = null;\nlet timetableClassReviewVersionId = null;
+let timetableClassAssignContext = null;
+let timetableClassReviewVersionId = null;
 function timetableOpenClassAssignModal(className, weekday, period) {
   timetableClassAssignContext = { className, weekday, period };
   const modal = document.getElementById("timetableClassAssignModal");
@@ -9593,7 +9628,8 @@ async function timetableLoadClassWeeklyGrid() {
   try{
     const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
     const response=await appAuthRequest({action:"timetable_class_weekly_get",versionId:timetableClassReviewVersionId||undefined},token);
-    if (response.version?.status === "draft") timetableClassReviewVersionId = response.version.id;\n    const classes=response.classes||[];
+    if (response.version?.status === "draft") timetableClassReviewVersionId = response.version.id;
+    const classes=response.classes||[];
     if(select){const selected=select.value;select.innerHTML='<option value="">اختر الصف / الشعبة</option>'+classes.map(item=>'<option value="'+timetableEsc(item.className)+'">'+timetableEsc(item.className)+'</option>').join("");if(classes.some(item=>item.className===selected))select.value=selected;}
     if(!classes.length){host.classList.add("hidden");setStatus("لم تُستخرج أسماء صفوف من النسخة المعتمدة. راجع ربط الصفوف في حصص المعلمين.",true);return;}
     const chosen=classes.find(item=>item.className===select?.value)||classes[0];if(select&&!select.value)select.value=chosen.className;
@@ -10099,16 +10135,20 @@ async function timetableDailyShareWhatsApp() {
     return;
   }
   await timetableDailyRefreshAll();
-  let message = "*📋 كشف الاحتياط اليومي*\n";
+  let message = "*📋 كشف الاحتياط اليومي*
+";
   const date = document.getElementById("timetableSubstitutionDate")?.value || "";
-  message += "📅 التاريخ: "+date+"\n\n";
+  message += "📅 التاريخ: "+date+"
+
+";
   let count = 0;
   for (const absentName of timetableDailyAbsentTeachers) {
     const response = timetableDailyPreviewByAbsent.get(absentName);
     if (!response || response.error) continue;
     for (const lesson of (response.lessons || [])) {
       const assigned = lesson.assignment?.substituteTeacherName || "⚠️ لم يحدد";
-      message += "• "+absentName+" | الحصة "+lesson.period+" | "+(lesson.className || "الشعبة غير محددة")+" | "+(lesson.subject || "المادة غير محددة")+" ← "+assigned+"\n";
+      message += "• "+absentName+" | الحصة "+lesson.period+" | "+(lesson.className || "الشعبة غير محددة")+" | "+(lesson.subject || "المادة غير محددة")+" ← "+assigned+"
+";
       count++;
     }
   }
@@ -10201,7 +10241,8 @@ async function timetableImportPdf() {
     });
     const diagnostics=parsed?.diagnostics||{};
     diagnostics.currentDutyTimesMatch=timetablePdfTimesMatch(diagnostics.periodTimes);
-    if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
+    if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("
+"));
     const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
     if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||!day.teachers.length||day.teachers.length>500))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: عدد المعلمين في أحد الأيام غير صالح.");
     const importedPeriodCount=days[0]?.teachers?.[0]?.cells?.length;
