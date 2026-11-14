@@ -7164,7 +7164,7 @@ function switchAdminTab(tab) {
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
-  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); timetableRestorePendingWorkbook(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
@@ -9277,6 +9277,36 @@ async function timetableClearPendingWorkbook() {
       tx.onerror = () => reject(tx.error || new Error("تعذر تنظيف التخزين المؤقت."));
     });
   } finally { db.close(); }
+}
+let timetableRestorePendingPromise = null;
+async function timetableRestorePendingWorkbook() {
+  if (timetableImportPreview || timetableRestorePendingPromise || !timetableCanAccess) return timetableRestorePendingPromise;
+  timetableRestorePendingPromise = (async () => {
+    const pending = await timetableReadPendingWorkbook();
+    if (!pending?.sheets || !pending.fileName) return;
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) return;
+    timetablePendingWorkbook = {fileName:pending.fileName};
+    timetableSetWorkerProgress("استعادة المسودة المحفوظة", 10, 0, 0);
+    const result = await appAuthRequest({
+      action:"timetable_preview", fileName:pending.fileName, sheets:pending.sheets
+    }, token);
+    timetableImportPreview = result;
+    timetableSavedImport = null;
+    timetableActiveImport = null;
+    const saveButton = document.getElementById("timetableSaveButton");
+    if (saveButton) {
+      saveButton.disabled = false;
+      saveButton.classList.remove("hidden");
+      saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة';
+    }
+    timetableRenderPreview();
+    timetableSetWorkerProgress("تمت استعادة المسودة", 100, 1, 1);
+    timetableSetStatus("تمت استعادة ملف المسودة من التخزين المحلي الآمن. يمكنك متابعة المراجعة والحفظ.", "success");
+  })().catch(error => {
+    timetableSetStatus(error?.message || "تعذر استعادة المسودة المحفوظة.", "error");
+  }).finally(() => { timetableRestorePendingPromise = null; });
+  return timetableRestorePendingPromise;
 }
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
