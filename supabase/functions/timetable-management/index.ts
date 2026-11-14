@@ -111,6 +111,9 @@ async function handle(req: Request) {
           : typeof teacher.permissions?.department_name === "string" ? teacher.permissions.department_name : undefined,
       })).filter((teacher: SystemTeacher) => teacher.name);
       const parsed = parseTimetableWorkbook(sheets, systemTeachers);
+      if (action === "timetable_save_import" && parsed.schemaValidation && !parsed.schemaValidation.canSaveDraft) {
+        return reply(422, { error: "لا يمكن حفظ المسودة قبل تصحيح مخطط الملف.", schemaValidation: parsed.schemaValidation, result: parsed });
+      }
       if (action === "timetable_preview") {
         return reply(200, {
           ok: true, fileName: String(body.fileName || "ملف Excel").slice(0, 180),
