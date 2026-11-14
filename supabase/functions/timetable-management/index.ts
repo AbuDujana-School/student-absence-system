@@ -341,6 +341,7 @@ async function handle(req: Request) {
       }));
       const teacherMatches = body.action === "timetable_save_weekly_day" && body.teacherMatches && typeof body.teacherMatches === "object" && !Array.isArray(body.teacherMatches)
         ? body.teacherMatches as Record<string, unknown> : {};
+      const usedTeacherNames = new Set<string>();
       const matchedTeachers = parsed.teachers.map((teacher) => {
         const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
         const requestedName = Object.prototype.hasOwnProperty.call(teacherMatches, teacher.sourceName)
@@ -349,7 +350,13 @@ async function handle(req: Request) {
           if (!requestedName) return { ...teacher, matchedTeacherName: null, matchStatus: "unmatched" as const };
           const selected = systemTeachers.find((item) => item.name === requestedName);
           if (!selected) throw new Error("المعلم المحدد للربط غير موجود في قائمة معلمي المدرسة: " + requestedName);
+          if (usedTeacherNames.has(selected.name)) throw new Error("لا يمكن ربط أكثر من اسم مصدر بحساب المعلم نفسه: " + selected.name);
+          usedTeacherNames.add(selected.name);
           return { ...teacher, matchedTeacherName: selected.name, matchStatus: "matched" as const };
+        }
+        if (match.teacherName) {
+          if (usedTeacherNames.has(match.teacherName)) throw new Error("توجد أسماء متعددة مرتبطة بحساب المعلم نفسه: " + match.teacherName);
+          usedTeacherNames.add(match.teacherName);
         }
         return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
       });
