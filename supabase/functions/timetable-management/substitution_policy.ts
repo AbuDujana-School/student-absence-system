@@ -28,7 +28,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     cells.set(entry.teacherId,current);
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
-  const assigned=new Set(activeAssignments.filter(a=>(!versionId||!a.versionId||a.versionId===versionId)&&sameCell(a,{weekday,period})&&(!assignmentDate||!a.assignmentDate||a.assignmentDate===assignmentDate)).map(a=>a.substituteTeacherId));
+  const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
   const score=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
     activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate,period
   );
