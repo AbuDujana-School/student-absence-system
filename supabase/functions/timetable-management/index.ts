@@ -373,12 +373,15 @@ async function handle(req: Request) {
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
-      const [directory,dayCellsResult]=await Promise.all([
+      const [directory,dayCellsResult,dutySettingsResult]=await Promise.all([
         teacherDirectory(),
         db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject").eq("version_id",activeVersion.id).eq("weekday",weekday),
+        db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
       ]);
       if (dayCellsResult.error) throw dayCellsResult.error;
+      if (dutySettingsResult.error) throw dutySettingsResult.error;
       const dayCells=dayCellsResult.data||[];
+      const dutySubjectDays=dutySettingsResult.data?.value?.subjectDays||{};
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
@@ -416,7 +419,10 @@ async function handle(req: Request) {
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
       const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),status:x.status}));
-      const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({id:t.name,name:t.name,departmentId:t.departmentId}));
+      const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
+        id:t.name,name:t.name,departmentId:t.departmentId,
+        dutyDay:String(t.permissions?.dutyDay||dutySubjectDays[t.departmentId]||""),
+      }));
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
       const lessonOptions=lessons.map((lesson)=>{
