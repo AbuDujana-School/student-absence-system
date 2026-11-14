@@ -54,7 +54,8 @@
     if (!host) return;
     host.innerHTML = ttDashboardAbsent.map(name =>
       '<span class="tt-tag">' + escapeHtml(name) +
-      '<button type="button" data-tt-remove="' + escapeHtml(name) + '" aria-label="إزالة ' + escapeHtml(name) + '">×</button></span>'
+      '<button type="button" data-tt-remove="' + escapeHtml(name) + '" aria-label="إزالة ' + escapeHtml(name) + '"' +
+      (ttDashboardBusy ? " disabled" : "") + '>×</button></span>'
     ).join("");
     host.querySelectorAll("[data-tt-remove]").forEach(button => button.addEventListener("click", () => {
       ttDashboardAbsent = ttDashboardAbsent.filter(name => name !== button.dataset.ttRemove);
@@ -177,10 +178,10 @@
     const key = absentName + "|" + period;
     if (ttDashboardSaving.has(key)) return false;
     ttDashboardSaving.add(key);
-    const { date, weekday } = context();
-    const sessionToken = token();
-    if (!sessionToken) throw new Error("انتهت جلسة الدخول.");
     try {
+      const { date, weekday } = context();
+      const sessionToken = token();
+      if (!sessionToken) throw new Error("انتهت جلسة الدخول.");
       await appAuthRequest({
         action: "timetable_substitution_save",
         weekday, assignmentDate: date, absentTeacherName: absentName,
@@ -297,6 +298,8 @@
         setStatus("لا يوجد جدول أسبوعي معتمد حتى الآن. انتقل إلى إعداد وإدارة الجدول العام واعتمد نسخة الأسبوع أولاً.", "error");
       } else if (legacyStatus?.className?.includes("border-red-")) {
         setStatus(legacyStatus.textContent || "تعذر تحميل بيانات اليوم.", "error");
+      } else if (byId("timetableSubstitutionAbsentTeacher")?.options?.length <= 1) {
+        setStatus("لا توجد حصص تدريس مسجلة لمعلمي نطاق صلاحيتك في هذا اليوم.", "info");
       } else {
         setStatus("اختر المعلمين الغائبين من البحث لعرض حصصهم.", "success");
       }
