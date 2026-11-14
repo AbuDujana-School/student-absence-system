@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
-import { matchSystemTeacherName, parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
@@ -81,24 +81,18 @@ async function handle(req: Request) {
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
     if (principal.type !== "admin") return reply(403, { error: "استيراد الجداول متاح لمدير النظام العام فقط." });
     const sheets = body?.sheets;
-    if (!sheets || typeof sheets !== "object" || Array.isArray(sheets)) {
-      return reply(400, { error: "بيانات ملف Excel غير صالحة." });
-    }
-    const sheetNames = Object.keys(sheets);
-    if (!sheetNames.length || sheetNames.length > 20) return reply(400, { error: "عدد أوراق العمل غير صالح." });
-    let rowCount = 0, cellCount = 0;
-    for (const [name, rows] of Object.entries(sheets)) {
-      if (typeof name !== "string" || !Array.isArray(rows)) return reply(400, { error: "بنية ورقة العمل غير صالحة." });
-      rowCount += rows.length;
-      for (const row of rows) {
-        if (!Array.isArray(row)) return reply(400, { error: "توجد بيانات صف غير صالحة في ملف Excel." });
-        cellCount += row.length;
-      }
-    }
-    if (rowCount > 5000 || cellCount > 100000) {
-      return reply(413, { error: action === "timetable_preview"
-        ? "حجم بيانات الجدول أكبر من الحد المسموح للمعاينة."
-        : "حجم بيانات الجدول أكبر من الحد المسموح للاستيراد." });
+    const schema = validateWorkbookSchema(sheets);
+    if (!schema.valid) {
+      const detail = schema.errors.slice(0, 8).map(issue =>
+        (issue.sheet ? "ورقة " + issue.sheet + "، " : "") +
+        (issue.row ? "صف " + issue.row + "، " : "") +
+        (issue.column ? "عمود " + issue.column + ": " : "") + issue.message
+      ).join("؛ ");
+      const tooLarge = schema.rowCount > 5000 || schema.cellCount > 100000;
+      return reply(tooLarge ? 413 : 400, {
+        error: "تعذر التحقق من بنية ملف الجدول: " + detail,
+        validation: { valid: false, rowCount: schema.rowCount, cellCount: schema.cellCount, errors: schema.errors },
+      });
     }
     try {
       const { data: directory, error: directoryError } = await db.from("teachers")
