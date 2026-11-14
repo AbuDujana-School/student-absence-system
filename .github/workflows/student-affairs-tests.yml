@@ -647,6 +647,8 @@ jobs:
               subprocess.run(["node", "--check", str(path)], check=True)
           print(f"Checked {len(scripts)} inline script blocks")
           PY
+      - name: Check smart timetable dashboard JavaScript syntax
+        run: node --check timetable-dashboard.js
       - name: Verify general app session migration safety contract
         run: |
           python - <<'PY'
