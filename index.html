@@ -5092,8 +5092,6 @@ async function loadSystemDataFromCloud() {
     if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
     // Preserve the exact class names returned by the server. No automatic rename,
     // delete, or cascade-like remapping of students and related records.
-    const classesFixed = false;
-    const oldClassesMap = {};
     db.classes = [...new Set(classesData.map(r => r.name))];
 
     db.students = {};
@@ -5124,29 +5122,15 @@ async function loadSystemDataFromCloud() {
     try {
       const drData = await fetchAllPaginated('duty_reports', '*');
       db.dutyModule.records = drData.filter(r => r.class_name !== '__CLEAN__').map(r => {
-        let cn = r.class_name;
-        if (classesFixed && oldClassesMap[cn]) {
-          cn = oldClassesMap[cn];
-          dirtySets.duty_reports.add(String(r.id));
-        }
+        const cn = r.class_name;
         return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
       });
     } catch(e) { throw new Error('تعذر تحميل سجلات تقارير المناوبة؛ أُوقف التحميل الآمن.', { cause: e }); }
 
     db.attendance = {};
     for (const r of attendanceData) {
-      let cn = r.class_name;
-      let newKey = r.record_key;
-      if (classesFixed && oldClassesMap[cn]) {
-        cn = oldClassesMap[cn];
-        const lu = r.record_key.lastIndexOf('_');
-        if (lu !== -1) {
-          const prefix = r.record_key.substring(0, lu);
-          const fu = prefix.indexOf('_');
-          if (fu !== -1) { newKey = `${prefix.substring(0, fu)}_${cn}_${r.record_key.substring(lu + 1)}`; }
-        }
-        if (newKey !== r.record_key) { await queueCloudDelete('attendance', { record_key: r.record_key }); }
-      }
+      const cn = r.class_name;
+      const newKey = r.record_key;
       if (!db.attendance[newKey] || new Date(r.updated_at) > new Date(db.attendance[newKey].timestamp)) {
         db.attendance[newKey] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
         if (newKey !== r.record_key) dirtySets.attendance.add(newKey);
@@ -5155,18 +5139,8 @@ async function loadSystemDataFromCloud() {
 
     db.behaviors = {};
     for (const r of behaviorsData) {
-      let cn = r.class_name;
-      let newKey = r.record_key;
-      if (classesFixed && oldClassesMap[cn]) {
-        cn = oldClassesMap[cn];
-        const lu = r.record_key.lastIndexOf('_');
-        if (lu !== -1) {
-          const prefix = r.record_key.substring(0, lu);
-          const fu = prefix.indexOf('_');
-          if (fu !== -1) { newKey = `${prefix.substring(0, fu)}_${cn}_${r.record_key.substring(lu + 1)}`; }
-        }
-        if (newKey !== r.record_key) { await queueCloudDelete('behaviors', { record_key: r.record_key }); }
-      }
+      const cn = r.class_name;
+      const newKey = r.record_key;
       if (!db.behaviors[newKey] || new Date(r.updated_at) > new Date(db.behaviors[newKey].timestamp)) {
         db.behaviors[newKey] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
         if (newKey !== r.record_key) dirtySets.behaviors.add(newKey);
