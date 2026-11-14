@@ -61,17 +61,17 @@ export function calculateSubstitutionWorkloadScore(
   referenceDate?:string,
   targetPeriod?:number,
 ):number {
-  const active=assignments.filter(a=>a.status!=="cancelled");
-  const reference=referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)
+  const active=assignments.filter(a=>a.status!=="cancelled"&&(a.assignmentType==="substitution"||!a.assignmentType));
+  const reference=referenceDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(referenceDate)
     ? new Date(referenceDate+"T12:00:00Z") : null;
   const dayMs=86400000;
   let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
   for(const assignment of active){
-    total++;
-    if(!reference || !assignment.assignmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(assignment.assignmentDate)) continue;
-    const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
-    const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
-    if(age<0) continue;
+    if(reference && assignment.assignmentDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(assignment.assignmentDate)){
+      const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
+      const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
+      if(age<0) continue; // Future assignments must never affect a past/current fairness decision.
+      total++;
       if(age<90) last90++;
       if(age<30) last30++;
       if(age<7) last7++;
