@@ -5012,7 +5012,6 @@ function saveToLocalStorageSafe() {
     const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, attendance: {}, behaviors: {} };
     Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.attendance.has(k)) safeDb.attendance[k] = db.attendance[k]; });
     Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.behaviors.has(k)) safeDb.behaviors[k] = db.behaviors[k]; });
-    const dirtyObj = serializeDirtySets();
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) { throw e; }
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
