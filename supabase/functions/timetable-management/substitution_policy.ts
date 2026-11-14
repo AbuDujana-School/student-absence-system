@@ -29,12 +29,44 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(!assignmentDate||!a.assignmentDate||a.assignmentDate===assignmentDate)).map(a=>a.substituteTeacherId));
-  const workload=new Map<string,number>();
-  for(const assignment of activeAssignments) workload.set(assignment.substituteTeacherId,(workload.get(assignment.substituteTeacherId)??0)+1);
+  const score=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
+    activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate
+  );
   return teachers.filter(t=>t.id!==absentTeacherId)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
-    .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>(workload.get(a.id)??0)-(workload.get(b.id)??0)||a.name.localeCompare(b.name,"ar"));
+    .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>score(a.id)-score(b.id)||a.name.localeCompare(b.name,"ar"));
+}
+
+
+/**
+ * Cumulative fairness score. Availability remains a hard gate; this score only
+ * orders eligible teachers. Older assignments still count, while recent load
+ * has greater influence to prevent repeatedly burdening the same teachers.
+ */
+export function calculateSubstitutionWorkloadScore(
+  assignments:SubstitutionAssignment[],
+  referenceDate?:string,
+):number {
+  const active=assignments.filter(a=>a.status!=="cancelled");
+  const reference=referenceDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(referenceDate)
+    ? new Date(referenceDate+"T12:00:00Z") : null;
+  const dayMs=86400000;
+  let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
+  for(const assignment of active){
+    total++;
+    if(!reference || !assignment.assignmentDate || !/^\\d{4}-\\d{2}-\\d{2}$/.test(assignment.assignmentDate)) continue;
+    const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
+    const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
+    if(age<0) continue;
+    if(age<90) last90++;
+    if(age<30) last30++;
+    if(age<7) last7++;
+    if(age===0) sameDay++;
+    if(age===0 && assignment.period>=1 && assignment.period<=7) adjacent += 0;
+  }
+  // Total history prevents gaming by waiting out a short rolling window.
+  return total + last90*2 + last30*3 + last7*4 + sameDay*8 + adjacent;
 }
 
 /** List only absent teachers the current coordinator is allowed to see. */
