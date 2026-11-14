@@ -9,6 +9,7 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="./timetable-pdf-import.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet">
@@ -3106,7 +3107,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
         <div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">رفع ملف الجدول</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يدعم ملفات Excel وCSV مع مراجعة المطابقة قبل الحفظ.</p></div>
-          <div id="timetableExcelDropZone" class="tt-drop tt-no-print" role="button" tabindex="0" onclick="document.getElementById('timetableExcelFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetableExcelFile').click()}">
+          <div class="rounded-2xl border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/20 p-4 space-y-3 mb-4">
+  <div><h4 class="font-black text-sm text-indigo-900 dark:text-indigo-100">استيراد الجدول الأسبوعي من PDF</h4><p class="mt-1 text-xs text-slate-600 dark:text-slate-300">يقرأ جميع الصفحات والنصوص وخطوط حدود الخانات، ثم يبني خمسة أيام × سبع حصص لكل معلم في معاينة قابلة للتعديل. لا يحفظ أو يعتمد الجدول تلقائياً.</p></div>
+  <div id="timetablePdfDropZone" class="tt-drop" role="button" tabindex="0" onclick="document.getElementById('timetablePdfFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetablePdfFile').click()}"><div class="text-2xl mb-2">📄</div><strong class="text-sm text-slate-800 dark:text-white">اسحب ملف PDF كاملاً هنا أو انقر لاختياره</strong><p class="mt-1 text-[10px] text-slate-500">PDF · حتى 20 ميجابايت · 150 صفحة كحد أقصى</p></div>
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end"><div><label for="timetablePdfFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">ملف جدول الحصص PDF</label><input id="timetablePdfFile" type="file" accept=".pdf,application/pdf" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-indigo-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div><button id="timetablePdfImportButton" type="button" onclick="timetableImportPdf()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-file-pdf ml-1"></i> تحليل PDF وإنشاء المعاينة</button></div>
+  <div id="timetablePdfWorkerProgress" class="hidden rounded-xl border border-indigo-200 dark:border-indigo-900 bg-white/70 dark:bg-slate-900/60 p-3 space-y-2" role="status" aria-live="polite"><div class="flex items-center justify-between gap-2 text-[10px] font-bold text-indigo-900 dark:text-indigo-100"><span id="timetablePdfWorkerProgressLabel">تهيئة قارئ PDF...</span><span id="timetablePdfWorkerProgressValue">0%</span></div><div class="h-2 overflow-hidden rounded-full bg-indigo-100 dark:bg-indigo-900"><div id="timetablePdfWorkerProgressBar" class="h-full rounded-full bg-indigo-700 transition-all" style="width:0%"></div></div></div>
+  <div id="timetablePdfDiagnostics" class="hidden rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-3 text-xs text-amber-900 dark:text-amber-100"></div>
+</div><div id="timetableExcelDropZone" class="tt-drop tt-no-print" role="button" tabindex="0" onclick="document.getElementById('timetableExcelFile').click()" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('timetableExcelFile').click()}">
             <div class="text-2xl mb-2">📂</div><strong class="text-sm text-slate-800 dark:text-white">اسحب ملف الجدول هنا أو انقر لاختياره</strong><p class="mt-1 text-[10px] text-slate-500">XLSX · XLS · CSV — تتم مراجعة البيانات قبل اعتمادها</p>
           </div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
@@ -10018,6 +10025,82 @@ function timetableInitExcelDropZone() {
   });
 }
 timetableInitExcelDropZone();
+
+function timetableInitPdfDropZone() {
+  const zone=document.getElementById("timetablePdfDropZone"),input=document.getElementById("timetablePdfFile");
+  if(!zone||!input||zone.dataset.bound==="1")return;
+  zone.dataset.bound="1";
+  zone.addEventListener("dragover",event=>{event.preventDefault();zone.classList.add("tt-drop-active");});
+  zone.addEventListener("dragleave",()=>zone.classList.remove("tt-drop-active"));
+  zone.addEventListener("drop",event=>{
+    event.preventDefault();zone.classList.remove("tt-drop-active");
+    const file=event.dataTransfer?.files?.[0];if(!file)return;
+    if(!/\.pdf$/i.test(file.name)&&file.type!=="application/pdf"){timetableSetStatus("اختر ملف PDF فقط.","error");return;}
+    const transfer=new DataTransfer();transfer.items.add(file);input.files=transfer.files;timetableImportPdf();
+  });
+}
+timetableInitPdfDropZone();
+
+function timetablePdfRenderDiagnostics(diagnostics) {
+  const host=document.getElementById("timetablePdfDiagnostics");if(!host)return;
+  const warnings=Array.isArray(diagnostics?.warnings)?diagnostics.warnings:[];
+  const blocking=Array.isArray(diagnostics?.blockingErrors)?diagnostics.blockingErrors:[];
+  const merged=Array.isArray(diagnostics?.mergedCells)?diagnostics.mergedCells:[];
+  const times=Array.isArray(diagnostics?.periodTimes)?diagnostics.periodTimes:[];
+  const items=[...blocking.map(value=>"خطأ مانع: "+value),...warnings];
+  const timeMarkup=times.length?'<div class="mt-3"><strong>أوقات الحصص المستخرجة من الملف:</strong><div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">'+times.map(item=>'<div class="rounded-lg bg-white/80 dark:bg-slate-900/70 p-2"><strong>الحصة '+timetableEsc(item.period)+'</strong><div>'+timetableEsc(item.time)+'</div></div>').join("")+'</div></div>':'';
+  const mergedMarkup=merged.length?'<div class="mt-3"><strong>الخانات الممتدة المكتشفة ('+merged.length+')، وكل واحدة فُكّت إلى فترتين:</strong><ul class="mt-1 list-disc pr-5 space-y-1">'+merged.map(item=>'<li>صفحة '+timetableEsc(item.page)+' · '+timetableEsc(item.teacher)+' · '+timetableEsc(item.weekday)+' · الحصتان '+timetableEsc(item.startPeriod)+' و'+timetableEsc(item.endPeriod)+' · '+timetableEsc(item.subject)+' · '+timetableEsc((item.classGroups||[]).join("، "))+'</li>').join("")+'</ul></div>':'<p class="mt-3">لم تُرصد خانات ممتدة في الملف.</p>';
+  host.innerHTML='<details '+(items.length?'open':'')+'><summary class="cursor-pointer font-black">نتيجة فحص الملف: '+Number(diagnostics?.pageCount||0)+' صفحة · '+Number(diagnostics?.teacherPageCount||0)+' معلماً · '+Number(diagnostics?.importedCellCount||0)+' خانة مصدر · '+merged.length+' خانات ممتدة · '+items.length+' ملاحظة</summary>'+timeMarkup+mergedMarkup+'<div class="mt-3 space-y-1 max-h-64 overflow-y-auto">'+(items.length?items.map(value=>'<p class="border-t border-amber-200/70 dark:border-amber-900 pt-1">'+timetableEsc(value)+'</p>').join(""):'<p>لم تُرصد ملاحظات.</p>')+'</div></details>';
+  host.classList.remove("hidden");
+}
+
+async function timetableImportPdf() {
+  const input=document.getElementById("timetablePdfFile"),file=input?.files?.[0];
+  const button=document.getElementById("timetablePdfImportButton"),panel=document.getElementById("timetablePdfWorkerProgress");
+  const bar=document.getElementById("timetablePdfWorkerProgressBar"),label=document.getElementById("timetablePdfWorkerProgressLabel"),value=document.getElementById("timetablePdfWorkerProgressValue");
+  if(activeUser?.type!=="admin"||!timetableCanAccess){timetableSetStatus("استيراد PDF متاح لمدير النظام العام فقط.","error");return;}
+  if(!file){timetableSetStatus("اختر ملف PDF أولاً.","error");return;}
+  if(!window.TimetablePdfImporter?.parseFile){timetableSetStatus("تعذر تحميل قارئ PDF. حدّث الصفحة وتأكد من اتصال الإنترنت.","error");return;}
+  const old=button?.innerHTML;
+  if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ تحليل جميع الصفحات...';}
+  if(panel)panel.classList.remove("hidden");if(bar)bar.style.width="0%";if(value)value.textContent="0%";if(label)label.textContent="بدء قراءة الملف...";
+  timetableInvalidateDayPreview();document.getElementById("timetablePdfDiagnostics")?.classList.add("hidden");
+  try{
+    const parsed=await window.TimetablePdfImporter.parseFile(file,progress=>{
+      if(bar)bar.style.width=progress.percent+"%";if(value)value.textContent=progress.percent+"%";if(label)label.textContent=progress.message||"جارٍ تحليل صفحات PDF...";
+    });
+    const diagnostics=parsed?.diagnostics||{};
+    if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
+    const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
+    if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||day.teachers.length!==69||day.teachers.some(teacher=>!Array.isArray(teacher.cells)||teacher.cells.length!==7)))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: يجب أن يحتوي كل يوم على 69 معلماً وسبع حصص لكل معلم.");
+    const token=readAppAuthToken();if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+    const candidatesResponse=await appAuthRequest({action:"timetable_list_owner_candidates"},token);
+    const candidates=(candidatesResponse?.teachers||[]).filter(item=>String(item?.name||"").trim()),candidateMap=new Map();
+    for(const candidate of candidates){const key=timetableNormalizeNameKey(candidate.name);if(!candidateMap.has(key))candidateMap.set(key,[]);candidateMap.get(key).push(candidate);}
+    for(const day of days)for(const teacher of day.teachers){
+      const matches=candidateMap.get(timetableNormalizeNameKey(teacher.sourceName))||[];
+      teacher.matchStatus=matches.length===1?"matched":matches.length>1?"ambiguous":"unmatched";
+      teacher.matchedTeacherName=matches.length===1?matches[0].name:null;
+    }
+    const proposed=new Map();
+    for(const teacher of days[0].teachers)if(teacher.matchStatus==="matched"){
+      const key=timetableNormalizeNameKey(teacher.matchedTeacherName);if(!proposed.has(key))proposed.set(key,[]);proposed.get(key).push(teacher.sourceName);
+    }
+    const collisions=new Set();for(const names of proposed.values())if(names.length>1)names.forEach(name=>collisions.add(timetableNormalizeNameKey(name)));
+    if(collisions.size)for(const day of days)for(const teacher of day.teachers)if(collisions.has(timetableNormalizeNameKey(teacher.sourceName))){teacher.matchStatus="ambiguous";teacher.matchedTeacherName=null;}
+    for(const day of days)day.matchingTotals={matched:day.teachers.filter(item=>item.matchStatus==="matched").length,unmatched:day.teachers.filter(item=>item.matchStatus==="unmatched").length,ambiguous:day.teachers.filter(item=>item.matchStatus==="ambiguous").length};
+    timetableValidateWeeklyTeacherSets(days);
+    timetableDayImportPreview={days};timetableRenderDayPreview();timetablePdfRenderDiagnostics(diagnostics);
+    const unclear=days.reduce((sum,day)=>sum+(day.totals?.unclear||0),0),unmatched=days[0].matchingTotals.unmatched+days[0].matchingTotals.ambiguous;
+    timetableWeeklySetStatus("اكتمل تحليل "+diagnostics.pageCount+" صفحة: "+diagnostics.teacherPageCount+" معلماً، و"+days[0].totalCells*5+" خانة أسبوعية. الأوقات السبعة استُخرجت من الملف. اكتُشفت "+(diagnostics.mergedCells||[]).length+" خانات ممتدة وحُسبت كل منها فترتين. توجد "+unclear+" خانة تحتاج مراجعة، و"+unmatched+" اسماً يحتاج ربطاً أو تأكيداً. راجع الخانات البرتقالية قبل حفظ المسودة.",unclear||unmatched?"info":"success");
+    timetableSetStatus("تم تحليل ملف «"+file.name+"» وإنشاء معاينة أسبوعية. لم تُحفظ أي بيانات بعد.","success");
+    if(bar)bar.style.width="100%";if(value)value.textContent="100%";if(label)label.textContent="اكتمل فحص "+diagnostics.pageCount+" صفحة";
+    document.getElementById("timetableDayPreview")?.scrollIntoView({behavior:"smooth",block:"start"});
+  }catch(error){
+    timetableInvalidateDayPreview();timetablePdfRenderDiagnostics({pageCount:0,teacherPageCount:0,importedCellCount:0,warnings:[],blockingErrors:[error?.message||"تعذر تحليل ملف PDF."]});
+    timetableSetStatus(error?.message||"تعذر تحليل ملف PDF.","error");timetableWeeklySetStatus("لم تُنشأ معاينة أسبوعية. لم يتم حفظ أي بيانات.","error");
+  }finally{if(button){button.disabled=false;button.innerHTML=old||'<i class="fa-solid fa-file-pdf ml-1"></i> تحليل PDF وإنشاء المعاينة';}}
+}
 
 async function timetableParseWorkbookInWorker(file) {
   if(typeof Worker==="undefined") throw new Error("المتصفح لا يدعم المعالجة في الخلفية. افتح التطبيق من متصفح حديث.");

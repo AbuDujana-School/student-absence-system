@@ -379,6 +379,13 @@ async function handle(req: Request) {
       }
       if (body.action === "timetable_activate_weekly_version") {
         if (!validUuid(body.versionId)) return reply(400, { error: "رقم نسخة الجدول غير صالح." });
+        const { count: unclearCount, error: unclearError } = await db.from("timetable_weekly_cells")
+          .select("version_id", { count: "exact", head: true })
+          .eq("version_id", body.versionId).eq("cell_status", "unclear");
+        if (unclearError) throw unclearError;
+        if ((unclearCount || 0) > 0) return reply(409, {
+          error: "لا يمكن اعتماد الجدول قبل مراجعة وتصحيح " + unclearCount + " خانة غير واضحة. افتح الخانات البرتقالية وعدّل تصنيفها أولاً.",
+        });
         const { data, error } = await db.rpc("activate_timetable_weekly_version", {
           p_payload: { version_id: body.versionId, actor_name: principal.name },
         });
