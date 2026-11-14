@@ -2983,24 +2983,24 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           </div>
         </div>
         <style>
-          .tt-dashboard .tt-tabs{display:flex;gap:.5rem;flex-wrap:wrap;border-bottom:1px solid #cbd5e1;padding:.25rem 0 .75rem;margin:.25rem 0 1rem}
-          .tt-dashboard .tt-tab{border:1px solid #cbd5e1;border-radius:.85rem;padding:.75rem 1rem;font-size:.78rem;font-weight:900;color:#475569;background:#fff}
-          .tt-dashboard .tt-tab[aria-selected="true"]{background:#1e40af;border-color:#1e40af;color:#fff}
-          .tt-dashboard .tt-toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
-          .tt-dashboard .tt-search{width:100%;border:1px solid #cbd5e1;border-radius:.85rem;padding:.85rem;background:#fff;color:#0f172a}
-          .tt-dashboard .tt-suggestions{position:absolute;z-index:30;top:calc(100% + .25rem);inset-inline:0;max-height:15rem;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:.85rem;box-shadow:0 12px 30px #0f172a18}
-          .tt-dashboard .tt-suggestion{display:block;width:100%;padding:.7rem .85rem;text-align:right;font-size:.75rem;color:#0f172a}
-          .tt-dashboard .tt-suggestion:hover{background:#eff6ff}
-          .tt-dashboard .tt-tag{display:inline-flex;align-items:center;gap:.5rem;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:999px;padding:.35rem .7rem;font-size:.72rem;font-weight:900}
-          .tt-dashboard .tt-lesson{min-width:0;border:1px solid #e2e8f0;border-radius:1rem;background:#fff;padding:.9rem;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:.65rem;align-items:center}
-          .tt-dashboard .tt-lesson-main{grid-column:span 4}
-          .tt-dashboard .tt-lesson-choice{grid-column:span 6;min-width:0}
-          .tt-dashboard .tt-lesson-actions{grid-column:span 2;display:flex;gap:.35rem;justify-content:flex-end}
-          .tt-dashboard .tt-lesson select{width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:.7rem;padding:.7rem;background:#f8fafc;color:#0f172a;font-size:.75rem}
-          .tt-dashboard .tt-action{border-radius:.7rem;padding:.65rem .8rem;font-size:.7rem;font-weight:900}
-          .tt-dashboard .tt-drop{border:2px dashed #94a3b8;border-radius:1rem;padding:1.5rem;text-align:center;background:#f8fafc;cursor:pointer}
-          .tt-dashboard .tt-drop.is-over{border-color:#1d4ed8;background:#eff6ff}
-          @media(max-width:768px){.tt-dashboard .tt-lesson{display:block;margin-bottom:.7rem}.tt-dashboard .tt-lesson-main,.tt-dashboard .tt-lesson-choice,.tt-dashboard .tt-lesson-actions{display:block;width:100%;margin-top:.65rem}.tt-dashboard .tt-lesson-actions{display:flex;justify-content:flex-start}.tt-dashboard .tt-tab{flex:1 1 100%;text-align:center}}
+          #sec-timetable .tt-tabs{display:flex;gap:.5rem;flex-wrap:wrap;border-bottom:1px solid #cbd5e1;padding:.25rem 0 .75rem;margin:.25rem 0 1rem}
+          #sec-timetable .tt-tab{border:1px solid #cbd5e1;border-radius:.85rem;padding:.75rem 1rem;font-size:.78rem;font-weight:900;color:#475569;background:#fff}
+          #sec-timetable .tt-tab[aria-selected="true"]{background:#1e40af;border-color:#1e40af;color:#fff}
+          #sec-timetable .tt-toolbar{display:flex;gap:.6rem;flex-wrap:wrap;align-items:center;justify-content:space-between}
+          #sec-timetable .tt-search{width:100%;border:1px solid #cbd5e1;border-radius:.85rem;padding:.85rem;background:#fff;color:#0f172a}
+          #sec-timetable .tt-suggestions{position:absolute;z-index:30;top:calc(100% + .25rem);inset-inline:0;max-height:15rem;overflow:auto;background:#fff;border:1px solid #cbd5e1;border-radius:.85rem;box-shadow:0 12px 30px #0f172a18}
+          #sec-timetable .tt-suggestion{display:block;width:100%;padding:.7rem .85rem;text-align:right;font-size:.75rem;color:#0f172a}
+          #sec-timetable .tt-suggestion:hover{background:#eff6ff}
+          #sec-timetable .tt-tag{display:inline-flex;align-items:center;gap:.5rem;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;border-radius:999px;padding:.35rem .7rem;font-size:.72rem;font-weight:900}
+          #sec-timetable .tt-lesson{min-width:0;border:1px solid #e2e8f0;border-radius:1rem;background:#fff;padding:.9rem;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:.65rem;align-items:center}
+          #sec-timetable .tt-lesson-main{grid-column:span 4}
+          #sec-timetable .tt-lesson-choice{grid-column:span 6;min-width:0}
+          #sec-timetable .tt-lesson-actions{grid-column:span 2;display:flex;gap:.35rem;justify-content:flex-end}
+          #sec-timetable .tt-lesson select{width:100%;min-width:0;border:1px solid #cbd5e1;border-radius:.7rem;padding:.7rem;background:#f8fafc;color:#0f172a;font-size:.75rem}
+          #sec-timetable .tt-action{border-radius:.7rem;padding:.65rem .8rem;font-size:.7rem;font-weight:900}
+          #sec-timetable .tt-drop{border:2px dashed #94a3b8;border-radius:1rem;padding:1.5rem;text-align:center;background:#f8fafc;cursor:pointer}
+          #sec-timetable .tt-drop.is-over{border-color:#1d4ed8;background:#eff6ff}
+          @media(max-width:768px){#sec-timetable .tt-lesson{display:block;margin-bottom:.7rem}#sec-timetable .tt-lesson-main,#sec-timetable .tt-lesson-choice,#sec-timetable .tt-lesson-actions{display:block;width:100%;margin-top:.65rem}#sec-timetable .tt-lesson-actions{display:flex;justify-content:flex-start}#sec-timetable .tt-tab{flex:1 1 100%;text-align:center}}
           @media print{body *{visibility:hidden!important}#sec-timetable,#sec-timetable *{visibility:visible!important}#sec-timetable{position:absolute!important;inset:0!important;width:100%!important;background:#fff!important;color:#000!important}#sec-timetable .tt-no-print,#sec-timetable button,#sec-timetable select{display:none!important}#sec-timetable .tt-lesson{break-inside:avoid;border:1px solid #999!important;color:#000!important}}
         </style>
         <div class="tt-dashboard">
