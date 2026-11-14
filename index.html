@@ -6488,8 +6488,7 @@ function printHorizontalReport() {
 }
 function exportAttendanceExcel() {
   const td = document.getElementById('reportDatePicker').value;
-  let csv = "\uFEFFالصف,الحصة,المعلم,الطالب,الحالة
-";
+  let csv = "\uFEFFالصف,الحصة,المعلم,الطالب,الحالة\n";
   sortClassesList(db.classes).forEach(cn => { for (let p = 1; p <= 8; p++) { const sd = db.attendance[`${td}_${cn}_p${p}`]; if (sd?.records) { sortAttendanceIssues(Object.entries(sd.records).filter(([n, s]) => s !== 'present')).forEach(([n, s]) => { const lb = s === 'absent' ? 'غائب' : (s === 'escape' ? 'متسرب' : (s === 'late' ? 'متأخر' : 'خارج')); csv += `${escapeCsvField(formatClassName(cn))},${escapeCsvField('الحصة ' + p)},${escapeCsvField(sd.teacher || 'معلم')},${escapeCsvField(n)},${escapeCsvField(lb)}
 `; }); } } });
   const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
