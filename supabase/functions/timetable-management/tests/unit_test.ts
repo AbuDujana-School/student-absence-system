@@ -58,6 +58,8 @@ Deno.test("teacher matching leaves ambiguous or unrelated names unresolved", () 
   equal(ambiguous.matchStatus, "ambiguous", "Duplicate exact matches");
   const unrelated = matchSystemTeacherName("اسم غير موجود", [{ name: "معلم آخر" }]);
   equal(unrelated.matchStatus, "unmatched", "Unrelated name");
+  const typo = matchSystemTeacherName("أحمد سليم البلوشي", [{ name: "أحمد سالم البلوشي" }]);
+  equal(typo.matchStatus, "matched", "High-confidence one-character name typo");
 });
 
 Deno.test("substitution candidates require one explicit free cell and respect assignments", () => {
