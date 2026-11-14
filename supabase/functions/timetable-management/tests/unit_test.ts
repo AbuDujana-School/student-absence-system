@@ -1,5 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
+import { canIncludeOtherDepartments } from "../session_auth.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -181,4 +182,11 @@ Deno.test("same-date duty or substitution blocks a candidate across timetable ve
     departmentId: "science", assignmentDate: "2026-11-14", versionId: "active-version",
   });
   equal(ranked.length, 0, "An actual same-date duty must block the candidate even from an older timetable version");
+});
+
+Deno.test("only the system administrator can include teachers from other departments", () => {
+  equal(canIncludeOtherDepartments("admin", true), true, "Administrator may request cross-department candidates");
+  equal(canIncludeOtherDepartments("teacher", true), false, "Teacher cannot widen department scope by editing request payload");
+  equal(canIncludeOtherDepartments("custom", true), false, "Coordinator cannot widen department scope by editing request payload");
+  equal(canIncludeOtherDepartments("admin", "true"), false, "Non-boolean values are rejected");
 });
