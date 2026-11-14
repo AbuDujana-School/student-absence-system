@@ -7328,8 +7328,7 @@ function loadAdminStudentsList() {
   const s = document.getElementById('adminClassSelect')?.value;
   const list = arabicSort((s && db.students[s]) || []);
   const c = document.getElementById('adminStudentsDisplay');
-  const bi = document.getElementById('bulkStudentsInput'); if (bi && document.activeElement !== bi) bi.value = list.join('
-');
+  const bi = document.getElementById('bulkStudentsInput'); if (bi && document.activeElement !== bi) bi.value = list.join('\n');
   c.innerHTML = list.length === 0 ? `<div class="text-slate-400 text-center py-2 font-bold">لا طلاب.</div>` : '';
   list.forEach((st, i) => { const d = document.createElement('div'); d.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80'; d.innerHTML = `<span class="font-bold">${escapeHtml(st)}</span><button data-class="${escapeHtml(s)}" data-idx="${i}" onclick="removeStudentFromBtn(this)" class="text-red-500 text-xs font-bold px-3 py-1 bg-red-50 rounded-xl">حذف</button>`; c.appendChild(d); });
 }
@@ -7337,8 +7336,7 @@ function removeStudentFromBtn(btn) { removeStudent(btn.dataset.class, parseInt(b
 async function saveBulkStudents() {
   const s = document.getElementById('adminClassSelect').value; if (!s) return;
   const ol = db.students[s] || [];
-  const nl = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('
-').map(x => x.trim()).filter(Boolean))]);
+  const nl = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('\n').map(x => x.trim()).filter(Boolean))]);
   const rm = ol.filter(x => !nl.includes(x));
   db.students[s] = nl; dirtySets.students.add(s);
   if (rm.length > 0) {
@@ -7777,8 +7775,7 @@ async function copyPinAndClose() {
     const c = JSON.parse(m.dataset.bulkPins);
     const t = `📋 قائمة الحسابات:
 
-` + c.map(x => `${x.name} (${x.category}): ${x.pin}`).join('
-') + `
+` + c.map(x => `${x.name} (${x.category}): ${x.pin}`).join('\n') + `
 
 ⚠️ يجب تغيير الرمز عند أول دخول.`;
     try { await navigator.clipboard.writeText(t); showToast(`نُسخ ${c.length}.`, 'success'); } catch(e) { showToast('تعذر النسخ.', 'error'); }
@@ -8390,8 +8387,7 @@ function exportDutyReportsCSV() {
 ';
   recs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).forEach(r => {
     const displayName = r.className === '__CLEAN__' ? 'سليم' : formatClassName(r.className);
-    csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(displayName), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '
-';
+    csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(displayName), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n';
   });
   const b = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `بلاغات_${getOmanLocalDate()}.csv`; a.click();
@@ -9313,8 +9309,7 @@ function timetableSplitDailyText(sourceText, fallbackWeekday) {
       }
       return days.sort((a,b)=>required.indexOf(a)-required.indexOf(b)).map(weekday => ({
         weekday,
-        text: tabularRows.get(weekday).join("
-")
+        text: tabularRows.get(weekday).join("\n")
       }));
     }
     return [{weekday:fallbackWeekday,text:sourceText}];
@@ -9331,8 +9326,7 @@ function timetableSplitDailyText(sourceText, fallbackWeekday) {
   return headings.map((heading,index) => {
     const start = index === 0 ? 0 : heading.lineIndex;
     const end = index + 1 < headings.length ? headings[index + 1].lineIndex : lines.length;
-    return {weekday:heading.weekday,text:lines.slice(start,end).join("
-").trim()};
+    return {weekday:heading.weekday,text:lines.slice(start,end).join("\n").trim()};
   }).sort((left,right)=>required.indexOf(left.weekday)-required.indexOf(right.weekday));
 }
 function timetableNormalizeNameKey(value) {
@@ -10148,8 +10142,7 @@ async function timetableDailyShareWhatsApp() {
     if (!response || response.error) continue;
     for (const lesson of (response.lessons || [])) {
       const assigned = lesson.assignment?.substituteTeacherName || "⚠️ لم يحدد";
-      message += "• "+absentName+" | الحصة "+lesson.period+" | "+(lesson.className || "الشعبة غير محددة")+" | "+(lesson.subject || "المادة غير محددة")+" ← "+assigned+"
-";
+      message += "• "+absentName+" | الحصة "+lesson.period+" | "+(lesson.className || "الشعبة غير محددة")+" | "+(lesson.subject || "المادة غير محددة")+" ← "+assigned+"\n";
       count++;
     }
   }
@@ -10242,8 +10235,7 @@ async function timetableImportPdf() {
     });
     const diagnostics=parsed?.diagnostics||{};
     diagnostics.currentDutyTimesMatch=timetablePdfTimesMatch(diagnostics.periodTimes);
-    if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("
-"));
+    if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
     const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
     if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||!day.teachers.length||day.teachers.length>500))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: عدد المعلمين في أحد الأيام غير صالح.");
     const importedPeriodCount=days[0]?.teachers?.[0]?.cells?.length;
