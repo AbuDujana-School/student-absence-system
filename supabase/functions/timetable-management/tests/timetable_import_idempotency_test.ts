@@ -1,4 +1,4 @@
-const migrationUrl = new URL("../../../../migrations/20261114150000_timetable_import_idempotency.sql", import.meta.url);
+const migrationUrl = new URL("../../../migrations/20261114150000_timetable_import_idempotency.sql", import.meta.url);
 
 Deno.test("timetable import migration enforces server-side idempotency", async () => {
   const sql = await Deno.readTextFile(migrationUrl);
