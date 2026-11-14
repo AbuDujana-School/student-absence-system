@@ -3002,6 +3002,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <button id="timetableResumeWeekButton" type="button" onclick="timetableResumeWeeklyDraft()" class="rounded-xl bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-rotate-left ml-1"></i> استعادة آخر مسودة</button>
             <button id="timetableActivateWeekButton" type="button" onclick="timetableActivateWeek()" disabled class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-40 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-circle-check ml-1"></i> اعتماد الأسبوع بعد اكتماله</button>
           </div>
+          <div id="timetableWorkerProgress" class="hidden rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-3 space-y-2" role="status" aria-live="polite">
+            <div class="flex items-center justify-between gap-2 text-[10px] font-bold text-cyan-900 dark:text-cyan-100"><span id="timetableWorkerProgressLabel">جارٍ فحص بنية النص...</span><span id="timetableWorkerProgressValue">0%</span></div>
+            <div class="h-2 overflow-hidden rounded-full bg-cyan-100 dark:bg-cyan-900"><div id="timetableWorkerProgressBar" class="h-full rounded-full bg-cyan-700 transition-all" style="width:0%"></div></div>
+          </div>
           <div id="timetableWeeklyDraftStatus" class="hidden rounded-2xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableDayPreview" class="hidden space-y-3"></div>
         </div>
@@ -8898,14 +8902,47 @@ function timetableValidateWeeklyTeacherSets(days) {
     }
   }
 }
+function timetablePreflightTextWorker(sourceText) {
+  return new Promise((resolve,reject) => {
+    if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?\\n/).length,worker:false}); return; }
+    const worker=new Worker("timetable-text.worker.js");
+    const panel=document.getElementById("timetableWorkerProgress");
+    const bar=document.getElementById("timetableWorkerProgressBar");
+    const label=document.getElementById("timetableWorkerProgressLabel");
+    const value=document.getElementById("timetableWorkerProgressValue");
+    panel?.classList.remove("hidden");
+    const finish=()=>{worker.terminate();};
+    worker.onmessage=(event)=>{
+      const data=event.data||{};
+      if(data.type==="progress"){
+        if(bar)bar.style.width=data.percent+"%";
+        if(value)value.textContent=data.percent+"%";
+        if(label)label.textContent="فحص "+data.processed+" من "+data.total+" سطراً";
+      } else if(data.type==="complete"){
+        if(bar)bar.style.width="100%";
+        if(value)value.textContent="100%";
+        if(label)label.textContent="اكتمل الفحص الأولي — "+data.lineCount+" سطراً";
+        finish(); resolve({...data,worker:true});
+      }
+    };
+    worker.onerror=()=>{finish();reject(new Error("تعذر تشغيل عامل فحص الجدول."));};
+    worker.postMessage({text:String(sourceText||"")});
+  });
+}
 async function timetableParseDayText() {
   const selectedWeekday = document.getElementById("timetableTextWeekday")?.value || "";
   const sourceText = document.getElementById("timetableDayText")?.value || "";
   if (!timetableCanAccess || activeUser?.type !== "admin") { timetableWeeklySetStatus("يلزم الدخول بصلاحية مدير النظام لتحليل الجدول.", "error"); return; }
   if (!sourceText.trim()) { timetableWeeklySetStatus("الصق نص اليوم أولاً أو حمّل ملف TXT.", "error"); return; }
   const button = document.getElementById("timetableParseDayButton");
-  const old = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل...';
+  const old = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الفحص...';
   try {
+    const preflight=await timetablePreflightTextWorker(sourceText);
+    if(preflight.issueCount){
+      const first=preflight.issues[0];
+      throw new Error("فشل فحص بنية النص في "+preflight.issueCount+" موضعاً. أول مشكلة في السطر "+first.line+": "+first.message+". صحح الأخطاء ثم أعد التحليل.");
+    }
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل على الخادم...';
     const chunks = timetableSplitDailyText(sourceText, selectedWeekday);
     const token = appAuthSession?.token || readAppAuthToken();
     const results = [];
