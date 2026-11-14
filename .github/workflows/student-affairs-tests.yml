@@ -319,6 +319,7 @@ jobs:
           INSERT INTO public.school_settings(key,value) VALUES ('duty_module','{"subjectDays":{"الرياضيات":"الاثنين"}}'::jsonb)
           ON CONFLICT (key) DO UPDATE SET value=EXCLUDED.value;
           GRANT SELECT ON public.teachers TO service_role;
+          GRANT UPDATE (permissions) ON public.teachers TO service_role;
           DO $do$
           DECLARE
             v_saved jsonb;
@@ -461,6 +462,8 @@ jobs:
             END;
             IF NOT v_personal_duty_blocked THEN RAISE EXCEPTION 'individual duty-day substitution was not rejected'; END IF;
 
+            UPDATE public.teachers SET permissions='{"category":"الرياضيات","dutyDay":""}'::jsonb
+              WHERE name='synthetic-math-teacher';
             BEGIN
               PERFORM public.create_timetable_substitution(jsonb_build_object(
                 'version_id',v_version_id::text,'weekday','الاثنين','period',1,'assignment_date','2026-11-16',
