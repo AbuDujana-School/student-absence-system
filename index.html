@@ -1957,7 +1957,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-3">
         <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl"><i class="fa-solid fa-calendar-days"></i></div>
-        <div><div class="mb-1 text-[11px] font-bold text-cyan-200">مدرسة أبو دجانة</div><h2 class="text-xl font-black sm:text-2xl">الجدول المدرسي</h2><p id="teacherTimetableTeacherName" class="mt-1 text-xs text-cyan-100">الجدول الأسبوعي الشخصي</p></div>
+        <div><div class="mb-1 text-[11px] font-bold text-cyan-200">مدرسة أبو دجانة</div><h2 class="text-xl font-black sm:text-2xl">الجدول المدرسي</h2><p id="teacherTimetableTeacherName" class="mt-1 text-xs text-cyan-100">الجدول الأسبوعي الشخصي</p>
+      <button type="button" id="teacherTimetableRevokeSelf" onclick="teacherTimetableRevokeOwnGrant()" class="hidden rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700 hover:bg-rose-100">إلغاء صلاحية عرض جدولي</button></div>
       </div>
       <button type="button" onclick="closeTeacherTimetableView()" class="rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20"><i class="fa-solid fa-arrow-right ml-1"></i> العودة</button>
     </div>
@@ -3076,6 +3077,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
               <button id="teacherTimetablePortalToggle" type="button" onclick="timetableToggleTeacherPortal()" class="rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 text-xs font-black text-white disabled:opacity-50" disabled>جارٍ تحميل الحالة...</button>
             </div>
             <p id="teacherTimetablePortalUpdated" class="text-[10px] text-slate-500 dark:text-slate-400">الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.</p>
+            <div class="mt-3 rounded-xl border border-cyan-200 bg-white/80 dark:border-cyan-900 dark:bg-slate-900/70 p-3 space-y-3">
+              <div><h4 class="text-xs font-black text-slate-800 dark:text-white">السماح الفردي لمعلم محدد</h4><p class="mt-1 text-[10px] text-slate-500">عند إخفاء الجدول عن الجميع، يمكنك اختيار معلم واحد أو أكثر ليظهر له جدوله فقط.</p></div>
+              <div class="flex flex-wrap gap-2"><select id="teacherPortalGrantSelect" class="min-w-[180px] flex-1 rounded-xl border border-slate-200 bg-white dark:bg-slate-800 p-2.5 text-xs"><option value="">اختر معلماً...</option></select><button type="button" onclick="timetableGrantIndividualTeacher()" class="rounded-xl bg-cyan-800 px-4 py-2.5 text-xs font-black text-white">إضافة صلاحية</button></div>
+              <div id="teacherPortalIndividualGrantList" class="divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-100 dark:border-slate-700"><p class="p-3 text-[10px] text-slate-400">جارٍ تحميل الصلاحيات الفردية...</p></div>
+              <p id="teacherPortalIndividualGrantStatus" class="text-[10px] text-slate-500"></p>
+            </div>
+
           </div>
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بإدارة منظومة الجداول والاحتياط.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
           <input id="timetableAccessSearch" type="search" oninput="timetableRenderAccessList()" placeholder="ابحث عن معلم أو تخصص..." class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white outline-none">
@@ -8741,6 +8749,8 @@ let timetableCanAccess = false;
 let teacherPortalCanAccess = false;
 let teacherPortalEnabled = false;
 let teacherPortalEligibleCount = 0;
+let teacherPortalIndividualGrant = false;
+let teacherPortalTeachers = [];
 let teacherTimetableData = null;
 let teacherTimetableRefreshTimer = null;
 let teacherTimetableLoadBusy = false;
@@ -8778,7 +8788,8 @@ async function timetableRefreshAccess() {
       const result = await appAuthRequest({action:"timetable_check_access"},token);
       timetableCanAccess = result.canAccess === true;
       teacherPortalEnabled = result.teacherPortalEnabled === true;
-      teacherPortalCanAccess = activeUser.type === "teacher" && teacherPortalEnabled && result.hasPersonalSchedule === true;
+      teacherPortalIndividualGrant = result.hasIndividualGrant === true;
+      teacherPortalCanAccess = activeUser.type === "teacher" && (teacherPortalEnabled || teacherPortalIndividualGrant) && result.hasPersonalSchedule === true;
     } catch (error) {
       timetableCanAccess = activeUser?.type === "admin";
       teacherPortalCanAccess = false;
@@ -8809,6 +8820,7 @@ async function timetableLoadPortalStatus() {
     const result = await appAuthRequest({action:"timetable_portal_get_status"},token);
     teacherPortalEnabled = result.enabled === true;
     teacherPortalEligibleCount = Number(result.eligibleTeacherCount || 0);
+    await timetableLoadIndividualPortalGrants();
     const status = document.getElementById("teacherTimetablePortalStatus");
     const count = document.getElementById("teacherTimetablePortalCount");
     const updated = document.getElementById("teacherTimetablePortalUpdated");
@@ -8951,6 +8963,67 @@ async function teacherTimetableLoad(showLoading = false) {
     teacherTimetableLoadBusy = false;
   }
 }
+async function timetableLoadIndividualPortalGrants() {
+  if (activeUser?.type !== "admin") return;
+  const host = document.getElementById("teacherPortalIndividualGrantList");
+  const select = document.getElementById("teacherPortalGrantSelect");
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const result = await appAuthRequest({action:"timetable_portal_list_individual_grants"},token);
+    teacherPortalTeachers = result.teachers || [];
+    if (select) {
+      const available = teacherPortalTeachers.filter(t => !t.individuallyAllowed);
+      select.innerHTML = '<option value="">اختر معلماً...</option>' + available.map(t =>
+        '<option value="'+timetableEsc(t.name)+'">'+timetableEsc(t.name)+(t.category?' · '+timetableEsc(t.category):'')+'</option>'
+      ).join("");
+    }
+    if (host) {
+      const granted = teacherPortalTeachers.filter(t => t.individuallyAllowed);
+      host.innerHTML = granted.length ? granted.map(t =>
+        '<div class="flex items-center justify-between gap-2 p-3"><span class="min-w-0"><strong class="block text-xs text-slate-800 dark:text-white">'+timetableEsc(t.name)+'</strong><small class="text-[10px] text-slate-500">مسموح له بعرض جدوله بصورة فردية</small></span><button type="button" onclick="timetableRevokeIndividualTeacher('+timetableInlineJson(t.name)+')" class="shrink-0 rounded-lg bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700">إلغاء</button></div>'
+      ).join("") : '<p class="p-3 text-[10px] text-slate-400">لا توجد منح فردية حالياً.</p>';
+    }
+  } catch (error) {
+    if (host) host.innerHTML = '<p class="p-3 text-[10px] text-rose-600">تعذر تحميل الصلاحيات الفردية.</p>';
+  }
+}
+async function timetableGrantIndividualTeacher() {
+  if (activeUser?.type !== "admin") return;
+  const select = document.getElementById("teacherPortalGrantSelect");
+  const teacherName = String(select?.value || "").trim();
+  if (!teacherName) { showToast("اختر معلماً أولاً.", "error"); return; }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_portal_set_individual_grant",teacherName},token);
+    showToast("تم منح المعلم صلاحية عرض جدوله.", "success");
+    if (select) select.value = "";
+    await timetableLoadIndividualPortalGrants();
+  } catch (error) { showToast(error?.message || "تعذر منح الصلاحية.", "error"); }
+}
+async function timetableRevokeIndividualTeacher(teacherName) {
+  if (activeUser?.type !== "admin") return;
+  if (!await showConfirm("سيتم إلغاء السماح الفردي لهذا المعلم فقط، دون حذف جدوله أو تكليفاته. هل تريد المتابعة؟",{danger:true})) return;
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_portal_revoke_individual_grant",teacherName},token);
+    showToast("تم إلغاء السماح الفردي.", "success");
+    await timetableLoadIndividualPortalGrants();
+  } catch (error) { showToast(error?.message || "تعذر إلغاء الصلاحية.", "error"); }
+}
+async function teacherTimetableRevokeOwnGrant() {
+  if (activeUser?.type !== "teacher" || !teacherPortalIndividualGrant) return;
+  if (!await showConfirm("سيتم إلغاء صلاحيتك الفردية لعرض الجدول. لن تتمكن من إعادة تفعيلها بنفسك. هل تريد المتابعة؟",{danger:true})) return;
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_portal_revoke_individual_grant",teacherName:activeUser.name},token);
+    teacherPortalIndividualGrant = false;
+    teacherPortalCanAccess = teacherPortalEnabled && teacherTimetableData !== null;
+    document.getElementById("teacherTimetableRevokeSelf")?.classList.add("hidden");
+    if (!teacherPortalCanAccess) closeTeacherTimetableView();
+    showToast(teacherPortalEnabled ? "تم سحب المنحة الفردية، وما زال الوصول متاحاً لأن العرض العام مفعّل." : "تم إلغاء صلاحية عرض الجدول.", "success");
+    await timetableRefreshAccess();
+  } catch (error) { showToast(error?.message || "تعذر إلغاء الصلاحية.", "error"); }
+}
 async function openTeacherTimetableView() {
   if (!teacherPortalCanAccess || activeUser?.type !== "teacher") {
     showToast("خدمة الجدول الشخصي غير مفعّلة لحسابك أو لا يوجد جدول مرتبط بك.", "error");
@@ -8959,6 +9032,8 @@ async function openTeacherTimetableView() {
   ["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView","studentAffairsView"].forEach(id => document.getElementById(id)?.classList.add("hidden"));
   document.getElementById("teacherTimetableView")?.classList.remove("hidden");
   await teacherTimetableLoad(true);
+  const revokeButton = document.getElementById("teacherTimetableRevokeSelf");
+  if (revokeButton) revokeButton.classList.toggle("hidden", !teacherPortalIndividualGrant);
   if (teacherTimetableRefreshTimer) clearInterval(teacherTimetableRefreshTimer);
   teacherTimetableRefreshTimer = setInterval(() => {
     if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
