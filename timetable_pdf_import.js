@@ -303,7 +303,7 @@ export function parseTimetablePdfPages(pages) {
   if(diagnostics.teacherPageCount>500)diagnostics.blockingErrors.push("عدد صفحات المعلمين يتجاوز الحد المسموح.");
   if(lessonRows.length-1>MAX_ROWS)diagnostics.blockingErrors.push("عدد سجلات الحصص المستخرجة يتجاوز الحد المسموح.");
   if(diagnostics.skippedPages.length)diagnostics.warnings.unshift("تم تجاوز صفحة الملخص رقم "+diagnostics.skippedPages.join("، ")+"؛ لم تُعامل كجدول معلم.");
-  for(const day of weeklyDays){day.totalCells=day.teachers.length*(diagnostics.periodTimes.length||7);for(const teacher of day.teachers)for(const cell of teacher.cells)day.totals[cell.status]++;}
+  for(const day of weeklyDays){day.totalCells=day.teachers.length*(diagnostics.periodCount||diagnostics.periodTimes.length||7);for(const teacher of day.teachers)for(const cell of teacher.cells)day.totals[cell.status]++;}
   /** @type {Record<string,Array<Array<string|number>>>} */
   const sheets={"المعلمون":teacherRows,"الحصص":lessonRows,"أوقات الحصص":timeRows,"بيانات PDF":metadataRows};
   return {weeklyDays,sheets,diagnostics};
