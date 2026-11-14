@@ -9288,6 +9288,333 @@ async function timetableSaveSubstitution(period,substituteTeacherName) {
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
 }
 
+
+/* Smart daily timetable dashboard: keeps the server as the source of truth. */
+let timetableDailyAbsentTeachers = [];
+let timetableDailyAbsentOptions = [];
+let timetableDailyPreviewByAbsent = new Map();
+let timetableDailyBusy = false;
+
+function timetableSwitchDashboardTab(tab) {
+  const settings = tab === "settings";
+  const ids = ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"];
+  ids.forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings));
+  const access = document.getElementById("timetableAccessManagement");
+  if (access) access.classList.toggle("hidden", !settings || activeUser?.type !== "admin");
+  const notice = document.getElementById("timetableAdminImportNotice");
+  if (notice) notice.classList.toggle("hidden", !settings || activeUser?.type === "admin");
+  const daily = document.getElementById("timetableSubstitutionPanel");
+  if (daily) daily.classList.toggle("hidden", settings);
+  document.getElementById("timetableDailyTabButton")?.setAttribute("aria-selected", String(!settings));
+  document.getElementById("timetableSettingsTabButton")?.setAttribute("aria-selected", String(settings));
+  if (settings && activeUser?.type === "admin") {
+    timetableLoadImports();
+    timetableLoadAccessManagement();
+  }
+}
+
+function timetableDailyNormalizeName(value) {
+  return String(value || "").normalize("NFKC").replace(/[أإآٱ]/g,"ا").replace(/[ى]/g,"ي")
+    .replace(/[ًٌٍَُِّْـ]/g,"").replace(/\s+/g," ").trim().toLocaleLowerCase("ar");
+}
+
+async function timetableLoadSubstitutionOptions() {
+  const panel = document.getElementById("timetableSubstitutionPanel");
+  if (!panel || (activeUser?.type !== "admin" && !timetableCanAccess)) return;
+  panel.classList.remove("hidden");
+  try {
+    const dateInput = document.getElementById("timetableSubstitutionDate");
+    if (dateInput && !dateInput.value) dateInput.value = typeof getOmanLocalDate === "function" ? getOmanLocalDate() : new Date().toISOString().slice(0,10);
+    const {date,weekday} = timetableSubstitutionGetDate();
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+    const response = await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date},token);
+    const select = document.getElementById("timetableSubstitutionAbsentTeacher");
+    if (!response.active) {
+      timetableDailyAbsentOptions = [];
+      timetableDailyAbsentTeachers = [];
+      timetableDailyPreviewByAbsent.clear();
+      if (select) select.innerHTML = '<option value="">لا يوجد جدول أسبوعي معتمد</option>';
+      timetableDailyRenderTags();
+      timetableDailyRenderLessons();
+      timetableSubstitutionSetStatus("لا يوجد جدول أسبوعي نشط. يجب اعتماد جدول الأيام الخمسة أولاً.","info");
+      return;
+    }
+    timetableDailyAbsentOptions = response.absentTeachers || [];
+    if (select) select.innerHTML = '<option value="">اختر المعلم الغائب</option>' + timetableDailyAbsentOptions.map(name => '<option value="'+timetableEsc(name)+'">'+timetableEsc(name)+'</option>').join("");
+    timetableSubstitutionContext = {date,weekday,version:response.version};
+    timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(name => timetableDailyAbsentOptions.includes(name));
+    timetableDailyRenderTags();
+    await timetableDailyRefreshAll();
+    timetableSubstitutionSetStatus("الجدول النشط رقم "+response.version.version+" — اختر معلماً أو أكثر لعرض حصصهم.","success");
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "تعذر تحميل قائمة المعلمين.","error");
+  }
+}
+
+function timetableDailyFilterAbsentTeachers(query) {
+  const host = document.getElementById("timetableDailySuggestions");
+  if (!host) return;
+  const q = timetableDailyNormalizeName(query);
+  if (!q) { host.classList.add("hidden"); host.innerHTML = ""; return; }
+  const matches = timetableDailyAbsentOptions.filter(name =>
+    !timetableDailyAbsentTeachers.includes(name) && timetableDailyNormalizeName(name).includes(q)
+  ).slice(0,12);
+  host.innerHTML = matches.map(name =>
+    '<button type="button" class="tt-suggestion" data-tt-add-absent="'+timetableEsc(name)+'">'+timetableEsc(name)+'</button>'
+  ).join("");
+  host.classList.toggle("hidden", matches.length === 0);
+  host.querySelectorAll("[data-tt-add-absent]").forEach(button => button.addEventListener("click", () => {
+    timetableDailyAddAbsent(button.getAttribute("data-tt-add-absent"));
+  }));
+}
+
+async function timetableDailyAddAbsent(name) {
+  if (!name || !timetableDailyAbsentOptions.includes(name) || timetableDailyAbsentTeachers.includes(name)) return;
+  timetableDailyAbsentTeachers.push(name);
+  const input = document.getElementById("timetableDailyAbsentSearch");
+  if (input) input.value = "";
+  document.getElementById("timetableDailySuggestions")?.classList.add("hidden");
+  timetableDailyRenderTags();
+  await timetableDailyRefreshOne(name);
+}
+
+async function timetableDailyRemoveAbsent(name) {
+  timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(item => item !== name);
+  timetableDailyPreviewByAbsent.delete(name);
+  timetableDailyRenderTags();
+  timetableDailyRenderLessons();
+}
+
+function timetableDailyRenderTags() {
+  const host = document.getElementById("timetableDailyAbsentTags");
+  if (!host) return;
+  host.innerHTML = timetableDailyAbsentTeachers.map(name =>
+    '<span class="tt-tag">'+timetableEsc(name)+'<button type="button" aria-label="إزالة '+timetableEsc(name)+'" data-tt-remove-absent="'+timetableEsc(name)+'">×</button></span>'
+  ).join("");
+  host.querySelectorAll("[data-tt-remove-absent]").forEach(button => button.addEventListener("click", () =>
+    timetableDailyRemoveAbsent(button.getAttribute("data-tt-remove-absent"))
+  ));
+}
+
+async function timetableDailyFetchPreview(absentTeacherName) {
+  const {date,weekday} = timetableSubstitutionGetDate();
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+  const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+  return await appAuthRequest({
+    action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName,includeOtherDepartments
+  },token);
+}
+
+async function timetableDailyRefreshOne(name) {
+  try {
+    const response = await timetableDailyFetchPreview(name);
+    timetableDailyPreviewByAbsent.set(name,response);
+    timetableDailyRenderLessons();
+    return response;
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "تعذر تحميل حصص المعلم المحدد.","error");
+    throw error;
+  }
+}
+
+async function timetableDailyRefreshAll() {
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableDailyPreviewByAbsent.clear();
+    timetableDailyRenderLessons();
+    return;
+  }
+  const results = await Promise.all(timetableDailyAbsentTeachers.map(async name => {
+    try { return [name,await timetableDailyFetchPreview(name)]; }
+    catch (error) { return [name,{error:error?.message || "تعذر تحميل بيانات المعلم."}]; }
+  }));
+  timetableDailyPreviewByAbsent = new Map(results);
+  timetableDailyRenderLessons();
+}
+
+function timetableDailyRenderLessons() {
+  const host = document.getElementById("timetableSubstitutionResults");
+  if (!host) return;
+  const rows = [];
+  for (const absentName of timetableDailyAbsentTeachers) {
+    const response = timetableDailyPreviewByAbsent.get(absentName);
+    if (!response) continue;
+    if (response.error) {
+      rows.push('<div class="rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">'+timetableEsc(absentName)+': '+timetableEsc(response.error)+'</div>');
+      continue;
+    }
+    for (const lesson of (response.lessons || [])) {
+      const candidates = lesson.candidates || [];
+      const assignment = lesson.assignment;
+      const status = assignment?.status === "confirmed" ? "مؤكد" : assignment?.status === "completed" ? "مكتمل" : "مسند";
+      const options = candidates.map(candidate =>
+        '<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+' (عبء: '+Number(candidate.workloadScore || 0)+')</option>'
+      ).join("");
+      let choice = "";
+      if (assignment) {
+        choice = '<div class="rounded-lg bg-emerald-50 p-3 text-xs font-bold text-emerald-800">البديل: '+timetableEsc(assignment.substituteTeacherName)+' — '+status+'</div>';
+      } else if (candidates.length) {
+        choice = '<select data-tt-substitute data-absent="'+timetableEsc(absentName)+'" data-period="'+Number(lesson.period)+'"><option value="">اختر البديل المتاح — '+candidates.length+'</option>'+options+'</select>';
+      } else {
+        choice = '<div class="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">لا يوجد بديل بفراغ مؤكد في هذه الحصة ضمن نطاق الصلاحية.</div>';
+      }
+      const actions = assignment && assignment.status !== "completed"
+        ? '<button type="button" class="tt-action border border-red-300 text-red-700" data-tt-cancel="'+timetableEsc(assignment.id)+'">إلغاء</button>'
+        : assignment ? '' : '<span class="text-[10px] text-slate-500">يحفظ الاختيار تلقائياً</span>';
+      const message = 'السلام عليكم، نحيطكم علماً بإسناد حصة احتياط لكم اليوم: الحصة '+lesson.period+'، الصف '+(lesson.className || "غير محدد")+'، المادة '+(lesson.subject || "غير محددة")+'. شاكرين تعاونكم.';
+      const wa = assignment ? '<button type="button" class="tt-action bg-emerald-600 text-white" data-tt-whatsapp="'+timetableEsc(assignment.substituteTeacherName)+'" data-tt-message="'+timetableEsc(message)+'">واتساب</button>' : '';
+      rows.push('<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] text-slate-500">المعلم الغائب</div><strong class="block text-xs text-slate-900">'+timetableEsc(absentName)+'</strong><div class="mt-2 text-xs font-black text-slate-800">الحصة '+Number(lesson.period)+' · '+timetableEsc(lesson.className || "الشعبة غير محددة")+'</div><div class="text-[10px] text-slate-500">'+timetableEsc(lesson.subject || "المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+'</div><div class="tt-lesson-actions">'+actions+wa+'</div></article>');
+    }
+  }
+  host.innerHTML = rows.length ? rows.join("") : '<div class="rounded-xl border border-slate-200 p-5 text-center text-xs text-slate-500">أضف معلماً غائباً لعرض حصصه والبدلاء المتاحين.</div>';
+  host.querySelectorAll("[data-tt-substitute]").forEach(select => select.addEventListener("change", async () => {
+    const absent = select.getAttribute("data-absent");
+    const period = Number(select.getAttribute("data-period"));
+    const substitute = select.value;
+    if (substitute) await timetableDailySaveSubstitution(absent,period,substitute,select);
+  }));
+  host.querySelectorAll("[data-tt-cancel]").forEach(button => button.addEventListener("click", () =>
+    timetableDailyCancelSubstitution(button.getAttribute("data-tt-cancel"))
+  ));
+  host.querySelectorAll("[data-tt-whatsapp]").forEach(button => button.addEventListener("click", () => {
+    const message = button.getAttribute("data-tt-message") || "";
+    window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+  }));
+}
+
+async function timetableDailySaveSubstitution(absentTeacherName,period,substituteTeacherName,control) {
+  if (timetableDailyBusy) return;
+  timetableDailyBusy = true;
+  if (control) control.disabled = true;
+  try {
+    const {date,weekday} = timetableSubstitutionGetDate();
+    const token = appAuthSession?.token || readAppAuthToken();
+    const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+    await appAuthRequest({
+      action:"timetable_substitution_save",weekday,assignmentDate:date,absentTeacherName,
+      substituteTeacherName,period,includeOtherDepartments
+    },token);
+    timetableSubstitutionSetStatus("تم حفظ تكليف "+substituteTeacherName+" للحصة "+period+" تلقائياً.","success");
+    await timetableDailyRefreshAll();
+  } catch (error) {
+    if (control) control.value = "";
+    timetableSubstitutionSetStatus(error?.message || "تعذر حفظ التكليف؛ لم يتم تغيير السجل.","error");
+    if (control) control.disabled = false;
+  } finally {
+    timetableDailyBusy = false;
+  }
+}
+
+async function timetableDailyCancelSubstitution(assignmentId) {
+  if (!assignmentId || !window.confirm("هل تريد إلغاء تكليف الاحتياط المحدد؟")) return;
+  try {
+    const {date,weekday} = timetableSubstitutionGetDate();
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_substitution_cancel",weekday,assignmentDate:date,assignmentId},token);
+    timetableSubstitutionSetStatus("تم إلغاء التكليف بنجاح.","success");
+    await timetableDailyRefreshAll();
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "تعذر إلغاء التكليف.","error");
+  }
+}
+
+async function timetableDailyAutoAssign() {
+  if (timetableDailyBusy) return;
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableSubstitutionSetStatus("أضف معلماً غائباً واحداً على الأقل قبل التوزيع.","error");
+    return;
+  }
+  timetableDailyBusy = true;
+  let assigned = 0, skipped = 0, failed = 0;
+  try {
+    for (const absentName of [...timetableDailyAbsentTeachers]) {
+      let first = await timetableDailyFetchPreview(absentName);
+      if (!first.active) throw new Error("لا يوجد جدول أسبوعي نشط.");
+      for (const lesson of (first.lessons || [])) {
+        let current = await timetableDailyFetchPreview(absentName);
+        const freshLesson = (current.lessons || []).find(item => Number(item.period) === Number(lesson.period));
+        if (!freshLesson || freshLesson.assignment) { skipped++; continue; }
+        let saved = false;
+        for (const candidate of (freshLesson.candidates || [])) {
+          try {
+            const {date,weekday} = timetableSubstitutionGetDate();
+            const token = appAuthSession?.token || readAppAuthToken();
+            const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+            await appAuthRequest({
+              action:"timetable_substitution_save",weekday,assignmentDate:date,absentTeacherName:absentName,
+              substituteTeacherName:candidate.name,period:freshLesson.period,includeOtherDepartments
+            },token);
+            assigned++;
+            saved = true;
+            break;
+          } catch (error) {
+            // A concurrent assignment can invalidate a candidate; try the next server-ranked candidate.
+          }
+        }
+        if (!saved) skipped++;
+      }
+    }
+    await timetableDailyRefreshAll();
+    timetableSubstitutionSetStatus("اكتمل التوزيع: "+assigned+" تكليف محفوظ، "+skipped+" حصة بلا بديل مؤكد، "+failed+" إخفاق.","success");
+  } catch (error) {
+    timetableSubstitutionSetStatus(error?.message || "توقف التوزيع بسبب خطأ. راجع التكليفات المحفوظة قبل إعادة المحاولة.","error");
+  } finally {
+    timetableDailyBusy = false;
+  }
+}
+
+async function timetableDailyShareWhatsApp() {
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableSubstitutionSetStatus("أضف المعلمين الغائبين أولاً.","error");
+    return;
+  }
+  await timetableDailyRefreshAll();
+  let message = "*📋 كشف الاحتياط اليومي*\n";
+  const date = document.getElementById("timetableSubstitutionDate")?.value || "";
+  message += "📅 التاريخ: "+date+"\n\n";
+  let count = 0;
+  for (const absentName of timetableDailyAbsentTeachers) {
+    const response = timetableDailyPreviewByAbsent.get(absentName);
+    if (!response || response.error) continue;
+    for (const lesson of (response.lessons || [])) {
+      const assigned = lesson.assignment?.substituteTeacherName || "⚠️ لم يحدد";
+      message += "• "+absentName+" | الحصة "+lesson.period+" | "+(lesson.className || "الشعبة غير محددة")+" | "+(lesson.subject || "المادة غير محددة")+" ← "+assigned+"\n";
+      count++;
+    }
+  }
+  if (!count) {
+    timetableSubstitutionSetStatus("لا توجد حصص لعرضها في كشف اليوم.","info");
+    return;
+  }
+  window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+}
+
+/* CSV and Excel share the existing worker, validation, draft and review pipeline. */
+function timetableInitExcelDropZone() {
+  const zone = document.getElementById("timetableExcelDropZone");
+  const input = document.getElementById("timetableExcelFile");
+  if (!zone || !input || zone.dataset.ready === "true") return;
+  zone.dataset.ready = "true";
+  zone.addEventListener("dragover", event => { event.preventDefault(); zone.classList.add("is-over"); });
+  zone.addEventListener("dragleave", () => zone.classList.remove("is-over"));
+  zone.addEventListener("drop", event => {
+    event.preventDefault();
+    zone.classList.remove("is-over");
+    const file = event.dataTransfer?.files?.[0];
+    if (!file) return;
+    if (!/\.(xlsx|xls|xlsm|csv)$/i.test(file.name)) {
+      timetableSetStatus("صيغة الملف غير مدعومة. اختر Excel أو CSV.","error");
+      return;
+    }
+    const transfer = new DataTransfer();
+    transfer.items.add(file);
+    input.files = transfer.files;
+    timetableImportWorkbook();
+  });
+}
+timetableInitExcelDropZone();
+
 async function timetableParseWorkbookInWorker(file) {
   if(typeof Worker==="undefined") throw new Error("المتصفح لا يدعم المعالجة في الخلفية. افتح التطبيق من متصفح حديث.");
   const worker=new Worker("timetable-text.worker.js");
