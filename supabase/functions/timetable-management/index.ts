@@ -539,7 +539,7 @@ async function handle(req: Request) {
         targetVersionId = created.id;
         targetVersionNumber = created.version;
         const { data: sourceCells, error: sourceCellsError } = await db.from("timetable_weekly_cells")
-          .select("*").eq("version_id", sourceVersion.id);
+          .select("*").eq("version_id", sourceVersion.id).range(0,9999);
         if (sourceCellsError) throw sourceCellsError;
         const clonedCells = (sourceCells || []).map((cell: any) => {
           const { id, created_at, updated_at, ...rest } = cell;
@@ -557,7 +557,7 @@ async function handle(req: Request) {
         .eq("weekday", weekday).eq("period", period);
       if (targetCellsError) throw targetCellsError;
       const availableCell = (targetCells || []).find((cell: any) =>
-        ["free","other"].includes(String(cell.cell_status)) &&
+        String(cell.cell_status) === "free" &&
         (!Array.isArray(cell.class_sections) || cell.class_sections.length === 0));
       if (!availableCell) return reply(409, {
         error: "المعلم المحدد ليس لديه حصة فراغ متاحة في هذا الوقت. اختر معلماً آخر.",
