@@ -1,5 +1,5 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
-export interface SubstitutionTeacher { id:string; name:string; departmentId:string; dutyDay?:string; workloadScore?:number; }
+export interface SubstitutionTeacher { id:string; name:string; departmentId:string; dutyDay?:string; weeklyQuota?:number; substitutionsCount?:number; workloadScore?:number; historicalWorkloadScore?:number; }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
 export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; versionId?:string; assignmentType?:string; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
@@ -29,7 +29,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
-  const score=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
+  const historicalScore=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
     activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate,period
   );
   return teachers.filter(t=>t.id!==absentTeacherId)
@@ -37,8 +37,12 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     .filter(t=>!t.dutyDay||t.dutyDay!==weekday)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
-    .filter(t=>!assigned.has(t.id)).map(t=>({...t,workloadScore:score(t.id)}))
-    .sort((a,b)=>(a.workloadScore??0)-(b.workloadScore??0)||a.name.localeCompare(b.name,"ar"));
+    .filter(t=>!assigned.has(t.id)).map(t=>{
+      const substitutionsCount=activeAssignments.filter(a=>a.substituteTeacherId===t.id&&a.assignmentType!=="duty").length;
+      const weeklyQuota=Math.max(0,Number(t.weeklyQuota)||0);
+      return {...t,substitutionsCount,workloadScore:weeklyQuota+substitutionsCount*2,historicalWorkloadScore:historicalScore(t.id)};
+    })
+    .sort((a,b)=>(a.workloadScore??0)-(b.workloadScore??0)||(a.historicalWorkloadScore??0)-(b.historicalWorkloadScore??0)||a.name.localeCompare(b.name,"ar"));
 }
 
 
