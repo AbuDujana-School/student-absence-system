@@ -14,3 +14,9 @@ on conflict (id) do nothing;
 alter table public.teacher_timetable_portal_settings enable row level security;
 revoke all on table public.teacher_timetable_portal_settings from public, anon, authenticated;
 grant all on table public.teacher_timetable_portal_settings to service_role;
+
+
+-- Optional per-teacher visibility list. An empty list preserves the global
+-- toggle behavior; a non-empty list restricts the portal to selected teachers.
+alter table public.teacher_timetable_portal_settings
+  add column if not exists selected_teacher_names text[] not null default '{}';
