@@ -200,3 +200,49 @@ Deno.test("department coordinators cannot browse full timetable imports or teach
   equal(canUseTimetableAction("custom", "timetable_substitution_preview"), true, "Authorized coordinator retains scoped substitution preview");
   equal(canUseTimetableAction("custom", "timetable_substitution_save"), true, "Authorized coordinator retains scoped substitution save");
 });
+
+
+Deno.test("weekly quota plus twice prior substitutions ranks candidates transparently", () => {
+  const teachers: SubstitutionTeacher[] = [
+    { id: "quota-low", name: "نصاب منخفض", departmentId: "science", baseQuota: 8 },
+    { id: "quota-mid", name: "نصاب متوسط", departmentId: "science", baseQuota: 9 },
+    { id: "quota-high", name: "نصاب مرتفع", departmentId: "science", baseQuota: 10 },
+  ];
+  const timetable: TimetableEntry[] = teachers.map((teacher) => ({
+    teacherId: teacher.id, weekday: "الأحد", period: 1, className: "", status: "free",
+  }));
+  const assignments = [
+    { substituteTeacherId: "quota-low", weekday: "الاثنين", period: 2, assignmentDate: "2026-11-10", assignmentType: "substitution", status: "confirmed" as const },
+    { substituteTeacherId: "quota-low", weekday: "الثلاثاء", period: 3, assignmentDate: "2026-11-11", assignmentType: "substitution", status: "assigned" as const },
+    { substituteTeacherId: "quota-mid", weekday: "الأربعاء", period: 4, assignmentDate: "2026-11-12", assignmentType: "duty", status: "confirmed" as const },
+  ];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers, timetable, assignments, absentTeacherId: "absent",
+    weekday: "الأحد", period: 1, departmentId: "science",
+    assignmentDate: "2026-11-14", versionId: "active-version",
+  });
+  equal(ranked[0].id, "quota-mid", "Quota 9 plus zero prior substitutions should rank first");
+  equal(ranked[0].workloadScore, 9, "Duty assignments must not inflate substitution count");
+  equal(ranked[0].substitutionCount, 0, "Only substitution assignments are counted");
+  equal(ranked[1].id, "quota-high", "Quota-only candidate should rank second");
+  equal(ranked[1].workloadScore, 10, "Quota-only candidate retains its base workload");
+  equal(ranked[2].id, "quota-low", "Quota 8 plus two prior substitutions should rank last");
+  equal(ranked[2].workloadScore, 12, "Two substitutions add four workload points");
+  equal(ranked[2].substitutionCount, 2, "Prior substitutions are counted");
+});
+
+Deno.test("personal and category duty days exclude teachers from substitution", () => {
+  const teachers: SubstitutionTeacher[] = [
+    { id: "duty", name: "مناوب اليوم", departmentId: "science", baseQuota: 5, dutyWeekday: "الأحد" },
+    { id: "free", name: "متفرغ", departmentId: "science", baseQuota: 8 },
+  ];
+  const timetable: TimetableEntry[] = teachers.map((teacher) => ({
+    teacherId: teacher.id, weekday: "الأحد", period: 2, className: "", status: "free",
+  }));
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers, timetable, assignments: [], absentTeacherId: "absent",
+    weekday: "الأحد", period: 2, departmentId: "science",
+  });
+  equal(ranked.length, 1, "Teacher assigned to the duty day must be excluded");
+  equal(ranked[0].id, "free", "Only the non-duty teacher remains eligible");
+});
