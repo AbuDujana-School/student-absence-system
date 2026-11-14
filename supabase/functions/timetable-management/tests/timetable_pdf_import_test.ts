@@ -41,7 +41,7 @@ Deno.test("PDF parser preserves multi-class groups as one lesson in one period",
   if (Number(rows[1][4]) !== 1) throw new Error("The class groups should occupy one period only");
   if (rows[1][3] !== "الأحد") throw new Error("Weekday mapping is incorrect");
   if (parsed.weeklyDays.length !== 5 || parsed.weeklyDays[0]!.teachers[0]!.cells.length !== 7) throw new Error("The weekly preview must contain five days and seven cells per teacher");
-  if (parsed.weeklyDays[0].teachers[0].cells[0].classSections.length !== 2) throw new Error("The weekly cell did not retain both groups as one slot");
+  if (parsed.weeklyDays[0]!.teachers[0]!.cells[0].classSections.length !== 2) throw new Error("The weekly cell did not retain both groups as one slot");
 });
 
 Deno.test("PDF parser expands a merged two-period cell from missing grid dividers", () => {
@@ -50,12 +50,12 @@ Deno.test("PDF parser expands a merged two-period cell from missing grid divider
     verticalText("5/10", 143, 177.5, 100),
   ], [[0,5]]);
   const parsed = parseTimetablePdfPages([page]);
-  const rows = parsed.sheets["الحصص"];
+  const rows = parsed.sheets["الحصص"]! as Array<Array<string|number>>;
   if (rows.length !== 3) throw new Error("A two-period merged cell must create two separate period records");
   if (Number(rows[1][4]) !== 5 || Number(rows[2][4]) !== 6) throw new Error("Merged cell did not expand into consecutive periods");
   if (rows[1][1] !== rows[2][1] || rows[1][2] !== rows[2][2]) throw new Error("Extended periods must retain the same class and subject");
   if (parsed.diagnostics.expandedPeriodCount !== 2) throw new Error("The merged-cell diagnostic was not recorded");
-  const weeklyCells = parsed.weeklyDays[0].teachers[0].cells;
+  const weeklyCells = parsed.weeklyDays[0]!.teachers[0]!.cells;
   if (weeklyCells[4].period !== 5 || weeklyCells[5].period !== 6 || weeklyCells[4].classSections[0] !== "5/10" || weeklyCells[5].classSections[0] !== "5/10") throw new Error("The weekly preview did not expand the same cell into two periods");
 });
 
@@ -98,7 +98,7 @@ Deno.test("PDF parser skips the aggregate first page but blocks a missing teache
 Deno.test("PDF parser preserves subject-only special cells for manual class review", () => {
   const page = makeTeacherPage(2, [verticalText("إ العلوم", 114, 675, 50), verticalText("إ علوم", 143, 675, 40)]);
   const parsed = parseTimetablePdfPages([page]);
-  const rows = parsed.sheets["الحصص"];
+  const rows = parsed.sheets["الحصص"]! as Array<Array<string|number>>;
   if (rows.length !== 2) throw new Error("A special subject cell without a numeric class must be preserved, not discarded");
   if (rows[1][2] !== "تفريغ العلوم") throw new Error("Science discharge variants were not unified");
   if (rows[1][1] !== "") throw new Error("An unknown class must remain blank rather than be guessed");
