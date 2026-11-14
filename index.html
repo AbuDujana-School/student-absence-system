@@ -9083,6 +9083,9 @@ function timetableBuildDayPreviewMarkup(preview) {
 }
 async function timetableOpenWeeklyTeacherEditor(sourceName) {
   const preview=timetableDayImportPreview;
+  if (Array.isArray(preview?.periodTimes) && !timetablePdfTimesMatch(preview.periodTimes)) {
+    timetableWeeklySetStatus("أوقات ملف PDF لا تطابق أوقات الحصص في إعدادات duty_module. وحّد الأوقات أولاً؛ لم يُحفظ اليوم.", "error"); return;
+  }
   const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
   const first=days.map(day=>(day.teachers||[]).find(t=>t.sourceName===sourceName)).find(Boolean);
   if(!first)return;
@@ -9389,6 +9392,9 @@ async function timetableSaveDayText() {
   const preview = timetableDayImportPreview;
   const selectedWeekday = document.getElementById("timetableTextWeekday")?.value || "";
   if (!preview) { timetableWeeklySetStatus("أعد تحليل النص قبل الحفظ.", "error"); return; }
+  if (Array.isArray(preview.periodTimes) && !timetablePdfTimesMatch(preview.periodTimes)) {
+    timetableWeeklySetStatus("أوقات ملف PDF لا تطابق أوقات الحصص في إعدادات duty_module. وحّد الأوقات أولاً؛ لم تُحفظ المسودة.", "error"); return;
+  }
   const days = Array.isArray(preview.days) ? preview.days : [preview];
   if (days.length === 1 && days[0].weekday !== selectedWeekday && !timetableFindDayInText(days[0].sourceText)) {
     timetableWeeklySetStatus("أعد تحليل اليوم بعد تغيير اليوم المحدد.", "error"); return;
@@ -9432,6 +9438,9 @@ async function timetableSaveSinglePreviewDay(weekday) {
   } catch(error) { timetableWeeklySetStatus(error?.message||"تعذر حفظ اليوم.","error"); }
 }
 async function timetableActivateWeek() {
+  if (Array.isArray(timetableDayImportPreview?.periodTimes) && !timetablePdfTimesMatch(timetableDayImportPreview.periodTimes)) {
+    timetableWeeklySetStatus("أوقات ملف PDF لا تطابق أوقات الحصص الحالية. صحح إعدادات duty_module قبل الاعتماد.", "error"); return;
+  }
   if (!timetableWeeklyDraftId || timetableWeeklyDraftDays.size !== 5) { timetableWeeklySetStatus("أدخل الأيام الدراسية الخمسة واحفظها أولاً.", "error"); return; }
   const button = document.getElementById("timetableActivateWeekButton");
   const old = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحقق والاعتماد...';
@@ -10041,6 +10050,16 @@ function timetableInitPdfDropZone() {
 }
 timetableInitPdfDropZone();
 
+function timetablePdfTimesMatch(periodTimes) {
+  const source=Array.isArray(periodTimes)?periodTimes:[];
+  const configured=(dutyData()?.periods||[]).slice(0,7);
+  if(source.length!==7||configured.length!==7)return false;
+  return source.every((item,index)=>{
+    const values=String(item?.time||"").match(/\d{1,2}:\d{2}/g)||[];
+    return values.length===2&&toMinutes(values[0])===toMinutes(configured[index]?.start)&&toMinutes(values[1])===toMinutes(configured[index]?.end);
+  });
+}
+
 function timetablePdfRenderDiagnostics(diagnostics) {
   const host=document.getElementById("timetablePdfDiagnostics");if(!host)return;
   const warnings=Array.isArray(diagnostics?.warnings)?diagnostics.warnings:[];
@@ -10048,9 +10067,10 @@ function timetablePdfRenderDiagnostics(diagnostics) {
   const merged=Array.isArray(diagnostics?.mergedCells)?diagnostics.mergedCells:[];
   const times=Array.isArray(diagnostics?.periodTimes)?diagnostics.periodTimes:[];
   const items=[...blocking.map(value=>"خطأ مانع: "+value),...warnings];
+  const timeCheckMarkup=diagnostics?.currentDutyTimesMatch===false?'<p class="mt-2 font-black text-red-700 dark:text-red-300">تنبيه: أوقات الملف لا تطابق إعدادات duty_module الحالية. لن يُسمح بحفظ أو اعتماد هذه المعاينة حتى توحيد الأوقات.</p>':'<p class="mt-2 text-emerald-700 dark:text-emerald-300">تمت مقارنة أوقات الملف بإعدادات duty_module.</p>';
   const timeMarkup=times.length?'<div class="mt-3"><strong>أوقات الحصص المستخرجة من الملف:</strong><div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">'+times.map(item=>'<div class="rounded-lg bg-white/80 dark:bg-slate-900/70 p-2"><strong>الحصة '+timetableEsc(item.period)+'</strong><div>'+timetableEsc(item.time)+'</div></div>').join("")+'</div></div>':'';
   const mergedMarkup=merged.length?'<div class="mt-3"><strong>الخانات الممتدة المكتشفة ('+merged.length+')، وكل واحدة فُكّت إلى فترتين:</strong><ul class="mt-1 list-disc pr-5 space-y-1">'+merged.map(item=>'<li>صفحة '+timetableEsc(item.page)+' · '+timetableEsc(item.teacher)+' · '+timetableEsc(item.weekday)+' · الحصتان '+timetableEsc(item.startPeriod)+' و'+timetableEsc(item.endPeriod)+' · '+timetableEsc(item.subject)+' · '+timetableEsc((item.classGroups||[]).join("، "))+'</li>').join("")+'</ul></div>':'<p class="mt-3">لم تُرصد خانات ممتدة في الملف.</p>';
-  host.innerHTML='<details '+(items.length?'open':'')+'><summary class="cursor-pointer font-black">نتيجة فحص الملف: '+Number(diagnostics?.pageCount||0)+' صفحة · '+Number(diagnostics?.teacherPageCount||0)+' معلماً · '+Number(diagnostics?.importedCellCount||0)+' خانة مصدر · '+merged.length+' خانات ممتدة · '+items.length+' ملاحظة</summary>'+timeMarkup+mergedMarkup+'<div class="mt-3 space-y-1 max-h-64 overflow-y-auto">'+(items.length?items.map(value=>'<p class="border-t border-amber-200/70 dark:border-amber-900 pt-1">'+timetableEsc(value)+'</p>').join(""):'<p>لم تُرصد ملاحظات.</p>')+'</div></details>';
+  host.innerHTML='<details '+(items.length?'open':'')+'><summary class="cursor-pointer font-black">نتيجة فحص الملف: '+Number(diagnostics?.pageCount||0)+' صفحة · '+Number(diagnostics?.teacherPageCount||0)+' معلماً · '+Number(diagnostics?.importedCellCount||0)+' خانة مصدر · '+merged.length+' خانات ممتدة · '+items.length+' ملاحظة</summary>'+timeMarkup+timeCheckMarkup+mergedMarkup+'<div class="mt-3 space-y-1 max-h-64 overflow-y-auto">'+(items.length?items.map(value=>'<p class="border-t border-amber-200/70 dark:border-amber-900 pt-1">'+timetableEsc(value)+'</p>').join(""):'<p>لم تُرصد ملاحظات.</p>')+'</div></details>';
   host.classList.remove("hidden");
 }
 
@@ -10070,6 +10090,7 @@ async function timetableImportPdf() {
       if(bar)bar.style.width=progress.percent+"%";if(value)value.textContent=progress.percent+"%";if(label)label.textContent=progress.message||"جارٍ تحليل صفحات PDF...";
     });
     const diagnostics=parsed?.diagnostics||{};
+    diagnostics.currentDutyTimesMatch=timetablePdfTimesMatch(diagnostics.periodTimes);
     if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
     const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
     if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||day.teachers.length!==69||day.teachers.some(teacher=>!Array.isArray(teacher.cells)||teacher.cells.length!==7)))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: يجب أن يحتوي كل يوم على 69 معلماً وسبع حصص لكل معلم.");
@@ -10090,9 +10111,10 @@ async function timetableImportPdf() {
     if(collisions.size)for(const day of days)for(const teacher of day.teachers)if(collisions.has(timetableNormalizeNameKey(teacher.sourceName))){teacher.matchStatus="ambiguous";teacher.matchedTeacherName=null;}
     for(const day of days)day.matchingTotals={matched:day.teachers.filter(item=>item.matchStatus==="matched").length,unmatched:day.teachers.filter(item=>item.matchStatus==="unmatched").length,ambiguous:day.teachers.filter(item=>item.matchStatus==="ambiguous").length};
     timetableValidateWeeklyTeacherSets(days);
-    timetableDayImportPreview={days};timetableRenderDayPreview();timetablePdfRenderDiagnostics(diagnostics);
+    timetableDayImportPreview={days,periodTimes:diagnostics.periodTimes};timetableRenderDayPreview();timetablePdfRenderDiagnostics(diagnostics);
     const unclear=days.reduce((sum,day)=>sum+(day.totals?.unclear||0),0),unmatched=days[0].matchingTotals.unmatched+days[0].matchingTotals.ambiguous;
-    timetableWeeklySetStatus("اكتمل تحليل "+diagnostics.pageCount+" صفحة: "+diagnostics.teacherPageCount+" معلماً، و"+days[0].totalCells*5+" خانة أسبوعية. الأوقات السبعة استُخرجت من الملف. اكتُشفت "+(diagnostics.mergedCells||[]).length+" خانات ممتدة وحُسبت كل منها فترتين. توجد "+unclear+" خانة تحتاج مراجعة، و"+unmatched+" اسماً يحتاج ربطاً أو تأكيداً. راجع الخانات البرتقالية قبل حفظ المسودة.",unclear||unmatched?"info":"success");
+    const timeMessage=diagnostics.currentDutyTimesMatch?"أوقات الملف مطابقة لإعدادات الحصص الحالية.":"أوقات الملف لا تطابق duty_module؛ تم إيقاف الحفظ حتى توحيدها.";
+    timetableWeeklySetStatus("اكتمل تحليل "+diagnostics.pageCount+" صفحة: "+diagnostics.teacherPageCount+" معلماً، و"+days[0].totalCells*5+" خانة أسبوعية. "+timeMessage+" اكتُشفت "+(diagnostics.mergedCells||[]).length+" خانات ممتدة وحُسبت كل منها فترتين. توجد "+unclear+" خانة تحتاج مراجعة، و"+unmatched+" اسماً يحتاج ربطاً أو تأكيداً. راجع الخانات البرتقالية قبل حفظ المسودة.",!diagnostics.currentDutyTimesMatch||unclear||unmatched?"info":"success");
     timetableSetStatus("تم تحليل ملف «"+file.name+"» وإنشاء معاينة أسبوعية. لم تُحفظ أي بيانات بعد.","success");
     if(bar)bar.style.width="100%";if(value)value.textContent="100%";if(label)label.textContent="اكتمل فحص "+diagnostics.pageCount+" صفحة";
     document.getElementById("timetableDayPreview")?.scrollIntoView({behavior:"smooth",block:"start"});
