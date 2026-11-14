@@ -8783,6 +8783,7 @@ async function timetableRefreshAccess() {
     timetableCanAccess = false;
     teacherPortalCanAccess = false;
     teacherPortalEnabled = false;
+    teacherPortalIndividualGrant = false;
   } else {
     try {
       const result = await appAuthRequest({action:"timetable_check_access"},token);
@@ -8794,6 +8795,7 @@ async function timetableRefreshAccess() {
       timetableCanAccess = activeUser?.type === "admin";
       teacherPortalCanAccess = false;
       teacherPortalEnabled = false;
+      teacherPortalIndividualGrant = false;
     }
   }
   const portalControl = document.getElementById("teacherTimetablePortalControl");
