@@ -40,7 +40,7 @@ Deno.test("parses seven explicit cells and retains free and unclear statuses",()
 Deno.test("rejects a teacher when one period is missing",()=>{
  const incomplete=sample.replace(/الحصة السابعة:[\s\S]*$/,"");
  let rejected=false;
- try{parseTimetableDay("الخميس",incomplete);}catch(error){rejected=String(error).includes("السبع");}
+ try{parseTimetableDay("الخميس",incomplete);}catch(error){rejected=String(error).includes("7 أو 8 حصص");}
  if(!rejected)throw new Error("A six-period teacher record must be rejected");
 });
 Deno.test("rejects incomplete cell fields rather than filling them with defaults",()=>{
@@ -211,4 +211,15 @@ Deno.test("keeps unknown timetable status labels unclear rather than guessing",(
  const explicitOther=sample.replace("- الحالة: تدريس","- الحالة: أخرى");
  const other=parseTimetableDay("الخميس",explicitOther);
  if(other.teachers[0].cells[0].status!=="other")throw new Error("Explicit other status should remain other");
+});
+
+Deno.test("parses a complete eight-period teacher grid",()=>{
+ const eight=sample.replace("الحصة السابعة:", "الحصة الثامنة:\n- الصف والشعبة: 2/10\n- المادة: الأحياء\n- الحالة: تدريس\nالحصة السابعة:");
+ const result=parseTimetableDay("الخميس",eight);
+ if(result.totalCells!==8||result.teachers[0].cells.length!==8||result.teachers[0].cells[7].period!==8)throw new Error("Eight-period timetable was not preserved");
+});
+Deno.test("rejects mixed seven and eight period teacher grids",()=>{
+ const mixed=sample+"\n2. معلم آخر\n"+sample.split("1. معلم تجريبي (صفحة PDF: 2)\n")[1].replace("الحصة السابعة:", "الحصة الثامنة:\n- الصف والشعبة: فراغ\n- المادة: فراغ\n- الحالة: فراغ\nالحصة السابعة:");
+ let rejected=false;try{parseTimetableDay("الخميس",mixed);}catch(error){rejected=String(error).includes("العدد نفسه من الحصص");}
+ if(!rejected)throw new Error("Mixed period counts must be rejected");
 });

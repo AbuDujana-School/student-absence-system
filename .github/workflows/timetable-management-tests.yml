@@ -51,6 +51,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114150000_timetable_import_idempotency.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114180000_teacher_personal_timetable_portal.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114194500_timetable_dynamic_periods.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "BEGIN; INSERT INTO public.timetable_weekly_versions(version,status,expected_teacher_count,period_count,created_by) VALUES (999,'draft',1,8,'migration-test'); INSERT INTO public.timetable_weekly_cells(version_id,teacher_source_name,match_status,weekday,period,cell_status) SELECT id,'migration-test','unmatched','الأحد',8,'free' FROM public.timetable_weekly_versions WHERE version=999; INSERT INTO public.timetable_assignments(version_id,teacher_name,assignment_type,weekday,period,created_by) SELECT id,'migration-test','other','الأحد',8,'migration-test' FROM public.timetable_weekly_versions WHERE version=999; ROLLBACK;"
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/timetable_import_idempotency.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/teacher_timetable_portal_setting.sql
       - name: Set up Deno
