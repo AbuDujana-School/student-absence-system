@@ -8740,6 +8740,7 @@ let teacherPortalEligibleCount = 0;
 let teacherTimetableData = null;
 let teacherTimetableRefreshTimer = null;
 let teacherTimetableLoadBusy = false;
+let teacherTimetableLastFetchAt = 0;
 let timetableAccessUsers = [];
 let timetableSubstitutionContext = null;
 function timetableEsc(value) {
@@ -8907,7 +8908,7 @@ function teacherTimetableRender() {
         : '<span class="text-[10px] font-bold">' + timetableEsc(({meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضحة"}[cell.cell_status] || "—")) + '</span>';
       const subjectLine = (substitution || cell?.cell_status === "teaching") && subject
         ? '<span class="mt-1 block text-[10px] font-semibold opacity-75">' + timetableEsc(subject) + '</span>' : "";
-      const nowBadge = isCurrent && !substitution ? '<span class="rounded-md bg-blue-600 px-2 py-0.5 text-[9px] font-black text-white">الآن</span>' : "";
+      const nowBadge = isCurrent ? '<span class="rounded-md bg-blue-600 px-2 py-0.5 text-[9px] font-black text-white">الآن</span>' : "";
       return '<div class="flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2 ' + tone + '"><div class="min-w-0"><div class="mb-1 flex flex-wrap items-center gap-1"><span class="text-[10px] font-black opacity-70">' + timetableEsc(periodNamesMap[period]) + '</span>' + nowBadge + '</div>' + label + subjectLine + '</div></div>';
     }).join("");
     const isToday = current.day === day;
@@ -8925,6 +8926,7 @@ async function teacherTimetableLoad(showLoading = false) {
     const response = await appAuthRequest({action:"teacher_timetable_get_own"},token);
     if (response.teacherName !== activeUser.name) throw new Error("تعذر التحقق من ارتباط الجدول بحسابك.");
     teacherTimetableData = response;
+    teacherTimetableLastFetchAt = Date.now();
     const title = document.getElementById("teacherTimetableTeacherName");
     if (title) title.textContent = "المعلم: " + response.teacherName + (response.version?.version ? " · نسخة الجدول " + response.version.version : "");
     if (!response.version || !Array.isArray(response.cells) || !response.cells.length) {
@@ -8932,6 +8934,7 @@ async function teacherTimetableLoad(showLoading = false) {
     } else if (status) status.classList.add("hidden");
     teacherTimetableRender();
   } catch (error) {
+    teacherTimetableLastFetchAt = Date.now();
     if (status) { status.textContent = error?.message || "تعذر تحميل جدولك الشخصي."; status.classList.remove("hidden"); }
     if (Number(error?.status) === 401 || Number(error?.status) === 403) {
       teacherPortalCanAccess = false;
@@ -8951,13 +8954,16 @@ async function openTeacherTimetableView() {
   await teacherTimetableLoad(true);
   if (teacherTimetableRefreshTimer) clearInterval(teacherTimetableRefreshTimer);
   teacherTimetableRefreshTimer = setInterval(() => {
-    if (!document.getElementById("teacherTimetableView")?.classList.contains("hidden")) void teacherTimetableLoad(false);
-  }, 60000);
+    if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
+    teacherTimetableRender();
+    if (Date.now() - teacherTimetableLastFetchAt >= 60000) void teacherTimetableLoad(false);
+  }, 15000);
 }
 function closeTeacherTimetableView() {
   document.getElementById("teacherTimetableView")?.classList.add("hidden");
   document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
   if (teacherTimetableRefreshTimer) { clearInterval(teacherTimetableRefreshTimer); teacherTimetableRefreshTimer = null; }
+  teacherTimetableLastFetchAt = 0;
 }
 async function timetableLoadAccessManagement() {
   const panel = document.getElementById("timetableAccessManagement");
