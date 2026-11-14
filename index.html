@@ -2978,7 +2978,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <section id="sec-timetable" class="hidden space-y-5" dir="rtl">
         <div class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-gradient-to-l from-slate-950 via-cyan-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl">
           <div class="flex flex-wrap items-center justify-between gap-4">
-            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">استيراد الجدول</h2><p class="mt-2 text-xs text-cyan-100">ارفع ملف Excel لقراءة أوراقه وربط سجلات الحصص بأسماء المعلمين ومراجعتها.</p></div>
+            <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">لوحة الجداول والاحتياط الذكية</h2><p class="mt-2 text-xs text-cyan-100">وزّع احتياط اليوم بسرعة، وراجع الجدول العام واعتماده من تبويب الإعدادات.</p></div>
             <span class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl text-emerald-200"><i class="fa-solid fa-file-excel"></i></span>
           </div>
         </div>
@@ -9549,10 +9549,14 @@ async function timetableDailyAutoAssign() {
             saved = true;
             break;
           } catch (error) {
+            if (error?.status === 401 || error?.status === 403 || error?.status >= 500) throw error;
             // A concurrent assignment can invalidate a candidate; try the next server-ranked candidate.
           }
         }
-        if (!saved) skipped++;
+        if (!saved) {
+          skipped++;
+          if ((freshLesson.candidates || []).length) failed++;
+        }
       }
     }
     await timetableDailyRefreshAll();
