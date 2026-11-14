@@ -5081,7 +5081,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
   });
   window.addEventListener('online', () => {
-    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - جارِ المزامنة" : "تم الاتصال");
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - التغييرات المحلية بانتظار مراجعة يدوية" : "تم الاتصال");
     setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
   });
   window.addEventListener('pageshow', () => {
@@ -5284,7 +5284,8 @@ async function saveSystemDataToCloud(options = {}) {
     if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
     saveToLocalStorageSafe();
     await persistOfflineState();
-    updateSyncStatus(true, "متزامن");
+    const pendingDeleteCount = getPendingDeletes().length;
+    updateSyncStatus(!pendingDeleteCount, pendingDeleteCount ? `تم حفظ التعديلات؛ ${pendingDeleteCount} طلب حذف بانتظار المراجعة` : "متزامن");
     return true;
   } catch(error) {
     console.error('Cloud save failed:', error);
@@ -5297,8 +5298,12 @@ async function saveSystemDataToCloud(options = {}) {
 }
 
 function forceSyncWithCloud() {
-  if (attendanceDirty || behaviorDirty || dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories) {
-    showConfirm('لديك تغييرات غير محفوظة قد تُستبدل. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
+  if (attendanceDirty || behaviorDirty) {
+    showToast('احفظ تغييرات الرصد الحالية قبل تحديث بيانات الخادم.', 'error');
+    return;
+  }
+  if (hasPendingOfflineChanges()) {
+    showConfirm('سيتم جلب بيانات الخادم مع الاحتفاظ بالتعديلات المحلية المعلّمة. لن تُرفع التغييرات المحلية أو تُنفذ طلبات الحذف تلقائياً. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
     return;
   }
   doForceSync();
@@ -5321,7 +5326,7 @@ function updateSyncStatus(isSynced, text) {
   if (!ind || !txt) return;
   txt.textContent = text || (isSynced ? "متزامن" : "محلي");
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
-  else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر للمزامنة"; }
+  else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر لتحديث بيانات الخادم؛ لا يرفع التغييرات المحلية"; }
 }
 
 async function initDefaults() {
