@@ -146,6 +146,28 @@ Deno.test("teachers assigned to an individual or department duty day are exclude
   assert(ranked.some((teacher) => teacher.id === "no-duty"), "Teacher without a duty day remains eligible");
 });
 
+Deno.test("candidate score is weekly teaching quota plus twice prior substitutions", () => {
+  const teachers = [
+    { id: "higher", name: "نصاب أعلى", departmentId: "science", weeklyQuota: 20 },
+    { id: "lower", name: "نصاب أقل", departmentId: "science", weeklyQuota: 16 },
+  ];
+  const timetable = teachers.map((teacher) => ({
+    teacherId: teacher.id, weekday: "الأحد", period: 2, className: "", status: "free" as const,
+  }));
+  const assignments = [
+    { substituteTeacherId: "lower", weekday: "الاثنين", period: 1, assignmentType: "substitution", status: "assigned" as const },
+    { substituteTeacherId: "lower", weekday: "الثلاثاء", period: 1, assignmentType: "substitution", status: "confirmed" as const },
+    { substituteTeacherId: "lower", weekday: "الأربعاء", period: 1, assignmentType: "duty", status: "confirmed" as const },
+  ];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers, timetable, assignments, absentTeacherId: "absent",
+    weekday: "الأحد", period: 2, departmentId: "science",
+  });
+  equal(ranked[0].id, "higher", "20 workload points should rank ahead of 20? Historical score breaks ties after formula");
+  equal(ranked.find((teacher) => teacher.id === "lower")?.substitutionsCount, 2, "Duty assignments are not counted as substitutions");
+  equal(ranked.find((teacher) => teacher.id === "lower")?.workloadScore, 20, "16 + 2×2 should equal 20");
+});
+
 Deno.test("fairness never makes an occupied teacher eligible", () => {
   const teachers = [
     { id: "busy", name: "معلم مشغول", departmentId: "science" },
