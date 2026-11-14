@@ -460,6 +460,48 @@ async function handle(req: Request) {
     }
   }
 
+  if (body.action === "timetable_class_weekly_get") {
+    if (principal.type !== "admin") return reply(403, { error: "استعراض جداول الصفوف متاح لمدير النظام فقط." });
+    try {
+      const versionQuery = db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count");
+      const { data: version, error: versionError } = await (validUuid(body.versionId) ? versionQuery.eq("id", body.versionId) : versionQuery.eq("status", "active")).maybeSingle();
+      if (versionError) throw versionError;
+      if (!version) return reply(404, { error: "لا توجد نسخة جدول معتمدة لعرض جداول الصفوف." });
+      const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+        .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name")
+        .eq("version_id", version.id).order("weekday").order("period");
+      if (cellsError) throw cellsError;
+      const classMap = new Map<string, Map<string, any[]>>();
+      for (const cell of cells || []) {
+        const sections = Array.isArray(cell.class_sections) ? cell.class_sections : [];
+        for (const sectionValue of sections) {
+          const section = String(sectionValue || "").trim();
+          if (!section) continue;
+          if (!classMap.has(section)) classMap.set(section, new Map());
+          const slotKey = String(cell.weekday) + ":" + Number(cell.period);
+          const slots = classMap.get(section)!;
+          if (!slots.has(slotKey)) slots.set(slotKey, []);
+          slots.get(slotKey)!.push({ weekday: cell.weekday, period: Number(cell.period), subject: cell.subject || "", teacherName: cell.matched_teacher_name || cell.teacher_source_name || "", status: cell.cell_status || "unclear" });
+        }
+      }
+      const periodCount = Number(version.period_count || 7);
+      const classes = Array.from(classMap.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([className,slots]) => {
+        const entries:any[] = [], vacancies:any[] = [], conflicts:any[] = [];
+        for (const weekday of DAYS) for (let period=1; period<=periodCount; period++) {
+          const assignments = slots.get(weekday+":"+period) || [];
+          if (!assignments.length) vacancies.push({weekday,period});
+          else if (assignments.length>1) conflicts.push({weekday,period,assignments});
+          else entries.push(assignments[0]);
+        }
+        return { className, entries, vacancies, conflicts, complete: vacancies.length===0 && conflicts.length===0 };
+      });
+      return reply(200,{ok:true,version,periodCount,weekdays:DAYS,classes});
+    } catch (error) {
+      console.error("Class weekly timetable read failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500,{error:"تعذر إنشاء جداول الصفوف من النسخة المعتمدة."});
+    }
+  }
+
   if (body.action === "timetable_teacher_weekly_get") {
     try {
       const teacherName = String(body.teacherName || "").trim();
