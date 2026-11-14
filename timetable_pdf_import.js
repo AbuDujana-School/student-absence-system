@@ -252,3 +252,39 @@ export function parseTimetablePdfPages(pages) {
   const sheets={"المعلمون":teacherRows,"الحصص":lessonRows,"أوقات الحصص":timeRows,"بيانات PDF":metadataRows};
   return {weeklyDays,sheets,diagnostics};
 }
+
+export function extractVerticalLinesFromOperatorList(operatorList, OPS) {
+  const lines = [];
+  if (!operatorList || !OPS || OPS.constructPath === undefined) return lines;
+  const addLine = (x1, y1, x2, y2) => {
+    if (![x1,y1,x2,y2].every(Number.isFinite) || Math.abs(x1-x2)>1.5 || Math.abs(y2-y1)<25) return;
+    lines.push({x:(x1+x2)/2,y1:Math.min(y1,y2),y2:Math.max(y1,y2)});
+  };
+  for (let index=0; index<(operatorList.fnArray||[]).length; index++) {
+    if (operatorList.fnArray[index] !== OPS.constructPath) continue;
+    const args=operatorList.argsArray[index]||[], commands=args[0]||[], coordinates=args[1]||[];
+    let cursor=0,current=null,subpathStart=null;
+    for (const command of commands) {
+      if (command===OPS.moveTo) {
+        current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])]; subpathStart=current;
+      } else if (command===OPS.lineTo) {
+        const next=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
+        if(current)addLine(current[0],current[1],next[0],next[1]);
+        current=next;
+      } else if (command===OPS.rectangle) {
+        const x=Number(coordinates[cursor++]),y=Number(coordinates[cursor++]),w=Number(coordinates[cursor++]),h=Number(coordinates[cursor++]);
+        addLine(x,y,x,y+h); addLine(x+w,y,x+w,y+h); current=[x,y]; subpathStart=current;
+      } else if (command===OPS.curveTo) {
+        cursor+=4; current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
+      } else if (command===OPS.curveTo2 || command===OPS.curveTo3) {
+        cursor+=2; current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
+      } else if (command===OPS.closePath) {
+        if(current&&subpathStart)addLine(current[0],current[1],subpathStart[0],subpathStart[1]);
+        current=subpathStart;
+      }
+    }
+  }
+  const unique=new Map();
+  for(const line of lines)unique.set([line.x,line.y1,line.y2].map(v=>Math.round(v*10)/10).join(":"),line);
+  return Array.from(unique.values());
+}
