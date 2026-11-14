@@ -30,7 +30,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
   const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(assignmentDate&&a.assignmentDate? a.assignmentDate===assignmentDate : (!versionId||!a.versionId||a.versionId===versionId))).map(a=>a.substituteTeacherId));
   const historicalScore=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
-    activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate,period
+    activeAssignments.filter(a=>a.substituteTeacherId===teacherId&&a.assignmentType!=="duty"),assignmentDate,period
   );
   return teachers.filter(t=>t.id!==absentTeacherId)
     // Teachers assigned to a school/category duty day are unavailable for substitution that day.
