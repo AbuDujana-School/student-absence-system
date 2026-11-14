@@ -50,7 +50,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE anon; CREATE ROLE authenticated; CREATE ROLE service_role;"
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113120000_timetable_import_store.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114150000_timetable_import_idempotency.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114180000_teacher_personal_timetable_portal.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/timetable_import_idempotency.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/teacher_timetable_portal_setting.sql
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
