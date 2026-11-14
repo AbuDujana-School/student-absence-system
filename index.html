@@ -8383,8 +8383,7 @@ async function updateDutyRecordStatus(sel) {
 function exportDutyReportsCSV() {
   const recs = dutyData().records || [];
   if (recs.length === 0) { showToast('لا بلاغات.', 'info'); return; }
-  let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة
-';
+  let csv = '\uFEFFالتاريخ,اليوم,الحصة,الصف,المعلم,المبلّغ,الحالة,المراجع,وقت المراجعة\n';
   recs.sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || '')).forEach(r => {
     const displayName = r.className === '__CLEAN__' ? 'سليم' : formatClassName(r.className);
     csv += [escapeCsvField(r.date), escapeCsvField(r.day), escapeCsvField(r.period), escapeCsvField(displayName), escapeCsvField(r.teacherName || ''), escapeCsvField(r.reportedBy), escapeCsvField(dutyStatusLabel(r.status)), escapeCsvField(r.reviewedBy || ''), escapeCsvField(r.reviewedAt || '')].join(',') + '\n';
