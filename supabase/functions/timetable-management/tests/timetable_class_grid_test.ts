@@ -24,3 +24,9 @@ Deno.test("class aggregation preserves separate groups in one teacher cell",()=>
  const result=aggregateClassTimetables([{weekday:"الأحد",period:1,class_sections:["11 أول","11 ثاني"],subject:"اللغة العربية",matched_teacher_name:"أحمد"}],DAYS,7);
  if(result.length!==2||!result.some(item=>item.className==="11 أول")||!result.some(item=>item.className==="11 ثاني"))throw new Error("Parallel groups must each receive their own schedule");
 });
+
+Deno.test("class timetable never displays an unlinked PDF source abbreviation as a teacher name",()=>{
+ const result=aggregateClassTimetables([{weekday:"الأحد",period:1,class_sections:["11 أول"],subject:"الرياضيات",teacher_source_name:"أ.م."}],DAYS,7)[0];
+ if(result.entries[0].teacherName!=="")throw new Error("Unlinked source abbreviations must not be displayed as teacher names");
+ if(result.entries[0].subject!=="الرياضيات")throw new Error("Subject must remain available when teacher is not linked");
+});
