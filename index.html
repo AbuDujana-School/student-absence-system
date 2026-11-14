@@ -10129,7 +10129,7 @@ async function timetableDailyShareWhatsApp() {
     return;
   }
   await timetableDailyRefreshAll();
-  let message = "*📋 كشف الاحتياط اليومي*\n";
+  let message = "*📋 كشف الاحتياط اليومي*" + String.fromCharCode(10);
   const date = document.getElementById("timetableSubstitutionDate")?.value || "";
   message += "📅 التاريخ: "+date+"\n\n";
   let count = 0;
