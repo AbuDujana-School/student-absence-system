@@ -7205,7 +7205,7 @@ function switchAdminTab(tab) {
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
-  if (tab === 'timetable') { timetableLoadImports(); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
@@ -9565,6 +9565,11 @@ async function timetableDailyAutoAssign() {
 }
 
 async function timetableDailyShareWhatsApp() {
+  const popup = window.open('about:blank','_blank');
+  if (!popup) {
+    timetableSubstitutionSetStatus('اسمح بالنوافذ المنبثقة لمشاركة كشف واتساب.','error');
+    return;
+  }
   if (!timetableDailyAbsentTeachers.length) {
     timetableSubstitutionSetStatus("أضف المعلمين الغائبين أولاً.","error");
     return;
@@ -9587,7 +9592,7 @@ async function timetableDailyShareWhatsApp() {
     timetableSubstitutionSetStatus("لا توجد حصص لعرضها في كشف اليوم.","info");
     return;
   }
-  window.open("https://wa.me/?text="+encodeURIComponent(message),"_blank","noopener");
+  popup.location.href = "https://wa.me/?text="+encodeURIComponent(message);
 }
 
 /* CSV and Excel share the existing worker, validation, draft and review pipeline. */
