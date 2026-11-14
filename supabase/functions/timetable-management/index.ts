@@ -298,19 +298,52 @@ async function handle(req: Request) {
         return reply(200, { ok: true, result: data });
       }
       const weekday = String(body.weekday || "");
-      const sourceText = String(body.text || "");
       if (!DAYS.includes(weekday)) return reply(400, { error: "اختر يوماً دراسياً صحيحاً." });
-      if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً." });
-      const parsed = parseTimetableDay(weekday, sourceText);
-      validateSchoolTeacherCount(parsed, 69);
       const directory = await teacherDirectory();
       const systemTeachers: SystemTeacher[] = directory.filter((t: any) => t.role === "teacher").map((t: any) => ({
         name: t.name, departmentId: t.departmentId, departmentName: t.departmentName,
       }));
-      const matchedTeachers = parsed.teachers.map((teacher) => {
-        const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
-        return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
-      });
+      let parsed: any;
+      let matchedTeachers: any[];
+      if (Array.isArray(body.teachers)) {
+        // Structured editor payload: values were explicitly reviewed by the administrator.
+        // The SQL RPC still validates every teacher, cell, day, period and owner before writing.
+        if (body.teachers.length !== 69) return reply(400, { error: "يجب أن يحتوي اليوم على 69 معلماً بالضبط." });
+        matchedTeachers = body.teachers.map((teacher: any) => {
+          const sourceName = String(teacher?.sourceName || "").trim();
+          const matchedTeacherName = String(teacher?.matchedTeacherName || "").trim();
+          const matchStatus = matchedTeacherName ? "matched" : (teacher?.matchStatus === "ambiguous" ? "ambiguous" : "unmatched");
+          if (!sourceName || !Array.isArray(teacher?.cells) || teacher.cells.length !== 7) {
+            throw new Error("بيانات المعلم أو حصصه السبع غير مكتملة.");
+          }
+          return { ...teacher, sourceName, matchedTeacherName: matchedTeacherName || null, matchStatus };
+        });
+        parsed = {
+          weekday, teachers: matchedTeachers,
+          totals: { teaching: 0, free: 0, meeting: 0, activity: 0, other: 0, unclear: 0 },
+          totalCells: matchedTeachers.length * 7,
+        };
+        for (const teacher of matchedTeachers) for (const cell of teacher.cells) {
+          if (!Number.isInteger(Number(cell.period)) || Number(cell.period) < 1 || Number(cell.period) > 7) {
+            throw new Error("رقم حصة غير صالح في بيانات المعلم " + teacher.sourceName + ".");
+          }
+          if (!["teaching","free","meeting","activity","other","unclear"].includes(cell.status)
+            || !Array.isArray(cell.classSections)
+            || !("sourceClass" in cell) || !("sourceSubject" in cell) || !("sourceStatus" in cell)) {
+            throw new Error("بيانات إحدى الخانات غير مكتملة للمعلم " + teacher.sourceName + ".");
+          }
+          parsed.totals[cell.status]++;
+        }
+      } else {
+        const sourceText = String(body.text || "");
+        if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً." });
+        parsed = parseTimetableDay(weekday, sourceText);
+        validateSchoolTeacherCount(parsed, 69);
+        matchedTeachers = parsed.teachers.map((teacher: any) => {
+          const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
+          return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
+        });
+      }
       const matchingTotals = {
         matched: matchedTeachers.filter((t) => t.matchStatus === "matched").length,
         unmatched: matchedTeachers.filter((t) => t.matchStatus === "unmatched").length,

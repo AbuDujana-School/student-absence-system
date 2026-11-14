@@ -3044,8 +3044,9 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div id="timetableAdminImportPanel" class="hidden">
         <div id="timetableTextImportPanel" class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-paste ml-1 text-cyan-700"></i> إدخال الجدول اليومي من نص PDF</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يمكنك لصق تفريغ يوم واحد أو الأسبوع كاملاً بعناوين الأيام الخمسة. سيُنشئ النظام سبع خانات صريحة لكل معلم يومياً، بما فيها التدريس والفراغ والاجتماعات والخانات غير الواضحة.</p></div>
-          <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
+          <div class="grid grid-cols-1 sm:grid-cols-[220px_220px_1fr] gap-3 items-end">
             <div><label for="timetableTextWeekday" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اليوم الدراسي</label><select id="timetableTextWeekday" onchange="timetableInvalidateDayPreview()" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="الأحد">الأحد</option><option value="الاثنين">الاثنين</option><option value="الثلاثاء">الثلاثاء</option><option value="الأربعاء">الأربعاء</option><option value="الخميس">الخميس</option></select></div>
+            <div><label for="timetableTextMode" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">طريقة إدخال الجدول</label><select id="timetableTextMode" onchange="timetableInvalidateDayPreview()" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="auto">تحديد تلقائي</option><option value="day">إدخال يوم واحد</option><option value="week">إدخال الأسبوع كاملاً (الأحد–الخميس)</option></select></div>
             <div class="text-[10px] text-slate-500">ألصق تفريغ اليوم أو الأسبوع كاملاً. يدعم النظام أيضاً الصفوف المفصولة بعلامة Tab بهذا الترتيب: اسم المعلم، اليوم، رقم الحصة، الصف والشعبة، المادة، الحالة، الملاحظة.</div>
           </div>
           <div class="rounded-2xl border border-dashed border-cyan-300 dark:border-cyan-800 bg-cyan-50/60 dark:bg-cyan-950/20 p-4 space-y-2"><label for="timetableTextFile" class="block text-xs font-black text-slate-700 dark:text-slate-200"><i class="fa-solid fa-file-lines ml-1 text-cyan-700"></i> تحميل تفريغ اليوم من ملف نصي (Notepad)</label><input id="timetableTextFile" type="file" accept=".txt,.text,text/plain" onchange="timetableReadTextFile(event)" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-800 file:px-4 file:py-2.5 file:text-xs file:font-bold file:text-white"><p class="text-[10px] text-slate-500">اختر ملف TXT محفوظاً من المفكرة ليوم واحد أو للأسبوع كاملاً، أو الصق النص مباشرة أدناه. إذا احتوى النص عناوين الأيام الخمسة فسيتعرف عليها النظام ويحللها معاً.</p></div><textarea id="timetableDayText" rows="14" oninput="timetableHandleDayTextInput()" dir="rtl" spellcheck="false" placeholder="الصق هنا نص اليوم أو الأيام الخمسة: اليوم الثاني: الاثنين، ثم اسم المعلم وحصصه السبع..." class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-4 text-xs leading-7 text-slate-800 dark:text-white outline-none focus:border-cyan-500"></textarea>
@@ -8816,12 +8817,74 @@ function timetableBuildDayPreviewMarkup(preview) {
       const sections = (cell.classSections || []).join("، ") || "—";
       return '<td class="min-w-[118px] p-2 align-top"><div class="rounded-xl border p-2 '+cls+'"><div class="font-black text-[10px] break-words">'+timetableEsc(sections)+'</div><div class="mt-1 text-[9px] font-black">'+label+'</div><div class="mt-1 text-[9px] opacity-80 break-words">'+timetableEsc(cell.subject || cell.sourceSubject || "")+'</div>'+(cell.sourceNote?'<div class="mt-1 border-t border-current/15 pt-1 text-[8px] opacity-75 break-words">ملاحظة: '+timetableEsc(cell.sourceNote)+'</div>':'')+'</div></td>';
     }).join("");
-    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="min-w-[190px] p-3 align-top"><div class="font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</div><div class="mt-1 text-[9px] text-slate-500">'+timetableEsc(teacher.matchedTeacherName || "لم يربط بحساب")+'</div><div class="mt-2">'+matchBadge(teacher.matchStatus)+'</div><div class="mt-1 text-[9px] text-slate-400">صفحة PDF: '+timetableEsc(teacher.pdfPage || "غير محددة")+'</div></td>'+cells+'</tr>';
+    return '<tr class="border-b border-slate-100 dark:border-slate-700"><td class="min-w-[190px] p-3 align-top"><div class="font-black text-xs text-slate-800 dark:text-white">'+'<button type="button" onclick="timetableOpenWeeklyTeacherEditor('+JSON.stringify(teacher.sourceName)+')" class="text-right font-black text-xs text-cyan-800 dark:text-cyan-300 underline">'+timetableEsc(teacher.sourceName)+'</button></div><div class="mt-1 text-[9px] text-slate-500">'+timetableEsc(teacher.matchedTeacherName || "لم يربط بحساب")+'</div><div class="mt-2">'+matchBadge(teacher.matchStatus)+'</div><div class="mt-1 text-[9px] text-slate-400">صفحة PDF: '+timetableEsc(teacher.pdfPage || "غير محددة")+'</div></td>'+cells+'</tr>';
   }).join("");
   return '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">'+summary.map(function(item){return '<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3"><div class="text-[9px] text-slate-500">'+item[0]+'</div><div class="mt-1 text-lg font-black text-slate-800 dark:text-white tabular-nums">'+item[1]+'</div></div>';}).join("")+'</div>'+
     '<div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-500"><span>مطابقة الأسماء: '+(matching.matched||0)+' مرتبطة</span><span>· '+(matching.unmatched||0)+' غير مرتبطة</span><span>· '+(matching.ambiguous||0)+' ملتبسة</span></div>'+
     '<div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="min-w-[1050px] w-full text-right text-[10px]"><thead class="sticky top-0 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3">اسم المعلم والمطابقة</th>'+Array.from({length:7},(_,i)=>'<th class="p-3 text-center">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
+async function timetableOpenWeeklyTeacherEditor(sourceName) {
+  const preview=timetableDayImportPreview;
+  const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
+  const first=days.map(day=>(day.teachers||[]).find(t=>t.sourceName===sourceName)).find(Boolean);
+  if(!first)return;
+  let candidates=[];
+  try {
+    const token=appAuthSession?.token||readAppAuthToken();
+    const result=await appAuthRequest({action:"timetable_list_owner_candidates"},token);
+    candidates=result.teachers||[];
+  } catch(error) { timetableWeeklySetStatus(error?.message||"تعذر تحميل أسماء المعلمين.","error"); return; }
+  const labels={teaching:"تدريس",free:"فراغ",meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضح"};
+  const sections=days.map(day=>{
+    const teacher=(day.teachers||[]).find(t=>t.sourceName===sourceName);
+    const cells=Array.from({length:7},(_,i)=>{
+      const period=i+1,cell=teacher?.cells?.find(c=>Number(c.period)===period);
+      if(!cell)return '<div class="rounded-xl border border-dashed p-3 text-xs text-slate-400">الحصة '+period+'<br>غير مدخلة</div>';
+      return '<button type="button" onclick="timetableEditWeeklyPreviewCell('+JSON.stringify(sourceName)+','+JSON.stringify(day.weekday)+','+period+')" class="rounded-xl border p-3 text-right hover:ring-2 hover:ring-cyan-400 '+(cell.status==="unclear"?"border-orange-300 bg-orange-50 dark:bg-orange-950/30":"border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800")+'"><div class="text-[9px] text-slate-500">الحصة '+period+'</div><div class="mt-1 text-xs font-black">'+timetableEsc((cell.classSections||[]).join("، ")||"—")+'</div><div class="mt-1 text-[10px]">'+timetableEsc(labels[cell.status]||"أخرى")+'</div><div class="mt-1 text-[10px]">'+timetableEsc(cell.subject||cell.sourceSubject||"")+'</div><div class="mt-2 text-[9px] font-bold text-cyan-700 underline">تعديل</div></button>';
+    }).join("");
+    return '<section class="rounded-2xl border border-slate-200 dark:border-slate-700 p-3 space-y-2"><h4 class="font-black text-xs">'+timetableEsc(day.weekday)+'</h4><div class="grid grid-cols-2 sm:grid-cols-4 xl:grid-cols-7 gap-2">'+cells+'</div></section>';
+  }).join("");
+  let modal=document.getElementById("timetableWeeklyTeacherEditor");
+  if(!modal){modal=document.createElement("div");modal.id="timetableWeeklyTeacherEditor";document.body.appendChild(modal);}
+  modal.className="fixed inset-0 z-[10000010] bg-slate-950/75 backdrop-blur-sm p-2 sm:p-5 flex items-center justify-center";
+  modal.innerHTML='<div class="w-full max-w-6xl max-h-[94vh] overflow-y-auto rounded-3xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 p-4 sm:p-6 space-y-4 shadow-2xl"><div class="flex items-center justify-between gap-3"><div><h3 class="text-base font-black">الجدول الأسبوعي: '+timetableEsc(sourceName)+'</h3><p class="text-[10px] text-slate-500 mt-1">انقر على أي حصة لتعديلها، بما في ذلك الخانات المصنفة «غير واضح».</p></div><button type="button" onclick="document.getElementById(\'timetableWeeklyTeacherEditor\')?.remove()" class="rounded-xl bg-slate-100 dark:bg-slate-800 px-4 py-2">إغلاق ✕</button></div><div class="rounded-2xl bg-cyan-50 dark:bg-cyan-950/30 p-3 flex flex-wrap items-center gap-2"><label class="text-xs font-bold">ربط الاسم بمعلم مسجل:</label><select id="timetableWeeklyOwnerSelect" class="min-w-[220px] flex-1 rounded-xl border p-2 text-xs bg-white dark:bg-slate-800"><option value="">غير مرتبط</option>'+candidates.map(item=>'<option value="'+timetableEsc(item.name)+'">'+timetableEsc(item.name)+(item.department?' — '+timetableEsc(item.department):'')+'</option>').join("")+'</select><button type="button" onclick="timetableSaveWeeklyTeacherOwner('+JSON.stringify(sourceName)+')" class="rounded-xl bg-cyan-800 text-white px-4 py-2 text-xs font-black">حفظ الربط</button></div>'+sections+'</div>';
+  const select=document.getElementById("timetableWeeklyOwnerSelect");
+  if(select)select.value=first.matchedTeacherName||"";
+}
+function timetableEditWeeklyPreviewCell(sourceName,weekday,period) {
+  const days=Array.isArray(timetableDayImportPreview?.days)?timetableDayImportPreview.days:(timetableDayImportPreview?[timetableDayImportPreview]:[]);
+  const day=days.find(item=>item.weekday===weekday);
+  const teacher=day?.teachers?.find(item=>item.sourceName===sourceName);
+  const cell=teacher?.cells?.find(item=>Number(item.period)===Number(period));
+  if(!cell)return;
+  const classText=prompt("الصف / الشعبة (يمكن كتابة أكثر من شعبة وفصلها بفاصلة):",(cell.classSections||[]).join("، "));
+  if(classText===null)return;
+  const subject=prompt("المادة:",cell.subject||cell.sourceSubject||"");
+  if(subject===null)return;
+  const statusOptions=["teaching","free","meeting","activity","other","unclear"];
+  const statusLabels=["تدريس","فراغ","اجتماع","نشاط","أخرى","غير واضح"];
+  const current=statusOptions.indexOf(cell.status);
+  const statusText=prompt("نوع الحصة: 1 تدريس، 2 فراغ، 3 اجتماع، 4 نشاط، 5 أخرى، 6 غير واضح",String(current>=0?current+1:6));
+  if(statusText===null)return;
+  const statusIndex=Number(statusText)-1;
+  if(!Number.isInteger(statusIndex)||statusIndex<0||statusIndex>5){timetableWeeklySetStatus("رقم نوع الحصة غير صحيح؛ لم يتم تعديل الخانة.","error");return;}
+  cell.classSections=classText.split(/[،,؛;]+/).map(value=>value.trim()).filter(Boolean);
+  cell.subject=subject.trim();cell.sourceClass=classText.trim();cell.sourceSubject=subject.trim();
+  cell.status=statusOptions[statusIndex];cell.sourceStatus=statusLabels[statusIndex];
+  timetableRenderDayPreview();
+  timetableOpenWeeklyTeacherEditor(sourceName);
+}
+function timetableSaveWeeklyTeacherOwner(sourceName) {
+  const selected=document.getElementById("timetableWeeklyOwnerSelect")?.value||"";
+  const days=Array.isArray(timetableDayImportPreview?.days)?timetableDayImportPreview.days:(timetableDayImportPreview?[timetableDayImportPreview]:[]);
+  days.forEach(day=>(day.teachers||[]).filter(item=>item.sourceName===sourceName).forEach(item=>{
+    item.matchedTeacherName=selected||null;item.matchStatus=selected?"matched":"unmatched";
+  }));
+  timetableRenderDayPreview();
+  timetableOpenWeeklyTeacherEditor(sourceName);
+  timetableWeeklySetStatus(selected?"تم ربط الاسم في المعاينة. احفظ اليوم أو الأسبوع لتثبيت الربط.":"تم إلغاء الربط في المعاينة. احفظ اليوم أو الأسبوع لتثبيت التغيير.","success");
+}
+
 function timetableRenderDayPreview() {
   const host = document.getElementById("timetableDayPreview");
   const preview = timetableDayImportPreview;
@@ -8831,7 +8894,7 @@ function timetableRenderDayPreview() {
     const totalCells = preview.days.reduce((sum,day)=>sum+day.totalCells,0);
     host.innerHTML = '<div class="rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-3 text-xs font-black text-cyan-900 dark:text-cyan-100">معاينة أسبوع كامل: '+preview.days.length+' أيام · '+first.teachers.length+' معلماً · '+totalCells+' خانة. افتح كل يوم لمراجعة تفاصيله.</div>'+
       preview.days.map(function(day,index) {
-        return '<details '+(index===0?'open':'')+' class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3"><summary class="cursor-pointer font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(day.weekday)+' — '+day.teachers.length+' معلماً · '+day.totalCells+' خانة</summary><div class="pt-3">'+timetableBuildDayPreviewMarkup(day)+'</div></details>';
+        return '<details '+(index===0?'open':'')+' class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3"><summary class="cursor-pointer font-black text-xs text-slate-800 dark:text-white">'+timetableEsc(day.weekday)+' — '+day.teachers.length+' معلماً · '+day.totalCells+' خانة</summary><div class="pt-3">'+timetableBuildDayPreviewMarkup(day)+'<div class="flex justify-end mt-3"><button type="button" onclick="timetableSaveSinglePreviewDay(this.dataset.day)" data-day="'+day.weekday+'" class="rounded-xl bg-emerald-700 text-white px-4 py-2 text-xs font-black">حفظ هذا اليوم فقط</button></div></div></details>';
       }).join("");
     const saveButton = document.getElementById("timetableSaveDayButton");
     if (saveButton) {
@@ -9036,6 +9099,9 @@ async function timetableParseDayText() {
     }
     button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل على الخادم...';
     const chunks = timetableSplitDailyText(sourceText, selectedWeekday);
+    const importMode = document.getElementById("timetableTextMode")?.value || "auto";
+    if (importMode === "week" && chunks.length !== 5) throw new Error("اخترت إدخال الأسبوع كاملاً، لكن النص لا يحتوي الأيام الخمسة. أضف عناوين الأحد إلى الخميس أو صفوفها.");
+    if (importMode === "day" && chunks.length !== 1) throw new Error("اخترت إدخال يوم واحد، لكن النص يحتوي أكثر من يوم. اختر إدخال الأسبوع كاملاً أو الصق يومًا واحدًا.");
     const token = appAuthSession?.token || readAppAuthToken();
     const results = [];
     for (const chunk of chunks) {
@@ -9076,7 +9142,7 @@ async function timetableSaveDayText() {
     const token = appAuthSession?.token || readAppAuthToken();
     const saved = [];
     for (const day of days) {
-      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,text:day.sourceText,versionId:timetableWeeklyDraftId},token);
+      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:timetableWeeklyDraftId},token);
       timetableWeeklyDraftId = response.result.version_id;
       timetableWeeklyDraftDays.add(day.weekday);
       saved.push(day.weekday);
@@ -9090,6 +9156,22 @@ async function timetableSaveDayText() {
   } catch(error) {
     timetableWeeklySetStatus((error?.message || "تعذر حفظ الجدول.") + " الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
+}
+async function timetableSaveSinglePreviewDay(weekday) {
+  const preview=timetableDayImportPreview;
+  const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
+  const day=days.find(item=>item.weekday===weekday);
+  if(!day)return;
+  try {
+    const token=appAuthSession?.token||readAppAuthToken();
+    if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+    const response=await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:timetableWeeklyDraftId},token);
+    timetableWeeklyDraftId=response.result.version_id;
+    timetableWeeklyDraftDays.add(day.weekday);
+    const activate=document.getElementById("timetableActivateWeekButton");
+    if(activate)activate.disabled=timetableWeeklyDraftDays.size!==5;
+    timetableWeeklySetStatus("تم حفظ يوم "+day.weekday+" مستقلاً في المسودة. يمكنك إكمال بقية الأيام لاحقاً.","success");
+  } catch(error) { timetableWeeklySetStatus(error?.message||"تعذر حفظ اليوم.","error"); }
 }
 async function timetableActivateWeek() {
   if (!timetableWeeklyDraftId || timetableWeeklyDraftDays.size !== 5) { timetableWeeklySetStatus("أدخل الأيام الدراسية الخمسة واحفظها أولاً.", "error"); return; }
