@@ -94,7 +94,6 @@ export function canUseTimetableAction(
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
-    "timetable_portal_revoke_individual_grant",
     "timetable_substitution_preview",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
