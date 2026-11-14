@@ -374,15 +374,24 @@ async function handle(req: Request) {
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
-      const [directory,dayCellsResult,dutySettingsResult]=await Promise.all([
+      const [directory,dayCellsResult,dutySettingsResult,weeklyLoadResult]=await Promise.all([
         teacherDirectory(),
         db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject").eq("version_id",activeVersion.id).eq("weekday",weekday),
         db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
+        db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status").eq("version_id",activeVersion.id),
       ]);
       if (dayCellsResult.error) throw dayCellsResult.error;
       if (dutySettingsResult.error) throw dutySettingsResult.error;
+      if (weeklyLoadResult.error) throw weeklyLoadResult.error;
       const dayCells=dayCellsResult.data||[];
       const dutySubjectDays=dutySettingsResult.data?.value?.subjectDays||{};
+      const weeklyQuotaByTeacher=new Map<string,number>();
+      for(const cell of weeklyLoadResult.data||[]){
+        if(cell.matched_teacher_name&&cell.cell_status==="teaching"){
+          const name=String(cell.matched_teacher_name);
+          weeklyQuotaByTeacher.set(name,(weeklyQuotaByTeacher.get(name)||0)+1);
+        }
+      }
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
@@ -423,6 +432,7 @@ async function handle(req: Request) {
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
         dutyDay:String(t.personalDutyDay||dutySubjectDays[t.departmentId]||""),
+        weeklyQuota:weeklyQuotaByTeacher.get(t.name)||0,
       }));
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
