@@ -172,7 +172,7 @@ Deno.test("deleting a class locally never marks the deleted class for cloud upse
 
 
 Deno.test("legacy PIN login does not rewrite stored credential hashes or trigger cloud saves", () => {
-  const login = section("async function handleLogin(", "async function findUserByPinWithRecord(");
+  const login = section("async function handleUserLogin(", "async function findUserByPinWithRecord(");
   assert(!login.includes("isLegacyHash("), "Login must not trigger an automatic legacy PIN hash migration");
   assert(!login.includes("createPinRecord("), "Login must not replace a saved PIN hash or salt");
   assert(!login.includes("saveSystemDataToCloud("), "Login must not write credential changes to the cloud");
