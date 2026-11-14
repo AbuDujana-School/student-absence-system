@@ -9283,11 +9283,13 @@ async function timetableImportWorkbook() {
     timetableSavedImport = null;
     timetableActiveImport = null;
     const saveButton = document.getElementById("timetableSaveButton");
-    if (saveButton) { saveButton.disabled = false; saveButton.classList.remove("hidden"); saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة'; }
+    const schemaValid=result.result?.validation?.valid!==false;
+    if (saveButton) { saveButton.disabled = !schemaValid; saveButton.classList.remove("hidden"); saveButton.innerHTML = schemaValid ? '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة' : '<i class="fa-solid fa-triangle-exclamation ml-1"></i> أصلح بنية الملف أولاً'; }
     timetableImportPreview = result;
     timetableSelectedTeacherIndex = -1;
     timetableRenderPreview();
-    timetableSetStatus("اكتمل تحليل الملف. اختر معلماً لمراجعة جميع سجلات حصصه وعقوده.", "success");
+    const schemaErrors=result.result?.validation?.errors||[];
+    timetableSetStatus(schemaErrors.length ? "تعذر حفظ المسودة: "+schemaErrors.join(" ") : "اكتمل تحليل الملف والتحقق من بنيته. اختر معلماً لمراجعة جميع سجلات حصصه وعقوده.", schemaErrors.length ? "error" : "success");
   } catch (error) {
     timetableSetStatus(error && error.message ? error.message : "تعذر تحليل ملف Excel.", "error");
   } finally {
