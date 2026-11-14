@@ -4,6 +4,7 @@ const APP_SHELL = [
   './index.html',
   './manifest.webmanifest',
   './sw.js',
+  './timetable-import.worker.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
@@ -12,6 +13,7 @@ const RUNTIME_CACHE = 'abudujana-static-v15';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
+  'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js',
   'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
   'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap'
