@@ -177,3 +177,12 @@ Deno.test("legacy PIN login does not rewrite stored credential hashes or trigger
   assert(!login.includes("createPinRecord("), "Login must not replace a saved PIN hash or salt");
   assert(!login.includes("saveSystemDataToCloud("), "Login must not write credential changes to the cloud");
 });
+
+Deno.test("offline fallback restores cached data but does not report a successful cloud refresh", () => {
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const fallbackStart = load.indexOf("if (offlineSnapshotAvailable || saved)");
+  assert(fallbackStart >= 0, "Offline fallback path must remain available");
+  const fallback = load.slice(fallbackStart);
+  assert(fallback.includes('updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");'), "Fallback must clearly show that data is local and waiting for connection");
+  assert(fallback.includes("return false;"), "A local fallback must not be reported as a successful cloud refresh");
+});
