@@ -159,13 +159,24 @@ function makePageGrid(page) {
   const orderedTimes=periodTimes.map((entry,index)=>({period:index+1,time:entry.times[0]+"–"+entry.times[1]}));
   return {dayCenters,periodCenters,orderedTimes,...buildPeriodSpans(page,dayCenters,periodCenters)};
 }
+/**
+ * @typedef {{period:number,status:string,classSections:string[],subject:string,sourceClass:string,sourceSubject:string,sourceStatus:string,sourceNote:string}} PdfCell
+ * @typedef {{sourceName:string,pdfPage:number,matchStatus?:string,matchedTeacherName?:string|null,cells:PdfCell[]}} PdfTeacher
+ * @typedef {{weekday:string,teachers:PdfTeacher[],totals:{teaching:number,free:number,meeting:number,activity:number,other:number,unclear:number},totalCells:number,warnings:string[],matchingTotals?:{matched:number,unmatched:number,ambiguous:number}}} PdfDay
+ */
 export function parseTimetablePdfPages(pages) {
+  /** @type {{pageCount:number,teacherPageCount:number,skippedPages:number[],importedCellCount:number,importedGroupCount:number,expandedPeriodCount:number,mergedCells:Array<{page:number,teacher:string,weekday:string,startPeriod:number,endPeriod:number,subject:string,classGroups:string[]}>,warnings:string[],blockingErrors:string[],periodTimes:Array<{period:number,time:string}>,teachers:Array<{page:number,name:string,lessonCount:number}>}} */
   const diagnostics={pageCount:Array.isArray(pages)?pages.length:0,teacherPageCount:0,skippedPages:[],importedCellCount:0,importedGroupCount:0,expandedPeriodCount:0,mergedCells:[],warnings:[],blockingErrors:[],periodTimes:[],teachers:[]};
-  if(!Array.isArray(pages)||!pages.length||pages.length>MAX_PAGES){diagnostics.blockingErrors.push("عدد صفحات PDF غير صالح أو يتجاوز الحد المسموح.");return {sheets:{},diagnostics};}
+  if(!Array.isArray(pages)||!pages.length||pages.length>MAX_PAGES){diagnostics.blockingErrors.push("عدد صفحات PDF غير صالح أو يتجاوز الحد المسموح.");return {weeklyDays:[],sheets:{"المعلمون":[],"الحصص":[],"أوقات الحصص":[],"بيانات PDF":[]},diagnostics};}
+  /** @type {Array<Array<string|number>>} */
   const teacherRows=[["الاسم","الاختصار","التفريغ"]];
+  /** @type {Array<Array<string|number>>} */
   const lessonRows=[["المعلم","الشعبة","المادة","اليوم","الحصة","وقت الحصة","رقم الصفحة","النص الأصلي","المجموعات","عدد الفترات"]];
+  /** @type {Array<Array<string|number>>} */
   const timeRows=[["رقم الحصة","الوقت"]];
+  /** @type {Array<Array<string|number>>} */
   const metadataRows=[["رقم الصفحة","نوع الصفحة","اسم المعلم","عدد الخانات المستخرجة"]];
+  /** @type {PdfDay[]} */
   const weeklyDays=WEEKDAYS.map(weekday=>({weekday,teachers:[],totals:{teaching:0,free:0,meeting:0,activity:0,other:0,unclear:0},totalCells:0,warnings:[]}));
   const teacherNames=new Set();let referenceTimes="";
   for(const page of pages){
@@ -197,7 +208,7 @@ export function parseTimetablePdfPages(pages) {
     let pageLessonCount=0;
     for(const [key,entries] of cells){
       const [dayIndexValue,startPeriod]=key.split(":").map(Number);
-      const rawText=entries.map(entry=>normalizePdfArabic(entry.item.str)).filter(Boolean).join(" | ");
+      const rawText=entries.map(entry=>String(entry.item.str||"").trim()).filter(Boolean).join(" | ");
       if(!rawText.trim())continue;
       const groups=dedupeReciprocalClassGroups(Array.from(new Set(entries.flatMap(entry=>extractClassGroups(entry.item.str)))));
       const rawSubjectParts=entries.map(entry=>normalizePdfArabic(entry.item.str)).filter(text=>text&&!isGroupMarker(text))
@@ -235,5 +246,7 @@ export function parseTimetablePdfPages(pages) {
   if(lessonRows.length-1>MAX_ROWS)diagnostics.blockingErrors.push("عدد سجلات الحصص المستخرجة يتجاوز الحد المسموح.");
   if(diagnostics.skippedPages.length)diagnostics.warnings.unshift("تم تجاوز صفحة الملخص رقم "+diagnostics.skippedPages.join("، ")+"؛ لم تُعامل كجدول معلم.");
   for(const day of weeklyDays){day.totalCells=day.teachers.length*7;for(const teacher of day.teachers)for(const cell of teacher.cells)day.totals[cell.status]++;}
-  return {weeklyDays,sheets:{"المعلمون":teacherRows,"الحصص":lessonRows,"أوقات الحصص":timeRows,"بيانات PDF":metadataRows},diagnostics};
+  /** @type {Record<string,Array<Array<string|number>>>} */
+  const sheets={"المعلمون":teacherRows,"الحصص":lessonRows,"أوقات الحصص":timeRows,"بيانات PDF":metadataRows};
+  return {weeklyDays,sheets,diagnostics};
 }

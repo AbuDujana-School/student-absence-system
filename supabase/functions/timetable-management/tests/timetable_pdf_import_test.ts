@@ -35,12 +35,12 @@ Deno.test("PDF parser preserves multi-class groups as one lesson in one period",
     verticalText("مجموعة مادة اختيارية", 185, 675, 60),
   ]);
   const parsed = parseTimetablePdfPages([page]);
-  const rows = parsed.sheets["الحصص"];
+  const rows = parsed.sheets["الحصص"]! as Array<Array<string|number>>;
   if (rows.length !== 2) throw new Error("Expected one lesson row plus the header; multiple groups must not duplicate the period");
   if (rows[1][1] !== "1/12، 6/12") throw new Error("Both class groups were not retained");
-  if (rows[1][4] !== 1) throw new Error("The class groups should occupy one period only");
+  if (Number(rows[1][4]) !== 1) throw new Error("The class groups should occupy one period only");
   if (rows[1][3] !== "الأحد") throw new Error("Weekday mapping is incorrect");
-  if (parsed.weeklyDays.length !== 5 || parsed.weeklyDays[0].teachers[0].cells.length !== 7) throw new Error("The weekly preview must contain five days and seven cells per teacher");
+  if (parsed.weeklyDays.length !== 5 || parsed.weeklyDays[0]!.teachers[0]!.cells.length !== 7) throw new Error("The weekly preview must contain five days and seven cells per teacher");
   if (parsed.weeklyDays[0].teachers[0].cells[0].classSections.length !== 2) throw new Error("The weekly cell did not retain both groups as one slot");
 });
 
@@ -52,7 +52,7 @@ Deno.test("PDF parser expands a merged two-period cell from missing grid divider
   const parsed = parseTimetablePdfPages([page]);
   const rows = parsed.sheets["الحصص"];
   if (rows.length !== 3) throw new Error("A two-period merged cell must create two separate period records");
-  if (rows[1][4] !== 5 || rows[2][4] !== 6) throw new Error("Merged cell did not expand into consecutive periods");
+  if (Number(rows[1][4]) !== 5 || Number(rows[2][4]) !== 6) throw new Error("Merged cell did not expand into consecutive periods");
   if (rows[1][1] !== rows[2][1] || rows[1][2] !== rows[2][2]) throw new Error("Extended periods must retain the same class and subject");
   if (parsed.diagnostics.expandedPeriodCount !== 2) throw new Error("The merged-cell diagnostic was not recorded");
   const weeklyCells = parsed.weeklyDays[0].teachers[0].cells;
@@ -68,13 +68,13 @@ Deno.test("PDF parser detects several merged cells across different days", () =>
   const secondPage=makeTeacherPage(60,[verticalText("تقنية المعلومات",480,72.5,100),verticalText("6/9",510,72.5,100)],[[4,6]],"حسان محمد عبدالله الجابري");
   const parsed=parseTimetablePdfPages([makeTeacherPage(59,items,merged),secondPage]);
   if(parsed.diagnostics.expandedPeriodCount!==12||parsed.diagnostics.mergedCells.length!==6)throw new Error("The six merged cells must expand into twelve period records");
-  if(parsed.sheets["الحصص"].length!==13)throw new Error("Expected twelve period rows from six merged source cells");
+  if(parsed.sheets["الحصص"]!.length!==13)throw new Error("Expected twelve period rows from six merged source cells");
   for(const [day,after] of merged){
-    const teacher=parsed.weeklyDays[day].teachers[0];
+    const teacher=parsed.weeklyDays[day]!.teachers[0]!;
     if(teacher.cells[after-1].status!=="teaching"||teacher.cells[after].status!=="teaching")throw new Error("Merged periods were not copied to both weekly slots");
     if(teacher.cells[after-1].classSections[0]!==teacher.cells[after].classSections[0])throw new Error("Merged period class data changed between slots");
   }
-  const thursday=parsed.weeklyDays[4].teachers[1];
+  const thursday=parsed.weeklyDays[4]!.teachers[1]!;
   if(thursday.cells[5].classSections[0]!=="6/9"||thursday.cells[6].classSections[0]!=="6/9")throw new Error("The second teacher's Thursday extension was not expanded");
 });
 

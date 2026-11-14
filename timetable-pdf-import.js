@@ -26,7 +26,7 @@
       for(let pageNumber=1;pageNumber<=document.numPages;pageNumber++){
         const page=await document.getPage(pageNumber),viewport=page.getViewport({scale:1,rotation:0});
         const [textContent,operatorList]=await Promise.all([
-          page.getTextContent({includeMarkedContent:false,disableNormalization:false}),
+          page.getTextContent({includeMarkedContent:false,disableNormalization:true}),
           page.getOperatorList(),
         ]);
         const items=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
