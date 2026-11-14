@@ -374,14 +374,18 @@ async function handle(req: Request) {
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
-      const [directory,dayCellsResult,weekCellsResult]=await Promise.all([
+      const [directory,dayCellsResult,weekCellsResult,dutySettingsResult]=await Promise.all([
         teacherDirectory(),
         db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject").eq("version_id",activeVersion.id).eq("weekday",weekday),
         db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status").eq("version_id",activeVersion.id),
+        db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
       ]);
       if (dayCellsResult.error) throw dayCellsResult.error;
       if (weekCellsResult.error) throw weekCellsResult.error;
+      if (dutySettingsResult.error) throw dutySettingsResult.error;
       const dayCells=dayCellsResult.data||[];
+      const dutyModule=dutySettingsResult.data?.value&&typeof dutySettingsResult.data.value==="object"?dutySettingsResult.data.value:{};
+      const subjectDutyDays=dutyModule.subjectDays&&typeof dutyModule.subjectDays==="object"?dutyModule.subjectDays:{};
       const weeklyTeachingQuota=new Map<string,number>();
       for(const cell of weekCellsResult.data||[]){
         const teacherName=String(cell.matched_teacher_name||"");
@@ -412,7 +416,8 @@ async function handle(req: Request) {
         if(!absentTeacherName||!substitute||!Number.isInteger(period)||period<1||period>7||!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate))return reply(400,{error:"حدد التاريخ والمعلم الغائب والبديل والحصة."});
         const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
         if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
-        if(substituteTeacher.dutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
+        const substituteDutyDay=DAYS.includes(substituteTeacher.dutyDay)?substituteTeacher.dutyDay:String(subjectDutyDays[substituteTeacher.departmentId]||"");
+        if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
         const {data,error}=await db.rpc("create_timetable_substitution",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments}});
         if(error)throw error;
         return reply(201,{ok:true,assignment:data});
@@ -430,7 +435,7 @@ async function handle(req: Request) {
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
         baseQuota:weeklyTeachingQuota.get(t.name)||0,
-        dutyWeekday:t.dutyDay,
+        dutyWeekday:DAYS.includes(t.dutyDay)?t.dutyDay:String(subjectDutyDays[t.departmentId]||""),
       }));
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
