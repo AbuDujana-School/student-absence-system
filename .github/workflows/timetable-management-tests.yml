@@ -9,9 +9,13 @@ on:
       - "supabase/functions/timetable-management/**"
       - "timetable-import.worker.js"
       - "index.html"
+      - "sw.js"
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"
+      - "timetable-import.worker.js"
+      - "index.html"
+      - "sw.js"
 
 jobs:
   unit-tests:
