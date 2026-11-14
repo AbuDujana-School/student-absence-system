@@ -339,7 +339,7 @@ async function handle(req: Request) {
         if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً." });
         parsed = parseTimetableDay(weekday, sourceText);
         validateSchoolTeacherCount(parsed, 69);
-        matchedTeachers = parsed.teachers.map((teacher) => {
+        matchedTeachers = parsed.teachers.map((teacher: any) => {
           const match = matchSystemTeacherName(teacher.sourceName, systemTeachers);
           return { ...teacher, matchedTeacherName: match.teacherName, matchStatus: match.matchStatus };
         });
