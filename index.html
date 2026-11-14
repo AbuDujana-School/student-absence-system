@@ -3078,10 +3078,22 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
+          <div class="tt-toolbar tt-no-print">
+            <div class="relative min-w-0 flex-1" style="min-width:min(100%,260px)">
+              <input id="timetableDailyAbsentSearch" type="search" autocomplete="off" class="tt-search" placeholder="ابحث عن المعلم الغائب ثم اختر اسمه..." oninput="timetableDailyFilterAbsentTeachers(this.value)" onkeydown="if(event.key==='Escape')document.getElementById('timetableDailySuggestions').classList.add('hidden')">
+              <div id="timetableDailySuggestions" class="tt-suggestions hidden"></div>
+            </div>
+            <div class="flex flex-wrap gap-2">
+              <button type="button" class="tt-action bg-blue-800 text-white" onclick="timetableDailyAutoAssign()">⚡ توزيع الاحتياط تلقائياً</button>
+              <button type="button" class="tt-action bg-emerald-600 text-white" onclick="timetableDailyShareWhatsApp()">💬 مشاركة كشف اليوم</button>
+              <button type="button" class="tt-action border border-slate-300 bg-white text-slate-800" onclick="window.print()">🖨️ طباعة الكشف</button>
+            </div>
+          </div>
+          <div id="timetableDailyAbsentTags" class="flex flex-wrap gap-2 min-h-7" aria-live="polite"></div>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <label class="text-xs font-bold text-slate-600 dark:text-slate-300">تاريخ الغياب<input id="timetableSubstitutionDate" type="date" value="" onchange="timetableLoadSubstitutionOptions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
             <label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300 sm:col-span-2">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="">اختر المعلم الغائب</option></select></label>
+            <label class="hidden">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()"><option value="">اختر المعلم الغائب</option></select></label>
           </div>
           <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetablePreviewSubstitutions()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
           <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
