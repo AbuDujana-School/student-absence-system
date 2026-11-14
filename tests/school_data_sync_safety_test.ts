@@ -53,3 +53,26 @@ Deno.test("default PIN initialization and credential migration are not invoked a
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   assert(!load.includes("createPinRecord("), "Cloud loading must not create or replace PIN credentials");
 });
+
+
+Deno.test("localStorage fallback restores pending edits before a successful cloud load", () => {
+  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
+  assert(restore.includes("localStorage.getItem('abuDujana_db_v30')"), "A missing IndexedDB snapshot must fall back to the localStorage database");
+  assert(restore.includes("loadDirtySetsFromLocal()"), "Fallback must restore dirty markers with the local database");
+  assert(restore.indexOf("db={...db,...localDb}") < restore.indexOf("return true"), "Fallback data must be restored before reporting success");
+});
+
+Deno.test("older pending attendance and behavior edits survive the local cache age filter", () => {
+  const localSave = section("function saveToLocalStorageSafe()", "function loadDirtySetsFromLocal()");
+  assert(localSave.includes("p.date >= cutoffStr || dirtySets.attendance.has(k)"), "Dirty attendance older than the cache window must be retained");
+  assert(localSave.includes("p.date >= cutoffStr || dirtySets.behaviors.has(k)"), "Dirty behavior records older than the cache window must be retained");
+});
+
+Deno.test("cloud writes stop if neither local persistence layer can confirm a snapshot", () => {
+  const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
+  assert(save.includes("const localCacheSaved = saveToLocalStorageSafe()"), "Cloud save must inspect localStorage persistence");
+  assert(save.includes("const durableSaved = await persistOfflineState()"), "Cloud save must inspect IndexedDB persistence");
+  const guard = save.indexOf("if (!localCacheSaved && !durableSaved)");
+  const firstWrite = save.search(/robustUpsert\s*\(|sb\.from\([^)]*\)\.upsert\s*\(/);
+  assert(guard >= 0 && firstWrite > guard, "No cloud write may happen before at least one local persistence layer succeeds");
+});
