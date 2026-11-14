@@ -304,10 +304,12 @@ async function handle(req: Request) {
     ));
     if (names.some(name => name.length > 160)) return reply(400, { error: "يوجد اسم معلم أطول من الحد المسموح." });
     try {
-      const { data: teachers, error: teachersError } = await db.from("teachers").select("name").eq("role","teacher").in("name",names);
-      if (teachersError) throw teachersError;
-      const validNames = new Set((teachers || []).map((item: any) => String(item.name)));
-      if (names.some((name: string) => !validNames.has(name))) return reply(400, { error: "تتضمن القائمة اسماً غير موجود في فهرس المعلمين." });
+      if (names.length > 0) {
+        const { data: teachers, error: teachersError } = await db.from("teachers").select("name").eq("role","teacher").in("name",names);
+        if (teachersError) throw teachersError;
+        const validNames = new Set((teachers || []).map((item: any) => String(item.name)));
+        if (names.some(name => !validNames.has(name))) return reply(400, { error: "تتضمن القائمة اسماً غير موجود في فهرس المعلمين." });
+      }
       const { data, error } = await db.from("teacher_timetable_portal_settings").upsert({
         id: true, selected_teacher_names: names, updated_by: principal.name, updated_at: new Date().toISOString(),
       }, { onConflict: "id" }).select("selected_teacher_names").single();
