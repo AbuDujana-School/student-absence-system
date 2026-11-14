@@ -8869,7 +8869,7 @@ function teacherTimetableCurrentPeriod() {
   const day = weekdayMap[now.weekday] || "";
   if (!SCHOOL_DAYS.includes(day)) return {day,period:null};
   const periods = dutyData().periods || [];
-  for (let index = 0; index < Math.min(8, periods.length); index++) {
+  for (let index = 0; index < Math.min(7, periods.length); index++) {
     const start = toMinutes(periods[index]?.start), end = toMinutes(periods[index]?.end);
     if (start !== null && end !== null && end > start && now.minutes >= start && now.minutes < end) {
       return {day,period:index+1};
@@ -8896,7 +8896,7 @@ function teacherTimetableRender() {
     const dateForDay = teacherTimetableDayDate(day);
     const dayCells = cells.filter(cell => cell.weekday === day);
     const dayAssignments = assignments.filter(item => item.weekday === day && (!item.assignment_date || item.assignment_date === dateForDay));
-    const rows = Array.from({length:8}, (_,index) => {
+    const rows = Array.from({length:7}, (_,index) => {
       const period = index + 1;
       const cell = dayCells.find(item => Number(item.period) === period);
       const substitution = dayAssignments.find(item => Number(item.period) === period);
