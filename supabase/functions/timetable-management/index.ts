@@ -468,12 +468,25 @@ async function handle(req: Request) {
       const { data: version, error: versionError } = await (validUuid(body.versionId) ? versionQuery.eq("id", body.versionId) : versionQuery.eq("status", "active")).maybeSingle();
       if (versionError) throw versionError;
       if (!version) return reply(404, { error: "لا توجد نسخة جدول معتمدة لعرض جداول الصفوف." });
-      const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
-        .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name")
-        .eq("version_id", version.id).order("weekday").order("period");
+      const [{ data: cells, error: cellsError }, { data: teacherIndex, error: teacherIndexError }] = await Promise.all([
+        db.from("timetable_weekly_cells")
+          .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name")
+          .eq("version_id", version.id).order("weekday").order("period"),
+        db.from("teachers").select("name").eq("role", "teacher").order("name"),
+      ]);
       if (cellsError) throw cellsError;
+      if (teacherIndexError) throw teacherIndexError;
+      // Resolve displayed teacher names only through the canonical teachers index.
+      // PDF/source abbreviations are deliberately never shown as teacher names.
+      const indexedNames = new Set((teacherIndex || []).map((teacher: any) => String(teacher.name || "").trim()).filter(Boolean));
+      const indexedCells = (cells || []).map((cell: any) => ({
+        ...cell,
+        matched_teacher_name: indexedNames.has(String(cell.matched_teacher_name || "").trim())
+          ? String(cell.matched_teacher_name).trim()
+          : null,
+      }));
       const periodCount = Number(version.period_count || 7);
-      const classes = aggregateClassTimetables(cells || [], DAYS, periodCount);
+      const classes = aggregateClassTimetables(indexedCells, DAYS, periodCount);
       return reply(200,{ok:true,version,periodCount,weekdays:DAYS,classes});
     } catch (error) {
       console.error("Class weekly timetable read failed:", error instanceof Error ? error.message : "unknown");
