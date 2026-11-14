@@ -2,7 +2,7 @@
 self.onmessage = async (event) => {
   const text = String(event.data?.text || "");
   const chunkSize = 400;
-  const lines = text.split(/\\r?\\n/);
+  const lines = text.split(/\r?\n/);
   const issues = [];
   const seen = new Set();
   const weekdays = new Set(["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"]);
@@ -11,8 +11,8 @@ self.onmessage = async (event) => {
     const end = Math.min(lines.length, start + chunkSize);
     for (let i = start; i < end; i++) {
       const raw = lines[i];
-      if (!raw.includes("\\t")) continue;
-      const fields = raw.split("\\t").map(value => value.trim());
+      if (!raw.includes("\t")) continue;
+      const fields = raw.split("\t").map(value => value.trim());
       if (fields.length < 6) continue;
       const day = fields[1];
       if (!weekdays.has(day)) continue;
@@ -23,8 +23,8 @@ self.onmessage = async (event) => {
         continue;
       }
       if (!fields[0]) issues.push({line:i+1,message:"اسم المعلم فارغ"});
-      const key = fields[0].normalize("NFKC").replace(/\\s+/g," ").trim()+"|"+day+"|"+period;
-      if (seen.has(key)) issues.push({line:i+1,message:"تكرار للمعلم واليوم والحصة"});
+      const key = fields.map(value => value.normalize("NFKC").replace(/\s+/g," ").trim()).join("|");
+      if (seen.has(key)) issues.push({line:i+1,message:"تكرار الصف نفسه"});
       seen.add(key);
     }
     self.postMessage({type:"progress",processed:end,total:lines.length,percent:Math.round(end/Math.max(lines.length,1)*100)});
