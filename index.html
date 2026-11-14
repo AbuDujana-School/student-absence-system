@@ -9280,10 +9280,11 @@ async function timetableClearPendingWorkbook() {
 }
 let timetableRestorePendingPromise = null;
 async function timetableRestorePendingWorkbook() {
-  if (timetableImportPreview || timetableRestorePendingPromise || !timetableCanAccess) return timetableRestorePendingPromise;
+  if (timetableImportPreview || timetableRestorePendingPromise || !timetableCanAccess || activeUser?.type !== "admin") return timetableRestorePendingPromise;
   timetableRestorePendingPromise = (async () => {
     const pending = await timetableReadPendingWorkbook();
     if (!pending?.sheets || !pending.fileName) return;
+    if (pending.ownerName && pending.ownerName !== String(activeUser?.name || "")) return;
     const token = appAuthSession?.token || readAppAuthToken();
     if (!token) return;
     timetablePendingWorkbook = {fileName:pending.fileName};
@@ -9340,7 +9341,7 @@ async function timetableImportWorkbook() {
       });
     } finally { worker.terminate(); }
     const sheets = parsed.sheets;
-    await timetableStorePendingWorkbook({fileName:file.name,sheets});
+    await timetableStorePendingWorkbook({fileName:file.name,sheets,ownerName:String(activeUser?.name || "")});
     timetablePendingWorkbook = {fileName:file.name};
     timetableSetWorkerProgress("إرسال البيانات للتحقق من المخطط", 92, parsed.rowCount, parsed.rowCount);
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
