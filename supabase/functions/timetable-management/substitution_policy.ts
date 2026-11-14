@@ -1,12 +1,12 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
-export interface SubstitutionTeacher { id:string; name:string; departmentId:string; }
+export interface SubstitutionTeacher { id:string; name:string; departmentId:string; workloadScore?:number; }
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
-export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
+export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; versionId?:string; assignmentType?:string; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
-  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean; assignmentDate?:string;
+  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean; assignmentDate?:string; versionId?:string;
 }
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
   return a.weekday===b.weekday && a.period===b.period;
@@ -19,7 +19,7 @@ export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:str
 }
 /** Missing, duplicated, meeting, activity, other and unclear cells are never treated as free. */
 export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
-  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate}=query;
+  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate,versionId}=query;
   const cells=new Map<string,{count:number;isFree:boolean}>();
   for(const entry of timetable.filter(e=>sameCell(e,{weekday,period}))){
     const current=cells.get(entry.teacherId)??{count:0,isFree:true};
@@ -28,14 +28,15 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     cells.set(entry.teacherId,current);
   }
   const activeAssignments=assignments.filter(a=>a.status!=="cancelled");
-  const assigned=new Set(activeAssignments.filter(a=>sameCell(a,{weekday,period})&&(!assignmentDate||!a.assignmentDate||a.assignmentDate===assignmentDate)).map(a=>a.substituteTeacherId));
+  const assigned=new Set(activeAssignments.filter(a=>(!versionId||!a.versionId||a.versionId===versionId)&&sameCell(a,{weekday,period})&&(!assignmentDate||!a.assignmentDate||a.assignmentDate===assignmentDate)).map(a=>a.substituteTeacherId));
   const score=(teacherId:string):number=>calculateSubstitutionWorkloadScore(
-    activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate
+    activeAssignments.filter(a=>a.substituteTeacherId===teacherId),assignmentDate,period
   );
   return teachers.filter(t=>t.id!==absentTeacherId)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
-    .filter(t=>!assigned.has(t.id)).slice().sort((a,b)=>score(a.id)-score(b.id)||a.name.localeCompare(b.name,"ar"));
+    .filter(t=>!assigned.has(t.id)).map(t=>({...t,workloadScore:score(t.id)}))
+    .sort((a,b)=>(a.workloadScore??0)-(b.workloadScore??0)||a.name.localeCompare(b.name,"ar"));
 }
 
 
@@ -47,12 +48,13 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
 export function calculateSubstitutionWorkloadScore(
   assignments:SubstitutionAssignment[],
   referenceDate?:string,
+  targetPeriod?:number,
 ):number {
   const active=assignments.filter(a=>a.status!=="cancelled");
   const reference=referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)
     ? new Date(referenceDate+"T12:00:00Z") : null;
   const dayMs=86400000;
-  let total=0, last90=0, last30=0, last7=0, sameDay=0;
+  let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
   for(const assignment of active){
     total++;
     if(!reference || !assignment.assignmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(assignment.assignmentDate)) continue;
@@ -62,10 +64,10 @@ export function calculateSubstitutionWorkloadScore(
     if(age<90) last90++;
     if(age<30) last30++;
     if(age<7) last7++;
-    if(age===0) sameDay++;
+    if(age===0) { sameDay++; if(targetPeriod && Math.abs(assignment.period-targetPeriod)===1) adjacent++; }
   }
   // Total history prevents gaming by waiting out a short rolling window.
-  return total + last90*2 + last30*3 + last7*4 + sameDay*8;
+  return total + last90*2 + last30*3 + last7*4 + sameDay*8 + adjacent*4;
 }
 
 /** List only absent teachers the current coordinator is allowed to see. */
