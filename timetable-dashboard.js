@@ -121,7 +121,9 @@
         const assignment = lesson.assignment;
         const options = candidates.map(candidate =>
           '<option value="' + escapeHtml(candidate.name) + '">' + escapeHtml(candidate.name) +
-          (Number.isFinite(candidate.workloadScore) ? ' — عبء تراكمي: ' + candidate.workloadScore : '') + '</option>'
+          (Number.isFinite(candidate.baseQuota) ? ' — نصاب: ' + candidate.baseQuota : '') +
+          (Number.isFinite(candidate.substitutionCount) ? ' | احتياط سابق: ' + candidate.substitutionCount : '') +
+          (Number.isFinite(candidate.workloadScore) ? ' | العبء: ' + candidate.workloadScore : '') + '</option>'
         ).join("");
         let control = "";
         if (assignment) {
