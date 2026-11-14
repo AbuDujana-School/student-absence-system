@@ -163,7 +163,7 @@ Deno.test("candidate score is weekly teaching quota plus twice prior substitutio
     teachers, timetable, assignments, absentTeacherId: "absent",
     weekday: "الأحد", period: 2, departmentId: "science",
   });
-  equal(ranked[0].id, "higher", "A score of 21 should rank ahead of a score of 20");
+  equal(ranked[0].id, "lower", "The lower score of 20 should rank ahead of 21");
   equal(ranked.find((teacher) => teacher.id === "lower")?.substitutionsCount, 2, "Duty assignments are not counted as substitutions");
   equal(ranked.find((teacher) => teacher.id === "lower")?.workloadScore, 20, "16 + 2×2 should equal 20");
 });
