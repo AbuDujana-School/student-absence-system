@@ -5242,7 +5242,7 @@ async function loadSystemDataFromCloud() {
         loadDirtySetsFromLocal();
         await persistOfflineState();
         updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");
-        return true;
+        return false;
       } catch(pe) { console.warn('Local fallback restore failed', pe); }
     }
     updateSyncStatus(false, "تعذر التحميل؛ أُوقف الحفظ السحابي لحماية البيانات"); return false;
