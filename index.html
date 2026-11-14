@@ -5650,7 +5650,10 @@ function renderSinglePermissionLauncher(permissionKey) {
   launcher.appendChild(button);
 }
 function openSinglePermissionModule(permissionKey) {
-  if (getSingleAdminPermission(activeUser) !== permissionKey) {
+  const validPermission = permissionKey === 'studentAffairs'
+    ? getSingleAdminPermission(activeUser) === 'studentAffairs'
+    : getSingleAdminPanelPermission(activeUser) === permissionKey;
+  if (!validPermission) {
     showToast('تعذر التحقق من صلاحية هذا القسم. يرجى تسجيل الدخول مجدداً.', 'error');
     return;
   }
