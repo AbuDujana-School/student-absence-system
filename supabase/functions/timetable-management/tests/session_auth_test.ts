@@ -19,6 +19,7 @@ function storeWith(
     admin?: boolean;
     teacher?: { name: string; role: string } | null;
     access?: boolean;
+    linkedPortalAccess?: boolean;
     calls?: string[];
   } = {},
 ): TimetableAuthStore {
@@ -39,6 +40,10 @@ function storeWith(
     async hasTimetableAccess(type, name) {
       calls.push("access:" + type + ":" + name);
       return options.access === true;
+    },
+    async hasLinkedTeacherPortalAccess(name) {
+      calls.push("linked-portal:" + name);
+      return options.linkedPortalAccess === true;
     },
   };
 }
@@ -174,5 +179,50 @@ Deno.test("authorized non-admin users can manage only department-scoped substitu
     if (canUseTimetableAction("teacher", action)) throw new Error("Teacher write action was allowed: " + action);
     if (canUseTimetableAction("custom", action)) throw new Error("Custom write action was allowed: " + action);
     if (!canUseTimetableAction("admin", action)) throw new Error("Administrator action was denied: " + action);
+  }
+});
+
+
+Deno.test("linked teachers receive portal-only access only when the school portal is enabled", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const allowedStore = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher" },
+    linkedPortalAccess: true,
+  });
+  const portalPrincipal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowedStore, NOW);
+  if (portalPrincipal?.portalOnly !== true || portalPrincipal.name !== "Teacher A") {
+    throw new Error("Linked teacher did not receive portal-only access");
+  }
+  for (const action of ["health", "timetable_check_access", "teacher_timetable_get_own"]) {
+    if (!canUseTimetableAction("teacher", action, true)) throw new Error("Portal action was denied: " + action);
+  }
+  for (const action of [
+    "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
+    "timetable_list_access", "timetable_portal_get_status", "timetable_portal_set_enabled",
+  ]) {
+    if (canUseTimetableAction("teacher", action, true)) throw new Error("Portal-only teacher gained management access: " + action);
+  }
+  for (const action of ["timetable_portal_get_status", "timetable_portal_set_enabled"]) {
+    if (canUseTimetableAction("custom", action)) throw new Error("Non-admin account gained school-wide portal control: " + action);
+  }
+  const disabledStore = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher" },
+    linkedPortalAccess: false,
+  });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, disabledStore, NOW) !== null) {
+    throw new Error("Teacher portal access was granted while disabled or unlinked");
+  }
+});
+
+Deno.test("explicit timetable permissions keep their existing scoped substitution capabilities", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher" },
+    access: true,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
+  if (principal?.portalOnly === true) throw new Error("Explicit timetable permission was downgraded");
+  if (!canUseTimetableAction("teacher", "timetable_substitution_preview")) {
+    throw new Error("Existing substitution capability was changed");
   }
 });

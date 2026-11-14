@@ -1847,8 +1847,14 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <span id="currentDateDisplay" class="hidden md:inline-block bg-emerald-800/60 text-emerald-100 px-3.5 py-1.5 rounded-2xl text-xs font-semibold border border-emerald-700/50"></span>
       
       <!-- زر لوحة التحكم (مخفي افتراضياً ويظهر حسب الصلاحيات) -->
-      <button id="adminPanelBtn" onclick="openAdminModal()" class="hidden bg-emerald-800 hover:bg-emerald-700 text-white px-4 py-2 rounded-2xl text-xs sm:text-sm font-bold flex items-center gap-2 shadow-md border border-emerald-700/80 active:scale-95">
-        <i class="fa-solid fa-sliders text-emerald-300"></i><span>لوحة التحكم</span>
+      <button id="adminPanelBtn" type="button" title="لوحة التحكم" aria-label="لوحة التحكم" onclick="openAdminModal()" class="hidden bg-emerald-800 hover:bg-emerald-700 text-white px-2.5 sm:px-3 py-2 rounded-2xl text-xs sm:text-sm font-bold items-center gap-2 shadow-md border border-emerald-700/80 active:scale-95">
+        <i class="fa-solid fa-sliders text-emerald-300"></i><span class="hidden sm:inline">لوحة التحكم</span>
+      </button>
+      <button id="studentAffairsBtn" type="button" title="شؤون الطلبة" aria-label="شؤون الطلبة" onclick="openStudentAffairsView(true)" class="hidden bg-blue-800 hover:bg-blue-700 px-2.5 sm:px-3 py-2 rounded-2xl text-xs sm:text-sm font-bold items-center gap-2 shadow-md border border-blue-700/80 active:scale-95">
+        <i class="fa-solid fa-users text-blue-200"></i><span class="hidden sm:inline text-white">شؤون الطلبة</span>
+      </button>
+      <button id="teacherTimetableBtn" type="button" title="الجدول المدرسي" aria-label="الجدول المدرسي" onclick="openTeacherTimetableView()" class="hidden bg-cyan-800 hover:bg-cyan-700 px-2.5 sm:px-3 py-2 rounded-2xl text-xs sm:text-sm font-bold items-center gap-2 shadow-md border border-cyan-700/80 active:scale-95">
+        <i class="fa-solid fa-calendar-days text-cyan-200"></i><span class="hidden sm:inline text-white">الجدول المدرسي</span>
       </button>
 
     </div>
@@ -1944,6 +1950,30 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </div>
     </div>
   </div>
+
+<section id="teacherTimetableView" class="hidden space-y-5" dir="rtl">
+  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-cyan-950 to-emerald-900 p-5 sm:p-7 text-white shadow-xl">
+    <div class="absolute -left-10 -top-16 h-48 w-48 rounded-full bg-cyan-300/10 blur-3xl"></div>
+    <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl"><i class="fa-solid fa-calendar-days"></i></div>
+        <div><div class="mb-1 text-[11px] font-bold text-cyan-200">مدرسة أبو دجانة</div><h2 class="text-xl font-black sm:text-2xl">الجدول المدرسي</h2><p id="teacherTimetableTeacherName" class="mt-1 text-xs text-cyan-100">الجدول الأسبوعي الشخصي</p></div>
+      </div>
+      <button type="button" onclick="closeTeacherTimetableView()" class="rounded-xl bg-white/10 px-4 py-2.5 text-xs font-bold text-white hover:bg-white/20"><i class="fa-solid fa-arrow-right ml-1"></i> العودة</button>
+    </div>
+  </div>
+  <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 space-y-3">
+    <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-black text-slate-900 dark:text-white">جدولي الأسبوعي</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تُحدّد الحصة الحالية تلقائياً وفق أوقات الحصص المعتمدة في إعدادات المناوبة.</p></div><span id="teacherTimetableCurrentStatus" class="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-200">جارٍ تحديد الحصة الحالية...</span></div>
+    <div class="flex flex-wrap gap-2 text-[10px] font-bold">
+      <span class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-slate-700"><i class="h-2.5 w-2.5 rounded-sm border border-slate-300 bg-white"></i> حصة فارغة</span>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-emerald-800"><i class="h-2.5 w-2.5 rounded-sm bg-emerald-200"></i> حصة تدريس</span>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-blue-800"><i class="h-2.5 w-2.5 rounded-sm bg-blue-300"></i> الحصة الآن</span>
+      <span class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-rose-800"><i class="h-2.5 w-2.5 rounded-sm bg-rose-200"></i> حصة احتياط</span>
+    </div>
+    <div id="teacherTimetableStatus" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" role="status" aria-live="polite"></div>
+  </div>
+  <div id="teacherTimetableWeekGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"></div>
+</section>
 
 <section id="studentAffairsView" class="hidden space-y-5" dir="rtl">
   <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-blue-950 to-teal-900 p-5 sm:p-7 shadow-xl">
@@ -3036,7 +3066,18 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           </nav>
         </div>
         <div id="timetableAccessManagement" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 space-y-4">
-          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بدخول هذه المنظومة.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
+          <div id="teacherTimetablePortalControl" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-4 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-calendar-check ml-1 text-cyan-700"></i> تفعيل الجدول الشخصي للمعلمين</h3><p class="mt-1 text-[10px] leading-5 text-slate-600 dark:text-slate-300">يظهر الجدول تلقائياً لكل معلم مرتبط باسمه في النسخة الأسبوعية النشطة ولديه حصة تدريس واحدة على الأقل. لا يغيّر هذا الخيار صلاحيات إدارة الجداول والاحتياط.</p></div>
+              <span id="teacherTimetablePortalStatus" class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-[10px] font-black text-slate-600">جارٍ التحقق...</span>
+            </div>
+            <div class="flex flex-wrap items-center justify-between gap-3">
+              <p id="teacherTimetablePortalCount" class="text-[10px] text-slate-600 dark:text-slate-300">عدد المعلمين المرتبطين: —</p>
+              <button id="teacherTimetablePortalToggle" type="button" onclick="timetableToggleTeacherPortal()" class="rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 text-xs font-black text-white disabled:opacity-50" disabled>جارٍ تحميل الحالة...</button>
+            </div>
+            <p id="teacherTimetablePortalUpdated" class="text-[10px] text-slate-500 dark:text-slate-400">الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.</p>
+          </div>
+          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بإدارة منظومة الجداول والاحتياط.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
           <input id="timetableAccessSearch" type="search" oninput="timetableRenderAccessList()" placeholder="ابحث عن معلم أو تخصص..." class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white outline-none">
           <div id="timetableAccessList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-100 dark:border-slate-700"><p class="p-4 text-xs text-slate-400">جارٍ تحميل المستخدمين...</p></div>
           <div class="flex flex-wrap items-center justify-between gap-3"><span id="timetableAccessStatus" class="text-[10px] text-slate-500"></span><button id="timetableAccessSaveButton" type="button" onclick="timetableSaveAccessChanges()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 px-5 py-2.5 text-xs font-black text-white">حفظ الصلاحيات</button></div>
@@ -3851,8 +3892,9 @@ function closeStudentAffairsAssignments(){
     card.classList.toggle("hidden",!allowed);
   });
 }
-async function openStudentAffairsView(){const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();await saSetupCompetitionPanel();await saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
-function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(isSinglePermissionMode()&&getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
+let studentAffairsOpenedFromHome = false;
+async function openStudentAffairsView(fromHome = false){studentAffairsOpenedFromHome=fromHome===true;const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView","teacherTimetableView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();await saSetupCompetitionPanel();await saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
+function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(studentAffairsOpenedFromHome){studentAffairsOpenedFromHome=false;document.getElementById("dashboardSelectionView")?.classList.remove("hidden");return;}if(isSinglePermissionMode()&&getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
@@ -5507,45 +5549,35 @@ async function refreshActiveUserPermissions() {
 
 async function finalizeLoginState() {
   await refreshActiveUserPermissions();
+  await timetableRefreshAccess();
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
 
   const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin === true || isAdminAuthorized();
-  const singlePermission = !isAdmin && !timetableCanAccess ? getSingleAdminPermission(activeUser) : null;
+  const singlePermission = !isAdmin ? getSingleAdminPanelPermission(activeUser) : null;
   const adminBtn = document.getElementById('adminPanelBtn');
+  const studentAffairsBtn = document.getElementById('studentAffairsBtn');
+  const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
+  const showAdminPanel = hasAdminPanelAccess(activeUser) || isAdmin;
+  const showStudentAffairs = isAdmin || activeUser.permissions?.studentAffairs === true;
   if (adminBtn) {
-    const buttonIcon = adminBtn.querySelector('i');
-    const buttonLabel = adminBtn.querySelector('span');
-    if (singlePermission) {
-      const sourceTab = document.getElementById('tab-' + singlePermission);
-      const sourceIcon = sourceTab?.querySelector('i');
-      const sourceLabel = singlePermission === 'studentAffairs'
-        ? 'شؤون الطلاب'
-        : (sourceTab?.querySelector('span')?.textContent?.trim() || 'القسم المخصص');
-      if (buttonIcon) buttonIcon.className = sourceIcon?.className || 'fa-solid fa-folder-open text-emerald-300';
-      if (buttonLabel) buttonLabel.textContent = sourceLabel;
-      adminBtn.classList.remove('hidden');
-      adminBtn.classList.add('flex');
-      adminBtn.setAttribute('aria-label', 'فتح ' + sourceLabel);
-    } else {
-      if (buttonIcon) buttonIcon.className = 'fa-solid fa-sliders text-emerald-300';
-      if (buttonLabel) buttonLabel.textContent = 'لوحة التحكم';
-      adminBtn.removeAttribute('aria-label');
-      if (isAdmin || hasAnyPermission(activeUser)) {
-        adminBtn.classList.remove('hidden');
-        adminBtn.classList.add('flex');
-      } else {
-        adminBtn.classList.add('hidden');
-        adminBtn.classList.remove('flex');
-      }
-    }
+    adminBtn.classList.toggle('hidden', !showAdminPanel);
+    adminBtn.classList.toggle('flex', showAdminPanel);
+    const label = adminBtn.querySelector('span');
+    if (label) label.textContent = 'لوحة التحكم';
+  }
+  if (studentAffairsBtn) {
+    studentAffairsBtn.classList.toggle('hidden', !showStudentAffairs);
+    studentAffairsBtn.classList.toggle('flex', showStudentAffairs);
+  }
+  if (teacherTimetableBtn) {
+    teacherTimetableBtn.classList.toggle('hidden', !teacherPortalCanAccess);
+    teacherTimetableBtn.classList.toggle('flex', teacherPortalCanAccess);
   }
 
   const dashboardView = document.getElementById('dashboardSelectionView');
   if (singlePermission) {
-    // Single admin-panel permission changes only the header entry point.
-    // Keep the dashboard grid and its attendance, behavior, and duty cards intact.
     dashboardView?.setAttribute('data-single-permission-mode', 'true');
     document.getElementById('singlePermissionLauncher')?.remove();
   } else {
@@ -5561,6 +5593,14 @@ async function finalizeLoginState() {
   await checkAndEnforcePinChange(); await checkAndEnforceAdminPinChange();
   window.refreshCombinedReportTabs?.();
 }
+function hasAdminPanelAccess(user = activeUser) {
+  return user?.type === 'admin' || user?.permissions?.admin === true || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
+}
+function getSingleAdminPanelPermission(user = activeUser) {
+  if (!user || user.type === 'admin' || user.permissions?.admin === true) return null;
+  const keys = ADMIN_TAB_PERMISSIONS.filter(key => user.permissions?.[key] === true);
+  return keys.length === 1 ? keys[0] : null;
+}
 function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k] === true) || user.permissions.studentAffairs === true) : false; }
 function getAssignedAdminPermissionKeys(user = activeUser) {
   const permissions = user?.permissions || {};
@@ -5574,7 +5614,8 @@ function hasMultipleAdminPermissions(user = activeUser) {
   return getAssignedAdminPermissionKeys(user).length >= 2;
 }
 function isSinglePermissionMode(user = activeUser) {
-  return !!user && user.type !== 'admin' && user.permissions?.admin !== true && !isAdminAuthorized() && !!getSingleAdminPermission(user);
+  return !!user && user.type !== 'admin' && user.permissions?.admin !== true && !isAdminAuthorized()
+    && (!!getSingleAdminPanelPermission(user) || getSingleAdminPermission(user) === 'studentAffairs');
 }
 function renderSinglePermissionLauncher(permissionKey) {
   const view = document.getElementById('dashboardSelectionView');
@@ -5609,7 +5650,10 @@ function renderSinglePermissionLauncher(permissionKey) {
   launcher.appendChild(button);
 }
 function openSinglePermissionModule(permissionKey) {
-  if (getSingleAdminPermission(activeUser) !== permissionKey) {
+  const validPermission = permissionKey === 'studentAffairs'
+    ? getSingleAdminPermission(activeUser) === 'studentAffairs'
+    : getSingleAdminPanelPermission(activeUser) === permissionKey;
+  if (!validPermission) {
     showToast('تعذر التحقق من صلاحية هذا القسم. يرجى تسجيل الدخول مجدداً.', 'error');
     return;
   }
@@ -5702,9 +5746,16 @@ function _performLogout() {
   
   // إخفاء زر لوحة التحكم عند تسجيل الخروج
   const adminBtn = document.getElementById('adminPanelBtn');
+  const studentAffairsBtn = document.getElementById('studentAffairsBtn');
+  const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
   if (adminBtn) adminBtn.classList.add('hidden');
+  if (studentAffairsBtn) studentAffairsBtn.classList.add('hidden');
+  if (teacherTimetableBtn) teacherTimetableBtn.classList.add('hidden');
+  teacherPortalCanAccess = false;
+  teacherTimetableData = null;
+  if (teacherTimetableRefreshTimer) { clearInterval(teacherTimetableRefreshTimer); teacherTimetableRefreshTimer = null; }
 
-  ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyClassesView','dutyDashboardCard'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyClassesView','dutyDashboardCard','teacherTimetableView','studentAffairsView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('loginView').classList.remove('hidden');
   document.getElementById('changeTeacherPinBtn').classList.add('hidden');
 }
@@ -5735,7 +5786,7 @@ async function backToDashboardSelection() {
   if (attendanceDirty) { const ok = await showConfirm('تغييرات في الحضور. مغادرة؟', { danger: true }); if (!ok) return; }
   if (behaviorDirty) { const ok = await showConfirm('تغييرات في السلوكيات. مغادرة؟', { danger: true }); if (!ok) return; }
   attendanceDirty = false; behaviorDirty = false; attendanceUndoStack = []; behaviorUndoStack = [];
-  ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   refreshDutyDashboardCard();
 }
@@ -6463,14 +6514,15 @@ function printHorizontalBehaviorReport() {
 
 /* ============ Admin modal ============ */
 async function openAdminModal() {
+  document.getElementById('teacherTimetableView')?.classList.add('hidden');
   if (activeUser?.type !== 'admin') await timetableRefreshAccess();
   const isAdmin = activeUser?.type === 'admin' || activeUser?.permissions?.admin || isAdminAuthorized();
-  const singlePermission = !isAdmin ? getSingleAdminPermission(activeUser) : null;
+  const singlePermission = !isAdmin ? getSingleAdminPanelPermission(activeUser) : null;
   if (singlePermission) {
     openSinglePermissionModule(singlePermission);
     return;
   }
-  const hasAny = hasAnyPermission(activeUser) || timetableCanAccess;
+  const hasAny = hasAdminPanelAccess(activeUser) || timetableCanAccess;
 
   if (isAdmin || hasAny) {
     // إذا كان مديراً أو لديه أي صلاحية، افتح اللوحة مباشرة
@@ -8686,6 +8738,13 @@ let timetableEditorMode = "add";
 let timetableEditorOriginalData = null;
 let timetableSelectedTeacherIndex = -1;
 let timetableCanAccess = false;
+let teacherPortalCanAccess = false;
+let teacherPortalEnabled = false;
+let teacherPortalEligibleCount = 0;
+let teacherTimetableData = null;
+let teacherTimetableRefreshTimer = null;
+let teacherTimetableLoadBusy = false;
+let teacherTimetableLastFetchAt = 0;
 let timetableAccessUsers = [];
 let timetableSubstitutionContext = null;
 function timetableEsc(value) {
@@ -8709,21 +8768,209 @@ function timetableSetStatus(message, kind) {
 }
 
 async function timetableRefreshAccess() {
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token || !activeUser) {
+    timetableCanAccess = false;
+    teacherPortalCanAccess = false;
+    teacherPortalEnabled = false;
+  } else {
+    try {
+      const result = await appAuthRequest({action:"timetable_check_access"},token);
+      timetableCanAccess = result.canAccess === true;
+      teacherPortalEnabled = result.teacherPortalEnabled === true;
+      teacherPortalCanAccess = activeUser.type === "teacher" && teacherPortalEnabled && result.hasPersonalSchedule === true;
+    } catch (error) {
+      timetableCanAccess = activeUser?.type === "admin";
+      teacherPortalCanAccess = false;
+      teacherPortalEnabled = false;
+    }
+  }
+  const portalControl = document.getElementById("teacherTimetablePortalControl");
+  if (portalControl) portalControl.classList.toggle("hidden", activeUser?.type !== "admin");
   if (activeUser?.type === "admin") {
     timetableCanAccess = true;
-    return true;
-  }
-  const token = appAuthSession?.token || readAppAuthToken();
-  if (!token || !activeUser) { timetableCanAccess = false; return false; }
-  try {
-    const result = await appAuthRequest({action:"timetable_check_access"},token);
-    timetableCanAccess = result.canAccess === true;
-  } catch (error) {
-    timetableCanAccess = false;
+    await timetableLoadPortalStatus();
   }
   const tab = document.getElementById("tab-timetable");
   if (tab) tab.style.display = timetableCanAccess ? "flex" : "none";
+  const portalButton = document.getElementById("teacherTimetableBtn");
+  if (portalButton) {
+    const show = teacherPortalCanAccess && activeUser?.type === "teacher";
+    portalButton.classList.toggle("hidden", !show);
+    portalButton.classList.toggle("flex", show);
+  }
   return timetableCanAccess;
+}
+async function timetableLoadPortalStatus() {
+  if (activeUser?.type !== "admin") return null;
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) return null;
+  try {
+    const result = await appAuthRequest({action:"timetable_portal_get_status"},token);
+    teacherPortalEnabled = result.enabled === true;
+    teacherPortalEligibleCount = Number(result.eligibleTeacherCount || 0);
+    const status = document.getElementById("teacherTimetablePortalStatus");
+    const count = document.getElementById("teacherTimetablePortalCount");
+    const updated = document.getElementById("teacherTimetablePortalUpdated");
+    const button = document.getElementById("teacherTimetablePortalToggle");
+    if (status) {
+      status.textContent = teacherPortalEnabled ? "الخدمة مفعّلة" : "الخدمة غير مفعّلة";
+      status.className = "rounded-xl border px-3 py-1.5 text-[10px] font-black " + (teacherPortalEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800");
+    }
+    if (count) count.textContent = "عدد المعلمين المرتبطين بحصص تدريس: " + teacherPortalEligibleCount;
+    if (updated) updated.textContent = result.updatedAt
+      ? "آخر تحديث للحالة: " + new Date(result.updatedAt).toLocaleString("ar-OM") + (result.updatedBy ? " · بواسطة " + result.updatedBy : "")
+      : "الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.";
+    if (button) {
+      button.disabled = false;
+      button.textContent = teacherPortalEnabled ? "إيقاف ظهور الجداول للمعلمين" : "تفعيل ظهور الجداول للمعلمين";
+      button.className = "rounded-xl px-5 py-2.5 text-xs font-black text-white disabled:opacity-50 " + (teacherPortalEnabled ? "bg-rose-700 hover:bg-rose-800" : "bg-emerald-700 hover:bg-emerald-800");
+    }
+    return result;
+  } catch (error) {
+    const status = document.getElementById("teacherTimetablePortalStatus");
+    const button = document.getElementById("teacherTimetablePortalToggle");
+    if (status) status.textContent = "تعذر قراءة الحالة";
+    if (button) { button.disabled = true; button.textContent = "تعذر تحميل الحالة"; }
+    return null;
+  }
+}
+async function timetableToggleTeacherPortal() {
+  if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
+  const nextEnabled = !teacherPortalEnabled;
+  const message = nextEnabled
+    ? "سيظهر الجدول الشخصي تلقائياً للمعلمين المرتبطين في الجدول الأسبوعي النشط ولديهم حصص تدريس. هل تريد التفعيل؟"
+    : "سيتم إخفاء أيقونة الجدول الشخصي عن المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
+  const confirmed = await showConfirm(message, {danger: !nextEnabled});
+  if (!confirmed) return;
+  const button = document.getElementById("teacherTimetablePortalToggle");
+  if (button) { button.disabled = true; button.textContent = "جارٍ تحديث الحالة..."; }
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_portal_set_enabled",enabled:nextEnabled},token);
+    showToast(nextEnabled ? "تم تفعيل ظهور الجداول للمعلمين المرتبطين." : "تم إيقاف ظهور الجداول للمعلمين.", "success");
+    await timetableLoadPortalStatus();
+    if (activeUser?.type === "admin") teacherPortalCanAccess = false;
+  } catch (error) {
+    showToast(error?.message || "تعذر تحديث حالة الخدمة.", "error");
+    await timetableLoadPortalStatus();
+  }
+}
+function teacherTimetableDayDate(day) {
+  const targetIndex = SCHOOL_DAYS.indexOf(day);
+  if (targetIndex < 0) return getOmanLocalDate();
+  const date = new Date(getOmanLocalDate() + "T12:00:00Z");
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay() + targetIndex);
+  return date.toISOString().slice(0, 10);
+}
+function teacherTimetableCurrentPeriod() {
+  const now = omanNowParts();
+  const weekdayMap = {Sunday:"الأحد",Monday:"الاثنين",Tuesday:"الثلاثاء",Wednesday:"الأربعاء",Thursday:"الخميس",Friday:"الجمعة",Saturday:"السبت"};
+  const day = weekdayMap[now.weekday] || "";
+  if (!SCHOOL_DAYS.includes(day)) return {day,period:null};
+  const periods = dutyData().periods || [];
+  for (let index = 0; index < Math.min(7, periods.length); index++) {
+    const start = toMinutes(periods[index]?.start), end = toMinutes(periods[index]?.end);
+    if (start !== null && end !== null && end > start && now.minutes >= start && now.minutes < end) {
+      return {day,period:index+1};
+    }
+  }
+  return {day,period:null};
+}
+function teacherTimetableRender() {
+  const host = document.getElementById("teacherTimetableWeekGrid");
+  if (!host || !teacherTimetableData) return;
+  const current = teacherTimetableCurrentPeriod();
+  const status = document.getElementById("teacherTimetableCurrentStatus");
+  if (status) {
+    status.textContent = current.period
+      ? "الحصة الآن: " + (periodNamesMap[current.period] || ("الحصة " + current.period))
+      : "لا توجد حصة جارية حسب الأوقات المضبوطة";
+    status.className = "rounded-xl px-3 py-2 text-[10px] font-black " + (current.period ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200");
+  }
+  const cells = Array.isArray(teacherTimetableData.cells) ? teacherTimetableData.cells : [];
+  const assignments = (Array.isArray(teacherTimetableData.assignments) ? teacherTimetableData.assignments : [])
+    .filter(item => item.assignment_type === "substitution" && item.status !== "cancelled");
+  const days = SCHOOL_DAYS;
+  host.innerHTML = days.map(day => {
+    const dateForDay = teacherTimetableDayDate(day);
+    const dayCells = cells.filter(cell => cell.weekday === day);
+    const dayAssignments = assignments.filter(item => item.weekday === day && (!item.assignment_date || item.assignment_date === dateForDay));
+    const rows = Array.from({length:7}, (_,index) => {
+      const period = index + 1;
+      const cell = dayCells.find(item => Number(item.period) === period);
+      const substitution = dayAssignments.find(item => Number(item.period) === period);
+      const isCurrent = current.day === day && current.period === period;
+      const classes = substitution?.class_sections || cell?.class_sections || [];
+      const classText = Array.isArray(classes) ? classes.map(value => String(value || "").trim()).filter(Boolean).join("، ") : String(classes || "");
+      const subject = substitution?.subject || cell?.subject || "";
+      let tone = "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-white dark:text-slate-800";
+      if (substitution) tone = "border-rose-200 bg-rose-100 text-rose-900" + (isCurrent ? " ring-2 ring-blue-400/90 border-blue-400" : "");
+      else if (isCurrent) tone = "border-blue-300 bg-blue-100 text-blue-900 ring-2 ring-blue-300/70";
+      else if (cell?.cell_status === "teaching") tone = "border-emerald-200 bg-emerald-100 text-emerald-900";
+      const label = substitution
+        ? '<div class="space-y-1"><span class="inline-flex rounded-md bg-rose-200 px-2 py-1 text-[10px] font-black text-rose-900">حصة احتياط</span><span class="block text-xs font-black">' + timetableEsc(classText || "صف غير محدد") + '</span></div>'
+        : cell?.cell_status === "teaching" ? '<span class="text-xs font-black">' + timetableEsc(classText || "صف غير محدد") + '</span>'
+        : cell?.cell_status === "free" || !cell ? '<span class="text-[10px] font-bold text-slate-400">فارغة</span>'
+        : '<span class="text-[10px] font-bold">' + timetableEsc(({meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضحة"}[cell.cell_status] || "—")) + '</span>';
+      const subjectLine = (substitution || cell?.cell_status === "teaching") && subject
+        ? '<span class="mt-1 block text-[10px] font-semibold opacity-75">' + timetableEsc(subject) + '</span>' : "";
+      const nowBadge = isCurrent ? '<span class="rounded-md bg-blue-600 px-2 py-0.5 text-[9px] font-black text-white">الآن</span>' : "";
+      return '<div class="flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2 ' + tone + '"><div class="min-w-0"><div class="mb-1 flex flex-wrap items-center gap-1"><span class="text-[10px] font-black opacity-70">' + timetableEsc(periodNamesMap[period]) + '</span>' + nowBadge + '</div>' + label + subjectLine + '</div></div>';
+    }).join("");
+    const isToday = current.day === day;
+    return '<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><header class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h3 class="text-sm font-black text-slate-900 dark:text-white">' + day + '</h3><span class="text-[9px] font-bold text-slate-500">' + (isToday ? "اليوم" : "") + '</span></header><div class="space-y-2 p-3">' + rows + '</div></article>';
+  }).join("");
+}
+async function teacherTimetableLoad(showLoading = false) {
+  if (teacherTimetableLoadBusy) return;
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token || !activeUser || activeUser.type !== "teacher") return;
+  teacherTimetableLoadBusy = true;
+  const status = document.getElementById("teacherTimetableStatus");
+  if (showLoading && status) { status.textContent = "جارٍ تحميل الجدول الأسبوعي..."; status.classList.remove("hidden"); }
+  try {
+    const response = await appAuthRequest({action:"teacher_timetable_get_own"},token);
+    if (response.teacherName !== activeUser.name) throw new Error("تعذر التحقق من ارتباط الجدول بحسابك.");
+    teacherTimetableData = response;
+    teacherTimetableLastFetchAt = Date.now();
+    const title = document.getElementById("teacherTimetableTeacherName");
+    if (title) title.textContent = "المعلم: " + response.teacherName + (response.version?.version ? " · نسخة الجدول " + response.version.version : "");
+    if (!response.version || !Array.isArray(response.cells) || !response.cells.length) {
+      if (status) { status.textContent = "لا يوجد جدول أسبوعي نشط مرتبط بحسابك حالياً. راجع مسؤول النظام."; status.classList.remove("hidden"); }
+    } else if (status) status.classList.add("hidden");
+    teacherTimetableRender();
+  } catch (error) {
+    teacherTimetableLastFetchAt = Date.now();
+    if (status) { status.textContent = error?.message || "تعذر تحميل جدولك الشخصي."; status.classList.remove("hidden"); }
+    if (Number(error?.status) === 401 || Number(error?.status) === 403) {
+      teacherPortalCanAccess = false;
+      document.getElementById("teacherTimetableBtn")?.classList.add("hidden");
+    }
+  } finally {
+    teacherTimetableLoadBusy = false;
+  }
+}
+async function openTeacherTimetableView() {
+  if (!teacherPortalCanAccess || activeUser?.type !== "teacher") {
+    showToast("خدمة الجدول الشخصي غير مفعّلة لحسابك أو لا يوجد جدول مرتبط بك.", "error");
+    return;
+  }
+  ["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView","studentAffairsView"].forEach(id => document.getElementById(id)?.classList.add("hidden"));
+  document.getElementById("teacherTimetableView")?.classList.remove("hidden");
+  await teacherTimetableLoad(true);
+  if (teacherTimetableRefreshTimer) clearInterval(teacherTimetableRefreshTimer);
+  teacherTimetableRefreshTimer = setInterval(() => {
+    if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
+    teacherTimetableRender();
+    if (Date.now() - teacherTimetableLastFetchAt >= 60000) void teacherTimetableLoad(false);
+  }, 15000);
+}
+function closeTeacherTimetableView() {
+  document.getElementById("teacherTimetableView")?.classList.add("hidden");
+  document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
+  if (teacherTimetableRefreshTimer) { clearInterval(teacherTimetableRefreshTimer); teacherTimetableRefreshTimer = null; }
+  teacherTimetableLastFetchAt = 0;
 }
 async function timetableLoadAccessManagement() {
   const panel = document.getElementById("timetableAccessManagement");
@@ -9433,6 +9680,7 @@ function timetableSwitchDashboardTab(tab) {
   if (settings && activeUser?.type === "admin") {
     timetableLoadImports();
     timetableLoadAccessManagement();
+    timetableLoadPortalStatus();
   }
 }
 

@@ -44,6 +44,18 @@ const timetableAuthStore: TimetableAuthStore = {
       .eq("principal_name", name).maybeSingle();
     return !error && data?.can_access === true;
   },
+  async hasLinkedTeacherPortalAccess(name) {
+    const { data: setting, error: settingError } = await db.from("teacher_timetable_portal_settings")
+      .select("enabled").eq("id", true).maybeSingle();
+    if (settingError || setting?.enabled !== true) return false;
+    const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
+      .select("id").eq("status", "active").maybeSingle();
+    if (versionError || !version) return false;
+    const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+      .select("id").eq("version_id", version.id).eq("matched_teacher_name", name)
+      .eq("cell_status", "teaching").limit(1);
+    return !cellsError && Array.isArray(cells) && cells.length > 0;
+  },
 };
 
 async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
@@ -79,7 +91,7 @@ async function handle(req: Request) {
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
 
   const action = String(body.action || "");
-  if (!canUseTimetableAction(principal.type, action)) {
+  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true)) {
     return reply(403, { error: "يمكن لمنسق القسم المخوّل إدارة احتياط قسمه فقط؛ بقية عمليات تعديل الجداول متاحة لمدير النظام." });
   }
 
@@ -214,7 +226,83 @@ async function handle(req: Request) {
   }
 
   if (action === "timetable_check_access") {
-    return reply(200, { canAccess: true, isAdmin: principal.type === "admin", isTeacher: principal.type === "teacher" || principal.type === "custom" });
+    try {
+      const [{ data: setting, error: settingError }, { data: version, error: versionError }] = await Promise.all([
+        db.from("teacher_timetable_portal_settings").select("enabled").eq("id", true).maybeSingle(),
+        db.from("timetable_weekly_versions").select("id").eq("status", "active").maybeSingle(),
+      ]);
+      // The additive portal migration may not yet be deployed. In that case,
+      // preserve existing timetable-management access and keep the new portal off.
+      if (versionError) throw versionError;
+      let hasPersonalSchedule = false;
+      if (version && principal.type === "teacher") {
+        const { data: ownCells, error: ownError } = await db.from("timetable_weekly_cells")
+          .select("id").eq("version_id", version.id).eq("matched_teacher_name", principal.name)
+          .eq("cell_status", "teaching").limit(1);
+        if (ownError) throw ownError;
+        hasPersonalSchedule = Array.isArray(ownCells) && ownCells.length > 0;
+      }
+      return reply(200, {
+        canAccess: principal.type === "admin" || principal.portalOnly !== true,
+        teacherPortalEnabled: !settingError && setting?.enabled === true,
+        hasPersonalSchedule,
+        isAdmin: principal.type === "admin",
+        isTeacher: principal.type === "teacher" || principal.type === "custom",
+      });
+    } catch (error) {
+      console.error("Timetable access status failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر التحقق من حالة خدمة الجدول الشخصي." });
+    }
+  }
+
+  if (action === "timetable_portal_get_status") {
+    if (principal.type !== "admin") return reply(403, { error: "تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط." });
+    try {
+      const [{ data: setting, error: settingError }, { data: version, error: versionError }] = await Promise.all([
+        db.from("teacher_timetable_portal_settings").select("enabled,updated_by,updated_at").eq("id", true).maybeSingle(),
+        db.from("timetable_weekly_versions").select("id").eq("status", "active").maybeSingle(),
+      ]);
+      if (settingError) throw settingError;
+      if (versionError) throw versionError;
+      let eligibleTeacherCount = 0;
+      if (version) {
+        const [{ data: teachers, error: teachersError }, { data: cells, error: cellsError }] = await Promise.all([
+          db.from("teachers").select("name").eq("role", "teacher"),
+          db.from("timetable_weekly_cells").select("matched_teacher_name").eq("version_id", version.id).eq("cell_status", "teaching"),
+        ]);
+        if (teachersError) throw teachersError;
+        if (cellsError) throw cellsError;
+        const teacherNames = new Set((teachers || []).map((item: any) => String(item.name || "")));
+        eligibleTeacherCount = new Set((cells || []).map((item: any) => String(item.matched_teacher_name || "")).filter((name: string) => teacherNames.has(name))).size;
+      }
+      return reply(200, {
+        enabled: setting?.enabled === true,
+        eligibleTeacherCount,
+        updatedBy: setting?.updated_by || null,
+        updatedAt: setting?.updated_at || null,
+      });
+    } catch (error) {
+      console.error("Teacher timetable portal status failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحميل حالة تفعيل الجداول للمعلمين." });
+    }
+  }
+
+  if (action === "timetable_portal_set_enabled") {
+    if (principal.type !== "admin") return reply(403, { error: "تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط." });
+    if (typeof body.enabled !== "boolean") return reply(400, { error: "حالة تفعيل خدمة الجدول غير صالحة." });
+    try {
+      const { data, error } = await db.from("teacher_timetable_portal_settings").upsert({
+        id: true,
+        enabled: body.enabled,
+        updated_by: principal.name,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "id" }).select("enabled,updated_by,updated_at").single();
+      if (error) throw error;
+      return reply(200, { ok: true, enabled: data.enabled === true, updatedBy: data.updated_by, updatedAt: data.updated_at });
+    } catch (error) {
+      console.error("Teacher timetable portal toggle failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحديث حالة خدمة الجدول الشخصي." });
+    }
   }
 
   if (action === "timetable_list_access") {
@@ -392,7 +480,14 @@ async function handle(req: Request) {
   }
 
   if (body.action === "teacher_timetable_get_own") {
+    if (principal.type !== "teacher") return reply(403, { error: "الجدول الشخصي متاح لحسابات المعلمين المرتبطة فقط." });
     try {
+      const { data: portalSetting, error: portalSettingError } = await db.from("teacher_timetable_portal_settings")
+        .select("enabled").eq("id", true).maybeSingle();
+      if (portalSettingError) throw portalSettingError;
+      if (portalSetting?.enabled !== true) {
+        return reply(403, { error: "خدمة الجدول الشخصي غير مفعّلة حالياً من المدير العام." });
+      }
       const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at").eq("status","active").maybeSingle();
       if (error) throw error;
       if (!version) return reply(200, { ok:true, teacherName: principal.name, version:null, cells:[], assignments:[] });
