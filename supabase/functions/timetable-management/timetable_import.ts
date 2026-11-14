@@ -9,6 +9,68 @@
 export type CellValue = string | number | boolean | Date | null | undefined;
 export type WorkbookRows = Record<string, CellValue[][]>;
 
+export interface WorkbookSchemaIssue {
+  sheet: string;
+  row: number;
+  column: number;
+  code: "invalid_sheet" | "invalid_row" | "invalid_cell" | "cell_too_long";
+  message: string;
+}
+/** Validate untrusted workbook structure before parsing or persistence. */
+export function validateWorkbookSchema(input: unknown): {
+  valid: boolean; rowCount: number; cellCount: number; errors: WorkbookSchemaIssue[];
+} {
+  const errors: WorkbookSchemaIssue[] = [];
+  let rowCount = 0;
+  let cellCount = 0;
+  if (!input || typeof input !== "object" || Array.isArray(input)) {
+    return { valid: false, rowCount, cellCount, errors: [{
+      sheet: "", row: 0, column: 0, code: "invalid_sheet", message: "بيانات المصنف يجب أن تكون كائناً يحتوي على أوراق عمل."
+    }] };
+  }
+  const entries = Object.entries(input as Record<string, unknown>);
+  if (!entries.length || entries.length > 20) errors.push({
+    sheet: "", row: 0, column: 0, code: "invalid_sheet", message: "يجب أن يحتوي المصنف على ورقة واحدة إلى 20 ورقة."
+  });
+  for (const [sheet, rows] of entries) {
+    if (!sheet.trim() || sheet.length > 120 || !Array.isArray(rows)) {
+      errors.push({ sheet, row: 0, column: 0, code: "invalid_sheet", message: "اسم الورقة أو بنيتها غير صالح." });
+      continue;
+    }
+    if (rows.length > 5000) errors.push({
+      sheet, row: 0, column: 0, code: "invalid_row", message: "تجاوزت الورقة حد 5000 صف."
+    });
+    for (let r = 0; r < rows.length; r++) {
+      rowCount++;
+      const row = rows[r];
+      if (!Array.isArray(row)) {
+        errors.push({ sheet, row: r + 1, column: 0, code: "invalid_row", message: "يجب أن يكون الصف مصفوفة خلايا." });
+        if (errors.length >= 50) break;
+        continue;
+      }
+      for (let c = 0; c < row.length; c++) {
+        cellCount++;
+        const value = row[c];
+        const allowed = value === null || value === undefined ||
+          typeof value === "string" || typeof value === "number" ||
+          typeof value === "boolean" || value instanceof Date;
+        if (!allowed || (typeof value === "number" && !Number.isFinite(value))) {
+          errors.push({ sheet, row: r + 1, column: c + 1, code: "invalid_cell", message: "نوع قيمة الخلية غير مدعوم." });
+        } else if (typeof value === "string" && value.length > 10000) {
+          errors.push({ sheet, row: r + 1, column: c + 1, code: "cell_too_long", message: "نص الخلية يتجاوز 10000 حرف." });
+        }
+        if (errors.length >= 50) break;
+      }
+      if (errors.length >= 50) break;
+    }
+    if (errors.length >= 50) break;
+  }
+  if (rowCount > 5000 || cellCount > 100000) errors.push({
+    sheet: "", row: 0, column: 0, code: "invalid_row", message: "تجاوز المصنف الحد المسموح: 5000 صف أو 100000 خلية."
+  });
+  return { valid: errors.length === 0, rowCount, cellCount, errors };
+}
+
 export interface SystemTeacher {
   id?: string;
   name: string;
