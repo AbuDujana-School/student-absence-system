@@ -279,14 +279,46 @@ async function handle(req: Request) {
         if (error) throw error;
         if (!draft) return reply(200, { ok: true, draft: null });
         const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
-          .select("weekday,teacher_source_name").eq("version_id", draft.id);
+          .select("weekday,period,cell_status,class_sections,subject,source_page,source_data,teacher_source_name,matched_teacher_name,match_status")
+          .eq("version_id", draft.id).order("weekday").order("teacher_source_name").order("period");
         if (cellsError) throw cellsError;
         const rows = cells || [];
+        const dayMap = new Map<string, any>();
+        for (const row of rows as any[]) {
+          if (!dayMap.has(row.weekday)) dayMap.set(row.weekday, new Map<string, any>());
+          const teacherMap = dayMap.get(row.weekday);
+          if (!teacherMap.has(row.teacher_source_name)) {
+            teacherMap.set(row.teacher_source_name, {
+              sourceName: row.teacher_source_name, pdfPage: row.source_page ?? null,
+              matchedTeacherName: row.matched_teacher_name ?? null, matchStatus: row.match_status,
+              cells: [],
+            });
+          }
+          const source = row.source_data && typeof row.source_data === "object" ? row.source_data : {};
+          teacherMap.get(row.teacher_source_name).cells.push({
+            ...source, period: Number(row.period), status: row.cell_status,
+            classSections: Array.isArray(row.class_sections) ? row.class_sections : [],
+            subject: String(row.subject || source.subject || ""),
+          });
+        }
+        const dayOrder = new Map(DAYS.map((day, index) => [day, index]));
+        const days = [...dayMap.entries()].map(([weekday, teacherMap]) => {
+          const teachers = [...teacherMap.values()].map((teacher: any) => ({
+            ...teacher, cells: teacher.cells.sort((a: any,b: any) => a.period-b.period),
+          }));
+          const totals = { teaching:0, free:0, meeting:0, activity:0, other:0, unclear:0 };
+          const matchingTotals = { matched:0, unmatched:0, ambiguous:0 };
+          for (const teacher of teachers) {
+            matchingTotals[teacher.matchStatus as keyof typeof matchingTotals] =
+              (matchingTotals[teacher.matchStatus as keyof typeof matchingTotals] || 0) + 1;
+            for (const cell of teacher.cells) totals[cell.status as keyof typeof totals]++;
+          }
+          return { weekday, teachers, totals, matchingTotals, totalCells: teachers.reduce((sum: number, teacher: any) => sum+teacher.cells.length,0) };
+        }).sort((a,b) => (dayOrder.get(a.weekday) ?? 99)-(dayOrder.get(b.weekday) ?? 99));
         return reply(200, { ok: true, draft: {
           id: draft.id, version: draft.version, expectedTeacherCount: draft.expected_teacher_count,
-          weekdays: [...new Set(rows.map((row: any) => String(row.weekday || "")))].filter(Boolean),
-          teacherCount: new Set(rows.map((row: any) => String(row.teacher_source_name || ""))).size,
-          cellCount: rows.length, createdAt: draft.created_at,
+          weekdays: days.map(day => day.weekday), teacherCount: new Set(rows.map((row: any) => String(row.teacher_source_name || ""))).size,
+          cellCount: rows.length, days, createdAt: draft.created_at,
         }});
       }
       if (body.action === "timetable_activate_weekly_version") {
