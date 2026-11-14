@@ -9331,7 +9331,8 @@ function timetableValidateWeeklyTeacherSets(days) {
 }
 function timetablePreflightTextWorker(sourceText) {
   return new Promise((resolve,reject) => {
-    if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?\\n/).length,worker:false}); return; }
+    if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?
+/).length,worker:false}); return; }
     const worker=new Worker("timetable-text.worker.js");
     const panel=document.getElementById("timetableWorkerProgress");
     const bar=document.getElementById("timetableWorkerProgressBar");
@@ -9591,7 +9592,7 @@ async function timetableLoadClassWeeklyGrid() {
   const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ تحميل جداول الصفوف...";}
   try{
     const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
-    const response=await appAuthRequest({action:"timetable_class_weekly_get"},token);
+    const response=await appAuthRequest({action:"timetable_class_weekly_get",versionId:timetableClassReviewVersionId||undefined},token);
     if (response.version?.status === "draft") timetableClassReviewVersionId = response.version.id;\n    const classes=response.classes||[];
     if(select){const selected=select.value;select.innerHTML='<option value="">اختر الصف / الشعبة</option>'+classes.map(item=>'<option value="'+timetableEsc(item.className)+'">'+timetableEsc(item.className)+'</option>').join("");if(classes.some(item=>item.className===selected))select.value=selected;}
     if(!classes.length){host.classList.add("hidden");setStatus("لم تُستخرج أسماء صفوف من النسخة المعتمدة. راجع ربط الصفوف في حصص المعلمين.",true);return;}
