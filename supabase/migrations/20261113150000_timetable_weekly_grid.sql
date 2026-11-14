@@ -6,7 +6,6 @@ create table if not exists public.timetable_weekly_versions (
   version integer not null unique check (version > 0),
   status text not null default 'draft' check (status in ('draft','active','superseded','rejected')),
   expected_teacher_count integer check (expected_teacher_count is null or expected_teacher_count between 1 and 500),
-  period_count smallint not null default 7 check (period_count in (7,8)),
   source_label text not null default 'PDF text extraction',
   created_by text not null check (length(btrim(created_by)) > 0),
   activated_by text,
@@ -24,7 +23,7 @@ create table if not exists public.timetable_weekly_cells (
   matched_teacher_name text,
   match_status text not null check (match_status in ('matched','unmatched','ambiguous')),
   weekday text not null check (weekday in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')),
-  period smallint not null check (period between 1 and 8),
+  period smallint not null check (period between 1 and 7),
   cell_status text not null check (cell_status in ('teaching','free','meeting','activity','other','unclear')),
   class_sections jsonb not null default '[]'::jsonb check (jsonb_typeof(class_sections) = 'array'),
   subject text not null default '',
@@ -64,7 +63,7 @@ create table if not exists public.timetable_assignments (
   teacher_name text not null check (length(btrim(teacher_name)) > 0),
   assignment_type text not null check (assignment_type in ('substitution','duty','other')),
   weekday text not null check (weekday in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')),
-  period smallint not null check (period between 1 and 8),
+  period smallint not null check (period between 1 and 7),
   class_sections jsonb not null default '[]'::jsonb check (jsonb_typeof(class_sections) = 'array'),
   subject text not null default '',
   absent_teacher_name text,
@@ -115,15 +114,13 @@ declare
   v_seen_periods integer[];
   v_existing_day_count integer := 0;
   v_expected_count integer;
-  v_period_count integer := coalesce(nullif(p_payload->>'period_count','')::integer,7);
 begin
   if jsonb_typeof(p_payload) <> 'object'
     or v_weekday not in ('الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس')
     or v_actor = ''
     or jsonb_typeof(p_payload->'teachers') <> 'array'
     or jsonb_array_length(p_payload->'teachers') < 1
-    or jsonb_array_length(p_payload->'teachers') > 500
-    or v_period_count not in (7,8) then
+    or jsonb_array_length(p_payload->'teachers') > 500 then
     raise exception 'بيانات اليوم أو قائمة المعلمين غير صالحة.';
   end if;
 
@@ -131,12 +128,11 @@ begin
   if v_version_id is null then
     select count(*) into v_existing_day_count
       from public.timetable_weekly_versions where status = 'draft';
-    insert into public.timetable_weekly_versions(version,status,expected_teacher_count,period_count,created_by)
+    insert into public.timetable_weekly_versions(version,status,expected_teacher_count,created_by)
     values (
       coalesce((select max(version) from public.timetable_weekly_versions),0)+1,
       'draft',
       jsonb_array_length(p_payload->'teachers'),
-      v_period_count,
       v_actor
     ) returning * into v_version;
     v_version_id := v_version.id;
@@ -147,7 +143,6 @@ begin
     if v_version.expected_teacher_count is distinct from jsonb_array_length(p_payload->'teachers') then
       raise exception 'عدد المعلمين في هذا اليوم لا يطابق عدد المعلمين في بقية أيام النسخة.';
     end if;
-    if v_version.period_count is distinct from v_period_count then raise exception 'عدد الحصص في هذا اليوم لا يطابق عدد الحصص في بقية أيام النسخة.'; end if;
   end if;
 
   select count(*) into v_existing_day_count
@@ -163,8 +158,8 @@ begin
     v_page := nullif(v_teacher->>'pdfPage','')::integer;
     if v_source_name = '' or v_match_status not in ('matched','unmatched','ambiguous')
       or jsonb_typeof(v_teacher->'cells') <> 'array'
-      or jsonb_array_length(v_teacher->'cells') <> v_period_count then
-      raise exception 'سجل معلم غير مكتمل أو لا يطابق عدد الحصص في النسخة.';
+      or jsonb_array_length(v_teacher->'cells') <> 7 then
+      raise exception 'سجل معلم غير مكتمل أو لا يحتوي على سبع حصص.';
     end if;
     if (v_match_status = 'matched') <> (v_matched_name is not null) then
       raise exception 'حالة مطابقة اسم المعلم لا تتوافق مع الاسم المرتبط.';
@@ -177,7 +172,7 @@ begin
     v_seen_periods := array[]::integer[];
     for v_cell in select value from jsonb_array_elements(v_teacher->'cells')
     loop
-      if coalesce((v_cell->>'period')::integer,0) not between 1 and v_period_count
+      if coalesce((v_cell->>'period')::integer,0) not between 1 and 7
         or coalesce(v_cell->>'status','') not in ('teaching','free','meeting','activity','other','unclear')
         or jsonb_typeof(v_cell->'classSections') <> 'array'
         or not (v_cell ? 'sourceClass' and v_cell ? 'sourceSubject' and v_cell ? 'sourceStatus') then
@@ -185,8 +180,8 @@ begin
       end if;
       v_seen_periods := array_append(v_seen_periods,(v_cell->>'period')::integer);
     end loop;
-    if (select count(distinct x) from unnest(v_seen_periods) x) <> v_period_count then
-      raise exception 'يجب أن تكون جميع حصص النسخة دون تكرار للمعلم %.', v_source_name;
+    if (select count(distinct x) from unnest(v_seen_periods) x) <> 7 then
+      raise exception 'يجب أن تكون الحصص من الأولى إلى السابعة دون تكرار للمعلم %.', v_source_name;
     end if;
     v_teacher_count := v_teacher_count + 1;
   end loop;
@@ -243,21 +238,19 @@ declare
   v_cell_count integer;
   v_unmatched integer;
   v_incomplete integer;
-  v_period_count integer;
 begin
   if v_version_id is null or v_actor = '' then raise exception 'بيانات اعتماد النسخة غير صالحة.'; end if;
   perform pg_advisory_xact_lock(hashtext('timetable_weekly_versions'));
   select * into v_version from public.timetable_weekly_versions
     where id = v_version_id and status = 'draft' for update;
   if not found then raise exception 'نسخة الجدول غير موجودة أو ليست مسودة.'; end if;
-  v_period_count := v_version.period_count;
 
   select count(*),count(*) filter (where match_status <> 'matched')
     into v_cell_count,v_unmatched
     from public.timetable_weekly_cells where version_id = v_version_id;
   if v_unmatched > 0 then raise exception 'لا يمكن اعتماد الأسبوع قبل ربط جميع أسماء المعلمين بحساباتهم. توجد % خانات غير مرتبطة.',v_unmatched; end if;
-  if v_cell_count <> coalesce(v_version.expected_teacher_count,0)*5*v_period_count then
-    raise exception 'الجدول غير مكتمل: يجب أن يحتوي كل معلم على عدد الخانات المحدد في النسخة (خمسة أيام × عدد الحصص).';
+  if v_cell_count <> coalesce(v_version.expected_teacher_count,0)*35 then
+    raise exception 'الجدول غير مكتمل: يجب أن يحتوي كل معلم على 35 خانة (خمسة أيام × سبع حصص).';
   end if;
   if (select count(distinct weekday) from public.timetable_weekly_cells where version_id=v_version_id) <> 5 then
     raise exception 'لا يمكن الاعتماد قبل إدخال الأيام الدراسية الخمسة.';
@@ -268,11 +261,11 @@ begin
     from public.timetable_weekly_cells
     where version_id=v_version_id
     group by matched_teacher_name
-    having count(*) <> 5*v_period_count
+    having count(*) <> 35
       or count(distinct weekday) <> 5
-      or count(distinct period) <> v_period_count
+      or count(distinct period) <> 7
   ) incomplete_teachers;
-  if v_incomplete > 0 then raise exception 'يوجد % معلم لم يكتمل جدوله الأسبوعي.',v_incomplete; end if;
+  if v_incomplete > 0 then raise exception 'يوجد % معلم لم يكتمل جدوله الأسبوعي إلى 35 خانة.',v_incomplete; end if;
   select count(distinct matched_teacher_name) into v_teacher_count
     from public.timetable_weekly_cells where version_id=v_version_id;
 
@@ -280,8 +273,8 @@ begin
   update public.timetable_weekly_versions set status='active',activated_by=v_actor,activated_at=now(),updated_at=now()
     where id=v_version_id;
   insert into public.timetable_weekly_audit(version_id,action,actor_name,after_data)
-  values(v_version_id,'version_activated',v_actor,jsonb_build_object('teacher_count',v_teacher_count,'cell_count',v_cell_count,'period_count',v_period_count));
-  return jsonb_build_object('version_id',v_version_id,'status','active','teacher_count',v_teacher_count,'cell_count',v_cell_count,'period_count',v_period_count);
+  values(v_version_id,'version_activated',v_actor,jsonb_build_object('teacher_count',v_teacher_count,'cell_count',v_cell_count));
+  return jsonb_build_object('version_id',v_version_id,'status','active','teacher_count',v_teacher_count,'cell_count',v_cell_count);
 end;
 $function$;
 
