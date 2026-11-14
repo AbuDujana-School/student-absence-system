@@ -67,7 +67,7 @@ export function calculateSubstitutionWorkloadScore(
   const dayMs=86400000;
   let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
   for(const assignment of active){
-    if(reference && assignment.assignmentDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(assignment.assignmentDate)){
+    if(reference && assignment.assignmentDate && /^\d{4}-\d{2}-\d{2}$/.test(assignment.assignmentDate)){
       const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
       const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
       if(age<0) continue; // Future assignments must never affect a past/current fairness decision.
