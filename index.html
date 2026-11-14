@@ -9211,11 +9211,20 @@ async function timetableResumeWeeklyDraft() {
     const activate = document.getElementById("timetableActivateWeekButton");
     if (activate) activate.disabled = timetableWeeklyDraftDays.size !== 5;
     const savedDays = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].filter(day => timetableWeeklyDraftDays.has(day));
+    const restoredDays = Array.isArray(draft.days) ? draft.days : [];
+    if (restoredDays.length) {
+      restoredDays.forEach(day => { day.sourceText = timetableSerializePreviewDay(day); });
+      timetableDayImportPreview = { days: restoredDays };
+      timetableRenderDayPreview();
+    } else {
+      timetableDayImportPreview = null;
+      document.getElementById("timetableDayPreview")?.classList.add("hidden");
+    }
     timetableWeeklySetStatus(
       "تم استرجاع مسودة الأسبوع رقم " + draft.version + ". الأيام المحفوظة: " +
       (savedDays.join("، ") || "لا توجد أيام") + ". عدد المعلمين: " + (draft.teacherCount || 0) +
       "؛ الخانات المحفوظة: " + (draft.cellCount || 0) +
-      ". يمكنك متابعة إدخال الأيام الناقصة، أو إعادة تحليل يوم محفوظ لتحديثه بعد المراجعة.",
+      (restoredDays.length ? ". يمكنك الآن الضغط على أي حصة لتعديلها، ثم حفظ اليوم مجدداً." : ". يمكنك متابعة إدخال الأيام الناقصة."),
       "success"
     );
   } catch (error) {
