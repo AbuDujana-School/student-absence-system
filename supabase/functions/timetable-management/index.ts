@@ -45,9 +45,11 @@ const timetableAuthStore: TimetableAuthStore = {
     return !error && data?.can_access === true;
   },
   async hasLinkedTeacherPortalAccess(name) {
-    const { data: setting, error: settingError } = await db.from("teacher_timetable_portal_settings")
-      .select("enabled").eq("id", true).maybeSingle();
-    if (settingError || setting?.enabled !== true) return false;
+    const [{ data: setting, error: settingError }, { data: grant, error: grantError }] = await Promise.all([
+      db.from("teacher_timetable_portal_settings").select("enabled").eq("id", true).maybeSingle(),
+      db.from("teacher_timetable_portal_grants").select("teacher_name").eq("teacher_name", name).eq("active", true).maybeSingle(),
+    ]);
+    if (settingError || grantError || (setting?.enabled !== true && !grant)) return false;
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
     if (versionError || !version) return false;
@@ -287,6 +289,58 @@ async function handle(req: Request) {
     }
   }
 
+  if (action === "timetable_portal_list_individual_grants") {
+    if (principal.type !== "admin") return reply(403, { error: "إدارة صلاحيات العرض الفردية متاحة للمدير العام فقط." });
+    try {
+      const [{ data: teachers, error: teachersError }, { data: grants, error: grantsError }] = await Promise.all([
+        db.from("teachers").select("name,permissions").eq("role", "teacher").order("name"),
+        db.from("teacher_timetable_portal_grants").select("teacher_name,granted_by,granted_at").eq("active", true).order("granted_at", { ascending: false }),
+      ]);
+      if (teachersError) throw teachersError;
+      if (grantsError) throw grantsError;
+      const active = new Map((grants || []).map((row: any) => [String(row.teacher_name), row]));
+      return reply(200, { teachers: (teachers || []).map((row: any) => ({
+        name: String(row.name || ""),
+        category: String(row.permissions?.category || row.permissions?.department_name || ""),
+        individuallyAllowed: active.has(String(row.name)),
+        grantedBy: active.get(String(row.name))?.granted_by || null,
+        grantedAt: active.get(String(row.name))?.granted_at || null,
+      })).filter((row: any) => row.name), grants: grants || [] });
+    } catch (error) {
+      console.error("Individual teacher portal grants list failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحميل قائمة السماح الفردي." });
+    }
+  }
+
+  if (action === "timetable_portal_set_individual_grant" || action === "timetable_portal_revoke_individual_grant") {
+    const selfRevoke = action === "timetable_portal_revoke_individual_grant" && principal.type === "teacher"
+      && String(body.teacherName || "").trim() === principal.name;
+    if (principal.type !== "admin" && !selfRevoke) return reply(403, { error: "لا تملك صلاحية تعديل منح العرض الفردية." });
+    const teacherName = String(body.teacherName || "").trim();
+    if (!teacherName || teacherName.length > 160) return reply(400, { error: "اسم المعلم غير صالح." });
+    try {
+      const { data: target, error: targetError } = await db.from("teachers").select("name,role").eq("name", teacherName).maybeSingle();
+      if (targetError) throw targetError;
+      if (!target || target.role !== "teacher") return reply(404, { error: "المعلم المحدد غير موجود." });
+      if (action === "timetable_portal_set_individual_grant") {
+        const { error } = await db.from("teacher_timetable_portal_grants").upsert({
+          teacher_name: teacherName, active: true, granted_by: principal.name, granted_at: new Date().toISOString(),
+          revoked_by: null, revoked_at: null,
+        }, { onConflict: "teacher_name" });
+        if (error) throw error;
+        return reply(200, { ok: true, teacherName, active: true });
+      }
+      const { error } = await db.from("teacher_timetable_portal_grants").update({
+        active: false, revoked_by: principal.name, revoked_at: new Date().toISOString(),
+      }).eq("teacher_name", teacherName).eq("active", true);
+      if (error) throw error;
+      return reply(200, { ok: true, teacherName, active: false });
+    } catch (error) {
+      console.error("Individual teacher portal grant update failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحديث صلاحية العرض الفردية." });
+    }
+  }
+
   if (action === "timetable_portal_set_enabled") {
     if (principal.type !== "admin") return reply(403, { error: "تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط." });
     if (typeof body.enabled !== "boolean") return reply(400, { error: "حالة تفعيل خدمة الجدول غير صالحة." });
@@ -485,8 +539,11 @@ async function handle(req: Request) {
       const { data: portalSetting, error: portalSettingError } = await db.from("teacher_timetable_portal_settings")
         .select("enabled").eq("id", true).maybeSingle();
       if (portalSettingError) throw portalSettingError;
-      if (portalSetting?.enabled !== true) {
-        return reply(403, { error: "خدمة الجدول الشخصي غير مفعّلة حالياً من المدير العام." });
+      const { data: individualGrant, error: grantError } = await db.from("teacher_timetable_portal_grants")
+        .select("teacher_name").eq("teacher_name", principal.name).eq("active", true).maybeSingle();
+      if (grantError) throw grantError;
+      if (portalSetting?.enabled !== true && !individualGrant) {
+        return reply(403, { error: "لا توجد صلاحية مفعّلة لعرض جدولك حالياً." });
       }
       const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at").eq("status","active").maybeSingle();
       if (error) throw error;
