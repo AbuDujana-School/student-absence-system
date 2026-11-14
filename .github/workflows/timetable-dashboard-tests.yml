@@ -1,0 +1,29 @@
+name: Timetable dashboard validation
+on:
+  pull_request:
+    paths:
+      - "index.html"
+      - "timetable-dashboard.js"
+      - "supabase/functions/timetable-management/**"
+      - ".github/workflows/timetable-dashboard-tests.yml"
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "timetable-dashboard.js"
+      - "supabase/functions/timetable-management/**"
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: denoland/setup-deno@v2
+      - name: Check dashboard JavaScript syntax
+        run: node --check timetable-dashboard.js
+      - name: Test substitution availability and fairness
+        run: deno test supabase/functions/timetable-management/substitution_policy_test.ts
+      - name: Type-check timetable policy and Edge Function
+        run: deno check supabase/functions/timetable-management/substitution_policy.ts supabase/functions/timetable-management/index.ts
