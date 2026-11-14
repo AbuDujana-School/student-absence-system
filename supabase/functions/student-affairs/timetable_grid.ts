@@ -116,6 +116,8 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
   }
   if(!recognizedRows) return null;
   for(const teacher of teachers){teacher.cells.sort((a,b)=>a.period-b.period);validateTeacherGrid(teacher);}
+  const periodCount=teachers[0]?.cells.length||0;
+  if(![7,8].includes(periodCount)||teachers.some(teacher=>teacher.cells.length!==periodCount))throw new Error("يجب أن يحتوي كل معلم في اليوم على العدد نفسه من الحصص (7 أو 8).");
   const totals=emptyTotals();
   for(const teacher of teachers)for(const cell of teacher.cells)totals[cell.status]++;
   const totalCells=teachers.reduce((sum,teacher)=>sum+teacher.cells.length,0);
