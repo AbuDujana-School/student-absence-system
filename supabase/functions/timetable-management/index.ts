@@ -299,8 +299,10 @@ async function handle(req: Request) {
     if (!Array.isArray(body.teacherNames) || body.teacherNames.length > 500) {
       return reply(400, { error: "قائمة المعلمين المحددين غير صالحة." });
     }
-    const names = [...new Set(body.teacherNames.map((value: unknown) => String(value || "").trim()).filter((value: string) => value.length > 0))];
-    if (names.some((name: string) => name.length > 160)) return reply(400, { error: "يوجد اسم معلم أطول من الحد المسموح." });
+    const names: string[] = Array.from(new Set<string>(
+      (body.teacherNames as unknown[]).map(value => String(value || "").trim()).filter(Boolean)
+    ));
+    if (names.some(name => name.length > 160)) return reply(400, { error: "يوجد اسم معلم أطول من الحد المسموح." });
     try {
       const { data: teachers, error: teachersError } = await db.from("teachers").select("name").eq("role","teacher").in("name",names);
       if (teachersError) throw teachersError;
