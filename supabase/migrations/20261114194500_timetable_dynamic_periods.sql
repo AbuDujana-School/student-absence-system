@@ -206,8 +206,6 @@ end;
 $function$;
 
 revoke all on function public.save_timetable_weekly_day(jsonb) from public, anon, authenticated;
-
-revoke all on function public.save_timetable_weekly_day(jsonb) from public, anon, authenticated;
 grant execute on function public.save_timetable_weekly_day(jsonb) to service_role;
 revoke all on function public.activate_timetable_weekly_version(jsonb) from public, anon, authenticated;
 grant execute on function public.activate_timetable_weekly_version(jsonb) to service_role;
