@@ -5,6 +5,7 @@
   let ttDashboardResponses = new Map();
   let ttDashboardRenderToken = 0;
   let ttDashboardBusy = false;
+  const ttDashboardSaving = new Set();
   let ttDashboardInitialized = false;
 
   const byId = (id) => document.getElementById(id);
@@ -13,6 +14,10 @@
     : String(value ?? "").replace(/[&<>"']/g, (ch) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
   const token = () => appAuthSession?.token || (typeof readAppAuthToken === "function" ? readAppAuthToken() : "");
   const includeOther = () => byId("timetableSubstitutionOtherDepartments")?.checked === true;
+  const normalizeSearch = (value) => String(value || "").normalize("NFD")
+    .replace(/[\u064B-\u065F\u0670\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي")
+    .replace(/ة/g, "ه").replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
 
   function setStatus(message, kind = "info") {
     const el = byId("ttDashboardStatus");
@@ -64,11 +69,11 @@
     const host = byId("ttDashboardSuggestions");
     const select = byId("timetableSubstitutionAbsentTeacher");
     if (!host || !select) return;
-    const q = String(query || "").trim().toLocaleLowerCase("ar");
+    const q = normalizeSearch(query);
     if (!q) { host.style.display = "none"; host.innerHTML = ""; return; }
     const matches = Array.from(select.options)
       .map(option => option.value)
-      .filter(name => name && !ttDashboardAbsent.includes(name) && name.toLocaleLowerCase("ar").includes(q))
+      .filter(name => name && !ttDashboardAbsent.includes(name) && normalizeSearch(name).includes(q))
       .slice(0, 12);
     host.innerHTML = matches.map(name =>
       '<button type="button" class="tt-suggestion" role="option" data-tt-add="' + escapeHtml(name) + '">' + escapeHtml(name) + '</button>'
@@ -140,7 +145,10 @@
     });
     host.innerHTML = rows.join("");
     host.querySelectorAll("[data-tt-save-period]").forEach(select => select.addEventListener("change", () => {
-      if (select.value) saveAssignment(select.dataset.ttAbsent, Number(select.dataset.ttSavePeriod), select.value);
+      if (select.value) {
+        select.disabled = true;
+        saveAssignment(select.dataset.ttAbsent, Number(select.dataset.ttSavePeriod), select.value);
+      }
     }));
     host.querySelectorAll("[data-tt-cancel]").forEach(button => button.addEventListener("click", () => cancelAssignment(button.dataset.ttCancel)));
     host.querySelectorAll("[data-tt-wa]").forEach(button => button.addEventListener("click", () =>
@@ -166,6 +174,9 @@
     }
   }
   async function saveAssignment(absentName, period, substituteName, quiet = false) {
+    const key = absentName + "|" + period;
+    if (ttDashboardSaving.has(key)) return false;
+    ttDashboardSaving.add(key);
     const { date, weekday } = context();
     const sessionToken = token();
     if (!sessionToken) throw new Error("انتهت جلسة الدخول.");
@@ -177,12 +188,14 @@
         includeOtherDepartments: includeOther()
       }, sessionToken);
       if (!quiet) setStatus('تم حفظ تكليف ' + substituteName + ' للحصة ' + period + '.', "success");
-      await renderAll();
+      if (!quiet) await renderAll();
       return true;
     } catch (error) {
       if (!quiet) setStatus(error?.message || "تعذر حفظ التكليف؛ تحقق الخادم من التوفر والتعارض.", "error");
-      await renderAll();
+      if (!quiet) await renderAll();
       return false;
+    } finally {
+      ttDashboardSaving.delete(key);
     }
   }
   async function cancelAssignment(assignmentId) {
@@ -198,7 +211,12 @@
     if (ttDashboardBusy) return;
     if (!ttDashboardAbsent.length) { setStatus("أضف معلماً غائباً واحداً على الأقل أولاً.", "error"); return; }
     ttDashboardBusy = true;
-    const button = document.querySelector(".tt-action-primary");
+    const button = byId("ttAutoAssignButton");
+    const search = byId("ttDashboardSearch");
+    const dateInput = byId("timetableSubstitutionDate");
+    if (search) search.disabled = true;
+    if (dateInput) dateInput.disabled = true;
+    renderTags();
     if (button) { button.disabled = true; button.textContent = "جارٍ التوزيع والتحقق..."; }
     let saved = 0, skipped = 0;
     const failures = [];
@@ -228,6 +246,9 @@
     } finally {
       ttDashboardBusy = false;
       if (button) { button.disabled = false; button.textContent = "⚡ توزيع الاحتياط تلقائياً"; }
+      if (search) search.disabled = false;
+      if (dateInput) dateInput.disabled = false;
+      renderTags();
     }
   }
   function notifySingle(absentName, period) {
@@ -265,12 +286,20 @@
     try {
       if (typeof timetableLoadSubstitutionOptions === "function") await timetableLoadSubstitutionOptions();
       const search = byId("ttDashboardSearch");
-      if (search) search.value = "";
+      if (search) { search.value = ""; search.disabled = false; }
       const panel = byId("timetableSubstitutionPanel");
       if (panel) panel.classList.remove("hidden");
       const checkboxWrap = byId("ttOtherDepartmentsWrap");
       if (checkboxWrap && activeUser?.type !== "admin") checkboxWrap.style.display = "none";
-      setStatus("اختر المعلمين الغائبين من البحث لعرض حصصهم.", "success");
+      const legacyStatus = byId("timetableSubstitutionStatus");
+      if (legacyStatus?.textContent?.includes("لا يوجد جدول أسبوعي نشط")) {
+        if (search) search.disabled = true;
+        setStatus("لا يوجد جدول أسبوعي معتمد حتى الآن. انتقل إلى إعداد وإدارة الجدول العام واعتمد نسخة الأسبوع أولاً.", "error");
+      } else if (legacyStatus?.className?.includes("border-red-")) {
+        setStatus(legacyStatus.textContent || "تعذر تحميل بيانات اليوم.", "error");
+      } else {
+        setStatus("اختر المعلمين الغائبين من البحث لعرض حصصهم.", "success");
+      }
       renderCards();
     } catch (error) { setStatus(error?.message || "تعذر تحميل قائمة الغياب.", "error"); }
   }
