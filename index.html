@@ -9196,6 +9196,70 @@ async function timetableSaveSubstitution(period,substituteTeacherName) {
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
 }
 
+function timetableSetWorkerProgress(stage, percent, processed, total) {
+  let host = document.getElementById("timetableWorkerProgress");
+  const button = document.getElementById("timetableImportButton");
+  if (!host && button?.parentElement) {
+    host = document.createElement("div");
+    host.id = "timetableWorkerProgress";
+    host.className = "mt-3 rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-3";
+    host.innerHTML = '<div class="flex items-center justify-between gap-2 text-[11px]"><span data-progress-stage class="font-bold text-cyan-900 dark:text-cyan-100"></span><span data-progress-value class="font-black tabular-nums">0%</span></div><div class="mt-2 h-2 overflow-hidden rounded-full bg-cyan-100 dark:bg-slate-700"><div data-progress-bar class="h-full rounded-full bg-cyan-600 transition-all duration-200" style="width:0%"></div></div><div data-progress-count class="mt-1 text-[10px] text-slate-500" aria-live="polite"></div>';
+    button.parentElement.appendChild(host);
+  }
+  if (!host) return;
+  const value = Math.max(0, Math.min(100, Number(percent) || 0));
+  host.querySelector("[data-progress-stage]").textContent = String(stage || "جارٍ التحليل");
+  host.querySelector("[data-progress-value]").textContent = value + "%";
+  host.querySelector("[data-progress-bar]").style.width = value + "%";
+  host.querySelector("[data-progress-count]").textContent = total ? Number(processed || 0).toLocaleString("ar-OM") + " / " + Number(total).toLocaleString("ar-OM") + " صف" : "";
+  host.setAttribute("role", "progressbar");
+  host.setAttribute("aria-valuemin", "0");
+  host.setAttribute("aria-valuemax", "100");
+  host.setAttribute("aria-valuenow", String(value));
+}
+function timetableOpenDraftDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open("abuDujanaTimetableDrafts", 1);
+    request.onupgradeneeded = () => {
+      if (!request.result.objectStoreNames.contains("drafts")) request.result.createObjectStore("drafts");
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("تعذر فتح التخزين المؤقت للجدول."));
+  });
+}
+async function timetableStorePendingWorkbook(value) {
+  const db = await timetableOpenDraftDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction("drafts", "readwrite");
+      tx.objectStore("drafts").put(value, "pending");
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error("تعذر حفظ بيانات المسودة المؤقتة."));
+      tx.onabort = () => reject(tx.error || new Error("تم إلغاء حفظ المسودة المؤقتة."));
+    });
+  } finally { db.close(); }
+}
+async function timetableReadPendingWorkbook() {
+  const db = await timetableOpenDraftDb();
+  try {
+    return await new Promise((resolve, reject) => {
+      const request = db.transaction("drafts", "readonly").objectStore("drafts").get("pending");
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error || new Error("تعذر قراءة بيانات المسودة المؤقتة."));
+    });
+  } finally { db.close(); }
+}
+async function timetableClearPendingWorkbook() {
+  const db = await timetableOpenDraftDb();
+  try {
+    await new Promise((resolve, reject) => {
+      const tx = db.transaction("drafts", "readwrite");
+      tx.objectStore("drafts").delete("pending");
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error("تعذر تنظيف التخزين المؤقت."));
+    });
+  } finally { db.close(); }
+}
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
   const file = input && input.files && input.files[0];
@@ -9209,26 +9273,29 @@ async function timetableImportWorkbook() {
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل...';
   try {
-    const workbook = XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:true});
-    const sheets = {};
-    for (const sheetName of workbook.SheetNames) {
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json(worksheet, {header:1, raw:true, defval:null, blankrows:false});
-      const compactRows = [];
-      for (const row of rawRows) {
-        let last = row.length - 1;
-        while (last >= 0 && (row[last] === null || row[last] === undefined || String(row[last]).trim() === "")) last--;
-        if (last < 0) continue;
-        compactRows.push(row.slice(0,last+1).map(function(value) {
-          return value instanceof Date ? value.toISOString() : value;
-        }));
-      }
-      if (compactRows.length) sheets[sheetName] = compactRows;
-    }
-    const rowCount = Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
-    if (!rowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
+    const worker = new Worker("timetable-import.worker.js");
+    let parsed;
+    try {
+      const fileBuffer = await file.arrayBuffer();
+      parsed = await new Promise((resolve, reject) => {
+        worker.onmessage = event => {
+          const message = event.data || {};
+          if (message.type === "progress") {
+            const percent = 15 + Math.round((Number(message.percent) || 0) * 0.75);
+            timetableSetWorkerProgress(message.stage, percent, message.processed, message.total);
+            button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> ' + timetableEsc(message.stage || "جارٍ التحليل");
+          } else if (message.type === "complete") resolve(message);
+          else if (message.type === "error") reject(new Error(message.message || "تعذر تحليل ملف Excel."));
+        };
+        worker.onerror = () => reject(new Error("تعطلت معالجة ملف Excel في الخلفية."));
+        worker.postMessage({ fileBuffer, fileName: file.name }, [fileBuffer]);
+      });
+    } finally { worker.terminate(); }
+    const sheets = parsed.sheets;
+    await timetableStorePendingWorkbook({fileName:file.name,sheets});
+    timetablePendingWorkbook = {fileName:file.name};
+    timetableSetWorkerProgress("إرسال البيانات للتحقق من المخطط", 92, parsed.rowCount, parsed.rowCount);
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
-    timetablePendingWorkbook = {fileName:file.name,sheets:sheets};
     timetableSavedImport = null;
     timetableActiveImport = null;
     const saveButton = document.getElementById("timetableSaveButton");
@@ -9242,6 +9309,8 @@ async function timetableImportWorkbook() {
   } finally {
     button.disabled = false;
     button.innerHTML = oldLabel;
+    const progress = document.getElementById("timetableWorkerProgress");
+    if (progress) progress.classList.add("hidden");
   }
 }
 
@@ -9249,18 +9318,21 @@ async function timetableSaveImport() {
   const button = document.getElementById("timetableSaveButton");
   const token = appAuthSession?.token || readAppAuthToken();
   if (!timetableCanAccess || !token) { timetableSetStatus("يلزم امتلاك صلاحية منظومة الجداول والاحتياط لحفظ الجدول.", "error"); return; }
-  if (!timetablePendingWorkbook || !timetablePendingWorkbook.sheets) { timetableSetStatus("أعد تحليل ملف Excel قبل الحفظ.", "error"); return; }
+  if (!timetablePendingWorkbook || !timetablePendingWorkbook.fileName) { timetableSetStatus("أعد تحليل ملف Excel قبل الحفظ.", "error"); return; }
   if (timetableSavedImport) { timetableSetStatus("هذه النسخة محفوظة بالفعل. أعد رفع الملف لإنشاء نسخة استيراد جديدة.", "success"); return; }
   const original = button.innerHTML;
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الحفظ...';
   try {
+    const pendingWorkbook = await timetableReadPendingWorkbook();
+    if (!pendingWorkbook?.sheets) throw new Error("انتهت بيانات المسودة المؤقتة. أعد تحليل الملف قبل الحفظ.");
     const result = await appAuthRequest({
       action:"timetable_save_import",
-      fileName:timetablePendingWorkbook.fileName,
-      sheets:timetablePendingWorkbook.sheets
+      fileName:pendingWorkbook.fileName,
+      sheets:pendingWorkbook.sheets
     }, token);
     timetableSavedImport = result.saved;
+    await timetableClearPendingWorkbook();
     button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
     button.disabled = true;
     timetableSetStatus("حُفظت نسخة مسودة بنجاح. رقم النسخة: "+(result.saved?.version || 1)+" — رقم الاستيراد: "+(result.saved?.import_id || ""), "success");
