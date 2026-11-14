@@ -82,3 +82,8 @@ export function canUseTimetableAction(principalType: TimetablePrincipalType, act
     "timetable_substitution_cancel",
   ]).has(action);
 }
+
+/** Only the system administrator may broaden substitution beyond the actor's department. */
+export function canIncludeOtherDepartments(principalType: TimetablePrincipalType, requested: unknown): boolean {
+  return principalType === "admin" && requested === true;
+}
