@@ -30,7 +30,8 @@
           page.getOperatorList(),
         ]);
         const items=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
-        const horizontalLines=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);\n        const verticalLines=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const horizontalLines=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const verticalLines=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
         const teacherItems=items.filter(isArabicTeacherName);
         const hasTimeRows=items.filter(item=>/\d{1,2}:\d{2}/.test(normalizeDigits(item.str))).length>=7;
         if(pageNumber>1&&(!teacherItems.length||!hasTimeRows||items.length<12))throw new Error("تعذر التحقق من محتوى الصفحة "+pageNumber+". قد تكون ممسوحة ضوئياً أو غير مطابقة لتخطيط الجدول؛ لم يتم تجاوزها.");
