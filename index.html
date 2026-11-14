@@ -5614,7 +5614,8 @@ function hasMultipleAdminPermissions(user = activeUser) {
   return getAssignedAdminPermissionKeys(user).length >= 2;
 }
 function isSinglePermissionMode(user = activeUser) {
-  return !!user && user.type !== 'admin' && user.permissions?.admin !== true && !isAdminAuthorized() && !!getSingleAdminPermission(user);
+  return !!user && user.type !== 'admin' && user.permissions?.admin !== true && !isAdminAuthorized()
+    && (!!getSingleAdminPanelPermission(user) || getSingleAdminPermission(user) === 'studentAffairs');
 }
 function renderSinglePermissionLauncher(permissionKey) {
   const view = document.getElementById('dashboardSelectionView');
@@ -8766,6 +8767,7 @@ async function timetableRefreshAccess() {
   if (!token || !activeUser) {
     timetableCanAccess = false;
     teacherPortalCanAccess = false;
+    teacherPortalEnabled = false;
   } else {
     try {
       const result = await appAuthRequest({action:"timetable_check_access"},token);
@@ -8848,13 +8850,10 @@ async function timetableToggleTeacherPortal() {
   }
 }
 function teacherTimetableDayDate(day) {
-  const today = getOmanLocalDate();
-  const todayName = dutyDayForDate(today);
-  const todayIndex = SCHOOL_DAYS.indexOf(todayName);
   const targetIndex = SCHOOL_DAYS.indexOf(day);
-  if (todayIndex < 0 || targetIndex < 0) return today;
-  const date = new Date(today + "T12:00:00Z");
-  date.setUTCDate(date.getUTCDate() + targetIndex - todayIndex);
+  if (targetIndex < 0) return getOmanLocalDate();
+  const date = new Date(getOmanLocalDate() + "T12:00:00Z");
+  date.setUTCDate(date.getUTCDate() - date.getUTCDay() + targetIndex);
   return date.toISOString().slice(0, 10);
 }
 function teacherTimetableCurrentPeriod() {
@@ -9668,6 +9667,7 @@ function timetableSwitchDashboardTab(tab) {
   if (settings && activeUser?.type === "admin") {
     timetableLoadImports();
     timetableLoadAccessManagement();
+    timetableLoadPortalStatus();
   }
 }
 
