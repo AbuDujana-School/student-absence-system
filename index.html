@@ -9297,12 +9297,12 @@ let timetableDailyBusy = false;
 
 function timetableSwitchDashboardTab(tab) {
   const settings = tab === "settings";
-  const ids = ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"];
-  ids.forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings));
+  const isAdmin = activeUser?.type === "admin";
+  ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"].forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings || !isAdmin));
   const access = document.getElementById("timetableAccessManagement");
-  if (access) access.classList.toggle("hidden", !settings || activeUser?.type !== "admin");
+  if (access) access.classList.toggle("hidden", !settings || !isAdmin);
   const notice = document.getElementById("timetableAdminImportNotice");
-  if (notice) notice.classList.toggle("hidden", !settings || activeUser?.type === "admin");
+  if (notice) notice.classList.toggle("hidden", !settings || isAdmin);
   const daily = document.getElementById("timetableSubstitutionPanel");
   if (daily) daily.classList.toggle("hidden", settings);
   document.getElementById("timetableDailyTabButton")?.setAttribute("aria-selected", String(!settings));
@@ -9370,6 +9370,7 @@ function timetableDailyFilterAbsentTeachers(query) {
 }
 
 async function timetableDailyAddAbsent(name) {
+  if (timetableDailyBusy) return;
   if (!name || !timetableDailyAbsentOptions.includes(name) || timetableDailyAbsentTeachers.includes(name)) return;
   timetableDailyAbsentTeachers.push(name);
   const input = document.getElementById("timetableDailyAbsentSearch");
@@ -9380,10 +9381,20 @@ async function timetableDailyAddAbsent(name) {
 }
 
 async function timetableDailyRemoveAbsent(name) {
+  if (timetableDailyBusy) return;
   timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(item => item !== name);
   timetableDailyPreviewByAbsent.delete(name);
   timetableDailyRenderTags();
   timetableDailyRenderLessons();
+}
+
+function timetableDailySetBusy(disabled) {
+  ["timetableSubstitutionDate","timetableDailyAbsentSearch","timetableSubstitutionOtherDepartments"].forEach(id => {
+    const control = document.getElementById(id);
+    if (control) control.disabled = disabled;
+  });
+  document.querySelectorAll("#timetableDailyAbsentTags [data-tt-remove-absent]").forEach(button => button.disabled = disabled);
+  document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyAutoAssign]").forEach(button => button.disabled = disabled);
 }
 
 function timetableDailyRenderTags() {
@@ -9486,6 +9497,7 @@ function timetableDailyRenderLessons() {
 async function timetableDailySaveSubstitution(absentTeacherName,period,substituteTeacherName,control) {
   if (timetableDailyBusy) return;
   timetableDailyBusy = true;
+  timetableDailySetBusy(true);
   if (control) control.disabled = true;
   try {
     const {date,weekday} = timetableSubstitutionGetDate();
@@ -9503,10 +9515,12 @@ async function timetableDailySaveSubstitution(absentTeacherName,period,substitut
     if (control) control.disabled = false;
   } finally {
     timetableDailyBusy = false;
+    timetableDailySetBusy(false);
   }
 }
 
 async function timetableDailyCancelSubstitution(assignmentId) {
+  if (timetableDailyBusy) return;
   if (!assignmentId || !window.confirm("هل تريد إلغاء تكليف الاحتياط المحدد؟")) return;
   try {
     const {date,weekday} = timetableSubstitutionGetDate();
@@ -9526,6 +9540,7 @@ async function timetableDailyAutoAssign() {
     return;
   }
   timetableDailyBusy = true;
+  timetableDailySetBusy(true);
   let assigned = 0, skipped = 0, failed = 0;
   try {
     for (const absentName of [...timetableDailyAbsentTeachers]) {
@@ -9565,6 +9580,7 @@ async function timetableDailyAutoAssign() {
     timetableSubstitutionSetStatus(error?.message || "توقف التوزيع بسبب خطأ. راجع التكليفات المحفوظة قبل إعادة المحاولة.","error");
   } finally {
     timetableDailyBusy = false;
+    timetableDailySetBusy(false);
   }
 }
 
