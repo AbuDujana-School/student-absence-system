@@ -414,7 +414,9 @@ async function handle(req: Request) {
       const weekStart=selectedDate?new Date(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate()-selectedDate.getDay(),12):null;
       const weekEnd=weekStart?new Date(weekStart.getFullYear(),weekStart.getMonth(),weekStart.getDate()+4,12):null;
       const iso=(v:Date)=>v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
-      const assignments:SubstitutionAssignment[]=(assignmentRows||[]).filter((x:any)=>!x.assignment_date||!weekStart||(x.assignment_date>=iso(weekStart)&&x.assignment_date<=iso(weekEnd!))).map((x:any)=>({substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,status:x.status}));
+      // Keep the full available history for fair cumulative ranking. The policy
+      // separately scopes hard double-booking checks to the selected date/cell.
+      const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,status:x.status}));
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({id:t.name,name:t.name,departmentId:t.departmentId}));
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
