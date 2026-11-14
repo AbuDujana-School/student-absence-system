@@ -1,5 +1,5 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
-import { matchSystemTeacherName } from "../timetable_import.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -139,4 +139,11 @@ Deno.test("fairness never makes an occupied teacher eligible", () => {
   });
   equal(ranked.length, 1, "Only free candidate remains");
   equal(ranked[0].id, "free", "Busy teacher must never be eligible");
+});
+
+Deno.test("workbook schema validation blocks drafts missing required core sheets", () => {
+  const invalid = parseTimetableWorkbook({ "الفصول": [["الشعبة"], ["1/1"]] });
+  equal(invalid.validation.valid, false, "Missing required sheets must block draft save");
+  assert(invalid.validation.errors.some((message) => message.includes("المعلمون")), "Teacher sheet error should be reported");
+  assert(invalid.validation.errors.some((message) => message.includes("الحصص")), "Lessons sheet error should be reported");
 });
