@@ -3033,12 +3033,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 </div>
 <div id="ttAbsentTags" class="tt-tags" aria-live="polite"></div>
 <div class="tt-actions">
-<button type="button" class="tt-action-primary" onclick="ttDashboardAutoAssign()">⚡ توزيع الاحتياط تلقائياً</button>
+<button type="button" id="ttAutoAssignButton" class="tt-action-primary" onclick="ttDashboardAutoAssign()">⚡ توزيع الاحتياط تلقائياً</button>
 <button type="button" class="tt-action-whatsapp" onclick="ttDashboardShare()">💬 مشاركة كشف اليوم</button>
 <button type="button" class="tt-action-neutral" onclick="window.print()">🖨️ طباعة الكشف</button>
 </div>
 <div id="ttDashboardStatus" class="tt-status" role="status" aria-live="polite">اختر التاريخ ثم أضف المعلمين الغائبين لعرض حصصهم.</div>
-          <label id="ttOtherDepartmentsWrap" class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetablePreviewSubstitutions()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
+          <label id="ttOtherDepartmentsWrap" class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="ttDashboardRenderAll()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
           <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableSubstitutionResults" class="tt-cards space-y-3"></div>
         </div>
