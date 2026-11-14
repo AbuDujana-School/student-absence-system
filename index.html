@@ -5091,27 +5091,6 @@ async function loadSystemDataFromCloud() {
     ]);
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
     if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
-    if (false) {
-      const saved = localStorage.getItem('abuDujana_db_v30');
-      if (offlineSnapshotAvailable || saved) {
-        try {
-          if (saved && !offlineSnapshotAvailable) db = { ...db, ...JSON.parse(saved), version: 27 };
-          else if (offlineSnapshot) db = { ...db, ...offlineSnapshot, version: 27 };
-          if (!db.customUsers) db.customUsers = [];
-          if (!db.behaviors) db.behaviors = {};
-          if (!db.customCategories) db.customCategories = [];
-          db.dutyModule = normalizeDutyModule(db.dutyModule);
-          Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
-          markOfflineDatabaseForUpload();
-          await persistOfflineState();
-          updateSyncStatus(false, "جارِ رفع النسخة المحلية...");
-          await saveSystemDataToCloud();
-          return true;
-        } catch(e) { console.warn('local snapshot restore failed', e); }
-      }
-      await initDefaults(); updateSyncStatus(false, "بيانات جديدة"); return true;
-    }
-    
     let classesFixed = false;
     const oldClassesMap = {}; 
 
