@@ -49,13 +49,13 @@ export function calculateSubstitutionWorkloadScore(
   referenceDate?:string,
 ):number {
   const active=assignments.filter(a=>a.status!=="cancelled");
-  const reference=referenceDate && /^\\d{4}-\\d{2}-\\d{2}$/.test(referenceDate)
+  const reference=referenceDate && /^\d{4}-\d{2}-\d{2}$/.test(referenceDate)
     ? new Date(referenceDate+"T12:00:00Z") : null;
   const dayMs=86400000;
-  let total=0, last90=0, last30=0, last7=0, sameDay=0, adjacent=0;
+  let total=0, last90=0, last30=0, last7=0, sameDay=0;
   for(const assignment of active){
     total++;
-    if(!reference || !assignment.assignmentDate || !/^\\d{4}-\\d{2}-\\d{2}$/.test(assignment.assignmentDate)) continue;
+    if(!reference || !assignment.assignmentDate || !/^\d{4}-\d{2}-\d{2}$/.test(assignment.assignmentDate)) continue;
     const assignedAt=new Date(assignment.assignmentDate+"T12:00:00Z");
     const age=Math.floor((reference.getTime()-assignedAt.getTime())/dayMs);
     if(age<0) continue;
@@ -63,10 +63,9 @@ export function calculateSubstitutionWorkloadScore(
     if(age<30) last30++;
     if(age<7) last7++;
     if(age===0) sameDay++;
-    if(age===0 && assignment.period>=1 && assignment.period<=7) adjacent += 0;
   }
   // Total history prevents gaming by waiting out a short rolling window.
-  return total + last90*2 + last30*3 + last7*4 + sameDay*8 + adjacent;
+  return total + last90*2 + last30*3 + last7*4 + sameDay*8;
 }
 
 /** List only absent teachers the current coordinator is allowed to see. */
