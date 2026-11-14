@@ -3,7 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, type SystemTeacher } from "./timetable_import.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
-import { canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
+import { canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -383,7 +383,7 @@ async function handle(req: Request) {
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
       const absentTeacherName=String(body.absentTeacherName||"").trim();
-      const includeOtherDepartments=body.includeOtherDepartments===true;
+      const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments);
       if (body.action==="timetable_substitution_cancel") {
         if (!validUuid(body.assignmentId)) return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
         const {data:assignment,error}=await db.from("timetable_assignments").select("id,version_id,absent_teacher_name,weekday,assignment_date").eq("id",body.assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
