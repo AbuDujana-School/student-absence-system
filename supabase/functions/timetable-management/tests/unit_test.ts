@@ -1,6 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName } from "../timetable_import.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -108,4 +108,35 @@ Deno.test("department coordinators only see absent teachers in their own departm
   equal(scoped[0], "معلم قسم العلوم", "Only own-department teacher should be visible");
   const admin = getVisibleAbsentTeachers(cells, directory, "", true);
   equal(admin.length, 2, "Administrator sees all teaching teachers, excluding custom accounts");
+});
+
+Deno.test("cumulative workload score weights recent assignments and ignores cancelled work", () => {
+  const recent = [
+    { substituteTeacherId: "t1", weekday: "الأحد", period: 1, assignmentDate: "2026-11-13", status: "assigned" as const },
+    { substituteTeacherId: "t1", weekday: "الاثنين", period: 2, assignmentDate: "2026-11-10", status: "confirmed" as const },
+    { substituteTeacherId: "t1", weekday: "الثلاثاء", period: 3, assignmentDate: "2026-11-01", status: "cancelled" as const },
+  ];
+  const old = [
+    { substituteTeacherId: "t2", weekday: "الأحد", period: 1, assignmentDate: "2026-08-01", status: "completed" as const },
+  ];
+  const recentScore = calculateSubstitutionWorkloadScore(recent, "2026-11-14");
+  const oldScore = calculateSubstitutionWorkloadScore(old, "2026-11-14");
+  assert(recentScore > oldScore, "Recent cumulative assignments should carry greater weight");
+});
+
+Deno.test("fairness never makes an occupied teacher eligible", () => {
+  const teachers = [
+    { id: "busy", name: "معلم مشغول", departmentId: "science" },
+    { id: "free", name: "معلم متاح", departmentId: "science" },
+  ];
+  const timetable = [
+    { teacherId: "busy", weekday: "الأحد", period: 1, className: "1/1", status: "teaching" as const },
+    { teacherId: "free", weekday: "الأحد", period: 1, className: "", status: "free" as const },
+  ];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers, timetable, assignments: [], absentTeacherId: "absent",
+    weekday: "الأحد", period: 1, departmentId: "science",
+  });
+  equal(ranked.length, 1, "Only free candidate remains");
+  equal(ranked[0].id, "free", "Busy teacher must never be eligible");
 });
