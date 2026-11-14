@@ -4,8 +4,10 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
+      - feature/timetable-robust-fairness-v2
     paths:
       - "supabase/functions/timetable-management/**"
+      - ".github/workflows/timetable-management-tests.yml"
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"

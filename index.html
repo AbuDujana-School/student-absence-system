@@ -3002,6 +3002,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <button id="timetableResumeWeekButton" type="button" onclick="timetableResumeWeeklyDraft()" class="rounded-xl bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-rotate-left ml-1"></i> استعادة آخر مسودة</button>
             <button id="timetableActivateWeekButton" type="button" onclick="timetableActivateWeek()" disabled class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-40 text-white px-5 py-3 text-xs font-black"><i class="fa-solid fa-circle-check ml-1"></i> اعتماد الأسبوع بعد اكتماله</button>
           </div>
+          <div id="timetableWorkerProgress" class="hidden rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-3 space-y-2" role="status" aria-live="polite">
+            <div class="flex items-center justify-between gap-2 text-[10px] font-bold text-cyan-900 dark:text-cyan-100"><span id="timetableWorkerProgressLabel">جارٍ فحص بنية النص...</span><span id="timetableWorkerProgressValue">0%</span></div>
+            <div class="h-2 overflow-hidden rounded-full bg-cyan-100 dark:bg-cyan-900"><div id="timetableWorkerProgressBar" class="h-full rounded-full bg-cyan-700 transition-all" style="width:0%"></div></div>
+          </div>
           <div id="timetableWeeklyDraftStatus" class="hidden rounded-2xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableDayPreview" class="hidden space-y-3"></div>
         </div>
@@ -3010,6 +3014,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3 items-end">
             <div><label for="timetableExcelFile" class="block text-xs font-bold text-slate-600 dark:text-slate-300 mb-2">اختر ملف Excel</label><input id="timetableExcelFile" type="file" accept=".xlsx,.xls,.xlsm" class="block w-full text-xs text-slate-600 dark:text-slate-300 file:ml-3 file:rounded-xl file:border-0 file:bg-cyan-700 file:px-4 file:py-3 file:text-xs file:font-bold file:text-white"></div>
             <button id="timetableImportButton" type="button" onclick="timetableImportWorkbook()" class="rounded-xl bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-cloud-arrow-up ml-1"></i> تحليل الملف</button>
+          </div>
+          <div id="timetableExcelWorkerProgress" class="hidden rounded-xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-3 space-y-2" role="status" aria-live="polite">
+            <div class="flex items-center justify-between gap-2 text-[10px] font-bold text-cyan-900 dark:text-cyan-100"><span id="timetableExcelWorkerProgressLabel">جارٍ تجهيز ملف Excel...</span><span id="timetableExcelWorkerProgressValue">0%</span></div>
+            <div class="h-2 overflow-hidden rounded-full bg-cyan-100 dark:bg-cyan-900"><div id="timetableExcelWorkerProgressBar" class="h-full rounded-full bg-cyan-700 transition-all" style="width:0%"></div></div>
           </div>
           <div id="timetableImportStatus" class="hidden rounded-2xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div class="flex justify-end"><button id="timetableSaveButton" type="button" onclick="timetableSaveImport()" class="hidden rounded-xl bg-cyan-800 hover:bg-cyan-900 text-white px-5 py-3 text-xs font-black shadow-md"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة</button></div>
@@ -3038,7 +3046,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <button id="timetableTeacherLookupButton" type="button" onclick="timetableLookupTeacherWeeklyGrid()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black">عرض الجدول</button>
           </div>
           <div id="timetableTeacherLookupStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
-          <div id="timetableTeacherLookupResults" class="hidden overflow-x-auto"></div>
+          <div id="timetableTeacherLookupResults" class="hidden min-w-0"></div>
         </div>
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
@@ -4918,7 +4926,16 @@ function saveToLocalStorageSafe() {
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
-  } catch(e) { console.warn('LocalStorage full; IndexedDB is the durable store when available.', e); }
+  } catch(e) {
+    const quotaExceeded = e?.name === 'QuotaExceededError' || e?.code === 22 || e?.code === 1014;
+    if (quotaExceeded) {
+      // localStorage is only a cache; preserve the complete offline snapshot in IndexedDB.
+      void persistOfflineState().catch(storageError => console.warn('IndexedDB fallback failed; keep the current in-memory state and retry sync.', storageError));
+      console.warn('LocalStorage quota reached; saved the durable snapshot through IndexedDB when available.', e);
+      return;
+    }
+    console.warn('LocalStorage cache write failed; IndexedDB remains the durable store when available.', e);
+  }
 }
 function loadDirtySetsFromLocal() {
   try {
@@ -8898,14 +8915,47 @@ function timetableValidateWeeklyTeacherSets(days) {
     }
   }
 }
+function timetablePreflightTextWorker(sourceText) {
+  return new Promise((resolve,reject) => {
+    if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?\\n/).length,worker:false}); return; }
+    const worker=new Worker("timetable-text.worker.js");
+    const panel=document.getElementById("timetableWorkerProgress");
+    const bar=document.getElementById("timetableWorkerProgressBar");
+    const label=document.getElementById("timetableWorkerProgressLabel");
+    const value=document.getElementById("timetableWorkerProgressValue");
+    panel?.classList.remove("hidden");
+    const finish=()=>{worker.terminate();};
+    worker.onmessage=(event)=>{
+      const data=event.data||{};
+      if(data.type==="progress"){
+        if(bar)bar.style.width=data.percent+"%";
+        if(value)value.textContent=data.percent+"%";
+        if(label)label.textContent="فحص "+data.processed+" من "+data.total+" سطراً";
+      } else if(data.type==="complete"){
+        if(bar)bar.style.width="100%";
+        if(value)value.textContent="100%";
+        if(label)label.textContent="اكتمل الفحص الأولي — "+data.lineCount+" سطراً";
+        finish(); resolve({...data,worker:true});
+      }
+    };
+    worker.onerror=()=>{finish();reject(new Error("تعذر تشغيل عامل فحص الجدول."));};
+    worker.postMessage({text:String(sourceText||"")});
+  });
+}
 async function timetableParseDayText() {
   const selectedWeekday = document.getElementById("timetableTextWeekday")?.value || "";
   const sourceText = document.getElementById("timetableDayText")?.value || "";
   if (!timetableCanAccess || activeUser?.type !== "admin") { timetableWeeklySetStatus("يلزم الدخول بصلاحية مدير النظام لتحليل الجدول.", "error"); return; }
   if (!sourceText.trim()) { timetableWeeklySetStatus("الصق نص اليوم أولاً أو حمّل ملف TXT.", "error"); return; }
   const button = document.getElementById("timetableParseDayButton");
-  const old = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل...';
+  const old = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الفحص...';
   try {
+    const preflight=await timetablePreflightTextWorker(sourceText);
+    if(preflight.issueCount){
+      const first=preflight.issues[0];
+      throw new Error("فشل فحص بنية النص في "+preflight.issueCount+" موضعاً. أول مشكلة في السطر "+first.line+": "+first.message+". صحح الأخطاء ثم أعد التحليل.");
+    }
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل على الخادم...';
     const chunks = timetableSplitDailyText(sourceText, selectedWeekday);
     const token = appAuthSession?.token || readAppAuthToken();
     const results = [];
@@ -9152,7 +9202,7 @@ function timetableRenderSubstitutionLessons(response) {
   if(!lessons.length){host.innerHTML='<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-xs text-slate-500">لا توجد حصص تدريس مسجلة لهذا المعلم في هذا اليوم.</div>';return;}
   host.innerHTML=lessons.map(lesson=>{
     const candidates=lesson.candidates||[];
-    const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+'</option>').join("");
+    const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+(Number.isFinite(candidate.workloadScore)?' — عبء: '+candidate.workloadScore+' نقطة':'')+'</option>').join("");
     const assignment=lesson.assignment;
     const assignmentStatus=assignment?.status==="confirmed"?"مؤكد":assignment?.status==="completed"?"مكتمل":"مسند";
     const action=assignment
@@ -9196,6 +9246,31 @@ async function timetableSaveSubstitution(period,substituteTeacherName) {
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
 }
 
+async function timetableParseWorkbookInWorker(file) {
+  if(typeof Worker==="undefined") throw new Error("المتصفح لا يدعم المعالجة في الخلفية. افتح التطبيق من متصفح حديث.");
+  const worker=new Worker("timetable-text.worker.js");
+  const panel=document.getElementById("timetableExcelWorkerProgress");
+  const bar=document.getElementById("timetableExcelWorkerProgressBar");
+  const label=document.getElementById("timetableExcelWorkerProgressLabel");
+  const value=document.getElementById("timetableExcelWorkerProgressValue");
+  panel?.classList.remove("hidden");
+  try {
+    const buffer=await file.arrayBuffer();
+    return await new Promise((resolve,reject)=>{
+      worker.onmessage=(event)=>{
+        const data=event.data||{};
+        if(data.type==="progress"){
+          if(bar)bar.style.width=data.percent+"%";
+          if(value)value.textContent=data.percent+"%";
+          if(label)label.textContent=data.message||("معالجة "+data.processed+" من "+data.total+" أوراق");
+        } else if(data.type==="complete") resolve(data);
+        else if(data.type==="error") reject(new Error(data.message||"تعذر تحليل ملف Excel."));
+      };
+      worker.onerror=()=>reject(new Error("تعذر تشغيل عامل تحليل Excel."));
+      worker.postMessage({type:"parseWorkbook",buffer},[buffer]);
+    });
+  } finally { worker.terminate(); }
+}
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
   const file = input && input.files && input.files[0];
@@ -9204,39 +9279,26 @@ async function timetableImportWorkbook() {
   if (!timetableCanAccess) { timetableSetStatus("لا تملك صلاحية منظومة الجداول والاحتياط.", "error"); return; }
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token) { timetableSetStatus("جلسة مدير النظام غير متاحة. سجّل الدخول مجدداً.", "error"); return; }
-  if (!window.XLSX) { timetableSetStatus("تعذر تحميل مكتبة قراءة Excel. حدّث الصفحة وحاول مرة أخرى.", "error"); return; }
   const oldLabel = button.innerHTML;
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل...';
   try {
-    const workbook = XLSX.read(await file.arrayBuffer(), {type:"array", cellDates:true});
-    const sheets = {};
-    for (const sheetName of workbook.SheetNames) {
-      const worksheet = workbook.Sheets[sheetName];
-      const rawRows = XLSX.utils.sheet_to_json(worksheet, {header:1, raw:true, defval:null, blankrows:false});
-      const compactRows = [];
-      for (const row of rawRows) {
-        let last = row.length - 1;
-        while (last >= 0 && (row[last] === null || row[last] === undefined || String(row[last]).trim() === "")) last--;
-        if (last < 0) continue;
-        compactRows.push(row.slice(0,last+1).map(function(value) {
-          return value instanceof Date ? value.toISOString() : value;
-        }));
-      }
-      if (compactRows.length) sheets[sheetName] = compactRows;
-    }
-    const rowCount = Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
+    const parsedWorkbook=await timetableParseWorkbookInWorker(file);
+    const sheets=parsedWorkbook.sheets||{};
+    const rowCount=parsedWorkbook.rowCount||Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
     if (!rowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
     timetablePendingWorkbook = {fileName:file.name,sheets:sheets};
     timetableSavedImport = null;
     timetableActiveImport = null;
     const saveButton = document.getElementById("timetableSaveButton");
-    if (saveButton) { saveButton.disabled = false; saveButton.classList.remove("hidden"); saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة'; }
+    const schemaValid=result.result?.validation?.valid!==false;
+    if (saveButton) { saveButton.disabled = !schemaValid; saveButton.classList.remove("hidden"); saveButton.innerHTML = schemaValid ? '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة' : '<i class="fa-solid fa-triangle-exclamation ml-1"></i> أصلح بنية الملف أولاً'; }
     timetableImportPreview = result;
     timetableSelectedTeacherIndex = -1;
     timetableRenderPreview();
-    timetableSetStatus("اكتمل تحليل الملف. اختر معلماً لمراجعة جميع سجلات حصصه وعقوده.", "success");
+    const schemaErrors=result.result?.validation?.errors||[];
+    timetableSetStatus(schemaErrors.length ? "تعذر حفظ المسودة: "+schemaErrors.join(" ") : "اكتمل تحليل الملف والتحقق من بنيته. اختر معلماً لمراجعة جميع سجلات حصصه وعقوده.", schemaErrors.length ? "error" : "success");
   } catch (error) {
     timetableSetStatus(error && error.message ? error.message : "تعذر تحليل ملف Excel.", "error");
   } finally {

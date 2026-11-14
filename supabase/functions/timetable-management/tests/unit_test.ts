@@ -1,6 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
-import { matchSystemTeacherName } from "../timetable_import.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
+import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -58,6 +58,8 @@ Deno.test("teacher matching leaves ambiguous or unrelated names unresolved", () 
   equal(ambiguous.matchStatus, "ambiguous", "Duplicate exact matches");
   const unrelated = matchSystemTeacherName("اسم غير موجود", [{ name: "معلم آخر" }]);
   equal(unrelated.matchStatus, "unmatched", "Unrelated name");
+  const typo = matchSystemTeacherName("أحمد سليم البلوشي", [{ name: "أحمد سالم البلوشي" }]);
+  equal(typo.matchStatus, "matched", "High-confidence one-character name typo");
 });
 
 Deno.test("substitution candidates require one explicit free cell and respect assignments", () => {
@@ -108,4 +110,75 @@ Deno.test("department coordinators only see absent teachers in their own departm
   equal(scoped[0], "معلم قسم العلوم", "Only own-department teacher should be visible");
   const admin = getVisibleAbsentTeachers(cells, directory, "", true);
   equal(admin.length, 2, "Administrator sees all teaching teachers, excluding custom accounts");
+});
+
+Deno.test("cumulative workload score weights recent assignments and ignores cancelled work", () => {
+  const recent = [
+    { substituteTeacherId: "t1", weekday: "الأحد", period: 1, assignmentDate: "2026-11-13", status: "assigned" as const },
+    { substituteTeacherId: "t1", weekday: "الاثنين", period: 2, assignmentDate: "2026-11-10", status: "confirmed" as const },
+    { substituteTeacherId: "t1", weekday: "الثلاثاء", period: 3, assignmentDate: "2026-11-01", status: "cancelled" as const },
+  ];
+  const old = [
+    { substituteTeacherId: "t2", weekday: "الأحد", period: 1, assignmentDate: "2026-08-01", status: "completed" as const },
+  ];
+  const recentScore = calculateSubstitutionWorkloadScore(recent, "2026-11-14");
+  const oldScore = calculateSubstitutionWorkloadScore(old, "2026-11-14");
+  assert(recentScore > oldScore, "Recent cumulative assignments should carry greater weight");
+});
+
+Deno.test("fairness never makes an occupied teacher eligible", () => {
+  const teachers = [
+    { id: "busy", name: "معلم مشغول", departmentId: "science" },
+    { id: "free", name: "معلم متاح", departmentId: "science" },
+  ];
+  const timetable = [
+    { teacherId: "busy", weekday: "الأحد", period: 1, className: "1/1", status: "teaching" as const },
+    { teacherId: "free", weekday: "الأحد", period: 1, className: "", status: "free" as const },
+  ];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers, timetable, assignments: [], absentTeacherId: "absent",
+    weekday: "الأحد", period: 1, departmentId: "science",
+  });
+  equal(ranked.length, 1, "Only free candidate remains");
+  equal(ranked[0].id, "free", "Busy teacher must never be eligible");
+});
+
+Deno.test("workbook schema validation blocks drafts missing required core sheets", () => {
+  const invalid = parseTimetableWorkbook({ "الفصول": [["الشعبة"], ["1/1"]] });
+  equal(invalid.validation.valid, false, "Missing required sheets must block draft save");
+  assert(invalid.validation.errors.some((message) => message.includes("المعلمون")), "Teacher sheet error should be reported");
+  assert(invalid.validation.errors.some((message) => message.includes("الحصص")), "Lessons sheet error should be reported");
+});
+
+Deno.test("previous timetable versions affect fairness but do not block current-version availability", () => {
+  const teachers = [{ id: "teacher", name: "معلم متاح", departmentId: "science" }];
+  const timetable = [{ teacherId: "teacher", weekday: "الأحد", period: 2, className: "", status: "free" as const }];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers,
+    timetable,
+    assignments: [{
+      substituteTeacherId: "teacher", weekday: "الأحد", period: 2,
+      assignmentDate: "2026-11-13", versionId: "old-version", status: "assigned",
+    }],
+    absentTeacherId: "absent", weekday: "الأحد", period: 2,
+    departmentId: "science", assignmentDate: "2026-11-14", versionId: "active-version",
+  });
+  equal(ranked.length, 1, "Old-version assignment must not block the active timetable cell");
+  assert((ranked[0].workloadScore ?? 0) > 0, "Historical assignment must still increase cumulative workload");
+});
+
+Deno.test("same-date duty or substitution blocks a candidate across timetable versions", () => {
+  const teachers = [{ id: "teacher", name: "معلم متاح", departmentId: "science" }];
+  const timetable = [{ teacherId: "teacher", weekday: "الأحد", period: 2, className: "", status: "free" as const }];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers,
+    timetable,
+    assignments: [{
+      substituteTeacherId: "teacher", weekday: "الأحد", period: 2,
+      assignmentDate: "2026-11-14", versionId: "old-version", assignmentType: "duty", status: "confirmed",
+    }],
+    absentTeacherId: "absent", weekday: "الأحد", period: 2,
+    departmentId: "science", assignmentDate: "2026-11-14", versionId: "active-version",
+  });
+  equal(ranked.length, 0, "An actual same-date duty must block the candidate even from an older timetable version");
 });
