@@ -158,10 +158,11 @@ Deno.test("candidate score is weekly teaching quota plus twice prior substitutio
     { substituteTeacherId: "lower", weekday: "الاثنين", period: 1, assignmentType: "substitution", status: "assigned" as const },
     { substituteTeacherId: "lower", weekday: "الثلاثاء", period: 1, assignmentType: "substitution", status: "confirmed" as const },
     { substituteTeacherId: "lower", weekday: "الأربعاء", period: 1, assignmentType: "duty", status: "confirmed" as const },
+    { substituteTeacherId: "lower", weekday: "الخميس", period: 1, assignmentDate: "2026-11-15", assignmentType: "substitution", status: "assigned" as const },
   ];
   const ranked = getAvailableSubstitutionCandidates({
     teachers, timetable, assignments, absentTeacherId: "absent",
-    weekday: "الأحد", period: 2, departmentId: "science",
+    weekday: "الأحد", period: 2, departmentId: "science", assignmentDate: "2026-11-14",
   });
   equal(ranked[0].id, "lower", "The lower score of 20 should rank ahead of 21");
   equal(ranked.find((teacher) => teacher.id === "lower")?.substitutionsCount, 2, "Duty assignments are not counted as substitutions");
