@@ -36,3 +36,19 @@ jobs:
         run: deno test --allow-read=supabase/migrations supabase/functions/timetable-management/tests
       - name: Check timetable worker JavaScript syntax
         run: node --check timetable-text.worker.js
+      - name: Check timetable import UI JavaScript syntax
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const html = fs.readFileSync("index.html", "utf8");
+          const marker = "function timetableImportAttemptForFile(file)";
+          const markerIndex = html.indexOf(marker);
+          if (markerIndex < 0) throw new Error("Timetable import UI script was not found");
+          const scriptStart = html.lastIndexOf("<script", markerIndex);
+          const scriptOpenEnd = html.indexOf(">", scriptStart);
+          const scriptEnd = html.indexOf("</script>", scriptOpenEnd);
+          if (scriptStart < 0 || scriptOpenEnd < 0 || scriptEnd < 0) {
+            throw new Error("Timetable import UI script boundaries are invalid");
+          }
+          new Function(html.slice(scriptOpenEnd + 1, scriptEnd));
+          NODE
