@@ -196,8 +196,14 @@ Deno.test("linked teachers receive portal-only access only when the school porta
   for (const action of ["health", "timetable_check_access", "teacher_timetable_get_own"]) {
     if (!canUseTimetableAction("teacher", action, true)) throw new Error("Portal action was denied: " + action);
   }
-  for (const action of ["timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel", "timetable_list_access"]) {
+  for (const action of [
+    "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
+    "timetable_list_access", "timetable_portal_get_status", "timetable_portal_set_enabled",
+  ]) {
     if (canUseTimetableAction("teacher", action, true)) throw new Error("Portal-only teacher gained management access: " + action);
+  }
+  for (const action of ["timetable_portal_get_status", "timetable_portal_set_enabled"]) {
+    if (canUseTimetableAction("custom", action)) throw new Error("Non-admin account gained school-wide portal control: " + action);
   }
   const disabledStore = storeWith(session, {
     teacher: { name: "Teacher A", role: "teacher" },
