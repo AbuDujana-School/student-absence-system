@@ -4921,9 +4921,14 @@ async function restoreOfflineState() {
       if (!saved) return false;
       const localDb = JSON.parse(saved);
       if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
+      const localDirtySets = localDb.__offlineDirtySets;
+      const localPendingDeletes = localDb.__offlinePendingDeletes;
+      delete localDb.__offlineDirtySets;
+      delete localDb.__offlinePendingDeletes;
       db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
       db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
-      loadDirtySetsFromLocal();
+      if (localDirtySets) restoreDirtySetsObject(localDirtySets); else loadDirtySetsFromLocal();
+      if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
       return true;
     }
     db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
@@ -5002,11 +5007,13 @@ function saveToLocalStorageSafe() {
   try {
     const cutoff = getTrustedDate(); cutoff.setDate(cutoff.getDate() - 14);
     const cutoffStr = formatDateOman(cutoff);
-    const safeDb = { ...db, attendance: {}, behaviors: {} };
+    const dirtyObj = serializeDirtySets();
+    const pendingDeletes = getPendingDeletes();
+    const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, attendance: {}, behaviors: {} };
     Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.attendance.has(k)) safeDb.attendance[k] = db.attendance[k]; });
     Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.behaviors.has(k)) safeDb.behaviors[k] = db.behaviors[k]; });
-    const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module, custom_categories: dirtySets.custom_categories };
-    try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
+    const dirtyObj = serializeDirtySets();
+    try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) { throw e; }
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
     return true;
