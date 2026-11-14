@@ -69,6 +69,7 @@ export interface WorkbookImportResult {
   placements: ImportedLessonRecord[];
   hasWeeklyPlacements: boolean;
   warnings: string[];
+  validation: { valid:boolean; errors:string[]; warnings:string[] };
   totals: {
     importedTeacherRows: number;
     importedLessonRecords: number;
@@ -532,8 +533,10 @@ export function parseTimetableWorkbook(
   const teacherRows = teacherSheet ? rowsToObjects(sheets[teacherSheet]) : [];
   const { teachers } = buildTeacherDirectory(teacherRows, systemTeachers);
 
-  if (!teacherSheet) warnings.push("لم يتم العثور على ورقة المعلمين؛ ستحتاج مطابقة الأسماء يدوياً.");
-  if (!findSheet(sheets, SHEET_ALIASES.lessons)) warnings.push("لم يتم العثور على ورقة الحصص.");
+  const validationErrors:string[]=[];
+  if (!teacherSheet) { warnings.push("لم يتم العثور على ورقة المعلمين؛ ستحتاج مطابقة الأسماء يدوياً."); validationErrors.push("ورقة «المعلمون» مطلوبة لربط أسماء المعلمين والتحقق من هوياتهم."); }
+  if (!findSheet(sheets, SHEET_ALIASES.lessons)) { warnings.push("لم يتم العثور على ورقة الحصص."); validationErrors.push("ورقة «الحصص» مطلوبة للتحقق من سجلات التدريس."); }
+  if (!sourceSheets.length) validationErrors.push("ملف الجدول لا يحتوي على أوراق بيانات.");
 
   const referenceData: Record<string, ImportedReferenceRow[]> = {};
   if (teacherSheet) {
@@ -637,6 +640,7 @@ export function parseTimetableWorkbook(
     placements,
     hasWeeklyPlacements: placements.length > 0,
     warnings,
+    validation: { valid: validationErrors.length === 0, errors: validationErrors, warnings: [...warnings] },
     totals: {
       importedTeacherRows: teachers.length,
       importedLessonRecords: allRecords.length,
