@@ -19,7 +19,7 @@ const teachers: SubstitutionTeacher[] = [
   {id:"low",name:"أقل نصاب",departmentId:"math",baseQuota:10},
   {id:"high",name:"أعلى نصاب",departmentId:"math",baseQuota:15},
   {id:"on-duty",name:"مناوب اليوم",departmentId:"math",baseQuota:2,dutyWeekday:weekday},
-  {id:"duty-assigned",name:"عليه مناوبة مسجلة",departmentId:"math",baseQuota:3},
+  {id:"duty-assigned",name:"عليه مناوبة مسجلة",departmentId:"math",baseQuota:30},
 ];
 Deno.test("weekly quota plus twice active substitution count determines ranking",()=>{
   const assignments:SubstitutionAssignment[]=[
