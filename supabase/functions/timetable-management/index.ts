@@ -59,16 +59,39 @@ function validUuid(value: unknown): value is string {
   return typeof value === "string" && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
 }
 async function teacherDirectory() {
-  const { data, error } = await db.from("teachers").select("name,role,permissions").in("role", ["teacher","custom"]).order("name");
+  const [{ data, error }, { data: dutySetting, error: dutyError }] = await Promise.all([
+    db.from("teachers").select("name,role,permissions").in("role", ["teacher","custom"]).order("name"),
+    db.from("school_settings").select("value").eq("key", "duty_module").maybeSingle(),
+  ]);
   if (error) throw error;
-  return (data || []).map((item: any) => ({
-    name: String(item.name || ""),
-    role: String(item.role || ""),
-    department: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
-    departmentId: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
-    departmentName: String(item.permissions?.category || item.permissions?.department_name || ""),
-    dutyDay: String(item.permissions?.dutyDay || ""),
-  })).filter((item: any) => item.name);
+  if (dutyError) throw dutyError;
+  const defaultSubjectDays: Record<string,string> = {
+    "اللغة العربية":"الأحد",
+    "اللغة الإنجليزية":"الاثنين",
+    "التربية الإسلامية":"الثلاثاء",
+    "الرياضيات":"الأربعاء",
+    "مواد العلوم":"الخميس",
+    "مواد المهارات الحياتية":"",
+    "قسم الأخصائيين":"",
+    "قسم الإدارة":"",
+  };
+  const configuredDays = dutySetting?.value?.subjectDays;
+  const subjectDays = configuredDays && typeof configuredDays === "object"
+    ? { ...defaultSubjectDays, ...configuredDays }
+    : defaultSubjectDays;
+  return (data || []).map((item: any) => {
+    const category = String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || "");
+    const personalDutyDay = String(item.permissions?.dutyDay || "");
+    const dutyDay = SCHOOL_DAYS.includes(personalDutyDay) ? personalDutyDay : String(subjectDays[category] || "");
+    return {
+      name: String(item.name || ""),
+      role: String(item.role || ""),
+      department: category,
+      departmentId: category,
+      departmentName: String(item.permissions?.category || item.permissions?.department_name || ""),
+      dutyDay,
+    };
+  }).filter((item: any) => item.name);
 }
 async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
