@@ -270,21 +270,24 @@ async function handle(req: Request) {
       if (settingError) throw settingError;
       if (versionError) throw versionError;
       let eligibleTeacherCount = 0;
+      let eligibleTeachers: Array<{name:string}> = [];
       if (version) {
         const [{ data: teachers, error: teachersError }, { data: cells, error: cellsError }] = await Promise.all([
-          db.from("teachers").select("name").eq("role", "teacher"),
+          db.from("teachers").select("name").eq("role", "teacher").order("name"),
           db.from("timetable_weekly_cells").select("matched_teacher_name").eq("version_id", version.id).eq("cell_status", "teaching"),
         ]);
         if (teachersError) throw teachersError;
         if (cellsError) throw cellsError;
         const teacherNames = new Set((teachers || []).map((item: any) => String(item.name || "")));
-        eligibleTeacherCount = new Set((cells || []).map((item: any) => String(item.matched_teacher_name || "")).filter((name: string) => teacherNames.has(name))).size;
+        const namesWithTeaching = new Set((cells || []).map((item: any) => String(item.matched_teacher_name || "")).filter((name: string) => teacherNames.has(name)));
+        eligibleTeachers = Array.from(namesWithTeaching).sort((a,b)=>a.localeCompare(b,"ar")).map(name=>({name}));
+        eligibleTeacherCount = eligibleTeachers.length;
       }
       return reply(200, {
         enabled: setting?.enabled === true,
         eligibleTeacherCount,
         selectedTeacherNames: Array.isArray(setting?.selected_teacher_names) ? setting.selected_teacher_names : [],
-        eligibleTeachers: version ? (await db.from("teachers").select("name").eq("role","teacher").order("name")).data || [] : [],
+        eligibleTeachers,
         updatedBy: setting?.updated_by || null,
         updatedAt: setting?.updated_at || null,
       });
