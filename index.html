@@ -9261,7 +9261,7 @@ async function timetableImportWorkbook() {
   if (!timetableCanAccess) { timetableSetStatus("لا تملك صلاحية منظومة الجداول والاحتياط.", "error"); return; }
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token) { timetableSetStatus("جلسة مدير النظام غير متاحة. سجّل الدخول مجدداً.", "error"); return; }
-  if (!window.XLSX) { timetableSetStatus("تعذر تحميل مكتبة قراءة Excel. حدّث الصفحة وحاول مرة أخرى.", "error"); return; }
+  // SheetJS is loaded inside the dedicated worker; window.XLSX is not required.
   const oldLabel = button.innerHTML;
   button.disabled = true;
   button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ التحليل...';
@@ -9280,7 +9280,8 @@ async function timetableImportWorkbook() {
           } else if (message.type === "complete") resolve(message);
           else if (message.type === "error") reject(new Error(message.message || "تعذر تحليل ملف Excel."));
         };
-        worker.onerror = () => reject(new Error("تعطلت معالجة ملف Excel في الخلفية."));
+        worker.onerror = () => reject(new Error("تعطلت معالجة ملف Excel في الخلفية أو تعذر تحميل مكتبة Excel داخل العامل."));
+        worker.onmessageerror = () => reject(new Error("تعذر استقبال نتيجة تحليل ملف Excel من العامل."));
         worker.postMessage({ fileBuffer, fileName: file.name }, [fileBuffer]);
       });
     } finally { worker.terminate(); }
