@@ -3046,7 +3046,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <button id="timetableTeacherLookupButton" type="button" onclick="timetableLookupTeacherWeeklyGrid()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 disabled:opacity-50 text-white px-5 py-3 text-xs font-black">عرض الجدول</button>
           </div>
           <div id="timetableTeacherLookupStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
-          <div id="timetableTeacherLookupResults" class="hidden overflow-x-auto"></div>
+          <div id="timetableTeacherLookupResults" class="hidden min-w-0"></div>
         </div>
         <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
         <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
@@ -9193,7 +9193,7 @@ function timetableRenderSubstitutionLessons(response) {
   if(!lessons.length){host.innerHTML='<div class="rounded-xl border border-slate-200 dark:border-slate-700 p-4 text-xs text-slate-500">لا توجد حصص تدريس مسجلة لهذا المعلم في هذا اليوم.</div>';return;}
   host.innerHTML=lessons.map(lesson=>{
     const candidates=lesson.candidates||[];
-    const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+'</option>').join("");
+    const options=candidates.map(candidate=>'<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+(candidate.departmentId?' — '+timetableEsc(candidate.departmentId):'')+(Number.isFinite(candidate.workloadScore)?' — عبء: '+candidate.workloadScore+' نقطة':'')+'</option>').join("");
     const assignment=lesson.assignment;
     const assignmentStatus=assignment?.status==="confirmed"?"مؤكد":assignment?.status==="completed"?"مكتمل":"مسند";
     const action=assignment
