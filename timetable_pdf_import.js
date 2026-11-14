@@ -171,7 +171,7 @@ function makePageGrid(page) {
  */
 export function parseTimetablePdfPages(pages) {
   /** @type {{pageCount:number,teacherPageCount:number,skippedPages:number[],importedCellCount:number,importedGroupCount:number,expandedPeriodCount:number,mergedCells:Array<{page:number,teacher:string,weekday:string,startPeriod:number,endPeriod:number,subject:string,classGroups:string[]}>,warnings:string[],blockingErrors:string[],periodTimes:Array<{period:number,time:string}>,teachers:Array<{page:number,name:string,lessonCount:number}>}} */
-  const diagnostics={pageCount:Array.isArray(pages)?pages.length:0,teacherPageCount:0,skippedPages:[],importedCellCount:0,importedGroupCount:0,expandedPeriodCount:0,mergedCells:[],warnings:[],blockingErrors:[],periodTimes:[],teachers:[]};
+  const diagnostics={pageCount:Array.isArray(pages)?pages.length:0,teacherPageCount:0,skippedPages:[],importedCellCount:0,importedGroupCount:0,expandedPeriodCount:0,mergedCells:[],warnings:[],blockingErrors:[],periodTimes:[],periodCount:0,teachers:[]};
   if(!Array.isArray(pages)||!pages.length||pages.length>MAX_PAGES){diagnostics.blockingErrors.push("عدد صفحات PDF غير صالح أو يتجاوز الحد المسموح.");return {weeklyDays:[],sheets:{"المعلمون":[],"الحصص":[],"أوقات الحصص":[],"بيانات PDF":[]},diagnostics};}
   /** @type {Array<Array<string|number>>} */
   const teacherRows=[["الاسم","الاختصار","التفريغ"]];
@@ -196,7 +196,7 @@ export function parseTimetablePdfPages(pages) {
     if(grid.dayCenters.some(value=>!Number.isFinite(value))||![7,8].includes(grid.periodCenters.length)){diagnostics.blockingErrors.push("لم يتم التحقق من عناوين الأيام السبعة أو أوقات الحصص في صفحة المعلم "+page.pageNumber+".");continue;}
     if(!grid.valid){diagnostics.blockingErrors.push("تعذر التحقق من خطوط حدود الخانات في صفحة المعلم "+page.pageNumber+". لم يتم تخمين الخانات الممتدة.");continue;}
     const pageTimes=grid.orderedTimes.map(entry=>entry.time).join("|");
-    if(!referenceTimes){referenceTimes=pageTimes;diagnostics.periodTimes=grid.orderedTimes;for(const entry of grid.orderedTimes)timeRows.push([entry.period,entry.time]);}
+    if(!referenceTimes){referenceTimes=pageTimes;diagnostics.periodCount=grid.periodCount;diagnostics.periodTimes=grid.orderedTimes;for(const entry of grid.orderedTimes)timeRows.push([entry.period,entry.time]);}
     else if(referenceTimes!==pageTimes)diagnostics.blockingErrors.push("أوقات الحصص في الصفحة "+page.pageNumber+" تختلف عن بقية صفحات الملف.");
     const teacherKey=normalizePdfArabic(teacherName).replace(/\s+/g," ");
     if(teacherNames.has(teacherKey)){diagnostics.blockingErrors.push("اسم المعلم مكرر في أكثر من صفحة: "+teacherName+" (الصفحة "+page.pageNumber+").");continue;}
@@ -204,7 +204,7 @@ export function parseTimetablePdfPages(pages) {
     const cells=new Map(),weeklyTeacherCells=Array.from({length:5},()=>Array(grid.periodCount).fill(null));
     for(const item of page.items){
       const raw=String(item.str||"").trim();
-      if(!raw||/aSc\s*Timetables/i.test(raw)||normalizePdfArabic(raw).includes("تم إنشاء الجدول")||parseTimes(raw).length===2||dayIndex(raw)>=0||/^[1-7]$/.test(normalizeDigits(normalizePdfArabic(raw))))continue;
+      if(!raw||/aSc\s*Timetables/i.test(raw)||normalizePdfArabic(raw).includes("تم إنشاء الجدول")||parseTimes(raw).length===2||dayIndex(raw)>=0||/^[1-8]$/.test(normalizeDigits(normalizePdfArabic(raw))))continue;
       const pos=itemPosition(item);if(!Number.isFinite(pos.x)||!Number.isFinite(pos.y))continue;
       const day=nearestIndex(pos.y,grid.dayCenters),period=nearestIndex(pos.x,grid.periodCenters);
       if(day.index<0||period.index<0||day.distance>58||period.distance>66)continue;
