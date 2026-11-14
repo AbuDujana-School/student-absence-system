@@ -9235,79 +9235,23 @@ function timetableSetWorkerProgress(stage, percent, processed, total) {
   host.setAttribute("aria-valuemax", "100");
   host.setAttribute("aria-valuenow", String(value));
 }
-function timetableOpenDraftDb() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("abuDujanaTimetableDrafts", 1);
-    request.onupgradeneeded = () => {
-      if (!request.result.objectStoreNames.contains("drafts")) request.result.createObjectStore("drafts");
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error || new Error("تعذر فتح التخزين المؤقت للجدول."));
-  });
-}
+// Keep pending workbook data in memory only. Browser storage (including IndexedDB)
+// is not encrypted by default and must not be described as secure for school data.
+let timetablePendingWorkbookData = null;
 async function timetableStorePendingWorkbook(value) {
-  const db = await timetableOpenDraftDb();
-  try {
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction("drafts", "readwrite");
-      tx.objectStore("drafts").put(value, "pending");
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error || new Error("تعذر حفظ بيانات المسودة المؤقتة."));
-      tx.onabort = () => reject(tx.error || new Error("تم إلغاء حفظ المسودة المؤقتة."));
-    });
-  } finally { db.close(); }
+  if (!value || !value.sheets || !value.fileName) throw new Error("بيانات مسودة الجدول غير مكتملة.");
+  timetablePendingWorkbookData = value;
 }
 async function timetableReadPendingWorkbook() {
-  const db = await timetableOpenDraftDb();
-  try {
-    return await new Promise((resolve, reject) => {
-      const request = db.transaction("drafts", "readonly").objectStore("drafts").get("pending");
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error || new Error("تعذر قراءة بيانات المسودة المؤقتة."));
-    });
-  } finally { db.close(); }
+  return timetablePendingWorkbookData;
 }
 async function timetableClearPendingWorkbook() {
-  const db = await timetableOpenDraftDb();
-  try {
-    await new Promise((resolve, reject) => {
-      const tx = db.transaction("drafts", "readwrite");
-      tx.objectStore("drafts").delete("pending");
-      tx.oncomplete = resolve;
-      tx.onerror = () => reject(tx.error || new Error("تعذر تنظيف التخزين المؤقت."));
-    });
-  } finally { db.close(); }
+  timetablePendingWorkbookData = null;
 }
 let timetableRestorePendingPromise = null;
 async function timetableRestorePendingWorkbook() {
-  if (timetableImportPreview || timetableRestorePendingPromise || !timetableCanAccess || activeUser?.type !== "admin") return timetableRestorePendingPromise;
-  timetableRestorePendingPromise = (async () => {
-    const pending = await timetableReadPendingWorkbook();
-    if (!pending?.sheets || !pending.fileName) return;
-    if (pending.ownerName && pending.ownerName !== String(activeUser?.name || "")) return;
-    const token = appAuthSession?.token || readAppAuthToken();
-    if (!token) return;
-    timetablePendingWorkbook = {fileName:pending.fileName};
-    timetableSetWorkerProgress("استعادة المسودة المحفوظة", 10, 0, 0);
-    const result = await appAuthRequest({
-      action:"timetable_preview", fileName:pending.fileName, sheets:pending.sheets
-    }, token);
-    timetableImportPreview = result;
-    timetableSavedImport = null;
-    timetableActiveImport = null;
-    const saveButton = document.getElementById("timetableSaveButton");
-    if (saveButton) {
-      saveButton.disabled = false;
-      saveButton.classList.remove("hidden");
-      saveButton.innerHTML = '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ نسخة مسودة';
-    }
-    timetableRenderPreview();
-    timetableSetWorkerProgress("تمت استعادة المسودة", 100, 1, 1);
-    timetableSetStatus("تمت استعادة ملف المسودة من التخزين المحلي الآمن. يمكنك متابعة المراجعة والحفظ.", "success");
-  })().catch(error => {
-    timetableSetStatus(error?.message || "تعذر استعادة المسودة المحفوظة.", "error");
-  }).finally(() => { timetableRestorePendingPromise = null; });
-  return timetableRestorePendingPromise;
+  // Pending workbooks are intentionally not persisted across reloads or browser sessions.
+  return null;
 }
 async function timetableImportWorkbook() {
   const input = document.getElementById("timetableExcelFile");
