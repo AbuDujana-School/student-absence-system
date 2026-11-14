@@ -166,3 +166,19 @@ Deno.test("previous timetable versions affect fairness but do not block current-
   equal(ranked.length, 1, "Old-version assignment must not block the active timetable cell");
   assert((ranked[0].workloadScore ?? 0) > 0, "Historical assignment must still increase cumulative workload");
 });
+
+Deno.test("same-date duty or substitution blocks a candidate across timetable versions", () => {
+  const teachers = [{ id: "teacher", name: "معلم متاح", departmentId: "science" }];
+  const timetable = [{ teacherId: "teacher", weekday: "الأحد", period: 2, className: "", status: "free" as const }];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers,
+    timetable,
+    assignments: [{
+      substituteTeacherId: "teacher", weekday: "الأحد", period: 2,
+      assignmentDate: "2026-11-14", versionId: "old-version", assignmentType: "duty", status: "confirmed",
+    }],
+    absentTeacherId: "absent", weekday: "الأحد", period: 2,
+    departmentId: "science", assignmentDate: "2026-11-14", versionId: "active-version",
+  });
+  equal(ranked.length, 0, "An actual same-date duty must block the candidate even from an older timetable version");
+});
