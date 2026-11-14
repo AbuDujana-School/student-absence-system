@@ -9076,7 +9076,7 @@ async function timetableSaveDayText() {
     const token = appAuthSession?.token || readAppAuthToken();
     const saved = [];
     for (const day of days) {
-      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,text:day.sourceText,versionId:timetableWeeklyDraftId},token);
+      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:timetableWeeklyDraftId},token);
       timetableWeeklyDraftId = response.result.version_id;
       timetableWeeklyDraftDays.add(day.weekday);
       saved.push(day.weekday);
@@ -9090,6 +9090,22 @@ async function timetableSaveDayText() {
   } catch(error) {
     timetableWeeklySetStatus((error?.message || "تعذر حفظ الجدول.") + " الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
+}
+async function timetableSaveSinglePreviewDay(weekday) {
+  const preview=timetableDayImportPreview;
+  const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
+  const day=days.find(item=>item.weekday===weekday);
+  if(!day)return;
+  try {
+    const token=appAuthSession?.token||readAppAuthToken();
+    if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+    const response=await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:timetableWeeklyDraftId},token);
+    timetableWeeklyDraftId=response.result.version_id;
+    timetableWeeklyDraftDays.add(day.weekday);
+    const activate=document.getElementById("timetableActivateWeekButton");
+    if(activate)activate.disabled=timetableWeeklyDraftDays.size!==5;
+    timetableWeeklySetStatus("تم حفظ يوم "+day.weekday+" مستقلاً في المسودة. يمكنك إكمال بقية الأيام لاحقاً.","success");
+  } catch(error) { timetableWeeklySetStatus(error?.message||"تعذر حفظ اليوم.","error"); }
 }
 async function timetableActivateWeek() {
   if (!timetableWeeklyDraftId || timetableWeeklyDraftDays.size !== 5) { timetableWeeklySetStatus("أدخل الأيام الدراسية الخمسة واحفظها أولاً.", "error"); return; }
