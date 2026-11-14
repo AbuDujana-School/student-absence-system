@@ -5,13 +5,18 @@ on:
     branches:
       - feature/smart-substitution-system
       - feature/timetable-robust-fairness-v2
+      - feature/timetable-hardening-fixes-20261114
       - main
     paths:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
+      - "index.html"
+      - "timetable-text.worker.js"
   pull_request:
     paths:
       - "supabase/functions/timetable-management/**"
+      - "index.html"
+      - "timetable-text.worker.js"
 
 jobs:
   unit-tests:
@@ -27,3 +32,5 @@ jobs:
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
       - name: Run timetable unit tests
         run: deno test supabase/functions/timetable-management/tests
+      - name: Check timetable worker JavaScript syntax
+        run: node --check timetable-text.worker.js
