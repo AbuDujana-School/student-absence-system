@@ -50,7 +50,7 @@ begin
     from public.timetable_weekly_cells
     where version_id=v_draft and weekday='الأحد' and period=2
       and matched_teacher_name='معلم اختبار الإسناد';
-  if v_status <> 'teaching' or v_subject <> 'العلوم' then
+  if v_status is distinct from 'teaching' or v_subject is distinct from 'العلوم' then
     raise exception 'Atomic assignment did not update the teacher source cell';
   end if;
 
