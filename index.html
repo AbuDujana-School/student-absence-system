@@ -9708,14 +9708,30 @@ function timetableCreateImportIdempotencyKey() {
   const hex = Array.from(bytes, value => value.toString(16).padStart(2, "0")).join("");
   return hex.slice(0, 8) + "-" + hex.slice(8, 12) + "-" + hex.slice(12, 16) + "-" + hex.slice(16, 20) + "-" + hex.slice(20);
 }
-function timetableImportAttemptForFile(file) {
-  const fingerprint = [String(activeUser?.name || ""), file.name, file.size, file.lastModified].join("::");
-  const storageKey = "timetableImportAttempt:" + encodeURIComponent(fingerprint);
+async function timetableImportAttemptForFile(file, sheets) {
+  const fileName = String(file?.name || "ملف Excel").slice(0, 180);
+  const actorName = String(activeUser?.name || "");
+  if (!window.crypto?.subtle) {
+    throw new Error("المتصفح لا يدعم التحقق الآمن من ملف الاستيراد. حدّث المتصفح ثم حاول مجدداً.");
+  }
+  const fingerprintPayload = JSON.stringify({ file_name: fileName, actor_name: actorName, sheets });
+  const digest = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(fingerprintPayload));
+  const fingerprint = Array.from(new Uint8Array(digest), value => value.toString(16).padStart(2, "0")).join("");
+  const storageKey = "timetableImportAttempt:" + fingerprint;
   let idempotencyKey = "";
-  try { idempotencyKey = localStorage.getItem(storageKey) || ""; } catch (_) {}
+  try {
+    idempotencyKey = localStorage.getItem(storageKey) || "";
+  } catch (_) {
+    throw new Error("تعذر الوصول إلى التخزين الآمن لمحاولة الاستيراد. فعّل تخزين المتصفح ثم أعد المحاولة.");
+  }
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(idempotencyKey)) {
     idempotencyKey = timetableCreateImportIdempotencyKey();
-    try { localStorage.setItem(storageKey, idempotencyKey); } catch (_) {}
+    try {
+      localStorage.setItem(storageKey, idempotencyKey);
+      if (localStorage.getItem(storageKey) !== idempotencyKey) throw new Error("Storage verification failed");
+    } catch (_) {
+      throw new Error("تعذر حفظ معرّف محاولة الاستيراد على هذا الجهاز؛ لم يتم إرسال طلب الحفظ لتجنب إنشاء نسخة مكررة.");
+    }
   }
   return { idempotencyKey, storageKey };
 }
@@ -9736,7 +9752,7 @@ async function timetableImportWorkbook() {
     const rowCount=parsedWorkbook.rowCount||Object.keys(sheets).reduce((sum,name)=>sum+sheets[name].length,0);
     if (!rowCount) throw new Error("لم يتم العثور على بيانات داخل أوراق العمل.");
     const result = await appAuthRequest({action:"timetable_preview",fileName:file.name,sheets:sheets},token);
-    const importAttempt = timetableImportAttemptForFile(file);
+    const importAttempt = await timetableImportAttemptForFile(file, sheets);
     timetablePendingWorkbook = {
       fileName:file.name,
       sheets:sheets,
