@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
+import { aggregateClassTimetables } from "./timetable_class_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
@@ -471,30 +472,8 @@ async function handle(req: Request) {
         .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name")
         .eq("version_id", version.id).order("weekday").order("period");
       if (cellsError) throw cellsError;
-      const classMap = new Map<string, Map<string, any[]>>();
-      for (const cell of cells || []) {
-        const sections = Array.isArray(cell.class_sections) ? cell.class_sections : [];
-        for (const sectionValue of sections) {
-          const section = String(sectionValue || "").trim();
-          if (!section) continue;
-          if (!classMap.has(section)) classMap.set(section, new Map());
-          const slotKey = String(cell.weekday) + ":" + Number(cell.period);
-          const slots = classMap.get(section)!;
-          if (!slots.has(slotKey)) slots.set(slotKey, []);
-          slots.get(slotKey)!.push({ weekday: cell.weekday, period: Number(cell.period), subject: cell.subject || "", teacherName: cell.matched_teacher_name || cell.teacher_source_name || "", status: cell.cell_status || "unclear" });
-        }
-      }
       const periodCount = Number(version.period_count || 7);
-      const classes = Array.from(classMap.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([className,slots]) => {
-        const entries:any[] = [], vacancies:any[] = [], conflicts:any[] = [];
-        for (const weekday of DAYS) for (let period=1; period<=periodCount; period++) {
-          const assignments = slots.get(weekday+":"+period) || [];
-          if (!assignments.length) vacancies.push({weekday,period});
-          else if (assignments.length>1) conflicts.push({weekday,period,assignments});
-          else entries.push(assignments[0]);
-        }
-        return { className, entries, vacancies, conflicts, complete: vacancies.length===0 && conflicts.length===0 };
-      });
+      const classes = aggregateClassTimetables(cells || [], DAYS, periodCount);
       return reply(200,{ok:true,version,periodCount,weekdays:DAYS,classes});
     } catch (error) {
       console.error("Class weekly timetable read failed:", error instanceof Error ? error.message : "unknown");
