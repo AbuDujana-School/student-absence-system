@@ -15,7 +15,7 @@ declare
   v_department_duty_day text;
   v_effective_duty_day text;
 begin
-  if new.assignment_type <> 'substitution'
+  if new.assignment_type is distinct from 'substitution'
     or new.status not in ('assigned', 'confirmed', 'completed') then
     return new;
   end if;
@@ -63,7 +63,7 @@ drop trigger if exists timetable_substitution_duty_day_guard
   on public.timetable_assignments;
 
 create trigger timetable_substitution_duty_day_guard
-before insert or update of teacher_name, assignment_type, weekday, status
+before insert or update
 on public.timetable_assignments
 for each row
 execute function public.guard_timetable_substitution_duty_day();
