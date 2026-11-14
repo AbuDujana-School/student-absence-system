@@ -196,11 +196,21 @@ Deno.test("linked teachers receive portal-only access only when the school porta
   for (const action of ["health", "timetable_check_access", "teacher_timetable_get_own"]) {
     if (!canUseTimetableAction("teacher", action, true)) throw new Error("Portal action was denied: " + action);
   }
+  if (!canUseTimetableAction("teacher", "timetable_portal_revoke_individual_grant", true)) {
+    throw new Error("Portal-only teacher could not revoke their own individual grant");
+  }
   for (const action of [
     "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
     "timetable_list_access", "timetable_portal_get_status", "timetable_portal_set_enabled",
+    "timetable_portal_set_individual_grant", "timetable_portal_list_individual_grants",
   ]) {
     if (canUseTimetableAction("teacher", action, true)) throw new Error("Portal-only teacher gained management access: " + action);
+  }
+  if (!canUseTimetableAction("teacher", "timetable_portal_revoke_individual_grant")) {
+    throw new Error("Teacher with existing timetable access could not revoke only their own grant");
+  }
+  if (canUseTimetableAction("custom", "timetable_portal_revoke_individual_grant")) {
+    throw new Error("Custom account gained individual-grant revocation");
   }
   for (const action of ["timetable_portal_get_status", "timetable_portal_set_enabled"]) {
     if (canUseTimetableAction("custom", action)) throw new Error("Non-admin account gained school-wide portal control: " + action);
