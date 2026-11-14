@@ -59,6 +59,7 @@ begin
     into v_sheets
     from jsonb_array_elements_text(p_payload->'result'->'sourceSheets');
 
+  v_import_id := null;
   insert into public.timetable_imports (
     id, version, idempotency_key, request_hash,
     file_name, imported_by_type, imported_by_name, status,
