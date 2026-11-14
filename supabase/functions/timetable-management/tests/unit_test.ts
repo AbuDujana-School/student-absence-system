@@ -1,5 +1,5 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
-import { matchSystemTeacherName, parseTimetableWorkbook } from "../timetable_import.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
@@ -254,4 +254,23 @@ Deno.test("cumulative substitution score excludes future, cancelled, duty and su
   ];
   const score = calculateSubstitutionWorkloadScore(assignments, "2026-11-14");
   equal(score, 1 + 2 + 3 + 4, "Only the one prior active substitution contributes to total and recency score");
+});
+
+Deno.test("workbook schema validation rejects malformed rows, unsupported cells and resource overages", () => {
+  const malformed = validateWorkbookSchema({
+    "جدول الأحد": [
+      ["اسم المعلم", "الحصة"],
+      "صف غير صالح",
+      ["معلم", { unsupported: true }],
+      ["نص طويل".repeat(2000)],
+    ],
+  });
+  equal(malformed.valid, false, "Malformed workbook must be rejected");
+  assert(malformed.errors.some(issue => issue.code === "invalid_row"), "Invalid row must be reported");
+  assert(malformed.errors.some(issue => issue.code === "invalid_cell"), "Unsupported cell must be reported");
+  assert(malformed.errors.some(issue => issue.code === "cell_too_long"), "Oversized cell text must be reported");
+
+  const tooManyRows = validateWorkbookSchema({ "جدول": Array.from({ length: 5001 }, () => ["x"]) });
+  equal(tooManyRows.valid, false, "Workbook exceeding the row limit must be rejected");
+  assert(tooManyRows.rowCount > 5000, "Row count must be reported");
 });
