@@ -522,9 +522,13 @@ async function handle(req: Request) {
       let targetVersionId = sourceVersion.id;
       let targetVersionNumber = sourceVersion.version;
       if (sourceVersion.status === "active") {
+        const { data: latestVersion, error: latestVersionError } = await db.from("timetable_weekly_versions")
+          .select("version").order("version", { ascending: false }).limit(1).maybeSingle();
+        if (latestVersionError) throw latestVersionError;
+        const nextVersionNumber = Number(latestVersion?.version || 0) + 1;
         const { data: created, error: createError } = await db.from("timetable_weekly_versions")
           .insert({
-            version: Number(sourceVersion.version) + 1,
+            version: nextVersionNumber,
             status: "draft",
             period_count: sourceVersion.period_count || 7,
             expected_teacher_count: sourceVersion.expected_teacher_count,
