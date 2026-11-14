@@ -2975,20 +2975,89 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
       </div>
 
-      <section id="sec-timetable" class="hidden space-y-5" dir="rtl">
-        <div class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-gradient-to-l from-slate-950 via-cyan-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl">
+      <section id="sec-timetable" class="hidden space-y-5 tt-dashboard" dir="rtl">
+<style>
+.tt-dashboard{--tt-primary:#1e40af;--tt-ink:#0f172a;--tt-muted:#64748b;--tt-border:#e2e8f0;min-width:0;color:var(--tt-ink)}
+.tt-tabs{display:flex;gap:8px;border-bottom:1px solid var(--tt-border);padding-bottom:10px;flex-wrap:wrap}
+.tt-tab{border:1px solid var(--tt-border);border-radius:12px;padding:11px 18px;background:#fff;color:#475569;font-size:13px;font-weight:800}
+.tt-tab[aria-selected="true"]{background:var(--tt-primary);border-color:var(--tt-primary);color:#fff}
+.tt-tab-panel{min-width:0;display:grid;gap:16px}
+.tt-panel{min-width:0}
+.tt-date-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:16px 0}
+.tt-search-wrap{position:relative;display:grid;gap:7px;font-size:12px;font-weight:800;color:#475569}
+.tt-search-wrap input{width:100%;min-width:0;border:1px solid var(--tt-border);border-radius:12px;padding:13px;background:#fff;color:#0f172a}
+.tt-suggestions{display:none;position:absolute;z-index:40;top:100%;right:0;left:0;max-height:240px;overflow:auto;background:#fff;border:1px solid var(--tt-border);border-radius:12px;box-shadow:0 12px 30px #0f172a18}
+.tt-suggestion{display:block;width:100%;padding:11px 13px;text-align:right;background:#fff;border:0;border-bottom:1px solid #f1f5f9;color:#0f172a;font-size:12px}
+.tt-suggestion:hover{background:#eff6ff}
+.tt-tags{display:flex;flex-wrap:wrap;gap:7px;min-height:4px}
+.tt-tag{display:inline-flex;align-items:center;gap:9px;padding:7px 11px;border-radius:999px;background:#fee2e2;color:#991b1b;font-size:12px;font-weight:800}
+.tt-tag button{border:0;background:transparent;color:inherit;font-weight:900;font-size:17px;line-height:1}
+.tt-actions{display:flex;flex-wrap:wrap;gap:8px}
+.tt-actions button{border:0;border-radius:11px;padding:11px 15px;color:#fff;font-size:12px;font-weight:900}
+.tt-action-primary{background:#1e40af}.tt-action-whatsapp{background:#15803d}.tt-action-neutral{background:#334155}
+.tt-status{border:1px solid #bae6fd;background:#f0f9ff;color:#075985;border-radius:12px;padding:11px 13px;font-size:11px;font-weight:700}
+.tt-status[data-kind="error"]{border-color:#fecaca;background:#fef2f2;color:#991b1b}
+.tt-status[data-kind="success"]{border-color:#bbf7d0;background:#f0fdf4;color:#166534}
+.tt-cards{display:grid;gap:10px}
+.tt-lesson{min-width:0;border:1px solid var(--tt-border);border-radius:15px;background:#fff;padding:13px;display:grid;gap:10px;break-inside:avoid}
+.tt-lesson-head{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;font-size:12px;font-weight:900}
+.tt-lesson-meta{color:var(--tt-muted);font-size:11px;font-weight:600}
+.tt-lesson-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.tt-lesson select{min-width:0;flex:1;border:1px solid var(--tt-border);border-radius:10px;background:#fff;padding:10px;font-size:12px;color:#0f172a}
+.tt-lesson button{border:1px solid var(--tt-border);border-radius:9px;background:#fff;padding:8px 10px;font-size:11px;font-weight:800}
+.tt-dropzone{border:2px dashed #94a3b8;border-radius:16px;background:#f8fafc;padding:25px;text-align:center;cursor:pointer;color:#334155}
+.tt-dropzone.is-over{border-color:#1e40af;background:#eff6ff}
+.tt-settings-grid{display:grid;gap:16px}
+@media(max-width:768px){.tt-date-grid{grid-template-columns:1fr}.tt-actions{display:grid;grid-template-columns:1fr}.tt-actions button{width:100%;min-height:44px}.tt-lesson-controls{display:grid;grid-template-columns:1fr}.tt-lesson select,.tt-lesson button{width:100%;min-height:42px}.tt-tabs{display:grid;grid-template-columns:1fr 1fr}.tt-tab{padding:10px 7px;font-size:11px}.tt-dashboard{overflow-x:clip}}
+@media print{body *{visibility:hidden!important}#sec-timetable,#sec-timetable *{visibility:visible!important}#sec-timetable{position:absolute!important;inset:0!important;width:100%!important;background:#fff!important;color:#000!important;padding:0!important}#sec-timetable .tt-tabs,#sec-timetable .tt-actions,#sec-timetable .tt-search-wrap,#sec-timetable #ttAbsentTags,#sec-timetable #ttOtherDepartmentsWrap,#sec-timetable #timetableSubstitutionDate,#sec-timetable button,#sec-timetable select{display:none!important}#sec-timetable .tt-panel{border:0!important;box-shadow:none!important}#sec-timetable .tt-lesson{border:1px solid #aaa!important;color:#000!important}#sec-timetable .tt-lesson:after{content:"";display:none!important}#sec-timetable .tt-status{display:none!important}}
+</style>
+<div class="rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-5 sm:p-6">
+<div class="flex flex-wrap items-center justify-between gap-3"><div><span class="text-[10px] font-black text-cyan-700">إدارة الجدول المدرسي</span><h2 class="mt-1 text-xl font-black text-slate-900 dark:text-white">لوحة الجداول والاحتياط الذكية</h2><p class="mt-1 text-xs text-slate-500">توزيع يومي سريع مع التحقق من التوفر والتعارض من الخادم.</p></div><span class="rounded-xl bg-cyan-50 p-3 text-2xl">📅</span></div>
+</div>
+<div class="tt-tabs" role="tablist" aria-label="أقسام الجداول والاحتياط">
+<button type="button" class="tt-tab" id="ttTabDaily" role="tab" aria-controls="ttPanelDaily" aria-selected="true" onclick="ttDashboardSwitchTab('daily')">📅 الاحتياط اليومي</button>
+<button type="button" class="tt-tab" id="ttTabSettings" role="tab" aria-controls="ttPanelSettings" aria-selected="false" onclick="ttDashboardSwitchTab('settings')">⚙️ إعداد وإدارة الجدول العام</button>
+</div>
+<div id="ttPanelDaily" class="tt-tab-panel" role="tabpanel" aria-labelledby="ttTabDaily">
+<div id="timetableSubstitutionPanel" class="tt-panel rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+          <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
+          <div class="tt-date-grid">
+<label class="text-xs font-bold text-slate-600 dark:text-slate-300">تاريخ الغياب<input id="timetableSubstitutionDate" type="date" value="" onchange="ttDashboardLoadDay()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
+<label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
+<select id="timetableSubstitutionAbsentTeacher" onchange="ttDashboardRenderAll()" class="hidden" aria-hidden="true"><option value="">اختر المعلم الغائب</option></select>
+</div>
+<div class="tt-search-wrap">
+<label for="ttDashboardSearch">المعلمون الغائبون</label>
+<input id="ttDashboardSearch" type="search" autocomplete="off" placeholder="اكتب اسم المعلم الغائب..." oninput="ttDashboardFilterAbsent(this.value)" aria-label="البحث عن معلم غائب">
+<div id="ttDashboardSuggestions" class="tt-suggestions" role="listbox"></div>
+</div>
+<div id="ttAbsentTags" class="tt-tags" aria-live="polite"></div>
+<div class="tt-actions">
+<button type="button" class="tt-action-primary" onclick="ttDashboardAutoAssign()">⚡ توزيع الاحتياط تلقائياً</button>
+<button type="button" class="tt-action-whatsapp" onclick="ttDashboardShare()">💬 مشاركة كشف اليوم</button>
+<button type="button" class="tt-action-neutral" onclick="window.print()">🖨️ طباعة الكشف</button>
+</div>
+<div id="ttDashboardStatus" class="tt-status" role="status" aria-live="polite">اختر التاريخ ثم أضف المعلمين الغائبين لعرض حصصهم.</div>
+          <label id="ttOtherDepartmentsWrap" class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetablePreviewSubstitutions()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
+          <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div id="timetableSubstitutionResults" class="tt-cards space-y-3"></div>
+        </div>
+</div>
+<div id="ttPanelSettings" class="tt-tab-panel" role="tabpanel" aria-labelledby="ttTabSettings" hidden>
+<div class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-gradient-to-l from-slate-950 via-cyan-950 to-teal-900 p-6 sm:p-8 text-white shadow-xl">
           <div class="flex flex-wrap items-center justify-between gap-4">
             <div><span class="text-[10px] font-black tracking-widest text-cyan-200">إدارة الجدول المدرسي</span><h2 class="mt-1 text-2xl font-black">استيراد الجدول</h2><p class="mt-2 text-xs text-cyan-100">ارفع ملف Excel لقراءة أوراقه وربط سجلات الحصص بأسماء المعلمين ومراجعتها.</p></div>
             <span class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl text-emerald-200"><i class="fa-solid fa-file-excel"></i></span>
           </div>
         </div>
-        <div id="timetableAccessManagement" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 space-y-4">
+<div id="timetableAccessManagement" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 space-y-4">
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بدخول هذه المنظومة.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
           <input id="timetableAccessSearch" type="search" oninput="timetableRenderAccessList()" placeholder="ابحث عن معلم أو تخصص..." class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white outline-none">
           <div id="timetableAccessList" class="max-h-72 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-700 rounded-xl border border-slate-100 dark:border-slate-700"><p class="p-4 text-xs text-slate-400">جارٍ تحميل المستخدمين...</p></div>
           <div class="flex flex-wrap items-center justify-between gap-3"><span id="timetableAccessStatus" class="text-[10px] text-slate-500"></span><button id="timetableAccessSaveButton" type="button" onclick="timetableSaveAccessChanges()" class="rounded-xl bg-indigo-700 hover:bg-indigo-800 px-5 py-2.5 text-xs font-black text-white">حفظ الصلاحيات</button></div>
         </div>
-        <div id="timetableAdminImportPanel">
+<div id="ttDashboardDropZone" class="tt-dropzone"><div class="text-2xl mb-2">📂</div><strong>اسحب ملف Excel / CSV إلى هنا</strong><p class="mt-1 text-xs text-slate-500">أو اضغط لاختيار الملف من جهازك. ستتم مراجعة البيانات قبل حفظ المسودة.</p></div>
+<div id="timetableAdminImportPanel">
         <div id="timetableTextImportPanel" class="rounded-3xl border border-cyan-200 dark:border-cyan-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-paste ml-1 text-cyan-700"></i> إدخال الجدول اليومي من نص PDF</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">يمكنك لصق تفريغ يوم واحد أو الأسبوع كاملاً بعناوين الأيام الخمسة. سيُنشئ النظام سبع خانات صريحة لكل معلم يومياً، بما فيها التدريس والفراغ والاجتماعات والخانات غير الواضحة.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[220px_1fr] gap-3 items-end">
@@ -3039,7 +3108,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           </div>
         </div>
         </div>
-        <div id="timetableTeacherWeeklyLookup" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
+<div id="timetableTeacherWeeklyLookup" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
           <div><h3 class="font-black text-sm text-slate-800 dark:text-white">استعراض الجدول الأسبوعي للمعلم</h3><p class="mt-1 text-xs text-slate-500">ابحث باسم المعلم الكامل لعرض حصصه وفراغه واجتماعاته في النسخة الأسبوعية المعتمدة. الخانة غير الموجودة لا تُعرض كفراغ.</p></div>
           <div class="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-2">
             <input id="timetableTeacherLookupName" type="search" maxlength="160" placeholder="اكتب اسم المعلم كما هو مسجل في النظام" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white">
@@ -3048,20 +3117,11 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div id="timetableTeacherLookupStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableTeacherLookupResults" class="hidden min-w-0"></div>
         </div>
-        <div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
-        <div id="timetableSubstitutionPanel" class="hidden rounded-3xl border border-emerald-200 dark:border-emerald-900 bg-white dark:bg-slate-800 p-5 sm:p-6 space-y-4 shadow-sm">
-          <div><h3 class="font-black text-sm text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-emerald-700"></i> توزيع حصص الاحتياط</h3><p class="mt-1 text-xs text-slate-500">يعرض النظام حصص المعلم الغائب، ثم يقترح المعلمين الذين لديهم فراغ مؤكد في الحصة نفسها. لا تُعرض حصص الاجتماعات أو الخانات غير الواضحة كفراغ.</p></div>
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">تاريخ الغياب<input id="timetableSubstitutionDate" type="date" value="" onchange="timetableLoadSubstitutionOptions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
-            <label class="text-xs font-bold text-slate-600 dark:text-slate-300 sm:col-span-2">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()" class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"><option value="">اختر المعلم الغائب</option></select></label>
-          </div>
-          <label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetablePreviewSubstitutions()" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label>
-          <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
-          <div id="timetableSubstitutionResults" class="space-y-3"></div>
-        </div>
-        <div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
-      </section>
+<div id="timetableAdminImportNotice" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50 dark:bg-cyan-950/30 p-5 text-xs text-cyan-900 dark:text-cyan-100">رفع ملفات Excel وإنشاء نسخ الاستيراد وتعديلها متاح لمدير النظام العام فقط. ستظهر هنا أدوات عرض الجدول والاحتياط بعد اعتماد النسخة الأسبوعية.</div>
+<div class="rounded-2xl border border-amber-200 dark:border-amber-900 bg-amber-50/80 dark:bg-amber-950/30 p-4 text-xs text-amber-900 dark:text-amber-200"><strong>تنبيه:</strong> هذه المرحلة للمعاينة والتحقق. لا يتم إنشاء جدول أسبوعي من عدد الحصص الأسبوعية. تحفظ الملفات كنسخ مسودة مستقلة، وتُسجل تعديلات الحصص في سجل مراجعة مع الاحتفاظ ببيانات المصدر الأصلية. لا تصبح النسخة جدولاً معتمداً أو نشطاً إلا بعد مرحلة اعتماد مستقلة.</div>
+      
+</div>
+</section>
         <div id="timetableRecordEditor" class="hidden fixed inset-0 z-[80] bg-slate-950/70 backdrop-blur-sm p-3 sm:p-6 flex items-center justify-center">
           <div class="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-3xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xl p-5 space-y-4">
             <div class="flex items-center justify-between gap-3"><div><h3 id="timetableEditorTitle" class="font-black text-base text-slate-800 dark:text-white">تعديل سجل الحصة</h3><p class="text-[10px] text-slate-500 mt-1">سيتم حفظ التغيير مع الاحتفاظ بالقيم الأصلية وسجل المراجعة.</p></div><button type="button" onclick="timetableCloseEditor()" class="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"><i class="fa-solid fa-xmark"></i></button></div>
@@ -9617,5 +9677,6 @@ async function timetableSaveOwner() {
 
 </script>
 
+<script src="./timetable-dashboard.js" defer></script>
 </body>
 </html>
