@@ -2,7 +2,7 @@ do $$
 begin
   if not exists (
     select 1 from public.teacher_timetable_portal_settings
-    where id = true and enabled = false
+    where id = true and enabled = false and selected_teacher_names = '{}'::text[]
   ) then
     raise exception 'Teacher timetable portal must remain disabled by default';
   end if;
