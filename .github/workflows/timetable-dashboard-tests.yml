@@ -23,7 +23,7 @@ jobs:
       - uses: denoland/setup-deno@v2
       - name: Check dashboard JavaScript syntax
         run: node --check timetable-dashboard.js
-      - name: Test substitution availability and fairness
-        run: deno test supabase/functions/timetable-management/substitution_policy_test.ts
-      - name: Type-check timetable policy and Edge Function
-        run: deno check supabase/functions/timetable-management/substitution_policy.ts supabase/functions/timetable-management/index.ts
+      - name: Run timetable management unit tests
+        run: deno test supabase/functions/timetable-management/tests
+      - name: Type-check timetable policy, Edge Function, and tests
+        run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
