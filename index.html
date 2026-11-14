@@ -3064,6 +3064,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <nav class="tt-tabs tt-no-print" aria-label="تبويبات الجداول والاحتياط">
             <button type="button" class="tt-tab" id="timetableDailyTabButton" aria-selected="true" onclick="timetableSwitchDashboardTab('daily')">📅 الاحتياط اليومي</button>
             <button type="button" class="tt-tab" id="timetableSettingsTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('settings')">⚙️ إعداد وإدارة الجدول العام</button>
+            <button type="button" class="tt-tab" id="timetableClassTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('classes')">🏫 جداول الصفوف</button>
           </nav>
         </div>
         <div id="timetableAccessManagement" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 space-y-4">
@@ -9727,23 +9728,27 @@ let timetableDailyBusy = false;
 
 function timetableSwitchDashboardTab(tab) {
   const settings = tab === "settings";
+  const classes = tab === "classes";
   const isAdmin = activeUser?.type === "admin";
   ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"].forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings || !isAdmin));
+  const classPanel=document.getElementById("timetableClassWeeklyPanel");
+  if(classPanel)classPanel.classList.toggle("hidden",!classes||!isAdmin);
   const access = document.getElementById("timetableAccessManagement");
   if (access) access.classList.toggle("hidden", !settings || !isAdmin);
   const notice = document.getElementById("timetableAdminImportNotice");
   if (notice) notice.classList.toggle("hidden", !settings || isAdmin);
   const daily = document.getElementById("timetableSubstitutionPanel");
-  if (daily) daily.classList.toggle("hidden", settings);
-  document.getElementById("timetableDailyTabButton")?.setAttribute("aria-selected", String(!settings));
+  if (daily) daily.classList.toggle("hidden", settings || classes);
+  document.getElementById("timetableDailyTabButton")?.setAttribute("aria-selected", String(!settings&&!classes));
   document.getElementById("timetableSettingsTabButton")?.setAttribute("aria-selected", String(settings));
-  if (settings && activeUser?.type === "admin") {
+  document.getElementById("timetableClassTabButton")?.setAttribute("aria-selected", String(classes));
+  if (settings && isAdmin) {
     timetableLoadImports();
     timetableLoadAccessManagement();
     timetableLoadPortalStatus();
   }
+  if(classes&&isAdmin)timetableLoadClassWeeklyGrid();
 }
-
 function timetableDailyNormalizeName(value) {
   return String(value || "").normalize("NFKC").replace(/[أإآٱ]/g,"ا").replace(/[ى]/g,"ي")
     .replace(/[ًٌٍَُِّْـ]/g,"").replace(/\s+/g," ").trim().toLocaleLowerCase("ar");
