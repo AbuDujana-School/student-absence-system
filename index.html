@@ -4914,7 +4914,18 @@ async function restoreOfflineState() {
   try {
     const database=await openOfflineDatabase();
     const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
-    if(!snapshot?.db||typeof snapshot.db!=='object') return false;
+    if(!snapshot?.db||typeof snapshot.db!=='object') {
+      // IndexedDB may be unavailable in older browsers or restricted sessions.
+      // Restore the localStorage cache before cloud loading captures dirty local edits.
+      const saved = localStorage.getItem('abuDujana_db_v30');
+      if (!saved) return false;
+      const localDb = JSON.parse(saved);
+      if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
+      db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
+      db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
+      loadDirtySetsFromLocal();
+      return true;
+    }
     db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
     db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
     restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
@@ -4962,21 +4973,23 @@ function saveToLocalStorageSafe() {
     const cutoff = getTrustedDate(); cutoff.setDate(cutoff.getDate() - 14);
     const cutoffStr = formatDateOman(cutoff);
     const safeDb = { ...db, attendance: {}, behaviors: {} };
-    Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr) safeDb.attendance[k] = db.attendance[k]; });
-    Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr) safeDb.behaviors[k] = db.behaviors[k]; });
+    Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.attendance.has(k)) safeDb.attendance[k] = db.attendance[k]; });
+    Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.behaviors.has(k)) safeDb.behaviors[k] = db.behaviors[k]; });
     const dirtyObj = { classes: [...dirtySets.classes], teachers: [...dirtySets.teachers], students: [...dirtySets.students], attendance: [...dirtySets.attendance], behaviors: [...dirtySets.behaviors], duty_reports: [...dirtySets.duty_reports], admin_pin: dirtySets.admin_pin, duty_module: dirtySets.duty_module, custom_categories: dirtySets.custom_categories };
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) {}
     let pd = getPendingDeletes(); if (pd.length > 200) pd = pd.slice(-200); setPendingDeletes(pd);
     localStorage.setItem('abuDujana_db_v30', JSON.stringify(safeDb));
+    return true;
   } catch(e) {
     const quotaExceeded = e?.name === 'QuotaExceededError' || e?.code === 22 || e?.code === 1014;
     if (quotaExceeded) {
       // localStorage is only a cache; preserve the complete offline snapshot in IndexedDB.
       void persistOfflineState().catch(storageError => console.warn('IndexedDB fallback failed; keep the current in-memory state and retry sync.', storageError));
       console.warn('LocalStorage quota reached; saved the durable snapshot through IndexedDB when available.', e);
-      return;
+      return false;
     }
     console.warn('LocalStorage cache write failed; IndexedDB remains the durable store when available.', e);
+    return false;
   }
 }
 function loadDirtySetsFromLocal() {
@@ -5178,9 +5191,13 @@ async function loadSystemDataFromCloud() {
 async function saveSystemDataToCloud(options = {}) {
   if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
   updateSyncStatus(true, "جارِ الحفظ...");
-  saveToLocalStorageSafe();
+  const localCacheSaved = saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
-  if (!durableSaved) updateSyncStatus(false, "تحذير: تعذر تأكيد التخزين المحلي");
+  if (!localCacheSaved && !durableSaved) {
+    updateSyncStatus(false, "تعذر حفظ نسخة محلية آمنة؛ أُوقف الإرسال السحابي");
+    if (!options.silent) showToast("تعذر تأمين نسخة محلية من التعديلات. لم تُرسل إلى الخادم.", "error");
+    return false;
+  }
   try {
     if (dirtySets.classes.size > 0) { const rows = [...dirtySets.classes].map(n => ({ name: n })); await robustUpsert('classes', rows, 'name', 200); dirtySets.classes.clear(); }
     if (dirtySets.teachers.size > 0) {
