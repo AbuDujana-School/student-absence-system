@@ -3077,6 +3077,11 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
               <p id="teacherTimetablePortalCount" class="text-[10px] text-slate-600 dark:text-slate-300">عدد المعلمين المرتبطين: —</p>
               <button id="teacherTimetablePortalToggle" type="button" onclick="timetableToggleTeacherPortal()" class="rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 text-xs font-black text-white disabled:opacity-50" disabled>جارٍ تحميل الحالة...</button>
             </div>
+            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-2">
+              <div class="flex flex-wrap items-center justify-between gap-2"><p class="text-xs font-black text-slate-800 dark:text-white">تخصيص المعلمين الذين يظهر لهم الجدول</p><button type="button" onclick="timetableSaveCustomPortalTeachers()" class="rounded-lg bg-cyan-700 hover:bg-cyan-800 px-3 py-2 text-[10px] font-black text-white">حفظ الاختيار المخصص</button></div>
+              <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">عند تحديد معلمين، يظهر الجدول لهم فقط. اترك القائمة دون تحديد أي معلم للعودة إلى خيار العرض العام. ويظل زر التفعيل العام أعلاه مسؤولاً عن تشغيل الخدمة أو إيقافها.</p>
+              <div id="teacherTimetablePortalTeacherList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto"><span class="text-[10px] text-slate-500">جارٍ تحميل قائمة المعلمين...</span></div>
+            </div>
             <p id="teacherTimetablePortalUpdated" class="text-[10px] text-slate-500 dark:text-slate-400">الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.</p>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بإدارة منظومة الجداول والاحتياط.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
@@ -8863,6 +8868,17 @@ async function timetableLoadPortalStatus() {
       status.className = "rounded-xl border px-3 py-1.5 text-[10px] font-black " + (teacherPortalEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800");
     }
     if (count) count.textContent = "عدد المعلمين المرتبطين بحصص تدريس: " + teacherPortalEligibleCount;
+    const selectedNames = Array.isArray(result.selectedTeacherNames) ? result.selectedTeacherNames : [];
+    const teacherList = document.getElementById("teacherTimetablePortalTeacherList");
+    if (teacherList) {
+      const eligible = Array.isArray(result.eligibleTeachers) ? result.eligibleTeachers : [];
+      teacherList.innerHTML = eligible.length ? eligible.map(item => {
+        const name = String(item?.name || "").trim();
+        if (!name) return "";
+        const checked = selectedNames.includes(name) ? " checked" : "";
+        return '<label class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-200"><input type="checkbox" data-timetable-portal-teacher value="' + escapeHtml(name) + '"' + checked + ' class="rounded border-slate-300"> <span>' + escapeHtml(name) + '</span></label>';
+      }).join("") : '<span class="text-[10px] text-slate-500">لا توجد قائمة معلمين متاحة حالياً.</span>';
+    }
     if (updated) updated.textContent = result.updatedAt
       ? "آخر تحديث للحالة: " + new Date(result.updatedAt).toLocaleString("ar-OM") + (result.updatedBy ? " · بواسطة " + result.updatedBy : "")
       : "الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.";
@@ -8878,6 +8894,19 @@ async function timetableLoadPortalStatus() {
     if (status) status.textContent = "تعذر قراءة الحالة";
     if (button) { button.disabled = true; button.textContent = "تعذر تحميل الحالة"; }
     return null;
+  }
+}
+async function timetableSaveCustomPortalTeachers() {
+  if (activeUser?.type !== "admin") { showToast("تخصيص عرض الجداول متاح للمدير العام فقط.", "error"); return; }
+  const names = Array.from(document.querySelectorAll("[data-timetable-portal-teacher]:checked"))
+    .map(input => String(input.value || "").trim()).filter(Boolean);
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    await appAuthRequest({action:"timetable_portal_set_custom_teachers",teacherNames:names},token);
+    showToast(names.length ? "تم حفظ العرض المخصص لـ " + names.length + " معلماً." : "تم إلغاء التخصيص والعودة إلى العرض العام.", "success");
+    await timetableLoadPortalStatus();
+  } catch (error) {
+    showToast(error?.message || "تعذر حفظ قائمة العرض المخصص.", "error");
   }
 }
 async function timetableToggleTeacherPortal() {
