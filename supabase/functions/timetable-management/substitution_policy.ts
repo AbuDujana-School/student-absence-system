@@ -68,7 +68,7 @@ export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:str
  * (substitution, supervision, or other duty) in the same dated slot blocks them.
  * Workload ranking uses all supplied historical assignment rows, not just this week.
  */
-export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
+export function getAvailableSubstitutionCandidates(query:CandidateQuery):RankedSubstitutionTeacher[] {
   const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate,activeVersionId}=query;
   const cells=new Map<string,{count:number;isFree:boolean}>();
   for(const entry of timetable.filter(e=>sameCell(e,{weekday,period}))){
@@ -85,12 +85,10 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!alreadyBooked.has(t.id))
-    .map(t=>({...t,workload:calculateTeacherWorkload(t.id,activeAssignments,weekday,period,assignmentDate)} as SubstitutionTeacher & {workload:WorkloadBreakdown}))
-    .sort((a,b)=>{
-      const aw=(a as SubstitutionTeacher & {workload:WorkloadBreakdown}).workload;
-      const bw=(b as SubstitutionTeacher & {workload:WorkloadBreakdown}).workload;
-      return aw.score-bw.score||(aw.lastAssignmentDate||"").localeCompare(bw.lastAssignmentDate||"")||a.name.localeCompare(b.name,"ar")||a.id.localeCompare(b.id);
-    });
+    .map(t=>({...t,workload:calculateTeacherWorkload(t.id,activeAssignments,weekday,period,assignmentDate)}))
+    .sort((a,b)=>a.workload.score-b.workload.score||
+      (a.workload.lastAssignmentDate||"").localeCompare(b.workload.lastAssignmentDate||"")||
+      a.name.localeCompare(b.name,"ar")||a.id.localeCompare(b.id));
 }
 /** List only absent teachers the current coordinator is allowed to see. */
 export function getVisibleAbsentTeachers(
