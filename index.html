@@ -7355,8 +7355,7 @@ function handleStudentFileImport(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
   r.onload = async function(evt) {
-    const lines = evt.target.result.replace(/^\uFEFF/, '').split(/\r?
-/).map(x => x.trim()).filter(Boolean);
+    const lines = evt.target.result.replace(/^\uFEFF/, '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
     const s = document.getElementById('adminClassSelect').value;
     if (lines.length > 0) {
       const ol = db.students[s] || []; const nl = arabicSort([...new Set([...ol, ...lines])]); const added = nl.filter(x => !ol.includes(x));
@@ -7722,8 +7721,7 @@ async function bulkAddTeachers(evt) {
   const txt = document.getElementById('bulkTeacherNames').value.trim();
   if (!cat) { showToast('اختر الفئة.', 'error'); return; }
   if (!txt) { showToast('الصق الأسماء.', 'error'); return; }
-  const raw = txt.split(/\r?
-/).map(x => x.trim()).filter(Boolean);
+  const raw = txt.split(/\r?\n/).map(x => x.trim()).filter(Boolean);
   if (raw.length === 0) { showToast('لا أسماء صالحة.', 'error'); return; }
   const uniq = [...new Set(raw)];
   const existing = new Set([...db.teachers.map(t => t.name), ...(db.customUsers || []).map(u => u.name)]);
@@ -9274,8 +9272,7 @@ function timetableReadTextFile(event) {
   })();
 }
 function timetableFindDayHeadings(sourceText) {
-  const lines = String(sourceText || "").split(/\r?
-/);
+  const lines = String(sourceText || "").split(/\r?\n/);
   const headings = [];
   for (let index = 0; index < lines.length; index++) {
     const line = lines[index].trim();
@@ -9288,8 +9285,7 @@ function timetableFindDayHeadings(sourceText) {
 function timetableFindTabularRows(sourceText) {
   const groups = new Map();
   const required = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
-  for (const rawLine of String(sourceText || "").split(/\r?
-/)) {
+  for (const rawLine of String(sourceText || "").split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line.includes("\t")) continue;
     const fields = line.split("\t").map(value => value.trim());
@@ -9305,8 +9301,7 @@ function timetableFindTabularDays(sourceText) {
   return Array.from(timetableFindTabularRows(sourceText).keys());
 }
 function timetableSplitDailyText(sourceText, fallbackWeekday) {
-  const lines = String(sourceText || "").split(/\r?
-/);
+  const lines = String(sourceText || "").split(/\r?\n/);
   const headings = timetableFindDayHeadings(sourceText);
   if (!headings.length) {
     const tabularRows = timetableFindTabularRows(sourceText);
@@ -9365,8 +9360,7 @@ function timetableValidateWeeklyTeacherSets(days) {
 }
 function timetablePreflightTextWorker(sourceText) {
   return new Promise((resolve,reject) => {
-    if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?
-/).length,worker:false}); return; }
+    if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?\n/).length,worker:false}); return; }
     const worker=new Worker("timetable-text.worker.js");
     const panel=document.getElementById("timetableWorkerProgress");
     const bar=document.getElementById("timetableWorkerProgressBar");
