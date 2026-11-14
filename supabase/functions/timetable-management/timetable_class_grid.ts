@@ -20,7 +20,7 @@ export function aggregateClassTimetables(cells: ClassTimetableSourceCell[], week
       if (!classMap.has(className)) classMap.set(className, new Map());
       const slotKey = cell.weekday + ":" + Number(cell.period), slots = classMap.get(className)!;
       if (!slots.has(slotKey)) slots.set(slotKey, []);
-      slots.get(slotKey)!.push({weekday:cell.weekday,period:Number(cell.period),subject:String(cell.subject||""),teacherName:String(cell.matched_teacher_name||cell.teacher_source_name||""),status:String(cell.cell_status||"unclear")});
+      slots.get(slotKey)!.push({weekday:cell.weekday,period:Number(cell.period),subject:String(cell.subject||""),teacherName:String(cell.matched_teacher_name||""),status:String(cell.cell_status||"unclear")});
     }
   }
   return Array.from(classMap.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([className,slots])=>{
