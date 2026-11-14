@@ -4813,7 +4813,7 @@ function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adm
 /* ============ Cloud helpers ============ */
 function getPendingDeletes() { try { return JSON.parse(localStorage.getItem('abuDujana_pendingDeletes') || '[]'); } catch(e) { return []; } }
 function setPendingDeletes(arr) { try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(arr)); } catch(e) {} }
-async function queueCloudDelete(table, filters) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); return false; }
+async function queueCloudDelete(table, filters) { const arr = getPendingDeletes(); if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() }); setPendingDeletes(arr); await persistOfflineState(); updateSyncStatus(false, `${arr.length} طلب حذف بانتظار المراجعة`); return false; }
 // Fail-closed protection: queued deletions are retained for review and are never auto-executed.
 async function flushPendingDeletes() { return false; }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
@@ -7218,7 +7218,7 @@ async function saveBulkStudents() {
   const success = await saveSystemDataToCloud();
   for (const st of rm) await queueCloudDelete('students', { class_name: s, student_name: st });
   loadAdminStudentsList();
-  showToast(success ? (rm.length ? `تم. حُذف ${rm.length}.` : 'تم.') : 'حُفظ محلياً.', success ? 'success' : 'info');
+  showToast(success ? (rm.length ? `تم تحديث القائمة؛ إزالة ${rm.length} من الخادم بانتظار المراجعة.` : 'تم.') : 'حُفظ محلياً.', success ? 'success' : 'info');
 }
 function handleStudentFileImport(e) {
   const f = e.target.files[0]; if (!f) return;
@@ -7243,7 +7243,7 @@ async function removeStudent(className, idx) {
   Object.entries(db.attendance).forEach(([k, s]) => { if (parseAttendanceKey(k).className === className && s.records && s.records[n] !== undefined) { delete s.records[n]; dirtySets.attendance.add(k); } });
   Object.entries(db.behaviors).forEach(([k, s]) => { if (parseAttendanceKey(k).className === className && s.records && s.records[n] !== undefined) { delete s.records[n]; dirtySets.behaviors.add(k); } });
   await saveSystemDataToCloud(); await queueCloudDelete('students', { class_name: className, student_name: n });
-  loadAdminStudentsList(); showToast('تم الحذف.', 'info');
+  loadAdminStudentsList(); showToast('أُزيل الطالب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
 }
 async function addNewClassPrompt() {
   const name = await showPrompt('اسم الصف الجديد:', { title: 'إضافة صف', okText: 'إضافة' });
@@ -7267,7 +7267,7 @@ async function deleteCurrentClass() {
   for (const k of ak) await queueCloudDelete('attendance', { record_key: k });
   for (const k of bk) await queueCloudDelete('behaviors', { record_key: k });
   populateAdminClassSelect(); populateReportClassSelect(); populateBehaviorReportClassSelect(); loadAdminStudentsList(); renderClassesGrid();
-  showToast(`حذف ${s}.`, 'info');
+  showToast(`أُخفي الصف ${s} محلياً؛ حذف بياناته من الخادم بانتظار المراجعة.`, 'info');
 }
 
 /* ============ Teachers admin ============ */
@@ -7321,7 +7321,7 @@ async function deleteCustomCategory(cat) {
   populateCategoryDropdowns();
   renderSubjectDutyDays();
   renderTeachersList();
-  showToast('تم الحذف.', 'info');
+  showToast('أُخفي الحساب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
 }
 
 async function setCategoryDutyDay(category, day) {
@@ -7693,7 +7693,7 @@ async function editTeacherName(idx) {
     renderTeachersList(); showToast('فشل التحديث. لم يتم تغيير الاسم.', 'error'); return;
   }
   await queueCloudDelete('teachers', { name: oldName, role: 'teacher' });
-  renderTeachersList(); showToast('تم تحديث الاسم.', 'success');
+  renderTeachersList(); showToast('تم تحديث الاسم؛ إزالة السجل القديم من الخادم بانتظار المراجعة.', 'info');
   if (activeUser?.name === oldName) {
     activeUser.name = trimmed;
     document.getElementById('activeUserName').textContent = trimmed;
@@ -7821,7 +7821,7 @@ async function deleteCustomUser(idx) {
   db.customUsers.splice(idx, 1); dirtySets.teachers.add(u.name);
   await saveSystemDataToCloud();
   await queueCloudDelete('teachers', { name: u.name, role: 'custom' });
-  renderCustomUsersList(); showToast('تم الحذف.', 'info');
+  renderCustomUsersList(); showToast('أُخفي الحساب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
 }
 
 /* ============ Admin PIN & reset ============ */
@@ -7853,7 +7853,7 @@ async function executeFullReset() {
   for (const k of ak) await queueCloudDelete('attendance', { record_key: k });
   for (const k of bk) await queueCloudDelete('behaviors', { record_key: k });
   document.getElementById('resetPin1').value = ''; document.getElementById('resetPin2').value = '';
-  showToast('تم التصفير!', 'success'); initAdminDashboard();
+  showToast('تم إخفاء السجلات محلياً فقط؛ حذفها من الخادم لم يُنفذ وهو بانتظار المراجعة.', 'info'); initAdminDashboard();
 }
 
 /* ============ Alerts & Daily ============ */
