@@ -139,24 +139,6 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
 
   const fullTokens = teacherNameTokens(source.sourceName);
   const candidateTokens = teacherNameTokens(candidate.name);
-  const compactSource = fullKey.replace(/\\s+/g, "");
-  const compactCandidate = candidateKey.replace(/\\s+/g, "");
-  const editDistance = (a:string,b:string):number => {
-    const row = Array.from({length:b.length+1},(_,i)=>i);
-    for(let i=1;i<=a.length;i++){
-      let diagonal=row[0]; row[0]=i;
-      for(let j=1;j<=b.length;j++){
-        const previous=row[j];
-        row[j]=Math.min(row[j]+1,row[j-1]+1,diagonal+(a[i-1]===b[j-1]?0:1));
-        diagonal=previous;
-      }
-    }
-    return row[b.length];
-  };
-  if(compactSource && compactCandidate){
-    const similarity=1-editDistance(compactSource,compactCandidate)/Math.max(compactSource.length,compactCandidate.length,1);
-    if(similarity>=0.72) score += Math.round(similarity*18);
-  }
   const aliasExact = source.aliases.some((alias) => normalizeArabicName(alias) === candidateKey);
   if (!fullTokens.length || !candidateTokens.length) return aliasExact ? 82 : 0;
 
@@ -167,19 +149,36 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
   if (isOrderedSubsequence(candidateTokens, fullTokens)) {
     score += 20 + Math.max(0, candidateTokens.length - 2) * 4;
   }
-
   const isPrefix = candidateTokens.every((token, index) => fullTokens[index] === token);
   if (isPrefix) score += 25;
-
   const interiorMatches = candidateTokens.slice(1, -1)
     .filter((token) => fullTokens.includes(token)).length;
   score += interiorMatches * 5;
 
-  // An exact workbook alias is useful, but cannot override stronger detailed-name evidence.
+  // Typing/OCR tolerance is a supporting signal, never identity proof by itself.
+  const compactSource = fullKey.replace(/\s+/g, "");
+  const compactCandidate = candidateKey.replace(/\s+/g, "");
+  const editDistance = (a: string, b: string): number => {
+    const row = Array.from({ length: b.length + 1 }, (_, i) => i);
+    for (let i = 1; i <= a.length; i++) {
+      let diagonal = row[0];
+      row[0] = i;
+      for (let j = 1; j <= b.length; j++) {
+        const previous = row[j];
+        row[j] = Math.min(row[j] + 1, row[j - 1] + 1, diagonal + (a[i - 1] === b[j - 1] ? 0 : 1));
+        diagonal = previous;
+      }
+    }
+    return row[b.length];
+  };
+  if (compactSource && compactCandidate) {
+    const similarity = 1 - editDistance(compactSource, compactCandidate) /
+      Math.max(compactSource.length, compactCandidate.length, 1);
+    if (similarity >= 0.72) score += Math.round(similarity * 18);
+  }
   if (aliasExact) score = Math.max(score, 82);
   return score;
 }
-
 /**
  * Explicit identity confirmations supplied by the school.
  * Keys are detailed workbook teacher names; values are existing system teacher names.
