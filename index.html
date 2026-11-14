@@ -3163,7 +3163,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <div class="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 p-5 shadow-2xl space-y-4">
               <div class="flex items-center justify-between gap-3"><h4 id="timetableClassAssignTitle" class="font-black text-sm text-slate-900 dark:text-white">إسناد الحصة الشاغرة</h4><button type="button" onclick="timetableCloseClassAssignModal()" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100" aria-label="إغلاق">✕</button></div>
               <p id="timetableClassAssignContext" class="text-xs text-slate-500"></p>
-              <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">اسم المعلم الكامل (كما في فهرس المعلمين)<input id="timetableClassAssignTeacher" type="text" maxlength="160" autocomplete="off" class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></label>
+              <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">المعلم<select id="timetableClassAssignTeacher" class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"><option value="">حمّل جدول الصفوف أولاً</option></select></label>
               <label class="block text-xs font-bold text-slate-700 dark:text-slate-200">المادة<input id="timetableClassAssignSubject" type="text" maxlength="160" class="mt-1 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-sm dark:bg-slate-900 dark:border-slate-700 dark:text-white"></label>
               <div id="timetableClassAssignStatus" class="hidden rounded-xl border p-3 text-xs font-bold" role="status" aria-live="polite"></div>
               <div class="flex justify-end gap-2"><button type="button" onclick="timetableCloseClassAssignModal()" class="rounded-xl border px-4 py-3 text-xs font-bold">إلغاء</button><button id="timetableClassAssignSave" type="button" onclick="timetableSaveClassVacancyAssignment()" class="rounded-xl bg-emerald-700 px-5 py-3 text-xs font-black text-white">حفظ الإسناد</button></div>
@@ -9580,7 +9580,7 @@ async function timetableSaveClassVacancyAssignment() {
   if (!timetableClassAssignContext) return;
   const button = document.getElementById("timetableClassAssignSave");
   const status = document.getElementById("timetableClassAssignStatus");
-  const teacherName = document.getElementById("timetableClassAssignTeacher")?.value.trim() || "";
+  const teacherName = document.getElementById("timetableClassAssignTeacher")?.value || "";
   const subject = document.getElementById("timetableClassAssignSubject")?.value.trim() || "";
   const showStatus = (message, error=false) => {
     if (!status) return;
@@ -9628,6 +9628,8 @@ async function timetableLoadClassWeeklyGrid() {
     const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
     const response=await appAuthRequest({action:"timetable_class_weekly_get",versionId:timetableClassReviewVersionId||undefined},token);
     if (response.version?.status === "draft") timetableClassReviewVersionId = response.version.id;
+    const teacherSelect=document.getElementById("timetableClassAssignTeacher");
+    if(teacherSelect){const selectedTeacher=teacherSelect.value;teacherSelect.innerHTML='<option value="">اختر المعلم</option>'+(response.teachers||[]).map(name=>'<option value="'+timetableEsc(name)+'">'+timetableEsc(name)+'</option>').join("");if((response.teachers||[]).includes(selectedTeacher))teacherSelect.value=selectedTeacher;}
     const classes=response.classes||[];
     if(select){const selected=select.value;select.innerHTML='<option value="">اختر الصف / الشعبة</option>'+classes.map(item=>'<option value="'+timetableEsc(item.className)+'">'+timetableEsc(item.className)+'</option>').join("");if(classes.some(item=>item.className===selected))select.value=selected;}
     if(!classes.length){host.classList.add("hidden");setStatus("لم تُستخرج أسماء صفوف من النسخة المعتمدة. راجع ربط الصفوف في حصص المعلمين.",true);return;}
