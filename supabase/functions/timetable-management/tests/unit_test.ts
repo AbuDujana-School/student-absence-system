@@ -149,3 +149,20 @@ Deno.test("workbook schema validation blocks drafts missing required core sheets
   assert(invalid.validation.errors.some((message) => message.includes("المعلمون")), "Teacher sheet error should be reported");
   assert(invalid.validation.errors.some((message) => message.includes("الحصص")), "Lessons sheet error should be reported");
 });
+
+Deno.test("previous timetable versions affect fairness but do not block current-version availability", () => {
+  const teachers = [{ id: "teacher", name: "معلم متاح", departmentId: "science" }];
+  const timetable = [{ teacherId: "teacher", weekday: "الأحد", period: 2, className: "", status: "free" as const }];
+  const ranked = getAvailableSubstitutionCandidates({
+    teachers,
+    timetable,
+    assignments: [{
+      substituteTeacherId: "teacher", weekday: "الأحد", period: 2,
+      assignmentDate: "2026-11-14", versionId: "old-version", status: "assigned",
+    }],
+    absentTeacherId: "absent", weekday: "الأحد", period: 2,
+    departmentId: "science", assignmentDate: "2026-11-14", versionId: "active-version",
+  });
+  equal(ranked.length, 1, "Old-version assignment must not block the active timetable cell");
+  assert((ranked[0].workloadScore ?? 0) > 0, "Historical assignment must still increase cumulative workload");
+});
