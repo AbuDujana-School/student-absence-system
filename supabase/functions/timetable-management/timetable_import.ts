@@ -68,6 +68,7 @@ export interface WorkbookImportResult {
   referenceData: Record<string, ImportedReferenceRow[]>;
   placements: ImportedLessonRecord[];
   hasWeeklyPlacements: boolean;
+  schemaValidation: { canSaveDraft:boolean; errors:string[]; warnings:string[]; checkedSheets:string[] };
   warnings: string[];
   totals: {
     importedTeacherRows: number;
@@ -132,6 +133,22 @@ function isOrderedSubsequence(needle: string[], haystack: string[]): boolean {
  * while the live system commonly stores first name + family name. Prefer
  * evidence from the detailed name; use the alias as a strong fallback.
  */
+function normalizedEditSimilarity(left:string,right:string):number {
+  if(left===right)return 1;
+  if(!left||!right)return 0;
+  const a=Array.from(left),b=Array.from(right);
+  if(Math.abs(a.length-b.length)>Math.max(2,Math.floor(Math.max(a.length,b.length)*0.12)))return 0;
+  let previous=Array.from({length:b.length+1},(_,i)=>i);
+  for(let i=1;i<=a.length;i++){
+    const current=[i];
+    for(let j=1;j<=b.length;j++){
+      current[j]=Math.min(current[j-1]+1,previous[j]+1,previous[j-1]+(a[i-1]===b[j-1]?0:1));
+    }
+    previous=current;
+  }
+  return 1-previous[b.length]/Math.max(a.length,b.length);
+}
+
 function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher): number {
   const fullKey = normalizeArabicName(source.sourceName);
   const candidateKey = normalizeArabicName(candidate.name);
@@ -157,8 +174,14 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
     .filter((token) => fullTokens.includes(token)).length;
   score += interiorMatches * 5;
 
-  // An exact workbook alias is useful, but cannot override stronger detailed-name evidence.
+  // Exact workbook aliases remain strong evidence. A very close full-name spelling
+  // match tolerates one small transcription/spacing error, but is never accepted
+  // when a similarly ranked second candidate exists (resolveSystemTeacher handles that).
   if (aliasExact) score = Math.max(score, 82);
+  const compactFull=fullKey.replace(/\\s+/g,"");
+  const compactCandidate=candidateKey.replace(/\\s+/g,"");
+  const similarity=normalizedEditSimilarity(compactFull,compactCandidate);
+  if(compactFull.length>=7&&similarity>=0.92)score=Math.max(score,78+Math.round(similarity*10));
   return score;
 }
 
@@ -609,6 +632,32 @@ export function parseTimetableWorkbook(
   if (unmatchedTeacherNames.length) warnings.push(`يوجد ${unmatchedTeacherNames.length} اسم معلم يحتاج إلى مطابقة مع سجل النظام.`);
   if (ambiguousTeacherNames.length) warnings.push(`يوجد ${ambiguousTeacherNames.length} اسم معلم ملتبس يحتاج إلى مراجعة.`);
 
+  const schemaErrors:string[]=[];
+  const schemaWarnings:string[]=[];
+  const recognizedImportSheets=[teacherSheet,findSheet(sheets,SHEET_ALIASES.lessons),
+    findSheet(sheets,SHEET_ALIASES.contracts),findSheet(sheets,SHEET_ALIASES.classContracts)].filter(Boolean) as string[];
+  if(!recognizedImportSheets.length)schemaErrors.push("لم يتم التعرف على أوراق المعلمين أو الحصص أو العقود.");
+  if(teacherSheet){
+    const headerKeys=Object.keys(teacherRows[0]?.values||{}).map(normalizeHeader);
+    if(!headerKeys.some(key=>["الاسم","الإسم","اسم"].some(alias=>normalizeHeader(alias)===key)))
+      schemaErrors.push("ورقة المعلمين موجودة لكن عمود اسم المعلم غير موجود أو عنوانه غير معروف.");
+    if(!teacherRows.length)schemaErrors.push("ورقة المعلمين لا تحتوي على صفوف بيانات قابلة للقراءة.");
+  }else schemaWarnings.push("ورقة المعلمين غير موجودة؛ ستبقى مطابقة الأسماء يدوية.");
+  for(const key of ["lessons","contracts","classContracts"] as const){
+    const sheetName=findSheet(sheets,SHEET_ALIASES[key]);
+    if(!sheetName)continue;
+    const objects=rowsToObjects(sheets[sheetName]);
+    if(!objects.length){schemaErrors.push("ورقة "+sheetName+" لا تحتوي على صف عناوين وبيانات صالح.");continue;}
+    const headerKeys=Object.keys(objects[0].values).map(normalizeHeader);
+    const hasTeacher=headerKeys.some(key=>["المعلم","المعلمون","اسم المعلم"].some(alias=>normalizeHeader(alias)===key));
+    const hasClass=headerKeys.some(key=>["الشعب","الشعبة","الفصل","الصف"].some(alias=>normalizeHeader(alias)===key));
+    const hasSubject=headerKeys.some(key=>["المادة","اسم المادة"].some(alias=>normalizeHeader(alias)===key));
+    if(!hasTeacher&&!hasClass&&!hasSubject)schemaErrors.push("تعذر التعرف على أعمدة المعلم والصف والمادة في ورقة "+sheetName+".");
+  }
+  if(!allRecords.length)schemaWarnings.push("لم تُستخرج سجلات حصص؛ راجع أسماء الأعمدة والصفوف الفارغة.");
+  const schemaValidation={canSaveDraft:schemaErrors.length===0,errors:schemaErrors,warnings:schemaWarnings,checkedSheets:recognizedImportSheets};
+  warnings.push(...schemaWarnings,...schemaErrors.map(error=>"خطأ مخطط: "+error));
+
   return {
     schemaVersion: 1,
     sourceSheets,
@@ -619,6 +668,7 @@ export function parseTimetableWorkbook(
     referenceData,
     placements,
     hasWeeklyPlacements: placements.length > 0,
+    schemaValidation,
     warnings,
     totals: {
       importedTeacherRows: teachers.length,
