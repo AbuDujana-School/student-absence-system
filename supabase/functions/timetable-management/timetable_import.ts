@@ -175,7 +175,7 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
   if (compactSource && compactCandidate) {
     const similarity = 1 - editDistance(compactSource, compactCandidate) /
       Math.max(compactSource.length, compactCandidate.length, 1);
-    if (similarity >= 0.72) score += Math.round(similarity * 18);
+    if (similarity >= 0.72) score += Math.round(similarity * 55);
   }
   if (aliasExact) score = Math.max(score, 82);
   return score;
