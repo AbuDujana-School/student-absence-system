@@ -9449,7 +9449,7 @@ function timetableDailyRenderLessons() {
       const assignment = lesson.assignment;
       const status = assignment?.status === "confirmed" ? "مؤكد" : assignment?.status === "completed" ? "مكتمل" : "مسند";
       const options = candidates.map(candidate =>
-        '<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+' (عبء: '+Number(candidate.workloadScore || 0)+')</option>'
+        '<option value="'+timetableEsc(candidate.name)+'">'+timetableEsc(candidate.name)+' (نصاب: '+Number(candidate.weeklyQuota || 0)+' | احتياط: '+Number(candidate.substitutionsCount || 0)+')</option>'
       ).join("");
       let choice = "";
       if (assignment) {
@@ -9565,13 +9565,13 @@ async function timetableDailyAutoAssign() {
 }
 
 async function timetableDailyShareWhatsApp() {
+  if (!timetableDailyAbsentTeachers.length) {
+    timetableSubstitutionSetStatus("أضف المعلمين الغائبين أولاً.","error");
+    return;
+  }
   const popup = window.open('about:blank','_blank');
   if (!popup) {
     timetableSubstitutionSetStatus('اسمح بالنوافذ المنبثقة لمشاركة كشف واتساب.','error');
-    return;
-  }
-  if (!timetableDailyAbsentTeachers.length) {
-    timetableSubstitutionSetStatus("أضف المعلمين الغائبين أولاً.","error");
     return;
   }
   await timetableDailyRefreshAll();
@@ -9589,6 +9589,7 @@ async function timetableDailyShareWhatsApp() {
     }
   }
   if (!count) {
+    popup.close();
     timetableSubstitutionSetStatus("لا توجد حصص لعرضها في كشف اليوم.","info");
     return;
   }
