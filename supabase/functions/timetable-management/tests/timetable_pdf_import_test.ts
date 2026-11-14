@@ -111,4 +111,15 @@ Deno.test("PDF vector path reader extracts horizontal cell dividers", () => {
   const operatorList={fnArray:[99],argsArray:[[new Uint8Array([1,2,2]),new Float32Array([110,643,201,643,201,538])]]};
   const lines=extractHorizontalLinesFromOperatorList(operatorList,OPS);
   if(lines.length!==1||lines[0].x1!==110||lines[0].x2!==201||lines[0].y!==643)throw new Error("The PDF path operator was not converted into a horizontal divider");
+  const rectangleList={fnArray:[99],argsArray:[[new Uint8Array([3]),new Float32Array([110,643,91,4.8])]]};
+  const rectangleLines=extractHorizontalLinesFromOperatorList(rectangleList,OPS);
+  if(rectangleLines.length!==2||rectangleLines[0].x2-rectangleLines[0].x1!==91)throw new Error("Thin rectangular grid lines must also be extracted");
+
+});
+
+Deno.test("PDF parser fails closed when grid geometry is unavailable", () => {
+  const page=makeTeacherPage(2);
+  page.horizontalLines=[];
+  const parsed=parseTimetablePdfPages([page]);
+  if(!parsed.diagnostics.blockingErrors.some(item=>item.includes("حدود الخانات")))throw new Error("A page without verifiable grid lines must block import rather than guess merged cells");
 });
