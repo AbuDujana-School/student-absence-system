@@ -408,13 +408,16 @@ async function handle(req: Request) {
       const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin");
       if(!absentTeacherName)return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
-      const {data:assignmentRows,error:assignmentError}=await db.from("timetable_assignments").select("id,source_cell_id,teacher_name,weekday,period,status,assignment_date").eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
+      // Include every active assignment type, not only substitutions: a registered duty
+      // must both block the same period and contribute to the fairness workload.
+      const {data:assignmentRows,error:assignmentError}=await db.from("timetable_assignments")
+        .select("id,source_cell_id,teacher_name,assignment_type,weekday,period,status,assignment_date")
+        .eq("version_id",activeVersion.id).in("status",["assigned","confirmed","completed"]);
       if(assignmentError)throw assignmentError;
-      const selectedDate=date?new Date(date+"T12:00:00"):null;
-      const weekStart=selectedDate?new Date(selectedDate.getFullYear(),selectedDate.getMonth(),selectedDate.getDate()-selectedDate.getDay(),12):null;
-      const weekEnd=weekStart?new Date(weekStart.getFullYear(),weekStart.getMonth(),weekStart.getDate()+4,12):null;
-      const iso=(v:Date)=>v.getFullYear()+"-"+String(v.getMonth()+1).padStart(2,"0")+"-"+String(v.getDate()).padStart(2,"0");
-      const assignments:SubstitutionAssignment[]=(assignmentRows||[]).filter((x:any)=>!x.assignment_date||!weekStart||(x.assignment_date>=iso(weekStart)&&x.assignment_date<=iso(weekEnd!))).map((x:any)=>({substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,status:x.status}));
+      const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({
+        substituteTeacherId:String(x.teacher_name),weekday:String(x.weekday),period:Number(x.period),
+        assignmentDate:x.assignment_date||null,status:x.status,assignmentType:String(x.assignment_type||"unknown")
+      }));
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({id:t.name,name:t.name,departmentId:t.departmentId}));
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
