@@ -158,7 +158,7 @@ Deno.test("previous timetable versions affect fairness but do not block current-
     timetable,
     assignments: [{
       substituteTeacherId: "teacher", weekday: "الأحد", period: 2,
-      assignmentDate: "2026-11-14", versionId: "old-version", status: "assigned",
+      assignmentDate: "2026-11-13", versionId: "old-version", status: "assigned",
     }],
     absentTeacherId: "absent", weekday: "الأحد", period: 2,
     departmentId: "science", assignmentDate: "2026-11-14", versionId: "active-version",
