@@ -10638,7 +10638,7 @@ async function timetableImportWorkbook() {
   }
 }
 
-async async function timetableCreateWeeklyDraftFromExcel(placements, importedTeachers, token) {
+async function timetableCreateWeeklyDraftFromExcel(placements, importedTeachers, token) {
   const weekdays=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
   const periodCount=(placements||[]).some(record=>Number(record.period)===8)?8:7;
   const teacherMap=new Map();
