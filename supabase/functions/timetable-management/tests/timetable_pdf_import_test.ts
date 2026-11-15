@@ -42,7 +42,7 @@ function makeRotatedTeacherPage(pageNumber=2,withLesson=true){
  const dayEdges=[dayX[0]-45-13.5, ...dayX.slice(0,4).map((x,i)=>(x+dayX[i+1])/2-13.5), dayX[4]+45-13.5];
  for(let day=0;day<5;day++)for(let p=0;p<6;p++){
   const boundary=((periodY[p]+29)+(periodY[p+1]+29))/2;
-  verticalLines.push({x:boundary,y1:dayEdges[day],y2:dayEdges[day+1]});
+  verticalLines.push({x:842-boundary-29,y1:dayEdges[day],y2:dayEdges[day+1]});
  }
  return {pageNumber,width:842,height:595,items,verticalLines,horizontalLines:[]};
 }
