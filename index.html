@@ -11387,7 +11387,7 @@ async function timetableSaveOwner() {
       html+='</div></div>';
     });
     const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><span class="font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="font-black text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+' · محفوظ</span></div>';}).join('')+'</div></div>':'';
-    root.innerHTML=existingHtml+(html||'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>');
+    root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>'));
     root.querySelectorAll('select[data-substitution-row]').forEach(function(select){
       select.addEventListener('change',function(){
         const row=Number(select.dataset.substitutionRow);
