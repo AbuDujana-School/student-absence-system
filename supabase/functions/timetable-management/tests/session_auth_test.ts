@@ -20,6 +20,7 @@ function storeWith(
     teacher?: { name: string; role: string } | null;
     access?: boolean;
     linkedPortalAccess?: boolean;
+    reservePermission?: boolean;
     calls?: string[];
   } = {},
 ): TimetableAuthStore {
@@ -44,6 +45,10 @@ function storeWith(
     async hasLinkedTeacherPortalAccess(name) {
       calls.push("linked-portal:" + name);
       return options.linkedPortalAccess === true;
+    },
+    async hasSubstitutionAccess(name) {
+      calls.push("reserve:" + name);
+      return options.reservePermission === true;
     },
   };
 }
@@ -169,12 +174,14 @@ Deno.test("authorized non-admin users can manage only department-scoped substitu
     "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
   ];
   for (const action of allowed) {
-    if (!canUseTimetableAction("teacher", action)) throw new Error("Expected read action to be allowed: " + action);
+    if (!canUseTimetableAction("teacher", action, false, true)) throw new Error("Expected reserve-authorized teacher action to be allowed: " + action);
     if (!canUseTimetableAction("custom", action)) throw new Error("Expected custom read action to be allowed: " + action);
   }
   for (const action of [
     "timetable_preview", "timetable_save_import", "timetable_set_access", "timetable_activate_weekly_version",
     "timetable_mutate_record", "timetable_reassign_owner",
+    "timetable_substitution_batch_preview", "timetable_substitution_batch_save",
+    "timetable_substitution_archive", "timetable_substitution_update", "timetable_substitution_update_batch",
   ]) {
     if (canUseTimetableAction("teacher", action)) throw new Error("Teacher write action was allowed: " + action);
     if (canUseTimetableAction("custom", action)) throw new Error("Custom write action was allowed: " + action);
@@ -182,6 +189,30 @@ Deno.test("authorized non-admin users can manage only department-scoped substitu
   }
 });
 
+
+Deno.test("reserve-only teachers receive narrowly scoped reserve access", async () => {
+  const session = { principal_type: "teacher", principal_name: "Reserve Teacher", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Reserve Teacher", role: "teacher" },
+    reservePermission: true,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
+  if (principal?.type !== "teacher" || principal.portalOnly === true) {
+    throw new Error("Teacher with explicit reserve permission did not receive reserve access");
+  }
+  for (const action of [
+    "timetable_substitution_preview", "timetable_substitution_batch_preview",
+    "timetable_substitution_batch_save", "timetable_substitution_archive",
+    "timetable_substitution_update", "timetable_substitution_update_batch",
+  ]) {
+    if (!canUseTimetableAction("teacher", action, false, true)) {
+      throw new Error("Explicit reserve permission denied action: " + action);
+    }
+  }
+  if (canUseTimetableAction("teacher", "timetable_activate_weekly_version", false, true)) {
+    throw new Error("Reserve permission granted unrelated timetable administration");
+  }
+});
 
 Deno.test("linked teachers receive portal-only access only when the school portal is enabled", async () => {
   const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
@@ -222,7 +253,10 @@ Deno.test("explicit timetable permissions keep their existing scoped substitutio
   });
   const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
   if (principal?.portalOnly === true) throw new Error("Explicit timetable permission was downgraded");
-  if (!canUseTimetableAction("teacher", "timetable_substitution_preview")) {
-    throw new Error("Existing substitution capability was changed");
+  if (canUseTimetableAction("teacher", "timetable_substitution_preview")) {
+    throw new Error("General timetable access must not grant reserve permission automatically");
+  }
+  if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, true)) {
+    throw new Error("Explicit reserve permission was not honored");
   }
 });
