@@ -18,6 +18,10 @@ const WEEKLY_CELL_FETCH_LIMIT = 25000;
 async function fetchAllTimetableCells(queryForRange: (from:number,to:number)=>any): Promise<any[]> {
   return fetchAllTimetablePages(queryForRange, TIMETABLE_CELL_PAGE_SIZE, WEEKLY_CELL_FETCH_LIMIT);
 }
+async function fetchAllSubstitutionRows(queryForRange: (from:number,to:number)=>any): Promise<any[]> {
+  // Historical fairness and points must not silently stop at the weekly-grid row limit.
+  return fetchAllTimetablePages(queryForRange, TIMETABLE_CELL_PAGE_SIZE, 100000);
+}
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -849,7 +853,7 @@ async function handle(req: Request) {
         db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status")
           .eq("version_id",activeVersion.id).order("id").range(from,to)),
-        fetchAllTimetableCells((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
+        fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
           .order("id").range(from,to)),
       ]);
       if (dutySettingsResult.error) throw dutySettingsResult.error;
@@ -903,17 +907,22 @@ async function handle(req: Request) {
       const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin");
       if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
-      const assignmentRows=await fetchAllTimetableCells((from,to)=>db.from("timetable_assignments")
+      const assignmentRows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
         .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date")
         .in("status",["assigned","confirmed","completed"]).order("id").range(from,to));
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
       const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),absentTeacherId:String(x.absent_teacher_name||""),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),status:x.status}));
+      const pointsBalanceByTeacher=new Map<string,number>();
+      for(const entry of pointsLedger||[]){
+        const name=String(entry.teacher_name||"");
+        pointsBalanceByTeacher.set(name,(pointsBalanceByTeacher.get(name)||0)+Number(entry.points_delta||0));
+      }
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
         dutyDay:String(t.personalDutyDay||dutySubjectDays[t.departmentId]||""),
         weeklyQuota:weeklyQuotaByTeacher.get(t.name)||0,
-        pointsBalance:(pointsLedger||[]).filter((entry:any)=>String(entry.teacher_name)===t.name).reduce((sum:number,entry:any)=>sum+Number(entry.points_delta||0),0),
+        pointsBalance:pointsBalanceByTeacher.get(t.name)||0,
       }));
       if(body.action==="timetable_substitution_batch_save"){
         const assignmentDate=String(body.assignmentDate||"");
@@ -963,7 +972,7 @@ async function handle(req: Request) {
         const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution");
         const stats=visible.map((teacher:any)=>{
           const own=activeRows.filter((row:any)=>String(row.teacher_name)===teacher.name);
-          const points=(pointsLedger||[]).filter((entry:any)=>String(entry.teacher_name)===teacher.name).reduce((sum:number,entry:any)=>sum+Number(entry.points_delta||0),0);
+          const points=pointsBalanceByTeacher.get(teacher.name)||0;
           const periods=Array.from({length:8},(_,i)=>({period:i+1,count:own.filter((row:any)=>Number(row.period)===i+1).length}));
           const coveredAbsenceDays=new Set(activeRows.filter((row:any)=>String(row.absent_teacher_name)===teacher.name).map((row:any)=>String(row.assignment_date||row.weekday))).size;
           return {teacherName:teacher.name,pointsBalance:points,substitutionCount:own.length,coveredAbsenceDays,periods};

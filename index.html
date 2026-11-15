@@ -11375,7 +11375,7 @@ async function timetableSaveOwner() {
         const options=(item.candidateOptions||[]).map(function(option){
           const occupied=(option.occupiedPeriods||[]).join('، ')||'لا توجد حصص تدريس';
           const warnings=(option.createsThreeConsecutive?' ⚠ ثلاث متتالية':'')+(option.adjacent?' · حصة مجاورة':'');
-          const label=option.teacherName+' · شغال: '+occupied+' · الرصيد: '+option.pointsBalance+' · نصاب اليوم: '+option.dailyTeachingCount+warnings;
+          const label=option.teacherName+' · شغال: '+occupied+' · الرصيد: '+option.pointsBalance+' · احتياط اليوم: '+option.dailySubstitutionCount+' · نصاب اليوم: '+option.dailyTeachingCount+warnings;
           return '<option value="'+esc(option.teacherName)+'" '+(option.teacherName===item.substituteTeacherName?'selected':'')+'>'+esc(label)+'</option>';
         }).join('');
         html+='<div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">'+
