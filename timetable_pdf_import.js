@@ -32,7 +32,7 @@ export function transformPdfTextItem(item, matrix) {
   ]};
 }
 export function transformPdfGridLines(horizontal, vertical, matrix) {
-  const result = {horizontalLines:[],verticalLines:[]};
+  const result: {horizontalLines:Array<{x1:number,x2:number,y:number}>,verticalLines:Array<{x:number,y1:number,y2:number}>} = {horizontalLines:[],verticalLines:[]};
   const add = (start,end) => {
     const x1=matrix[0]*start.x+matrix[2]*start.y+matrix[4], y1=matrix[1]*start.x+matrix[3]*start.y+matrix[5];
     const x2=matrix[0]*end.x+matrix[2]*end.y+matrix[4], y2=matrix[1]*end.x+matrix[3]*end.y+matrix[5];
