@@ -95,6 +95,7 @@ function fillMissingPeriods(teacher: ParsedTimetableTeacher, periodCount: number
 function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): ParsedTimetableDay | null {
   const teachers: ParsedTimetableTeacher[]=[];
   const byName=new Map<string,ParsedTimetableTeacher>();
+  const warnings:string[]=[];
   let recognizedRows=0;
   const lines=sourceText.split(/\r?\n/);
   for(let index=0;index<lines.length;index++){
@@ -108,10 +109,11 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
     if(rowDay!==day) throw new Error("السطر "+(index+1)+" يخص يوم "+rowDay+" وليس يوم "+day+".");
     const sourceName=fields[0];
     const period=parsePeriod(fields[2]||"");
-    if(!sourceName) throw new Error("اسم المعلم فارغ في السطر "+(index+1)+".");
-    if(!period) throw new Error("رقم الحصة غير معروف في السطر "+(index+1)+": "+(fields[2]||"فارغ")+".");
+    if(!sourceName){warnings.push("السطر "+(index+1)+": اسم المعلم فارغ؛ تم تجاوز السطر.");continue;}
+    if(!period){warnings.push("السطر "+(index+1)+": رقم الحصة غير معروف؛ تم تجاوز السطر.");continue;}
     if(fields[3]===undefined||fields[4]===undefined||fields[5]===undefined||!fields[3]||!fields[4]||!fields[5]){
-      throw new Error("بيانات الصف أو المادة أو الحالة ناقصة في السطر "+(index+1)+". لا أملأ البيانات الناقصة بالتخمين.");
+      warnings.push("السطر "+(index+1)+": بيانات الصف أو المادة أو الحالة ناقصة؛ تم تجاوز السطر دون تخمين.");
+      continue;
     }
     const key=normalizedKey(sourceName);
     let teacher=byName.get(key);
@@ -121,11 +123,12 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
     const existing=teacher.cells.find(cell=>cell.period===period);
     if(existing){
       if(existing.status!==status || normalizedKey(existing.sourceSubject)!==normalizedKey(sourceSubject) || normalizedKey(existing.sourceStatus)!==normalizedKey(sourceStatus)){
-        throw new Error("للمعلم «"+sourceName+"» أكثر من تكليف متعارض في الحصة "+period+" يوم "+day+". راجع الصفوف قبل الاستيراد.");
+        warnings.push("المعلم «"+sourceName+"» لديه تكليفان متعارضان في الحصة "+period+" يوم "+day+"؛ تم الاحتفاظ بأول سجل.");
+      } else {
+        existing.classSections=Array.from(new Set([...existing.classSections,...parseClassSections(sourceClass)]));
+        if(!existing.sourceClass.split(" | ").includes(sourceClass)) existing.sourceClass+=" | "+sourceClass;
+        if(sourceNote && !existing.sourceNote?.split(" | ").includes(sourceNote)) existing.sourceNote=[existing.sourceNote,sourceNote].filter(Boolean).join(" | ");
       }
-      existing.classSections=Array.from(new Set([...existing.classSections,...parseClassSections(sourceClass)]));
-      if(!existing.sourceClass.split(" | ").includes(sourceClass)) existing.sourceClass+=" | "+sourceClass;
-      if(sourceNote && !existing.sourceNote?.split(" | ").includes(sourceNote)) existing.sourceNote=[existing.sourceNote,sourceNote].filter(Boolean).join(" | ");
       continue;
     }
     teacher.cells.push({period,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(sourceNote?{sourceNote}:{})});
@@ -176,8 +179,9 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
     if(cell.sourceClass===undefined)missing.push("الصف والشعبة");
     if(cell.sourceSubject===undefined)missing.push("المادة");
     if(cell.sourceStatus===undefined)missing.push("الحالة");
-    if(missing.length)throw new Error("بيانات الحصة قرب السطر "+cellStartLine+" غير مكتملة: "+missing.join("، "));
-    if(!teacher)throw new Error("تعذر ربط الحصة بمعلم قرب السطر "+cellStartLine+".");
+    if(missing.length){warnings.push("بيانات الحصة قرب السطر "+cellStartLine+" غير مكتملة ("+missing.join("، ")+")؛ تم تجاوزها.");cell=null;return;}
+    if(!Number.isInteger(cell.period)||cell.period!<1||cell.period!>8){warnings.push("رقم الحصة قرب السطر "+cellStartLine+" غير صالح؛ تم تجاوز الخانة.");cell=null;return;}
+    if(!teacher){warnings.push("تعذر ربط الحصة بمعلم قرب السطر "+cellStartLine+"؛ تم تجاوز الخانة.");cell=null;return;}
     const sourceClass=cell.sourceClass!,sourceSubject=cell.sourceSubject!,sourceStatus=cell.sourceStatus!;
     const status=statusFromSource(sourceStatus);
     teacher.cells.push({period:cell.period!,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(cell.sourceNote?{sourceNote:cell.sourceNote}:{})});
@@ -194,8 +198,8 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
     const dayHeading=line.match(/^(?:جدول\s+)?اليوم(?:\s+\S+)?\s*:\s*(.+)$/)||line.match(/^جدول\s+يوم\s+(.+)$/);
     if(dayHeading){
       const declaredDay=weekdayFromSource(dayHeading[1]);
-      if(!declaredDay)throw new Error("اسم اليوم في العنوان غير معروف عند السطر "+(i+1)+": "+dayHeading[1]);
-      if(declaredDay!==day)throw new Error("النص يحتوي على جدول يوم "+declaredDay+" بينما اليوم المختار هو "+day+".");
+      if(!declaredDay)warnings.push("السطر "+(i+1)+": عنوان اليوم غير معروف ("+dayHeading[1]+").");
+      else if(declaredDay!==day)warnings.push("السطر "+(i+1)+": عنوان اليوم "+declaredDay+" لا يطابق اليوم المحدد "+day+".");
       continue;
     }
     const namedTeacher=line.match(/^[-•]?\s*اسم\s*المعلم\s*:\s*(.+?)\s*$/);
@@ -204,23 +208,26 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
     if(teacherHeader){
       finishTeacher();
       const name=cleanLine(namedTeacher?namedTeacher[1]:numberedTeacher![1]),key=normalizedKey(name);
-      if(!name||seenNames.has(key))throw new Error("اسم المعلم فارغ أو مكرر عند السطر "+(i+1)+": "+name);
-      seenNames.add(key);teacher={sourceName:name,pdfPage:numberedTeacher&&numberedTeacher[2]?Number(numberedTeacher[2]):null,cells:[]};continue;
+      if(!name){warnings.push("السطر "+(i+1)+": اسم المعلم فارغ؛ تم تجاوز العنوان.");teacher=null;continue;}
+      const existingTeacher=teachers.find(item=>normalizedKey(item.sourceName)===key);
+      if(existingTeacher){warnings.push("اسم المعلم «"+name+"» مكرر؛ جُمعت سجلاته في سجل واحد.");teacher=existingTeacher;}
+      else{seenNames.add(key);teacher={sourceName:name,pdfPage:numberedTeacher&&numberedTeacher[2]?Number(numberedTeacher[2]):null,cells:[]};}
+      continue;
     }
     const pageOnly=line.match(/^صفحة\s*PDF\s*:\s*(\d+)$/i);
     if(pageOnly&&teacher&&!teacher.cells.length&&!cell){teacher.pdfPage=Number(pageOnly[1]);continue;}
     const periodLine=line.match(/^الحصة\s+(.+?)\s*:\s*$/);
     if(periodLine){
       finishCell();
-      if(!teacher)throw new Error("ظهرت حصة قبل اسم المعلم عند السطر "+(i+1)+".");
+      if(!teacher){warnings.push("ظهرت حصة قبل اسم المعلم عند السطر "+(i+1)+"؛ تم تجاوزها.");cell=null;continue;}
       const period=parsePeriod(periodLine[1]);
-      if(!period)throw new Error("رقم الحصة غير معروف عند السطر "+(i+1)+": "+periodLine[1]);
-      if(teacher.cells.some(v=>v.period===period))throw new Error("الحصة "+period+" مكررة للمعلم «"+teacher.sourceName+"».");
+      if(!period){warnings.push("رقم الحصة غير معروف عند السطر "+(i+1)+": "+periodLine[1]+"؛ تم تجاوزها.");cellStartLine=i+1;cell={period:0};continue;}
+      if(teacher.cells.some(v=>v.period===period)){warnings.push("الحصة "+period+" مكررة للمعلم «"+teacher.sourceName+"»؛ تم تجاوز النسخة اللاحقة.");cellStartLine=i+1;cell={period:0};continue;}
       cellStartLine=i+1;cell={period};continue;
     }
     const field=line.match(/^[-•]?\s*(الصف\s*والشعبة|الصف|الشعبة|المادة|الحالة|الملاحظة|ملاحظات)\s*:\s*(.*)$/);
     if(field){
-      if(!cell||!teacher)throw new Error("وجدت خانة بيانات دون عنوان حصة عند السطر "+(i+1)+".");
+      if(!cell||!teacher){warnings.push("السطر "+(i+1)+": بيانات دون عنوان حصة أو اسم معلم؛ تم تجاوزها.");continue;}
       const key=normalizedKey(field[1]),value=cleanLine(field[2]);
       if(key.startsWith("الصف")||key==="الشعبه")cell.sourceClass=value;
       else if(key==="الماده")cell.sourceSubject=value;
