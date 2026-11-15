@@ -103,6 +103,12 @@ const timetableAuthStore: TimetableAuthStore = {
       .eq("weekday", weekday).neq("status", "cancelled").limit(1).maybeSingle();
     return !error && !!data;
   },
+  async hasSchoolwideReserveStatsAccess(type, name) {
+    const { data, error } = await db.from("timetable_reserve_stats_access")
+      .select("principal_name").eq("principal_type", type)
+      .eq("principal_name", name).maybeSingle();
+    return !error && !!data;
+  },
 };
 
 async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
@@ -187,7 +193,7 @@ async function handle(req: Request) {
   const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
     ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
     : false;
-  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission)) {
+  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true)) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط الممنوحة صراحةً؛ تحقق من صلاحيات حسابك." });
   }
 
@@ -901,6 +907,66 @@ async function handle(req: Request) {
     }
   }
 
+  if (action === "timetable_reserve_stats_access_list") {
+    if (principal.type !== "admin") return reply(403, { error: "إدارة صلاحية الإحصائيات العامة متاحة لمدير النظام العام فقط." });
+    const [{ data: users, error: usersError }, { data: grants, error: grantsError }] = await Promise.all([
+      db.from("teachers").select("name,role").in("role", ["teacher","custom"]).order("name"),
+      db.from("timetable_reserve_stats_access").select("principal_type,principal_name,granted_by,updated_at"),
+    ]);
+    if (usersError) throw usersError;
+    if (grantsError) throw grantsError;
+    const granted = new Set((grants || []).map((row:any) => String(row.principal_type)+":"+String(row.principal_name)));
+    return reply(200, { ok:true, users:(users||[]).map((user:any)=>({
+      principalType:String(user.role), principalName:String(user.name),
+      enabled:granted.has(String(user.role)+":"+String(user.name)),
+    })) });
+  }
+
+  if (action === "timetable_reserve_stats_access_save") {
+    if (principal.type !== "admin") return reply(403, { error: "إدارة صلاحية الإحصائيات العامة متاحة لمدير النظام العام فقط." });
+    if (!Array.isArray(body.grants) || body.grants.length > 500) return reply(400,{error:"قائمة الصلاحيات غير صالحة."});
+    const grants = body.grants.map((item:any)=>({
+      principal_type:String(item?.principalType||""),
+      principal_name:String(item?.principalName||"").trim(),
+      enabled:item?.enabled===true,
+    }));
+    if (grants.some((item:any)=>!["teacher","custom"].includes(item.principal_type)||!item.principal_name||typeof item.enabled!=="boolean")) {
+      return reply(400,{error:"توجد بيانات غير صالحة في قائمة الصلاحيات."});
+    }
+    const {data,error}=await db.rpc("set_timetable_reserve_stats_access",{p_payload:{actor_name:principal.name,grants}});
+    if(error)throw error;
+    return reply(200,{ok:true,result:data});
+  }
+
+  if (action === "timetable_substitution_reset_options") {
+    if (principal.type !== "admin") return reply(403,{error:"تفريغ سجلات الاحتياط متاح لمدير النظام العام فقط."});
+    const date=String(body.assignmentDate||"").trim();
+    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !isValidSubstitutionDate(date)) return reply(400,{error:"اختر تاريخاً دراسياً صحيحاً."});
+    const {data,error}=await db.from("timetable_assignments").select("subject")
+      .eq("assignment_type","substitution").eq("assignment_date",date)
+      .in("status",["assigned","confirmed"]);
+    if(error)throw error;
+    const subjects=[...new Set((data||[]).map((row:any)=>String(row.subject||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
+    return reply(200,{ok:true,subjects});
+  }
+
+  if (action === "timetable_substitution_reset") {
+    if (principal.type !== "admin") return reply(403,{error:"تفريغ سجلات الاحتياط متاح لمدير النظام العام فقط."});
+    const mode=String(body.mode||"");
+    const date=String(body.assignmentDate||"").trim();
+    const subject=String(body.subject||"").trim();
+    if(mode==="subject_day" && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
+      return reply(400,{error:"حدد التاريخ والمادة المراد تفريغ احتياطها."});
+    }
+    if(!["subject_day","all_active"].includes(mode)) return reply(400,{error:"نوع التفريغ غير معروف."});
+    const {data,error}=await db.rpc("reset_timetable_substitution_records",{p_payload:{
+      actor_name:principal.name,actor_type:"admin",mode,assignment_date:mode==="subject_day"?date:null,
+      subject:mode==="subject_day"?subject:null,
+    }});
+    if(error)throw error;
+    return reply(200,{ok:true,result:data});
+  }
+
   if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action || ""))) {
     try {
       const actionName=String(body.action||"");
@@ -934,7 +1000,7 @@ async function handle(req: Request) {
       })));
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
-      if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
+      if(principal.type!=="admin"&&!actorDepartmentId&&!principal.schoolwideReserveStats)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
       const absentTeacherName=String(body.absentTeacherName||"").trim();
       const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true);
       if (body.action==="timetable_substitution_cancel") {
@@ -1100,7 +1166,7 @@ async function handle(req: Request) {
         return reply(200,{ok:true,active:true,version:activeVersion,weekday,assignmentDate,absentTeachers:selectedNames,existingAssignments,...plan});
       }
       if(body.action==="timetable_substitution_stats"){
-        const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||includeOtherDepartments||teacher.departmentId===actorDepartmentId));
+        const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||principal.schoolwideReserveStats===true||teacher.departmentId===actorDepartmentId));
         const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&row.status!=="cancelled");
         const stats=visible.map((teacher:any)=>{
           const own=activeRows.filter((row:any)=>String(row.teacher_name)===teacher.name);
