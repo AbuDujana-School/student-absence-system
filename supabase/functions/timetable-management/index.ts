@@ -248,7 +248,7 @@ async function handle(req: Request) {
     const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
       (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
     const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
-      .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason")
+      .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,created_at,reserve_created_at")
       .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
       .order("assignment_date").order("period").order("id").range(from,to));
     const archive=(rows||[]).filter((row:any)=>visibleNames.has(String(row.absent_teacher_name||"")))
@@ -256,7 +256,8 @@ async function handle(req: Request) {
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
-        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)),
+        createdAt:row.reserve_created_at||row.created_at||null,
+        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&Date.parse(row.reserve_created_at||row.created_at||"")>Date.now()-20*60*60*1000),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
