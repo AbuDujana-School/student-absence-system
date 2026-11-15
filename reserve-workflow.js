@@ -608,6 +608,10 @@
     return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",numberingSystem:"latn",timeZone:"Asia/Muscat"}).format(date);
   }
   function formatReservePrintPeriod(period){return ({1:"١",2:"٢",3:"٣",4:"٤",5:"٥",6:"٦",7:"٧",8:"٨"})[Number(period)]||String(period);}
+  function formatReservePrintFullDate(dateValue){
+    const match=String(dateValue||"").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
+  }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 15;
   function reserveOfficialPrintPages(groups,date,weekday){
     const pages=[];let current=[],count=0;
@@ -639,7 +643,7 @@
     const safeDate=String(date||"");let resolvedWeekday=String(weekday||"").trim();
     if(!resolvedWeekday&&safeDate){const d=new Date(safeDate+"T12:00:00+04:00");if(Number.isFinite(d.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(d);}
     return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عمان</div><div>وزارة التعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
-      '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReserveDateArabic(safeDate))+'</div></div>'+
+      '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
       '<table class="tt-official-table">'+columns+header+'<tbody>'+rowsMarkup+blankRows+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp">ختم المدرسة</div></footer></main>';
   }
