@@ -58,7 +58,7 @@
       }
       const parsed=parser.parseTimetablePdfPages(pages);
       parsed.diagnostics.pageCount=document.numPages;
-      parsed.diagnostics.blockingErrors.push(...pagePreflightErrors);
+      parsed.diagnostics.warnings.push(...pagePreflightErrors);
       return parsed;
     }finally{await document.destroy();}
   }

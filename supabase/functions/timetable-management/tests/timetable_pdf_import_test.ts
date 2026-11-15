@@ -152,8 +152,11 @@ Deno.test("PDF path extraction follows graphics transform and save/restore state
  const lines=extractHorizontalLinesFromOperatorList(operatorList,OPS);
  if(lines.length!==2||lines[0].x1!==110||lines[0].x2!==201||lines[0].y!==643||lines[1].y!==538)throw new Error("PDF path graphics transforms were not accumulated");
 });
-Deno.test("PDF parser blocks pages with missing or unverifiable grid geometry",()=>{
+// A page that cannot be mapped safely is retained in the import report as a warning; it must not block saving other valid pages or the original source file.
+Deno.test("PDF parser preserves pages with missing grid geometry as non-blocking warnings",()=>{
  const page=makeTeacherPage();page.verticalLines=[];
  const parsed=parseTimetablePdfPages([page]);
- if(!parsed.diagnostics.blockingErrors.some(item=>item.includes("حدود الخانات")))throw new Error("Missing grid geometry must block import");
+ if(parsed.diagnostics.blockingErrors.length)throw new Error("A page-level geometry issue must not block saving the rest of the import");
+ if(!parsed.diagnostics.warnings.some(item=>item.includes("حدود الخانات")))throw new Error("Missing grid geometry must be retained as a warning");
+ if(parsed.weeklyDays.length!==5)throw new Error("All five weekdays must remain available for saving and coverage review");
 });

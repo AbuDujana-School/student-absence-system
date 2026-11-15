@@ -387,6 +387,17 @@ function parseCount(value: CellValue): number | null {
 
 const SCHOOL_WEEKDAYS = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس"] as const;
 
+function normalizeSchoolWeekday(value: CellValue): string | null {
+  const key = normalizeArabicName(value).replace(/^يوم\s*/, "").replace(/\s+/g, "");
+  const aliases: Record<string,string> = {
+    "الاحد":"الأحد","الاثنين":"الاثنين","الثلاثاء":"الثلاثاء","الاربعاء":"الأربعاء","الخميس":"الخميس",
+    "sunday":"الأحد","sun":"الأحد","monday":"الاثنين","mon":"الاثنين",
+    "tuesday":"الثلاثاء","tue":"الثلاثاء","wednesday":"الأربعاء","wed":"الأربعاء",
+    "thursday":"الخميس","thu":"الخميس",
+  };
+  return aliases[key] || null;
+}
+
 /**
  * Parse day/period references in the teacher sheet's التفريغ field without
  * assigning a meaning such as free, busy, or unavailable. A separate teacher
@@ -558,7 +569,7 @@ function parseLessonRows(
     const className = classCell || inheritedClass;
     if (!teacherName && !className && !subject) continue;
 
-    const day = firstValue(values, ["اليوم", "يوم", "اليوم الدراسي"]);
+    const day = normalizeSchoolWeekday(firstValue(values, ["اليوم", "يوم", "اليوم الدراسي"]));
     const periodText = firstValue(values, ["الحصة", "رقم الحصة", "الفترة", "رقم الفترة"]);
     const period = parseCount(periodText);
     const match = identifyTeacher(teacherName, directory);
@@ -578,7 +589,7 @@ function parseLessonRows(
       sharedTeachers: firstValue(values, ["معلم مشارك في المادة", "المعلم المشارك", "معلم مشارك"]),
       rooms: firstValue(values, ["الغرف الدراسية", "الغرفة"]),
       raw: { ...values },
-      weekday: day || null,
+      weekday: day,
       period: day && period !== null ? period : null,
     };
     records.push(record);

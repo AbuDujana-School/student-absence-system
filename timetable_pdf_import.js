@@ -304,15 +304,15 @@ export function parseTimetablePdfPages(pages) {
       diagnostics.skippedPages.push(page.pageNumber);metadataRows.push([page.pageNumber,"جدول إجمالي تم تجاوزه","",0]);continue;
     }
     if(!teacherName){
-      diagnostics.blockingErrors.push("تعذر استخراج اسم المعلم من الصفحة "+page.pageNumber+". لم يتم تجاوزها أو تخمين اسمها.");continue;
+      diagnostics.warnings.push("تعذر استخراج اسم المعلم من الصفحة "+page.pageNumber+"؛ تم تجاوز الصفحة دون تخمين الاسم.");continue;
     }
-    if(grid.dayCenters.some(value=>!Number.isFinite(value))||![7,8].includes(grid.periodCenters.length)){diagnostics.blockingErrors.push("لم يتم التحقق من عناوين الأيام السبعة أو أوقات الحصص في صفحة المعلم "+page.pageNumber+".");continue;}
-    if(!grid.valid){diagnostics.blockingErrors.push("تعذر التحقق من خطوط حدود الخانات في صفحة المعلم "+page.pageNumber+". لم يتم تخمين الخانات الممتدة.");continue;}
+    if(grid.dayCenters.some(value=>!Number.isFinite(value))||![7,8].includes(grid.periodCenters.length)){diagnostics.warnings.push("لم يتم التحقق من عناوين الأيام أو أوقات الحصص في صفحة المعلم "+page.pageNumber+"؛ تم تجاوز الصفحة.");continue;}
+    if(!grid.valid){diagnostics.warnings.push("تعذر التحقق من خطوط حدود الخانات في صفحة المعلم "+page.pageNumber+"؛ تم تجاوز الصفحة بدلاً من تخمين الخانات الممتدة.");continue;}
     const pageTimes=grid.orderedTimes.map(entry=>entry.time).join("|");
     if(!referenceTimes){referenceTimes=pageTimes;diagnostics.periodCount=grid.periodCount;diagnostics.periodTimes=grid.orderedTimes;for(const entry of grid.orderedTimes)timeRows.push([entry.period,entry.time]);}
-    else if(referenceTimes!==pageTimes)diagnostics.blockingErrors.push("أوقات الحصص في الصفحة "+page.pageNumber+" تختلف عن بقية صفحات الملف.");
+    else if(referenceTimes!==pageTimes)diagnostics.warnings.push("أوقات الحصص في الصفحة "+page.pageNumber+" تختلف عن بقية صفحات الملف؛ راجع الأوقات قبل الاعتماد.");
     const teacherKey=normalizePdfArabic(teacherName).replace(/\s+/g," ");
-    if(teacherNames.has(teacherKey)){diagnostics.blockingErrors.push("اسم المعلم مكرر في أكثر من صفحة: "+teacherName+" (الصفحة "+page.pageNumber+").");continue;}
+    if(teacherNames.has(teacherKey)){diagnostics.warnings.push("اسم المعلم مكرر في أكثر من صفحة: "+teacherName+" (الصفحة "+page.pageNumber+"). تم تجاوز النسخة المكررة.");continue;}
     teacherNames.add(teacherKey);teacherRows.push([teacherName,teacherName,""]);diagnostics.teacherPageCount++;
     const cells=new Map(),weeklyTeacherCells=Array.from({length:5},()=>Array(grid.periodCount).fill(null));
     for(const item of page.items){
@@ -347,7 +347,7 @@ export function parseTimetablePdfPages(pages) {
       for(let offset=0;offset<span;offset++){
         const period=startPeriodValue+offset,periodTime=grid.orderedTimes[period-1]?.time||"";
         const cell={period,status,classSections:groups,subject:subject||"",sourceClass:groups.join("، "),sourceSubject,sourceStatus:rawText,sourceNote:"صفحة PDF "+page.pageNumber+" · "+periodTime+(span>1?" · خانة ممتدة عبر "+span+" فترتين":"")+" · "+rawText};
-        if(weeklyTeacherCells[dayIndexValue][period-1])diagnostics.blockingErrors.push("تداخل خانتين في صفحة "+page.pageNumber+"، "+WEEKDAYS[dayIndexValue]+"، الحصة "+period+".");
+        if(weeklyTeacherCells[dayIndexValue][period-1])diagnostics.warnings.push("تداخل خانتين في صفحة "+page.pageNumber+"، "+WEEKDAYS[dayIndexValue]+"، الحصة "+period+"؛ تم الاحتفاظ بأول قراءة وترك الملاحظة للمراجعة.");
         else weeklyTeacherCells[dayIndexValue][period-1]=cell;
         lessonRows.push([teacherName,groups.join("، "),subject,WEEKDAYS[dayIndexValue],period,periodTime,page.pageNumber,rawText,JSON.stringify(groups),span]);
         pageLessonCount++;diagnostics.importedGroupCount+=groups.length;
@@ -355,14 +355,14 @@ export function parseTimetablePdfPages(pages) {
       diagnostics.importedCellCount++;
     }
     for(let day=0;day<5;day++){
-      const cellsForDay=weeklyTeacherCells[day].map((cell,index)=>cell||{period:index+1,status:"free",classSections:[],subject:"",sourceClass:"",sourceSubject:"",sourceStatus:"فراغ",sourceNote:""});
+      const cellsForDay=weeklyTeacherCells[day].map((cell,index)=>cell||{period:index+1,status:"unclear",classSections:[],subject:"",sourceClass:"",sourceSubject:"",sourceStatus:"غير مستخرج",sourceNote:"لم يتم استخراج بيانات هذه الحصة من صفحة PDF؛ يلزم مراجعتها يدوياً."});
       weeklyDays[day].teachers.push({sourceName:teacherName,sourceNameOriginal:teacherNameOriginal,pdfPage:page.pageNumber,cells:cellsForDay});
     }
     diagnostics.teachers.push({page:page.pageNumber,name:teacherName,lessonCount:pageLessonCount});
     metadataRows.push([page.pageNumber,"جدول معلم",teacherName,pageLessonCount]);
     if(!pageLessonCount)diagnostics.warnings.push("لم تُستخرج حصص مؤكدة من صفحة المعلم "+page.pageNumber+" ("+teacherName+").");
   }
-  if(!diagnostics.teacherPageCount)diagnostics.blockingErrors.push("لم يتم العثور على صفحات جداول فردية للمعلمين.");
+  if(!diagnostics.teacherPageCount)diagnostics.warnings.push("لم يتم العثور على صفحات جداول فردية قابلة للقراءة؛ ستُحفظ أيام الأسبوع فارغة لتظهر جميع خانات الصفوف كنواقص.");
   if(diagnostics.teacherPageCount>500)diagnostics.blockingErrors.push("عدد صفحات المعلمين يتجاوز الحد المسموح.");
   if(lessonRows.length-1>MAX_ROWS)diagnostics.blockingErrors.push("عدد سجلات الحصص المستخرجة يتجاوز الحد المسموح.");
   if(diagnostics.skippedPages.length)diagnostics.warnings.unshift("تم تجاوز صفحة الملخص رقم "+diagnostics.skippedPages.join("، ")+"؛ لم تُعامل كجدول معلم.");
