@@ -541,8 +541,7 @@
     view.querySelectorAll(".flex.flex-wrap.gap-2").forEach(node=>{
       const text=String(node.textContent||"");
       if(text.includes("حصة فارغة")&&text.includes("حصة تدريس")&&text.includes("الحصة الآن")&&text.includes("حصة احتياط")){
-        if(!node.classList.contains("tt-teacher-timetable-legend"))node.classList.add("tt-teacher-timetable-legend");
-        if(node.getAttribute("aria-hidden")!=="true")node.setAttribute("aria-hidden","true");
+        node.remove();
       }
     });
     const wrapper=host.firstElementChild;
