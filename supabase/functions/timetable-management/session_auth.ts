@@ -102,3 +102,11 @@ export function canUseTimetableAction(
 export function canIncludeOtherDepartments(principalType: TimetablePrincipalType, requested: unknown): boolean {
   return principalType === "admin" && requested === true;
 }
+
+export function canAccessTeacherTimetablePortal(enabled: unknown, selectedTeacherNames: unknown, teacherName: string): boolean {
+  if (enabled !== true || !String(teacherName || "").trim()) return false;
+  const selected = Array.isArray(selectedTeacherNames)
+    ? selectedTeacherNames.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  return selected.length === 0 || selected.includes(String(teacherName).trim());
+}

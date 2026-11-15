@@ -6,6 +6,7 @@ on:
       - feature/smart-substitution-system
       - feature/timetable-robust-fairness-v2
       - feature/timetable-hardening-fixes-20261114
+      - feature/class-timetable-and-personal-portal-20261115
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
     paths:

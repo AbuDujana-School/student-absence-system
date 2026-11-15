@@ -55,3 +55,15 @@ Deno.test("empty text day is preserved as an empty day with a warning", () => {
   assert(result.totalCells===0,"empty source day should not invent cells");
   assert(result.warnings.length>0,"empty source day should create a review warning");
 });
+
+Deno.test("elective subject groups in the same class period are parallel assignments, not conflicts",()=>{
+  const result=aggregateClassTimetables([
+    {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الأحياء",matched_teacher_name:"معلم أ",source_group_note:"مجموعة مادة اختيارية"},
+    {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الفنون التشكيلية",matched_teacher_name:"معلم ب",source_group_note:"مجموعة مادة اختيارية"},
+  ],["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"],7,["1/12"]);
+  const first=result[0];
+  assert(first.parallelGroups.length===1,"parallel elective assignments must be grouped");
+  assert(first.conflicts.length===0,"elective groups must not be reported as a clash");
+  assert(first.teachingCount===1,"parallel groups occupy one class period");
+  assert(first.parallelGroups[0].assignments.length===2,"both subjects and teachers must remain visible");
+});

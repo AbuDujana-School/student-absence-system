@@ -4,7 +4,7 @@ export type SchoolWeekday = typeof SCHOOL_WEEKDAYS[number];
 export type TimetableCellStatus = "teaching" | "free" | "meeting" | "activity" | "other" | "unclear";
 export interface ParsedTimetableCell {
   period: number; classSections: string[]; subject: string; status: TimetableCellStatus;
-  sourceClass: string; sourceSubject: string; sourceStatus: string; sourceNote?: string;
+  sourceClass: string; sourceSubject: string; sourceStatus: string; sourceNote?: string; sourceGroupNote?: string;
 }
 export interface ParsedTimetableTeacher { sourceName: string; pdfPage: number | null; cells: ParsedTimetableCell[]; }
 export interface ParsedTimetableDay {
@@ -119,6 +119,7 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
     let teacher=byName.get(key);
     if(!teacher){teacher={sourceName,pdfPage:null,cells:[]};byName.set(key,teacher);teachers.push(teacher);}
     const sourceClass=fields[3],sourceSubject=fields[4],sourceStatus=fields[5],sourceNote=fields.slice(6).filter(Boolean).join(" | ");
+    const sourceGroupNote=normalizedKey(sourceNote).includes("مجموعه ماده اختياريه")?"مجموعة مادة اختيارية":"";
     const status=statusFromSource(sourceStatus);
     const existing=teacher.cells.find(cell=>cell.period===period);
     if(existing){
@@ -128,10 +129,11 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
         existing.classSections=Array.from(new Set([...existing.classSections,...parseClassSections(sourceClass)]));
         if(!existing.sourceClass.split(" | ").includes(sourceClass)) existing.sourceClass+=" | "+sourceClass;
         if(sourceNote && !existing.sourceNote?.split(" | ").includes(sourceNote)) existing.sourceNote=[existing.sourceNote,sourceNote].filter(Boolean).join(" | ");
+        if(sourceGroupNote && !existing.sourceGroupNote) existing.sourceGroupNote=sourceGroupNote;
       }
       continue;
     }
-    teacher.cells.push({period,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(sourceNote?{sourceNote}:{})});
+    teacher.cells.push({period,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(sourceNote?{sourceNote}:{}),...(sourceGroupNote?{sourceGroupNote}:{})});
   }
   if(!recognizedRows) return null;
   const periodCount=Math.max(7,...teachers.flatMap(teacher=>teacher.cells.map(cell=>cell.period)));
@@ -187,7 +189,7 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
     if(!teacher){warnings.push("تعذر ربط الحصة بمعلم قرب السطر "+cellStartLine+"؛ تم تجاوز الخانة.");cell=null;return;}
     const sourceClass=cell.sourceClass!,sourceSubject=cell.sourceSubject!,sourceStatus=cell.sourceStatus!;
     const status=statusFromSource(sourceStatus);
-    teacher.cells.push({period:cell.period!,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(cell.sourceNote?{sourceNote:cell.sourceNote}:{})});
+    teacher.cells.push({period:cell.period!,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(cell.sourceNote?{sourceNote:cell.sourceNote}:{}),...(cell.sourceGroupNote?{sourceGroupNote:cell.sourceGroupNote}:{})});
     totals[status]+=1;cell=null;
   };
   const finishTeacher=()=>{
@@ -228,13 +230,14 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
       if(teacher.cells.some(v=>v.period===period)){warnings.push("الحصة "+period+" مكررة للمعلم «"+teacher.sourceName+"»؛ تم تجاوز النسخة اللاحقة.");cellStartLine=i+1;cell={period:0};continue;}
       cellStartLine=i+1;cell={period};continue;
     }
-    const field=line.match(/^[-•]?\s*(الصف\s*والشعبة|الصف|الشعبة|المادة|الحالة|الملاحظة|ملاحظات)\s*:\s*(.*)$/);
+    const field=line.match(/^[-•]?\s*(الصف\s*والشعبة|الصف|الشعبة|المادة|الحالة|ملاحظة\s+المجموعة|الملاحظة|ملاحظة|ملاحظات)\s*:\s*(.*)$/);
     if(field){
       if(!cell||!teacher){warnings.push("السطر "+(i+1)+": بيانات دون عنوان حصة أو اسم معلم؛ تم تجاوزها.");continue;}
       const key=normalizedKey(field[1]),value=cleanLine(field[2]);
       if(key.startsWith("الصف")||key==="الشعبه")cell.sourceClass=value;
       else if(key==="الماده")cell.sourceSubject=value;
       else if(key==="الحاله")cell.sourceStatus=value;
+      else if(key==="ملاحظه المجموعه")cell.sourceGroupNote=value;
       else cell.sourceNote=value;
     }
   }

@@ -1,15 +1,16 @@
 export interface ClassTimetableSourceCell {
   weekday: string; period: number; cell_status?: string; class_sections?: unknown;
-  subject?: string | null; matched_teacher_name?: string | null; teacher_source_name?: string | null;
+  subject?: string | null; matched_teacher_name?: string | null; teacher_source_name?: string | null; source_group_note?: string | null;
 }
 export interface ClassTimetableSlot {
   weekday: string; period: number; subject: string; teacherName: string; status: string;
-  coTeachingCount?: number;
+  coTeachingCount?: number; sourceGroupNote?: string;
 }
 export interface ClassTimetableSummary {
   className: string; expected: boolean; entries: ClassTimetableSlot[];
   vacancies: Array<{weekday:string;period:number}>;
   conflicts: Array<{weekday:string;period:number;assignments:ClassTimetableSlot[]}>;
+  parallelGroups: Array<{weekday:string;period:number;assignments:ClassTimetableSlot[]}>;
   freePeriods: Array<{weekday:string;period:number}>;
   meetingPeriods: Array<{weekday:string;period:number}>;
   unclearPeriods: Array<{weekday:string;period:number}>;
@@ -24,6 +25,25 @@ function isPlaceholderClassName(value: string): boolean {
   // Teacher-only free cells commonly use a dash instead of a class name.
   // These are not real class labels and must not create phantom class rows.
   return !compact || /^[-‐‑‒–—―−]+$/u.test(compact);
+}
+function classOrder(value: string): {grade:number;section:number} | null {
+  const normalized=String(value||"").normalize("NFKC").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d))).trim();
+  const match=normalized.match(/^(\d+)\s*\/\s*(\d+)$/);
+  if(!match)return null;
+  const first=Number(match[1]),second=Number(match[2]);
+  if(second>=9&&second<=12&&first>=1&&first<=12)return {grade:second,section:first};
+  if(first>=9&&first<=12&&second>=1&&second<=12)return {grade:first,section:second};
+  return {grade:second,section:first};
+}
+function compareClassNames(left:string,right:string):number {
+  const a=classOrder(left),b=classOrder(right);
+  if(a&&b)return a.grade-b.grade||a.section-b.section||left.localeCompare(right,"ar");
+  if(a)return -1;
+  if(b)return 1;
+  return left.localeCompare(right,"ar");
+}
+function isOptionalGroup(slot:ClassTimetableSlot):boolean {
+  return key(slot.sourceGroupNote||"").includes("مجموعه ماده اختياريه");
 }
 function slotIdentity(slot: ClassTimetableSlot): string {
   return key(slot.status)+"|"+key(slot.subject);
@@ -60,17 +80,37 @@ export function aggregateClassTimetables(
       slots.get(slotKey)!.push({
         weekday:cell.weekday, period:Number(cell.period), subject:String(cell.subject||""),
         teacherName:String(cell.matched_teacher_name||""),
+        sourceGroupNote:String(cell.source_group_note||""),
         status:String(cell.cell_status||"unclear")==="teaching"&&!String(cell.subject||"").trim()?"unclear":String(cell.cell_status||"unclear"),
       });
     }
   }
-  return Array.from(classMap.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([className,slots])=>{
+  return Array.from(classMap.entries()).sort((a,b)=>compareClassNames(a[0],b[0])).map(([className,slots])=>{
     const entries:ClassTimetableSlot[]=[];
     const vacancies:Array<{weekday:string;period:number}>=[];
     const conflicts:Array<{weekday:string;period:number;assignments:ClassTimetableSlot[]}>= [];
+    const parallelGroups:Array<{weekday:string;period:number;assignments:ClassTimetableSlot[]}>= [];
     const freePeriods:Array<{weekday:string;period:number}>=[];
     const meetingPeriods:Array<{weekday:string;period:number}>=[];
     const unclearPeriods:Array<{weekday:string;period:number}>=[];
+    // Legacy active weeks may predate persistence of sourceGroupNote. Infer a
+    // parallel elective pair only when the exact two-subject pair recurs once
+    // on every weekday for this class; isolated or ambiguous double bookings
+    // remain conflicts.
+    const pairOccurrences=new Map<string,Map<string,number>>();
+    for(const [slotKey,assignments] of slots.entries()){
+      if(assignments.length!==2||!assignments.every(item=>item.status==="teaching"))continue;
+      const pairKey=assignments.map(item=>key(item.subject)).sort().join("||");
+      if(!pairKey||pairKey==="||")continue;
+      const weekday=slotKey.slice(0,slotKey.lastIndexOf(":"));
+      const dayCounts=pairOccurrences.get(pairKey)||new Map<string,number>();
+      dayCounts.set(weekday,(dayCounts.get(weekday)||0)+1);
+      pairOccurrences.set(pairKey,dayCounts);
+    }
+    const recurringElectivePairs=new Set<string>();
+    for(const [pairKey,dayCounts] of pairOccurrences){
+      if(weekdays.every(day=>dayCounts.get(day)===1))recurringElectivePairs.add(pairKey);
+    }
     let teachingCount=0,coveredCount=0;
     for(const weekday of weekdays)for(let period=1;period<=periodCount;period++){
       const assignments=slots.get(weekday+":"+period)||[];
@@ -80,6 +120,16 @@ export function aggregateClassTimetables(
       // same time are co-teachers, not duplicate lessons or a timetable clash.
       const identities=new Set(assignments.map(slotIdentity));
       if(assignments.length>1 && identities.size>1){
+        const pairKey=assignments.map(item=>key(item.subject)).sort().join("||");
+        const explicitlyMarked=assignments.every(item=>item.status==="teaching"&&isOptionalGroup(item));
+        const hasExplicitGroupMetadata=assignments.some(item=>String(item.sourceGroupNote||"").trim().length>0);
+        const safelyInferred=assignments.length===2&&assignments.every(item=>item.status==="teaching")&&!hasExplicitGroupMetadata&&recurringElectivePairs.has(pairKey);
+        if(explicitlyMarked||safelyInferred){
+          parallelGroups.push({...position,assignments});
+          coveredCount++;
+          teachingCount++;
+          continue;
+        }
         conflicts.push({...position,assignments});
         coveredCount++;
         continue;
@@ -99,7 +149,7 @@ export function aggregateClassTimetables(
       else if(first.status==="unclear")unclearPeriods.push(position);
     }
     return {
-      className,expected:expected.has(className),entries,vacancies,conflicts,freePeriods,meetingPeriods,unclearPeriods,
+      className,expected:expected.has(className),entries,vacancies,conflicts,parallelGroups,freePeriods,meetingPeriods,unclearPeriods,
       teachingCount,coveredCount,
       complete:vacancies.length===0&&conflicts.length===0&&unclearPeriods.length===0,
     };

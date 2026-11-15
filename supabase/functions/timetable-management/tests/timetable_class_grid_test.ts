@@ -30,3 +30,44 @@ Deno.test("class timetable never displays an unlinked PDF source abbreviation as
  if(result.entries[0].teacherName!=="")throw new Error("Unlinked source abbreviations must not be displayed as teacher names");
  if(result.entries[0].subject!=="الرياضيات")throw new Error("Subject must remain available when teacher is not linked");
 });
+
+Deno.test("class timetable sorts grade 9 through 12 numerically, then sections",()=>{
+ const result=aggregateClassTimetables([],DAYS,7,["1/10","2/10","1/9","2/9","1/12","1/11"]);
+ const names=result.map(item=>item.className);
+ const expected=["1/9","2/9","1/10","2/10","1/11","1/12"];
+ if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error("Class order must be grade-first and numeric: "+names.join(", "));
+});
+Deno.test("class timetable sorts Arabic-Indic class digits numerically",()=>{
+ const result=aggregateClassTimetables([],DAYS,7,["١/١٠","١/٩","١/١٢","١/١١"]);
+ const names=result.map(item=>item.className);
+ const expected=["١/٩","١/١٠","١/١١","١/١٢"];
+ if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error("Arabic-Indic class order is incorrect: "+names.join(", "));
+});
+
+
+Deno.test("class timetable renders explicitly marked elective groups separately from real conflicts",()=>{
+ const cells:any[]=[
+  {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الأحياء",matched_teacher_name:"معلم أ",source_group_note:"مجموعة مادة اختيارية"},
+  {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الفنون التشكيلية",matched_teacher_name:"معلم ب",source_group_note:"مجموعة مادة اختيارية"},
+  {weekday:"الأحد",period:2,cell_status:"teaching",class_sections:["1/12"],subject:"الرياضيات",matched_teacher_name:"معلم ج"},
+  {weekday:"الأحد",period:2,cell_status:"teaching",class_sections:["1/12"],subject:"العلوم",matched_teacher_name:"معلم د"}
+ ];
+ const result=aggregateClassTimetables(cells,DAYS,7,["1/12"])[0];
+ if(result.parallelGroups.length!==1)throw new Error("An explicitly marked elective slot must be a parallel group");
+ if(result.conflicts.length!==1)throw new Error("An unmarked double assignment must remain a real conflict");
+ if(result.parallelGroups[0].assignments.length!==2)throw new Error("All elective group subjects must remain visible");
+});
+
+
+Deno.test("legacy timetable infers only elective pairs recurring once on every weekday",()=>{
+ const cells:any[]=[];
+ for(let i=0;i<DAYS.length;i++){
+  cells.push({weekday:DAYS[i],period:i+1,cell_status:"teaching",class_sections:["1/12"],subject:"الأحياء",matched_teacher_name:"معلم أ"});
+  cells.push({weekday:DAYS[i],period:i+1,cell_status:"teaching",class_sections:["1/12"],subject:"الفنون التشكيلية",matched_teacher_name:"معلم ب"});
+ }
+ cells.push({weekday:"الأحد",period:7,cell_status:"teaching",class_sections:["1/12"],subject:"الرياضيات",matched_teacher_name:"معلم ج"});
+ cells.push({weekday:"الأحد",period:7,cell_status:"teaching",class_sections:["1/12"],subject:"العلوم",matched_teacher_name:"معلم د"});
+ const result=aggregateClassTimetables(cells,DAYS,7,["1/12"])[0];
+ if(result.parallelGroups.length!==5)throw new Error("A subject pair repeated exactly once on all five weekdays should be inferred as a parallel elective group");
+ if(result.conflicts.length!==1)throw new Error("An isolated double assignment must remain a real conflict");
+});
