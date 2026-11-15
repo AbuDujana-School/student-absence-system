@@ -391,6 +391,39 @@
       reserveArchive=response.archive||[];timetableDailyRenderArchive();
     }catch(error){host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(error?.message||"تعذر تحميل الأرشيف.")+"</div>";}
   };
+  window.timetableDailyPrintArchiveRange = function () {
+    const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
+    if(!records.length){status("لا توجد سجلات احتياط غير ملغاة للطباعة في الفترة المحددة.","error");return;}
+    const grouped=new Map();
+    records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
+    const days=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+    const pages=days.map(([date,items])=>{
+      items.sort((a,b)=>Number(a.period)-Number(b.period)||String(a.absentTeacherName).localeCompare(String(b.absentTeacherName),"ar"));
+      const groups=new Map();
+      items.forEach(item=>{const name=String(item.absentTeacherName||"-");if(!groups.has(name))groups.set(name,[]);groups.get(name).push(item);});
+      let rows="",count=0;
+      for(const [absentName,itemsForTeacher] of groups){
+        itemsForTeacher.forEach((item,index)=>{
+          rows+="<tr>"+(index===0?'<td rowspan="'+itemsForTeacher.length+'">'+esc(absentName)+'</td><td rowspan="'+itemsForTeacher.length+'">'+esc(itemsForTeacher.find(x=>String(x.reason||"-").trim()&&x.reason!=="-")?.reason||"-")+"</td>":"")+
+            "<td>"+Number(item.period)+"</td><td>"+esc(item.className||"-")+"</td><td>"+esc(item.substituteTeacherName||"-")+"</td></tr>";
+          count++;
+        });
+      }
+      const weekday=items[0]?.weekday||"";
+      const formattedDate=date.split("-").reverse().join(" / ")+" م";
+      return '<section class="tt-print-day" style="break-after:page;page-break-after:always">'+
+        '<div class="tt-print-header">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br><strong>مدرسة أبو دجانة الأنصاري للبنين (٩ - ١٢)</strong><br><strong>كشف توزيع الاحتياط</strong></div>'+
+        '<div class="tt-print-meta"><span>اليوم: '+esc(weekday)+'</span><span>التاريخ: '+esc(formattedDate)+'</span></div>'+
+        '<table><thead><tr><th>المعلم الغائب</th><th>سبب الاحتياط</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+        '<div class="tt-print-footer"><span>إجمالي الحصص: '+count+'</span><span>المعلم الأول: ............................</span></div></section>';
+    });
+    const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=pages.join("");
+    root.querySelectorAll(".tt-print-day").forEach((page,index)=>{if(index===pages.length-1){page.style.breakAfter="auto";page.style.pageBreakAfter="auto";}});
+    document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
+    const cleanup=()=>{document.body.classList.remove("tt-reserve-print-mode");root.remove();window.removeEventListener("afterprint",cleanup);};
+    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,5000);
+  };
+
   async function fetchArchivePreview(absentName, date, weekday) {
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
@@ -680,7 +713,7 @@
           const key=u.principal_type+":"+u.principal_name,statsOn=statsMap.get(key)===true;
           return '<div class="grid gap-2 rounded-lg border border-slate-200 p-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center" data-admin-user="'+esc(key)+'">'+
             '<div><strong class="block text-xs text-slate-800">'+esc(u.principal_name)+'</strong><span class="text-[10px] text-slate-500">'+(u.principal_type==="custom"?"حساب مخصص":"معلم")+(u.category?" · "+esc(u.category):"")+'</span></div>'+
-            '<label class="flex items-center gap-2 text-[10px] font-bold text-slate-700"><input type="checkbox" data-admin-timetable '+(u.can_access?"checked":"")+' data-original="'+(u.can_access?"1":"0")+'"> دخول الجداول</label>'+
+            '<label class="flex items-center gap-2 text-[10px] font-bold text-slate-700"><input type="checkbox" data-admin-timetable '+(u.can_access?"checked":"")+' data-original="'+(u.can_access?"1":"0")+'"> دخول الجداول وأرشيف الاحتياط</label>'+
             '<label class="flex items-center gap-2 text-[10px] font-bold text-indigo-800"><input type="checkbox" data-admin-stats '+(statsOn?"checked":"")+' data-original="'+(statsOn?"1":"0")+'"> إحصائيات المدرسة كاملة</label></div>';
         }).join("")||'<p class="text-slate-400">لا توجد حسابات قابلة لمنح الصلاحية.</p>';
       }catch(error){host.innerHTML='<p class="text-red-700">'+esc(error?.message||"تعذر تحميل الصلاحيات.")+'</p>';}
