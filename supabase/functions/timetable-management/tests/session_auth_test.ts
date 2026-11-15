@@ -299,3 +299,38 @@ Deno.test("a teacher with a reserve assignment today gets only the daily notice 
     throw new Error("Daily notice access accidentally granted reserve management");
   }
 });
+
+Deno.test("schoolwide reserve statistics grants do not grant reserve management", () => {
+  if (!canUseTimetableAction("teacher", "timetable_substitution_stats", false, false, false, true)) {
+    throw new Error("Teacher with explicit schoolwide statistics grant was denied statistics");
+  }
+  if (!canUseTimetableAction("custom", "timetable_substitution_stats", false, false, false, true)) {
+    throw new Error("Custom account with explicit schoolwide statistics grant was denied statistics");
+  }
+  if (canUseTimetableAction("teacher", "timetable_substitution_stats")) {
+    throw new Error("Teacher without reserve or statistics permission was granted statistics");
+  }
+  if (canUseTimetableAction("custom", "timetable_substitution_stats")) {
+    throw new Error("Custom account without explicit statistics grant was granted statistics");
+  }
+  for (const action of ["timetable_substitution_reset","timetable_substitution_reset_options"]) {
+    if (canUseTimetableAction("teacher", action)) {
+      throw new Error("Teacher without reserve permission gained department reset access: " + action);
+    }
+    if (!canUseTimetableAction("teacher", action, false, true)) {
+      throw new Error("Reserve-enabled department coordinator was denied subject/day reset access: " + action);
+    }
+    if (canUseTimetableAction("custom", action)) {
+      throw new Error("Custom account gained department reset access: " + action);
+    }
+    if (!canUseTimetableAction("admin", action)) {
+      throw new Error("System administrator was denied reserve reset access: " + action);
+    }
+  }
+  if (canUseTimetableAction("teacher", "timetable_reserve_stats_access_save", false, true)) {
+    throw new Error("Department coordinator gained system-wide statistics permission management");
+  }
+  if (!canUseTimetableAction("admin", "timetable_reserve_stats_access_save")) {
+    throw new Error("System administrator was denied statistics permission management");
+  }
+});

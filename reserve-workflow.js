@@ -6,6 +6,7 @@
   let reserveReasons = Object.create(null);
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
+  let reserveOtherDepartmentId = "";
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
@@ -16,7 +17,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,includeOtherDepartments:includeOthers()}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -32,6 +33,9 @@
       timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
       const otherToggle=$("timetableSubstitutionOtherDepartments");
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
+      const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
+      if(saved.otherDepartmentId)reserveOtherDepartmentId=String(saved.otherDepartmentId);
+      if(otherDepartmentSelect&&saved.otherDepartmentId)otherDepartmentSelect.value=saved.otherDepartmentId;
       const otherButton=$("timetableDailyOtherDepartmentsButton");
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
         ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
@@ -46,7 +50,7 @@
   }
   const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
   function currentDraftScope() {
-    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"all":"department"].join("|"); }
+    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+selectedOtherDepartmentId():"department"].join("|"); }
     catch { return ""; }
   }
   function currentPlanRows(response) {
@@ -66,6 +70,18 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
+  const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||reserveOtherDepartmentId||"").trim();
+  async function loadOtherDepartments() {
+    const token=appAuthSession?.token||readAppAuthToken();
+    const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
+    const select=$("timetableDailyOtherDepartmentSelect");
+    if(!select)return;
+    const current=reserveOtherDepartmentId||selectedOtherDepartmentId();
+    select.innerHTML='<option value="">اختر المادة / القسم المساند</option>'+
+      (result.departments||[]).map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
+    if(current && (result.departments||[]).some(item=>item.id===current)){select.value=current;reserveOtherDepartmentId=current;}
+  }
+
   function reasonControlMarkup(absentName, reason) {
     const value=String(reason||"").trim();
     return '<div class="w-full max-w-md"><label class="mb-1 block text-[10px] font-black text-slate-600">سبب الاحتياط <span class="font-normal text-slate-400">(اختياري)</span></label>'+
@@ -126,11 +142,25 @@
         const toggle = $("timetableSubstitutionOtherDepartments");
         if (!toggle) return;
         toggle.checked = !toggle.checked;
-        $("timetableDailyOtherDepartmentsButton").innerHTML = toggle.checked
-          ? '<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
-          : '<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        const select=$("timetableDailyOtherDepartmentSelect");
+        if(toggle.checked){
+          try{
+            await loadOtherDepartments();
+            $("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");
+            $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
+            if(!selectedOtherDepartmentId()){status("اختر القسم أولاً، ثم سيعرض النظام معلميه المتاحين فقط.","info");return;}
+          }catch(error){toggle.checked=false;if(select)select.classList.add("hidden");status(error?.message||"تعذر تحميل قائمة الأقسام.","error");return;}
+        }else{
+          if(select){select.classList.add("hidden");select.value="";reserveOtherDepartmentId="";}
+          $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        }
         await timetableDailyRefreshAll();
       });
+      const toolbarSelect='<label id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[190px] text-[10px] font-bold text-slate-600"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" class="w-full rounded-xl border border-indigo-200 bg-white p-2 text-xs"><option value="">اختر المادة / القسم المساند</option></select></label>';
+      $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
+      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",async()=>{reserveOtherDepartmentId=selectedOtherDepartmentId();if(includeOthers()&&reserveOtherDepartmentId)await timetableDailyRefreshAll();});
+      $("timetableDailyOtherDepartmentSelect")?.closest("label")?.classList.toggle("hidden",!includeOthers());
+      if(includeOthers())loadOtherDepartments().then(()=>{$("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");}).catch(()=>{});
     }
     const results = $("timetableSubstitutionResults");
     if (results) {
@@ -176,7 +206,7 @@
     if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({
       action: "timetable_substitution_batch_preview", weekday, assignmentDate: date,
-      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers()
+      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId()
     }, token);
   }
 
@@ -332,11 +362,13 @@
     try{
       const {date,weekday}=timetableSubstitutionGetDate(),token=appAuthSession?.token||readAppAuthToken();
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
-        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers()},token);
+        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
       status("تم حفظ "+(result.assignmentCount||assignments.length)+" تكليف في عملية واحدة. يجري تحديث الأرشيف.","success");
       reserveManualChoices=Object.create(null);
       await timetableDailyRefreshAll();await timetableDailyLoadArchive();
       clearStoredDraft();
+      // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
+      if(typeof window.teacherShowDailySubstitutionWelcome==="function") await window.teacherShowDailySubstitutionWelcome();
     }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي. لم يتم حفظ جزء من العملية.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
   };
@@ -358,7 +390,7 @@
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
-      absentTeacherName:absentName,includeOtherDepartments:includeOthers()},token);
+      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
   }
 
   window.timetableDailyRenderArchive = function () {
@@ -503,5 +535,185 @@
     popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
   };
 
+  function applyTeacherTimetablePresentation() {
+    const view=$("teacherTimetableView"),host=$("teacherTimetableWeekGrid");
+    if(!view||!host)return;
+    view.querySelectorAll(".flex.flex-wrap.gap-2").forEach(node=>{
+      const text=String(node.textContent||"");
+      if(text.includes("حصة فارغة")&&text.includes("حصة تدريس")&&text.includes("الحصة الآن")&&text.includes("حصة احتياط")){
+        node.remove();
+      }
+    });
+    const wrapper=host.firstElementChild;
+    if(wrapper&&wrapper.style.overflowX!=="hidden")wrapper.style.overflowX="hidden";
+    const table=host.querySelector("table");
+    if(table){
+      if(table.style.minWidth!=="0px")table.style.minWidth="0";
+      if(table.style.width!=="100%")table.style.width="100%";
+      if(table.style.tableLayout!=="fixed")table.style.tableLayout="fixed";
+    }
+  }
+  async function installDepartmentReserveTools() {
+    const panel=$("timetableSubstitutionPanel");
+    if(!panel || panel.dataset.departmentReserveTools==="1")return;
+    if(activeUser?.type!=="teacher" || activeUser?.permissions?.reserve!==true)return;
+    panel.dataset.departmentReserveTools="1";
+    const card=document.createElement("section");
+    card.id="ttDepartmentReserveTools";
+    card.className="mt-5 space-y-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm";
+    card.innerHTML='<div class="flex items-start gap-3"><div class="rounded-xl bg-indigo-100 p-3 text-indigo-800"><i class="fa-solid fa-calendar-xmark"></i></div><div><h3 class="text-sm font-black text-slate-900">إدارة احتياط القسم</h3><p class="mt-1 text-[10px] leading-5 text-slate-600">يمكنك إلغاء سجلات احتياط مادتك في يوم محدد فقط. لا يؤثر الإجراء في بقية المواد أو الأيام، ويُحفظ في سجل التدقيق.</p></div></div>'+
+      '<div class="grid gap-3 rounded-xl border border-indigo-100 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">'+
+      '<label class="text-[10px] font-bold text-slate-600">تاريخ الاحتياط<input id="ttDepartmentResetDate" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label>'+
+      '<label class="text-[10px] font-bold text-slate-600">المادة<select id="ttDepartmentResetSubject" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="">حمّل مواد قسمك حسب التاريخ</option></select></label>'+
+      '<button type="button" id="ttDepartmentLoadSubjects" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-black text-white">عرض المواد</button>'+
+      '<button type="button" id="ttDepartmentResetSubjectDay" class="rounded-lg bg-indigo-700 px-4 py-2 text-xs font-black text-white md:col-span-3">إلغاء احتياط المادة في هذا اليوم فقط</button></div>'+
+      '<div id="ttDepartmentToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
+    panel.appendChild(card);
+    const token=()=>appAuthSession?.token||readAppAuthToken();
+    const say=(message,error=false)=>{
+      const box=$("ttDepartmentToolsStatus");if(!box)return;
+      box.textContent=message;
+      box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");
+    };
+    const dateInput=$("ttDepartmentResetDate");
+    try{if(dateInput&&!dateInput.value)dateInput.value=timetableSubstitutionGetDate().date;}catch{}
+    $("ttDepartmentLoadSubjects")?.addEventListener("click",async()=>{
+      const date=dateInput?.value||"",select=$("ttDepartmentResetSubject"),button=$("ttDepartmentLoadSubjects");
+      if(!date){say("اختر التاريخ أولاً.",true);return;}
+      button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset_options",assignmentDate:date},token());
+        select.innerHTML='<option value="">اختر مادة من قسمك</option>'+
+          (result.subjects||[]).map(subject=>'<option value="'+esc(subject)+'">'+esc(subject)+'</option>').join("");
+        say((result.subjects||[]).length?"تم تحميل مواد قسمك التي لديها سجلات احتياط نشطة في هذا التاريخ.":"لا توجد سجلات احتياط نشطة لمواد قسمك في هذا التاريخ.");
+      }catch(error){say(error?.message||"تعذر تحميل مواد القسم.",true);}
+      finally{button.disabled=false;}
+    });
+    $("ttDepartmentResetSubjectDay")?.addEventListener("click",async()=>{
+      const date=dateInput?.value||"",subject=$("ttDepartmentResetSubject")?.value||"";
+      if(!date||!subject){say("حدد التاريخ والمادة أولاً.",true);return;}
+      if(!window.confirm("سيتم إلغاء سجلات احتياط مادة «"+subject+"» في تاريخ "+date+" فقط. ستبقى بقية المواد والأيام كما هي. هل تؤكد؟"))return;
+      const button=$("ttDepartmentResetSubjectDay");button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"subject_day",assignmentDate:date,subject},token());
+        say("تم إلغاء "+Number(result.result?.cancelled_count||0)+" تكليف للمادة المحددة في هذا اليوم فقط.");
+        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+        if(typeof window.timetableDailyRefreshAll==="function")await window.timetableDailyRefreshAll();
+      }catch(error){say(error?.message||"تعذر إلغاء سجلات المادة.",true);}
+      finally{button.disabled=false;}
+    });
+  }
+
+  async function installAdminReserveTools() {
+    const panel=$("timetableSubstitutionPanel");
+    if(!panel || panel.dataset.adminReserveTools==="1" || appAuthSession?.principal?.type!=="admin")return;
+    panel.dataset.adminReserveTools="1";
+    const card=document.createElement("section");
+    card.id="ttAdminReserveTools";
+    card.className="mt-6 space-y-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-white to-amber-50 p-4 shadow-sm";
+    card.innerHTML='<div class="flex items-start gap-3"><div class="rounded-xl bg-amber-100 p-3 text-amber-800"><i class="fa-solid fa-shield-halved"></i></div><div><h3 class="text-sm font-black text-slate-900">إدارة سجلات الاحتياط والصلاحيات العامة</h3><p class="mt-1 text-[10px] leading-5 text-slate-600">هذه الأدوات متاحة لمدير النظام العام فقط. الإلغاء يحفظ السجلات في سجل التدقيق ولا يحذفها نهائياً.</p></div></div>'+
+      '<div class="grid gap-3 rounded-xl border border-slate-200 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">'+
+      '<label class="text-[10px] font-bold text-slate-600">تاريخ الاحتياط<input id="ttAdminResetDate" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label>'+
+      '<label class="text-[10px] font-bold text-slate-600">المادة / القسم<select id="ttAdminResetSubject" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="">حمّل المواد حسب التاريخ</option></select></label>'+
+      '<button type="button" id="ttAdminLoadSubjects" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-black text-white">عرض المواد</button>'+
+      '<button type="button" id="ttAdminResetSubjectDay" class="rounded-lg bg-amber-600 px-4 py-2 text-xs font-black text-white md:col-span-3">إلغاء احتياط المادة المحددة في هذا اليوم فقط</button>'+
+      '</div>'+
+      '<div class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 p-3"><div><strong class="block text-xs text-red-900">إعادة ضبط جميع سجلات الاحتياط النشطة</strong><span class="text-[10px] text-red-700">يشمل جميع المواد والتواريخ؛ يحتفظ النظام بالسجلات الملغاة في الأرشيف والتدقيق.</span></div><button type="button" id="ttAdminResetAll" class="rounded-lg bg-red-700 px-4 py-2 text-xs font-black text-white">تفريغ جميع الاحتياط النشط</button></div>'+
+      '<div class="rounded-xl border border-indigo-100 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><strong class="text-xs text-slate-900">من يحق له دخول الجداول ورؤية إحصائيات المدرسة؟</strong><p class="mt-1 text-[10px] text-slate-500">يمكن منح صلاحية الجداول وصلاحية الإحصائيات العامة كلٌّ على حدة، للحسابات المخصصة أيضاً.</p></div><button type="button" id="ttAdminLoadAccess" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800">تحميل الحسابات</button></div>'+
+      '<div id="ttAdminAccessList" class="mt-3 space-y-2 text-xs"><p class="text-slate-400">اضغط «تحميل الحسابات» لعرض المستخدمين.</p></div>'+
+      '<div class="mt-3 flex justify-end"><button type="button" id="ttAdminSaveAccess" class="rounded-lg bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ الصلاحيات المحددة</button></div></div>'+
+      '<div id="ttAdminToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
+    panel.appendChild(card);
+    const token=()=>appAuthSession?.token||readAppAuthToken();
+    const say=(message,error=false)=>{const box=$("ttAdminToolsStatus");if(!box)return;box.textContent=message;box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");};
+    const dateInput=$("ttAdminResetDate");
+    try{const d=timetableSubstitutionGetDate().date;if(dateInput&&!dateInput.value)dateInput.value=d;}catch{}
+    $("ttAdminLoadSubjects")?.addEventListener("click",async()=>{
+      const date=dateInput?.value||"",select=$("ttAdminResetSubject");
+      if(!date){say("اختر التاريخ أولاً.",true);return;}
+      const button=$("ttAdminLoadSubjects");button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset_options",assignmentDate:date},token());
+        select.innerHTML='<option value="">اختر المادة</option>'+(result.subjects||[]).map(s=>'<option value="'+esc(s)+'">'+esc(s)+'</option>').join("");
+        say((result.subjects||[]).length?"تم تحميل المواد التي لديها تكليفات نشطة في هذا التاريخ.":"لا توجد تكليفات احتياط نشطة لهذا التاريخ.");
+      }catch(error){say(error?.message||"تعذر تحميل المواد.",true);}
+      finally{button.disabled=false;}
+    });
+    $("ttAdminResetSubjectDay")?.addEventListener("click",async()=>{
+      const date=dateInput?.value||"",subject=$("ttAdminResetSubject")?.value||"";
+      if(!date||!subject){say("حدد التاريخ والمادة أولاً.",true);return;}
+      if(!window.confirm("سيتم إلغاء سجلات احتياط مادة «"+subject+"» في تاريخ "+date+" فقط. ستبقى سجلات بقية المواد كما هي. هل تريد المتابعة؟"))return;
+      const button=$("ttAdminResetSubjectDay");button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"subject_day",assignmentDate:date,subject},token());
+        say("تم إلغاء "+Number(result.result?.cancelled_count||0)+" تكليف للمادة المحددة في هذا اليوم فقط. بقيت بقية المواد دون تغيير.");
+        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+      }catch(error){say(error?.message||"تعذر إلغاء سجلات المادة.",true);}
+      finally{button.disabled=false;}
+    });
+    $("ttAdminResetAll")?.addEventListener("click",async()=>{
+      if(!window.confirm("تحذير: سيؤدي هذا الإجراء إلى إلغاء جميع تكليفات الاحتياط النشطة في جميع المواد والتواريخ. سيحتفظ النظام بسجل التدقيق. هل تؤكد التفريغ الشامل؟"))return;
+      const button=$("ttAdminResetAll");button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"all_active"},token());
+        say("اكتمل التفريغ الشامل: أُلغي "+Number(result.result?.cancelled_count||0)+" تكليف نشط.");
+        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+      }catch(error){say(error?.message||"تعذر تنفيذ التفريغ الشامل.",true);}
+      finally{button.disabled=false;}
+    });
+    $("ttAdminLoadAccess")?.addEventListener("click",loadAdminAccess);
+    $("ttAdminSaveAccess")?.addEventListener("click",saveAdminAccess);
+    async function loadAdminAccess(){
+      const host=$("ttAdminAccessList");host.innerHTML='<p class="text-slate-400">جارٍ تحميل الحسابات...</p>';
+      try{
+        const [timetable,stats]=await Promise.all([
+          appAuthRequest({action:"timetable_list_access"},token()),
+          appAuthRequest({action:"timetable_reserve_stats_access_list"},token())
+        ]);
+        const statsMap=new Map((stats.users||[]).map(u=>[u.principalType+":"+u.principalName,u.enabled===true]));
+        host.innerHTML=(timetable.users||[]).map(u=>{
+          const key=u.principal_type+":"+u.principal_name,statsOn=statsMap.get(key)===true;
+          return '<div class="grid gap-2 rounded-lg border border-slate-200 p-2 md:grid-cols-[minmax(0,1fr)_auto_auto] md:items-center" data-admin-user="'+esc(key)+'">'+
+            '<div><strong class="block text-xs text-slate-800">'+esc(u.principal_name)+'</strong><span class="text-[10px] text-slate-500">'+(u.principal_type==="custom"?"حساب مخصص":"معلم")+(u.category?" · "+esc(u.category):"")+'</span></div>'+
+            '<label class="flex items-center gap-2 text-[10px] font-bold text-slate-700"><input type="checkbox" data-admin-timetable '+(u.can_access?"checked":"")+' data-original="'+(u.can_access?"1":"0")+'"> دخول الجداول</label>'+
+            '<label class="flex items-center gap-2 text-[10px] font-bold text-indigo-800"><input type="checkbox" data-admin-stats '+(statsOn?"checked":"")+' data-original="'+(statsOn?"1":"0")+'"> إحصائيات المدرسة كاملة</label></div>';
+        }).join("")||'<p class="text-slate-400">لا توجد حسابات قابلة لمنح الصلاحية.</p>';
+      }catch(error){host.innerHTML='<p class="text-red-700">'+esc(error?.message||"تعذر تحميل الصلاحيات.")+'</p>';}
+    }
+    async function saveAdminAccess(){
+      const button=$("ttAdminSaveAccess"),host=$("ttAdminAccessList");button.disabled=true;
+      try{
+        const rows=[...host.querySelectorAll("[data-admin-user]")],statsGrants=[];
+        for(const row of rows){
+          const [principalType,principalName]=row.dataset.adminUser.split(":",2);
+          const timetable=row.querySelector("[data-admin-timetable]"),stats=row.querySelector("[data-admin-stats]");
+          if(timetable && timetable.checked!==(timetable.dataset.original==="1")){
+            await appAuthRequest({action:"timetable_set_access",principalType,principalName,canAccess:timetable.checked},token());
+            timetable.dataset.original=timetable.checked?"1":"0";
+          }
+          statsGrants.push({principalType,principalName,enabled:stats?.checked===true});
+        }
+        await appAuthRequest({action:"timetable_reserve_stats_access_save",grants:statsGrants},token());
+        host.querySelectorAll("[data-admin-stats]").forEach(input=>input.dataset.original=input.checked?"1":"0");
+        say("تم حفظ صلاحيات الدخول إلى الجداول وإحصائيات المدرسة.");
+      }catch(error){say(error?.message||"تعذر حفظ الصلاحيات؛ راجع الاتصال ثم أعد المحاولة.",true);}
+      finally{button.disabled=false;}
+    }
+  }
+
   installReserveEnhancements();
+  window.timetableDailyInstallAdminTools=installAdminReserveTools;
+  window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
+  installDepartmentReserveTools();
+  installAdminReserveTools();
+  applyTeacherTimetablePresentation();
+  if(typeof MutationObserver!=="undefined"&&document.body){
+    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();applyTeacherTimetablePresentation();});
+    adminToolsObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});
+    const timetableHost=$("teacherTimetableWeekGrid");
+    if(timetableHost){
+      const timetableObserver=new MutationObserver(()=>applyTeacherTimetablePresentation());
+      timetableObserver.observe(timetableHost,{childList:true,subtree:true});
+    }
+  }
 })();

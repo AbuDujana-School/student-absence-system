@@ -5,6 +5,10 @@ export interface TimetablePrincipal {
   name: string;
   /** A linked teacher with portal-only access; cannot manage timetables or substitutions. */
   portalOnly?: boolean;
+  /** May view schoolwide reserve statistics; does not itself grant reserve management. */
+  schoolwideReserveStats?: boolean;
+  /** Has only the schoolwide reserve-statistics view, with no other timetable grant. */
+  reserveStatsOnly?: boolean;
 }
 
 export interface TimetableSessionLookup {
@@ -26,6 +30,7 @@ export interface TimetableAuthStore {
   hasSubstitutionAccess?(name: string): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
   hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
+  hasSchoolwideReserveStatsAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
 }
 
 async function sha256(value: string): Promise<string> {
@@ -69,10 +74,21 @@ export async function resolveTimetablePrincipal(
   const name = session.principal_name;
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
-  if (await store.hasTimetableAccess(type, name)) return { type, name };
+  if (await store.hasTimetableAccess(type, name)) {
+    const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
+      ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+    return { type, name, schoolwideReserveStats };
+  }
   // Existing reserve permission is narrower than general timetable access.
   if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
-    return { type, name };
+    const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
+      ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+    return { type, name, schoolwideReserveStats };
+  }
+  const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
+    ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+  if (schoolwideReserveStats) {
+    return { type, name, schoolwideReserveStats: true, reserveStatsOnly: true };
   }
   if (type === "teacher" && store.hasLinkedTeacherPortalAccess
     && await store.hasLinkedTeacherPortalAccess(name)) {
@@ -93,16 +109,25 @@ export function canUseTimetableAction(
   action: string,
   portalOnly = false,
   hasReservePermission = false,
+  reserveStatsOnly = false,
+  schoolwideReserveStats = false,
 ): boolean {
   if (principalType === "admin") return true;
+  if (schoolwideReserveStats && action === "timetable_substitution_stats") return true;
   if (portalOnly) return new Set([
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
     "teacher_substitution_get_today",
   ]).has(action);
+  if (reserveStatsOnly) return new Set([
+    "health",
+    "timetable_check_access",
+    "timetable_substitution_stats",
+  ]).has(action);
   const substitutionActions = new Set([
     "timetable_substitution_preview",
+    "timetable_substitution_departments",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
     "timetable_substitution_batch_preview",
@@ -111,6 +136,8 @@ export function canUseTimetableAction(
     "timetable_substitution_archive",
     "timetable_substitution_update",
     "timetable_substitution_update_batch",
+    "timetable_substitution_reset_options",
+    "timetable_substitution_reset",
   ]);
   if (principalType === "teacher") {
     if (substitutionActions.has(action)) return hasReservePermission;
