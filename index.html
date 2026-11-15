@@ -10225,6 +10225,7 @@ timetableInitPdfDropZone();
 function timetablePdfTimesMatch(periodTimes) {
   const source=Array.isArray(periodTimes)?periodTimes:[];
   const configured=(dutyData()?.periods||[]);
+  if(!source.length)return null;
   if(![7,8].includes(source.length)||configured.length!==source.length)return false;
   return source.every((item,index)=>{
     const values=String(item?.time||"").match(/\d{1,2}:\d{2}/g)||[];
@@ -10239,7 +10240,7 @@ function timetablePdfRenderDiagnostics(diagnostics) {
   const merged=Array.isArray(diagnostics?.mergedCells)?diagnostics.mergedCells:[];
   const times=Array.isArray(diagnostics?.periodTimes)?diagnostics.periodTimes:[];
   const items=[...blocking.map(value=>"خطأ مانع: "+value),...warnings];
-  const timeCheckMarkup=diagnostics?.currentDutyTimesMatch===false?'<p class="mt-2 font-black text-red-700 dark:text-red-300">تنبيه: أوقات الملف لا تطابق إعدادات duty_module الحالية. لن يُسمح بحفظ أو اعتماد هذه المعاينة حتى توحيد الأوقات.</p>':'<p class="mt-2 text-emerald-700 dark:text-emerald-300">تمت مقارنة أوقات الملف بإعدادات duty_module.</p>';
+  const timeCheckMarkup=diagnostics?.currentDutyTimesMatch===false?'<p class="mt-2 font-black text-red-700 dark:text-red-300">تنبيه: أوقات الملف لا تطابق إعدادات duty_module الحالية. لن يُسمح بحفظ أو اعتماد هذه المعاينة حتى توحيد الأوقات.</p>':diagnostics?.currentDutyTimesMatch===null?'<p class="mt-2 text-amber-700 dark:text-amber-300">لم تكتمل قراءة أوقات الحصص بعد؛ لم تتم المقارنة مع duty_module.</p>':'<p class="mt-2 text-emerald-700 dark:text-emerald-300">تمت مقارنة أوقات الملف بإعدادات duty_module.</p>';
   const timeMarkup=times.length?'<div class="mt-3"><strong>أوقات الحصص المستخرجة من الملف:</strong><div class="mt-2 grid grid-cols-2 sm:grid-cols-4 gap-2">'+times.map(item=>'<div class="rounded-lg bg-white/80 dark:bg-slate-900/70 p-2"><strong>الحصة '+timetableEsc(item.period)+'</strong><div>'+timetableEsc(item.time)+'</div></div>').join("")+'</div></div>':'';
   const mergedMarkup=merged.length?'<div class="mt-3"><strong>الخانات الممتدة المكتشفة ('+merged.length+')، وكل واحدة فُكّت إلى فترتين:</strong><ul class="mt-1 list-disc pr-5 space-y-1">'+merged.map(item=>'<li>صفحة '+timetableEsc(item.page)+' · '+timetableEsc(item.teacher)+' · '+timetableEsc(item.weekday)+' · الحصتان '+timetableEsc(item.startPeriod)+' و'+timetableEsc(item.endPeriod)+' · '+timetableEsc(item.subject)+' · '+timetableEsc((item.classGroups||[]).join("، "))+'</li>').join("")+'</ul></div>':'<p class="mt-3">لم تُرصد خانات ممتدة في الملف.</p>';
   host.innerHTML='<details '+(items.length?'open':'')+'><summary class="cursor-pointer font-black">نتيجة فحص الملف: '+Number(diagnostics?.pageCount||0)+' صفحة · '+Number(diagnostics?.teacherPageCount||0)+' معلماً · '+Number(diagnostics?.importedCellCount||0)+' خانة مصدر · '+merged.length+' خانات ممتدة · '+items.length+' ملاحظة</summary>'+timeMarkup+timeCheckMarkup+mergedMarkup+'<div class="mt-3 space-y-1 max-h-64 overflow-y-auto">'+(items.length?items.map(value=>'<p class="border-t border-amber-200/70 dark:border-amber-900 pt-1">'+timetableEsc(value)+'</p>').join(""):'<p>لم تُرصد ملاحظات.</p>')+'</div></details>';
