@@ -3028,7 +3028,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div id="sec-sync" class="hidden space-y-4">
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 space-y-4">
           <h5 class="font-extrabold text-slate-800 dark:text-white text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> المزامنة السحابية</h5>
-          <button onclick="forceSyncWithCloud()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-md"><i class="fa-solid fa-rotate"></i> مزامنة الآن</button>
+          <button onclick="syncPendingLocalChanges()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-md"><i class="fa-solid fa-cloud-arrow-up"></i> مزامنة التغييرات المحلية</button>
         </div>
       </div>
 
@@ -5120,9 +5120,79 @@ function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
 }
 async function retryOfflineSyncSilently() {
-  // Pending local changes require an explicit, user-initiated review/sync.
-  // Never push cached school records automatically after reconnect or tab resume.
+  // Background retries stay disabled: local school records are never uploaded silently.
   return false;
+}
+
+let manualOfflineSyncInProgress = false;
+function hasPendingOfflineRecordChanges() {
+  return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size ||
+    dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size ||
+    dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories);
+}
+
+async function syncPendingLocalChanges() {
+  if (manualOfflineSyncInProgress) {
+    showToast('المزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
+    return false;
+  }
+  if (!navigator.onLine) {
+    updateSyncStatus(false, 'غير متصل - التغييرات محفوظة محلياً');
+    showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
+    return false;
+  }
+  if (cloudDataLoadState !== 'ready') {
+    showToast('انتظر اكتمال تحميل بيانات المدرسة قبل المزامنة.', 'error');
+    return false;
+  }
+  if (attendanceDirty || behaviorDirty) {
+    showToast('احفظ تغييرات الرصد الحالية أولاً، ثم أعد المزامنة.', 'error');
+    return false;
+  }
+
+  const pendingDeletes = getPendingDeletes().length;
+  if (!hasPendingOfflineRecordChanges()) {
+    if (pendingDeletes) {
+      updateSyncStatus(false, `لا توجد تعديلات قابلة للرفع؛ ${pendingDeletes} طلب حذف بانتظار المراجعة`);
+      showToast('طلبات الحذف لا تُنفذ ضمن المزامنة الآمنة. تحتاج إلى مراجعة مستقلة.', 'info');
+      return false;
+    }
+    showToast('لا توجد تغييرات محلية معلّقة للرفع.', 'info');
+    return false;
+  }
+
+  const message = pendingDeletes
+    ? `سيتم رفع التعديلات المحلية المعلّمة فقط. ستبقى ${pendingDeletes} طلبات حذف معلّقة ولن تُنفذ، ولن يتم استبدال بيانات الجهاز ببيانات الخادم. هل تريد المتابعة؟`
+    : 'سيتم رفع التعديلات المحلية المعلّمة فقط بعد حفظ نسخة محلية آمنة. لن يتم تنفيذ أي طلب حذف أو استبدال بيانات الجهاز ببيانات الخادم. هل تريد المتابعة؟';
+  const approved = await showConfirm(message, { danger: false, okText: 'رفع التعديلات' });
+  if (!approved) return false;
+
+  manualOfflineSyncInProgress = true;
+  try {
+    const saved = await saveSystemDataToCloud({ manual: true });
+    if (!saved) {
+      updateSyncStatus(false, 'تعذر رفع بعض التعديلات - النسخة المحلية محفوظة');
+      showToast('لم تكتمل المزامنة. بقيت التعديلات غير المرفوعة محفوظة محلياً.', 'error');
+      return false;
+    }
+    const remainingRecords = hasPendingOfflineRecordChanges();
+    const remainingDeletes = getPendingDeletes().length;
+    if (remainingRecords) {
+      updateSyncStatus(false, 'تم رفع جزء من التعديلات؛ ما زالت تغييرات محلية معلّقة');
+      showToast('تم رفع بعض التغييرات، وما زالت تغييرات أخرى معلّقة. لم تُحذف.', 'info');
+      return false;
+    }
+    if (remainingDeletes) {
+      updateSyncStatus(false, `تم رفع التعديلات؛ ${remainingDeletes} طلب حذف بانتظار المراجعة`);
+      showToast(`تم رفع التعديلات. بقيت ${remainingDeletes} طلبات حذف دون تنفيذ.`, 'success');
+      return true;
+    }
+    updateSyncStatus(true, 'متزامن');
+    showToast('تم رفع التعديلات المحلية والتحقق من اكتمالها.', 'success');
+    return true;
+  } finally {
+    manualOfflineSyncInProgress = false;
+  }
 }
 
 /* ============ LocalStorage ============ */
@@ -5449,7 +5519,13 @@ function updateSyncStatus(isSynced, text) {
   if (!ind || !txt) return;
   txt.textContent = text || (isSynced ? "متزامن" : "محلي");
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
-  else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر لتحديث بيانات الخادم؛ لا يرفع التغييرات المحلية"; }
+  else {
+    ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
+    ind.onclick = () => hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
+    ind.title = hasPendingOfflineRecordChanges()
+      ? "انقر لمراجعة ورفع التغييرات المحلية المعلّمة"
+      : "انقر لتحديث بيانات الخادم؛ طلبات الحذف لا تُنفذ تلقائياً";
+  }
 }
 
 async function initDefaults() {
