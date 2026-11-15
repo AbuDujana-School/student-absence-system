@@ -8943,7 +8943,7 @@ function teacherTimetableCurrentPeriod() {
   const day = weekdayMap[now.weekday] || "";
   if (!SCHOOL_DAYS.includes(day)) return {day,period:null};
   const periods = dutyData().periods || [];
-  for (let index = 0; index < Math.min(7, periods.length); index++) {
+  for (let index = 0; index < Math.min(Number(teacherTimetableData?.version?.period_count) || 7, periods.length); index++) {
     const start = toMinutes(periods[index]?.start), end = toMinutes(periods[index]?.end);
     if (start !== null && end !== null && end > start && now.minutes >= start && now.minutes < end) {
       return {day,period:index+1};
@@ -8966,11 +8966,12 @@ function teacherTimetableRender() {
   const assignments = (Array.isArray(teacherTimetableData.assignments) ? teacherTimetableData.assignments : [])
     .filter(item => item.assignment_type === "substitution" && item.status !== "cancelled");
   const days = SCHOOL_DAYS;
+  const periodCount = Math.max(Number(teacherTimetableData.version?.period_count) || 0, ...cells.map(cell => Number(cell.period) || 0), ...assignments.map(item => Number(item.period) || 0), 7);
   host.innerHTML = days.map(day => {
     const dateForDay = teacherTimetableDayDate(day);
     const dayCells = cells.filter(cell => cell.weekday === day);
     const dayAssignments = assignments.filter(item => item.weekday === day && (!item.assignment_date || item.assignment_date === dateForDay));
-    const rows = Array.from({length:7}, (_,index) => {
+    const rows = Array.from({length:periodCount}, (_,index) => {
       const period = index + 1;
       const cell = dayCells.find(item => Number(item.period) === period);
       const substitution = dayAssignments.find(item => Number(item.period) === period);
@@ -9130,6 +9131,7 @@ function timetableBuildDayPreviewMarkup(preview) {
     ["الاجتماعات",counts.meeting || 0],["غير واضح",counts.unclear || 0]
   ];
   const matching = preview.matchingTotals || {};
+  const periodCount = Number(preview.periodCount) || preview.teachers[0]?.cells?.length || 7;
   const matchBadge = function(status) {
     if(status==="matched") return '<span class="rounded-lg bg-emerald-100 text-emerald-800 px-2 py-1 text-[9px] font-black">مرتبط بالحساب</span>';
     if(status==="ambiguous") return '<span class="rounded-lg bg-amber-100 text-amber-800 px-2 py-1 text-[9px] font-black">مطابقة ملتبسة</span>';
@@ -9146,7 +9148,7 @@ function timetableBuildDayPreviewMarkup(preview) {
   }).join("");
   return '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">'+summary.map(function(item){return '<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3"><div class="text-[9px] text-slate-500">'+item[0]+'</div><div class="mt-1 text-lg font-black text-slate-800 dark:text-white tabular-nums">'+item[1]+'</div></div>';}).join("")+'</div>'+
     '<div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-500"><span>مطابقة الأسماء: '+(matching.matched||0)+' مرتبطة</span><span>· '+(matching.unmatched||0)+' غير مرتبطة</span><span>· '+(matching.ambiguous||0)+' ملتبسة</span></div>'+
-    '<div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="min-w-[1050px] w-full text-right text-[10px]"><thead class="sticky top-0 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3">اسم المعلم والمطابقة</th>'+Array.from({length:7},(_,i)=>'<th class="p-3 text-center">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="min-w-[1050px] w-full text-right text-[10px]"><thead class="sticky top-0 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3">اسم المعلم والمطابقة</th>'+Array.from({length:periodCount},(_,i)=>'<th class="p-3 text-center">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
 async function timetableOpenWeeklyTeacherEditor(sourceName) {
   const preview=timetableDayImportPreview;
@@ -9156,6 +9158,7 @@ async function timetableOpenWeeklyTeacherEditor(sourceName) {
   const days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]);
   const first=days.map(day=>(day.teachers||[]).find(t=>t.sourceName===sourceName)).find(Boolean);
   if(!first)return;
+  const periodCount = Array.isArray(first.cells) ? first.cells.length : 7;
   let candidates=[];
   try {
     const token=appAuthSession?.token||readAppAuthToken();
@@ -9165,7 +9168,7 @@ async function timetableOpenWeeklyTeacherEditor(sourceName) {
   const labels={teaching:"تدريس",free:"فراغ",meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضح"};
   const sections=days.map(day=>{
     const teacher=(day.teachers||[]).find(t=>t.sourceName===sourceName);
-    const cells=Array.from({length:7},(_,i)=>{
+    const cells=Array.from({length:periodCount},(_,i)=>{
       const period=i+1,cell=teacher?.cells?.find(c=>Number(c.period)===period);
       if(!cell)return '<div class="rounded-xl border border-dashed p-3 text-xs text-slate-400">الحصة '+period+'<br>غير مدخلة</div>';
       return '<button type="button" onclick="timetableEditWeeklyPreviewCell('+timetableInlineJson(sourceName)+','+timetableInlineJson(day.weekday)+','+period+')" class="rounded-xl border p-3 text-right hover:ring-2 hover:ring-cyan-400 '+(cell.status==="unclear"?"border-orange-300 bg-orange-50 dark:bg-orange-950/30":"border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800")+'"><div class="text-[9px] text-slate-500">الحصة '+period+'</div><div class="mt-1 text-xs font-black">'+timetableEsc((cell.classSections||[]).join("، ")||"—")+'</div><div class="mt-1 text-[10px]">'+timetableEsc(labels[cell.status]||"أخرى")+'</div><div class="mt-1 text-[10px]">'+timetableEsc(cell.subject||cell.sourceSubject||"")+'</div><div class="mt-2 text-[9px] font-bold text-cyan-700 underline">تعديل</div></button>';
