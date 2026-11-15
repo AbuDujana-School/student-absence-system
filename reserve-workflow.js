@@ -36,6 +36,12 @@
         ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
         :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
       timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
+      const otherToggle=$("timetableSubstitutionOtherDepartments");
+      if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
+      const otherButton=$("timetableDailyOtherDepartmentsButton");
+      if(otherButton)otherButton.innerHTML=otherToggle?.checked
+        ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
+        :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
       reserveDraftScope=currentDraftScope();
