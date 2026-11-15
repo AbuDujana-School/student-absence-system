@@ -7,17 +7,31 @@ DECLARE
   v_saved_days integer;
   v_cell_count integer;
   v_replaced_count integer;
+  v_previous_cell_count integer;
 BEGIN
   v_result := public.save_timetable_weekly_day(jsonb_build_object(
-    'version_id',null,'weekday','الأحد','teachers','[]'::jsonb,'period_count',7,'actor_name','coverage-test'
+    'version_id',null,'weekday','الأحد',
+    'teachers',jsonb_build_array(jsonb_build_object(
+      'sourceName','coverage-test-teacher','matchStatus','unmatched',
+      'cells',jsonb_build_array(
+        jsonb_build_object('period',1,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ'),
+        jsonb_build_object('period',2,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ'),
+        jsonb_build_object('period',3,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ'),
+        jsonb_build_object('period',4,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ'),
+        jsonb_build_object('period',5,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ'),
+        jsonb_build_object('period',6,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ'),
+        jsonb_build_object('period',7,'status','free','classSections','[]'::jsonb,'subject','','sourceClass','','sourceSubject','','sourceStatus','فراغ')
+      )
+    )),
+    'period_count',7,'actor_name','coverage-test'
   ));
   v_version_id := (v_result->>'version_id')::uuid;
-  IF (v_result->>'teacher_count')::integer <> 0 OR (v_result->>'cell_count')::integer <> 0 THEN
-    RAISE EXCEPTION 'Empty day should be recorded without invented teacher cells.';
+  IF (v_result->>'teacher_count')::integer <> 1 OR (v_result->>'cell_count')::integer <> 7 THEN
+    RAISE EXCEPTION 'Initial populated day should store all seven cells.';
   END IF;
 
-  -- Re-saving an empty day must be tracked as a replacement, not lost because
-  -- there are no cell rows for that day.
+  -- Replacing a populated day with an empty source day must keep an accurate
+  -- prior-cell count while recording the day as saved.
   PERFORM public.save_timetable_weekly_day(jsonb_build_object(
     'version_id',v_version_id,'weekday','الأحد','teachers','[]'::jsonb,'period_count',7,'actor_name','coverage-test'
   ));
@@ -34,8 +48,11 @@ BEGIN
   SELECT count(*) INTO v_replaced_count
   FROM public.timetable_weekly_audit
   WHERE version_id=v_version_id AND weekday='الأحد' AND action='day_replaced';
-  IF v_saved_days <> 5 OR v_replaced_count <> 1 THEN
-    RAISE EXCEPTION 'Saved day audit is incomplete: days %, replacements %.',v_saved_days,v_replaced_count;
+  SELECT (before_data->>'previous_cell_count')::integer INTO v_previous_cell_count
+  FROM public.timetable_weekly_audit
+  WHERE version_id=v_version_id AND weekday='الأحد' AND action='day_replaced';
+  IF v_saved_days <> 5 OR v_replaced_count <> 1 OR v_previous_cell_count <> 7 THEN
+    RAISE EXCEPTION 'Saved day audit is incomplete: days %, replacements %, previous cells %.',v_saved_days,v_replaced_count,v_previous_cell_count;
   END IF;
 
   v_result := public.activate_timetable_weekly_version(jsonb_build_object(
