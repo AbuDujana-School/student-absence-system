@@ -53,10 +53,16 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
     if (versionError || !version) return false;
-    const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
-      .select("id").eq("version_id", version.id).eq("matched_teacher_name", name)
-      .eq("cell_status", "teaching").limit(1);
-    return !cellsError && Array.isArray(cells) && cells.length > 0;
+    const [{ data: cells, error: cellsError }, directory] = await Promise.all([
+      db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
+        .eq("version_id", version.id).eq("cell_status", "teaching"),
+      teacherDirectory(),
+    ]);
+    if (cellsError) return false;
+    const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
+    return (cells || []).some((cell: any) =>
+      resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === name
+    );
   },
 };
 
@@ -88,6 +94,17 @@ function timetableTeacherIdentityKey(value: unknown): string {
   return String(value??"").normalize("NFKC").replace(/[\u064b-\u065f\u0670\u0640]/g,"")
     .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ؤ/g,"و").replace(/ئ/g,"ي").replace(/ة/g,"ه")
     .replace(/\s+/g,"").trim();
+}
+function resolveTimetableTeacherName(matchedName: unknown, sourceName: unknown, systemTeachers: SystemTeacher[]): string | null {
+  const storedKey = timetableTeacherIdentityKey(matchedName);
+  if (storedKey) {
+    const indexed = systemTeachers.find(teacher => timetableTeacherIdentityKey(teacher.name) === storedKey);
+    if (indexed) return indexed.name;
+  }
+  const source = String(sourceName || "").trim();
+  if (!source) return null;
+  const resolved = matchSystemTeacherName(source, systemTeachers);
+  return resolved.matchStatus === "matched" ? resolved.teacherName : null;
 }
 async function schoolClassDirectory(): Promise<string[]> {
   const { data, error } = await db.from("classes").select("name").order("name");
@@ -298,11 +315,16 @@ async function handle(req: Request) {
       if (versionError) throw versionError;
       let hasPersonalSchedule = false;
       if (version && principal.type === "teacher") {
-        const { data: ownCells, error: ownError } = await db.from("timetable_weekly_cells")
-          .select("id").eq("version_id", version.id).eq("matched_teacher_name", principal.name)
-          .eq("cell_status", "teaching").limit(1);
+        const [{ data: teachingCells, error: ownError }, directory] = await Promise.all([
+          db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
+            .eq("version_id", version.id).eq("cell_status", "teaching"),
+          teacherDirectory(),
+        ]);
         if (ownError) throw ownError;
-        hasPersonalSchedule = Array.isArray(ownCells) && ownCells.length > 0;
+        const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
+        hasPersonalSchedule = (teachingCells || []).some((cell: any) =>
+          resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === principal.name
+        );
       }
       return reply(200, {
         canAccess: principal.type === "admin" || principal.portalOnly !== true,
@@ -773,15 +795,20 @@ async function handle(req: Request) {
       const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count").eq("status","active").maybeSingle();
       if (error) throw error;
       if (!version) return reply(200, { ok:true, teacherName: principal.name, version:null, cells:[], assignments:[] });
-      const [{data:cells,error:cellsError},{data:assignments,error:assignError}] = await Promise.all([
-        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page").eq("version_id",version.id).eq("matched_teacher_name",principal.name),
+      const [{data:allCells,error:cellsError},{data:assignments,error:assignError},directory] = await Promise.all([
+        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name").eq("version_id",version.id),
         db.from("timetable_assignments").select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,absent_teacher_name,status").eq("version_id",version.id).eq("teacher_name",principal.name).neq("status","cancelled"),
+        teacherDirectory(),
       ]);
       if (cellsError) throw cellsError;
       if (assignError) throw assignError;
+      const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
+      const ownCells = (allCells || []).filter((cell: any) =>
+        resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === principal.name
+      ).map(({matched_teacher_name,teacher_source_name,...cell}: any) => cell);
       const order = new Map(DAYS.map((day,i)=>[day,i]));
       const sort = (a:any,b:any)=>(order.get(a.weekday)??99)-(order.get(b.weekday)??99)||a.period-b.period;
-      return reply(200,{ok:true,teacherName:principal.name,version,cells:(cells||[]).sort(sort),assignments:(assignments||[]).sort(sort)});
+      return reply(200,{ok:true,teacherName:principal.name,version,cells:ownCells.sort(sort),assignments:(assignments||[]).sort(sort)});
     } catch (error) {
       console.error("Own timetable read failed:", error instanceof Error ? error.message : "unknown");
       return reply(500,{error:"تعذر تحميل الجدول الشخصي."});
