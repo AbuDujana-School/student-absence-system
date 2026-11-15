@@ -10473,9 +10473,9 @@ async function timetableImportPdf() {
     diagnostics.currentDutyTimesMatch=timetablePdfTimesMatch(diagnostics.periodTimes);
     if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
     const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
-    if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||!day.teachers.length||day.teachers.length>500))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: عدد المعلمين في أحد الأيام غير صالح.");
-    const importedPeriodCount=days[0]?.teachers?.[0]?.cells?.length;
-    if(![7,8].includes(importedPeriodCount)||days.some(day=>day.teachers.some(teacher=>!Array.isArray(teacher.cells)||teacher.cells.length!==importedPeriodCount)))throw new Error("لم يكتمل بناء جدول أسبوعي موثوق: يجب أن يحتوي كل معلم على العدد نفسه من الحصص (7 أو 8).");
+    if(days.length!==5||days.some(day=>!Array.isArray(day.teachers)||day.teachers.length>500))throw new Error("تعذر إنشاء أيام الأسبوع الخمسة من ملف PDF.");
+    const importedPeriodCount=Number(diagnostics.periodCount)||diagnostics.periodTimes?.length||7;
+    if(![7,8].includes(importedPeriodCount)||days.some(day=>day.teachers.some(teacher=>!Array.isArray(teacher.cells)||teacher.cells.length!==importedPeriodCount)))throw new Error("بعض سجلات المعلمين لا تطابق عدد الحصص؛ راجع الملاحظات قبل الحفظ.");
     const token=readAppAuthToken();if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     const candidatesResponse=await appAuthRequest({action:"timetable_list_owner_candidates"},token);
     const candidates=(candidatesResponse?.teachers||[]).filter(item=>String(item?.name||"").trim()),candidateMap=new Map();
@@ -10492,15 +10492,15 @@ async function timetableImportPdf() {
     const collisions=new Set();for(const names of proposed.values())if(names.length>1)names.forEach(name=>collisions.add(timetableNormalizeNameKey(name)));
     if(collisions.size)for(const day of days)for(const teacher of day.teachers)if(collisions.has(timetableNormalizeNameKey(teacher.sourceName))){teacher.matchStatus="ambiguous";teacher.matchedTeacherName=null;}
     for(const day of days)day.matchingTotals={matched:day.teachers.filter(item=>item.matchStatus==="matched").length,unmatched:day.teachers.filter(item=>item.matchStatus==="unmatched").length,ambiguous:day.teachers.filter(item=>item.matchStatus==="ambiguous").length};
-    timetableValidateWeeklyTeacherSets(days);
     timetableWeeklyDraftId=null;timetableWeeklyDraftDays=new Set();
-    timetableDayImportPreview={days,periodTimes:diagnostics.periodTimes,createNewDraft:true,targetVersionId:null};
+    timetableDayImportPreview={days,periodTimes:diagnostics.periodTimes,periodCount:importedPeriodCount,createNewDraft:true,targetVersionId:null};
     const activateButton=document.getElementById("timetableActivateWeekButton");if(activateButton)activateButton.disabled=true;
     timetableRenderDayPreview();timetablePdfRenderDiagnostics(diagnostics);
     const unclear=days.reduce((sum,day)=>sum+(day.totals?.unclear||0),0),unmatched=days[0].matchingTotals.unmatched+days[0].matchingTotals.ambiguous;
-    const timeMessage=diagnostics.currentDutyTimesMatch?"أوقات الملف مطابقة لإعدادات الحصص الحالية.":"أوقات الملف لا تطابق duty_module؛ تم إيقاف الحفظ حتى توحيدها.";
-    timetableWeeklySetStatus("اكتمل تحليل "+diagnostics.pageCount+" صفحة: "+diagnostics.teacherPageCount+" معلماً، و"+days[0].totalCells*5+" خانة أسبوعية. "+timeMessage+" اكتُشفت "+(diagnostics.mergedCells||[]).length+" خانات ممتدة وحُسبت كل منها فترتين. توجد "+unclear+" خانة تحتاج مراجعة، و"+unmatched+" اسماً يحتاج ربطاً أو تأكيداً. راجع الخانات البرتقالية قبل حفظ المسودة.",!diagnostics.currentDutyTimesMatch||unclear||unmatched?"info":"success");
-    timetableSetStatus("تم تحليل ملف «"+file.name+"» وإنشاء معاينة أسبوعية. لم تُحفظ أي بيانات بعد.","success");
+    const timeMessage=diagnostics.currentDutyTimesMatch?"أوقات الملف مطابقة لإعدادات الحصص الحالية.":"تنبيه: أوقات الملف تختلف عن إعدادات duty_module؛ يمكنك الحفظ، لكن راجع الأوقات قبل النشر.";
+    const warningCount=(diagnostics.warnings||[]).length+(diagnostics.blockingErrors||[]).length;
+    timetableWeeklySetStatus("اكتمل تحليل "+diagnostics.pageCount+" صفحة: "+diagnostics.teacherPageCount+" معلماً، و"+days[0].totalCells*5+" خانة مستخرجة. "+timeMessage+" اكتُشفت "+(diagnostics.mergedCells||[]).length+" خانات ممتدة وحُسبت كل منها فترتين. توجد "+unclear+" خانة غير واضحة، و"+unmatched+" اسم يحتاج ربطاً، و"+warningCount+" ملاحظة. يمكنك حفظ الجدول ومراجعة النواقص لاحقاً.",warningCount||unclear||unmatched||!diagnostics.currentDutyTimesMatch?"info":"success");
+    timetableSetStatus("تم تحليل ملف «"+file.name+"» وإنشاء معاينة أسبوعية. لم تُحفظ أي بيانات بعد؛ الحفظ متاح حتى مع الملاحظات.","info");
     if(bar)bar.style.width="100%";if(value)value.textContent="100%";if(label)label.textContent="اكتمل فحص "+diagnostics.pageCount+" صفحة";
     document.getElementById("timetableDayPreview")?.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(error){
