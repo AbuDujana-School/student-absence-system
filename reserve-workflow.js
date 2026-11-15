@@ -9,6 +9,18 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
+  const ABSENCE_REASONS = ["دورة تدريبية","مهمة عمل","ظرف طارئ","موعد مستشفى","إجازة مرضية","إجازة أبوة","مرافقة مريض","أخرى"];
+  function reasonControlMarkup(absentName, reason) {
+    const value=String(reason||"").trim();
+    const isKnown=ABSENCE_REASONS.includes(value);
+    const selected=isKnown?value:(value?"أخرى":"");
+    const custom=value&&!isKnown?value:"";
+    return '<div class="w-full max-w-md"><label class="mb-1 block text-[10px] font-black text-slate-600">سبب الغياب <span class="font-normal text-slate-400">(اختر سبباً لكل معلم)</span></label>'+
+      '<select data-tt-reason-select="'+esc(absentName)+'" class="tt-reason"><option value="">اختر سبب الغياب</option>'+
+      ABSENCE_REASONS.map(option=>'<option value="'+esc(option)+'" '+(selected===option?"selected":"")+'>'+esc(option)+'</option>').join("")+
+      '</select><input type="text" data-tt-reason-custom="'+esc(absentName)+'" class="tt-reason mt-2 '+(selected==="أخرى"?"":"hidden")+'" maxlength="500" placeholder="اكتب سبب الغياب بالتفصيل" value="'+esc(custom)+'"></div>';
+  }
+
 
   function installReserveEnhancements() {
     const panel = $("timetableSubstitutionPanel");
@@ -170,14 +182,22 @@
         }
         return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
-      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div><div class="w-full max-w-md"><label class="mb-1 block text-[10px] font-black text-slate-600">سبب الاحتياط <span class="font-normal text-slate-400">(اختياري)</span></label><textarea rows="1" data-tt-reason="'+esc(absentName)+'" class="tt-reason" placeholder="اكتب سبب الاحتياط أو اتركه فارغاً">'+esc(reason)+"</textarea></div></div><div class=\"space-y-2 p-3 sm:p-4\">"+cards+"</div></section>";
+      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason)+'</div><div class=\"space-y-2 p-3 sm:p-4\">"+cards+"</div></section>";
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
       if(item)item.substituteTeacherName=select.value;
       status(select.value?"تم تغيير البديل المقترح. احفظ التوزيع بعد مراجعة جميع الحصص.":"لم يتم اختيار بديل لهذه الحصة.","info");
     }));
-    host.querySelectorAll("[data-tt-reason]").forEach(input=>input.addEventListener("input",()=>{reserveReasons[input.dataset.ttReason]=input.value;}));
+    host.querySelectorAll("[data-tt-reason-select]").forEach(select=>select.addEventListener("change",()=>{
+      const name=select.dataset.ttReasonSelect,custom=host.querySelector('[data-tt-reason-custom="'+name+'"]');
+      if(custom){custom.classList.toggle("hidden",select.value!=="أخرى");if(select.value!=="أخرى")custom.value="";}
+      reserveReasons[name]=select.value==="أخرى"?(custom?.value||"").trim():select.value;
+      if(select.value==="أخرى")custom?.focus();
+    }));
+    host.querySelectorAll("[data-tt-reason-custom]").forEach(input=>input.addEventListener("input",()=>{
+      reserveReasons[input.dataset.ttReasonCustom]=input.value.trim();
+    }));
     host.querySelectorAll("[data-tt-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttEdit)));
   };
 
