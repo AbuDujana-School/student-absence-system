@@ -46,6 +46,8 @@
       otherLabel.classList.add("rounded-2xl", "border", "border-indigo-200", "bg-indigo-50", "p-3", "dark:border-indigo-900", "dark:bg-indigo-950/30");
       const textNode = Array.from(otherLabel.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
       if (textNode) textNode.textContent = " توسيع نطاق البدلاء إلى الأقسام والتخصصات الأخرى — مع التحقق من التفرغ";
+      const otherToggle = $("timetableSubstitutionOtherDepartments");
+      if (otherToggle) otherToggle.setAttribute("onchange", "timetableDailyRefreshAll()");
     }
     const results = $("timetableSubstitutionResults");
     if (results) {
@@ -100,6 +102,7 @@
     }
     try {
       reserveBatchPreview = await fetchBatchPreview();
+      if (reserveBatchPreview.active === false) throw new Error("لا يوجد جدول أسبوعي نشط لتوزيع الاحتياط.");
       reserveDraftAssignments = (reserveBatchPreview.assignments || []).map(item => ({
         absentTeacherName:item.absentTeacherName, substituteTeacherName:item.substituteTeacherName, period:Number(item.period)
       }));
@@ -142,6 +145,7 @@
       ].sort((a,b)=>Number(a.period)-Number(b.period));
       if (!rows.length) return "";
       const savedReason = saved.find(item=>item.absentTeacherName===absentName&&item.reason&&item.reason!=="-")?.reason || "";
+      if (reserveReasons[absentName] === undefined && savedReason) reserveReasons[absentName] = savedReason;
       const reason = reserveReasons[absentName] ?? savedReason;
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
@@ -175,6 +179,7 @@
     timetableDailyBusy=true;timetableDailySetBusy(true);
     try{
       reserveBatchPreview=await fetchBatchPreview();
+      if(reserveBatchPreview.active===false)throw new Error("لا يوجد جدول أسبوعي نشط لتوزيع الاحتياط.");
       reserveDraftAssignments=(reserveBatchPreview.assignments||[]).map(item=>({absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:Number(item.period)}));
       timetableDailyRenderLessons();
       status("قرأ النظام جميع حصص الغياب معاً وأعد أفضل توزيع شامل. راجع البدلاء والأسباب ثم اضغط حفظ التوزيع.","success");
