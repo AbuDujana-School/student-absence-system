@@ -313,15 +313,24 @@ Deno.test("schoolwide reserve statistics grants do not grant reserve management"
   if (canUseTimetableAction("custom", "timetable_substitution_stats")) {
     throw new Error("Custom account without explicit statistics grant was granted statistics");
   }
-  for (const action of ["timetable_substitution_reset","timetable_substitution_reset_options","timetable_reserve_stats_access_save"]) {
-    if (canUseTimetableAction("teacher", action, false, true)) {
-      throw new Error("Reserve coordinator gained system-administrator action: " + action);
+  for (const action of ["timetable_substitution_reset","timetable_substitution_reset_options"]) {
+    if (canUseTimetableAction("teacher", action)) {
+      throw new Error("Teacher without reserve permission gained department reset access: " + action);
+    }
+    if (!canUseTimetableAction("teacher", action, false, true)) {
+      throw new Error("Reserve-enabled department coordinator was denied subject/day reset access: " + action);
     }
     if (canUseTimetableAction("custom", action)) {
-      throw new Error("Custom account gained system-administrator action: " + action);
+      throw new Error("Custom account gained department reset access: " + action);
     }
     if (!canUseTimetableAction("admin", action)) {
-      throw new Error("System administrator was denied admin-only action: " + action);
+      throw new Error("System administrator was denied reserve reset access: " + action);
     }
+  }
+  if (canUseTimetableAction("teacher", "timetable_reserve_stats_access_save", false, true)) {
+    throw new Error("Department coordinator gained system-wide statistics permission management");
+  }
+  if (!canUseTimetableAction("admin", "timetable_reserve_stats_access_save")) {
+    throw new Error("System administrator was denied statistics permission management");
   }
 });
