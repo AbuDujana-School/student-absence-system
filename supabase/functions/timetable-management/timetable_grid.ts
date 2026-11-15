@@ -135,7 +135,6 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
   }
   if(!recognizedRows) return null;
   const periodCount=Math.max(7,...teachers.flatMap(teacher=>teacher.cells.map(cell=>cell.period)));
-  const warnings:string[]=[];
   for(const teacher of teachers)fillMissingPeriods(teacher,periodCount,warnings);
   const totals=emptyTotals();
   for(const teacher of teachers)for(const cell of teacher.cells)totals[cell.status]++;
