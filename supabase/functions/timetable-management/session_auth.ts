@@ -110,8 +110,10 @@ export function canUseTimetableAction(
   portalOnly = false,
   hasReservePermission = false,
   reserveStatsOnly = false,
+  schoolwideReserveStats = false,
 ): boolean {
   if (principalType === "admin") return true;
+  if (schoolwideReserveStats && action === "timetable_substitution_stats") return true;
   if (portalOnly) return new Set([
     "health",
     "timetable_check_access",
