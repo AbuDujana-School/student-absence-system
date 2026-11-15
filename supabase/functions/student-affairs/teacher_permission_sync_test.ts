@@ -38,8 +38,8 @@ Deno.test("Student Affairs save does not enqueue a stale full teacher overwrite"
 });
 
 Deno.test("general teacher sync preserves server-managed permissions before full-row upsert", () => {
-  const syncStart = html.indexOf("if (dirtySets.teachers.size > 0)");
-  const syncEnd = html.indexOf("dirtySets.teachers.clear();", syncStart);
+  const syncStart = html.indexOf("const teacherKeys = [...(syncDirty.teachers || [])]");
+  const syncEnd = html.indexOf("clearSyncedDirtyKeys('teachers', teacherKeys, syncSnapshotDb)", syncStart);
   assert(syncStart >= 0 && syncEnd > syncStart, "Could not locate teacher sync block");
   const sync = html.slice(syncStart, syncEnd);
   assert(sync.includes(".select('name,permissions')"), "Teacher sync must read canonical server permissions");

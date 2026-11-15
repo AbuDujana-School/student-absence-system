@@ -3028,7 +3028,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div id="sec-sync" class="hidden space-y-4">
         <div class="bg-slate-50/80 dark:bg-slate-900/50 p-6 rounded-3xl border border-slate-200 space-y-4">
           <h5 class="font-extrabold text-slate-800 dark:text-white text-sm"><i class="fa-solid fa-cloud text-emerald-600"></i> المزامنة السحابية</h5>
-          <button onclick="forceSyncWithCloud()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-md"><i class="fa-solid fa-rotate"></i> مزامنة الآن</button>
+          <button onclick="syncPendingLocalChanges()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-3 rounded-2xl text-xs font-bold shadow-md"><i class="fa-solid fa-cloud-arrow-up"></i> مزامنة التغييرات المحلية</button>
         </div>
       </div>
 
@@ -5120,9 +5120,79 @@ function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
 }
 async function retryOfflineSyncSilently() {
-  // Pending local changes require an explicit, user-initiated review/sync.
-  // Never push cached school records automatically after reconnect or tab resume.
+  // Background retries stay disabled: local school records are never uploaded silently.
   return false;
+}
+
+let manualOfflineSyncInProgress = false;
+function hasPendingOfflineRecordChanges() {
+  return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size ||
+    dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size ||
+    dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories);
+}
+
+async function syncPendingLocalChanges() {
+  if (manualOfflineSyncInProgress) {
+    showToast('المزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
+    return false;
+  }
+  if (!navigator.onLine) {
+    updateSyncStatus(false, 'غير متصل - التغييرات محفوظة محلياً');
+    showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
+    return false;
+  }
+  if (cloudDataLoadState !== 'ready') {
+    showToast('انتظر اكتمال تحميل بيانات المدرسة قبل المزامنة.', 'error');
+    return false;
+  }
+  if (attendanceDirty || behaviorDirty) {
+    showToast('احفظ تغييرات الرصد الحالية أولاً، ثم أعد المزامنة.', 'error');
+    return false;
+  }
+
+  const pendingDeletes = getPendingDeletes().length;
+  if (!hasPendingOfflineRecordChanges()) {
+    if (pendingDeletes) {
+      updateSyncStatus(false, `لا توجد تعديلات قابلة للرفع؛ ${pendingDeletes} طلب حذف بانتظار المراجعة`);
+      showToast('طلبات الحذف لا تُنفذ ضمن المزامنة الآمنة. تحتاج إلى مراجعة مستقلة.', 'info');
+      return false;
+    }
+    showToast('لا توجد تغييرات محلية معلّقة للرفع.', 'info');
+    return false;
+  }
+
+  const message = pendingDeletes
+    ? `سيتم رفع التعديلات المحلية المعلّمة فقط. ستبقى ${pendingDeletes} طلبات حذف معلّقة ولن تُنفذ، ولن يتم استبدال بيانات الجهاز ببيانات الخادم. هل تريد المتابعة؟`
+    : 'سيتم رفع التعديلات المحلية المعلّمة فقط بعد حفظ نسخة محلية آمنة. لن يتم تنفيذ أي طلب حذف أو استبدال بيانات الجهاز ببيانات الخادم. هل تريد المتابعة؟';
+  const approved = await showConfirm(message, { danger: false, okText: 'رفع التعديلات' });
+  if (!approved) return false;
+
+  manualOfflineSyncInProgress = true;
+  try {
+    const saved = await saveSystemDataToCloud({ manual: true });
+    if (!saved) {
+      updateSyncStatus(false, 'تعذر رفع بعض التعديلات - النسخة المحلية محفوظة');
+      showToast('لم تكتمل المزامنة. بقيت التعديلات غير المرفوعة محفوظة محلياً.', 'error');
+      return false;
+    }
+    const remainingRecords = hasPendingOfflineRecordChanges();
+    const remainingDeletes = getPendingDeletes().length;
+    if (remainingRecords) {
+      updateSyncStatus(false, 'تم رفع جزء من التعديلات؛ ما زالت تغييرات محلية معلّقة');
+      showToast('تم رفع بعض التغييرات، وما زالت تغييرات أخرى معلّقة. لم تُحذف.', 'info');
+      return false;
+    }
+    if (remainingDeletes) {
+      updateSyncStatus(false, `تم رفع التعديلات؛ ${remainingDeletes} طلب حذف بانتظار المراجعة`);
+      showToast(`تم رفع التعديلات. بقيت ${remainingDeletes} طلبات حذف دون تنفيذ.`, 'success');
+      return true;
+    }
+    updateSyncStatus(true, 'متزامن');
+    showToast('تم رفع التعديلات المحلية والتحقق من اكتمالها.', 'success');
+    return true;
+  } finally {
+    manualOfflineSyncInProgress = false;
+  }
 }
 
 /* ============ LocalStorage ============ */
@@ -5348,8 +5418,48 @@ async function loadSystemDataFromCloud() {
   }
 }
 
+function syncValuesEqual(a, b) {
+  try { return JSON.stringify(a ?? null) === JSON.stringify(b ?? null); }
+  catch (_) { return false; }
+}
+function syncSnapshotValue(kind, key, sourceDb) {
+  if (kind === 'classes') return (sourceDb.classes || []).includes(key);
+  if (kind === 'teachers') return {
+    teacher: (sourceDb.teachers || []).find(x => x.name === key) || null,
+    custom: (sourceDb.customUsers || []).find(x => x.name === key) || null
+  };
+  if (kind === 'students') return sourceDb.students?.[key] || [];
+  if (kind === 'attendance') return sourceDb.attendance?.[key] ?? null;
+  if (kind === 'behaviors') return sourceDb.behaviors?.[key] ?? null;
+  if (kind === 'duty_reports') return (sourceDb.dutyModule?.records || []).find(x => String(x.id) === String(key)) || null;
+  if (kind === 'admin_pin') return sourceDb.adminPin ?? null;
+  if (kind === 'custom_categories') return sourceDb.customCategories || [];
+  if (kind === 'duty_module') return sourceDb.dutyModule ?? null;
+  return null;
+}
+function clearSyncedDirtyKeys(kind, keys, uploadedSnapshot) {
+  const set = dirtySets[kind];
+  if (!(set instanceof Set)) return;
+  for (const key of keys || []) {
+    if (!set.has(key)) continue;
+    const before = syncSnapshotValue(kind, key, uploadedSnapshot);
+    const now = syncSnapshotValue(kind, key, db);
+    if (syncValuesEqual(before, now)) set.delete(key);
+  }
+}
+function clearSyncedDirtyFlag(kind, uploadedSnapshot) {
+  if (!dirtySets[kind]) return;
+  const before = syncSnapshotValue(kind, true, uploadedSnapshot);
+  const now = syncSnapshotValue(kind, true, db);
+  if (syncValuesEqual(before, now)) dirtySets[kind] = false;
+}
+
 async function saveSystemDataToCloud(options = {}) {
   if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
+  // Freeze the exact upload intent before the first await. Edits made while the
+  // network request is in flight remain dirty and are never accidentally cleared.
+  const syncSnapshotDb = cloneOfflineValue(db);
+  const syncDirty = serializeDirtySets();
   updateSyncStatus(true, "جارِ الحفظ...");
   const localCacheSaved = saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
@@ -5359,57 +5469,118 @@ async function saveSystemDataToCloud(options = {}) {
     return false;
   }
   try {
-    if (dirtySets.classes.size > 0) { const rows = [...dirtySets.classes].map(n => ({ name: n })); await robustUpsert('classes', rows, 'name', 200); dirtySets.classes.clear(); }
-    if (dirtySets.teachers.size > 0) {
+    const classKeys = [...(syncDirty.classes || [])];
+    if (classKeys.length) {
+      const rows = classKeys.map(n => ({ name: n })).filter(row => (syncSnapshotDb.classes || []).includes(row.name));
+      if (rows.length) await robustUpsert('classes', rows, 'name', 200);
+      clearSyncedDirtyKeys('classes', classKeys, syncSnapshotDb);
+    }
+
+    const teacherKeys = [...(syncDirty.teachers || [])];
+    if (teacherKeys.length) {
       const rows = [];
-      for (const name of dirtySets.teachers) {
-        const t = db.teachers.find(x => x.name === name);
-        if (t) { const safePerms = { ...(t.permissions || {}), mustChangePin: !!t.mustChangePin }; rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: safePerms }); }
-        const u = (db.customUsers || []).find(x => x.name === name);
+      for (const name of teacherKeys) {
+        const t = (syncSnapshotDb.teachers || []).find(x => x.name === name);
+        if (t) {
+          const safePerms = { ...(t.permissions || {}), mustChangePin: !!t.mustChangePin };
+          rows.push({ name: t.name, pin_hash: t.pin_hash, pin_salt: t.pin_salt, role: 'teacher', permissions: safePerms });
+        }
+        const u = (syncSnapshotDb.customUsers || []).find(x => x.name === name);
         if (u) rows.push({ name: u.name, pin_hash: u.pin_hash, pin_salt: u.pin_salt, role: 'custom', permissions: u.permissions || {} });
       }
-      if (rows.length > 0) {
-        // Student Affairs owns these two flags. Preserve the server's current values
-        // whenever the general app sync writes a full teacher permissions object.
+      if (rows.length) {
+        // Preserve the two permissions managed by Student Affairs.
         const { data: serverTeachers, error: serverTeachersError } = await sb
           .from('teachers').select('name,permissions').in('name', rows.map(row => row.name));
         if (serverTeachersError) throw new Error('teachers_permissions: ' + serverTeachersError.message);
         const serverPermissionsByName = new Map((serverTeachers || []).map(row => [row.name, row.permissions || {}]));
         for (const row of rows) {
           const serverPermissions = serverPermissionsByName.get(row.name);
-          if (!serverPermissions) continue; // New teacher: there is no server record to preserve yet.
-          row.permissions = saMergeServerManagedTeacherPermissions(row.permissions, serverPermissions);
-          const localTeacher = (db.teachers || []).find(item => item.name === row.name);
-          if (localTeacher) localTeacher.permissions = { ...row.permissions };
-          const localCustomUser = (db.customUsers || []).find(item => item.name === row.name);
-          if (localCustomUser) localCustomUser.permissions = { ...row.permissions };
+          if (serverPermissions) row.permissions = saMergeServerManagedTeacherPermissions(row.permissions, serverPermissions);
         }
         await robustUpsert('teachers', rows, 'name', 100);
       }
-      dirtySets.teachers.clear();
+      clearSyncedDirtyKeys('teachers', teacherKeys, syncSnapshotDb);
     }
-    if (dirtySets.students.size > 0) { const rows = []; for (const c of dirtySets.students) (db.students[c] || []).forEach(n => rows.push({ class_name: c, student_name: n })); if (rows.length > 0) await robustUpsert('students', rows, 'class_name,student_name', 500); dirtySets.students.clear(); }
-    if (dirtySets.attendance.size > 0) { const rows = []; for (const key of dirtySets.attendance) { const v = db.attendance[key]; if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); } } if (rows.length > 0) await robustUpsert('attendance', rows, 'record_key', 100); dirtySets.attendance.clear(); }
-    if (dirtySets.behaviors.size > 0) { const rows = []; for (const key of dirtySets.behaviors) { const v = db.behaviors[key]; if (v) { const p = parseAttendanceKey(key); rows.push({ record_key: key, date_str: v.date || p.date, class_name: v.className || p.className, period: v.period || p.period, teacher_name: v.teacher || 'معلم', records: v.records || {}, updated_at: getTrustedDate().toISOString() }); } } if (rows.length > 0) await robustUpsert('behaviors', rows, 'record_key', 100); dirtySets.behaviors.clear(); }
-    if (dirtySets.admin_pin) { if (db.adminPin && db.adminPin.hash) { const { error } = await sb.from('school_settings').upsert({ key: 'admin_pin', value: { hash: db.adminPin.hash, salt: db.adminPin.salt } }, { onConflict: 'key' }); if (error) throw new Error('admin_pin: ' + error.message); } dirtySets.admin_pin = false; }
-    if (dirtySets.custom_categories) { const { error } = await sb.from('school_settings').upsert({ key: 'custom_categories', value: db.customCategories }, { onConflict: 'key' }); if (error) throw new Error('custom_categories: ' + error.message); dirtySets.custom_categories = false; }
-    if (dirtySets.duty_reports.size > 0) {
+
+    const studentKeys = [...(syncDirty.students || [])];
+    if (studentKeys.length) {
       const rows = [];
-      for (const id of dirtySets.duty_reports) {
-        const r = (db.dutyModule.records || []).find(x => String(x.id) === String(id));
+      for (const c of studentKeys) (syncSnapshotDb.students?.[c] || []).forEach(n => rows.push({ class_name: c, student_name: n }));
+      if (rows.length) await robustUpsert('students', rows, 'class_name,student_name', 500);
+      clearSyncedDirtyKeys('students', studentKeys, syncSnapshotDb);
+    }
+
+    for (const kind of ['attendance', 'behaviors']) {
+      const keys = [...(syncDirty[kind] || [])];
+      if (!keys.length) continue;
+      const source = syncSnapshotDb[kind] || {};
+      const rows = [];
+      for (const key of keys) {
+        const v = source[key];
+        if (!v) continue;
+        const p = parseAttendanceKey(key);
+        rows.push({
+          record_key: key, date_str: v.date || p.date, class_name: v.className || p.className,
+          period: v.period || p.period, teacher_name: v.teacher || 'معلم',
+          records: v.records || {}, updated_at: getTrustedDate().toISOString()
+        });
+      }
+      if (rows.length) await robustUpsert(kind, rows, 'record_key', 100);
+      clearSyncedDirtyKeys(kind, keys, syncSnapshotDb);
+    }
+
+    if (syncDirty.admin_pin) {
+      if (syncSnapshotDb.adminPin?.hash) {
+        const { error } = await sb.from('school_settings').upsert({
+          key: 'admin_pin', value: { hash: syncSnapshotDb.adminPin.hash, salt: syncSnapshotDb.adminPin.salt }
+        }, { onConflict: 'key' });
+        if (error) throw new Error('admin_pin: ' + error.message);
+      }
+      clearSyncedDirtyFlag('admin_pin', syncSnapshotDb);
+    }
+    if (syncDirty.custom_categories) {
+      const { error } = await sb.from('school_settings').upsert({
+        key: 'custom_categories', value: syncSnapshotDb.customCategories || []
+      }, { onConflict: 'key' });
+      if (error) throw new Error('custom_categories: ' + error.message);
+      clearSyncedDirtyFlag('custom_categories', syncSnapshotDb);
+    }
+
+    const dutyReportKeys = [...(syncDirty.duty_reports || [])];
+    if (dutyReportKeys.length) {
+      const rows = [];
+      for (const id of dutyReportKeys) {
+        const r = (syncSnapshotDb.dutyModule?.records || []).find(x => String(x.id) === String(id));
         if (r && r.className !== '__CLEAN__') {
-          rows.push({ id: String(r.id), date_str: r.date, day_num: r.day, period: r.period, class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null, reported_by: r.reportedBy || null, status: r.status || 'pending', reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null, created_at: r.createdAt || getTrustedDate().toISOString() });
+          rows.push({
+            id: String(r.id), date_str: r.date, day_num: r.day, period: r.period,
+            class_name: r.className, subject: r.subject || null, teacher_name: r.teacherName || null,
+            reported_by: r.reportedBy || null, status: r.status || 'pending',
+            reviewed_by: r.reviewedBy || null, reviewed_at: r.reviewedAt || null,
+            created_at: r.createdAt || getTrustedDate().toISOString()
+          });
         }
       }
-      if (rows.length > 0) await robustUpsert('duty_reports', rows, 'id', 100);
-      dirtySets.duty_reports.clear();
+      if (rows.length) await robustUpsert('duty_reports', rows, 'id', 100);
+      clearSyncedDirtyKeys('duty_reports', dutyReportKeys, syncSnapshotDb);
     }
-    if (dirtySets.duty_module) { const { records: _drop, ...dutySmall } = db.dutyModule; const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' }); if (error) throw new Error('duty_module: ' + error.message); dirtySets.duty_module = false; }
+
+    if (syncDirty.duty_module) {
+      const { records: _drop, ...dutySmall } = syncSnapshotDb.dutyModule || {};
+      const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' });
+      if (error) throw new Error('duty_module: ' + error.message);
+      clearSyncedDirtyFlag('duty_module', syncSnapshotDb);
+    }
+
     saveToLocalStorageSafe();
     await persistOfflineState();
     const pendingDeleteCount = getPendingDeletes().length;
-    updateSyncStatus(!pendingDeleteCount, pendingDeleteCount ? `تم حفظ التعديلات؛ ${pendingDeleteCount} طلب حذف بانتظار المراجعة` : "متزامن");
-    return true;
+    const pendingRecords = hasPendingOfflineRecordChanges();
+    updateSyncStatus(!pendingDeleteCount && !pendingRecords,
+      pendingRecords ? 'بقيت تعديلات أحدث من عملية المزامنة محفوظة محلياً'
+        : pendingDeleteCount ? `تم حفظ التعديلات؛ ${pendingDeleteCount} طلب حذف بانتظار المراجعة` : "متزامن");
+    return !pendingRecords;
   } catch(error) {
     console.error('Cloud save failed:', error);
     await persistOfflineState();
@@ -5449,7 +5620,13 @@ function updateSyncStatus(isSynced, text) {
   if (!ind || !txt) return;
   txt.textContent = text || (isSynced ? "متزامن" : "محلي");
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
-  else { ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer"; ind.onclick = () => forceSyncWithCloud(); ind.title = "انقر لتحديث بيانات الخادم؛ لا يرفع التغييرات المحلية"; }
+  else {
+    ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
+    ind.onclick = () => hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
+    ind.title = hasPendingOfflineRecordChanges()
+      ? "انقر لمراجعة ورفع التغييرات المحلية المعلّمة"
+      : "انقر لتحديث بيانات الخادم؛ طلبات الحذف لا تُنفذ تلقائياً";
+  }
 }
 
 async function initDefaults() {
