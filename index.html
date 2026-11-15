@@ -10638,42 +10638,101 @@ async function timetableImportWorkbook() {
   }
 }
 
-async function timetableSaveImport() {
-  const button = document.getElementById("timetableSaveButton");
-  const token = appAuthSession?.token || readAppAuthToken();
-  if (!timetableCanAccess || !token) { timetableSetStatus("يلزم امتلاك صلاحية منظومة الجداول والاحتياط لحفظ الجدول.", "error"); return; }
-  if (!timetablePendingWorkbook || !timetablePendingWorkbook.sheets) { timetableSetStatus("أعد تحليل ملف Excel قبل الحفظ.", "error"); return; }
-  if (timetableSavedImport) { timetableSetStatus("هذه النسخة محفوظة بالفعل. أعد رفع الملف لإنشاء نسخة استيراد جديدة.", "success"); return; }
-  const original = button.innerHTML;
-  button.disabled = true;
-  button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الحفظ...';
-  try {
-    const result = await appAuthRequest({
-      action:"timetable_save_import",
-      fileName:timetablePendingWorkbook.fileName,
-      sheets:timetablePendingWorkbook.sheets,
-      idempotencyKey:timetablePendingWorkbook.idempotencyKey
-    }, token);
-    if (!result?.saved?.import_id) throw new Error("لم يصل تأكيد صالح من الخادم. أعد المحاولة دون إعادة تحليل الملف.");
-    await timetableLoadImports();
-    const loaded = await timetableLoadSavedImport(result.saved.import_id);
-    if (loaded !== true) throw new Error("تم تأكيد الحفظ من الخادم، لكن تعذر تحديث تفاصيل النسخة في الواجهة. أعد المحاولة لاستعادة نفس عملية الحفظ دون إنشاء نسخة مكررة.");
-    timetableSavedImport = result.saved;
-    try {
-      if (timetablePendingWorkbook.idempotencyStorageKey) {
-        localStorage.removeItem(timetablePendingWorkbook.idempotencyStorageKey);
+async async function timetableCreateWeeklyDraftFromExcel(placements, importedTeachers, token) {
+  const weekdays=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+  const periodCount=(placements||[]).some(record=>Number(record.period)===8)?8:7;
+  const teacherMap=new Map();
+  for(const item of importedTeachers||[]){
+    const sourceName=String(item.sourceName||"").trim();if(!sourceName)continue;
+    teacherMap.set(sourceName,{sourceName,matchedTeacherName:item.matchStatus==="matched"?item.matchedTeacherName:null,matchStatus:item.matchStatus==="ambiguous"?"ambiguous":item.matchStatus==="matched"&&item.matchedTeacherName?"matched":"unmatched"});
+  }
+  for(const record of placements||[]){
+    const sourceName=String(record.teacherSourceName||"").trim();if(!sourceName)continue;
+    if(!teacherMap.has(sourceName))teacherMap.set(sourceName,{sourceName,matchedTeacherName:null,matchStatus:"unmatched"});
+  }
+  const warnings=[];
+  if(!teacherMap.size)warnings.push("لم يتم استخراج أسماء معلمين من التوزيعات.");
+  let versionId=null;
+  timetableWeeklyDraftId=null;timetableWeeklyDraftDays=new Set();
+  for(const weekday of weekdays){
+    const teachers=Array.from(teacherMap.values()).map(teacher=>({
+      ...teacher,
+      cells:Array.from({length:periodCount},(_,index)=>({
+        period:index+1,status:"unclear",classSections:[],subject:"",sourceClass:"",sourceSubject:"",
+        sourceStatus:"غير مستخرج",sourceNote:"لا يوجد تكليف صريح لهذه الحصة في ورقة التوزيعات."
+      }))
+    }));
+    const byTeacher=new Map(teachers.map(teacher=>[teacher.sourceName,teacher]));
+    for(const record of placements||[]){
+      if(record.weekday!==weekday)continue;
+      const period=Number(record.period),sourceName=String(record.teacherSourceName||"").trim();
+      const teacher=byTeacher.get(sourceName);
+      if(!teacher||!Number.isInteger(period)||period<1||period>periodCount){warnings.push("توزيع غير صالح أو بلا معلم في "+weekday+"؛ لم يتم تخمينه.");continue;}
+      const sourceClass=String(record.className||"").trim(),subject=String(record.subject||"").trim();
+      if(!sourceClass||!subject){warnings.push("توزيع "+sourceName+" يوم "+weekday+" الحصة "+period+" ينقصه الصف أو المادة؛ تركته غير واضح.");continue;}
+      const classSections=sourceClass.split(/[،,؛;]+/).map(value=>value.trim()).filter(Boolean);
+      const subjectKey=subject.replace(/\s+/g,"");
+      const status=subjectKey.includes("اجتماع")?"meeting":subjectKey.includes("فراغ")||subjectKey.includes("فارغ")?"free":"teaching";
+      const cell=teacher.cells[period-1];
+      if(cell.status!=="unclear"){
+        if(cell.status===status&&cell.subject===subject){cell.classSections=Array.from(new Set([...cell.classSections,...classSections]));continue;}
+        warnings.push("تعارض في بيانات "+sourceName+" يوم "+weekday+" الحصة "+period+"؛ احتفظ النظام بأول توزيع.");
+        continue;
       }
-    } catch (_) {}
-    button.innerHTML = '<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';
-    button.disabled = true;
-    timetableSetStatus("حُفظت نسخة مسودة بنجاح. رقم النسخة: "+(result.saved?.version || 1)+" — رقم الاستيراد: "+(result.saved?.import_id || ""), "success");
-  } catch (error) {
-    button.disabled = false;
-    button.innerHTML = original;
-    timetableSetStatus(error?.message || "تعذر حفظ نسخة الجدول.", "error");
+      Object.assign(cell,{status,classSections,subject,sourceClass,sourceSubject:subject,sourceStatus:status==="meeting"?"اجتماع":status==="free"?"فراغ":"تدريس",sourceNote:"مستخرج من ملف Excel."});
+    }
+    const response=await appAuthRequest({action:"timetable_save_weekly_day",weekday,teachers,text:"",periodCount,allowEmptyDay:true,versionId},token);
+    versionId=response.result.version_id;
+    timetableWeeklyDraftId=versionId;timetableClassReviewVersionId=versionId;timetableWeeklyDraftDays.add(weekday);
+  }
+  const activate=document.getElementById("timetableActivateWeekButton");if(activate)activate.disabled=false;
+  const report=await timetableFetchClassCoverage(versionId);
+  return {versionId,warnings,report};
+}
+async function timetableSaveImport() {
+  const button=document.getElementById("timetableSaveButton");
+  const token=appAuthSession?.token||readAppAuthToken();
+  if(!timetableCanAccess||!token){timetableSetStatus("يلزم امتلاك صلاحية منظومة الجداول والاحتياط لحفظ الجدول.","error");return;}
+  if(!timetablePendingWorkbook||!timetablePendingWorkbook.sheets){timetableSetStatus("أعد تحليل ملف Excel قبل الحفظ.","error");return;}
+  if(timetableSavedImport){timetableSetStatus("هذه النسخة محفوظة بالفعل. أعد رفع الملف لإنشاء نسخة استيراد جديدة.","success");return;}
+  const importResult=timetableImportPreview?.result||{};
+  const weeklyPlacements=Array.isArray(importResult.placements)?importResult.placements:[];
+  const importedTeachers=Array.isArray(importResult.teachers)?importResult.teachers:[];
+  const original=button.innerHTML;button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الحفظ...';
+  try{
+    const result=await appAuthRequest({
+      action:"timetable_save_import",fileName:timetablePendingWorkbook.fileName,
+      sheets:timetablePendingWorkbook.sheets,idempotencyKey:timetablePendingWorkbook.idempotencyKey
+    },token);
+    if(!result?.saved?.import_id)throw new Error("لم يصل تأكيد صالح من الخادم. أعد المحاولة دون إعادة تحليل الملف.");
+    await timetableLoadImports();
+    const loaded=await timetableLoadSavedImport(result.saved.import_id);
+    if(loaded!==true)throw new Error("تم تأكيد الحفظ من الخادم، لكن تعذر تحديث تفاصيل النسخة في الواجهة. أعد المحاولة لاستعادة نفس عملية الحفظ دون إنشاء نسخة مكررة.");
+    timetableSavedImport=result.saved;
+    try{if(timetablePendingWorkbook.idempotencyStorageKey)localStorage.removeItem(timetablePendingWorkbook.idempotencyStorageKey);}catch(_){}
+    button.innerHTML='<i class="fa-solid fa-check ml-1"></i> تم حفظ النسخة';button.disabled=true;
+    let message="حُفظ ملف Excel كنسخة استيراد للمراجعة. رقم النسخة: "+(result.saved?.version||1)+" — رقم الاستيراد: "+(result.saved?.import_id||"")+".";
+    let kind="success";
+    if(weeklyPlacements.length){
+      try{
+        const weekly=await timetableCreateWeeklyDraftFromExcel(weeklyPlacements,importedTeachers,token);
+        message+=" تم أيضاً إنشاء مسودة أسبوعية من "+weeklyPlacements.length+" توزيعاً صريحاً.";
+        if(weekly.report){message+=" "+weekly.report.message;if(weekly.report.affected?.length)message+=" أمثلة للمراجعة: "+weekly.report.affected.join(" | ");if(weekly.report.coverage&&(weekly.report.coverage.missingSlots||weekly.report.coverage.conflictSlots||weekly.report.coverage.unclearSlots))kind="info";}
+        if(weekly.warnings.length){message+=" ملاحظات الاستيراد: "+weekly.warnings.slice(0,5).join("؛ ");kind="info";}
+        message+=" يمكنك مراجعة المسودة ثم نشرها رسمياً من زر اعتماد الأسبوع.";
+      }catch(weeklyError){
+        message+=" تعذر إنشاء المسودة الأسبوعية تلقائياً: "+(weeklyError?.message||"خطأ غير محدد")+". بقيت نسخة Excel المحفوظة سليمة.";
+        kind="info";
+      }
+    }else{
+      message+=" لم يحتو الملف على توزيع صريح لليوم والحصة؛ لم يُنشأ جدول أسبوعي بالتخمين.";
+    }
+    timetableSetStatus(message,kind);
+  }catch(error){
+    button.disabled=false;button.innerHTML=original;
+    timetableSetStatus(error?.message||"تعذر حفظ نسخة الجدول.", "error");
   }
 }
-
 function timetableRenderPreview() {
   const preview = timetableImportPreview;
   if (!preview || !preview.result) return;
@@ -10696,11 +10755,18 @@ function timetableRenderPreview() {
     ["البيانات المرجعية",result.totals.referenceRows],
     ["توزيعات أسبوعية صريحة",result.totals.placementRows]
   ];
+  const classCoverage=result.totals.classCoverage;
+  if(classCoverage){
+    stats.push(["الحصص التدريسية في التوزيعات",classCoverage.teachingLessons]);
+    stats.push(["الخانات الصفية غير المغطاة",classCoverage.missingSlots]);
+    stats.push(["تعارضات الصفوف",classCoverage.conflictSlots]);
+  }
   document.getElementById("timetableImportStats").innerHTML = stats.map(function(item) {
     return '<div class="rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 p-4"><div class="text-[10px] font-bold text-slate-500">'+timetableEsc(item[0])+'</div><div class="text-2xl font-black text-slate-800 dark:text-white mt-1">'+timetableEsc(item[1])+'</div></div>';
   }).join("");
   const warnings = (result.warnings || []).slice();
-  if (!result.hasWeeklyPlacements) warnings.unshift("لم يُعثر على توزيع صريح للأيام وأرقام الحصص؛ لن يتم إنشاء جدول أسبوعي افتراضي.");
+  if (!result.hasWeeklyPlacements) warnings.unshift("لم يُعثر على توزيع صريح للأيام وأرقام الحصص؛ حُفظ الملف كنسخة استيراد للمراجعة، ولا يمكن حساب تغطية أسبوعية من دون توزيع يوم/حصة.");
+  if (classCoverage) warnings.unshift("تقرير التغطية يحسب الحصص المشتركة مرة واحدة لكل صف وفترة، ويستثني الفراغ والاجتماع من عدد الحصص التدريسية.");
   document.getElementById("timetableImportWarnings").innerHTML = warnings.map(function(message) {
     return '<div class="rounded-xl border border-amber-200 dark:border-amber-900 bg-amber-50 dark:bg-amber-950/30 p-3 text-xs font-bold text-amber-900 dark:text-amber-200"><i class="fa-solid fa-circle-exclamation ml-1"></i>'+timetableEsc(message)+'</div>';
   }).join("");
