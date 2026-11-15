@@ -613,7 +613,7 @@
     return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
   }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 15;
-  function reserveOfficialPrintPages(groups,date,weekday){
+  function reserveOfficialPrintPages(groups,date,weekday,subject){
     const pages=[];let current=[],count=0;
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
@@ -623,9 +623,9 @@
       current.push({...group,rows});count+=rows.length;
     });
     if(current.length)pages.push(current);if(!pages.length)pages.push([]);
-    return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday));
+    return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject));
   }
-  function reserveOfficialPrintMarkup(groups,date,weekday){
+  function reserveOfficialPrintMarkup(groups,date,weekday,subject){
     const widths=[20,16,10.5,10.5,13,11,19];
     const columns='<colgroup>'+widths.map(width=>'<col style="width:'+width+'%">').join('')+'</colgroup>';
     const header='<thead><tr><th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th></tr></thead>';
@@ -646,6 +646,7 @@
     if(!resolvedWeekday&&safeDate){const d=new Date(safeDate+"T12:00:00+04:00");if(Number.isFinite(d.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(d);}
     return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عمان</div><div>وزارة التعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
+      (subject?'<div class="tt-official-subject">المادة: '+esc(subject)+'</div>':'')+
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'">'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
@@ -655,7 +656,7 @@
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
       '.tt-official-page{box-sizing:border-box;width:100%;min-height:281mm;height:auto;max-height:none;display:flex;flex-direction:column;direction:rtl;background:#fff;border:.35mm solid #333;padding:3mm 3mm 2mm;overflow:visible;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
       '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:12pt;font-weight:700;line-height:1.7;padding:2mm 0 1mm}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:13pt;margin-top:1mm!important}'+
-      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt;font-weight:700;margin:5mm 0 4mm}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:180mm}.tt-official-table thead{display:table-header-group;height:12mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:1.5mm 1mm;overflow-wrap:anywhere}.tt-official-table th{height:12mm;font-size:11pt;font-weight:900;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:11.2mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:11.2mm}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
+      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt;font-weight:700;margin:5mm 0 4mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:11pt;font-weight:900;margin:-2mm 0 3mm}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:180mm}.tt-official-table thead{display:table-header-group;height:12mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:1.5mm 1mm;overflow-wrap:anywhere}.tt-official-table th{height:12mm;font-size:11pt;font-weight:900;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:11.2mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:11.2mm}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
       '.tt-official-footer{direction:ltr;flex:0 0 25mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:3mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:20mm;flex:0 0 42mm;display:block;font-weight:700}'+
       '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
@@ -793,10 +794,33 @@
       '<div class="rounded-xl border border-indigo-100 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><strong class="text-xs text-slate-900">من يحق له دخول الجداول ورؤية إحصائيات المدرسة؟</strong><p class="mt-1 text-[10px] text-slate-500">يمكن منح صلاحية الجداول وصلاحية الإحصائيات العامة كلٌّ على حدة، للحسابات المخصصة أيضاً.</p></div><button type="button" id="ttAdminLoadAccess" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800">تحميل الحسابات</button></div>'+
       '<div id="ttAdminAccessList" class="mt-3 space-y-2 text-xs"><p class="text-slate-400">اضغط «تحميل الحسابات» لعرض المستخدمين.</p></div>'+
       '<div class="mt-3 flex justify-end"><button type="button" id="ttAdminSaveAccess" class="rounded-lg bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ الصلاحيات المحددة</button></div></div>'+
-      '<div id="ttAdminToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
+      '<div class="rounded-xl border border-emerald-200 bg-white p-3"><div class="flex flex-wrap items-center justify-between gap-3"><div><strong class="block text-xs text-emerald-900">التقرير الشامل لجميع سجلات الاحتياط</strong><p class="mt-1 text-[10px] text-slate-600">يجمع جميع المواد والتواريخ المتاحة في النظام، ويقسم التقرير حسب اليوم والمادة.</p></div><button type="button" id="ttAdminPrintAllReserve" class="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-black text-white">تصدير PDF شامل</button></div></div><div id="ttAdminToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
     panel.appendChild(card);
     const token=()=>appAuthSession?.token||readAppAuthToken();
     const say=(message,error=false)=>{const box=$("ttAdminToolsStatus");if(!box)return;box.textContent=message;box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");};
+    $("ttAdminPrintAllReserve")?.addEventListener("click",async()=>{
+      const button=$("ttAdminPrintAllReserve");
+      if(appAuthSession?.principal?.type!=="admin"){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
+      button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
+      try{
+        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
+        const records=(response.archive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
+        if(!records.length){say("لا توجد سجلات احتياط متاحة للتصدير.");return;}
+        const buckets=new Map();
+        records.forEach(item=>{
+          const key=String(item.assignmentDate)+"\\u0000"+String(item.subject||"غير محدد");
+          if(!buckets.has(key))buckets.set(key,{date:String(item.assignmentDate),weekday:String(item.weekday||""),subject:String(item.subject||"غير محدد"),absent:new Map()});
+          const bucket=buckets.get(key),name=String(item.absentTeacherName||"");
+          if(!bucket.absent.has(name))bucket.absent.set(name,{absentName:name,reason:(String(item.reason||"").trim()==="-"||String(item.reason||"").trim()==="—")?"":String(item.reason||""),rows:[]});
+          bucket.absent.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||""});
+        });
+        const pages=[...buckets.values()].sort((a,b)=>a.date.localeCompare(b.date)||a.subject.localeCompare(b.subject,"ar"))
+          .flatMap(bucket=>reserveOfficialPrintPages([...bucket.absent.values()],bucket.date,bucket.weekday,bucket.subject));
+        say("تم تجهيز "+records.length+" تكليف احتياط في "+pages.length+" صفحة للطباعة.");
+        printOfficialReservePages(pages);
+      }catch(error){say(error?.message||"تعذر إنشاء التقرير الشامل.",true);}
+      finally{button.disabled=false;button.textContent="تصدير PDF شامل";}
+    });
     const dateInput=$("ttAdminResetDate");
     try{const d=timetableSubstitutionGetDate().date;if(dateInput&&!dateInput.value)dateInput.value=d;}catch{}
     $("ttAdminLoadSubjects")?.addEventListener("click",async()=>{
