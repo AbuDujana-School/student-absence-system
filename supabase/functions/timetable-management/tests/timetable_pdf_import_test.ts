@@ -39,9 +39,9 @@ function makeRotatedTeacherPage(pageNumber=2,withLesson=true){
  if(withLesson)raw.push(rawRotatedText("الرياضيات",dayX[0],periodY[0],45,8),rawRotatedText("1/12",dayX[0]+18,periodY[0]-13,24,8));
  const items=raw.map(item=>transformPdfTextItem(item,ROTATE_90));
  const verticalLines:any[]=[];
- const dayEdges=[dayX[0]-45, ...dayX.slice(0,4).map((x,i)=>(x+dayX[i+1])/2), dayX[4]+45];
+ const dayEdges=[dayX[0]-45-13.5, ...dayX.slice(0,4).map((x,i)=>(x+dayX[i+1])/2-13.5), dayX[4]+45-13.5];
  for(let day=0;day<5;day++)for(let p=0;p<6;p++){
-  const boundary=(periodY[p]+periodY[p+1])/2;
+  const boundary=((periodY[p]+29)+(periodY[p+1]+29))/2;
   verticalLines.push({x:boundary,y1:dayEdges[day],y2:dayEdges[day+1]});
  }
  return {pageNumber,width:842,height:595,items,verticalLines,horizontalLines:[]};
