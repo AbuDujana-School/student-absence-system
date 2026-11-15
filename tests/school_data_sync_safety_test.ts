@@ -232,3 +232,30 @@ Deno.test("sync upload does not clear whole dirty sets after network writes", ()
   assert(!save.includes("dirtySets.behaviors.clear()"), "Behavior upload must not clear edits created while the request is in flight");
   assert(!save.includes("dirtySets.duty_reports.clear()"), "Duty report upload must not clear edits created while the request is in flight");
 });
+
+
+Deno.test("boolean sync flags are cleared only when the uploaded setting still matches local state", () => {
+  const save = section("function syncValuesEqual(", "function forceSyncWithCloud()");
+  assert(save.includes("function clearSyncedDirtyFlag(kind, uploadedSnapshot)"), "Boolean dirty flags need a snapshot-aware clearing helper");
+  assert(save.includes("if (syncValuesEqual(before, now)) dirtySets[kind] = false"), "A newer setting edit must keep its dirty flag set");
+  assert(save.includes("clearSyncedDirtyFlag('admin_pin', syncSnapshotDb)"), "Admin PIN flag must use snapshot-aware clearing");
+  assert(save.includes("clearSyncedDirtyFlag('custom_categories', syncSnapshotDb)"), "Custom categories flag must use snapshot-aware clearing");
+  assert(save.includes("clearSyncedDirtyFlag('duty_module', syncSnapshotDb)"), "Duty module flag must use snapshot-aware clearing");
+});
+
+Deno.test("each cloud payload is built from the frozen upload snapshot, not live mutable state", () => {
+  const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
+  assert(save.includes("const syncSnapshotDb = cloneOfflineValue(db)"), "Snapshot must be captured before awaiting persistence");
+  assert(save.includes("const syncDirty = serializeDirtySets()"), "Dirty intent must be frozen before awaiting persistence");
+  assert(!save.includes("for (const name of dirtySets.teachers)"), "Teacher iteration must not read the live dirty set");
+  assert(!save.includes("(db.students[c] || [])"), "Student rows must not be read from the live database");
+  assert(!save.includes("const v = db[kind][key]"), "Attendance/behavior rows must not be read from the live database");
+  assert(!save.includes("const r = (db.dutyModule.records"), "Duty report rows must not be read from the live database");
+});
+
+Deno.test("a newer edit to a setting remains pending after an older snapshot upload", () => {
+  const helper = section("function syncValuesEqual(", "async function saveSystemDataToCloud(");
+  assert(helper.includes("syncSnapshotValue(kind, true, uploadedSnapshot)"), "Flag comparison must inspect the uploaded snapshot");
+  assert(helper.includes("syncSnapshotValue(kind, true, db)"), "Flag comparison must inspect current local state after the request");
+  assert(helper.includes("if (syncValuesEqual(before, now)) dirtySets[kind] = false"), "Only an unchanged setting may be marked clean");
+});
