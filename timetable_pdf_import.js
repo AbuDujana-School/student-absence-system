@@ -22,6 +22,29 @@ function itemPosition(item) {
   const dy = ((Number(t[1]) || 0) / firstLength) * width + ((Number(t[3]) || 0) / secondLength) * height;
   return { x: x + dx / 2, y: y + dy / 2 };
 }
+export function transformPdfTextItem(item, matrix) {
+  const [a,b,c,d,e,f] = matrix;
+  const [ta,tb,tc,td,te,tf] = item.transform || [];
+  return {...item, transform:[
+    a*ta+c*tb, b*ta+d*tb,
+    a*tc+c*td, b*tc+d*td,
+    a*te+c*tf+e, b*te+d*tf+f
+  ]};
+}
+export function transformPdfGridLines(horizontal, vertical, matrix) {
+  /** @type {{horizontalLines:Array<{x1:number,x2:number,y:number}>,verticalLines:Array<{x:number,y1:number,y2:number}>}} */
+  const result = {horizontalLines:[],verticalLines:[]};
+  const add = (start,end) => {
+    const x1=matrix[0]*start.x+matrix[2]*start.y+matrix[4], y1=matrix[1]*start.x+matrix[3]*start.y+matrix[5];
+    const x2=matrix[0]*end.x+matrix[2]*end.y+matrix[4], y2=matrix[1]*end.x+matrix[3]*end.y+matrix[5];
+    if(Math.abs(x1-x2)<=1.5&&Math.abs(y1-y2)>=25)result.verticalLines.push({x:(x1+x2)/2,y1:Math.min(y1,y2),y2:Math.max(y1,y2)});
+    else if(Math.abs(y1-y2)<=1.5&&Math.abs(x1-x2)>=60)result.horizontalLines.push({x1:Math.min(x1,x2),x2:Math.max(x1,x2),y:(y1+y2)/2});
+  };
+  for(const line of horizontal||[])add({x:line.x1,y:line.y},{x:line.x2,y:line.y});
+  for(const line of vertical||[])add({x:line.x,y:line.y1},{x:line.x,y:line.y2});
+  return result;
+}
+
 function dayIndex(text) {
   const key = normalizePdfArabic(text).replace(/[\sـ]/g, "");
   return ["الاحد", "الاثنين", "الثلاثاء", "الاربعاء", "الخميس"].findIndex(alias => key === alias);
@@ -83,23 +106,24 @@ function teacherNameAnchorPosition(item) {
   return { x, y };
 }
 function teacherNameInfoFromItems(items) {
-  // For the rotated aSc teacher heading, PDF.js keeps each text fragment's
-  // baseline anchor in the same narrow x-column. The visual text-item center
-  // shifts with fragment width, so use the transform anchor for column
-  // grouping and reading order (not itemPosition's width-adjusted center).
+  // Teacher names may be supplied either in the PDF's unrotated coordinate
+  // space (x is the narrow name column) or after applying a 90-degree page
+  // viewport transform (y is the narrow name row).
   const candidates = items.map(item => ({ item, pos: teacherNameAnchorPosition(item), normalized: normalizePdfArabic(item.str) }))
-    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalized))
+    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) &&
+      (pos.x >= 0 && pos.x < 58 || pos.y >= 0 && pos.y < 58) &&
+      /[\u0600-\u06ff]/.test(normalized))
     .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
   if (!candidates.length) return { name: "", original: "" };
 
-  // aSc exports the teacher heading as vertically stacked text fragments on
-  // rotated A4 pages. Join fragments from the same narrow x-column, top to
-  // bottom, instead of mistaking the longest individual word for the name.
+  const rotated = candidates.filter(entry => entry.pos.y >= 0 && entry.pos.y < 58).length >
+    candidates.filter(entry => entry.pos.x >= 0 && entry.pos.x < 58).length;
   const columns = [];
   for (const candidate of candidates) {
-    let column = columns.find(entry => Math.abs(entry.x - candidate.pos.x) <= 18);
+    const axis = rotated ? candidate.pos.y : candidate.pos.x;
+    let column = columns.find(entry => Math.abs(entry.axis - axis) <= 18);
     if (!column) {
-      column = { x: candidate.pos.x, entries: [] };
+      column = { axis, entries: [] };
       columns.push(column);
     }
     column.entries.push(candidate);
@@ -109,9 +133,11 @@ function teacherNameInfoFromItems(items) {
     b.entries.reduce((sum, entry) => sum + entry.normalized.length, 0) -
       a.entries.reduce((sum, entry) => sum + entry.normalized.length, 0)
   );
-  const selected = columns[0].entries.sort((a, b) => b.pos.y - a.pos.y);
-  const name = selected.map(entry => entry.normalized).join(" ").replace(/\\s+/g, " ").trim();
-  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\\s+/g, " ").trim();
+  const selected = columns[0].entries.sort((a, b) =>
+    rotated ? b.pos.x - a.pos.x : b.pos.y - a.pos.y
+  );
+  const name = selected.map(entry => entry.normalized).join(" ").replace(/\s+/g, " ").trim();
+  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\s+/g, " ").trim();
   return { name, original };
 }
 export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
@@ -229,7 +255,7 @@ function makePageGrid(page) {
   const periodTimes=[];
   if(orderedLabels.length>=7&&orderedLabels.length<=8){
     for(const label of orderedLabels){
-      const match=timeItems.filter(entry=>Math.abs(entry.pos.x-label.pos.x)<22)
+      const match=timeItems.filter(entry=>Math.abs(entry.pos.x-label.pos.x)<36)
         .sort((a,b)=>Math.abs(a.pos.x-label.pos.x)-Math.abs(b.pos.x-label.pos.x))[0];
       if(match)periodTimes.push(match);
     }

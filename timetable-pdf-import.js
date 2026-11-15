@@ -9,7 +9,10 @@
   }
   function normalizeDigits(value){return String(value||"").replace(/[٠-٩۰-۹]/g,digit=>String("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹".indexOf(digit)%10));}
   function normalizeArabic(value){return normalizeDigits(String(value||"").normalize("NFKC")).replace(/[\u064b-\u065f\u0670\u0640]/g,"").replace(/[أإآٱ]/g,"ا").replace(/[\u200e\u200f\u202a-\u202e]/g,"").replace(/\s+/g," ").trim();}
-  function isArabicTeacherName(item){const x=Number(item.transform?.[4]),value=normalizeArabic(item.str);return Number.isFinite(x)&&x>=0&&x<58&&/[\u0600-\u06ff]/.test(value)&&value.length>=3;}
+  function isArabicTeacherName(item){
+    const x=Number(item.transform?.[4]),y=Number(item.transform?.[5]),value=normalizeArabic(item.str);
+    return Number.isFinite(x)&&Number.isFinite(y)&&(x>=0&&x<58||y>=0&&y<58)&&/[\u0600-\u06ff]/.test(value)&&value.length>=3;
+  }
   function getItemSnapshot(item){return {str:String(item.str||""),transform:Array.isArray(item.transform)?item.transform.map(Number):[],width:Number(item.width)||0,height:Number(item.height)||0};}
   async function parseFile(file,onProgress){
     if(!(file instanceof File)||file.size<=0)throw new Error("ملف PDF فارغ أو غير صالح.");
@@ -24,14 +27,19 @@
       if(!document.numPages||document.numPages>150)throw new Error("يجب أن يحتوي الملف على 1 إلى 150 صفحة.");
       const pages=[];
       for(let pageNumber=1;pageNumber<=document.numPages;pageNumber++){
-        const page=await document.getPage(pageNumber),viewport=page.getViewport({scale:1,rotation:0});
+        const page=await document.getPage(pageNumber),viewport=page.getViewport({scale:1});
         const [textContent,operatorList]=await Promise.all([
           page.getTextContent({includeMarkedContent:false,disableNormalization:true}),
           page.getOperatorList(),
         ]);
-        const items=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
-        const horizontalLines=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
-        const verticalLines=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const rawItems=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
+        // Apply the page's declared /Rotate transform to text and vector paths.
+        // The timetable parser expects weekdays on Y and periods on X.
+        const matrix=viewport.transform;
+        const items=rawItems.map(item=>parser.transformPdfTextItem(item,matrix));
+        const rawHorizontal=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const rawVertical=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const {horizontalLines,verticalLines}=parser.transformPdfGridLines(rawHorizontal,rawVertical,matrix);
         const teacherItems=items.filter(isArabicTeacherName);
         const hasTimeRows=items.filter(item=>/\d{1,2}:\d{2}/.test(normalizeDigits(item.str))).length>=7;
         if(pageNumber>1&&(!teacherItems.length||!hasTimeRows||items.length<12))throw new Error("تعذر التحقق من محتوى الصفحة "+pageNumber+". قد تكون ممسوحة ضوئياً أو غير مطابقة لتخطيط الجدول؛ لم يتم تجاوزها.");
