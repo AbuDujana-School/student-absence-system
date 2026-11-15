@@ -190,7 +190,7 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
   const finishTeacher=()=>{
     finishCell();
     if(!teacher)return;
-    teacher.cells.sort((a,b)=>a.period-b.period);teachers.push(teacher);teacher=null;
+    teacher.cells.sort((a,b)=>a.period-b.period);if(!teachers.includes(teacher))teachers.push(teacher);teacher=null;
   };
   const lines=sourceText.split(/\r?\n/);
   for(let i=0;i<lines.length;i++){
