@@ -9,7 +9,7 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
-  const ABSENCE_REASONS = ["دورة تدريبية","مهمة عمل","ظرف طارئ","موعد مستشفى","إجازة مرضية","إجازة أبوة","مرافقة مريض","أخرى"];
+  const ABSENCE_REASONS = ["دورة تدريبية","طارئة","موعد مستشفى","إجازة مرضية","إجازة أبوة","مرافقة مريض","أخرى"];
   function reasonControlMarkup(absentName, reason) {
     const value=String(reason||"").trim();
     const isKnown=ABSENCE_REASONS.includes(value);
