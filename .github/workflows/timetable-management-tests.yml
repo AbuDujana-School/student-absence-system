@@ -106,15 +106,15 @@ jobs:
           const path = require("node:path");
           const { execFileSync } = require("node:child_process");
           const html = fs.readFileSync("index.html", "utf8");
-          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)];
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
           const temp = fs.mkdtempSync(path.join(os.tmpdir(), "abu-dujana-inline-"));
           let checked = 0;
           for (let i = 0; i < scripts.length; i++) {
             const attributes = scripts[i][1] || "";
             const body = scripts[i][2] || "";
-            if (/\\bsrc\\s*=/.test(attributes) || !body.trim()) continue;
-            const type = (attributes.match(/\\btype\\s*=\\s*["']([^"']+)/i) || [])[1] || "";
-            if (type && !/^(module|text\\/javascript|application\\/javascript)$/i.test(type)) continue;
+            if (/\bsrc\s*=/.test(attributes) || !body.trim()) continue;
+            const type = (attributes.match(/\btype\s*=\s*["']([^"']+)/i) || [])[1] || "";
+            if (type && !/^(module|text\/javascript|application\/javascript)$/i.test(type)) continue;
             const extension = type.toLowerCase() === "module" ? ".mjs" : ".js";
             const file = path.join(temp, "inline-" + i + extension);
             fs.writeFileSync(file, body, "utf8");
