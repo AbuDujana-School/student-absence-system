@@ -980,7 +980,7 @@ async function handle(req: Request) {
       return reply(403,{error:"عرض مواد تفريغ الاحتياط متاح لمدير النظام العام ومنسق المادة المخوّل فقط."});
     }
     const date=String(body.assignmentDate||"").trim();
-    if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !isValidSubstitutionDate(date)) return reply(400,{error:"اختر تاريخاً دراسياً صحيحاً."});
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !isValidSubstitutionDate(date)) return reply(400,{error:"اختر تاريخاً دراسياً صحيحاً."});
     const {data,error}=await db.from("timetable_assignments").select("subject")
       .eq("assignment_type","substitution").eq("assignment_date",date)
       .in("status",["assigned","confirmed"]);
@@ -1007,7 +1007,7 @@ async function handle(req: Request) {
     if(!isSystemAdmin && !(principal.type==="teacher"&&hasReservePermission&&mode==="subject_day")) {
       return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل لمدير النظام العام."});
     }
-    if(mode==="subject_day" && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
+    if(mode==="subject_day" && (!/^\d{4}-\d{2}-\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
       return reply(400,{error:"حدد التاريخ والمادة المراد تفريغ احتياطها."});
     }
     if(!["subject_day","all_active"].includes(mode)) return reply(400,{error:"نوع التفريغ غير معروف."});
