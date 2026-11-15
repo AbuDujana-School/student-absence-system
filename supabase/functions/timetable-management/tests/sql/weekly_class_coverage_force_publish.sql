@@ -1,5 +1,6 @@
 BEGIN;
-DO $$
+CREATE TABLE IF NOT EXISTS public.teachers(name text, role text);
+DO $
 DECLARE
   v_version_id uuid;
   v_result jsonb;
