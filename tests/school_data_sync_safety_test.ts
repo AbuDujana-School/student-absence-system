@@ -218,7 +218,7 @@ Deno.test("in-flight local edits remain dirty after an earlier snapshot is uploa
   assert(save.includes("const syncDirty = serializeDirtySets()"), "The upload must freeze the exact dirty-key set");
   assert(save.includes("syncSnapshotDb.students?.[c]"), "Student upload rows must come from the frozen snapshot");
   assert(save.includes("clearSyncedDirtyKeys('students', studentKeys, syncSnapshotDb)"), "Student dirty markers must be cleared selectively");
-  assert(save.includes("if (syncValuesEqual(before, now)) set.delete(key)"), "A dirty key must remain queued if its value changed during upload");
+  assert(html.includes("if (syncValuesEqual(before, now)) set.delete(key)"), "A dirty key must remain queued if its value changed during upload");
   assert(save.includes("const pendingRecords = hasPendingOfflineRecordChanges()"), "Completion must report newer local edits as still pending");
   assert(save.includes("return !pendingRecords"), "An upload with concurrent local edits must not report full success");
 });
