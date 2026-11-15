@@ -9078,7 +9078,7 @@ async function timetableLoadPortalStatus() {
       : "لم تُسجل تغييرات سابقة على إعدادات الخدمة.";
     if (button) {
       button.disabled = false;
-      button.textContent = teacherPortalEnabled ? "إيقاف الظهور للجميع" : "إظهار الجدول للجميع";
+      button.textContent = !teacherPortalEnabled ? "إظهار الجدول للجميع" : teacherPortalMode === "custom" ? "إيقاف العرض المخصص" : "إيقاف الظهور للجميع";
       button.className = "rounded-xl px-5 py-2.5 text-xs font-black text-white disabled:opacity-50 " + (teacherPortalEnabled ? "bg-rose-700 hover:bg-rose-800" : "bg-emerald-700 hover:bg-emerald-800");
     }
     if (customButton) customButton.disabled = teacherPortalEligibleCount === 0;
@@ -9128,10 +9128,10 @@ async function timetableSaveCustomPortalTeachers() {
 }
 async function timetableToggleTeacherPortal() {
   if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
-  const switchingToAll = !teacherPortalEnabled || teacherPortalMode === "custom";
+  const switchingToAll = !teacherPortalEnabled;
   const message = switchingToAll
-    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط. هل تريد التفعيل العام؟"
-    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
+    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط، مع إلغاء أي تخصيص سابق. هل تريد التفعيل العام؟"
+    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين، بمن فيهم المحددون في التخصيص. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
   const confirmed = await showConfirm(message, {danger: !switchingToAll});
   if (!confirmed) return;
   const button = document.getElementById("teacherTimetablePortalToggle");
