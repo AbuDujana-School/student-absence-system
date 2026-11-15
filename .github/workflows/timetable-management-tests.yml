@@ -14,6 +14,7 @@ on:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
+      - "reserve-workflow.js"
       - "timetable-text.worker.js"
       - "timetable_pdf_import.js"
       - "timetable-pdf-import.js"
@@ -22,6 +23,7 @@ on:
     paths:
       - "supabase/functions/timetable-management/**"
       - "index.html"
+      - "reserve-workflow.js"
       - "timetable-text.worker.js"
       - "timetable_pdf_import.js"
       - "timetable-pdf-import.js"
@@ -62,6 +64,10 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114194500_timetable_dynamic_periods.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115110000_weighted_batch_substitution.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115140639_timetable_substitution_reason_archive_edit.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115141628_timetable_substitution_ledger_safe_reversal.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115141640_timetable_substitution_ledger_assignment_index.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115141836_timetable_substitution_batch_archive_edit.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115010000_atomic_class_timetable_assignment.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115082010_timetable_class_coverage_force_publish.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115083655_timetable_weekly_audit_cell_counts.sql
@@ -72,6 +78,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/timetable_import_idempotency.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/teacher_timetable_portal_setting.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/weighted_batch_substitution.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_reason_archive.sql
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
@@ -82,6 +89,12 @@ jobs:
         run: deno test --allow-read=supabase/migrations supabase/functions/timetable-management/tests
       - name: Check timetable worker JavaScript syntax
         run: node --check timetable-text.worker.js
+      - name: Check reserve workflow JavaScript syntax
+        run: node --check reserve-workflow.js
+      - name: Check optional reserve reason UI
+        run: |
+          grep -q 'data-tt-reason' reserve-workflow.js
+          grep -q 'src="./reserve-workflow.js"' index.html
       - name: Check timetable import UI JavaScript syntax
         run: |
           node <<'NODE'

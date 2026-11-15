@@ -842,10 +842,12 @@ async function handle(req: Request) {
     }
   }
 
-  if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats"].includes(String(body.action || ""))) {
+  if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action || ""))) {
     try {
+      const actionName=String(body.action||"");
       const weekday = String(body.weekday || "");
-      if (!DAYS.includes(weekday)) return reply(400,{error:"اختر يوماً دراسياً صحيحاً."});
+      const weekdayOptionalActions=new Set(["timetable_substitution_update","timetable_substitution_update_batch"]);
+      if (!DAYS.includes(weekday) && !weekdayOptionalActions.has(actionName)) return reply(400,{error:"اختر يوماً دراسياً صحيحاً."});
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status,period_count").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
@@ -898,21 +900,71 @@ async function handle(req: Request) {
         if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
         const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
         if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
-        const {data,error}=await db.rpc("create_timetable_substitution",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments}});
+        const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
+        const {data,error}=await db.rpc("create_timetable_substitution_with_reason",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,reserve_reason:reserveReason}});
         if(error)throw error;
         return reply(201,{ok:true,assignment:data});
       }
       const date=String(body.assignmentDate||"");
       if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))return reply(400,{error:"تاريخ الغياب غير صالح."});
       const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin");
-      if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
+      if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
       const assignmentRows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
-        .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject")
-        .in("status",["assigned","confirmed","completed"]).order("id").range(from,to));
+        .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason")
+        .order("id").range(from,to));
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
       const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),absentTeacherId:String(x.absent_teacher_name||""),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),status:x.status}));
+      if(body.action==="timetable_substitution_archive"){
+        const requestedDate=String(body.assignmentDate||"").trim();
+        if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
+        const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
+          (principal.type==="admin"||teacher.departmentId===actorDepartmentId)).map((teacher:any)=>teacher.name));
+        const archive=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&
+          visibleNames.has(String(row.absent_teacher_name||""))&&
+          (!requestedDate||String(row.assignment_date||"")===requestedDate))
+          .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
+            Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
+          .map((row:any)=>({
+            id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),canEdit:String(row.version_id)===String(activeVersion.id),
+            absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
+            period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
+            subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
+            status:String(row.status||"assigned"),versionId:String(row.version_id||""),
+          }));
+        return reply(200,{ok:true,archive});
+      }
+      if(body.action==="timetable_substitution_update_batch"){
+        const proposed=Array.isArray(body.assignments)?body.assignments:[];
+        if(!proposed.length||proposed.length>500)return reply(400,{error:"حدد تعديلات الأرشيف قبل الحفظ."});
+        const normalized=proposed.map((item:any)=>({
+          assignmentId:String(item?.assignmentId||""),
+          substituteTeacherName:String(item?.substituteTeacherName||"").trim(),
+          reserveReason:String(item?.reserveReason||"").trim().slice(0,500)||"-",
+        }));
+        if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName)){
+          return reply(400,{error:"توجد بيانات غير مكتملة في تعديلات الأرشيف."});
+        }
+        const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
+          assignments:normalized,actor_name:principal.name,actor_type:principal.type,
+          include_other_departments:includeOtherDepartments||principal.type==="admin",
+        }});
+        if(error)throw error;
+        return reply(200,{ok:true,result:data,updatedCount:normalized.length});
+      }
+      if(body.action==="timetable_substitution_update"){
+        const assignmentId=String(body.assignmentId||"");
+        const substituteTeacherName=String(body.substituteTeacherName||"").trim();
+        const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
+        if(!validUuid(assignmentId)||!substituteTeacherName)return reply(400,{error:"حدد سجل الاحتياط والبديل الجديد."});
+        const {data,error}=await db.rpc("replace_timetable_substitution_with_reason",{p_payload:{
+          assignment_id:assignmentId,substitute_teacher_name:substituteTeacherName,reserve_reason:reserveReason,
+          actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,
+        }});
+        if(error)throw error;
+        return reply(200,{ok:true,result:data});
+      }
       const pointsBalanceByTeacher=new Map<string,number>();
       for(const entry of pointsLedger||[]){
         const name=String(entry.teacher_name||"");
@@ -938,6 +990,7 @@ async function handle(req: Request) {
           absentTeacherName:String(item?.absentTeacherName||"").trim(),
           substituteTeacherName:String(item?.substituteTeacherName||"").trim(),
           period:Number(item?.period),
+          reserveReason:String(item?.reserveReason||"").trim().slice(0,500)||"-",
         }));
         if(normalized.some((item:any)=>!selectedNames.includes(item.absentTeacherName)||!item.substituteTeacherName||!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||7))){
           return reply(400,{error:"توجد حصة غير مكتملة أو معلم بديل غير صالح في التوزيع المقترح."});
@@ -952,7 +1005,7 @@ async function handle(req: Request) {
             return reply(403,{error:"المعلم البديل "+item.substituteTeacherName+" من قسم آخر. فعّل خيار إظهار الأقسام الأخرى إذا كان ذلك ضرورياً."});
           }
         }
-        const {data,error}=await db.rpc("create_timetable_substitution_batch",{p_payload:{
+        const {data,error}=await db.rpc("create_timetable_substitution_batch_with_reason",{p_payload:{
           version_id:activeVersion.id,weekday,assignment_date:assignmentDate,absent_teacher_names:selectedNames,
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,
           include_other_departments:includeOtherDepartments,
@@ -983,13 +1036,13 @@ async function handle(req: Request) {
           absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
           weekday:String(row.weekday),period:Number(row.period),
           className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
-          subject:String(row.subject||""),status:String(row.status||"assigned"),
+          subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),status:String(row.status||"assigned"),
         }));
         return reply(200,{ok:true,active:true,version:activeVersion,weekday,assignmentDate,absentTeachers:selectedNames,existingAssignments,...plan});
       }
       if(body.action==="timetable_substitution_stats"){
         const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||includeOtherDepartments||teacher.departmentId===actorDepartmentId));
-        const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution");
+        const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&row.status!=="cancelled");
         const stats=visible.map((teacher:any)=>{
           const own=activeRows.filter((row:any)=>String(row.teacher_name)===teacher.name);
           const points=pointsBalanceByTeacher.get(teacher.name)||0;

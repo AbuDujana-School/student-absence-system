@@ -237,3 +237,35 @@ Deno.test("explicit timetable permissions keep their existing scoped substitutio
     throw new Error("Reserve-enabled teacher lost substitution capability");
   }
 });
+
+
+Deno.test("reserve archive and edit actions require explicit reserve permission", () => {
+  const actions = [
+    "timetable_substitution_archive",
+    "timetable_substitution_update",
+    "timetable_substitution_update_batch",
+  ];
+  for (const action of actions) {
+    if (!canUseTimetableAction("teacher", action, false, true)) {
+      throw new Error("Reserve-authorized teacher was denied: " + action);
+    }
+    if (canUseTimetableAction("teacher", action)) {
+      throw new Error("Teacher without reserve permission was allowed: " + action);
+    }
+    if (canUseTimetableAction("custom", action)) {
+      throw new Error("Custom coordinator was granted archive mutation: " + action);
+    }
+    if (!canUseTimetableAction("admin", action)) {
+      throw new Error("Administrator was denied: " + action);
+    }
+  }
+  for (const action of [
+    "timetable_substitution_preview",
+    "timetable_substitution_save",
+    "timetable_substitution_cancel",
+  ]) {
+    if (!canUseTimetableAction("custom", action)) {
+      throw new Error("Custom coordinator lost the existing single-slot workflow: " + action);
+    }
+  }
+});
