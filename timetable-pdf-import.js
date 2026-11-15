@@ -25,7 +25,7 @@
     const document=await loadingTask.promise;
     try{
       if(!document.numPages||document.numPages>150)throw new Error("يجب أن يحتوي الملف على 1 إلى 150 صفحة.");
-      const pages=[];
+      const pages=[],pagePreflightErrors=[];
       for(let pageNumber=1;pageNumber<=document.numPages;pageNumber++){
         const page=await document.getPage(pageNumber),viewport=page.getViewport({scale:1});
         const [textContent,operatorList]=await Promise.all([
@@ -42,12 +42,17 @@
         const {horizontalLines,verticalLines}=parser.transformPdfGridLines(rawHorizontal,rawVertical,matrix);
         const teacherItems=items.filter(isArabicTeacherName);
         const hasTimeRows=items.filter(item=>/\d{1,2}:\d{2}/.test(normalizeDigits(item.str))).length>=7;
-        if(pageNumber>1&&(!teacherItems.length||!hasTimeRows||items.length<12))throw new Error("تعذر التحقق من محتوى الصفحة "+pageNumber+". قد تكون ممسوحة ضوئياً أو غير مطابقة لتخطيط الجدول؛ لم يتم تجاوزها.");
+        if(pageNumber>1&&(!teacherItems.length||!hasTimeRows||items.length<12)){
+          pagePreflightErrors.push("تعذر التحقق من محتوى الصفحة "+pageNumber+". قد تكون ممسوحة ضوئياً أو غير مطابقة لتخطيط الجدول؛ لم يتم تجاوزها.");
+        }
         pages.push({pageNumber,width:viewport.width,height:viewport.height,items,horizontalLines,verticalLines});
         if(typeof onProgress==="function")onProgress({page:pageNumber,total:document.numPages,percent:Math.round(pageNumber/document.numPages*100),message:"قراءة صفحة "+pageNumber+" من "+document.numPages});
         page.cleanup();
       }
-      return parser.parseTimetablePdfPages(pages);
+      const parsed=parser.parseTimetablePdfPages(pages);
+      parsed.diagnostics.pageCount=document.numPages;
+      parsed.diagnostics.blockingErrors.push(...pagePreflightErrors);
+      return parsed;
     }finally{await document.destroy();}
   }
   window.TimetablePdfImporter=Object.freeze({parseFile});

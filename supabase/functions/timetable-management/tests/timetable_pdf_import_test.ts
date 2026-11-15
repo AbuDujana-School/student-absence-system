@@ -134,6 +134,24 @@ Deno.test("PDF vector path readers extract horizontal and vertical dividers",()=
  if(vertical.length!==1||vertical[0].x!==310||vertical[0].y1!==538||vertical[0].y2!==643)throw new Error("Vertical divider extraction failed");
 });
 
+
+Deno.test("PDF parser retains one-character Arabic fragments in teacher headings",()=>{
+ const page=makeTeacherPage();
+ page.items=page.items.filter((item:any)=>item.str!=="أحمد خالد محمد السالمي");
+ page.items.unshift(rotatedNamePart("فيزياء",366,70),rotatedNamePart("س",439,12));
+ const parsed=parseTimetablePdfPages([page]);
+ if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.join(" | "));
+ if(parsed.weeklyDays[0]!.teachers[0]!.sourceName!=="س فيزياء")throw new Error("Single-character teacher heading fragment was discarded");
+});
+Deno.test("PDF path extraction follows graphics transform and save/restore state",()=>{
+ const OPS={constructPath:99,moveTo:1,lineTo:2,rectangle:3,curveTo:4,curveTo2:5,curveTo3:6,closePath:7,transform:8,save:9,restore:10};
+ const operatorList={
+  fnArray:[OPS.save,OPS.transform,OPS.constructPath,OPS.transform,OPS.constructPath,OPS.restore],
+  argsArray:[[],[1,0,0,1,110,643],[[OPS.moveTo,OPS.lineTo],[0,0,91,0]],[1,0,0,1,0,-105],[[OPS.moveTo,OPS.lineTo],[0,0,91,0]],[]]
+ };
+ const lines=extractHorizontalLinesFromOperatorList(operatorList,OPS);
+ if(lines.length!==2||lines[0].x1!==110||lines[0].x2!==201||lines[0].y!==643||lines[1].y!==538)throw new Error("PDF path graphics transforms were not accumulated");
+});
 Deno.test("PDF parser blocks pages with missing or unverifiable grid geometry",()=>{
  const page=makeTeacherPage();page.verticalLines=[];
  const parsed=parseTimetablePdfPages([page]);
