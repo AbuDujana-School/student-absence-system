@@ -9115,10 +9115,8 @@ async function timetableSaveCustomPortalTeachers() {
   if (!names.length) { showToast("اختر معلماً واحداً على الأقل. للتفعيل للجميع استخدم زر العرض العام.", "error"); return; }
   const token = appAuthSession?.token || readAppAuthToken();
   try {
-    // Fail closed while changing the audience: if any later step fails, the portal stays hidden.
-    await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
-    await appAuthRequest({action:"timetable_portal_set_custom_teachers",teacherNames:names},token);
-    await appAuthRequest({action:"timetable_portal_set_enabled",enabled:true},token);
+    // One atomic server-side update changes the audience and enables the portal together.
+    await appAuthRequest({action:"timetable_portal_set_mode",mode:"custom",teacherNames:names},token);
     teacherPortalEnabled = true;
     teacherPortalMode = "custom";
     showToast("تم تفعيل العرض المخصص لـ " + names.length + " معلماً.", "success");
@@ -9141,10 +9139,8 @@ async function timetableToggleTeacherPortal() {
   const token = appAuthSession?.token || readAppAuthToken();
   try {
     if (switchingToAll) {
-      // Clear any custom audience before enabling the global audience.
-      await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
-      await appAuthRequest({action:"timetable_portal_set_custom_teachers",teacherNames:[]},token);
-      await appAuthRequest({action:"timetable_portal_set_enabled",enabled:true},token);
+      // One atomic server-side update clears custom restrictions and enables global visibility.
+      await appAuthRequest({action:"timetable_portal_set_mode",mode:"all"},token);
     } else {
       await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
     }
