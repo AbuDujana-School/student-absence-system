@@ -539,14 +539,18 @@
     view.querySelectorAll(".flex.flex-wrap.gap-2").forEach(node=>{
       const text=String(node.textContent||"");
       if(text.includes("حصة فارغة")&&text.includes("حصة تدريس")&&text.includes("الحصة الآن")&&text.includes("حصة احتياط")){
-        node.classList.add("tt-teacher-timetable-legend");
-        node.setAttribute("aria-hidden","true");
+        if(!node.classList.contains("tt-teacher-timetable-legend"))node.classList.add("tt-teacher-timetable-legend");
+        if(node.getAttribute("aria-hidden")!=="true")node.setAttribute("aria-hidden","true");
       }
     });
     const wrapper=host.firstElementChild;
-    if(wrapper)wrapper.style.overflowX="hidden";
+    if(wrapper&&wrapper.style.overflowX!=="hidden")wrapper.style.overflowX="hidden";
     const table=host.querySelector("table");
-    if(table){table.style.minWidth="0";table.style.width="100%";table.style.tableLayout="fixed";}
+    if(table){
+      if(table.style.minWidth!=="0px")table.style.minWidth="0";
+      if(table.style.width!=="100%")table.style.width="100%";
+      if(table.style.tableLayout!=="fixed")table.style.tableLayout="fixed";
+    }
   }
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
