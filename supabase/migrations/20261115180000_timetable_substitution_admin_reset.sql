@@ -6,6 +6,7 @@ alter table public.timetable_assignment_audit
     'created'::text,
     'cancelled'::text,
     'admin_reset_subject_day'::text,
+    'department_reset_subject_day'::text,
     'admin_reset_all'::text
   ]));
 
@@ -21,10 +22,42 @@ declare
   v_mode text := coalesce(p_payload->>'mode','');
   v_date date;
   v_subject text := left(btrim(coalesce(p_payload->>'subject','')),160);
+  v_actor_department_id text := '';
+  v_actor_permissions jsonb := '{}'::jsonb;
+  v_subject_in_department boolean := false;
   v_count integer := 0;
 begin
-  if v_actor_type <> 'admin' or v_actor_name = ' ' or v_actor_name = '' then
-    raise exception 'تفريغ سجلات الاحتياط متاح لمدير النظام العام فقط.';
+  if v_actor_name = '' then
+    raise exception 'تعذر تحديد هوية منفذ العملية.';
+  end if;
+
+  if v_actor_type = 'admin' then
+    if v_actor_name <> 'مدير النظام العام' then
+      raise exception 'إعادة الضبط الشامل متاحة لمدير النظام العام فقط.';
+    end if;
+  elsif v_actor_type = 'teacher' then
+    if v_mode <> 'subject_day' then
+      raise exception 'منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط.';
+    end if;
+    select coalesce(permissions, '{}'::jsonb)
+      into v_actor_permissions
+      from public.teachers
+     where name = v_actor_name and role = 'teacher'
+     for share;
+    if not found or v_actor_permissions->>'reserve' <> 'true' then
+      raise exception 'لا تملك صلاحية إدارة احتياط المادة.';
+    end if;
+    v_actor_department_id := btrim(coalesce(
+      v_actor_permissions->>'category',
+      v_actor_permissions->>'department_id',
+      v_actor_permissions->>'department_name',
+      ''
+    ));
+    if v_actor_department_id = '' then
+      raise exception 'حسابك غير مرتبط بقسم محدد.';
+    end if;
+  else
+    raise exception 'هذه العملية غير متاحة لهذا النوع من الحسابات.';
   end if;
 
   if v_mode = 'subject_day' then
@@ -35,6 +68,24 @@ begin
     end;
     if v_date is null or v_subject = '' then
       raise exception 'يجب تحديد التاريخ والمادة لتفريغ الاحتياط.';
+    end if;
+    if v_actor_type = 'teacher' then
+      select exists (
+        select 1
+          from public.timetable_weekly_cells c
+          join public.timetable_weekly_versions w on w.id = c.version_id and w.status = 'active'
+          join public.teachers t on t.name = c.matched_teacher_name and t.role = 'teacher'
+         where btrim(coalesce(c.subject,'')) = v_subject
+           and btrim(coalesce(
+             t.permissions->>'category',
+             t.permissions->>'department_id',
+             t.permissions->>'department_name',
+             ''
+           )) = v_actor_department_id
+      ) into v_subject_in_department;
+      if not v_subject_in_department then
+        raise exception 'لا يمكنك إلغاء سجلات مادة خارج قسمك.';
+      end if;
     end if;
   elsif v_mode <> 'all_active' then
     raise exception 'نوع تفريغ سجلات الاحتياط غير صالح.';
@@ -63,7 +114,9 @@ begin
       assignment_id, version_id, action, actor_name, before_data, after_data
     )
     select c.id, c.version_id,
-           case when v_mode = 'all_active' then 'admin_reset_all' else 'admin_reset_subject_day' end,
+           case when v_mode = 'all_active' then 'admin_reset_all'
+                when v_actor_type = 'teacher' then 'department_reset_subject_day'
+                else 'admin_reset_subject_day' end,
            v_actor_name,
            jsonb_build_object(
              'teacher_name',c.teacher_name,'absent_teacher_name',c.absent_teacher_name,
