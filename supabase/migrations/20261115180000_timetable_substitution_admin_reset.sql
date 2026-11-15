@@ -99,7 +99,25 @@ begin
       and status in ('assigned','confirmed')
       and (
         v_mode = 'all_active'
-        or (assignment_date = v_date and btrim(coalesce(subject,'')) = v_subject)
+        or (
+          assignment_date = v_date
+          and btrim(coalesce(subject,'')) = v_subject
+          and (
+            v_actor_type = 'admin'
+            or exists (
+              select 1
+                from public.teachers absent
+               where absent.name = public.timetable_assignments.absent_teacher_name
+                 and absent.role = 'teacher'
+                 and coalesce(
+                   nullif(btrim(absent.permissions->>'category'),''),
+                   nullif(btrim(absent.permissions->>'department_id'),''),
+                   nullif(btrim(absent.permissions->>'department_name'),''),
+                   ''
+                 ) = v_actor_department_id
+            )
+          )
+        )
       )
     for update
   ), changed as (
