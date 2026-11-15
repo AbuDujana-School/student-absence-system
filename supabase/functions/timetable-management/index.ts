@@ -1045,7 +1045,7 @@ async function handle(req: Request) {
         const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
         if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
         if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId)return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
-        if(!includeOtherDepartments && substituteTeacher.departmentId!==absent?.departmentId)return reply(403,{error:"المعلم البديل من قسم آخر."});
+        if(!includeOtherDepartments && substituteTeacher.departmentId!==directory.find((teacher:any)=>teacher.name===absentTeacherName&&teacher.role==="teacher")?.departmentId)return reply(403,{error:"المعلم البديل من قسم آخر."});
         const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
         if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
