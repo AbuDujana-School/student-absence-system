@@ -19,6 +19,7 @@ function storeWith(
     admin?: boolean;
     teacher?: { name: string; role: string } | null;
     access?: boolean;
+    reserve?: boolean;
     linkedPortalAccess?: boolean;
     calls?: string[];
   } = {},
@@ -40,6 +41,10 @@ function storeWith(
     async hasTimetableAccess(type, name) {
       calls.push("access:" + type + ":" + name);
       return options.access === true;
+    },
+    async hasSubstitutionAccess(name) {
+      calls.push("reserve:" + name);
+      return options.reserve === true;
     },
     async hasLinkedTeacherPortalAccess(name) {
       calls.push("linked-portal:" + name);
@@ -163,14 +168,16 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
 
 import { canUseTimetableAction } from "../session_auth.ts";
 
-Deno.test("authorized non-admin users can manage only department-scoped substitution actions", () => {
-  const allowed = [
-    "health", "timetable_check_access", "teacher_timetable_get_own",
-    "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
-  ];
+Deno.test("non-admin substitution access requires the correct explicit authorization", () => {
+  const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own"];
   for (const action of allowed) {
-    if (!canUseTimetableAction("teacher", action)) throw new Error("Expected read action to be allowed: " + action);
+    if (!canUseTimetableAction("teacher", action)) throw new Error("Expected teacher read action to be allowed: " + action);
     if (!canUseTimetableAction("custom", action)) throw new Error("Expected custom read action to be allowed: " + action);
+  }
+  for (const action of ["timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel"]) {
+    if (canUseTimetableAction("teacher", action)) throw new Error("Teacher without reserve permission was allowed: " + action);
+    if (!canUseTimetableAction("teacher", action, false, true)) throw new Error("Reserve-enabled teacher was denied: " + action);
+    if (!canUseTimetableAction("custom", action)) throw new Error("Scoped custom coordinator was denied: " + action);
   }
   for (const action of [
     "timetable_preview", "timetable_save_import", "timetable_set_access", "timetable_activate_weekly_version",
@@ -219,10 +226,14 @@ Deno.test("explicit timetable permissions keep their existing scoped substitutio
   const store = storeWith(session, {
     teacher: { name: "Teacher A", role: "teacher" },
     access: true,
+    reserve: true,
   });
   const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
   if (principal?.portalOnly === true) throw new Error("Explicit timetable permission was downgraded");
-  if (!canUseTimetableAction("teacher", "timetable_substitution_preview")) {
-    throw new Error("Existing substitution capability was changed");
+  if (canUseTimetableAction("teacher", "timetable_substitution_preview")) {
+    throw new Error("General timetable access must not bypass the reserve permission");
+  }
+  if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, true)) {
+    throw new Error("Reserve-enabled teacher lost substitution capability");
   }
 });

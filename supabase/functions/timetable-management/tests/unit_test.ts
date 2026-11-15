@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
-import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal } from "../session_auth.ts";
+import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -230,10 +230,11 @@ Deno.test("same-date duty or substitution blocks a candidate across timetable ve
   equal(ranked.length, 0, "An actual same-date duty must block the candidate even from an older timetable version");
 });
 
-Deno.test("only the system administrator can include teachers from other departments", () => {
+Deno.test("only admins and explicitly reserve-authorized teachers can include other departments", () => {
   equal(canIncludeOtherDepartments("admin", true), true, "Administrator may request cross-department candidates");
-  equal(canIncludeOtherDepartments("teacher", true), false, "Teacher cannot widen department scope by editing request payload");
-  equal(canIncludeOtherDepartments("custom", true), false, "Coordinator cannot widen department scope by editing request payload");
+  equal(canIncludeOtherDepartments("teacher", true), false, "Teacher without reserve permission cannot widen department scope");
+  equal(canIncludeOtherDepartments("teacher", true, true), true, "Reserve-authorized teacher may request cross-department substitutes");
+  equal(canIncludeOtherDepartments("custom", true, true), false, "Custom users cannot widen department scope");
   equal(canIncludeOtherDepartments("admin", "true"), false, "Non-boolean values are rejected");
 });
 
@@ -302,4 +303,199 @@ Deno.test("personal timetable portal selection is enforced for global and custom
   equal(canAccessTeacherTimetablePortal(true, [], "معلم أ"), true, "Empty selection is global mode");
   equal(canAccessTeacherTimetablePortal(true, ["معلم أ"], "معلم أ"), true, "Selected teacher is allowed");
   equal(canAccessTeacherTimetablePortal(true, ["معلم أ"], "معلم ب"), false, "Unselected teacher is denied");
+});
+
+
+Deno.test("weighted points exactly follow the eight-period school scale", () => {
+  const expected=[1,1,2,2,4,3,5,7];
+  expected.forEach((points,index)=>equal(getSubstitutionPeriodPoints(index+1),points,"Period "+(index+1)));
+  equal(getSubstitutionPeriodPoints(9),0,"Periods outside the school day have no points");
+});
+
+Deno.test("points balance is the first fairness priority", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"more-points",name:"رصيد أعلى",departmentId:"science",pointsBalance:4,dailyTeachingCount:0},
+    {id:"fewer-points",name:"رصيد أقل",departmentId:"science",pointsBalance:-2,dailyTeachingCount:7},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:2,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:2,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"fewer-points","Lowest points balance takes priority even when daily teaching load is higher");
+});
+
+Deno.test("weekly teaching quota is considered after points and before same-day teaching load", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"high-weekly",name:"نصاب أسبوعي مرتفع",departmentId:"science",pointsBalance:0,weeklyQuota:38,dailyTeachingCount:0},
+    {id:"low-weekly",name:"نصاب أسبوعي أقل",departmentId:"science",pointsBalance:0,weeklyQuota:16,dailyTeachingCount:6},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:3,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"low-weekly","Lower weekly quota is preferred when points are equal");
+});
+
+Deno.test("three consecutive lessons are avoided before adjacent-period preference", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"triple",name:"يصبح ثلاثياً",departmentId:"science",pointsBalance:0},
+    {id:"adjacent",name:"حصة مجاورة",departmentId:"science",pointsBalance:0},
+    {id:"far",name:"بعيد",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[
+    {teacherId:"triple",weekday:"الأحد",period:1,className:"1/1",status:"teaching"},
+    {teacherId:"triple",weekday:"الأحد",period:2,className:"1/2",status:"teaching"},
+    {teacherId:"triple",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"adjacent",weekday:"الأحد",period:2,className:"1/2",status:"teaching"},
+    {teacherId:"adjacent",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"far",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"far",weekday:"الأحد",period:5,className:"1/5",status:"teaching"},
+    {teacherId:"far",weekday:"الأحد",period:6,className:"1/6",status:"teaching"},
+    {teacherId:"adjacent",weekday:"الأحد",period:5,className:"1/5",status:"teaching"},
+  ];
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"adjacent","Avoid three consecutive periods");
+  equal(ranked[1].id,"far","Non-adjacent teacher follows");
+  equal(ranked[2].id,"triple","Three-consecutive teacher is last");
+});
+
+Deno.test("batch plan excludes all selected absentees and prefers one assignment per substitute", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent-a",name:"غائب أ",departmentId:"science",pointsBalance:0},
+    {id:"absent-b",name:"غائب ب",departmentId:"science",pointsBalance:0},
+    {id:"candidate-a",name:"بديل أ",departmentId:"science",pointsBalance:0},
+    {id:"candidate-b",name:"بديل ب",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const teacher of teachers){
+    for(let period=1;period<=7;period++){
+      const teaching=(teacher.id==="absent-a"&&period===1)||(teacher.id==="absent-b"&&period===2);
+      timetable.push({teacherId:teacher.id,weekday:"الأحد",period,className:teaching?"1/1":"",status:teaching?"teaching":"free"});
+    }
+  }
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[],absentTeachers:[
+      {id:"absent-a",name:"غائب أ",departmentId:"science"},
+      {id:"absent-b",name:"غائب ب",departmentId:"science"},
+    ],weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignedCount,2,"Both absent lessons should be covered");
+  equal(new Set(plan.assignments.map(a=>a.substituteTeacherName)).size,2,"Use one lesson per substitute before assigning a second");
+  assert(!plan.assignments.some(a=>a.substituteTeacherName==="غائب أ"||a.substituteTeacherName==="غائب ب"),"Selected absent teachers must never be substitutes");
+});
+
+
+Deno.test("reserve permission grants substitution actions only", async () => {
+  const token="a".repeat(64);
+  const principal=await resolveTimetablePrincipal("Bearer "+token,{
+    async findSession(){return {principal_type:"teacher",principal_name:"معلم مخوّل",expires_at:"2026-11-16T00:00:00.000Z"};},
+    async hasAdminCredential(){return false;},
+    async findTeacher(name){return {name,role:"teacher"};},
+    async hasTimetableAccess(){return false;},
+    async hasSubstitutionAccess(){return true;},
+  },Date.parse("2026-11-15T12:00:00.000Z"));
+  equal(principal?.name,"معلم مخوّل","Reserve-enabled teacher should authenticate for substitution");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),false,"General teacher access alone must not grant reserve actions");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save"),false,"General teacher access alone must not grant batch save");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview",false,true),true,"Reserve permission grants batch preview");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save",false,true),true,"Reserve permission grants batch save");
+  equal(canUseTimetableAction("teacher","timetable_save_day"),false,"Reserve must not grant timetable editing");
+});
+
+
+Deno.test("substitution date validation accepts real ISO dates and rejects invalid calendar dates", () => {
+  equal(isValidSubstitutionDate("2026-11-15"),true,"Valid ISO date");
+  equal(isValidSubstitutionDate("2024-02-29"),true,"Valid leap day");
+  equal(isValidSubstitutionDate("2026-02-29"),false,"Invalid non-leap day");
+  equal(isValidSubstitutionDate("2026-02-30"),false,"Date overflow must be rejected");
+  equal(isValidSubstitutionDate("15-11-2026"),false,"Localized date format is not accepted by the API");
+});
+
+
+Deno.test("weekly teaching quota is considered after equal point and daily-cover balances", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"high-quota",name:"نصاب مرتفع",departmentId:"science",pointsBalance:2,weeklyQuota:30,dailyTeachingCount:2},
+    {id:"low-quota",name:"نصاب أقل",departmentId:"science",pointsBalance:2,weeklyQuota:18,dailyTeachingCount:2},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:3,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"low-quota","Lower weekly teaching quota wins when points and daily load are equal");
+});
+
+
+Deno.test("duplicate shared-class rows for an absent teacher produce one replacement per period", () => {
+  const lessons=getAbsentTeacherLessons([
+    {teacherId:"absent",weekday:"الأحد",period:3,className:"10/1",subject:"العلوم",status:"teaching"},
+    {teacherId:"absent",weekday:"الأحد",period:3,className:"10/2",subject:"العلوم",status:"teaching"},
+    {teacherId:"absent",weekday:"الأحد",period:4,className:"10/3",subject:"العلوم",status:"teaching"},
+  ],"absent","الأحد");
+  equal(lessons.length,2,"Duplicate period rows must not create duplicate substitute assignments");
+  equal(lessons[0].className,"10/1، 10/2","Shared class names should be combined for the report");
+});
+
+Deno.test("weekly teaching quota counts distinct periods rather than duplicate shared rows", () => {
+  const counts=countTeacherTeachingPeriods([
+    {teacherId:"teacher",weekday:"الأحد",period:1,className:"10/1",status:"teaching"},
+    {teacherId:"teacher",weekday:"الأحد",period:1,className:"10/2",status:"teaching"},
+    {teacherId:"teacher",weekday:"الأحد",period:2,className:"10/3",status:"teaching"},
+    {teacherId:"teacher",weekday:"الأحد",period:3,className:"",status:"free"},
+  ]);
+  equal(counts.get("teacher"),2,"A teacher's shared class at the same period counts once");
+});
+
+
+Deno.test("batch planner skips already-saved absent-teacher lessons instead of duplicating them", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent",name:"غائب",departmentId:"science",pointsBalance:0},
+    {id:"candidate",name:"بديل",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[
+    {teacherId:"absent",weekday:"الأحد",period:1,className:"10/1",status:"teaching"},
+    {teacherId:"candidate",weekday:"الأحد",period:1,className:"",status:"free"},
+    {teacherId:"absent",weekday:"الأحد",period:2,className:"10/2",status:"teaching"},
+    {teacherId:"candidate",weekday:"الأحد",period:2,className:"",status:"free"},
+  ];
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[{
+      substituteTeacherId:"candidate",absentTeacherId:"absent",weekday:"الأحد",period:1,
+      assignmentDate:"2026-11-15",versionId:"active",assignmentType:"substitution",status:"assigned",
+    }],
+    absentTeachers:[{id:"absent",name:"غائب",departmentId:"science"}],
+    weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignedCount,1,"Only the not-yet-assigned lesson should be proposed");
+  equal(plan.assignments[0].period,2,"The already-saved lesson must not be duplicated");
+});
+
+
+Deno.test("manual override options retain teachers who already have one daily cover", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent",name:"غائب",departmentId:"science",pointsBalance:0},
+    {id:"fresh",name:"بديل جديد",departmentId:"science",pointsBalance:3},
+    {id:"one-cover",name:"بديل بحصة",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const teacher of teachers){
+    for(let period=1;period<=3;period++){
+      timetable.push({teacherId:teacher.id,weekday:"الأحد",period,className:"",status:teacher.id==="absent"&&period===1?"teaching":"free"});
+    }
+  }
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[{
+      substituteTeacherId:"one-cover",weekday:"الأحد",period:3,assignmentDate:"2026-11-15",
+      versionId:"active",assignmentType:"substitution",status:"assigned",
+    }],
+    absentTeachers:[{id:"absent",name:"غائب",departmentId:"science"}],
+    weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignments[0].substituteTeacherName,"بديل جديد","The automatic suggestion should prefer a teacher with no daily cover");
+  assert(plan.assignments[0].candidateOptions.some(option=>option.teacherName==="بديل بحصة"&&option.dailySubstitutionCount===1),"A one-cover teacher remains available for manual override up to the two-cover cap");
 });

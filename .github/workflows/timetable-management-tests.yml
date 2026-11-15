@@ -7,6 +7,7 @@ on:
       - feature/timetable-robust-fairness-v2
       - feature/timetable-hardening-fixes-20261114
       - feature/class-timetable-and-personal-portal-20261115
+      - feature/weighted-batch-substitution
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
     paths:
@@ -58,7 +59,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114150000_timetable_import_idempotency.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114180000_teacher_personal_timetable_portal.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114194500_timetable_dynamic_periods.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115110000_weighted_batch_substitution.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115010000_atomic_class_timetable_assignment.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115082010_timetable_class_coverage_force_publish.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115083655_timetable_weekly_audit_cell_counts.sql
@@ -68,6 +71,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "BEGIN; INSERT INTO public.timetable_weekly_versions(version,status,expected_teacher_count,period_count,created_by) VALUES (999,'draft',1,8,'migration-test'); INSERT INTO public.timetable_weekly_cells(version_id,teacher_source_name,match_status,weekday,period,cell_status) SELECT id,'migration-test','unmatched','الأحد',8,'free' FROM public.timetable_weekly_versions WHERE version=999; INSERT INTO public.timetable_assignments(version_id,teacher_name,assignment_type,weekday,period,created_by) SELECT id,'migration-test','other','الأحد',8,'migration-test' FROM public.timetable_weekly_versions WHERE version=999; ROLLBACK;"
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/timetable_import_idempotency.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/teacher_timetable_portal_setting.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/weighted_batch_substitution.sql
       - name: Set up Deno
         uses: denoland/setup-deno@v2
         with:
@@ -93,4 +97,30 @@ jobs:
             throw new Error("Timetable import UI script boundaries are invalid");
           }
           new Function(html.slice(scriptOpenEnd + 1, scriptEnd));
+          NODE
+
+      - name: Check all main application inline JavaScript syntax
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const os = require("node:os");
+          const path = require("node:path");
+          const { execFileSync } = require("node:child_process");
+          const html = fs.readFileSync("index.html", "utf8");
+          const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
+          const temp = fs.mkdtempSync(path.join(os.tmpdir(), "abu-dujana-inline-"));
+          let checked = 0;
+          for (let i = 0; i < scripts.length; i++) {
+            const attributes = scripts[i][1] || "";
+            const body = scripts[i][2] || "";
+            if (/\bsrc\s*=/.test(attributes) || !body.trim()) continue;
+            const type = (attributes.match(/\btype\s*=\s*["']([^"']+)/i) || [])[1] || "";
+            if (type && !/^(module|text\/javascript|application\/javascript)$/i.test(type)) continue;
+            const extension = type.toLowerCase() === "module" ? ".mjs" : ".js";
+            const file = path.join(temp, "inline-" + i + extension);
+            fs.writeFileSync(file, body, "utf8");
+            execFileSync(process.execPath, ["--check", file], { stdio: "inherit" });
+            checked++;
+          }
+          console.log("Checked " + checked + " inline application scripts.");
           NODE

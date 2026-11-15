@@ -1949,8 +1949,95 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
         </div>
       </div>
+      <div id="substitutionDashboardCard" onclick="openSubstitutionView()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSubstitutionView();}" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-cyan-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-cyan-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px] lg:col-start-3">
+        <div class="absolute -left-10 -top-12 w-40 h-40 rounded-full bg-cyan-300/15 blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex justify-between items-start">
+          <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-cyan-100 rounded-3xl flex items-center justify-center text-3xl border border-white/25 shadow-inner"><i class="fa-solid fa-calendar-check"></i></div>
+          <span class="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black text-cyan-100 backdrop-blur-md">توزيع ذكي</span>
+        </div>
+        <div class="relative z-10 mt-6">
+          <h4 class="text-3xl font-black text-white mb-2">توزيع الاحتياط</h4>
+          <p class="text-xs text-cyan-100 font-bold">توزيع جماعي عادل لحصص الغياب مع مراجعة فورية</p>
+        </div>
+        <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-cyan-200">
+          <span>افتح لوحة التوزيع</span>
+          <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
+        </div>
+      </div>
+
     </div>
   </div>
+
+<section id="substitutionView" class="hidden space-y-5" dir="rtl">
+  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-indigo-950 to-cyan-900 p-5 sm:p-7 text-white shadow-xl">
+    <div class="absolute -left-12 -top-16 h-52 w-52 rounded-full bg-cyan-300/15 blur-3xl"></div>
+    <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl shadow-inner backdrop-blur-md"><i class="fa-solid fa-calendar-check text-cyan-100"></i></div>
+        <div><span class="text-[10px] font-black tracking-widest text-cyan-200">منظومة التوزيع العادل</span><h2 class="mt-1 text-xl sm:text-2xl font-black">توزيع حصص الاحتياط</h2><p class="mt-1 text-[11px] text-cyan-100">اقتراح ذكي، مراجعة يدوية، ثم اعتماد ومشاركة</p></div>
+      </div>
+      <button type="button" onclick="closeSubstitutionView()" class="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white backdrop-blur-md hover:bg-white/20"><i class="fa-solid fa-arrow-right ml-1"></i> العودة للرئيسية</button>
+    </div>
+    <div class="relative z-10 mt-5 grid grid-cols-2 sm:grid-cols-4 gap-2">
+      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">آلية الاختيار</div><div class="mt-1 text-sm font-black">الأقل نقاطاً</div></div>
+      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">العدالة اليومية</div><div class="mt-1 text-sm font-black">حصة ثم حصتان عند الضرورة</div></div>
+      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">منع التعارض</div><div class="mt-1 text-sm font-black">أساسي واحتياط</div></div>
+      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">المقاربة</div><div class="mt-1 text-sm font-black">تجنب 3 متتالية</div></div>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <label for="substitutionDate" class="mb-2 block text-xs font-black text-slate-700 dark:text-slate-200">اليوم والتاريخ</label>
+      <input id="substitutionDate" type="date" onchange="substitutionDateChanged()" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
+      <p id="substitutionWeekdayLabel" class="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">—</p>
+    </div>
+    <div id="substitutionOtherDepartmentsWrap" class="hidden rounded-3xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/30">
+      <label class="flex cursor-pointer items-start gap-3">
+        <input id="substitutionOtherDepartments" type="checkbox" class="mt-1 h-4 w-4 accent-indigo-600">
+        <span><span class="block text-xs font-black text-indigo-900 dark:text-indigo-200">إظهار البدلاء من الأقسام الأخرى</span><span class="mt-1 block text-[10px] leading-5 text-indigo-800 dark:text-indigo-300">للمدير أو المعلم المخوّل بتوزيع الاحتياط، عند الضرورة. تبقى قائمة الغائبين ضمن نطاق قسمك.</span></span>
+      </label>
+    </div>
+    <div class="rounded-3xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-900 dark:bg-cyan-950/30">
+      <div class="text-xs font-black text-cyan-900 dark:text-cyan-200">قاعدة النقاط</div>
+      <p class="mt-1 text-[11px] leading-5 text-cyan-800 dark:text-cyan-300">1–2: نقطة · 3–4: نقطتان · 5: أربع · 6: ثلاث · 7: خمس · 8: سبع نقاط</p>
+    </div>
+  </div>
+
+  <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-5">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-user-minus ml-2 text-rose-500"></i>المعلمون الغائبون</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تظهر لك الأسماء التي يسمح نطاق صلاحيتك بإدارتها ولديها حصص تدريس في اليوم المحدد.</p></div>
+      <div class="flex items-center gap-2"><span id="substitutionSelectedCount" class="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200">0 محدد</span><button type="button" onclick="substitutionToggleAllAbsentees()" class="rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">تحديد الكل</button></div>
+    </div>
+    <div id="substitutionAbsenteeList" class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"><p class="col-span-full rounded-2xl bg-slate-50 p-4 text-xs text-slate-400 dark:bg-slate-800">جارٍ تحميل المعلمين...</p></div>
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <p id="substitutionAbsenteeStatus" class="text-[11px] font-bold text-slate-500 dark:text-slate-400">اختر المعلمين الغائبين ثم أنشئ التوزيع المقترح.</p>
+      <button id="substitutionGenerateButton" type="button" onclick="substitutionGeneratePlan()" disabled class="rounded-2xl bg-gradient-to-l from-indigo-700 to-cyan-700 px-5 py-3 text-xs font-black text-white shadow-lg shadow-cyan-900/15 transition hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"><i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع المقترح</button>
+    </div>
+  </div>
+
+  <div id="substitutionPlanPanel" class="hidden space-y-4">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div><h3 class="text-base font-black text-slate-900 dark:text-white">مراجعة التوزيع وتعديله</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">يمكنك تغيير البديل لكل حصة. ستظهر حصصه المشغولة بالأرقام فقط دون الصفوف.</p></div>
+      <span id="substitutionPlanSummary" class="rounded-xl bg-emerald-50 px-3 py-2 text-[10px] font-black text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200">—</span>
+    </div>
+    <div id="substitutionPlanAssignments" class="space-y-3"></div>
+    <div id="substitutionUnassigned" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200"></div>
+    <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+      <div class="flex flex-wrap gap-2">
+        <button id="substitutionSaveButton" type="button" onclick="substitutionSavePlan()" class="rounded-xl bg-emerald-600 px-4 py-3 text-xs font-black text-white shadow hover:bg-emerald-700 disabled:opacity-40" disabled><i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع</button>
+        <button id="substitutionPdfButton" type="button" onclick="substitutionPrintPdf()" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-black text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100" disabled><i class="fa-solid fa-file-pdf ml-2 text-rose-500"></i>طباعة كشف PDF</button>
+        <button id="substitutionWhatsappButton" type="button" onclick="substitutionShareWhatsapp()" class="rounded-xl bg-[#16865b] px-4 py-3 text-xs font-black text-white hover:bg-[#116b48] disabled:opacity-40" disabled><i class="fa-brands fa-whatsapp ml-2"></i>مشاركة واتساب</button>
+      </div>
+      <p id="substitutionSaveStatus" class="mt-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">راجع التوزيع قبل الاعتماد. لن تُحفظ الاقتراحات تلقائياً.</p>
+    </div>
+  </div>
+
+  <div id="substitutionStatsPanel" class="space-y-4">
+    <div class="flex items-center justify-between gap-2"><div><h3 class="text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-line ml-2 text-cyan-600"></i>نقاط الاحتياط والإحصائيات</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">رصيدك وتوزيع حصص الاحتياط من الأولى إلى الثامنة.</p></div><button type="button" onclick="substitutionLoadStats()" class="rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600 dark:border-slate-700 dark:text-slate-300"><i class="fa-solid fa-rotate ml-1"></i>تحديث</button></div>
+    <div id="substitutionStatsContent" class="rounded-3xl border border-slate-200 bg-white p-4 text-xs text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900">جارٍ تحميل الإحصائيات...</div>
+  </div>
+</section>
 
 <section id="teacherTimetableView" class="hidden space-y-5" dir="rtl">
   <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-cyan-950 to-emerald-900 p-5 sm:p-7 text-white shadow-xl">
@@ -2442,6 +2529,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div class="grid grid-cols-2 gap-2">
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800"><input type="checkbox" id="perm_p_attendance" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📋 رصد الغياب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-200 dark:border-orange-800"><input type="checkbox" id="perm_p_dutyToday" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة في يوم التكليف</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-2xl border border-cyan-200 dark:border-cyan-800"><input type="checkbox" id="perm_p_reserve" class="accent-cyan-600 w-4 h-4"><span class="text-xs font-bold">📚 توزيع حصص الاحتياط</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-teal-50 dark:bg-teal-950/30 rounded-2xl border border-teal-200 dark:border-teal-800"><input type="checkbox" id="perm_p_behavior" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ رصد السلوكيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800"><input type="checkbox" id="perm_p_dashboard" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🏠 الرئيسية</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_studstats" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📊 الإحصائيات</span></label>
@@ -5798,7 +5886,7 @@ async function finalizeLoginState() {
   const attCard = document.getElementById('attendanceDashboardCard'), behCard = document.getElementById('behaviorDashboardCard');
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
   if (behCard) behCard.classList.toggle('hidden', !canAccessBehavior());
-  refreshDutyDashboardCard(); renderDutyTodayRecords();
+  refreshDutyDashboardCard(); refreshSubstitutionDashboardCard(); renderDutyTodayRecords();
   await checkAndEnforcePinChange(); await checkAndEnforceAdminPinChange();
   window.refreshCombinedReportTabs?.();
 }
@@ -5964,7 +6052,7 @@ function _performLogout() {
   teacherTimetableData = null;
   if (teacherTimetableRefreshTimer) { clearInterval(teacherTimetableRefreshTimer); teacherTimetableRefreshTimer = null; }
 
-  ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyClassesView','dutyDashboardCard','teacherTimetableView','studentAffairsView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyClassesView','dutyDashboardCard','teacherTimetableView','substitutionView','studentAffairsView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('loginView').classList.remove('hidden');
   document.getElementById('changeTeacherPinBtn').classList.add('hidden');
 }
@@ -8057,6 +8145,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_attendance').checked = p.attendance !== false;
   document.getElementById('perm_p_behavior').checked = p.behavior !== false;
   document.getElementById('perm_p_dutyToday').checked = p.dutyToday !== false;
+  document.getElementById('perm_p_reserve').checked = p.reserve === true;
   document.getElementById('perm_p_dashboard').checked = Object.prototype.hasOwnProperty.call(p, 'dashboard') ? p.dashboard === true : !!(p.studstats || p.teachers);
   document.getElementById('perm_p_studstats').checked = !!p.studstats;
   document.getElementById('perm_p_behaviorstats').checked = !!p.behaviorstats;
@@ -8080,6 +8169,7 @@ async function saveTeacherPermissions() {
   t.permissions.attendance = document.getElementById('perm_p_attendance').checked;
   t.permissions.behavior = document.getElementById('perm_p_behavior').checked;
   t.permissions.dutyToday = document.getElementById('perm_p_dutyToday').checked;
+  t.permissions.reserve = document.getElementById('perm_p_reserve').checked;
   t.permissions.dashboard = document.getElementById('perm_p_dashboard').checked;
   t.permissions.studstats = document.getElementById('perm_p_studstats').checked;
   t.permissions.behaviorstats = document.getElementById('perm_p_behaviorstats').checked;
@@ -11119,5 +11209,314 @@ async function timetableSaveOwner() {
 
 </script>
 
+<script>
+(function(){
+  let currentPlan=null;
+  let currentAbsentNames=[];
+  let savedPlan=false;
+  const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
+  function esc(value){
+    return String(value==null?'':value).replace(/[&<>"']/g,function(ch){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+    });
+  }
+  function getToken(){return appAuthSession?.token||readAppAuthToken();}
+  function selectedDate(){return document.getElementById('substitutionDate')?.value||getOmanLocalDate();}
+  function weekdayFor(date){
+    const parsed=new Date(String(date)+'T12:00:00Z');
+    if(Number.isNaN(parsed.getTime()))return '';
+    const day=parsed.getUTCDay();
+    return day>=0&&day<=4?dayNames[day]:'';
+  }
+  function dateLabel(date){
+    try{return new Intl.DateTimeFormat('ar-OM',{weekday:'long',year:'numeric',month:'long',day:'numeric',timeZone:'Asia/Muscat'}).format(new Date(date+'T12:00:00Z'));}
+    catch(e){return date;}
+  }
+  function setStatus(message,error){
+    const el=document.getElementById('substitutionAbsenteeStatus');
+    if(el){el.textContent=message;el.className='text-[11px] font-bold '+(error?'text-rose-600 dark:text-rose-300':'text-slate-500 dark:text-slate-400');}
+  }
+  function clearPlan(){
+    currentPlan=null;currentAbsentNames=[];savedPlan=false;
+    document.getElementById('substitutionPlanPanel')?.classList.add('hidden');
+    const save=document.getElementById('substitutionSaveButton');
+    const pdf=document.getElementById('substitutionPdfButton');
+    const wa=document.getElementById('substitutionWhatsappButton');
+    if(save)save.disabled=true;if(pdf)pdf.disabled=true;if(wa)wa.disabled=true;
+    const status=document.getElementById('substitutionSaveStatus');
+    if(status)status.textContent='راجع التوزيع قبل الاعتماد. لن تُحفظ الاقتراحات تلقائياً.';
+  }
+  function checkedAbsentees(){
+    return Array.from(document.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked')).map(el=>el.value);
+  }
+  function updateSelectedCount(){
+    const names=checkedAbsentees();
+    const count=document.getElementById('substitutionSelectedCount');
+    const generate=document.getElementById('substitutionGenerateButton');
+    if(count)count.textContent=names.length+' محدد';
+    if(generate)generate.disabled=names.length===0;
+  }
+  function renderAbsentees(names){
+    const root=document.getElementById('substitutionAbsenteeList');
+    if(!root)return;
+    if(!names.length){
+      root.innerHTML='<p class="col-span-full rounded-2xl bg-slate-50 p-4 text-xs font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-300">لا توجد حصص تدريس مسجلة لمعلمي نطاق صلاحيتك في هذا اليوم.</p>';
+      updateSelectedCount();return;
+    }
+    root.innerHTML=names.map(function(name,index){
+      return '<label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-rose-800">'+
+        '<input type="checkbox" name="substitutionAbsentTeacher" value="'+esc(name)+'" class="h-4 w-4 accent-rose-600">'+
+        '<span class="min-w-0 flex-1 text-xs font-black text-slate-800 dark:text-slate-100">'+esc(name)+'</span>'+
+        '<span class="rounded-lg bg-white px-2 py-1 text-[9px] font-black text-rose-600 dark:bg-slate-900 dark:text-rose-300">غائب</span></label>';
+    }).join('');
+    root.querySelectorAll('input[name="substitutionAbsentTeacher"]').forEach(function(input){
+      input.addEventListener('change',function(){clearPlan();updateSelectedCount();});
+    });
+    updateSelectedCount();
+  }
+  window.refreshSubstitutionDashboardCard=function(){
+    const card=document.getElementById('substitutionDashboardCard');
+    if(!card)return;
+    const allowed=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    card.classList.toggle('hidden',!allowed);
+  };
+  window.openSubstitutionView=async function(){
+    const allowed=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    if(!allowed){showToast('لا تملك صلاحية توزيع حصص الاحتياط.','error');return;}
+    ['dashboardSelectionView','dutyView','dutyClassesView','teacherTimetableView','attendanceView','classesView','behaviorClassesView','behaviorSessionView'].forEach(function(id){document.getElementById(id)?.classList.add('hidden');});
+    document.getElementById('substitutionView')?.classList.remove('hidden');
+    const date=document.getElementById('substitutionDate');
+    if(date&&!date.value)date.value=getOmanLocalDate();
+    const canExpand=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',!canExpand);
+    clearPlan();
+    await window.substitutionLoadAbsentees();
+    await window.substitutionLoadStats();
+  };
+  window.closeSubstitutionView=function(){
+    document.getElementById('substitutionView')?.classList.add('hidden');
+    document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+    window.refreshSubstitutionDashboardCard();
+  };
+  window.substitutionDateChanged=async function(){
+    clearPlan();
+    await window.substitutionLoadAbsentees();
+    await window.substitutionLoadStats();
+  };
+  window.substitutionToggleAllAbsentees=function(){
+    const boxes=Array.from(document.querySelectorAll('input[name="substitutionAbsentTeacher"]'));
+    const shouldCheck=boxes.some(box=>!box.checked);
+    boxes.forEach(box=>{box.checked=shouldCheck;});
+    clearPlan();updateSelectedCount();
+  };
+  window.substitutionLoadAbsentees=async function(){
+    const root=document.getElementById('substitutionAbsenteeList');
+    const date=selectedDate();
+    const weekday=weekdayFor(date);
+    const dayLabel=document.getElementById('substitutionWeekdayLabel');
+    if(dayLabel)dayLabel.textContent=weekday?dateLabel(date):'اليوم خارج أيام الدراسة المعتمدة (الأحد إلى الخميس).';
+    if(!weekday){renderAbsentees([]);setStatus('اختر تاريخاً من الأحد إلى الخميس.',true);return;}
+    if(root)root.innerHTML='<p class="col-span-full rounded-2xl bg-slate-50 p-4 text-xs text-slate-500 dark:bg-slate-800">جارٍ تحميل المعلمين وحصصهم...</p>';
+    setStatus('جارٍ جلب قائمة المعلمين الغائبين من الجدول المعتمد...');
+    try{
+      const result=await appAuthRequest({action:'timetable_substitution_preview',weekday:weekday,assignmentDate:date,includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true},getToken());
+      if(result.active===false){renderAbsentees([]);setStatus('لا توجد نسخة جدول أسبوعية معتمدة.',true);return;}
+      renderAbsentees(Array.isArray(result.absentTeachers)?result.absentTeachers:[]);
+      setStatus('تم تحميل القائمة. حدد معلماً أو أكثر ثم أنشئ التوزيع.');
+    }catch(error){
+      renderAbsentees([]);
+      setStatus(error?.message||'تعذر تحميل قائمة الغياب.',true);
+    }
+  };
+  window.substitutionGeneratePlan=async function(){
+    const names=checkedAbsentees();
+    const date=selectedDate(),weekday=weekdayFor(date);
+    if(!weekday||!names.length){showToast('حدد التاريخ والمعلمين الغائبين أولاً.','error');return;}
+    const button=document.getElementById('substitutionGenerateButton');
+    if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ حساب التوزيع...';}
+    setStatus('يجري فحص التعارضات والنصاب والنقاط والحصص المتجاورة...');
+    try{
+      const result=await appAuthRequest({
+        action:'timetable_substitution_batch_preview',weekday:weekday,assignmentDate:date,
+        absentTeacherNames:names,
+        includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true
+      },getToken());
+      currentPlan=result;
+      currentAbsentNames=names.slice();
+      savedPlan=false;
+      renderPlan();
+      setStatus('اكتمل الاقتراح. راجع البدلاء وعدّل ما تراه مناسباً قبل الحفظ.');
+    }catch(error){
+      showToast(error?.message||'تعذر إنشاء التوزيع المقترح.','error');
+      setStatus(error?.message||'تعذر إنشاء التوزيع المقترح.',true);
+    }finally{
+      if(button){button.disabled=checkedAbsentees().length===0;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع المقترح';}
+    }
+  };
+  function renderPlan(){
+    const panel=document.getElementById('substitutionPlanPanel');
+    const root=document.getElementById('substitutionPlanAssignments');
+    const unassigned=document.getElementById('substitutionUnassigned');
+    if(!panel||!root||!currentPlan)return;
+    panel.classList.remove('hidden');
+    const assignments=Array.isArray(currentPlan.assignments)?currentPlan.assignments:[];
+    const existing=Array.isArray(currentPlan.existingAssignments)?currentPlan.existingAssignments:[];
+    const groups=new Map();
+    assignments.forEach(function(item,index){
+      if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
+      groups.get(item.absentTeacherName).push({item:item,index:index});
+    });
+    let html='';
+    groups.forEach(function(rows,absentName){
+      html+='<div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900">'+
+        '<div class="flex items-center justify-between gap-2 border-b border-slate-100 bg-rose-50/70 px-4 py-3 dark:border-slate-700 dark:bg-rose-950/20"><div class="text-xs font-black text-rose-800 dark:text-rose-200"><i class="fa-solid fa-user-minus ml-2"></i>المعلم الغائب: '+esc(absentName)+'</div><span class="text-[10px] font-bold text-rose-600 dark:text-rose-300">'+rows.length+' حصة</span></div>'+
+        '<div class="divide-y divide-slate-100 dark:divide-slate-800">';
+      rows.forEach(function(row){
+        const item=row.item,index=row.index;
+        const options=(item.candidateOptions||[]).map(function(option){
+          const occupied=(option.occupiedPeriods||[]).join('، ')||'لا توجد حصص تدريس';
+          const warnings=(option.createsThreeConsecutive?' ⚠ ثلاث متتالية':'')+(option.adjacent?' · حصة مجاورة':'');
+          const label=option.teacherName+' · شغال: '+occupied+' · الرصيد: '+option.pointsBalance+' · احتياط اليوم: '+option.dailySubstitutionCount+' · النصاب الأسبوعي: '+option.weeklyQuota+' · نصاب اليوم: '+option.dailyTeachingCount+warnings;
+          return '<option value="'+esc(option.teacherName)+'" '+(option.teacherName===item.substituteTeacherName?'selected':'')+'>'+esc(label)+'</option>';
+        }).join('');
+        html+='<div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">'+
+          '<div class="flex flex-wrap items-center gap-2"><span class="rounded-xl bg-indigo-50 px-3 py-2 text-[11px] font-black text-indigo-800 dark:bg-indigo-950/40 dark:text-indigo-200">الحصة '+item.period+'</span><span class="text-xs font-black text-slate-800 dark:text-white">الصف: '+esc(item.className||'—')+'</span><span class="text-[10px] text-slate-500">'+esc(item.subject||'')+'</span><span class="rounded-lg bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">'+item.points+' نقاط</span></div>'+
+          '<div><label class="mb-1 block text-[10px] font-bold text-slate-500 dark:text-slate-400">المعلم البديل — تظهر حصصه دون الصفوف</label><select data-substitution-row="'+index+'" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-800 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white" '+(options?'':'disabled')+'>'+options+'</select></div>'+
+        '</div>';
+      });
+      html+='</div></div>';
+    });
+    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><span class="font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="font-black text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+' · محفوظ</span></div>';}).join('')+'</div></div>':'';
+    root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>'));
+    root.querySelectorAll('select[data-substitution-row]').forEach(function(select){
+      select.addEventListener('change',function(){
+        const row=Number(select.dataset.substitutionRow);
+        if(currentPlan?.assignments?.[row])currentPlan.assignments[row].substituteTeacherName=select.value;
+        savedPlan=false;
+        const status=document.getElementById('substitutionSaveStatus');
+        if(status)status.textContent='تم تعديل البديل يدوياً. احفظ التوزيع لاعتماد التعديلات.';
+        const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=!currentPlan.assignments.length;
+        const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=true;
+        const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=true;
+      });
+    });
+    const summary=document.getElementById('substitutionPlanSummary');
+    if(summary)summary.textContent=assignments.length+' جديدة · '+existing.length+' محفوظة · '+(currentPlan.unassignedCount||0)+' دون بديل';
+    const unassignedRows=Array.isArray(currentPlan.unassigned)?currentPlan.unassigned:[];
+    if(unassignedRows.length){
+      unassigned.classList.remove('hidden');
+      unassigned.innerHTML='<div class="mb-2 font-black"><i class="fa-solid fa-triangle-exclamation ml-2"></i>حصص لم يتوفر لها بديل</div>'+
+        unassignedRows.map(function(item){return '<div class="border-t border-amber-200/70 py-2 dark:border-amber-900/50">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</div>';}).join('');
+    }else{unassigned.classList.add('hidden');unassigned.innerHTML='';}
+    savedPlan=assignments.length===0&&existing.length>0;
+    const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=assignments.length===0;
+    const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=!savedPlan;
+    const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=!savedPlan;
+    const status=document.getElementById('substitutionSaveStatus');
+    if(status)status.textContent=savedPlan?'كل التكليفات المحددة محفوظة مسبقاً؛ يمكنك طباعة الكشف أو مشاركته.':'الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل من القائمة.';
+  }
+  window.substitutionSavePlan=async function(){
+    if(!currentPlan||!currentPlan.assignments?.length)return;
+    const button=document.getElementById('substitutionSaveButton');
+    if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ الاعتماد والحفظ...';}
+    try{
+      const result=await appAuthRequest({
+        action:'timetable_substitution_batch_save',weekday:weekdayFor(selectedDate()),assignmentDate:selectedDate(),
+        absentTeacherNames:currentAbsentNames,
+        assignments:currentPlan.assignments.map(function(item){return {absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:item.period};}),
+        includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true
+      },getToken());
+      savedPlan=true;
+      const status=document.getElementById('substitutionSaveStatus');
+      if(status)status.textContent='تم حفظ '+(result.assignmentCount||currentPlan.assignments.length)+' تكليفاً بنجاح. جميع الحصص حُفظت كعملية واحدة.';
+      const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=false;
+      const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=false;
+      showToast('تم اعتماد وحفظ توزيع الاحتياط.','success');
+      await window.substitutionLoadStats();
+    }catch(error){
+      showToast(error?.message||'تعذر حفظ التوزيع. لم يتم اعتماد التوزيع الجزئي.','error');
+      const status=document.getElementById('substitutionSaveStatus');
+      if(status)status.textContent=(error?.message||'فشل الحفظ؛ بقيت اختياراتك كما هي.')+' يمكنك مراجعة البدلاء والمحاولة مجدداً.';
+      if(button)button.disabled=false;
+    }finally{
+      if(button)button.innerHTML='<i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع';
+    }
+  };
+  function buildShareMessage(){
+    if(!currentPlan)return '';
+    const date=selectedDate(),weekday=weekdayFor(date);
+    let message='توزيع حصص الاحتياط\n'+dateLabel(date)+'\n\n';
+    const groups=new Map();
+    [...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[])].forEach(function(item){
+      if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
+      groups.get(item.absentTeacherName).push(item);
+    });
+    groups.forEach(function(items,name){
+      message+='المعلم الغائب: '+name+'\n';
+      items.forEach(function(item){message+='الحصة '+item.period+' | الصف '+(item.className||'—')+' | '+(item.subject||'')+' | البديل: '+item.substituteTeacherName+'\n';});
+      message+='\n';
+    });
+    if(currentPlan.unassigned?.length)message+='حصص دون بديل: '+currentPlan.unassigned.length+'\n';
+    message+='\nإدارة المدرسة';
+    return message;
+  }
+  window.substitutionShareWhatsapp=function(){
+    if(!savedPlan){showToast('احفظ التوزيع أولاً قبل مشاركته.','error');return;}
+    const url='https://wa.me/?text='+encodeURIComponent(buildShareMessage());
+    window.open(url,'_blank','noopener,noreferrer');
+  };
+  window.substitutionPrintPdf=function(){
+    if(!savedPlan||!currentPlan){showToast('احفظ التوزيع أولاً قبل الطباعة.','error');return;}
+    const popup=window.open('','_blank');
+    if(!popup){showToast('اسمح بفتح نافذة الطباعة لإعداد كشف PDF.','error');return;}
+    const allAssignments=[...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[])];
+    const rows=allAssignments.map(function(item,index){
+      return '<tr><td>'+(index+1)+'</td><td>'+esc(item.absentTeacherName)+'</td><td>'+item.period+'</td><td>'+esc(item.className||'—')+'</td><td>'+esc(item.subject||'—')+'</td><td>'+esc(item.substituteTeacherName)+'</td></tr>';
+    }).join('');
+    const unassigned=(currentPlan.unassigned||[]).map(function(item){return '<li>'+esc(item.absentTeacherName)+' — الحصة '+item.period+' — '+esc(item.className||'—')+'</li>';}).join('');
+    popup.document.open();
+    popup.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف توزيع الاحتياط</title><style>'+
+      'body{font-family:Arial,Tahoma,sans-serif;color:#172033;padding:24px}h1{text-align:center;font-size:22px;margin:0 0 8px}.meta{text-align:center;color:#475569;margin-bottom:22px;font-size:13px}.summary{display:flex;gap:12px;margin-bottom:18px}.summary div{flex:1;padding:12px;border:1px solid #cbd5e1;border-radius:10px;text-align:center;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #94a3b8;padding:9px;text-align:center}th{background:#e2e8f0;font-weight:900}tr{break-inside:avoid}h3{margin-top:24px}@page{size:A4 landscape;margin:12mm}@media print{*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}'+
+      '</style></head><body><h1>مدرسة أبو دجانة — كشف توزيع الاحتياط</h1><div class="meta">'+esc(dateLabel(selectedDate()))+' · اليوم: '+esc(weekdayFor(selectedDate()))+'</div>'+
+      '<div class="summary"><div>إجمالي الحصص: '+allAssignments.length+'</div><div>حصص دون بديل: '+(currentPlan.unassigned||[]).length+'</div><div>عدد المعلمين الغائبين: '+currentAbsentNames.length+'</div></div>'+
+      '<table><thead><tr><th>م</th><th>المعلم الغائب</th><th>الحصة</th><th>الصف</th><th>المادة</th><th>المعلم البديل</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      (unassigned?'<h3>حصص لم يتوفر لها بديل</h3><ul>'+unassigned+'</ul>':'')+
+      '<p style="margin-top:35px;font-size:11px">إعداد: إدارة المدرسة ____________________ &nbsp;&nbsp; اعتماد: ____________________</p></body></html>');
+    popup.document.close();
+    setTimeout(function(){popup.focus();popup.print();},450);
+  };
+  window.substitutionLoadStats=async function(){
+    const root=document.getElementById('substitutionStatsContent');
+    if(!root)return;
+    const date=selectedDate(),weekday=weekdayFor(date);
+    if(!weekday){root.textContent='الإحصائيات اليومية متاحة لأيام الدراسة من الأحد إلى الخميس.';return;}
+    root.innerHTML='<p class="text-xs text-slate-400">جارٍ تحميل الأرصدة والإحصائيات...</p>';
+    try{
+      const data=await appAuthRequest({action:'timetable_substitution_stats',weekday:weekday,assignmentDate:date,includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true},getToken());
+      const own=data.ownStats;
+      const ownCard=own?'<div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">'+
+        '<div class="rounded-2xl bg-cyan-50 p-3 dark:bg-cyan-950/30"><div class="text-[10px] text-cyan-700 dark:text-cyan-300">رصيد النقاط</div><strong class="mt-1 block text-xl text-cyan-900 dark:text-cyan-100">'+own.pointsBalance+'</strong></div>'+
+        '<div class="rounded-2xl bg-emerald-50 p-3 dark:bg-emerald-950/30"><div class="text-[10px] text-emerald-700 dark:text-emerald-300">حصص احتياط</div><strong class="mt-1 block text-xl text-emerald-900 dark:text-emerald-100">'+own.substitutionCount+'</strong></div>'+
+        '<div class="rounded-2xl bg-rose-50 p-3 dark:bg-rose-950/30"><div class="text-[10px] text-rose-700 dark:text-rose-300">أيام غياب مغطاة</div><strong class="mt-1 block text-xl text-rose-900 dark:text-rose-100">'+own.coveredAbsenceDays+'</strong></div>'+
+        '<div class="rounded-2xl bg-indigo-50 p-3 dark:bg-indigo-950/30"><div class="text-[10px] text-indigo-700 dark:text-indigo-300">توزيع الحصص</div><strong class="mt-1 block text-xl text-indigo-900 dark:text-indigo-100">'+(own.periods||[]).reduce(function(sum,item){return sum+item.count;},0)+'</strong></div></div>':'<p class="mb-4 rounded-2xl bg-slate-50 p-3 text-[11px] text-slate-500 dark:bg-slate-800">ملخص رصيد المعلم غير متاح لحساب المدير؛ تظهر إحصائيات المعلمين أدناه.</p>';
+      function list(title,items,field){
+        const content=(items||[]).length?(items||[]).map(function(item,i){return '<div class="flex items-center justify-between gap-2 border-t border-slate-100 py-2 first:border-0 dark:border-slate-700"><span class="text-[11px] font-bold text-slate-700 dark:text-slate-200">'+(i+1)+'. '+esc(item.teacherName)+'</span><strong class="text-xs text-cyan-700 dark:text-cyan-300">'+item[field]+'</strong></div>';}).join(''):'<p class="text-[10px] text-slate-400">لا توجد بيانات بعد.</p>';
+        return '<div class="rounded-2xl border border-slate-200 p-3 dark:border-slate-700"><h4 class="mb-2 text-xs font-black text-slate-800 dark:text-white">'+title+'</h4>'+content+'</div>';
+      }
+      const ranking='<div class="mb-4 grid grid-cols-1 gap-3 md:grid-cols-3">'+
+        list('أعلى أرصدة النقاط',data.topPoints,'pointsBalance')+
+        list('أكثر حصص احتياط',data.mostSubstitutions,'substitutionCount')+
+        list('أيام الغياب المغطاة',data.mostCoveredAbsenceDays,'coveredAbsenceDays')+'</div>';
+      const teachers=Array.isArray(data.teachers)?data.teachers:[];
+      const table=teachers.length?'<div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="w-full min-w-[760px] text-center text-[10px]"><thead class="bg-slate-50 text-slate-600 dark:bg-slate-800 dark:text-slate-300"><tr><th class="p-2 text-right">المعلم</th><th class="p-2">الرصيد</th><th class="p-2">الاحتياط</th>'+Array.from({length:8},function(_,i){return '<th class="p-2">'+(i+1)+'</th>';}).join('')+'</tr></thead><tbody>'+teachers.map(function(teacher){return '<tr class="border-t border-slate-100 dark:border-slate-800"><td class="p-2 text-right font-bold">'+esc(teacher.teacherName)+'</td><td class="p-2 font-black">'+teacher.pointsBalance+'</td><td class="p-2">'+teacher.substitutionCount+'</td>'+(teacher.periods||[]).map(function(period){return '<td class="p-2">'+period.count+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>':'<p class="text-[10px] text-slate-400">لا توجد إحصائيات معلمين متاحة.</p>';
+      root.innerHTML=ownCard+ranking+'<h4 class="mb-2 text-xs font-black text-slate-800 dark:text-white">توزيع حصص الاحتياط من الأولى إلى الثامنة</h4>'+table+'<p class="mt-3 text-[10px] leading-5 text-slate-400">أيام الغياب المغطاة هنا تُحسب من تكليفات الاحتياط المسجلة، ولا تمثل سجلاً مستقلاً لكل حالات غياب المعلمين.</p>';
+    }catch(error){root.innerHTML='<p class="text-xs font-bold text-rose-600">'+esc(error?.message||'تعذر تحميل الإحصائيات.')+'</p>';}
+  };
+  document.addEventListener('DOMContentLoaded',function(){
+    const other=document.getElementById('substitutionOtherDepartments');
+    if(other)other.addEventListener('change',function(){clearPlan();window.substitutionLoadStats();});
+  });
+})();
+</script>
 </body>
 </html>
