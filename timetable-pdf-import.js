@@ -47,9 +47,10 @@
         if(typeof onProgress==="function")onProgress({page:pageNumber,total:document.numPages,percent:Math.round(pageNumber/document.numPages*100),message:"قراءة صفحة "+pageNumber+" من "+document.numPages});
         page.cleanup();
       }
-      const parsed=parser.parseTimetablePdfPages(pages);
-      if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.slice(0,5).join("\n"));
-      return parsed;
+      // Return structured diagnostics even when some pages are blocked. The
+      // UI owns the decision to stop preview/save, and must not replace real
+      // page counts with an empty diagnostic object when parsing is rejected.
+      return parser.parseTimetablePdfPages(pages);
     }finally{await document.destroy();}
   }
   window.TimetablePdfImporter=Object.freeze({parseFile});
