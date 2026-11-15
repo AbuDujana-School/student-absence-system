@@ -27,6 +27,13 @@ export function getSubstitutionPeriodPoints(period:number):number {
   return ({1:1,2:1,3:2,4:2,5:4,6:3,7:5,8:7} as Record<number,number>)[period] ?? 0;
 }
 
+/** Strict ISO calendar-date validation; rejects normalized invalid dates such as February 30. */
+export function isValidSubstitutionDate(value:unknown):value is string {
+  if(typeof value!=="string"||!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed=new Date(value+"T00:00:00.000Z");
+  return Number.isFinite(parsed.getTime())&&parsed.toISOString().slice(0,10)===value;
+}
+
 function assignmentBelongsToDate(
   assignment:SubstitutionAssignment, weekday:string, assignmentDate?:string, versionId?:string,
 ):boolean {

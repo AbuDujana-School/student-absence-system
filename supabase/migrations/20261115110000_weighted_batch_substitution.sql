@@ -259,6 +259,9 @@ begin
     if v_absent_name='' or v_substitute_name='' or not (v_absent_names ? v_absent_name) then
       raise exception 'كل حصة يجب أن ترتبط بأحد المعلمين الغائبين المحددين.';
     end if;
+    if(v_absent_names ? v_substitute_name) then
+      raise exception 'لا يمكن تكليف معلم محدد كغائب بتغطية حصة غياب أخرى في اليوم نفسه.';
+    end if;
     v_result:=public.create_timetable_substitution(jsonb_build_object(
       'version_id',v_version_id,'weekday',v_weekday,'period',v_item->>'period',
       'assignment_date',v_date,'absent_teacher_name',v_absent_name,

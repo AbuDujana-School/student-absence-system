@@ -4,7 +4,7 @@ import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
 import { aggregateClassTimetables } from "./timetable_class_grid.ts";
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
-import { buildBatchSubstitutionPlan, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
+import { buildBatchSubstitutionPlan, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -919,7 +919,7 @@ async function handle(req: Request) {
         const assignmentDate=String(body.assignmentDate||"");
         const selectedNames:string[]=Array.isArray(body.absentTeacherNames)?Array.from(new Set<string>(body.absentTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
         const proposed=Array.isArray(body.assignments)?body.assignments:[];
-        if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(assignmentDate)||!selectedNames.length||!proposed.length||proposed.length>500){
+        if(!isValidSubstitutionDate(assignmentDate)||!selectedNames.length||!proposed.length||proposed.length>500){
           return reply(400,{error:"حدد تاريخ الغياب والمعلمين الغائبين وتوزيع الحصص قبل الحفظ."});
         }
         if(selectedNames.some((name:string)=>!absentTeachers.includes(name))){
@@ -944,7 +944,7 @@ async function handle(req: Request) {
       if(body.action==="timetable_substitution_batch_preview"){
         const selectedNames:string[]=Array.isArray(body.absentTeacherNames)?Array.from(new Set<string>(body.absentTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
         const assignmentDate=String(body.assignmentDate||"");
-        if(!selectedNames.length||selectedNames.length>100||!/^\\d{4}-\\d{2}-\\d{2}$/.test(assignmentDate)){
+        if(!selectedNames.length||selectedNames.length>100||!isValidSubstitutionDate(assignmentDate)){
           return reply(400,{error:"اختر معلماً غائباً واحداً على الأقل وحدد تاريخ الغياب."});
         }
         if(selectedNames.some((name:string)=>!absentTeachers.includes(name))){

@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal } from "../session_auth.ts";
-import { buildBatchSubstitutionPlan, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { buildBatchSubstitutionPlan, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -390,4 +390,13 @@ Deno.test("reserve permission grants substitution actions only", async () => {
   equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),true,"Batch preview is allowed");
   equal(canUseTimetableAction("teacher","timetable_substitution_batch_save"),true,"Batch save is allowed");
   equal(canUseTimetableAction("teacher","timetable_save_day"),false,"Reserve must not grant timetable editing");
+});
+
+
+Deno.test("substitution date validation accepts real ISO dates and rejects invalid calendar dates", () => {
+  equal(isValidSubstitutionDate("2026-11-15"),true,"Valid ISO date");
+  equal(isValidSubstitutionDate("2024-02-29"),true,"Valid leap day");
+  equal(isValidSubstitutionDate("2026-02-29"),false,"Invalid non-leap day");
+  equal(isValidSubstitutionDate("2026-02-30"),false,"Date overflow must be rejected");
+  equal(isValidSubstitutionDate("15-11-2026"),false,"Localized date format is not accepted by the API");
 });

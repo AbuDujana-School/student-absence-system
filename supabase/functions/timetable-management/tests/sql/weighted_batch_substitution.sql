@@ -24,6 +24,9 @@ begin
   if not exists(select 1 from pg_trigger where tgname='timetable_substitution_points_ledger_trigger' and not tgisinternal) then
     raise exception 'Substitution points ledger trigger is missing.';
   end if;
+  if position('v_absent_names ? v_substitute_name' in pg_get_functiondef('public.create_timetable_substitution_batch(jsonb)'::regprocedure))=0 then
+    raise exception 'Batch save must prevent selected absent teachers from being assigned as substitutes.';
+  end if;
   if position('not between 1 and 8' in pg_get_functiondef('public.create_timetable_substitution(jsonb)'::regprocedure))=0 then
     raise exception 'Single substitution RPC does not accept the eighth period.';
   end if;
