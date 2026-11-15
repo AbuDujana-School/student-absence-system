@@ -1,4 +1,4 @@
-import { extractHorizontalLinesFromOperatorList, extractVerticalLinesFromOperatorList, normalizePdfSubject, parseTimetablePdfPages } from "../../../../timetable_pdf_import.js";
+import { extractHorizontalLinesFromOperatorList, extractVerticalLinesFromOperatorList, normalizePdfArabic, normalizePdfSubject, parseTimetablePdfPages } from "../../../../timetable_pdf_import.js";
 
 const DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
 const TIMES=["7:10 - 7:45","7:50 - 8:25","8:30 - 9:05","9:10 - 9:45","10:05 - 10:40","10:45 - 11:20","11:25 - 12:00","12:05 - 12:40"];
