@@ -30,3 +30,16 @@ Deno.test("class timetable never displays an unlinked PDF source abbreviation as
  if(result.entries[0].teacherName!=="")throw new Error("Unlinked source abbreviations must not be displayed as teacher names");
  if(result.entries[0].subject!=="الرياضيات")throw new Error("Subject must remain available when teacher is not linked");
 });
+
+Deno.test("class timetable sorts grade 9 through 12 numerically, then sections",()=>{
+ const result=aggregateClassTimetables([],DAYS,7,["1/10","2/10","1/9","2/9","1/12","1/11"]);
+ const names=result.map(item=>item.className);
+ const expected=["1/9","2/9","1/10","2/10","1/11","1/12"];
+ if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error("Class order must be grade-first and numeric: "+names.join(", "));
+});
+Deno.test("class timetable sorts Arabic-Indic class digits numerically",()=>{
+ const result=aggregateClassTimetables([],DAYS,7,["١/١٠","١/٩","١/١٢","١/١١"]);
+ const names=result.map(item=>item.className);
+ const expected=["١/٩","١/١٠","١/١١","١/١٢"];
+ if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error("Arabic-Indic class order is incorrect: "+names.join(", "));
+});

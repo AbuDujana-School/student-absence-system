@@ -1,6 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
-import { canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
+import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -276,4 +276,30 @@ Deno.test("workbook schema validation rejects malformed rows, unsupported cells 
   const tooManyRows = validateWorkbookSchema({ "جدول": Array.from({ length: 5001 }, () => ["x"]) });
   equal(tooManyRows.valid, false, "Workbook exceeding the row limit must be rejected");
   assert(tooManyRows.rowCount > 5000, "Row count must be reported");
+});
+
+Deno.test("daily parser preserves elective-group notes from the source text", () => {
+  const parsed = parseTimetableDay("الأحد", [
+    "اليوم الأول: الأحد",
+    "اسم المعلم: معلم تجريبي",
+    "الحصة الأولى:",
+    "- الصف والشعبة: 1/12",
+    "- المادة: الأحياء",
+    "- الحالة: تدريس",
+    "- ملاحظة المجموعة: مجموعة مادة اختيارية",
+  ].join("\n"));
+  equal(parsed.teachers[0].cells[0].sourceGroupNote, "مجموعة مادة اختيارية", "Elective group note");
+});
+
+Deno.test("confirmed teacher alias tolerates OCR spacing inside the source name", () => {
+  const result = matchSystemTeacherName("س فيزيا ء", [{ name: "محمد البشير" }]);
+  equal(result.matchStatus, "matched", "OCR-spaced confirmed alias");
+  equal(result.teacherName, "محمد البشير", "Canonical teacher name");
+});
+
+Deno.test("personal timetable portal selection is enforced for global and custom modes", () => {
+  equal(canAccessTeacherTimetablePortal(false, [], "معلم أ"), false, "Disabled portal denies everyone");
+  equal(canAccessTeacherTimetablePortal(true, [], "معلم أ"), true, "Empty selection is global mode");
+  equal(canAccessTeacherTimetablePortal(true, ["معلم أ"], "معلم أ"), true, "Selected teacher is allowed");
+  equal(canAccessTeacherTimetablePortal(true, ["معلم أ"], "معلم ب"), false, "Unselected teacher is denied");
 });

@@ -175,6 +175,10 @@ export function normalizeArabicName(value: CellValue): string {
 }
 
 
+function normalizeTeacherAliasKey(value: CellValue): string {
+  return normalizeArabicName(value).replace(/\s+/g, "");
+}
+
 /** Matching-only tokens: keep the original source spelling in the import record. */
 function teacherNameTokens(value: CellValue): string[] {
   return normalizeArabicName(value)
@@ -252,7 +256,7 @@ function scoreTeacherCandidate(source: ImportedTeacher, candidate: SystemTeacher
  * Short aliases are deliberately not used as keys because they may be shared.
  */
 const CONFIRMED_TEACHER_LINKS: Record<string, string> = {
-  [normalizeArabicName("س فيزياء")]: normalizeArabicName("محمد البشير"),
+  [normalizeTeacherAliasKey("س فيزياء")]: normalizeArabicName("محمد البشير"),
   [normalizeArabicName("محمد جمعة ناصر السعدي")]: normalizeArabicName("محمد جمعة السعدي"),
   [normalizeArabicName("محمد عبدالله حمود السعدي")]: normalizeArabicName("محمد عبدالله السعدي"),
 };
@@ -285,7 +289,7 @@ function resolveSystemTeacher(
   source: ImportedTeacher,
   systemTeachers: SystemTeacher[],
 ): { teacher: SystemTeacher | null; ambiguous: boolean } {
-  const confirmedTarget = CONFIRMED_TEACHER_LINKS[normalizeArabicName(source.sourceName)];
+  const confirmedTarget = CONFIRMED_TEACHER_LINKS[normalizeTeacherAliasKey(source.sourceName)];
   if (confirmedTarget) {
     const confirmedMatches = systemTeachers.filter(
       (teacher) => normalizeArabicName(teacher.name) === confirmedTarget,

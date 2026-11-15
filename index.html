@@ -3070,19 +3070,22 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div id="timetableAccessManagement" class="hidden rounded-3xl border border-indigo-200 dark:border-indigo-900 bg-white dark:bg-slate-800 p-5 space-y-4">
           <div id="teacherTimetablePortalControl" class="hidden rounded-2xl border border-cyan-200 dark:border-cyan-900 bg-cyan-50/60 dark:bg-cyan-950/20 p-4 space-y-3">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-calendar-check ml-1 text-cyan-700"></i> تفعيل الجدول الشخصي للمعلمين</h3><p class="mt-1 text-[10px] leading-5 text-slate-600 dark:text-slate-300">يظهر الجدول تلقائياً لكل معلم مرتبط باسمه في النسخة الأسبوعية النشطة ولديه حصة تدريس واحدة على الأقل. لا يغيّر هذا الخيار صلاحيات إدارة الجداول والاحتياط.</p></div>
+              <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-calendar-check ml-1 text-cyan-700"></i> تفعيل الجدول الشخصي للمعلمين</h3><p class="mt-1 text-[10px] leading-5 text-slate-600 dark:text-slate-300">العرض العام يُظهر الجدول لكل المعلمين المرتبطين بحصص تدريس. ويمكنك بدلاً منه اختيار مواد محددة ثم معلميها. إيقاف العرض يخفي الأيقونة عن الجميع دون حذف أي بيانات.</p></div>
               <span id="teacherTimetablePortalStatus" class="rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 px-3 py-1.5 text-[10px] font-black text-slate-600">جارٍ التحقق...</span>
             </div>
             <div class="flex flex-wrap items-center justify-between gap-3">
-              <p id="teacherTimetablePortalCount" class="text-[10px] text-slate-600 dark:text-slate-300">عدد المعلمين المرتبطين: —</p>
-              <button id="teacherTimetablePortalToggle" type="button" onclick="timetableToggleTeacherPortal()" class="rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 text-xs font-black text-white disabled:opacity-50" disabled>جارٍ تحميل الحالة...</button>
+              <p id="teacherTimetablePortalCount" class="text-[10px] text-slate-600 dark:text-slate-300">المعلمون المرتبطون: —</p>
+              <div class="flex flex-wrap gap-2">
+                <button id="teacherTimetablePortalToggle" type="button" onclick="timetableToggleTeacherPortal()" class="rounded-xl bg-slate-700 hover:bg-slate-800 px-5 py-2.5 text-xs font-black text-white disabled:opacity-50" disabled>جارٍ تحميل الحالة...</button>
+                <button id="teacherTimetablePortalCustomButton" type="button" onclick="timetableToggleCustomPortalPanel()" class="rounded-xl bg-cyan-700 hover:bg-cyan-800 px-4 py-2.5 text-xs font-black text-white disabled:opacity-50" disabled>تفعيل مخصص</button>
+              </div>
             </div>
-            <div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-2">
-              <div class="flex flex-wrap items-center justify-between gap-2"><p class="text-xs font-black text-slate-800 dark:text-white">تخصيص المعلمين الذين يظهر لهم الجدول</p><button type="button" onclick="timetableSaveCustomPortalTeachers()" class="rounded-lg bg-cyan-700 hover:bg-cyan-800 px-3 py-2 text-[10px] font-black text-white">حفظ الاختيار المخصص</button></div>
-              <p class="text-[10px] leading-5 text-slate-500 dark:text-slate-400">عند تحديد معلمين، يظهر الجدول لهم فقط. اترك القائمة دون تحديد أي معلم للعودة إلى خيار العرض العام. ويظل زر التفعيل العام أعلاه مسؤولاً عن تشغيل الخدمة أو إيقافها.</p>
-              <div id="teacherTimetablePortalTeacherList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 max-h-56 overflow-y-auto"><span class="text-[10px] text-slate-500">جارٍ تحميل قائمة المعلمين...</span></div>
+            <div id="teacherTimetablePortalCustomPanel" class="hidden rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 p-3 space-y-3">
+              <div class="flex flex-wrap items-center justify-between gap-2"><div><p class="text-xs font-black text-slate-800 dark:text-white">اختر المادة أولاً، ثم حدد المعلمين</p><p class="mt-1 text-[10px] text-slate-500">اضغط مربع المادة لفتح قائمة معلميها، ثم اختر معلماً واحداً أو أكثر.</p></div><button type="button" onclick="timetableSaveCustomPortalTeachers()" class="rounded-lg bg-cyan-700 hover:bg-cyan-800 px-3 py-2 text-[10px] font-black text-white">حفظ وتفعيل الاختيار المخصص</button></div>
+              <div id="teacherTimetablePortalTeacherList" class="space-y-2 max-h-72 overflow-y-auto"><span class="text-[10px] text-slate-500">جارٍ تحميل قائمة المواد والمعلمين...</span></div>
             </div>
-            <p id="teacherTimetablePortalUpdated" class="text-[10px] text-slate-500 dark:text-slate-400">الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.</p>
+            <p id="teacherTimetablePortalUpdated" class="text-[10px] text-slate-500 dark:text-slate-400">لم تُسجل تغييرات سابقة على إعدادات الخدمة.</p>
+            <div class="flex justify-end"><button id="teacherTimetablePortalRetry" type="button" onclick="timetableLoadPortalStatus()" class="hidden rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-[10px] font-black text-amber-900">إعادة محاولة تحميل الحالة</button></div>
           </div>
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="text-sm font-black text-slate-800 dark:text-white">إدارة صلاحية الجداول والاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">هذه صلاحية مستقلة عن الغياب والسلوك والمناوبة. اختر المعلمين الذين تسمح لهم بإدارة منظومة الجداول والاحتياط.</p></div><span class="rounded-xl bg-indigo-50 dark:bg-indigo-950/50 px-3 py-1.5 text-[10px] font-black text-indigo-700 dark:text-indigo-300">مدير النظام فقط</span></div>
           <input id="timetableAccessSearch" type="search" oninput="timetableRenderAccessList()" placeholder="ابحث عن معلم أو تخصص..." class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white outline-none">
@@ -8967,6 +8970,7 @@ let timetableSelectedTeacherIndex = -1;
 let timetableCanAccess = false;
 let teacherPortalCanAccess = false;
 let teacherPortalEnabled = false;
+let teacherPortalMode = "all";
 let teacherPortalEligibleCount = 0;
 let teacherTimetableData = null;
 let teacherTimetableRefreshTimer = null;
@@ -9005,7 +9009,7 @@ async function timetableRefreshAccess() {
       const result = await appAuthRequest({action:"timetable_check_access"},token);
       timetableCanAccess = result.canAccess === true;
       teacherPortalEnabled = result.teacherPortalEnabled === true;
-      teacherPortalCanAccess = activeUser.type === "teacher" && teacherPortalEnabled && result.hasPersonalSchedule === true;
+      teacherPortalCanAccess = activeUser.type === "teacher" && result.teacherPortalCanAccess === true;
     } catch (error) {
       timetableCanAccess = activeUser?.type === "admin";
       teacherPortalCanAccess = false;
@@ -9032,55 +9036,87 @@ async function timetableLoadPortalStatus() {
   if (activeUser?.type !== "admin") return null;
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token) return null;
+  const retry = document.getElementById("teacherTimetablePortalRetry");
   try {
     const result = await appAuthRequest({action:"timetable_portal_get_status"},token);
     teacherPortalEnabled = result.enabled === true;
+    teacherPortalMode = result.mode === "custom" ? "custom" : "all";
     teacherPortalEligibleCount = Number(result.eligibleTeacherCount || 0);
     const status = document.getElementById("teacherTimetablePortalStatus");
     const count = document.getElementById("teacherTimetablePortalCount");
     const updated = document.getElementById("teacherTimetablePortalUpdated");
     const button = document.getElementById("teacherTimetablePortalToggle");
+    const customButton = document.getElementById("teacherTimetablePortalCustomButton");
     if (status) {
-      status.textContent = teacherPortalEnabled ? "الخدمة مفعّلة" : "الخدمة غير مفعّلة";
+      status.textContent = !teacherPortalEnabled ? "الخدمة متوقفة" : teacherPortalMode === "custom" ? "التفعيل المخصص نشط" : "العرض للجميع نشط";
       status.className = "rounded-xl border px-3 py-1.5 text-[10px] font-black " + (teacherPortalEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800");
     }
-    if (count) count.textContent = "عدد المعلمين المرتبطين بحصص تدريس: " + teacherPortalEligibleCount;
     const selectedNames = Array.isArray(result.selectedTeacherNames) ? result.selectedTeacherNames : [];
+    if (count) count.textContent = "المعلمون المرتبطون بحصص تدريس: " + teacherPortalEligibleCount + (teacherPortalMode === "custom" ? " · المحددون: " + selectedNames.length : "");
     const teacherList = document.getElementById("teacherTimetablePortalTeacherList");
     if (teacherList) {
       const eligible = Array.isArray(result.eligibleTeachers) ? result.eligibleTeachers : [];
-      teacherList.innerHTML = eligible.length ? eligible.map(item => {
+      const groups = new Map();
+      for (const item of eligible) {
         const name = String(item?.name || "").trim();
-        if (!name) return "";
-        const checked = selectedNames.includes(name) ? " checked" : "";
-        return '<label class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-200"><input type="checkbox" data-timetable-portal-teacher value="' + escapeHtml(name) + '"' + checked + ' class="rounded border-slate-300"> <span>' + escapeHtml(name) + '</span></label>';
-      }).join("") : '<span class="text-[10px] text-slate-500">لا توجد قائمة معلمين متاحة حالياً.</span>';
+        if (!name) continue;
+        const category = String(item?.category || "غير محدد").trim() || "غير محدد";
+        if (!groups.has(category)) groups.set(category, []);
+        groups.get(category).push(name);
+      }
+      const sortedGroups = Array.from(groups.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar"));
+      teacherList.innerHTML = sortedGroups.length ? sortedGroups.map(([category,names]) => {
+        const teacherChecks = names.sort((a,b)=>a.localeCompare(b,"ar")).map(name => {
+          const checked = selectedNames.includes(name) ? " checked" : "";
+          return '<label class="flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-700 px-2.5 py-2 text-[11px] font-bold text-slate-700 dark:text-slate-200"><input type="checkbox" data-timetable-portal-teacher value="' + timetableEsc(name) + '"' + checked + ' class="rounded border-slate-300"> <span>' + timetableEsc(name) + '</span></label>';
+        }).join("");
+        return '<section data-timetable-portal-group class="rounded-xl border border-slate-200 dark:border-slate-700 p-2.5 space-y-2"><label class="flex cursor-pointer items-center gap-2 rounded-lg bg-slate-50 dark:bg-slate-800 px-3 py-2 text-xs font-black text-slate-800 dark:text-white"><input type="checkbox" data-timetable-portal-subject-toggle onchange="timetableTogglePortalSubject(this)" class="rounded border-slate-300"> <span>' + timetableEsc(category) + '</span><span class="mr-auto text-[10px] font-bold text-slate-500">' + names.length + ' معلماً</span></label><div data-timetable-portal-subject-list class="hidden grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">' + teacherChecks + '</div></section>';
+      }).join("") : '<span class="text-[10px] text-slate-500">لا توجد أسماء معلمين مرتبطة بحصص تدريس في النسخة النشطة.</span>';
     }
     if (updated) updated.textContent = result.updatedAt
       ? "آخر تحديث للحالة: " + new Date(result.updatedAt).toLocaleString("ar-OM") + (result.updatedBy ? " · بواسطة " + result.updatedBy : "")
-      : "الخدمة غير مفعّلة افتراضياً، ولا تُفعّل إلا بقرار صريح من المدير العام.";
+      : "لم تُسجل تغييرات سابقة على إعدادات الخدمة.";
     if (button) {
       button.disabled = false;
-      button.textContent = teacherPortalEnabled ? "إيقاف ظهور الجداول للمعلمين" : "تفعيل ظهور الجداول للمعلمين";
-      button.className = "rounded-xl px-5 py-2.5 text-xs font-black text-white disabled:opacity-50 " + (teacherPortalEnabled ? "bg-rose-700 hover:bg-rose-800" : "bg-emerald-700 hover:bg-emerald-800");
+      button.textContent = !teacherPortalEnabled ? "إظهار الجدول للجميع" : teacherPortalMode === "custom" ? "التحويل إلى العرض العام" : "إيقاف الظهور للجميع";
+      button.className = "rounded-xl px-5 py-2.5 text-xs font-black text-white disabled:opacity-50 " + (teacherPortalEnabled && teacherPortalMode === "all" ? "bg-rose-700 hover:bg-rose-800" : "bg-emerald-700 hover:bg-emerald-800");
     }
+    if (customButton) customButton.disabled = teacherPortalEligibleCount === 0;
+    if (retry) retry.classList.add("hidden");
     return result;
   } catch (error) {
     const status = document.getElementById("teacherTimetablePortalStatus");
     const button = document.getElementById("teacherTimetablePortalToggle");
-    if (status) status.textContent = "تعذر قراءة الحالة";
-    if (button) { button.disabled = true; button.textContent = "تعذر تحميل الحالة"; }
+    const teacherList = document.getElementById("teacherTimetablePortalTeacherList");
+    const detail = error?.message || "خطأ غير محدد";
+    if (status) status.textContent = "تعذر تحميل الحالة: " + detail;
+    if (button) { button.disabled = true; button.textContent = "الحالة غير متاحة"; }
+    if (teacherList) teacherList.innerHTML = '<span class="text-[10px] text-rose-600">تعذر تحميل قائمة المعلمين. أعد المحاولة بعد التحقق من اتصال الخدمة.</span>';
+    if (retry) retry.classList.remove("hidden");
     return null;
   }
 }
+function timetableTogglePortalSubject(input) {
+  const group = input?.closest("[data-timetable-portal-group]");
+  const list = group?.querySelector("[data-timetable-portal-subject-list]");
+  if (list) list.classList.toggle("hidden", !input.checked);
+}
+function timetableToggleCustomPortalPanel() {
+  const panel = document.getElementById("teacherTimetablePortalCustomPanel");
+  if (panel) panel.classList.toggle("hidden");
+}
+
 async function timetableSaveCustomPortalTeachers() {
   if (activeUser?.type !== "admin") { showToast("تخصيص عرض الجداول متاح للمدير العام فقط.", "error"); return; }
   const names = Array.from(document.querySelectorAll("[data-timetable-portal-teacher]:checked"))
     .map(input => String(input.value || "").trim()).filter(Boolean);
+  if (!names.length) { showToast("اختر معلماً واحداً على الأقل. للتفعيل للجميع استخدم زر العرض العام.", "error"); return; }
   try {
     const token = appAuthSession?.token || readAppAuthToken();
-    await appAuthRequest({action:"timetable_portal_set_custom_teachers",teacherNames:names},token);
-    showToast(names.length ? "تم حفظ العرض المخصص لـ " + names.length + " معلماً." : "تم إلغاء التخصيص والعودة إلى العرض العام.", "success");
+    await appAuthRequest({action:"timetable_portal_set_mode",mode:"custom",teacherNames:names},token);
+    teacherPortalEnabled = true;
+    teacherPortalMode = "custom";
+    showToast("تم تفعيل العرض المخصص لـ " + names.length + " معلماً.", "success");
     await timetableLoadPortalStatus();
   } catch (error) {
     showToast(error?.message || "تعذر حفظ قائمة العرض المخصص.", "error");
@@ -9088,20 +9124,26 @@ async function timetableSaveCustomPortalTeachers() {
 }
 async function timetableToggleTeacherPortal() {
   if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
-  const nextEnabled = !teacherPortalEnabled;
-  const message = nextEnabled
-    ? "سيظهر الجدول الشخصي تلقائياً للمعلمين المرتبطين في الجدول الأسبوعي النشط ولديهم حصص تدريس. هل تريد التفعيل؟"
-    : "سيتم إخفاء أيقونة الجدول الشخصي عن المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
-  const confirmed = await showConfirm(message, {danger: !nextEnabled});
+  const switchingToAll = !teacherPortalEnabled || teacherPortalMode === "custom";
+  const message = switchingToAll
+    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط. هل تريد التفعيل العام؟"
+    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
+  const confirmed = await showConfirm(message, {danger: !switchingToAll});
   if (!confirmed) return;
   const button = document.getElementById("teacherTimetablePortalToggle");
   if (button) { button.disabled = true; button.textContent = "جارٍ تحديث الحالة..."; }
   try {
     const token = appAuthSession?.token || readAppAuthToken();
-    await appAuthRequest({action:"timetable_portal_set_enabled",enabled:nextEnabled},token);
-    showToast(nextEnabled ? "تم تفعيل ظهور الجداول للمعلمين المرتبطين." : "تم إيقاف ظهور الجداول للمعلمين.", "success");
+    if (switchingToAll) {
+      await appAuthRequest({action:"timetable_portal_set_mode",mode:"all"},token);
+      teacherPortalEnabled = true;
+      teacherPortalMode = "all";
+    } else {
+      await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
+      teacherPortalEnabled = false;
+    }
+    showToast(switchingToAll ? "تم تفعيل عرض الجدول لجميع المعلمين المرتبطين." : "تم إيقاف ظهور الجداول عن الجميع.", "success");
     await timetableLoadPortalStatus();
-    if (activeUser?.type === "admin") teacherPortalCanAccess = false;
   } catch (error) {
     showToast(error?.message || "تعذر تحديث حالة الخدمة.", "error");
     await timetableLoadPortalStatus();
@@ -9874,9 +9916,11 @@ async function timetableLoadClassWeeklyGrid() {
     const periodCount=Number(response.periodCount)||7,weekdays=response.weekdays||["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
     const entries=new Map((chosen.entries||[]).map(item=>[item.weekday+":"+item.period,item]));
     const conflicts=new Map((chosen.conflicts||[]).map(item=>[item.weekday+":"+item.period,item]));
+    const parallelGroups=new Map((chosen.parallelGroups||[]).map(item=>[item.weekday+":"+item.period,item]));
     const vacancies=new Set((chosen.vacancies||[]).map(item=>item.weekday+":"+item.period));
     const rows=weekdays.map(day=>'<tr><th class="sticky right-0 z-10 bg-slate-100 p-3 text-right text-xs font-black">'+timetableEsc(day)+'</th>'+Array.from({length:periodCount},(_,index)=>{
-      const period=index+1,key=day+":"+period,conflict=conflicts.get(key),item=entries.get(key);
+      const period=index+1,key=day+":"+period,conflict=conflicts.get(key),parallel=parallelGroups.get(key),item=entries.get(key);
+      if(parallel)return '<td class="min-w-[145px] border border-violet-200 bg-violet-50 p-2 text-[10px] text-violet-900"><strong>مجموعات مواد اختيارية · الحصة '+period+'</strong><div class="mt-1 space-y-1">'+parallel.assignments.map(a=>'<div><strong>'+timetableEsc(a.subject)+'</strong><span class="block text-slate-600">'+timetableEsc(a.teacherName||"المعلم غير مرتبط")+'</span></div>').join("<hr class='my-1'>")+'</div></td>';
       if(conflict)return '<td class="min-w-[145px] border border-rose-300 bg-rose-50 p-2 text-[10px] text-rose-800"><strong>تعارض · الحصة '+period+'</strong><div class="mt-1">'+conflict.assignments.map(a=>timetableEsc(a.subject)+" — "+timetableEsc(a.teacherName||"المعلم غير مرتبط")).join("<hr class='my-1'>")+'</div></td>';
       if(vacancies.has(key))return '<td class="min-w-[145px] border border-amber-300 bg-amber-50 p-2 text-center text-[10px] font-black text-amber-800"><button type="button" data-timetable-class-assign="1" data-class-name="'+timetableEsc(chosen.className)+'" data-weekday="'+timetableEsc(day)+'" data-period="'+period+'" class="w-full rounded-lg p-2 hover:bg-amber-100 focus:ring-2 focus:ring-amber-500">غير مغطاة<br>الحصة '+period+'<span class="mt-1 block text-[9px] underline">إسناد معلم</span></button></td>';
       if(item?.status==="free")return '<td class="min-w-[145px] border border-emerald-200 bg-emerald-50 p-2 text-center text-[10px] text-emerald-800"><strong>فراغ</strong><div class="mt-1">لا تُحسب حصة تدريسية</div></td>';
@@ -9888,7 +9932,7 @@ async function timetableLoadClassWeeklyGrid() {
     const summary='<div class="mb-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-[10px] leading-6 text-cyan-950"><strong>فحص المدرسة الأسبوعي:</strong> '+coverage.classCount+' صفاً × 5 أيام × '+coverage.periodCount+' حصص = <strong>'+coverage.requiredSlots+'</strong> خانة. الحصص التدريسية: <strong>'+coverage.teachingLessons+'</strong> · الفراغ: '+coverage.freeSlots+' · الاجتماع: '+coverage.meetingSlots+' · غير مغطاة: <strong>'+coverage.missingSlots+'</strong> · التعارضات: '+coverage.conflictSlots+' · غير واضحة: '+coverage.unclearSlots+'. الحصة المشتركة محسوبة مرة واحدة.</div>';
     const coverageWarnings=[coverage.configurationWarning,...(coverage.unexpectedClassNames||[]).map(name=>"اسم صف غير مطابق: "+name)].filter(Boolean);
     const coverageWarningHtml=coverageWarnings.length?'<div class="mb-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] text-amber-900">'+coverageWarnings.map(timetableEsc).join("<br>")+'</div>':"";
-    const classSummary='<div class="mb-3 flex flex-wrap gap-2 text-[10px] font-black"><span class="rounded-lg bg-blue-50 px-3 py-2 text-blue-800">تدريسية: '+chosen.teachingCount+'</span><span class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">فراغ: '+(chosen.freePeriods||[]).length+'</span><span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">اجتماع: '+(chosen.meetingPeriods||[]).length+'</span><span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">غير مغطاة: '+(chosen.vacancies||[]).length+'</span><span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">تعارضات: '+(chosen.conflicts||[]).length+'</span><span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">غير واضحة: '+(chosen.unclearPeriods||[]).length+'</span></div>';
+    const classSummary='<div class="mb-3 flex flex-wrap gap-2 text-[10px] font-black"><span class="rounded-lg bg-blue-50 px-3 py-2 text-blue-800">تدريسية: '+chosen.teachingCount+'</span><span class="rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">فراغ: '+(chosen.freePeriods||[]).length+'</span><span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">اجتماع: '+(chosen.meetingPeriods||[]).length+'</span><span class="rounded-lg bg-amber-50 px-3 py-2 text-amber-800">غير مغطاة: '+(chosen.vacancies||[]).length+'</span><span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">تعارضات: '+(chosen.conflicts||[]).length+'</span><span class="rounded-lg bg-violet-50 px-3 py-2 text-violet-800">مجموعات اختيارية: '+(chosen.parallelGroups||[]).length+'</span><span class="rounded-lg bg-rose-50 px-3 py-2 text-rose-800">غير واضحة: '+(chosen.unclearPeriods||[]).length+'</span></div>';
     host.innerHTML=summary+coverageWarningHtml+classSummary+'<table class="w-full min-w-max border-collapse text-center"><thead><tr><th class="bg-slate-100 p-3 text-right text-xs">اليوم / الحصة</th>'+Array.from({length:periodCount},(_,i)=>'<th class="border bg-slate-100 p-3 text-xs">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table>';
     host.querySelectorAll("[data-timetable-class-assign]").forEach(button=>button.addEventListener("click",()=>{
       timetableOpenClassAssignModal(button.getAttribute("data-class-name"),button.getAttribute("data-weekday"),Number(button.getAttribute("data-period")));
