@@ -83,23 +83,24 @@ function teacherNameAnchorPosition(item) {
   return { x, y };
 }
 function teacherNameInfoFromItems(items) {
-  // For the rotated aSc teacher heading, PDF.js keeps each text fragment's
-  // baseline anchor in the same narrow x-column. The visual text-item center
-  // shifts with fragment width, so use the transform anchor for column
-  // grouping and reading order (not itemPosition's width-adjusted center).
+  // Teacher names may be supplied either in the PDF's unrotated coordinate
+  // space (x is the narrow name column) or after applying a 90-degree page
+  // viewport transform (y is the narrow name row).
   const candidates = items.map(item => ({ item, pos: teacherNameAnchorPosition(item), normalized: normalizePdfArabic(item.str) }))
-    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalized))
+    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) &&
+      (pos.x >= 0 && pos.x < 58 || pos.y >= 0 && pos.y < 58) &&
+      /[\\u0600-\\u06ff]/.test(normalized))
     .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
   if (!candidates.length) return { name: "", original: "" };
 
-  // aSc exports the teacher heading as vertically stacked text fragments on
-  // rotated A4 pages. Join fragments from the same narrow x-column, top to
-  // bottom, instead of mistaking the longest individual word for the name.
+  const rotated = candidates.filter(entry => entry.pos.y >= 0 && entry.pos.y < 58).length >
+    candidates.filter(entry => entry.pos.x >= 0 && entry.pos.x < 58).length;
   const columns = [];
   for (const candidate of candidates) {
-    let column = columns.find(entry => Math.abs(entry.x - candidate.pos.x) <= 18);
+    const axis = rotated ? candidate.pos.y : candidate.pos.x;
+    let column = columns.find(entry => Math.abs(entry.axis - axis) <= 18);
     if (!column) {
-      column = { x: candidate.pos.x, entries: [] };
+      column = { axis, entries: [] };
       columns.push(column);
     }
     column.entries.push(candidate);
@@ -109,7 +110,9 @@ function teacherNameInfoFromItems(items) {
     b.entries.reduce((sum, entry) => sum + entry.normalized.length, 0) -
       a.entries.reduce((sum, entry) => sum + entry.normalized.length, 0)
   );
-  const selected = columns[0].entries.sort((a, b) => b.pos.y - a.pos.y);
+  const selected = columns[0].entries.sort((a, b) =>
+    rotated ? b.pos.x - a.pos.x : b.pos.y - a.pos.y
+  );
   const name = selected.map(entry => entry.normalized).join(" ").replace(/\\s+/g, " ").trim();
   const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\\s+/g, " ").trim();
   return { name, original };
