@@ -186,3 +186,27 @@ Deno.test("offline fallback restores cached data but does not report a successfu
   assert(fallback.includes('updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");'), "Fallback must clearly show that data is local and waiting for connection");
   assert(fallback.includes("return false;"), "A local fallback must not be reported as a successful cloud refresh");
 });
+
+
+Deno.test("manual offline sync is explicit, scoped to dirty records, and never executes queued deletions", () => {
+  const manual = section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */");
+  assert(manual.includes("if (!navigator.onLine)"), "Manual sync must require an online connection");
+  assert(manual.includes("cloudDataLoadState !== 'ready'"), "Manual sync must wait for a successful cloud load");
+  assert(manual.includes("attendanceDirty || behaviorDirty"), "Manual sync must stop while a live capture session is unsaved");
+  assert(manual.includes("await showConfirm("), "Manual sync must require user confirmation");
+  assert(manual.includes("saveSystemDataToCloud({ manual: true })"), "Manual sync must reuse the existing dirty-record uploader");
+  assert(manual.includes("getPendingDeletes().length"), "Manual sync must keep queued deletions visible");
+  assert(!manual.includes("flushPendingDeletes("), "Manual sync must never execute queued deletions");
+  assert(!manual.includes("loadSystemDataFromCloud("), "Manual upload must not reload and replace the current local view");
+});
+
+Deno.test("sync indicator offers upload only when marked local records are pending", () => {
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud()"), "Indicator must route pending edits to explicit upload");
+  assert(status.includes("طلبات الحذف لا تُنفذ تلقائياً"), "Indicator must disclose that queued deletions remain inert");
+});
+
+Deno.test("sync settings button invokes the explicit local upload workflow", () => {
+  assert(html.includes('onclick="syncPendingLocalChanges()"'), "Settings sync action must invoke the safe manual upload");
+  assert(!html.includes('onclick="forceSyncWithCloud()" class="bg-emerald-700'), "Settings upload button must not be a read-only cloud refresh");
+});
