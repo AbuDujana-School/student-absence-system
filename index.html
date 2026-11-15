@@ -5847,9 +5847,13 @@ async function refreshActiveUserPermissions() {
 async function finalizeLoginState() {
   await refreshActiveUserPermissions();
   await timetableRefreshAccess();
-  if (activeUser?.type === "teacher") await teacherShowDailySubstitutionWelcome();
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
+  if (activeUser?.type === "teacher") {
+    // Let the authenticated dashboard become visible before placing the daily reserve notice above it.
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    await teacherShowDailySubstitutionWelcome();
+  }
   document.getElementById('activeUserName').textContent = activeUser.name;
 
   const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin === true || isAdminAuthorized();
@@ -11636,6 +11640,33 @@ async function timetableSaveOwner() {
   </div>
 </div>
 
+<style id="teacher-timetable-responsive-refinement">
+/* Keep the complete 5-day × 8-period timetable visible on narrow screens. */
+#teacherTimetableWeekGrid > div { overflow-x: hidden !important; width: 100% !important; }
+#teacherTimetableWeekGrid table { width: 100% !important; min-width: 0 !important; table-layout: fixed !important; border-collapse: collapse !important; }
+#teacherTimetableWeekGrid th,
+#teacherTimetableWeekGrid td { min-width: 0 !important; border: 1px solid #94a3b8 !important; padding: 2px !important; }
+#teacherTimetableWeekGrid thead th:first-child,
+#teacherTimetableWeekGrid tbody th { width: 42px !important; min-width: 42px !important; background: #fff !important; }
+#teacherTimetableWeekGrid tbody tr,
+#teacherTimetableWeekGrid tbody td { background: #fff !important; }
+#teacherTimetableWeekGrid tbody td > div { height: 58px !important; min-width: 0 !important; border-radius: 5px !important; padding: 2px !important; }
+#teacherTimetableWeekGrid tbody td > div > div:first-child { font-size: clamp(7px, 1.9vw, 11px) !important; line-height: 1.15 !important; white-space: normal !important; }
+#teacherTimetableWeekGrid tbody td > div > div:nth-child(2) { font-size: clamp(6px, 1.45vw, 9px) !important; line-height: 1.1 !important; }
+#teacherTimetableWeekGrid th { font-size: 10px !important; line-height: 1.2 !important; overflow-wrap: anywhere; }
+#teacherTimetableWeekGrid .tt-teacher-timetable-legend { display: none !important; }
+@media (max-width: 640px) {
+  #teacherTimetableWeekGrid > div { border-radius: 10px !important; }
+  #teacherTimetableWeekGrid thead th:first-child,
+  #teacherTimetableWeekGrid tbody th { width: 36px !important; min-width: 36px !important; padding: 2px 1px !important; font-size: 8px !important; }
+  #teacherTimetableWeekGrid thead th { padding: 4px 1px !important; font-size: 8px !important; }
+  #teacherTimetableWeekGrid tbody td { padding: 1px !important; }
+  #teacherTimetableWeekGrid tbody td > div { height: 49px !important; border-radius: 4px !important; padding: 1px !important; }
+  #teacherTimetableWeekGrid tbody td > div > div:first-child { font-size: 7px !important; }
+  #teacherTimetableWeekGrid tbody td > div > div:nth-child(2) { font-size: 6px !important; margin-top: 2px !important; }
+  #teacherTimetableWeekGrid tbody th span { font-size: 7px !important; }
+}
+</style>
 <script src="./reserve-workflow.js"></script>
 </body>
 </html>
