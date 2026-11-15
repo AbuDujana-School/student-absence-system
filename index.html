@@ -9052,6 +9052,8 @@ async function timetableLoadPortalStatus() {
       status.className = "rounded-xl border px-3 py-1.5 text-[10px] font-black " + (teacherPortalEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-amber-200 bg-amber-50 text-amber-800");
     }
     const selectedNames = Array.isArray(result.selectedTeacherNames) ? result.selectedTeacherNames : [];
+    const selectionStatus = document.getElementById("teacherTimetablePortalSelectionCount");
+    if (selectionStatus) selectionStatus.dataset.savedNames = JSON.stringify([...selectedNames].sort((a,b)=>a.localeCompare(b,"ar")));
     if (count) count.textContent = "المعلمون المرتبطون بحصص تدريس: " + teacherPortalEligibleCount + (teacherPortalMode === "custom" ? " · المحددون: " + selectedNames.length : "");
     const teacherList = document.getElementById("teacherTimetablePortalTeacherList");
     if (teacherList) {
@@ -9110,12 +9112,18 @@ function timetableToggleCustomPortalPanel() {
   timetableUpdatePortalSelectionCount();
 }
 function timetableUpdatePortalSelectionCount() {
-  const count = document.querySelectorAll("[data-timetable-portal-teacher]:checked").length;
+  const selected = Array.from(document.querySelectorAll("[data-timetable-portal-teacher]:checked"))
+    .map(input => String(input.value || "").trim()).filter(Boolean).sort((a,b)=>a.localeCompare(b,"ar"));
   const label = document.getElementById("teacherTimetablePortalSelectionCount");
   const button = document.getElementById("teacherTimetablePortalSaveButton");
-  if (label) label.textContent = count ? "المعلمون المحددون: " + count + " — لم تُحفظ التغييرات بعد." : "لم يتم اختيار معلمين بعد. اختر معلماً واحداً على الأقل.";
-  if (button) button.disabled = count === 0 || button.dataset.saving === "true";
-  return count;
+  let saved = [];
+  try { saved = label?.dataset.savedNames ? JSON.parse(label.dataset.savedNames) : []; } catch (_) { saved = []; }
+  const unchanged = JSON.stringify(selected) === JSON.stringify(saved);
+  if (label) label.textContent = selected.length
+    ? "المعلمون المحددون: " + selected.length + (unchanged ? " — الصلاحيات محفوظة." : " — توجد تغييرات غير محفوظة.")
+    : "لم يتم اختيار معلمين بعد. اختر معلماً واحداً على الأقل.";
+  if (button) button.disabled = selected.length === 0 || unchanged || button.dataset.saving === "true";
+  return selected.length;
 }
 
 async function timetableSaveCustomPortalTeachers() {
@@ -9139,7 +9147,7 @@ async function timetableSaveCustomPortalTeachers() {
     }
     teacherPortalEnabled = true;
     teacherPortalMode = "custom";
-    if (label) label.textContent = "تم حفظ الصلاحيات بنجاح: " + savedNames.length + " معلماً.";
+    if (label) label.dataset.savedNames = JSON.stringify([...savedNames].sort((a,b)=>a.localeCompare(b,"ar")));
     showToast("تم حفظ وتفعيل عرض الجدول الشخصي لـ " + savedNames.length + " معلماً. لا تشمل الصلاحية توزيع الحصص.", "success");
     await timetableLoadPortalStatus();
   } catch (error) {
