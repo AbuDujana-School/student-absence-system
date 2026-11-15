@@ -110,6 +110,8 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
         if(points!==0) return points;
         const dailySubs=(a.dailySubstitutionCount??0)-(b.dailySubstitutionCount??0);
         if(dailySubs!==0) return dailySubs;
+        const weeklyLoad=(a.weeklyQuota??0)-(b.weeklyQuota??0);
+        if(weeklyLoad!==0) return weeklyLoad;
         const dailyLoad=(a.dailyTeachingCount??0)-(b.dailyTeachingCount??0);
         if(dailyLoad!==0) return dailyLoad;
         const triple=Number(a.wouldCreateTriple)-Number(b.wouldCreateTriple);
@@ -188,7 +190,7 @@ export interface BatchSubstitutionPlan {
     absentTeacherName:string; substituteTeacherName:string; weekday:string; period:number;
     className:string; subject?:string; points:number; pointsBalanceAfter:number; absentPointsBalanceAfter:number;
     substituteDailyTeachingCount:number; createsThreeConsecutive:boolean;
-    candidateOptions:Array<{teacherName:string;pointsBalance:number;dailyTeachingCount:number;dailySubstitutionCount:number;occupiedPeriods:number[];adjacent:boolean;createsThreeConsecutive:boolean}>;
+    candidateOptions:Array<{teacherName:string;pointsBalance:number;weeklyQuota:number;dailyTeachingCount:number;dailySubstitutionCount:number;occupiedPeriods:number[];adjacent:boolean;createsThreeConsecutive:boolean}>;
   }>;
   unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string}>;
   assignedCount:number; unassignedCount:number;
@@ -238,7 +240,7 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       substituteDailyTeachingCount:candidate.dailyTeachingCount??0,
       createsThreeConsecutive:candidate.wouldCreateTriple===true,
       candidateOptions:rankedCandidates.map(option=>({
-        teacherName:option.name,pointsBalance:option.pointsBalance??0,
+        teacherName:option.name,pointsBalance:option.pointsBalance??0,weeklyQuota:option.weeklyQuota??0,
         dailyTeachingCount:option.dailyTeachingCount??0,dailySubstitutionCount:option.dailySubstitutionCount??0,
         occupiedPeriods:option.occupiedPeriods??[],adjacent:option.proximityScore===1,
         createsThreeConsecutive:option.wouldCreateTriple===true,

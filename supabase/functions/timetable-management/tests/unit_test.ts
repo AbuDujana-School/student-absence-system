@@ -325,6 +325,19 @@ Deno.test("points balance is the first fairness priority", () => {
   equal(ranked[0].id,"fewer-points","Lowest points balance takes priority even when daily teaching load is higher");
 });
 
+Deno.test("weekly teaching quota is considered after points and before same-day teaching load", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"high-weekly",name:"نصاب أسبوعي مرتفع",departmentId:"science",pointsBalance:0,weeklyQuota:38,dailyTeachingCount:0},
+    {id:"low-weekly",name:"نصاب أسبوعي أقل",departmentId:"science",pointsBalance:0,weeklyQuota:16,dailyTeachingCount:6},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:3,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"low-weekly","Lower weekly quota is preferred when points are equal");
+});
+
 Deno.test("three consecutive lessons are avoided before adjacent-period preference", () => {
   const teachers:SubstitutionTeacher[]=[
     {id:"triple",name:"يصبح ثلاثياً",departmentId:"science",pointsBalance:0},
