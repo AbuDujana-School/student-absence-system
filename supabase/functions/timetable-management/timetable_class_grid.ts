@@ -54,7 +54,7 @@ export function aggregateClassTimetables(
       slots.get(slotKey)!.push({
         weekday:cell.weekday, period:Number(cell.period), subject:String(cell.subject||""),
         teacherName:String(cell.matched_teacher_name||""),
-        status:String(cell.cell_status||"unclear"),
+        status:String(cell.cell_status||"unclear")==="teaching"&&!String(cell.subject||"").trim()?"unclear":String(cell.cell_status||"unclear"),
       });
     }
   }
@@ -83,7 +83,7 @@ export function aggregateClassTimetables(
       const entry:ClassTimetableSlot={
         ...first,
         teacherName:teacherNames.join("، "),
-        ...(assignments.length>1?{coTeachingCount:assignments.length}:{})
+        ...(teacherNames.length>1?{coTeachingCount:teacherNames.length}:{})
       };
       entries.push(entry);
       coveredCount++;
