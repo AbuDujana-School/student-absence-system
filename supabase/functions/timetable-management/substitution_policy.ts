@@ -368,6 +368,40 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
   };
   let solved=solve(1);
   if(solved.flow<pending.length)solved=solve(2);
+
+  // Re-check consecutive-period impact against the complete proposed day, not
+  // only against the timetable as it existed before the batch was generated.
+  const plannedPeriodsByTeacher=new Map<string,Set<number>>();
+  const plannedCountsByTeacher=new Map<string,number>();
+  const finalTripleByIndex=new Map<number,boolean>();
+  pending.forEach((item,i)=>{
+    let candidate=solved.selected.get(i);
+    if(!candidate)return;
+    const plannedPeriods=plannedPeriodsByTeacher.get(candidate.id)??new Set<number>();
+    const basePeriods=new Set<number>(candidate.occupiedPeriods??[]);
+    const combined=new Set<number>([...basePeriods,...plannedPeriods]);
+    const createsTriple=hasThreeConsecutive(combined,item.lesson.period);
+    if(createsTriple){
+      const alternatives=candidateLists[i].filter(option=>{
+        if(option.id===candidate!.id)return false;
+        const alreadyPlanned=plannedPeriodsByTeacher.get(option.id)??new Set<number>();
+        const alreadyCount=plannedCountsByTeacher.get(option.id)??0;
+        if(Number(option.dailySubstitutionCount??0)+alreadyCount>=2)return false;
+        if(alreadyPlanned.has(item.lesson.period))return false;
+        const occupied=new Set<number>([...(option.occupiedPeriods??[]),...alreadyPlanned]);
+        return !hasThreeConsecutive(occupied,item.lesson.period);
+      });
+      if(alternatives.length)candidate=alternatives[0];
+      solved.selected.set(i,candidate);
+    }
+    const finalPeriods=plannedPeriodsByTeacher.get(candidate.id)??new Set<number>();
+    const finalOccupied=new Set<number>([...(candidate.occupiedPeriods??[]),...finalPeriods]);
+    finalTripleByIndex.set(i,hasThreeConsecutive(finalOccupied,item.lesson.period));
+    finalPeriods.add(item.lesson.period);
+    plannedPeriodsByTeacher.set(candidate.id,finalPeriods);
+    plannedCountsByTeacher.set(candidate.id,(plannedCountsByTeacher.get(candidate.id)??0)+1);
+  });
+
   const mutableTeachers=query.teachers.map(t=>({...t,pointsBalance:Number(t.pointsBalance)||0}));
   const assignments:BatchSubstitutionPlan["assignments"]=[];
   const unassigned:BatchSubstitutionPlan["unassigned"]=[];
@@ -389,7 +423,7 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       points,pointsBalanceAfter:teacher?.pointsBalance??candidate.pointsBalance??0,
       absentPointsBalanceAfter:absentTeacher?.pointsBalance??0,
       substituteDailyTeachingCount:candidate.dailyTeachingCount??0,
-      createsThreeConsecutive:candidate.wouldCreateTriple===true,
+      createsThreeConsecutive:finalTripleByIndex.get(i)??(candidate.wouldCreateTriple===true),
       candidateOptions:candidateLists[i].map(option=>({
         teacherName:option.name,pointsBalance:option.pointsBalance??0,weeklyQuota:option.weeklyQuota??0,
         dailyTeachingCount:option.dailyTeachingCount??0,dailySubstitutionCount:option.dailySubstitutionCount??0,
