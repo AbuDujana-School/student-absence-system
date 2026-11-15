@@ -38,18 +38,21 @@ Deno.test("daily parser preserves all seven periods and normalizes Islamic subje
   equal(parsed.teachers[0].cells[3].status, "unclear", "Unclear status");
 });
 
-Deno.test("daily parser rejects incomplete teacher grids and wrong roster size", () => {
+Deno.test("daily parser preserves incomplete teacher grids with warnings and rejects wrong roster size", () => {
   const incomplete = ["معلم تجريبي\tالأحد\t1\t1/12\tالرياضيات\tتدريس"].join("\n");
-  let rejected = false;
-  try { parseTimetableDay("الأحد", incomplete); } catch { rejected = true; }
-  assert(rejected, "Incomplete seven-period grid must be rejected");
+  const partial = parseTimetableDay("الأحد", incomplete);
+  equal(partial.teachers.length, 1, "Teacher row must be preserved");
+  equal(partial.teachers[0].cells.length, 7, "Missing periods must be represented");
+  equal(partial.teachers[0].cells[0].status, "teaching", "Explicit teaching cell must be preserved");
+  assert(partial.teachers[0].cells.slice(1).every(cell => cell.status === "unclear"), "Missing periods must be marked unclear, never free");
+  assert(partial.warnings.length > 0, "Incomplete teacher grid must carry a warning");
 
   const parsed = parseTimetableDay("الأحد", tabularDay([
     { name: "معلم تجريبي", statuses: ["فراغ","فراغ","فراغ","فراغ","فراغ","فراغ","فراغ"] },
   ]));
-  rejected = false;
+  let rejected = false;
   try { validateSchoolTeacherCount(parsed, 69); } catch { rejected = true; }
-  assert(rejected, "Unexpected teacher count must be rejected");
+  assert(rejected, "Unexpected teacher count must still be rejected by the explicit roster validator");
 });
 
 Deno.test("teacher matching leaves ambiguous or unrelated names unresolved", () => {
