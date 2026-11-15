@@ -905,7 +905,7 @@ async function handle(req: Request) {
       if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
       const assignmentRows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
-        .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date")
+        .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject")
         .in("status",["assigned","confirmed","completed"]).order("id").range(from,to));
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
@@ -962,7 +962,17 @@ async function handle(req: Request) {
           teachers:candidates,timetable,assignments,absentTeachers:selectedAbsent,weekday,
           assignmentDate,versionId:activeVersion.id,includeOtherDepartments,
         });
-        return reply(200,{ok:true,active:true,version:activeVersion,weekday,assignmentDate,absentTeachers:selectedNames,...plan});
+        const existingAssignments=(assignmentRows||[]).filter((row:any)=>
+          row.assignment_type==="substitution"&&selectedNames.includes(String(row.absent_teacher_name||""))&&
+          row.weekday===weekday&&row.status!=="cancelled"&&
+          (row.assignment_date?String(row.assignment_date)===assignmentDate:String(row.version_id)===String(activeVersion.id))
+        ).map((row:any)=>({
+          absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
+          weekday:String(row.weekday),period:Number(row.period),
+          className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
+          subject:String(row.subject||""),status:String(row.status||"assigned"),
+        }));
+        return reply(200,{ok:true,active:true,version:activeVersion,weekday,assignmentDate,absentTeachers:selectedNames,existingAssignments,...plan});
       }
       if(body.action==="timetable_substitution_stats"){
         const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||teacher.departmentId===actorDepartmentId));

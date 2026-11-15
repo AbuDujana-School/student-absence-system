@@ -448,3 +448,27 @@ Deno.test("weekly teaching quota counts distinct periods rather than duplicate s
   ]);
   equal(counts.get("teacher"),2,"A teacher's shared class at the same period counts once");
 });
+
+
+Deno.test("batch planner skips already-saved absent-teacher lessons instead of duplicating them", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent",name:"غائب",departmentId:"science",pointsBalance:0},
+    {id:"candidate",name:"بديل",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[
+    {teacherId:"absent",weekday:"الأحد",period:1,className:"10/1",status:"teaching"},
+    {teacherId:"candidate",weekday:"الأحد",period:1,className:"",status:"free"},
+    {teacherId:"absent",weekday:"الأحد",period:2,className:"10/2",status:"teaching"},
+    {teacherId:"candidate",weekday:"الأحد",period:2,className:"",status:"free"},
+  ];
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[{
+      substituteTeacherId:"candidate",absentTeacherId:"absent",weekday:"الأحد",period:1,
+      assignmentDate:"2026-11-15",versionId:"active",assignmentType:"substitution",status:"assigned",
+    }],
+    absentTeachers:[{id:"absent",name:"غائب",departmentId:"science"}],
+    weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignedCount,1,"Only the not-yet-assigned lesson should be proposed");
+  equal(plan.assignments[0].period,2,"The already-saved lesson must not be duplicated");
+});

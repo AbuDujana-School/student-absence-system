@@ -11360,6 +11360,7 @@ async function timetableSaveOwner() {
     if(!panel||!root||!currentPlan)return;
     panel.classList.remove('hidden');
     const assignments=Array.isArray(currentPlan.assignments)?currentPlan.assignments:[];
+    const existing=Array.isArray(currentPlan.existingAssignments)?currentPlan.existingAssignments:[];
     const groups=new Map();
     assignments.forEach(function(item,index){
       if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
@@ -11385,7 +11386,8 @@ async function timetableSaveOwner() {
       });
       html+='</div></div>';
     });
-    root.innerHTML=html||'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص يمكن تغطيتها وفق الجدول المعتمد.</div>';
+    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><span class="font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="font-black text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+' · محفوظ</span></div>';}).join('')+'</div></div>':'';
+    root.innerHTML=existingHtml+(html||'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>');
     root.querySelectorAll('select[data-substitution-row]').forEach(function(select){
       select.addEventListener('change',function(){
         const row=Number(select.dataset.substitutionRow);
@@ -11399,18 +11401,19 @@ async function timetableSaveOwner() {
       });
     });
     const summary=document.getElementById('substitutionPlanSummary');
-    if(summary)summary.textContent=(currentPlan.assignedCount||assignments.length)+' حصة مقترحة · '+(currentPlan.unassignedCount||0)+' دون بديل';
+    if(summary)summary.textContent=assignments.length+' جديدة · '+existing.length+' محفوظة · '+(currentPlan.unassignedCount||0)+' دون بديل';
     const unassignedRows=Array.isArray(currentPlan.unassigned)?currentPlan.unassigned:[];
     if(unassignedRows.length){
       unassigned.classList.remove('hidden');
       unassigned.innerHTML='<div class="mb-2 font-black"><i class="fa-solid fa-triangle-exclamation ml-2"></i>حصص لم يتوفر لها بديل</div>'+
         unassignedRows.map(function(item){return '<div class="border-t border-amber-200/70 py-2 dark:border-amber-900/50">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</div>';}).join('');
     }else{unassigned.classList.add('hidden');unassigned.innerHTML='';}
+    savedPlan=assignments.length===0&&existing.length>0;
     const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=assignments.length===0;
-    const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=true;
-    const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=true;
+    const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=!savedPlan;
+    const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=!savedPlan;
     const status=document.getElementById('substitutionSaveStatus');
-    if(status)status.textContent='الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل من القائمة.';
+    if(status)status.textContent=savedPlan?'كل التكليفات المحددة محفوظة مسبقاً؛ يمكنك طباعة الكشف أو مشاركته.':'الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل من القائمة.';
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
@@ -11444,7 +11447,7 @@ async function timetableSaveOwner() {
     const date=selectedDate(),weekday=weekdayFor(date);
     let message='توزيع حصص الاحتياط\n'+dateLabel(date)+'\n\n';
     const groups=new Map();
-    (currentPlan.assignments||[]).forEach(function(item){
+    [...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[])].forEach(function(item){
       if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
       groups.get(item.absentTeacherName).push(item);
     });
@@ -11466,7 +11469,8 @@ async function timetableSaveOwner() {
     if(!savedPlan||!currentPlan){showToast('احفظ التوزيع أولاً قبل الطباعة.','error');return;}
     const popup=window.open('','_blank');
     if(!popup){showToast('اسمح بفتح نافذة الطباعة لإعداد كشف PDF.','error');return;}
-    const rows=(currentPlan.assignments||[]).map(function(item,index){
+    const allAssignments=[...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[])];
+    const rows=allAssignments.map(function(item,index){
       return '<tr><td>'+(index+1)+'</td><td>'+esc(item.absentTeacherName)+'</td><td>'+item.period+'</td><td>'+esc(item.className||'—')+'</td><td>'+esc(item.subject||'—')+'</td><td>'+esc(item.substituteTeacherName)+'</td></tr>';
     }).join('');
     const unassigned=(currentPlan.unassigned||[]).map(function(item){return '<li>'+esc(item.absentTeacherName)+' — الحصة '+item.period+' — '+esc(item.className||'—')+'</li>';}).join('');
@@ -11474,7 +11478,7 @@ async function timetableSaveOwner() {
     popup.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف توزيع الاحتياط</title><style>'+
       'body{font-family:Arial,Tahoma,sans-serif;color:#172033;padding:24px}h1{text-align:center;font-size:22px;margin:0 0 8px}.meta{text-align:center;color:#475569;margin-bottom:22px;font-size:13px}.summary{display:flex;gap:12px;margin-bottom:18px}.summary div{flex:1;padding:12px;border:1px solid #cbd5e1;border-radius:10px;text-align:center;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #94a3b8;padding:9px;text-align:center}th{background:#e2e8f0;font-weight:900}tr{break-inside:avoid}h3{margin-top:24px}@page{size:A4 landscape;margin:12mm}@media print{*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}'+
       '</style></head><body><h1>مدرسة أبو دجانة — كشف توزيع الاحتياط</h1><div class="meta">'+esc(dateLabel(selectedDate()))+' · اليوم: '+esc(weekdayFor(selectedDate()))+'</div>'+
-      '<div class="summary"><div>إجمالي الحصص: '+(currentPlan.assignments||[]).length+'</div><div>حصص دون بديل: '+(currentPlan.unassigned||[]).length+'</div><div>عدد المعلمين الغائبين: '+currentAbsentNames.length+'</div></div>'+
+      '<div class="summary"><div>إجمالي الحصص: '+allAssignments.length+'</div><div>حصص دون بديل: '+(currentPlan.unassigned||[]).length+'</div><div>عدد المعلمين الغائبين: '+currentAbsentNames.length+'</div></div>'+
       '<table><thead><tr><th>م</th><th>المعلم الغائب</th><th>الحصة</th><th>الصف</th><th>المادة</th><th>المعلم البديل</th></tr></thead><tbody>'+rows+'</tbody></table>'+
       (unassigned?'<h3>حصص لم يتوفر لها بديل</h3><ul>'+unassigned+'</ul>':'')+
       '<p style="margin-top:35px;font-size:11px">إعداد: إدارة المدرسة ____________________ &nbsp;&nbsp; اعتماد: ____________________</p></body></html>');
