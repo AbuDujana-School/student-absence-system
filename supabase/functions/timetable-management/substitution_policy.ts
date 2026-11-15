@@ -215,7 +215,7 @@ export interface BatchSubstitutionPlan {
     substituteDailyTeachingCount:number; createsThreeConsecutive:boolean;
     candidateOptions:Array<{teacherName:string;pointsBalance:number;weeklyQuota:number;dailyTeachingCount:number;dailySubstitutionCount:number;occupiedPeriods:number[];adjacent:boolean;createsThreeConsecutive:boolean}>;
   }>;
-  unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string}>;
+  unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string;blockReason:"daily_limit"|"no_available_teacher";blockedCandidateCount:number}>;
   assignedCount:number; unassignedCount:number;
 }
 
@@ -408,8 +408,18 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
   pending.forEach((item,i)=>{
     const candidate=solved.selected.get(i);
     if(!candidate){
+      const otherwiseEligible=getAvailableSubstitutionCandidates({
+        teachers:query.teachers,timetable:query.timetable,assignments:query.assignments,
+        absentTeacherId:item.absent.id,weekday:query.weekday,period:item.lesson.period,
+        departmentId:query.includeOtherDepartments?"":item.absent.departmentId,
+        includeOtherDepartments:query.includeOtherDepartments===true,
+        assignmentDate:query.assignmentDate,versionId:query.versionId,
+        excludedTeacherIds,maxDailySubstitutions:100,
+      });
+      const blockedCandidateCount=otherwiseEligible.filter(option=>Number(option.dailySubstitutionCount??0)>=2).length;
       unassigned.push({absentTeacherName:item.absent.name,weekday:item.lesson.weekday,period:item.lesson.period,
-        className:item.lesson.className,...(item.lesson.subject?{subject:item.lesson.subject}:{})});
+        className:item.lesson.className,blockReason:blockedCandidateCount?"daily_limit":"no_available_teacher",
+        blockedCandidateCount,...(item.lesson.subject?{subject:item.lesson.subject}:{})});
       return;
     }
     const points=getSubstitutionPeriodPoints(item.lesson.period);
