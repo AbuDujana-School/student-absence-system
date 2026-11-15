@@ -9407,22 +9407,22 @@ function teacherDismissReserveWelcome() {
   document.body.classList.remove("overflow-hidden");
 }
 async function teacherShowDailySubstitutionWelcome() {
-  if (activeUser?.type !== "teacher" || !teacherPortalCanAccess) return;
+  if (activeUser?.type !== "teacher") return;
   try {
-    if (!teacherTimetableData || Date.now() - teacherTimetableLastFetchAt > 60000) {
-      await teacherTimetableLoad(false);
-    }
-    const today = getOmanLocalDate();
-    const weekday = ({"Sunday":"الأحد","Monday":"الاثنين","Tuesday":"الثلاثاء","Wednesday":"الأربعاء","Thursday":"الخميس","Friday":"الجمعة","Saturday":"السبت"})[omanNowParts().weekday] || "";
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token) return;
+    const todayResult = await appAuthRequest({action:"teacher_substitution_get_today"},token);
+    const today = String(todayResult?.assignmentDate || getOmanLocalDate());
+    const weekday = String(todayResult?.weekday || "");
     if (!SCHOOL_DAYS.includes(weekday)) return;
-    const assignments = (Array.isArray(teacherTimetableData?.assignments) ? teacherTimetableData.assignments : [])
+    const assignments = (Array.isArray(todayResult?.assignments) ? todayResult.assignments : [])
       .filter(item => item.assignment_type === "substitution" && item.status !== "cancelled" &&
         String(item.assignment_date || "") === today && String(item.weekday || "") === weekday)
       .sort((a,b) => Number(a.period) - Number(b.period));
     if (!assignments.length) return;
     const storageKey = teacherReserveWelcomeStorageKey(activeUser.name,today);
     try {
-      if (localStorage.getItem(storageKey) === "1") return;
+      if (localStorage.getItem(storageKey) === "1" || sessionStorage.getItem(storageKey) === "1") return;
     } catch (error) {
       try { if (sessionStorage.getItem(storageKey) === "1") return; } catch (ignore) {}
     }
