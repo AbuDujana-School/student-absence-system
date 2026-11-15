@@ -88,7 +88,7 @@ function teacherNameInfoFromItems(items) {
   // shifts with fragment width, so use the transform anchor for column
   // grouping and reading order (not itemPosition's width-adjusted center).
   const candidates = items.map(item => ({ item, pos: teacherNameAnchorPosition(item), normalized: normalizePdfArabic(item.str) }))
-    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\\u0600-\\u06ff]/.test(normalized))
+    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalized))
     .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
   if (!candidates.length) return { name: "", original: "" };
 
