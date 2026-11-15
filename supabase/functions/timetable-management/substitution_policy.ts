@@ -223,9 +223,13 @@ export interface BatchSubstitutionPlan {
 export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):BatchSubstitutionPlan {
   const absentById=new Map(query.absentTeachers.map(t=>[t.id,t]));
   const excludedTeacherIds=Array.from(absentById.keys());
+  // Preserve the coordinator's selected absent-teacher order. Finish every lesson
+  // for the first absent teacher before moving to the next teacher.
   const orderedLessons=query.absentTeachers.flatMap(absent=>
-    getAbsentTeacherLessons(query.timetable,absent.id,query.weekday).map(lesson=>({absent,lesson}))
-  ).sort((a,b)=>a.lesson.period-b.lesson.period||a.absent.name.localeCompare(b.absent.name,"ar"));
+    getAbsentTeacherLessons(query.timetable,absent.id,query.weekday)
+      .sort((a,b)=>a.period-b.period)
+      .map(lesson=>({absent,lesson}))
+  );
   const simulatedAssignments=[...query.assignments];
   const mutableTeachers=query.teachers.map(t=>({...t,pointsBalance:Number(t.pointsBalance)||0}));
   const assignments:BatchSubstitutionPlan["assignments"]=[];
