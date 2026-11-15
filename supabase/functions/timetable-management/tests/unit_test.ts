@@ -400,8 +400,10 @@ Deno.test("reserve permission grants substitution actions only", async () => {
     async hasSubstitutionAccess(){return true;},
   },Date.parse("2026-11-15T12:00:00.000Z"));
   equal(principal?.name,"معلم مخوّل","Reserve-enabled teacher should authenticate for substitution");
-  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),true,"Batch preview is allowed");
-  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save"),true,"Batch save is allowed");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),false,"General teacher access alone must not grant reserve actions");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save"),false,"General teacher access alone must not grant batch save");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview",false,true),true,"Reserve permission grants batch preview");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save",false,true),true,"Reserve permission grants batch save");
   equal(canUseTimetableAction("teacher","timetable_save_day"),false,"Reserve must not grant timetable editing");
 });
 
