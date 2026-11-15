@@ -100,6 +100,9 @@ export function canUseTimetableAction(
     "timetable_substitution_preview",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
+    "timetable_substitution_batch_preview",
+    "timetable_substitution_batch_save",
+    "timetable_substitution_stats",
   ]).has(action);
 }
 

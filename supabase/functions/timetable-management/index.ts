@@ -902,8 +902,9 @@ async function handle(req: Request) {
       const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin");
       if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
-      const {data:assignmentRows,error:assignmentError}=await db.from("timetable_assignments").select("id,version_id,source_cell_id,teacher_name,assignment_type,weekday,period,status,assignment_date").in("status",["assigned","confirmed","completed"]);
-      if(assignmentError)throw assignmentError;
+      const assignmentRows=await fetchAllTimetableCells((from,to)=>db.from("timetable_assignments")
+        .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date")
+        .in("status",["assigned","confirmed","completed"]).order("id").range(from,to));
       // Keep the full available history for fair cumulative ranking. The policy
       // separately scopes hard double-booking checks to the selected date/cell.
       const assignments:SubstitutionAssignment[]=(assignmentRows||[]).map((x:any)=>({substituteTeacherId:String(x.teacher_name),absentTeacherId:String(x.absent_teacher_name||""),weekday:String(x.weekday),period:Number(x.period),assignmentDate:x.assignment_date||null,versionId:String(x.version_id),assignmentType:String(x.assignment_type||""),status:x.status}));
