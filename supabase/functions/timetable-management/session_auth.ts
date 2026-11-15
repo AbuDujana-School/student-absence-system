@@ -107,12 +107,22 @@ export function canUseTimetableAction(
   ]);
   // General timetable access is not a substitute for the explicit reserve grant.
   // Custom department coordinators retain their existing scoped workflow.
-  if (principalType === "teacher" && substitutionActions.has(action) && !hasReservePermission) return false;
+  if (principalType === "teacher") {
+    if (substitutionActions.has(action)) return hasReservePermission;
+    return new Set(["health","timetable_check_access","teacher_timetable_get_own"]).has(action);
+  }
+  // Custom department coordinators retain only the original single-slot
+  // workflow; batch distribution and archive mutations require reserve grant.
+  const customSubstitutionActions = new Set([
+    "timetable_substitution_preview",
+    "timetable_substitution_save",
+    "timetable_substitution_cancel",
+  ]);
   return new Set([
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
-    ...substitutionActions,
+    ...customSubstitutionActions,
   ]).has(action);
 }
 
