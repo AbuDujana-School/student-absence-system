@@ -1,4 +1,4 @@
-import { extractHorizontalLinesFromOperatorList, extractVerticalLinesFromOperatorList, normalizePdfSubject, parseTimetablePdfPages } from "../../../../timetable_pdf_import.js";
+import { extractHorizontalLinesFromOperatorList, extractVerticalLinesFromOperatorList, normalizePdfArabic, normalizePdfSubject, parseTimetablePdfPages } from "../../../../timetable_pdf_import.js";
 
 const DAYS=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
 const TIMES=["7:10 - 7:45","7:50 - 8:25","8:30 - 9:05","9:10 - 9:45","10:05 - 10:40","10:45 - 11:20","11:25 - 12:00","12:05 - 12:40"];
@@ -6,6 +6,7 @@ const PX=[500,440,380,320,260,200,140,80];
 const DY=[700,600,500,400,300];
 function textAt(str:string,x:number,y:number,width=48){return {str,transform:[1,0,0,1,x-width/2,y-4],width,height:9};}
 function rotatedName(str:string){return {str,transform:[0,1,-1,0,15,400],width:340,height:9};}
+function rotatedNamePart(str:string,y:number){return {str,transform:[0,1,-1,0,15,y],width:60,height:9};}
 function makeTeacherPage(pageNumber=2,entries:any[]=[],periodCount=7,merged:Array<[number,number]>=[],teacherName="أحمد خالد محمد السالمي"){
  const items:any[]=[rotatedName(teacherName)];
  DAYS.forEach((day,i)=>items.push(textAt(day,560,DY[i],55)));
@@ -21,6 +22,22 @@ function makeTeacherPage(pageNumber=2,entries:any[]=[],periodCount=7,merged:Arra
  return {pageNumber,width:595,height:842,items,verticalLines,horizontalLines:[]};
 }
 function cell(period:number,day:number,subject:string,groups="1/12"){return [textAt(subject,PX[period-1],DY[day],50),...(groups?[textAt(groups,PX[period-1]+3,DY[day]-13,40)]:[])];}
+
+Deno.test("PDF parser rebuilds a teacher name split into vertically stacked fragments",()=>{
+ const page=makeTeacherPage();
+ page.items=page.items.filter((item:any)=>item.str!=="أحمد خالد محمد السالمي");
+ page.items.unshift(
+  rotatedNamePart("السالمي",228),
+  rotatedNamePart("محمد",350),
+  rotatedNamePart("خالد",429),
+  rotatedNamePart("أحمد",492),
+ );
+ const parsed=parseTimetablePdfPages([page]);
+ if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.join(" | "));
+ const teacher=parsed.weeklyDays[0]!.teachers[0]!;
+ if(teacher.sourceName!=="احمد خالد محمد السالمي")throw new Error("Teacher name fragments were not joined in canonical reading order: "+teacher.sourceName);
+ if(normalizePdfArabic(teacher.sourceNameOriginal)!==teacher.sourceName)throw new Error("Original teacher name fragments were not retained");
+});
 
 Deno.test("PDF parser follows the real RTL layout: weekdays are rows and periods are columns",()=>{
  const page=makeTeacherPage(2,cell(1,0,"الرياضيات","1/12/6/12"));

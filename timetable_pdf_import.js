@@ -80,9 +80,30 @@ function isOnlyDigitsOrPunctuation(value) {
 function teacherNameInfoFromItems(items) {
   const candidates = items.map(item => ({ item, pos: itemPosition(item), normalized: normalizePdfArabic(item.str) }))
     .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalized))
-    .filter(({ normalized }) => normalized.length >= 3 && !normalized.includes("تم إنشاء الجدول"));
-  candidates.sort((a, b) => b.normalized.length - a.normalized.length);
-  return candidates[0] ? { name: candidates[0].normalized, original: String(candidates[0].item.str || "").trim() } : { name: "", original: "" };
+    .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
+  if (!candidates.length) return { name: "", original: "" };
+
+  // aSc exports the teacher heading as vertically stacked text fragments on
+  // rotated A4 pages. Join fragments from the same narrow x-column, top to
+  // bottom, instead of mistaking the longest individual word for the name.
+  const columns = [];
+  for (const candidate of candidates) {
+    let column = columns.find(entry => Math.abs(entry.x - candidate.pos.x) <= 18);
+    if (!column) {
+      column = { x: candidate.pos.x, entries: [] };
+      columns.push(column);
+    }
+    column.entries.push(candidate);
+  }
+  columns.sort((a, b) =>
+    b.entries.length - a.entries.length ||
+    b.entries.reduce((sum, entry) => sum + entry.normalized.length, 0) -
+      a.entries.reduce((sum, entry) => sum + entry.normalized.length, 0)
+  );
+  const selected = columns[0].entries.sort((a, b) => b.pos.y - a.pos.y);
+  const name = selected.map(entry => entry.normalized).join(" ").replace(/\s+/g, " ").trim();
+  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\s+/g, " ").trim();
+  return { name, original };
 }
 export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
   const lines = [];
