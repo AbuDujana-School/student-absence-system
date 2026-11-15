@@ -125,6 +125,7 @@ export function canUseTimetableAction(
   ]).has(action);
   const substitutionActions = new Set([
     "timetable_substitution_preview",
+    "timetable_substitution_departments",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
     "timetable_substitution_batch_preview",
