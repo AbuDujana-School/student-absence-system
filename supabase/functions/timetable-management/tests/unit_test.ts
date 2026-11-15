@@ -413,3 +413,17 @@ Deno.test("substitution date validation accepts real ISO dates and rejects inval
   equal(isValidSubstitutionDate("2026-02-30"),false,"Date overflow must be rejected");
   equal(isValidSubstitutionDate("15-11-2026"),false,"Localized date format is not accepted by the API");
 });
+
+
+Deno.test("weekly teaching quota is considered after equal point and daily-cover balances", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"high-quota",name:"نصاب مرتفع",departmentId:"science",pointsBalance:2,weeklyQuota:30,dailyTeachingCount:2},
+    {id:"low-quota",name:"نصاب أقل",departmentId:"science",pointsBalance:2,weeklyQuota:18,dailyTeachingCount:2},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:3,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"low-quota","Lower weekly teaching quota wins when points and daily load are equal");
+});
