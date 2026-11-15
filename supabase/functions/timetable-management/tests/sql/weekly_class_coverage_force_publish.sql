@@ -9,6 +9,8 @@ DECLARE
   v_cell_count integer;
   v_replaced_count integer;
   v_previous_cell_count integer;
+  v_clone_id uuid;
+  v_clone_result jsonb;
 BEGIN
   v_result := public.save_timetable_weekly_day(jsonb_build_object(
     'version_id',null,'weekday','الأحد',
@@ -65,5 +67,22 @@ BEGIN
   END IF;
   SELECT count(*) INTO v_cell_count FROM public.timetable_weekly_cells WHERE version_id=v_version_id;
   IF v_cell_count <> 0 THEN RAISE EXCEPTION 'Empty source days must not create fabricated cells.'; END IF;
-END $$;
+
+  -- A manually corrected clone can prove a full week through its copied cells
+  -- even when it does not carry the original five day-save audit entries.
+  INSERT INTO public.timetable_weekly_versions(version,status,expected_teacher_count,period_count,created_by)
+  VALUES ((SELECT coalesce(max(version),0)+1 FROM public.timetable_weekly_versions),'draft',1,7,'coverage-clone-test')
+  RETURNING id INTO v_clone_id;
+  INSERT INTO public.timetable_weekly_cells(version_id,teacher_source_name,match_status,weekday,period,cell_status)
+  SELECT v_clone_id,'clone-test-teacher','unmatched',day_name,period_number,'free'
+  FROM unnest(ARRAY['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس']) AS day_name
+  CROSS JOIN generate_series(1,7) AS period_number;
+  v_clone_result := public.activate_timetable_weekly_version(jsonb_build_object(
+    'version_id',v_clone_id,'actor_name','coverage-clone-test','force_with_warnings',true,
+    'warnings',jsonb_build_object('test_clone',true)
+  ));
+  IF v_clone_result->>'status' <> 'active' THEN
+    RAISE EXCEPTION 'A complete five-day clone must be eligible for warning-enabled activation: %',v_clone_result;
+  END IF;
+END $;
 ROLLBACK;
