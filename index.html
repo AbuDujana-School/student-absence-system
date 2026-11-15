@@ -9607,10 +9607,11 @@ async function timetableParseDayText() {
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     const results=[];
-    for(const chunk of chunks){
+    for(let chunkIndex=0;chunkIndex<chunks.length;chunkIndex++){
+      const chunk=chunks[chunkIndex];
       const result=await appAuthRequest({action:"timetable_parse_day",weekday:chunk.weekday,text:chunk.text,allowEmptyDay:!String(chunk.text||"").trim()},token);
       result.sourceText=chunk.text;
-      result.warnings=[...(result.warnings||[]),...preflightWarnings];
+      result.warnings=[...(result.warnings||[]),...(chunkIndex===0?preflightWarnings:[])];
       results.push(result);
     }
     timetableDayImportPreview=results.length===1?results[0]:{days:results,periodCount:results.reduce((max,day)=>Math.max(max,day.teachers?.[0]?.cells?.length||0),7)};
