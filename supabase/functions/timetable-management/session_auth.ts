@@ -136,6 +136,8 @@ export function canUseTimetableAction(
     "timetable_substitution_archive",
     "timetable_substitution_update",
     "timetable_substitution_update_batch",
+    "timetable_substitution_reset_options",
+    "timetable_substitution_reset",
   ]);
   if (principalType === "teacher") {
     if (substitutionActions.has(action)) return hasReservePermission;
