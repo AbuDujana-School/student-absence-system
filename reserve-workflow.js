@@ -21,9 +21,9 @@
   }
   function restoreStoredDraft(){
     if(reserveDraftRestoreChecked)return false;
-    reserveDraftRestoreChecked=true;
     try{
       const actor=currentActorName();if(!actor)return false;
+      reserveDraftRestoreChecked=true;
       const raw=localStorage.getItem(DRAFT_STORAGE_KEY);if(!raw)return false;
       const saved=JSON.parse(raw),current=timetableSubstitutionGetDate();
       if(saved.actor!==actor||saved.date!==current.date||saved.weekday!==current.weekday||
@@ -321,8 +321,9 @@
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
         absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers()},token);
       status("تم حفظ "+(result.assignmentCount||assignments.length)+" تكليف في عملية واحدة. يجري تحديث الأرشيف.","success");
-      clearStoredDraft();reserveManualChoices=Object.create(null);
+      reserveManualChoices=Object.create(null);
       await timetableDailyRefreshAll();await timetableDailyLoadArchive();
+      clearStoredDraft();
     }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي. لم يتم حفظ جزء من العملية.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
   };
