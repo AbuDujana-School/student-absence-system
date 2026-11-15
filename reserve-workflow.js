@@ -291,7 +291,7 @@
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
     let tableRows="",count=0;
     groups.forEach(group=>group.rows.forEach((row,index)=>{
-      tableRows+="<tr>"+(index===0?'<td rowspan="'+group.rows.length+'">'+esc(group.absentName)+'</td><td rowspan="'+group.rows.length+'">'+esc(group.reason)+"</td>":"")+
+      tableRows+=(index===0?"<tr class=\\"tt-print-group-start\\">":"<tr>")+(index===0?'<td rowspan="'+group.rows.length+'">'+esc(group.absentName)+'</td><td rowspan="'+group.rows.length+'">'+esc(group.reason)+"</td>":"")+
         "<td>"+Number(row.period)+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>";count++;
     }));
     const root=document.createElement("div");root.id="ttReservePrintRoot";
