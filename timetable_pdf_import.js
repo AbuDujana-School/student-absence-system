@@ -140,75 +140,79 @@ function teacherNameInfoFromItems(items) {
   const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\s+/g, " ").trim();
   return { name, original };
 }
-export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
-  const lines = [];
-  if (!operatorList || !OPS || OPS.constructPath === undefined) return lines;
-  const addLine = (x1, y1, x2, y2) => {
-    if (![x1, y1, x2, y2].every(Number.isFinite) || Math.abs(y1-y2)>1.5 || Math.abs(x2-x1)<60) return;
-    lines.push({x1:Math.min(x1,x2),x2:Math.max(x1,x2),y:(y1+y2)/2});
+function multiplyPdfMatrices(left,right) {
+  const [a,b,c,d,e,f]=left,[g,h,i,j,k,l]=right;
+  return [a*g+c*h,b*g+d*h,a*i+c*j,b*i+d*j,a*k+c*l+e,b*k+d*l+f];
+}
+function extractPathLinesFromOperatorList(operatorList,OPS,orientation) {
+  const lines=[];
+  if(!operatorList||!OPS||OPS.constructPath===undefined)return lines;
+  let ctm=[1,0,0,1,0,0];
+  const stack=[];
+  const transformPoint=(x,y)=>[ctm[0]*x+ctm[2]*y+ctm[4],ctm[1]*x+ctm[3]*y+ctm[5]];
+  const addLine=(x1,y1,x2,y2)=>{
+    const start=transformPoint(x1,y1),end=transformPoint(x2,y2);
+    const [ax,ay]=start,[bx,by]=end;
+    if(![ax,ay,bx,by].every(Number.isFinite))return;
+    if(orientation==="horizontal"){
+      if(Math.abs(ay-by)>1.5||Math.abs(bx-ax)<60)return;
+      lines.push({x1:Math.min(ax,bx),x2:Math.max(ax,bx),y:(ay+by)/2});
+    }else{
+      if(Math.abs(ax-bx)>1.5||Math.abs(by-ay)<25)return;
+      lines.push({x:(ax+bx)/2,y1:Math.min(ay,by),y2:Math.max(ay,by)});
+    }
   };
-  for (let index=0; index<(operatorList.fnArray||[]).length; index++) {
-    if (operatorList.fnArray[index] !== OPS.constructPath) continue;
-    const args=operatorList.argsArray[index]||[], commands=args[0]||[], coordinates=args[1]||[];
+  const fnArray=operatorList.fnArray||[],argsArray=operatorList.argsArray||[];
+  for(let index=0;index<fnArray.length;index++){
+    const fn=fnArray[index],args=argsArray[index]||[];
+    if(OPS.save!==undefined&&fn===OPS.save){stack.push(ctm.slice());continue;}
+    if(OPS.restore!==undefined&&fn===OPS.restore){ctm=stack.pop()||[1,0,0,1,0,0];continue;}
+    if(OPS.transform!==undefined&&fn===OPS.transform){
+      const matrix=args.length===1&&Array.isArray(args[0])?args[0]:args;
+      if(matrix.length>=6)ctm=multiplyPdfMatrices(ctm,matrix.map(Number));
+      continue;
+    }
+    if(OPS.setTransform!==undefined&&fn===OPS.setTransform){
+      const matrix=args.length===1&&Array.isArray(args[0])?args[0]:args;
+      if(matrix.length>=6)ctm=matrix.slice(0,6).map(Number);
+      continue;
+    }
+    if(fn!==OPS.constructPath)continue;
+    const commands=args[0]||[],coordinates=args[1]||[];
     let cursor=0,current=null,subpathStart=null;
-    for (const command of commands) {
-      if (command===OPS.moveTo) {
-        current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])]; subpathStart=current;
-      } else if (command===OPS.lineTo) {
+    for(const command of commands){
+      if(command===OPS.moveTo){
+        current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];subpathStart=current;
+      }else if(command===OPS.lineTo){
         const next=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
         if(current)addLine(current[0],current[1],next[0],next[1]);
         current=next;
-      } else if (command===OPS.rectangle) {
+      }else if(command===OPS.rectangle){
         const x=Number(coordinates[cursor++]),y=Number(coordinates[cursor++]),w=Number(coordinates[cursor++]),h=Number(coordinates[cursor++]);
-        addLine(x,y,x+w,y); addLine(x,y+h,x+w,y+h); current=[x,y]; subpathStart=current;
-      } else if (command===OPS.curveTo) {
-        cursor+=4; current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
-      } else if (command===OPS.curveTo2 || command===OPS.curveTo3) {
-        cursor+=2; current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
-      } else if (command===OPS.closePath) {
+        if(orientation==="horizontal"){addLine(x,y,x+w,y);addLine(x,y+h,x+w,y+h);}
+        else{addLine(x,y,x,y+h);addLine(x+w,y,x+w,y+h);}
+        current=[x,y];subpathStart=current;
+      }else if(command===OPS.curveTo){
+        cursor+=4;current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
+      }else if(command===OPS.curveTo2||command===OPS.curveTo3){
+        cursor+=2;current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
+      }else if(command===OPS.closePath){
         if(current&&subpathStart)addLine(current[0],current[1],subpathStart[0],subpathStart[1]);
         current=subpathStart;
       }
     }
   }
-  const unique=new Map();
-  for(const line of lines)unique.set([line.x1,line.x2,line.y].map(v=>Math.round(v*10)/10).join(":"),line);
+  const key=orientation==="horizontal"
+    ?line=>[line.x1,line.x2,line.y].map(value=>Math.round(value*10)/10).join(":")
+    :line=>[line.x,line.y1,line.y2].map(value=>Math.round(value*10)/10).join(":");
+  const unique=new Map();for(const line of lines)unique.set(key(line),line);
   return Array.from(unique.values());
 }
-export function extractVerticalLinesFromOperatorList(operatorList, OPS) {
-  const lines = [];
-  if (!operatorList || !OPS || OPS.constructPath === undefined) return lines;
-  const addLine = (x1, y1, x2, y2) => {
-    if (![x1, y1, x2, y2].every(Number.isFinite) || Math.abs(x1-x2)>1.5 || Math.abs(y2-y1)<25) return;
-    lines.push({x:(x1+x2)/2,y1:Math.min(y1,y2),y2:Math.max(y1,y2)});
-  };
-  for (let index=0; index<(operatorList.fnArray||[]).length; index++) {
-    if (operatorList.fnArray[index] !== OPS.constructPath) continue;
-    const args=operatorList.argsArray[index]||[], commands=args[0]||[], coordinates=args[1]||[];
-    let cursor=0,current=null,subpathStart=null;
-    for (const command of commands) {
-      if (command===OPS.moveTo) {
-        current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])]; subpathStart=current;
-      } else if (command===OPS.lineTo) {
-        const next=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
-        if(current)addLine(current[0],current[1],next[0],next[1]);
-        current=next;
-      } else if (command===OPS.rectangle) {
-        const x=Number(coordinates[cursor++]),y=Number(coordinates[cursor++]),w=Number(coordinates[cursor++]),h=Number(coordinates[cursor++]);
-        addLine(x,y,x,y+h); addLine(x+w,y,x+w,y+h); current=[x,y]; subpathStart=current;
-      } else if (command===OPS.curveTo) {
-        cursor+=4; current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
-      } else if (command===OPS.curveTo2 || command===OPS.curveTo3) {
-        cursor+=2; current=[Number(coordinates[cursor++]),Number(coordinates[cursor++])];
-      } else if (command===OPS.closePath) {
-        if(current&&subpathStart)addLine(current[0],current[1],subpathStart[0],subpathStart[1]);
-        current=subpathStart;
-      }
-    }
-  }
-  const unique=new Map();
-  for(const line of lines)unique.set([line.x,line.y1,line.y2].map(v=>Math.round(v*10)/10).join(":"),line);
-  return Array.from(unique.values());
+export function extractHorizontalLinesFromOperatorList(operatorList,OPS){
+  return extractPathLinesFromOperatorList(operatorList,OPS,"horizontal");
+}
+export function extractVerticalLinesFromOperatorList(operatorList,OPS){
+  return extractPathLinesFromOperatorList(operatorList,OPS,"vertical");
 }
 function buildPeriodSpans(page, dayCenters, periodCenters) {
   const lines=Array.isArray(page.verticalLines)?page.verticalLines:[];
