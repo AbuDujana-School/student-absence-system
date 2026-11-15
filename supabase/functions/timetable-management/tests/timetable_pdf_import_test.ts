@@ -48,7 +48,7 @@ function makeRotatedTeacherPage(pageNumber=2,withLesson=true){
 }
 function makeRotatedOverviewPage(){
  const page=makeRotatedTeacherPage(1,false);
- page.items=page.items.filter((item:any)=>!["السالمي","محمد","خالد","أحمد"].includes(item.str));
+ page.items=page.items.filter((item:any)=>!["السالمي","محمد","خالد","أحمد",...DAYS].includes(item.str));
  for(let i=0;i<100;i++)page.items.push({str:"1/11",transform:[1,0,0,1,220+(i%10)*4,220+Math.floor(i/10)*4],width:12,height:8});
  return page;
 }
