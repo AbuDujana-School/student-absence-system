@@ -152,30 +152,51 @@
     const otherLabel = $("timetableSubstitutionOtherDepartments")?.closest("label");
     const otherToggle = $("timetableSubstitutionOtherDepartments");
     if (otherLabel) otherLabel.classList.add("hidden");
-    if (otherToggle) otherToggle.setAttribute("onchange", "timetableDailyRefreshAll()");
+    if (otherToggle) otherToggle.removeAttribute("onchange");
     if (toolbar) {
       toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800"><i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى</button>');
       $("timetableDailyOtherDepartmentsButton")?.addEventListener("click", async () => {
-        const toggle = $("timetableSubstitutionOtherDepartments");
-        if (!toggle) return;
-        toggle.checked = !toggle.checked;
+        const toggle=$("timetableSubstitutionOtherDepartments");
+        const button=$("timetableDailyOtherDepartmentsButton");
         const select=$("timetableDailyOtherDepartmentSelect");
-        if(toggle.checked){
+        if(!toggle||!button)return;
+        if(!toggle.checked){
+          toggle.checked=true;button.disabled=true;
           try{
             await loadOtherDepartments();
             $("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");
-            $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
-            if(!selectedOtherDepartmentId()){status("اختر القسم أولاً، ثم سيعرض النظام معلميه المتاحين فقط.","info");return;}
-          }catch(error){toggle.checked=false;if(select)select.classList.add("hidden");status(error?.message||"تعذر تحميل قائمة الأقسام.","error");return;}
-        }else{
-          if(select){select.classList.add("hidden");select.value="";reserveOtherDepartmentId="";}
-          $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+            button.innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
+            if(!selectedOtherDepartmentId()){
+              status("اختر القسم المساند أولاً؛ لن تظهر أسماء المعلمين قبل اختيار القسم.","info");
+              $("timetableDailyOtherDepartmentSelect")?.focus();return;
+            }
+            await timetableDailyRefreshAll();
+          }catch(error){
+            toggle.checked=false;
+            if(select){select.value="";select.closest("label")?.classList.add("hidden");}
+            reserveOtherDepartmentId="";
+            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+            status(error?.message||"تعذر تحميل الأقسام المساندة. حاول مرة أخرى.","error");
+          }finally{button.disabled=false;}
+          return;
         }
+        toggle.checked=false;
+        if(select){select.value="";select.closest("label")?.classList.add("hidden");}
+        reserveOtherDepartmentId="";reserveDraftScope="";
+        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
         await timetableDailyRefreshAll();
       });
       const toolbarSelect='<label id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[190px] text-[10px] font-bold text-slate-600"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" class="w-full rounded-xl border border-indigo-200 bg-white p-2 text-xs"><option value="">اختر المادة / القسم المساند</option></select></label>';
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
-      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",async()=>{reserveOtherDepartmentId=selectedOtherDepartmentId();if(includeOthers()&&reserveOtherDepartmentId)await timetableDailyRefreshAll();});
+      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",async()=>{
+        reserveOtherDepartmentId=selectedOtherDepartmentId();
+        if(!includeOthers()||!reserveOtherDepartmentId)return;
+        const select=$("timetableDailyOtherDepartmentSelect"),button=$("timetableDailyOtherDepartmentsButton");
+        if(select)select.disabled=true;if(button)button.disabled=true;
+        try{reserveDraftScope="";reserveDraftApproved=new Set();await timetableDailyRefreshAll();}
+        catch(error){status(error?.message||"تعذر تحديث قائمة البدلاء للقسم المحدد.","error");}
+        finally{if(select)select.disabled=false;if(button)button.disabled=false;}
+      });
       $("timetableDailyOtherDepartmentSelect")?.closest("label")?.classList.toggle("hidden",!includeOthers());
       if(includeOthers())loadOtherDepartments().then(()=>{$("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");}).catch(()=>{});
     }
@@ -223,6 +244,7 @@
   }
 
   async function fetchBatchPreview() {
+    if(includeOthers()&&!selectedOtherDepartmentId())throw new Error("اختر القسم المساند أولاً قبل تحميل أسماء المعلمين.");
     const {date, weekday} = timetableSubstitutionGetDate();
     const token = appAuthSession?.token || readAppAuthToken();
     if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
