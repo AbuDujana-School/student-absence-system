@@ -916,7 +916,7 @@ async function handle(req: Request) {
       }));
       if(body.action==="timetable_substitution_batch_save"){
         const assignmentDate=String(body.assignmentDate||"");
-        const selectedNames=Array.isArray(body.absentTeacherNames)?Array.from(new Set(body.absentTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
+        const selectedNames:string[]=Array.isArray(body.absentTeacherNames)?Array.from(new Set<string>(body.absentTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
         const proposed=Array.isArray(body.assignments)?body.assignments:[];
         if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(assignmentDate)||!selectedNames.length||!proposed.length||proposed.length>500){
           return reply(400,{error:"حدد تاريخ الغياب والمعلمين الغائبين وتوزيع الحصص قبل الحفظ."});
@@ -941,7 +941,7 @@ async function handle(req: Request) {
         return reply(201,{ok:true,result:data,assignmentCount:normalized.length});
       }
       if(body.action==="timetable_substitution_batch_preview"){
-        const selectedNames=Array.isArray(body.absentTeacherNames)?Array.from(new Set(body.absentTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
+        const selectedNames:string[]=Array.isArray(body.absentTeacherNames)?Array.from(new Set<string>(body.absentTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
         const assignmentDate=String(body.assignmentDate||"");
         if(!selectedNames.length||selectedNames.length>100||!/^\\d{4}-\\d{2}-\\d{2}$/.test(assignmentDate)){
           return reply(400,{error:"اختر معلماً غائباً واحداً على الأقل وحدد تاريخ الغياب."});
