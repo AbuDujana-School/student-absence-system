@@ -842,7 +842,7 @@ async function handle(req: Request) {
     }
   }
 
-  if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update"].includes(String(body.action || ""))) {
+  if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action || ""))) {
     try {
       const weekday = String(body.weekday || "");
       if (!DAYS.includes(weekday)) return reply(400,{error:"اختر يوماً دراسياً صحيحاً."});
@@ -906,7 +906,7 @@ async function handle(req: Request) {
       const date=String(body.assignmentDate||"");
       if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))return reply(400,{error:"تاريخ الغياب غير صالح."});
       const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin");
-      if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
+      if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
       const assignmentRows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
         .select("id,version_id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason")
@@ -932,6 +932,24 @@ async function handle(req: Request) {
             status:String(row.status||"assigned"),versionId:String(row.version_id||""),
           }));
         return reply(200,{ok:true,archive});
+      }
+      if(body.action==="timetable_substitution_update_batch"){
+        const proposed=Array.isArray(body.assignments)?body.assignments:[];
+        if(!proposed.length||proposed.length>500)return reply(400,{error:"حدد تعديلات الأرشيف قبل الحفظ."});
+        const normalized=proposed.map((item:any)=>({
+          assignmentId:String(item?.assignmentId||""),
+          substituteTeacherName:String(item?.substituteTeacherName||"").trim(),
+          reserveReason:String(item?.reserveReason||"").trim().slice(0,500)||"-",
+        }));
+        if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName)){
+          return reply(400,{error:"توجد بيانات غير مكتملة في تعديلات الأرشيف."});
+        }
+        const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
+          assignments:normalized,actor_name:principal.name,actor_type:principal.type,
+          include_other_departments:includeOtherDepartments||principal.type==="admin",
+        }});
+        if(error)throw error;
+        return reply(200,{ok:true,result:data,updatedCount:normalized.length});
       }
       if(body.action==="timetable_substitution_update"){
         const assignmentId=String(body.assignmentId||"");
