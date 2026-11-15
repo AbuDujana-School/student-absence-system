@@ -100,21 +100,26 @@ jobs:
 
       - name: Check all main application inline JavaScript syntax
         run: |
-          python3 - <<'PY'
-          import pathlib, re, subprocess, tempfile
-          source = pathlib.Path("index.html").read_text(encoding="utf-8")
-          scripts = re.findall(r'<script\\b([^>]*)>([\\s\\S]*?)</script\\s*>', source, re.IGNORECASE)
-          checked = 0
-          with tempfile.TemporaryDirectory() as directory:
-              for index, (attributes, body) in enumerate(scripts):
-                  if re.search(r'\\bsrc\\s*=', attributes, re.IGNORECASE):
-                      continue
-                  if re.search(r'application/(?:ld\\+)?json', attributes, re.IGNORECASE) or not body.strip():
-                      continue
-                  suffix = ".mjs" if re.search(r'\\btype\\s*=\\s*["\\']module["\\']', attributes, re.IGNORECASE) else ".js"
-                  path = pathlib.Path(directory) / f"inline-{index}{suffix}"
-                  path.write_text(body, encoding="utf-8")
-                  subprocess.run(["node", "--check", str(path)], check=True)
-                  checked += 1
-          print(f"Checked {checked} inline application scripts.")
-          PY
+          node <<'NODE'
+          const fs = require("node:fs");
+          const os = require("node:os");
+          const path = require("node:path");
+          const { execFileSync } = require("node:child_process");
+          const html = fs.readFileSync("index.html", "utf8");
+          const scripts = [...html.matchAll(/<script\\b([^>]*)>([\\s\\S]*?)<\\/script\\s*>/gi)];
+          const temp = fs.mkdtempSync(path.join(os.tmpdir(), "abu-dujana-inline-"));
+          let checked = 0;
+          for (let i = 0; i < scripts.length; i++) {
+            const attributes = scripts[i][1] || "";
+            const body = scripts[i][2] || "";
+            if (/\\bsrc\\s*=/.test(attributes) || !body.trim()) continue;
+            const type = (attributes.match(/\\btype\\s*=\\s*["']([^"']+)/i) || [])[1] || "";
+            if (type && !/^(module|text\\/javascript|application\\/javascript)$/i.test(type)) continue;
+            const extension = type.toLowerCase() === "module" ? ".mjs" : ".js";
+            const file = path.join(temp, "inline-" + i + extension);
+            fs.writeFileSync(file, body, "utf8");
+            execFileSync(process.execPath, ["--check", file], { stdio: "inherit" });
+            checked++;
+          }
+          console.log("Checked " + checked + " inline application scripts.");
+          NODE
