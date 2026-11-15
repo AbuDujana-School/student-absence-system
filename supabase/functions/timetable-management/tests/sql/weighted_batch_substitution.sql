@@ -33,6 +33,9 @@ begin
   if position('v_daily_sub_count>=2' in pg_get_functiondef('public.create_timetable_substitution(jsonb)'::regprocedure))=0 then
     raise exception 'Single and batch assignment path does not enforce the two-substitution daily cap.';
   end if;
+  if position('timetable_substitution_teacher_day:' in pg_get_functiondef('public.create_timetable_substitution(jsonb)'::regprocedure))=0 then
+    raise exception 'Daily substitution cap is not protected against concurrent assignments.';
+  end if;
 
   insert into public.timetable_weekly_versions(version,status,created_by,period_count)
   values((select coalesce(max(version),0)+1000 from public.timetable_weekly_versions),'draft','points-test',8)

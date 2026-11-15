@@ -130,6 +130,8 @@ begin
     raise exception 'بيانات تكليف الاحتياط غير مكتملة أو غير صالحة.';
   end if;
 
+  -- Serialize all assignments for this substitute on the date before checking the two-cover cap.
+  perform pg_advisory_xact_lock(hashtext('timetable_substitution_teacher_day:'||v_substitute_name||':'||v_date::text));
   perform pg_advisory_xact_lock(hashtext('timetable_substitution:'||v_version_id::text||':'||v_date::text||':'||v_period::text));
   select id into v_active_id from public.timetable_weekly_versions
     where id=v_version_id and status='active' for share;
