@@ -9290,7 +9290,7 @@ function teacherTimetableCurrentPeriod() {
   const day = weekdayMap[now.weekday] || "";
   if (!SCHOOL_DAYS.includes(day)) return {day,period:null};
   const periods = dutyData().periods || [];
-  for (let index = 0; index < Math.min(Number(teacherTimetableData?.version?.period_count) || 7, periods.length); index++) {
+  for (let index = 0; index < Math.min(8, periods.length); index++) {
     const start = toMinutes(periods[index]?.start), end = toMinutes(periods[index]?.end);
     if (start !== null && end !== null && end > start && now.minutes >= start && now.minutes < end) {
       return {day,period:index+1};
