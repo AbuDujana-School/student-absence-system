@@ -57,3 +57,17 @@ Deno.test("class timetable renders explicitly marked elective groups separately 
  if(result.conflicts.length!==1)throw new Error("An unmarked double assignment must remain a real conflict");
  if(result.parallelGroups[0].assignments.length!==2)throw new Error("All elective group subjects must remain visible");
 });
+
+
+Deno.test("legacy timetable infers only elective pairs recurring once on every weekday",()=>{
+ const cells:any[]=[];
+ for(let i=0;i<DAYS.length;i++){
+  cells.push({weekday:DAYS[i],period:i+1,cell_status:"teaching",class_sections:["1/12"],subject:"الأحياء",matched_teacher_name:"معلم أ"});
+  cells.push({weekday:DAYS[i],period:i+1,cell_status:"teaching",class_sections:["1/12"],subject:"الفنون التشكيلية",matched_teacher_name:"معلم ب"});
+ }
+ cells.push({weekday:"الأحد",period:7,cell_status:"teaching",class_sections:["1/12"],subject:"الرياضيات",matched_teacher_name:"معلم ج"});
+ cells.push({weekday:"الأحد",period:7,cell_status:"teaching",class_sections:["1/12"],subject:"العلوم",matched_teacher_name:"معلم د"});
+ const result=aggregateClassTimetables(cells,DAYS,7,["1/12"])[0];
+ if(result.parallelGroups.length!==5)throw new Error("A subject pair repeated exactly once on all five weekdays should be inferred as a parallel elective group");
+ if(result.conflicts.length!==1)throw new Error("An isolated double assignment must remain a real conflict");
+});

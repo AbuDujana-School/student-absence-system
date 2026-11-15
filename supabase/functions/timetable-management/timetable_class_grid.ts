@@ -93,6 +93,24 @@ export function aggregateClassTimetables(
     const freePeriods:Array<{weekday:string;period:number}>=[];
     const meetingPeriods:Array<{weekday:string;period:number}>=[];
     const unclearPeriods:Array<{weekday:string;period:number}>=[];
+    // Legacy active weeks may predate persistence of sourceGroupNote. Infer a
+    // parallel elective pair only when the exact two-subject pair recurs once
+    // on every weekday for this class; isolated or ambiguous double bookings
+    // remain conflicts.
+    const pairOccurrences=new Map<string,Map<string,number>>();
+    for(const [slotKey,assignments] of slots.entries()){
+      if(assignments.length!==2||!assignments.every(item=>item.status==="teaching"))continue;
+      const pairKey=assignments.map(item=>key(item.subject)).sort().join("||");
+      if(!pairKey||pairKey==="||")continue;
+      const weekday=slotKey.slice(0,slotKey.lastIndexOf(":"));
+      const dayCounts=pairOccurrences.get(pairKey)||new Map<string,number>();
+      dayCounts.set(weekday,(dayCounts.get(weekday)||0)+1);
+      pairOccurrences.set(pairKey,dayCounts);
+    }
+    const recurringElectivePairs=new Set<string>();
+    for(const [pairKey,dayCounts] of pairOccurrences){
+      if(weekdays.every(day=>dayCounts.get(day)===1))recurringElectivePairs.add(pairKey);
+    }
     let teachingCount=0,coveredCount=0;
     for(const weekday of weekdays)for(let period=1;period<=periodCount;period++){
       const assignments=slots.get(weekday+":"+period)||[];
@@ -102,7 +120,10 @@ export function aggregateClassTimetables(
       // same time are co-teachers, not duplicate lessons or a timetable clash.
       const identities=new Set(assignments.map(slotIdentity));
       if(assignments.length>1 && identities.size>1){
-        if(assignments.every(item=>item.status==="teaching"&&isOptionalGroup(item))){
+        const pairKey=assignments.map(item=>key(item.subject)).sort().join("||");
+        const explicitlyMarked=assignments.every(item=>item.status==="teaching"&&isOptionalGroup(item));
+        const safelyInferred=assignments.length===2&&assignments.every(item=>item.status==="teaching")&&recurringElectivePairs.has(pairKey);
+        if(explicitlyMarked||safelyInferred){
           parallelGroups.push({...position,assignments});
           coveredCount++;
           teachingCount++;
