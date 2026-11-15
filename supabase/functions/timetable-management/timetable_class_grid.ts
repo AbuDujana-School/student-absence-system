@@ -53,7 +53,7 @@ export function aggregateClassTimetables(
       if (!slots.has(slotKey)) slots.set(slotKey,[]);
       slots.get(slotKey)!.push({
         weekday:cell.weekday, period:Number(cell.period), subject:String(cell.subject||""),
-        teacherName:String(cell.matched_teacher_name||cell.teacher_source_name||""),
+        teacherName:String(cell.matched_teacher_name||""),
         status:String(cell.cell_status||"unclear"),
       });
     }
