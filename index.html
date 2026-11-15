@@ -8822,7 +8822,7 @@ function timetableBuildDayPreviewMarkup(preview, dayIndex=0) {
   }).join("");
   return '<div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">'+summary.map(function(item){return '<div class="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-900 p-3"><div class="text-[9px] text-slate-500">'+item[0]+'</div><div class="mt-1 text-lg font-black text-slate-800 dark:text-white tabular-nums">'+item[1]+'</div></div>';}).join("")+'</div>'+
     '<div class="flex flex-wrap items-center gap-2 text-[10px] text-slate-500"><span>مطابقة الأسماء: '+(matching.matched||0)+' مرتبطة</span><span>· '+(matching.unmatched||0)+' غير مرتبطة</span><span>· '+(matching.ambiguous||0)+' ملتبسة</span></div>'+
-    '<div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="min-w-[1050px] w-full text-right text-[10px]"><thead class="sticky top-0 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3">اسم المعلم والمطابقة</th>'+Array.from({length:7},(_,i)=>'<th class="p-3 text-center">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
+    '<div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700"><table class="min-w-[1050px] w-full text-right text-[10px]"><thead class="sticky top-0 bg-slate-100 dark:bg-slate-900 text-slate-600 dark:text-slate-300"><tr><th class="p-3">اسم المعلم والمطابقة</th>'+Array.from({length:7},(_,i)=>'<th class="p-3 text-center">الحصة '+(i+1)+'</th>').join("")+'</tr></thead><tbody>'+rows+'</tbody></table></div>'+(activeUser?.type === "admin" ? '<div class="flex justify-end pt-3"><button type="button" id="timetableSavePreviewDayButton-'+dayIndex+'" onclick="timetableSaveSinglePreviewDay('+dayIndex+')" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ هذا اليوم فقط</button></div>' : '');
 }
 function timetableOpenPreviewTeacherSchedule(dayIndex, teacherIndex) {
   const preview=timetableDayImportPreview, days=Array.isArray(preview?.days)?preview.days:(preview?[preview]:[]), baseDay=days[dayIndex], baseTeacher=baseDay?.teachers?.[teacherIndex];
@@ -9138,6 +9138,44 @@ async function timetableParseDayText() {
     timetableWeeklySetStatus(error?.message || "تعذر تحليل نص الجدول. تأكد من اكتمال الحصص السبع لكل معلم.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
 }
+async function timetablePersistPreviewDay(day, button) {
+  if (!day || !day.weekday) throw new Error("تعذر تحديد اليوم المراد حفظه.");
+  const sourceText = String(day.sourceText || timetableSerializePreviewDay(day) || "").trim();
+  if (!sourceText) throw new Error("بيانات اليوم فارغة بعد المعاينة. أعد تحليل اليوم.");
+  const teacherMatches = Object.fromEntries((day.teachers || []).map(teacher => [teacher.sourceName, teacher.matchedTeacherName || ""]));
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+  const response = await appAuthRequest({
+    action:"timetable_save_weekly_day", weekday:day.weekday, text:sourceText,
+    teachers:day.teachers || [], versionId:timetableWeeklyDraftId, teacherMatches
+  },token);
+  const result = response?.result || {};
+  const savedVersionId = result.version_id || result.versionId || result.id;
+  if (!savedVersionId) throw new Error("لم يصل تأكيد رقم المسودة من خدمة الحفظ.");
+  timetableWeeklyDraftId = savedVersionId;
+  timetableWeeklyDraftDays.add(day.weekday);
+  const activate = document.getElementById("timetableActivateWeekButton");
+  if (activate) activate.disabled = timetableWeeklyDraftDays.size !== 5;
+  return result;
+}
+async function timetableSaveSinglePreviewDay(dayIndex) {
+  const preview = timetableDayImportPreview;
+  const days = Array.isArray(preview?.days) ? preview.days : (preview ? [preview] : []);
+  const day = days[dayIndex];
+  if (!day) { timetableWeeklySetStatus("تعذر العثور على اليوم في المعاينة. أعد تحليل الجدول.", "error"); return; }
+  const button = document.getElementById("timetableSavePreviewDayButton-"+dayIndex);
+  const old = button?.innerHTML;
+  if (button) { button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ حفظ اليوم...'; }
+  try {
+    await timetablePersistPreviewDay(day, button);
+    timetableWeeklySetStatus("تم حفظ يوم "+day.weekday+" في مسودة الأسبوع. عدد المعلمين: "+(day.teachers||[]).length+"؛ عدد الخانات: "+(day.totalCells||0)+". الأيام المحفوظة: "+Array.from(timetableWeeklyDraftDays).join("، ")+".", "success");
+  } catch (error) {
+    const message = error?.message || error?.details || error?.hint || error?.code || "سبب غير محدد";
+    timetableWeeklySetStatus("تعذر حفظ يوم "+day.weekday+": "+message, "error");
+  } finally {
+    if (button) { button.disabled = false; button.innerHTML = old || '<i class="fa-solid fa-floppy-disk ml-1"></i> حفظ هذا اليوم فقط'; }
+  }
+}
 async function timetableSaveDayText() {
   const preview = timetableDayImportPreview;
   const selectedWeekday = document.getElementById("timetableTextWeekday")?.value || "";
@@ -9150,13 +9188,9 @@ async function timetableSaveDayText() {
   const button = document.getElementById("timetableSaveDayButton");
   const old = button.innerHTML; button.disabled = true; button.innerHTML = '<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ حفظ الأيام...';
   try {
-    const token = appAuthSession?.token || readAppAuthToken();
     const saved = [];
     for (const day of days) {
-      const teacherMatches = Object.fromEntries((day.teachers || []).map(teacher => [teacher.sourceName, teacher.matchedTeacherName || ""]));
-      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,text:day.sourceText,versionId:timetableWeeklyDraftId,teacherMatches},token);
-      timetableWeeklyDraftId = response.result.version_id;
-      timetableWeeklyDraftDays.add(day.weekday);
+      await timetablePersistPreviewDay(day, button);
       saved.push(day.weekday);
     }
     const activate = document.getElementById("timetableActivateWeekButton");
@@ -9166,7 +9200,8 @@ async function timetableSaveDayText() {
       : "حُفظ يوم "+saved[0]+" في مسودة الأسبوع. عدد المعلمين: "+days[0].teachers.length+"؛ عدد الخانات: "+days[0].totalCells+". الأيام المحفوظة: "+Array.from(timetableWeeklyDraftDays).join("، ")+".";
     timetableWeeklySetStatus(message,"success");
   } catch(error) {
-    timetableWeeklySetStatus((error?.message || "تعذر حفظ الجدول.") + " الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
+    const message = error?.message || error?.details || error?.hint || error?.code || "سبب غير محدد";
+    timetableWeeklySetStatus("تعذر حفظ الجدول: "+message+". الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
 }
 async function timetableActivateWeek() {
