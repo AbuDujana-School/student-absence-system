@@ -939,6 +939,16 @@ async function handle(req: Request) {
         if(normalized.some((item:any)=>!selectedNames.includes(item.absentTeacherName)||!item.substituteTeacherName||!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||7))){
           return reply(400,{error:"توجد حصة غير مكتملة أو معلم بديل غير صالح في التوزيع المقترح."});
         }
+        for(const item of normalized){
+          const substituteTeacher=directory.find((teacher:any)=>teacher.name===item.substituteTeacherName&&teacher.role==="teacher");
+          const absentTeacher=directory.find((teacher:any)=>teacher.name===item.absentTeacherName&&teacher.role==="teacher");
+          if(!substituteTeacher||!absentTeacher)return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل في دليل المعلمين."});
+          const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
+          if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل "+item.substituteTeacherName+" مكلف بالمناوبة في هذا اليوم."});
+          if(!includeOtherDepartments&&substituteTeacher.departmentId!==absentTeacher.departmentId){
+            return reply(403,{error:"المعلم البديل "+item.substituteTeacherName+" من قسم آخر. فعّل خيار إظهار الأقسام الأخرى إذا كان ذلك ضرورياً."});
+          }
+        }
         const {data,error}=await db.rpc("create_timetable_substitution_batch",{p_payload:{
           version_id:activeVersion.id,weekday,assignment_date:assignmentDate,absent_teacher_names:selectedNames,
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,
