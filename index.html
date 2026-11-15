@@ -9336,11 +9336,9 @@ function teacherTimetableRender() {
       const classList = Array.isArray(classValues)
         ? classValues.map(value => String(value || "").trim()).filter(Boolean)
         : String(classValues || "").split(/[،,]/).map(value => value.trim()).filter(Boolean);
+      const cellFrame = "h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800";
       if (!substitution && !isTeaching) {
-        const blankTone = isCurrent
-          ? "border-blue-300 bg-blue-50/70 ring-2 ring-inset ring-blue-300/70 dark:border-blue-700 dark:bg-blue-950/20"
-          : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900";
-        return '<td class="h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800"><div aria-label="لا توجد حصة" class="h-[62px] rounded-lg border ' + blankTone + '"></div></td>';
+        return '<td class="' + cellFrame + '" aria-label="حصة فارغة"></td>';
       }
       const tone = substitution
         ? "border-rose-200 bg-rose-100 text-rose-950 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100"
@@ -9348,18 +9346,11 @@ function teacherTimetableRender() {
           ? "border-blue-300 bg-blue-100 text-blue-950 ring-2 ring-inset ring-blue-400/70 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-100"
           : "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100";
       const classMarkup = classList.length
-        ? classList.map(value => ltrHtml(value)).join('<span class="mx-1 text-[9px] opacity-50">،</span>')
-        : '<span class="text-[10px] opacity-60">صف غير محدد</span>';
+        ? classList.map(value => '<bdi dir="ltr" class="inline-block font-bold">' + timetableEsc(formatClassName(value)) + '</bdi>').join('<span class="mx-1 text-[9px] opacity-50">،</span>')
+        : "";
       const subject = String(substitution?.subject || (isTeaching ? cell?.subject : "") || "").trim();
-      const reserveBadge = substitution
-        ? '<span class="mb-1 inline-flex rounded-full bg-rose-200/90 px-1.5 py-0.5 text-[8px] font-black text-rose-900 dark:bg-rose-900 dark:text-rose-100">احتياط</span>'
-        : "";
-      const currentBadge = isCurrent
-        ? '<span class="absolute left-1 top-1 rounded-md bg-blue-600 px-1 py-0.5 text-[8px] font-black text-white">الآن</span>'
-        : "";
-      return '<td class="h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800"><div class="relative flex h-[62px] flex-col items-center justify-center overflow-hidden rounded-lg border px-1.5 py-2 text-center ' + tone + '">' +
-        currentBadge + reserveBadge +
-        '<div class="text-[12px] font-black leading-tight" dir="rtl">' + classMarkup + '</div>' +
+      return '<td class="' + cellFrame + '"><div class="flex h-[62px] flex-col items-center justify-center overflow-hidden rounded-lg border px-1.5 py-2 text-center ' + tone + '">' +
+        (classMarkup ? '<div class="text-[12px] font-black leading-tight" dir="rtl">' + classMarkup + '</div>' : '') +
         (subject ? '<div class="mt-1 max-w-full truncate text-[9px] font-medium opacity-75">' + timetableEsc(subject) + '</div>' : '') +
         '</div></td>';
     }).join("");
@@ -9443,7 +9434,7 @@ async function teacherShowDailySubstitutionWelcome() {
       const values = Array.isArray(item.class_sections)
         ? item.class_sections.map(value => String(value || "").trim()).filter(Boolean)
         : String(item.class_sections || "").split(/[،,]/).map(value => value.trim()).filter(Boolean);
-      const classes = values.length ? values.map(value => ltrHtml(value)).join('<span class="mx-1 opacity-40">،</span>') : '<span class="font-bold">غير محدد</span>';
+      const classes = values.length ? values.map(value => ltrHtml(value)).join('<span class="mx-1 opacity-40">،</span>') : "";
       const period = Number(item.period);
       return '<div class="teacher-reserve-assignment flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/55 px-4 py-3 text-slate-800 shadow-sm backdrop-blur-md">' +
         '<div class="min-w-0"><span class="mb-1 block text-[10px] font-bold text-slate-500">الصف / الشعبة</span><div class="text-lg font-black">' + classes + '</div>' +
@@ -11629,8 +11620,8 @@ async function timetableSaveOwner() {
     <span class="teacher-reserve-sparkle left-8 top-10 text-xl" aria-hidden="true">✦</span><span class="teacher-reserve-sparkle right-10 top-24 text-sm" style="animation-delay:1s" aria-hidden="true">✧</span><span class="teacher-reserve-sparkle bottom-24 left-12 text-lg" style="animation-delay:1.7s" aria-hidden="true">✦</span>
     <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[1.7rem] border border-white/80 bg-white/60 text-4xl shadow-lg backdrop-blur-xl"><span class="teacher-reserve-flower" aria-hidden="true">🌷</span></div>
     <div class="mb-2 text-[10px] font-black tracking-[.18em] text-teal-700">رسالة تقدير من مدرسة أبو دجانة</div>
-    <h2 id="teacherReserveWelcomeTitle" class="text-2xl font-black text-slate-900 sm:text-3xl">صباح النشاط أيها المعلم المثابر</h2>
-    <p id="teacherReserveWelcomeMessage" class="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-700">لديك اليوم فرصة إضافية لصناعة أثر جميل في نفوس طلابنا. حضورك وعطاؤك يصنعان فرقاً، وشكراً لروحك التعاونية وحرصك الدائم 🌸</p>
+    <h2 id="teacherReserveWelcomeTitle" class="text-2xl font-black text-slate-900 sm:text-3xl">صباح الخير أيها المعلم المثابر</h2>
+    <p id="teacherReserveWelcomeMessage" class="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-700">لديك اليوم حصة احتياط، وهي فرصة إضافية لتصنع أثراً جميلاً في نفوس طلابنا. حضورك وعطاؤك يصنعان فرقاً، ونثق بقدرتك على تحويل هذه الحصة إلى تجربة إيجابية. شكراً لروحك التعاونية 🌸</p>
     <div class="my-5 flex items-center gap-3"><span class="h-px flex-1 bg-gradient-to-l from-transparent via-teal-300 to-transparent"></span><span class="text-lg">✨</span><span class="h-px flex-1 bg-gradient-to-r from-transparent via-rose-200 to-transparent"></span></div>
     <div class="mb-3 text-right text-xs font-black text-slate-700">تكليفات الاحتياط لهذا اليوم</div>
     <div id="teacherReserveWelcomeAssignments" class="space-y-2 text-right"></div>
