@@ -469,13 +469,15 @@
     const host=$("timetableDailyArchiveResults");if(!host)return;
     if(!reserveArchive.length){host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد سجلات احتياط محفوظة ضمن نطاق صلاحيتك.</div>';return;}
     const grouped=new Map();reserveArchive.forEach(item=>{const key=item.assignmentDate||"تاريخ غير محدد";if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(item);});
-    host.innerHTML=Array.from(grouped.entries()).map(([date,items])=>{
+    const activeTotal=reserveArchive.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status)).length;
+    const archivedTotal=reserveArchive.filter(item=>item.canEdit===false&&["assigned","confirmed"].includes(item.status)).length;
+    host.innerHTML='<div class="mb-3 grid gap-2 sm:grid-cols-2"><div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">السجلات النشطة القابلة للتعديل</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' سجل ضمن مهلة 20 ساعة</span></div><div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">الأرشيف للقراءة فقط</strong><span class="text-[10px] text-slate-600">'+archivedTotal+' سجل انتهت مهلة تعديله أو من إصدار سابق</span></div></div>'+Array.from(grouped.entries()).map(([date,items])=>{
       const editableItems=items.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
       const rows=items.map(item=>{
         const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
         const editable=item.canEdit!==false&&["assigned","confirmed"].includes(item.status);
         const readOnly=item.canEdit===false&&["assigned","confirmed"].includes(item.status);
-        return '<div class="tt-archive-row"><div><div class="text-xs font-black text-slate-800">'+esc(item.absentTeacherName)+" ← "+esc(item.substituteTeacherName)+'</div><small>الحصة '+Number(item.period)+" · "+esc(item.className||"—")+" · سبب الاحتياط: "+esc(item.reason||"-")+" · "+state+(readOnly?" · إصدار جدول سابق":"")+"</small></div>"+
+        return '<div class="tt-archive-row"><div><div class="text-xs font-black text-slate-800">'+esc(item.absentTeacherName)+" ← "+esc(item.substituteTeacherName)+'</div><small>الحصة '+Number(item.period)+" · "+esc(item.className||"—")+" · سبب الاحتياط: "+esc(item.reason||"-")+" · "+state+(readOnly?(Date.parse(item.createdAt||"")<=Date.now()-20*60*60*1000?" · انتهت مهلة 20 ساعة · للقراءة فقط":" · إصدار جدول سابق · للعرض فقط"):"")+"</small></div>"+
           (editable?'<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">إلغاء</button></div>':'<span class="text-[10px] text-slate-400">'+(readOnly?"إصدار سابق · للعرض فقط":state)+"</span>")+"</div>";
       }).join("");
       const dayButton=editableItems.length?'<button type="button" class="tt-action bg-indigo-700 text-white" data-tt-open-day-edit="'+esc(date)+'">فتح توزيع اليوم وتعديله ('+editableItems.length+')</button>':"";
