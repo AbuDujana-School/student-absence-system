@@ -1,4 +1,10 @@
 begin;
+create table if not exists public.teachers (
+  id bigserial primary key,
+  name text not null,
+  role text not null,
+  permissions jsonb not null default '{}'::jsonb
+);
 do $test$
 declare
   v_version uuid;
