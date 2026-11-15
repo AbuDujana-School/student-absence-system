@@ -6,7 +6,7 @@ const PX=[500,440,380,320,260,200,140,80];
 const DY=[700,600,500,400,300];
 function textAt(str:string,x:number,y:number,width=48){return {str,transform:[1,0,0,1,x-width/2,y-4],width,height:9};}
 function rotatedName(str:string){return {str,transform:[0,1,-1,0,15,400],width:340,height:9};}
-function rotatedNamePart(str:string,y:number){return {str,transform:[0,1,-1,0,15,y],width:60,height:9};}
+function rotatedNamePart(str:string,y:number,width=60){return {str,transform:[0,1,-1,0,15,y],width,height:9};}
 function makeTeacherPage(pageNumber=2,entries:any[]=[],periodCount=7,merged:Array<[number,number]>=[],teacherName="أحمد خالد محمد السالمي"){
  const items:any[]=[rotatedName(teacherName)];
  DAYS.forEach((day,i)=>items.push(textAt(day,560,DY[i],55)));
@@ -27,10 +27,10 @@ Deno.test("PDF parser rebuilds a teacher name split into vertically stacked frag
  const page=makeTeacherPage();
  page.items=page.items.filter((item:any)=>item.str!=="أحمد خالد محمد السالمي");
  page.items.unshift(
-  rotatedNamePart("السالمي",228),
-  rotatedNamePart("محمد",350),
-  rotatedNamePart("خالد",429),
-  rotatedNamePart("أحمد",492),
+  rotatedNamePart("السالمي",228,118),
+  rotatedNamePart("محمد",350,77),
+  rotatedNamePart("خالد",429,91),
+  rotatedNamePart("أحمد",492,58),
  );
  const parsed=parseTimetablePdfPages([page]);
  if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.join(" | "));
