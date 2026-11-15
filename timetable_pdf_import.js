@@ -254,7 +254,7 @@ function makePageGrid(page) {
   const periodTimes=[];
   if(orderedLabels.length>=7&&orderedLabels.length<=8){
     for(const label of orderedLabels){
-      const match=timeItems.filter(entry=>Math.abs(entry.pos.x-label.pos.x)<22)
+      const match=timeItems.filter(entry=>Math.abs(entry.pos.x-label.pos.x)<36)
         .sort((a,b)=>Math.abs(a.pos.x-label.pos.x)-Math.abs(b.pos.x-label.pos.x))[0];
       if(match)periodTimes.push(match);
     }
