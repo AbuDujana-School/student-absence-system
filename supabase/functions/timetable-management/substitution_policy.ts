@@ -215,7 +215,7 @@ export interface BatchSubstitutionPlan {
     substituteDailyTeachingCount:number; createsThreeConsecutive:boolean;
     candidateOptions:Array<{teacherName:string;pointsBalance:number;weeklyQuota:number;dailyTeachingCount:number;dailySubstitutionCount:number;occupiedPeriods:number[];adjacent:boolean;createsThreeConsecutive:boolean}>;
   }>;
-  unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string;blockReason:"daily_limit"|"no_available_teacher";blockedCandidateCount:number}>;
+  unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string;blockReason:"daily_limit"|"period_capacity"|"no_available_teacher";blockedCandidateCount:number}>;
   assignedCount:number; unassignedCount:number;
 }
 
@@ -418,7 +418,7 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       });
       const blockedCandidateCount=otherwiseEligible.filter(option=>Number(option.dailySubstitutionCount??0)>=2).length;
       unassigned.push({absentTeacherName:item.absent.name,weekday:item.lesson.weekday,period:item.lesson.period,
-        className:item.lesson.className,blockReason:blockedCandidateCount?"daily_limit":"no_available_teacher",
+        className:item.lesson.className,blockReason:candidateLists[i].length?"period_capacity":blockedCandidateCount?"daily_limit":"no_available_teacher",
         blockedCandidateCount,...(item.lesson.subject?{subject:item.lesson.subject}:{})});
       return;
     }
