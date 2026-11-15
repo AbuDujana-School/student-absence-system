@@ -21,6 +21,8 @@ on:
       - "supabase/functions/timetable-management/**"
       - "index.html"
       - "timetable-text.worker.js"
+      - "timetable_pdf_import.js"
+      - "timetable-pdf-import.js"
       - "supabase/migrations/**"
 
 jobs:
