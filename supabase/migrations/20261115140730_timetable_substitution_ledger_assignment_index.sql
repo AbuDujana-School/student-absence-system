@@ -1,2 +1,0 @@
-create index if not exists timetable_substitution_points_ledger_assignment_id_idx
-on public.timetable_substitution_points_ledger(assignment_id);
