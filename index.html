@@ -1995,7 +1995,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <div id="substitutionOtherDepartmentsWrap" class="hidden rounded-3xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/30">
       <label class="flex cursor-pointer items-start gap-3">
         <input id="substitutionOtherDepartments" type="checkbox" class="mt-1 h-4 w-4 accent-indigo-600">
-        <span><span class="block text-xs font-black text-indigo-900 dark:text-indigo-200">إظهار البدلاء من الأقسام الأخرى</span><span class="mt-1 block text-[10px] leading-5 text-indigo-800 dark:text-indigo-300">للمدير فقط، عند الضرورة. يبقى اختيار المعلم من قسمه هو الأساس.</span></span>
+        <span><span class="block text-xs font-black text-indigo-900 dark:text-indigo-200">إظهار البدلاء من الأقسام الأخرى</span><span class="mt-1 block text-[10px] leading-5 text-indigo-800 dark:text-indigo-300">للمدير أو المعلم المخوّل بتوزيع الاحتياط، عند الضرورة. تبقى قائمة الغائبين ضمن نطاق قسمك.</span></span>
       </label>
     </div>
     <div class="rounded-3xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-900 dark:bg-cyan-950/30">
@@ -11287,7 +11287,8 @@ async function timetableSaveOwner() {
     document.getElementById('substitutionView')?.classList.remove('hidden');
     const date=document.getElementById('substitutionDate');
     if(date&&!date.value)date.value=getOmanLocalDate();
-    document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',activeUser?.type!=='admin');
+    const canExpand=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',!canExpand);
     clearPlan();
     await window.substitutionLoadAbsentees();
     await window.substitutionLoadStats();

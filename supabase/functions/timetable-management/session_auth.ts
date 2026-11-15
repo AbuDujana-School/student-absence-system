@@ -106,9 +106,11 @@ export function canUseTimetableAction(
   ]).has(action);
 }
 
-/** Only the system administrator may broaden substitution beyond the actor's department. */
-export function canIncludeOtherDepartments(principalType: TimetablePrincipalType, requested: unknown): boolean {
-  return principalType === "admin" && requested === true;
+/** The administrator or a teacher explicitly granted reserve-distribution permission may broaden substitute candidates. */
+export function canIncludeOtherDepartments(
+  principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
+): boolean {
+  return requested === true && (principalType === "admin" || (principalType === "teacher" && hasReservePermission));
 }
 
 export function canAccessTeacherTimetablePortal(enabled: unknown, selectedTeacherNames: unknown, teacherName: string): boolean {

@@ -100,6 +100,7 @@ async function teacherDirectory() {
     departmentId: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
     departmentName: String(item.permissions?.category || item.permissions?.department_name || ""),
     personalDutyDay: String(item.permissions?.dutyDay || ""),
+    canManageSubstitutions: item.permissions?.reserve === true,
   })).filter((item: any) => item.name);
 }
 function timetableTeacherIdentityKey(value: unknown): string {
@@ -870,7 +871,7 @@ async function handle(req: Request) {
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
       const absentTeacherName=String(body.absentTeacherName||"").trim();
-      const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments);
+      const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true);
       if (body.action==="timetable_substitution_cancel") {
         if (!validUuid(body.assignmentId)) return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
         const {data:assignment,error}=await db.from("timetable_assignments").select("id,version_id,absent_teacher_name,weekday,assignment_date").eq("id",body.assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
