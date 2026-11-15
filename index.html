@@ -5847,6 +5847,7 @@ async function refreshActiveUserPermissions() {
 async function finalizeLoginState() {
   await refreshActiveUserPermissions();
   await timetableRefreshAccess();
+  if (activeUser?.type === "teacher") await teacherShowDailySubstitutionWelcome();
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   document.getElementById('activeUserName').textContent = activeUser.name;
@@ -9306,42 +9307,71 @@ function teacherTimetableRender() {
     status.textContent = current.period
       ? "الحصة الآن: " + (periodNamesMap[current.period] || ("الحصة " + current.period))
       : "لا توجد حصة جارية حسب الأوقات المضبوطة";
-    status.className = "rounded-xl px-3 py-2 text-[10px] font-black " + (current.period ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200" : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200");
+    status.className = "rounded-xl px-3 py-2 text-[10px] font-black " + (current.period
+      ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200"
+      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200");
   }
   const cells = Array.isArray(teacherTimetableData.cells) ? teacherTimetableData.cells : [];
   const assignments = (Array.isArray(teacherTimetableData.assignments) ? teacherTimetableData.assignments : [])
     .filter(item => item.assignment_type === "substitution" && item.status !== "cancelled");
   const days = SCHOOL_DAYS;
-  const periodCount = Math.max(Number(teacherTimetableData.version?.period_count) || 0, ...cells.map(cell => Number(cell.period) || 0), ...assignments.map(item => Number(item.period) || 0), 7);
-  host.innerHTML = days.map(day => {
+  const periodCount = 8;
+  const cellMap = new Map(cells.map(cell => [String(cell.weekday) + ":" + Number(cell.period), cell]));
+  const assignmentMap = new Map(assignments.map(item => [String(item.weekday) + ":" + Number(item.period) + ":" + String(item.assignment_date || ""), item]));
+  const today = getOmanLocalDate();
+  const dayHeaders = Array.from({length:periodCount}, (_,index) =>
+    '<th scope="col" class="min-w-[92px] border-b border-slate-200 bg-slate-50 px-2 py-3 text-center text-[11px] font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">' + (index+1) + '</th>'
+  ).join("");
+  const bodyRows = days.map(day => {
     const dateForDay = teacherTimetableDayDate(day);
-    const dayCells = cells.filter(cell => cell.weekday === day);
-    const dayAssignments = assignments.filter(item => item.weekday === day && (!item.assignment_date || item.assignment_date === dateForDay));
-    const rows = Array.from({length:periodCount}, (_,index) => {
+    const isToday = dateForDay === today;
+    const cellsHtml = Array.from({length:periodCount}, (_,index) => {
       const period = index + 1;
-      const cell = dayCells.find(item => Number(item.period) === period);
-      const substitution = dayAssignments.find(item => Number(item.period) === period);
+      const cell = cellMap.get(day + ":" + period);
+      const substitution = assignmentMap.get(day + ":" + period + ":" + dateForDay)
+        || assignmentMap.get(day + ":" + period + ":");
       const isCurrent = current.day === day && current.period === period;
-      const classes = substitution?.class_sections || cell?.class_sections || [];
-      const classText = Array.isArray(classes) ? classes.map(value => String(value || "").trim()).filter(Boolean).join("، ") : String(classes || "");
-      const subject = substitution?.subject || cell?.subject || "";
-      let tone = "border-slate-200 bg-white text-slate-700 dark:border-slate-700 dark:bg-white dark:text-slate-800";
-      if (substitution) tone = "border-rose-200 bg-rose-100 text-rose-900" + (isCurrent ? " ring-2 ring-blue-400/90 border-blue-400" : "");
-      else if (isCurrent) tone = "border-blue-300 bg-blue-100 text-blue-900 ring-2 ring-blue-300/70";
-      else if (cell?.cell_status === "teaching") tone = "border-emerald-200 bg-emerald-100 text-emerald-900";
-      const label = substitution
-        ? '<div class="space-y-1"><span class="inline-flex rounded-md bg-rose-200 px-2 py-1 text-[10px] font-black text-rose-900">حصة احتياط</span><span class="block text-xs font-black">' + timetableEsc(classText || "صف غير محدد") + '</span></div>'
-        : cell?.cell_status === "teaching" ? '<span class="text-xs font-black">' + timetableEsc(classText || "صف غير محدد") + '</span>'
-        : cell?.cell_status === "free" || !cell ? '<span class="text-[10px] font-bold text-slate-400">فارغة</span>'
-        : '<span class="text-[10px] font-bold">' + timetableEsc(({meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضحة"}[cell.cell_status] || "—")) + '</span>';
-      const subjectLine = (substitution || cell?.cell_status === "teaching") && subject
-        ? '<span class="mt-1 block text-[10px] font-semibold opacity-75">' + timetableEsc(subject) + '</span>' : "";
-      const nowBadge = isCurrent ? '<span class="rounded-md bg-blue-600 px-2 py-0.5 text-[9px] font-black text-white">الآن</span>' : "";
-      return '<div class="flex min-h-[58px] items-center justify-between gap-2 rounded-xl border px-3 py-2 ' + tone + '"><div class="min-w-0"><div class="mb-1 flex flex-wrap items-center gap-1"><span class="text-[10px] font-black opacity-70">' + timetableEsc(periodNamesMap[period]) + '</span>' + nowBadge + '</div>' + label + subjectLine + '</div></div>';
+      const isTeaching = cell?.cell_status === "teaching";
+      const classValues = substitution?.class_sections || (isTeaching ? cell?.class_sections : []);
+      const classList = Array.isArray(classValues)
+        ? classValues.map(value => String(value || "").trim()).filter(Boolean)
+        : String(classValues || "").split(/[،,]/).map(value => value.trim()).filter(Boolean);
+      if (!substitution && !isTeaching) {
+        const blankTone = isCurrent
+          ? "border-blue-300 bg-blue-50/70 ring-2 ring-inset ring-blue-300/70 dark:border-blue-700 dark:bg-blue-950/20"
+          : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900";
+        return '<td class="h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800"><div aria-label="لا توجد حصة" class="h-[62px] rounded-lg border ' + blankTone + '"></div></td>';
+      }
+      const tone = substitution
+        ? "border-rose-200 bg-rose-100 text-rose-950 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-100"
+        : isCurrent
+          ? "border-blue-300 bg-blue-100 text-blue-950 ring-2 ring-inset ring-blue-400/70 dark:border-blue-800 dark:bg-blue-950/60 dark:text-blue-100"
+          : "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100";
+      const classMarkup = classList.length
+        ? classList.map(value => ltrHtml(value)).join('<span class="mx-1 text-[9px] opacity-50">،</span>')
+        : '<span class="text-[10px] opacity-60">صف غير محدد</span>';
+      const subject = String(substitution?.subject || (isTeaching ? cell?.subject : "") || "").trim();
+      const reserveBadge = substitution
+        ? '<span class="mb-1 inline-flex rounded-full bg-rose-200/90 px-1.5 py-0.5 text-[8px] font-black text-rose-900 dark:bg-rose-900 dark:text-rose-100">احتياط</span>'
+        : "";
+      const currentBadge = isCurrent
+        ? '<span class="absolute left-1 top-1 rounded-md bg-blue-600 px-1 py-0.5 text-[8px] font-black text-white">الآن</span>'
+        : "";
+      return '<td class="h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800"><div class="relative flex h-[62px] flex-col items-center justify-center overflow-hidden rounded-lg border px-1.5 py-2 text-center ' + tone + '">' +
+        currentBadge + reserveBadge +
+        '<div class="text-[12px] font-black leading-tight" dir="rtl">' + classMarkup + '</div>' +
+        (subject ? '<div class="mt-1 max-w-full truncate text-[9px] font-medium opacity-75">' + timetableEsc(subject) + '</div>' : '') +
+        '</div></td>';
     }).join("");
-    const isToday = current.day === day;
-    return '<article class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900"><header class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-700 dark:bg-slate-800"><h3 class="text-sm font-black text-slate-900 dark:text-white">' + day + '</h3><span class="text-[9px] font-bold text-slate-500">' + (isToday ? "اليوم" : "") + '</span></header><div class="space-y-2 p-3">' + rows + '</div></article>';
+    return '<tr class="' + (isToday ? 'bg-cyan-50/30 dark:bg-cyan-950/10' : '') + '">' +
+      '<th scope="row" class="min-w-[92px] border-b border-l border-slate-200 bg-slate-50 px-2 py-3 text-center text-[11px] font-black text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100">' +
+      '<span class="block">' + day + '</span>' + (isToday ? '<span class="mt-1 inline-block rounded-full bg-cyan-100 px-2 py-0.5 text-[8px] font-black text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">اليوم</span>' : '') +
+      '</th>' + cellsHtml + '</tr>';
   }).join("");
+  host.innerHTML = '<div class="overflow-x-auto rounded-2xl border border-slate-200 shadow-sm dark:border-slate-700" dir="rtl">' +
+    '<table class="w-full min-w-[900px] table-fixed border-collapse text-center"><thead><tr>' +
+    '<th scope="col" class="min-w-[92px] border-b border-l border-slate-200 bg-slate-100 px-2 py-3 text-[11px] font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">اليوم</th>' +
+    dayHeaders + '</tr></thead><tbody>' + bodyRows + '</tbody></table></div>';
 }
 async function teacherTimetableLoad(showLoading = false) {
   if (teacherTimetableLoadBusy) return;
@@ -9356,7 +9386,7 @@ async function teacherTimetableLoad(showLoading = false) {
     teacherTimetableData = response;
     teacherTimetableLastFetchAt = Date.now();
     const title = document.getElementById("teacherTimetableTeacherName");
-    if (title) title.textContent = "المعلم: " + response.teacherName + (response.version?.version ? " · نسخة الجدول " + response.version.version : "");
+    if (title) title.textContent = "جدولي الأسبوعي · من الأحد إلى الخميس";
     if (!response.version || !Array.isArray(response.cells) || !response.cells.length) {
       if (status) { status.textContent = "لا يوجد جدول أسبوعي نشط مرتبط بحسابك حالياً. راجع مسؤول النظام."; status.classList.remove("hidden"); }
     } else if (status) status.classList.add("hidden");
@@ -9372,6 +9402,63 @@ async function teacherTimetableLoad(showLoading = false) {
     teacherTimetableLoadBusy = false;
   }
 }
+const TEACHER_RESERVE_WELCOME_KEY = "abuDujana_teacher_reserve_welcome_v1";
+function teacherReserveWelcomeStorageKey(teacherName, date) {
+  return TEACHER_RESERVE_WELCOME_KEY + ":" + encodeURIComponent(String(teacherName || "")) + ":" + date;
+}
+function teacherDismissReserveWelcome() {
+  const modal = document.getElementById("teacherReserveWelcomeModal");
+  const date = modal?.dataset.assignmentDate || getOmanLocalDate();
+  const teacher = activeUser?.name || "";
+  try { localStorage.setItem(teacherReserveWelcomeStorageKey(teacher,date), "1"); }
+  catch (error) { try { sessionStorage.setItem(teacherReserveWelcomeStorageKey(teacher,date), "1"); } catch (ignore) {} }
+  modal?.classList.add("hidden");
+  document.body.classList.remove("overflow-hidden");
+}
+async function teacherShowDailySubstitutionWelcome() {
+  if (activeUser?.type !== "teacher" || !teacherPortalCanAccess) return;
+  try {
+    if (!teacherTimetableData || Date.now() - teacherTimetableLastFetchAt > 60000) {
+      await teacherTimetableLoad(false);
+    }
+    const today = getOmanLocalDate();
+    const weekday = ({"Sunday":"الأحد","Monday":"الاثنين","Tuesday":"الثلاثاء","Wednesday":"الأربعاء","Thursday":"الخميس","Friday":"الجمعة","Saturday":"السبت"})[omanNowParts().weekday] || "";
+    if (!SCHOOL_DAYS.includes(weekday)) return;
+    const assignments = (Array.isArray(teacherTimetableData?.assignments) ? teacherTimetableData.assignments : [])
+      .filter(item => item.assignment_type === "substitution" && item.status !== "cancelled" &&
+        String(item.assignment_date || "") === today && String(item.weekday || "") === weekday)
+      .sort((a,b) => Number(a.period) - Number(b.period));
+    if (!assignments.length) return;
+    const storageKey = teacherReserveWelcomeStorageKey(activeUser.name,today);
+    try {
+      if (localStorage.getItem(storageKey) === "1") return;
+    } catch (error) {
+      try { if (sessionStorage.getItem(storageKey) === "1") return; } catch (ignore) {}
+    }
+    const modal = document.getElementById("teacherReserveWelcomeModal");
+    const list = document.getElementById("teacherReserveWelcomeAssignments");
+    if (!modal || !list) return;
+    modal.dataset.assignmentDate = today;
+    list.innerHTML = assignments.map(item => {
+      const values = Array.isArray(item.class_sections)
+        ? item.class_sections.map(value => String(value || "").trim()).filter(Boolean)
+        : String(item.class_sections || "").split(/[،,]/).map(value => value.trim()).filter(Boolean);
+      const classes = values.length ? values.map(value => ltrHtml(value)).join('<span class="mx-1 opacity-40">،</span>') : '<span class="font-bold">غير محدد</span>';
+      const period = Number(item.period);
+      return '<div class="teacher-reserve-assignment flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/50 bg-white/55 px-4 py-3 text-slate-800 shadow-sm backdrop-blur-md">' +
+        '<div class="min-w-0"><span class="mb-1 block text-[10px] font-bold text-slate-500">الصف / الشعبة</span><div class="text-lg font-black">' + classes + '</div>' +
+        (item.subject ? '<div class="mt-1 text-[10px] font-semibold text-slate-600">' + timetableEsc(item.subject) + '</div>' : '') + '</div>' +
+        '<div class="shrink-0 rounded-xl border border-cyan-200 bg-cyan-50/80 px-3 py-2 text-center"><span class="block text-[9px] font-bold text-cyan-800">الحصة</span><strong class="text-sm font-black text-cyan-950">' + timetableEsc(periodNamesMap[period] || String(period)) + '</strong></div>' +
+        '</div>';
+    }).join("");
+    modal.classList.remove("hidden");
+    document.body.classList.add("overflow-hidden");
+    requestAnimationFrame(() => document.getElementById("teacherReserveWelcomeOk")?.focus());
+  } catch (error) {
+    console.warn("تعذر عرض تنبيه حصة الاحتياط اليومية:", error?.message || "unknown");
+  }
+}
+
 async function openTeacherTimetableView() {
   if (!teacherPortalCanAccess || activeUser?.type !== "teacher") {
     showToast("خدمة الجدول الشخصي غير مفعّلة لحسابك أو لا يوجد جدول مرتبط بك.", "error");
@@ -11518,6 +11605,40 @@ async function timetableSaveOwner() {
   });
 })();
 </script>
+
+<style id="teacher-reserve-welcome-styles">
+  #teacherReserveWelcomeModal { background: radial-gradient(circle at 15% 15%,rgba(34,211,238,.24),transparent 34%),radial-gradient(circle at 85% 85%,rgba(244,114,182,.22),transparent 35%),rgba(7,18,38,.72); -webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px); }
+  #teacherReserveWelcomeModal .teacher-reserve-glass { position:relative;isolation:isolate;overflow:hidden;background:linear-gradient(145deg,rgba(255,255,255,.88),rgba(236,254,255,.72) 48%,rgba(255,241,242,.78));border:1px solid rgba(255,255,255,.72);box-shadow:0 28px 90px rgba(2,8,23,.36),inset 0 1px 0 rgba(255,255,255,.9);-webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px); }
+  #teacherReserveWelcomeModal .teacher-reserve-glass:before,#teacherReserveWelcomeModal .teacher-reserve-glass:after { content:"";position:absolute;z-index:-1;border-radius:9999px;filter:blur(2px);pointer-events:none; }
+  #teacherReserveWelcomeModal .teacher-reserve-glass:before { width:190px;height:190px;top:-90px;left:-65px;background:radial-gradient(circle,rgba(103,232,249,.55),transparent 70%); }
+  #teacherReserveWelcomeModal .teacher-reserve-glass:after { width:210px;height:210px;bottom:-125px;right:-75px;background:radial-gradient(circle,rgba(249,168,212,.42),transparent 70%); }
+  #teacherReserveWelcomeModal .teacher-reserve-flower { display:inline-block;animation:teacherFlowerFloat 3.8s ease-in-out infinite;filter:drop-shadow(0 5px 9px rgba(236,72,153,.22)); }
+  #teacherReserveWelcomeModal .teacher-reserve-sparkle { position:absolute;pointer-events:none;color:#d6a943;animation:teacherSparkle 3s ease-in-out infinite; }
+  #teacherReserveWelcomeModal .teacher-reserve-assignment { animation:teacherReserveRise .45s both; }
+  #teacherReserveWelcomeModal .teacher-reserve-assignment:nth-child(2){animation-delay:.08s}
+  #teacherReserveWelcomeModal .teacher-reserve-assignment:nth-child(3){animation-delay:.16s}
+  #teacherReserveWelcomeModal .teacher-reserve-ok { background:linear-gradient(110deg,#0f766e,#0891b2 52%,#0f766e);background-size:200% 100%;box-shadow:0 10px 26px rgba(8,145,178,.25);transition:transform .2s,box-shadow .2s,background-position .4s; }
+  #teacherReserveWelcomeModal .teacher-reserve-ok:hover { transform:translateY(-2px);background-position:100% 0;box-shadow:0 14px 32px rgba(8,145,178,.34); }
+  @keyframes teacherFlowerFloat { 0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-7px) rotate(5deg)} }
+  @keyframes teacherSparkle { 0%,100%{opacity:.25;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.2) rotate(35deg)} }
+  @keyframes teacherReserveRise { from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)} }
+  @media(prefers-reduced-motion:reduce){#teacherReserveWelcomeModal *,#teacherReserveWelcomeModal *:before,#teacherReserveWelcomeModal *:after{animation:none!important;transition:none!important}}
+</style>
+<div id="teacherReserveWelcomeModal" class="hidden fixed inset-0 z-[150] flex items-center justify-center overflow-y-auto p-3 sm:p-6" role="dialog" aria-modal="true" aria-labelledby="teacherReserveWelcomeTitle" aria-describedby="teacherReserveWelcomeMessage" dir="rtl">
+  <div class="teacher-reserve-glass relative my-auto w-full max-w-lg rounded-[2rem] px-5 py-7 text-center sm:px-8 sm:py-9">
+    <span class="teacher-reserve-sparkle left-8 top-10 text-xl" aria-hidden="true">✦</span><span class="teacher-reserve-sparkle right-10 top-24 text-sm" style="animation-delay:1s" aria-hidden="true">✧</span><span class="teacher-reserve-sparkle bottom-24 left-12 text-lg" style="animation-delay:1.7s" aria-hidden="true">✦</span>
+    <div class="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-[1.7rem] border border-white/80 bg-white/60 text-4xl shadow-lg backdrop-blur-xl"><span class="teacher-reserve-flower" aria-hidden="true">🌷</span></div>
+    <div class="mb-2 text-[10px] font-black tracking-[.18em] text-teal-700">رسالة تقدير من مدرسة أبو دجانة</div>
+    <h2 id="teacherReserveWelcomeTitle" class="text-2xl font-black text-slate-900 sm:text-3xl">صباح النشاط أيها المعلم المثابر</h2>
+    <p id="teacherReserveWelcomeMessage" class="mx-auto mt-3 max-w-md text-sm leading-7 text-slate-700">لديك اليوم فرصة إضافية لصناعة أثر جميل في نفوس طلابنا. حضورك وعطاؤك يصنعان فرقاً، وشكراً لروحك التعاونية وحرصك الدائم 🌸</p>
+    <div class="my-5 flex items-center gap-3"><span class="h-px flex-1 bg-gradient-to-l from-transparent via-teal-300 to-transparent"></span><span class="text-lg">✨</span><span class="h-px flex-1 bg-gradient-to-r from-transparent via-rose-200 to-transparent"></span></div>
+    <div class="mb-3 text-right text-xs font-black text-slate-700">تكليفات الاحتياط لهذا اليوم</div>
+    <div id="teacherReserveWelcomeAssignments" class="space-y-2 text-right"></div>
+    <div class="mt-5 rounded-2xl border border-amber-200/70 bg-amber-50/65 px-4 py-3 text-[11px] font-semibold leading-6 text-amber-900">كل حصة تقدمها هي فرصة جديدة للتأثير الإيجابي. نقدر تعاونك، ونتمنى لك يوماً مليئاً بالإنجاز 🌼</div>
+    <button id="teacherReserveWelcomeOk" type="button" onclick="teacherDismissReserveWelcome()" class="teacher-reserve-ok mt-6 w-full rounded-2xl px-6 py-3.5 text-sm font-black text-white focus:outline-none focus:ring-4 focus:ring-cyan-200">حسناً، بالتوفيق! 🌹</button>
+  </div>
+</div>
+
 <script src="./reserve-workflow.js"></script>
 </body>
 </html>
