@@ -1,3 +1,14 @@
+alter table public.timetable_assignment_audit
+  drop constraint if exists timetable_assignment_audit_action_check;
+alter table public.timetable_assignment_audit
+  add constraint timetable_assignment_audit_action_check
+  check (action = any (array[
+    'created'::text,
+    'cancelled'::text,
+    'admin_reset_subject_day'::text,
+    'admin_reset_all'::text
+  ]));
+
 create or replace function public.reset_timetable_substitution_records(p_payload jsonb)
 returns jsonb
 language plpgsql
