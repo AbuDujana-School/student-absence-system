@@ -289,7 +289,7 @@
         if (item.kind==="saved") {
           const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="cancelled"?"ملغى":"محفوظ";
           choice='<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"><div>البديل المحفوظ: '+esc(item.substituteTeacherName)+' · '+state+'</div><div class="mt-1 text-[10px] font-normal">سبب الاحتياط: '+esc(item.reason||"-")+'</div></div>';
-          action=["assigned","confirmed"].includes(item.status)?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button>':"";
+          action=["assigned","confirmed"].includes(item.status)&&item.canEdit!==false&&item.id?'<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">إلغاء</button></div>':(item.canEdit===false?'<span class="text-[10px] text-slate-400">إصدار سابق · للعرض فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
         } else {
           const candidates=item.candidateOptions||[];
           const options=candidates.map(candidate=>'<option value="'+esc(candidate.teacherName)+'" '+(draft?.substituteTeacherName===candidate.teacherName?"selected":"")+'>'+esc(candidate.teacherName)+' · رصيد '+Number(candidate.pointsBalance||0)+' · احتياط اليوم '+Number(candidate.dailySubstitutionCount||0)+'</option>').join("");
@@ -334,6 +334,7 @@
       persistStoredDraft();
     }));
     host.querySelectorAll("[data-tt-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttEdit)));
+    host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
   };
 
   window.timetableDailyAutoAssign = async function () {
@@ -442,12 +443,13 @@
         const editable=item.canEdit!==false&&["assigned","confirmed"].includes(item.status);
         const readOnly=item.canEdit===false&&["assigned","confirmed"].includes(item.status);
         return '<div class="tt-archive-row"><div><div class="text-xs font-black text-slate-800">'+esc(item.absentTeacherName)+" ← "+esc(item.substituteTeacherName)+'</div><small>الحصة '+Number(item.period)+" · "+esc(item.className||"—")+" · سبب الاحتياط: "+esc(item.reason||"-")+" · "+state+(readOnly?" · إصدار جدول سابق":"")+"</small></div>"+
-          (editable?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل الحصة</button>':'<span class="text-[10px] text-slate-400">'+(readOnly?"للعرض فقط":state)+"</span>")+"</div>";
+          (editable?'<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">إلغاء</button></div>':'<span class="text-[10px] text-slate-400">'+(readOnly?"إصدار سابق · للعرض فقط":state)+"</span>")+"</div>";
       }).join("");
       const dayButton=editableItems.length?'<button type="button" class="tt-action bg-indigo-700 text-white" data-tt-open-day-edit="'+esc(date)+'">فتح توزيع اليوم وتعديله ('+editableItems.length+')</button>':"";
       return '<details open class="rounded-xl border border-slate-200 bg-white p-3"><summary class="cursor-pointer text-xs font-black text-slate-800">'+esc(date)+" · "+items.length+' تكليف</summary><div class="mt-3 flex justify-end">'+dayButton+'</div><div class="mt-3 space-y-2">'+rows+"</div></details>";
     }).join("");
     host.querySelectorAll("[data-tt-archive-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttArchiveEdit)));
+    host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
     host.querySelectorAll("[data-tt-open-day-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveDayEdit(button.dataset.ttOpenDayEdit)));
   };
 
@@ -497,37 +499,70 @@
     }catch(error){status(error?.message||"تعذر فتح توزيع اليوم للتعديل.","error");}
   };
 
-  window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
-    const item=reserveArchive.find(row=>row.id===assignmentId);
-    if(!item){status("تعذر العثور على التكليف في الأرشيف. حدّث الأرشيف.","error");return;}
+
+  window.timetableDailyCancelAssignment = async function (assignmentId) {
+    const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
+    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف غير نشط أو مرتبط بإصدار جدول سابق؛ لا يمكن إلغاؤه من هذه الشاشة.","error");return;}
+    if(!window.confirm("سيتم إلغاء هذا التكليف المحدد فقط وإزالته من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
     try{
-      if(item.canEdit===false){status("هذا السجل مرتبط بإصدار جدول سابق؛ يمكن مراجعته لكن لا يمكن تعديله بأمان من الإصدار الحالي.","error");return;}
-      const preview=await fetchArchivePreview(item.absentTeacherName,item.assignmentDate,item.weekday);
-      const lesson=(preview.lessons||[]).find(row=>Number(row.period)===Number(item.period));
-      const candidates=lesson?.candidates||[];
+      const token=appAuthSession?.token||readAppAuthToken();
+      await appAuthRequest({action:"timetable_substitution_cancel",assignmentId,weekday:item.weekday,assignmentDate:item.assignmentDate},token);
+      status("تم إلغاء التكليف المحدد. بقي سجل العملية محفوظاً للمراجعة.","success");
+      await timetableDailyRefreshAll();
+      if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+    }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
+  };
+
+  window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
+    const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
+    try{
+      if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف مرتبط بإصدار سابق أو حالته غير نشطة؛ يمكن مراجعته فقط.","error");return;}
+      const token=appAuthSession?.token||readAppAuthToken();
+      const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
+      const absentNames=Array.isArray(directoryResult.absentTeachers)?directoryResult.absentTeachers:[];
+      if(!absentNames.includes(item.absentTeacherName))absentNames.unshift(item.absentTeacherName);
+      const initialPreview=await fetchArchivePreview(item.absentTeacherName,item.assignmentDate,item.weekday);
+      const initialLesson=(initialPreview.lessons||[]).find(row=>Number(row.period)===Number(item.period));
+      const makeOptions=(candidates,selected)=>{
+        const rows=Array.isArray(candidates)?candidates:[];
+        const choices=rows.filter(candidate=>candidate.name!==selected).map(candidate=>'<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · رصيد '+Number(candidate.pointsBalance||0)+'</option>').join("");
+        return '<option value="'+esc(selected)+'" selected>'+esc(selected)+' (الحالي)</option>'+choices;
+      };
       const modal=document.createElement("div");modal.id="timetableDailyArchiveEditModal";
       modal.className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-      modal.innerHTML='<div class="w-full max-w-lg space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"><div class="flex items-center justify-between"><div><h3 class="font-black text-base text-slate-900">تعديل تكليف الاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">'+esc(item.absentTeacherName)+" · الحصة "+Number(item.period)+" · "+esc(item.assignmentDate||"")+'</p></div><button type="button" data-close-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div>'+
-        '<label class="block text-xs font-black text-slate-700">المعلم البديل<select id="ttArchiveEditSubstitute" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs"><option value="'+esc(item.substituteTeacherName)+'">'+esc(item.substituteTeacherName)+" (الحالي)</option>"+
-        candidates.filter(candidate=>candidate.name!==item.substituteTeacherName).map(candidate=>'<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+" · رصيد "+Number(candidate.pointsBalance||0)+"</option>").join("")+
-        '</select></label><label class="block text-xs font-black text-slate-700">سبب الاحتياط (اختياري)<textarea id="ttArchiveEditReason" rows="2" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs" placeholder="اكتب السبب أو اتركه فارغاً">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label>'+
-        '<div id="ttArchiveEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex justify-end gap-2"><button type="button" data-close-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ التعديل</button></div></div>';
+      modal.innerHTML='<div class="max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-3xl border border-white/30 bg-white/95 p-5 shadow-2xl backdrop-blur-xl"><div class="flex items-center justify-between"><div><h3 class="font-black text-base text-slate-900">تعديل تكليف الاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">الحصة '+Number(item.period)+' · '+esc(item.assignmentDate||"")+'</p></div><button type="button" data-close-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div>'+
+        '<label class="block text-xs font-black text-slate-700">المعلم الغائب<select id="ttArchiveEditAbsent" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+absentNames.map(name=>'<option value="'+esc(name)+'" '+(name===item.absentTeacherName?"selected":"")+'>'+esc(name)+'</option>').join("")+'</select></label>'+
+        '<label class="block text-xs font-black text-slate-700">المعلم البديل<select id="ttArchiveEditSubstitute" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makeOptions(initialLesson?.candidates,item.substituteTeacherName)+'</select></label>'+
+        '<label class="block text-xs font-black text-slate-700">سبب الاحتياط (اختياري)<textarea id="ttArchiveEditReason" rows="2" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs" placeholder="اكتب السبب أو اتركه فارغاً">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label>'+
+        '<div id="ttArchiveEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex flex-wrap justify-end gap-2"><button type="button" data-close-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ التعديل</button></div></div>';
       document.body.appendChild(modal);
       modal.querySelectorAll("[data-close-edit]").forEach(button=>button.addEventListener("click",()=>modal.remove()));
+      const absentSelect=modal.querySelector("#ttArchiveEditAbsent"),subSelect=modal.querySelector("#ttArchiveEditSubstitute");
+      absentSelect.addEventListener("change",async()=>{
+        absentSelect.disabled=true;subSelect.disabled=true;
+        try{
+          const preview=await fetchArchivePreview(absentSelect.value,item.assignmentDate,item.weekday);
+          const lesson=(preview.lessons||[]).find(row=>Number(row.period)===Number(item.period));
+          subSelect.innerHTML=makeOptions(lesson?.candidates,item.substituteTeacherName);
+        }catch(error){
+          const box=modal.querySelector("#ttArchiveEditError");box.textContent=error?.message||"تعذر تحميل البدائل للمعلم الغائب المحدد.";box.classList.remove("hidden");
+        }finally{absentSelect.disabled=false;subSelect.disabled=false;}
+      });
       modal.querySelector("#ttArchiveEditSave").addEventListener("click",async()=>{
         const button=modal.querySelector("#ttArchiveEditSave"),errorBox=modal.querySelector("#ttArchiveEditError");
         button.disabled=true;button.textContent="جارٍ الحفظ...";
         try{
-          const token=appAuthSession?.token||readAppAuthToken();
-          await appAuthRequest({action:"timetable_substitution_update",assignmentId,
-            substituteTeacherName:modal.querySelector("#ttArchiveEditSubstitute").value,
-            reserveReason:modal.querySelector("#ttArchiveEditReason").value.trim()||"-",
-            includeOtherDepartments:includeOthers()},token);
-          modal.remove();status("تم حفظ التعديل مع الاحتفاظ بالتكليف السابق في سجل المراجعة.","success");
-          await timetableDailyLoadArchive();await timetableDailyRefreshAll();
+          await appAuthRequest({action:"timetable_substitution_update",assignmentId,absentTeacherName:absentSelect.value,substituteTeacherName:subSelect.value,reserveReason:modal.querySelector("#ttArchiveEditReason").value.trim()||"-",includeOtherDepartments:includeOthers()},token);
+          modal.remove();
+          if(absentSelect.value!==item.absentTeacherName&&!timetableDailyAbsentTeachers.includes(absentSelect.value)){timetableDailyAbsentTeachers.push(absentSelect.value);timetableDailyRenderTags();}
+          status("تم حفظ التعديل؛ أُبقي السجل السابق والجديد في سجل المراجعة.","success");
+          await timetableDailyRefreshAll();
+          if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
         }catch(error){errorBox.textContent=error?.message||"تعذر حفظ التعديل.";errorBox.classList.remove("hidden");button.disabled=false;button.textContent="حفظ التعديل";}
       });
-    }catch(error){status(error?.message||"تعذر تحميل بدائل الحصة لتعديل الأرشيف.","error");}
+    }catch(error){status(error?.message||"تعذر فتح نافذة تعديل تكليف الاحتياط.","error");}
   };
 
   window.timetableDailyPrintReport = async function () {
