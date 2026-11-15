@@ -22,13 +22,13 @@ function makeTeacherPage(pageNumber=2,entries:any[]=[],periodCount=7,merged:Arra
  return {pageNumber,width:595,height:842,items,verticalLines,horizontalLines:[]};
 }
 function cell(period:number,day:number,subject:string,groups="1/12"){return [textAt(subject,PX[period-1],DY[day],50),...(groups?[textAt(groups,PX[period-1]+3,DY[day]-13,40)]:[])];}
-const ROTATE_90=[0,1,-1,0,842,0] as const;
+const ROTATE_90=[0,1,1,0,0,0] as const;
 function rawRotatedText(str:string,x:number,y:number,width=58,height=8){
  return {str,transform:[0,height,-height,0,x,y],width,height};
 }
 function makeRotatedTeacherPage(pageNumber=2,withLesson=true){
  const raw:any[]=[];
- const dayX=[167,257,348,439,527],periodY=[46,152,257,365,470,576,681];
+ const dayX=[167,257,348,439,527],periodY=[681,576,470,365,257,152,46];
  const teacherParts=[["السالمي",258,118],["محمد",380,77],["خالد",459,91],["أحمد",522,58]] as const;
  for(const [name,y,width] of teacherParts)raw.push(rawRotatedText(name,41.76,y,width,29.9));
  DAYS.forEach((day,i)=>raw.push(rawRotatedText(day,dayX[i],754,70,27)));
@@ -41,8 +41,8 @@ function makeRotatedTeacherPage(pageNumber=2,withLesson=true){
  const verticalLines:any[]=[];
  const dayEdges=[dayX[0]-45-13.5, ...dayX.slice(0,4).map((x,i)=>(x+dayX[i+1])/2-13.5), dayX[4]+45-13.5];
  for(let day=0;day<5;day++)for(let p=0;p<6;p++){
-  const boundary=(periodY[p]+periodY[p+1])/2;
-  verticalLines.push({x:842-boundary-29,y1:dayEdges[day],y2:dayEdges[day+1]});
+  const boundary=((periodY[p]+29)+(periodY[p+1]+29))/2;
+  verticalLines.push({x:boundary,y1:dayEdges[day],y2:dayEdges[day+1]});
  }
  return {pageNumber,width:842,height:595,items,verticalLines,horizontalLines:[]};
 }
@@ -66,9 +66,9 @@ Deno.test("PDF parser normalizes rotated aSc pages and skips the aggregate cover
 });
 Deno.test("PDF viewport transforms rotate text matrices and horizontal grid dividers",()=>{
  const textItem=transformPdfTextItem({str:"الرياضيات",transform:[0,8,-8,0,167,681],width:50,height:8},ROTATE_90);
- if(textItem.transform[0]!==-8||textItem.transform[1]!==0||textItem.transform[4]!==161||textItem.transform[5]!==167)throw new Error("Text matrix was not rotated into landscape coordinates");
+ if(textItem.transform[0]!==8||textItem.transform[1]!==0||textItem.transform[4]!==681||textItem.transform[5]!==167)throw new Error("Text matrix was not rotated into landscape coordinates");
  const lines=transformPdfGridLines([{x1:100,x2:500,y:300}],[],ROTATE_90);
- if(lines.verticalLines.length!==1||lines.verticalLines[0].x!==542||lines.verticalLines[0].y1!==100||lines.verticalLines[0].y2!==500)throw new Error("Horizontal PDF divider was not converted to a vertical timetable divider");
+ if(lines.verticalLines.length!==1||lines.verticalLines[0].x!==300||lines.verticalLines[0].y1!==100||lines.verticalLines[0].y2!==500)throw new Error("Horizontal PDF divider was not converted to a vertical timetable divider");
 });
 Deno.test("PDF parser rebuilds a teacher name split into vertically stacked fragments",()=>{
  const page=makeTeacherPage();
