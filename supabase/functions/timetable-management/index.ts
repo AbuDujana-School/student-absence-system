@@ -985,7 +985,7 @@ async function handle(req: Request) {
         return reply(200,{ok:true,active:true,version:activeVersion,weekday,assignmentDate,absentTeachers:selectedNames,existingAssignments,...plan});
       }
       if(body.action==="timetable_substitution_stats"){
-        const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||teacher.departmentId===actorDepartmentId));
+        const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||includeOtherDepartments||teacher.departmentId===actorDepartmentId));
         const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution");
         const stats=visible.map((teacher:any)=>{
           const own=activeRows.filter((row:any)=>String(row.teacher_name)===teacher.name);

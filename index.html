@@ -11492,7 +11492,7 @@ async function timetableSaveOwner() {
     if(!weekday){root.textContent='الإحصائيات اليومية متاحة لأيام الدراسة من الأحد إلى الخميس.';return;}
     root.innerHTML='<p class="text-xs text-slate-400">جارٍ تحميل الأرصدة والإحصائيات...</p>';
     try{
-      const data=await appAuthRequest({action:'timetable_substitution_stats',weekday:weekday,assignmentDate:date},getToken());
+      const data=await appAuthRequest({action:'timetable_substitution_stats',weekday:weekday,assignmentDate:date,includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true},getToken());
       const own=data.ownStats;
       const ownCard=own?'<div class="mb-4 grid grid-cols-2 gap-2 sm:grid-cols-4">'+
         '<div class="rounded-2xl bg-cyan-50 p-3 dark:bg-cyan-950/30"><div class="text-[10px] text-cyan-700 dark:text-cyan-300">رصيد النقاط</div><strong class="mt-1 block text-xl text-cyan-900 dark:text-cyan-100">'+own.pointsBalance+'</strong></div>'+
@@ -11514,7 +11514,7 @@ async function timetableSaveOwner() {
   };
   document.addEventListener('DOMContentLoaded',function(){
     const other=document.getElementById('substitutionOtherDepartments');
-    if(other)other.addEventListener('change',function(){clearPlan();});
+    if(other)other.addEventListener('change',function(){clearPlan();window.substitutionLoadStats();});
   });
 })();
 </script>
