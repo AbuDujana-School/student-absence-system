@@ -167,9 +167,13 @@ async function handle(req: Request) {
           Number(record.period) >= 1 && Number(record.period) <= 8 && String(record.className || "").trim()
         ).flatMap((record: any) => {
           const owner = (parsed.teachers || []).find((teacher: any) => teacher.sourceName === record.teacherSourceName);
+          const subject = String(record.subject || "");
+          const normalizedSubject = subject.replace(/\s+/g, "");
+          const cellStatus = normalizedSubject.includes("اجتماع") ? "meeting" :
+            normalizedSubject.includes("فراغ") || normalizedSubject.includes("فارغ") ? "free" : "teaching";
           return String(record.className || "").split(/[،,؛;]+/).map((name: string) => name.trim()).filter(Boolean).map((className: string) => ({
-            weekday: record.weekday, period: Number(record.period), cell_status: "teaching",
-            class_sections: [className], subject: String(record.subject || ""),
+            weekday: record.weekday, period: Number(record.period), cell_status: cellStatus,
+            class_sections: [className], subject,
             matched_teacher_name: owner?.matchedTeacherName || null,
             teacher_source_name: String(record.teacherSourceName || ""),
           }));
