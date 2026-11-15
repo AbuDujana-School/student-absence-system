@@ -29,12 +29,6 @@
       if(saved.actor!==actor||saved.date!==current.date||saved.weekday!==current.weekday||
          !Number.isFinite(saved.savedAt)||Date.now()-saved.savedAt>8*60*60*1000){clearStoredDraft();return false;}
       if(!Array.isArray(saved.absentTeachers)||!saved.absentTeachers.length)return false;
-      const otherToggle=$("timetableSubstitutionOtherDepartments");
-      if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
-      const otherButton=$("timetableDailyOtherDepartmentsButton");
-      if(otherButton)otherButton.innerHTML=saved.includeOtherDepartments
-        ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
-        :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
       timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
       const otherToggle=$("timetableSubstitutionOtherDepartments");
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
