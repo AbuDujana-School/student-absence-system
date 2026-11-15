@@ -18,8 +18,8 @@ self.onmessage = async (event) => {
       if (!weekdays.has(day)) continue;
       tabularRows++;
       const period = Number(fields[2]);
-      if (!Number.isInteger(period) || period < 1 || period > 7) {
-        issues.push({line:i+1,message:"رقم الحصة يجب أن يكون من 1 إلى 7"});
+      if (!Number.isInteger(period) || period < 1 || period > 8) {
+        issues.push({line:i+1,message:"رقم الحصة يجب أن يكون من 1 إلى 8"});
         continue;
       }
       if (!fields[0]) issues.push({line:i+1,message:"اسم المعلم فارغ"});
