@@ -59,52 +59,35 @@ begin
    where version_id=v_version and action='department_reset_subject_day';
   if v_audit_count <> 2 then raise exception 'Expected two department-scope audit rows'; end if;
 
-  v_result := public.reset_timetable_substitution_records(jsonb_build_object(
-    'actor_name','مدير النظام العام','actor_type','admin','mode':'all_active'
-  ));
-  if (v_result->>'cancelled_count')::integer <> 2 then
-    raise exception 'Expected exactly two English assignments to be cancelled; got %', v_result->>'cancelled_count';
-  end if;
-
-  select count(*) into v_count from public.timetable_assignments
-   where version_id=v_version and assignment_type='substitution'
-     and assignment_date=date '2026-11-15' and subject='اللغة الإنجليزية'
-     and status='cancelled';
-  if v_count <> 2 then raise exception 'Subject/day reset did not cancel both matching assignments'; end if;
-
   select count(*) into v_count from public.timetable_assignments
    where version_id=v_version and assignment_type='substitution'
      and assignment_date=date '2026-11-15' and subject='العلوم'
      and status='assigned';
-  if v_count <> 1 then raise exception 'Subject/day reset changed another subject'; end if;
+  if v_count <> 1 then raise exception 'Department subject/day reset changed another subject'; end if;
 
   select count(*) into v_count from public.timetable_assignments
    where version_id=v_version and assignment_type='substitution'
      and assignment_date=date '2026-11-16' and status='assigned';
-  if v_count <> 1 then raise exception 'Subject/day reset changed another date'; end if;
+  if v_count <> 1 then raise exception 'Department subject/day reset changed another date'; end if;
 
   select count(*) into v_count from public.timetable_assignments
    where version_id=v_version and status='completed';
   if v_count <> 1 then raise exception 'Reset must preserve completed historical assignments'; end if;
 
-  select count(*) into v_audit_count from public.timetable_assignment_audit
-   where version_id=v_version and action='admin_reset_subject_day';
-  if v_audit_count <> 2 then raise exception 'Expected two audit rows for subject/day reset'; end if;
-
   v_result := public.reset_timetable_substitution_records(jsonb_build_object(
     'actor_name','مدير النظام العام','actor_type','admin','mode','all_active'
   ));
   if (v_result->>'cancelled_count')::integer <> 2 then
-    raise exception 'Expected remaining two active assignments to be cancelled; got %', v_result->>'cancelled_count';
+    raise exception 'Expected admin full reset to cancel the remaining two active assignments';
   end if;
 
   select count(*) into v_count from public.timetable_assignments
    where version_id=v_version and status in ('assigned','confirmed');
-  if v_count <> 0 then raise exception 'Full reset left active assignments'; end if;
+  if v_count <> 0 then raise exception 'Admin full reset left active assignments'; end if;
 
   select count(*) into v_audit_count from public.timetable_assignment_audit
    where version_id=v_version and action='admin_reset_all';
-  if v_audit_count <> 2 then raise exception 'Expected two audit rows for full reset'; end if;
+  if v_audit_count <> 2 then raise exception 'Expected two admin full-reset audit rows'; end if;
 end;
 $test$;
 rollback;
