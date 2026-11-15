@@ -367,6 +367,8 @@
       reserveManualChoices=Object.create(null);
       await timetableDailyRefreshAll();await timetableDailyLoadArchive();
       clearStoredDraft();
+      // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
+      if(typeof window.teacherShowDailySubstitutionWelcome==="function") await window.teacherShowDailySubstitutionWelcome();
     }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي. لم يتم حفظ جزء من العملية.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
   };
@@ -552,6 +554,57 @@
       if(table.style.tableLayout!=="fixed")table.style.tableLayout="fixed";
     }
   }
+  async function installDepartmentReserveTools() {
+    const panel=$("timetableSubstitutionPanel");
+    if(!panel || panel.dataset.departmentReserveTools==="1")return;
+    if(activeUser?.type!=="teacher" || activeUser?.permissions?.reserve!==true)return;
+    panel.dataset.departmentReserveTools="1";
+    const card=document.createElement("section");
+    card.id="ttDepartmentReserveTools";
+    card.className="mt-5 space-y-3 rounded-2xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50 p-4 shadow-sm";
+    card.innerHTML='<div class="flex items-start gap-3"><div class="rounded-xl bg-indigo-100 p-3 text-indigo-800"><i class="fa-solid fa-calendar-xmark"></i></div><div><h3 class="text-sm font-black text-slate-900">إدارة احتياط القسم</h3><p class="mt-1 text-[10px] leading-5 text-slate-600">يمكنك إلغاء سجلات احتياط مادتك في يوم محدد فقط. لا يؤثر الإجراء في بقية المواد أو الأيام، ويُحفظ في سجل التدقيق.</p></div></div>'+
+      '<div class="grid gap-3 rounded-xl border border-indigo-100 bg-white p-3 md:grid-cols-[1fr_1fr_auto] md:items-end">'+
+      '<label class="text-[10px] font-bold text-slate-600">تاريخ الاحتياط<input id="ttDepartmentResetDate" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label>'+
+      '<label class="text-[10px] font-bold text-slate-600">المادة<select id="ttDepartmentResetSubject" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="">حمّل مواد قسمك حسب التاريخ</option></select></label>'+
+      '<button type="button" id="ttDepartmentLoadSubjects" class="rounded-lg bg-slate-800 px-4 py-2 text-xs font-black text-white">عرض المواد</button>'+
+      '<button type="button" id="ttDepartmentResetSubjectDay" class="rounded-lg bg-indigo-700 px-4 py-2 text-xs font-black text-white md:col-span-3">إلغاء احتياط المادة في هذا اليوم فقط</button></div>'+
+      '<div id="ttDepartmentToolsStatus" class="hidden rounded-lg p-3 text-xs font-bold" role="status" aria-live="polite"></div>';
+    panel.appendChild(card);
+    const token=()=>appAuthSession?.token||readAppAuthToken();
+    const say=(message,error=false)=>{
+      const box=$("ttDepartmentToolsStatus");if(!box)return;
+      box.textContent=message;
+      box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");
+    };
+    const dateInput=$("ttDepartmentResetDate");
+    try{if(dateInput&&!dateInput.value)dateInput.value=timetableSubstitutionGetDate().date;}catch{}
+    $("ttDepartmentLoadSubjects")?.addEventListener("click",async()=>{
+      const date=dateInput?.value||"",select=$("ttDepartmentResetSubject"),button=$("ttDepartmentLoadSubjects");
+      if(!date){say("اختر التاريخ أولاً.",true);return;}
+      button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset_options",assignmentDate:date},token());
+        select.innerHTML='<option value="">اختر مادة من قسمك</option>'+
+          (result.subjects||[]).map(subject=>'<option value="'+esc(subject)+'">'+esc(subject)+'</option>').join("");
+        say((result.subjects||[]).length?"تم تحميل مواد قسمك التي لديها سجلات احتياط نشطة في هذا التاريخ.":"لا توجد سجلات احتياط نشطة لمواد قسمك في هذا التاريخ.");
+      }catch(error){say(error?.message||"تعذر تحميل مواد القسم.",true);}
+      finally{button.disabled=false;}
+    });
+    $("ttDepartmentResetSubjectDay")?.addEventListener("click",async()=>{
+      const date=dateInput?.value||"",subject=$("ttDepartmentResetSubject")?.value||"";
+      if(!date||!subject){say("حدد التاريخ والمادة أولاً.",true);return;}
+      if(!window.confirm("سيتم إلغاء سجلات احتياط مادة «"+subject+"» في تاريخ "+date+" فقط. ستبقى بقية المواد والأيام كما هي. هل تؤكد؟"))return;
+      const button=$("ttDepartmentResetSubjectDay");button.disabled=true;
+      try{
+        const result=await appAuthRequest({action:"timetable_substitution_reset",mode:"subject_day",assignmentDate:date,subject},token());
+        say("تم إلغاء "+Number(result.result?.cancelled_count||0)+" تكليف للمادة المحددة في هذا اليوم فقط.");
+        if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+        if(typeof window.timetableDailyRefreshAll==="function")await window.timetableDailyRefreshAll();
+      }catch(error){say(error?.message||"تعذر إلغاء سجلات المادة.",true);}
+      finally{button.disabled=false;}
+    });
+  }
+
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
     if(!panel || panel.dataset.adminReserveTools==="1" || appAuthSession?.principal?.type!=="admin")return;
@@ -651,10 +704,12 @@
 
   installReserveEnhancements();
   window.timetableDailyInstallAdminTools=installAdminReserveTools;
+  window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
+  installDepartmentReserveTools();
   installAdminReserveTools();
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const adminToolsObserver=new MutationObserver(()=>{installAdminReserveTools();applyTeacherTimetablePresentation();});
+    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();applyTeacherTimetablePresentation();});
     adminToolsObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
