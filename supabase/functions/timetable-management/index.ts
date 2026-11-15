@@ -914,9 +914,10 @@ async function handle(req: Request) {
       db.from("timetable_weekly_versions").select("id").eq("status","active").maybeSingle(),
     ]);
     if(activeVersionResult.error)throw activeVersionResult.error;
-    if(!activeVersionResult.data)return reply(200,{ok:true,departments:[]});
+    const activeVersionId=activeVersionResult.data?.id;
+    if(!activeVersionId)return reply(200,{ok:true,departments:[]});
     const teachingCells=await fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells")
-      .select("matched_teacher_name").eq("version_id",activeVersionResult.data.id)
+      .select("matched_teacher_name").eq("version_id",activeVersionId)
       .eq("cell_status","teaching").order("id").range(from,to));
     const teachersInActiveTimetable=new Set((teachingCells||[]).map((cell:any)=>String(cell.matched_teacher_name||"")).filter(Boolean));
     const actor = directory.find((teacher:any)=>teacher.name===principal.name);
