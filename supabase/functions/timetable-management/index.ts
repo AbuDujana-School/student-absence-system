@@ -525,8 +525,11 @@ async function handle(req: Request) {
       if (error) throw error;
       return reply(200, { ok: true, result: data, matchingTotals });
     } catch (error) {
-      console.error("Timetable day operation failed:", error instanceof Error ? error.message : "unknown");
-      return reply(400, { error: error instanceof Error ? error.message : "تعذر معالجة اليوم." });
+      const detail = error && typeof error === "object"
+        ? String((error as any).message || (error as any).details || (error as any).hint || (error as any).code || JSON.stringify(error))
+        : String(error || "سبب غير محدد");
+      console.error("Timetable day operation failed:", detail);
+      return reply(400, { error: detail || "تعذر معالجة اليوم." });
     }
   }
 

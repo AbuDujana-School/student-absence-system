@@ -9182,6 +9182,18 @@ async function timetableOpenWeeklyTeacherEditor(sourceName) {
   const select=document.getElementById("timetableWeeklyOwnerSelect");
   if(select)select.value=first.matchedTeacherName||"";
 }
+function timetableSerializePreviewDay(day) {
+  const labels = {teaching:"تدريس",free:"فراغ",meeting:"اجتماع",activity:"نشاط",other:"أخرى",unclear:"غير واضح"};
+  const safe = value => String(value == null ? "" : value).replace(/[\t\r\n]/g, " ").trim();
+  const rows = [];
+  (day?.teachers || []).forEach(teacher => (teacher.cells || []).slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(cell => {
+    const classText = safe((cell.classSections || []).join("، ") || cell.sourceClass || (cell.status === "free" ? "فراغ" : "غير محدد"));
+    const subjectText = safe(cell.sourceSubject || cell.subject || labels[cell.status] || "غير محدد");
+    const statusText = safe(cell.sourceStatus || labels[cell.status] || "غير واضح");
+    rows.push([safe(teacher.sourceName), safe(day.weekday), String(Number(cell.period)), classText, subjectText, statusText, safe(cell.sourceNote)].join("\t"));
+  }));
+  return rows.join("\n");
+}
 function timetableEditWeeklyPreviewCell(sourceName,weekday,period) {
   const days=Array.isArray(timetableDayImportPreview?.days)?timetableDayImportPreview.days:(timetableDayImportPreview?[timetableDayImportPreview]:[]);
   const day=days.find(item=>item.weekday===weekday);
@@ -9474,7 +9486,7 @@ async function timetableSaveDayText() {
     let targetVersionId = preview.createNewDraft ? (preview.targetVersionId || null) : timetableWeeklyDraftId;
     if (preview.createNewDraft && !targetVersionId) timetableWeeklyDraftDays = new Set();
     for (const day of days) {
-      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,versionId:targetVersionId},token);
+      const response = await appAuthRequest({action:"timetable_save_weekly_day",weekday:day.weekday,teachers:day.teachers,text:timetableSerializePreviewDay(day),versionId:targetVersionId},token);
       targetVersionId = response.result.version_id;
       if (preview.createNewDraft) preview.targetVersionId = targetVersionId;
       timetableWeeklyDraftId = targetVersionId;
@@ -9488,7 +9500,8 @@ async function timetableSaveDayText() {
       : "حُفظ يوم "+saved[0]+" في مسودة الأسبوع. عدد المعلمين: "+days[0].teachers.length+"؛ عدد الخانات: "+days[0].totalCells+". الأيام المحفوظة: "+Array.from(timetableWeeklyDraftDays).join("، ")+".";
     timetableWeeklySetStatus(message,"success");
   } catch(error) {
-    timetableWeeklySetStatus((error?.message || "تعذر حفظ الجدول.") + " الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
+    const detail=error?.message||error?.details||error?.hint||error?.code||"سبب غير محدد";
+    timetableWeeklySetStatus("تعذر حفظ الجدول: "+detail+". الأيام التي حُفظت قبل الخطأ تبقى في المسودة، ويمكن إعادة المحاولة بعد التصحيح.", "error");
   } finally { button.disabled = false; button.innerHTML = old; }
 }
 async function timetableSaveSinglePreviewDay(weekday) {
@@ -9512,7 +9525,7 @@ async function timetableSaveSinglePreviewDay(weekday) {
     const activate=document.getElementById("timetableActivateWeekButton");
     if(activate)activate.disabled=timetableWeeklyDraftDays.size!==5;
     timetableWeeklySetStatus("تم حفظ يوم "+day.weekday+" مستقلاً في المسودة. يمكنك إكمال بقية الأيام لاحقاً.","success");
-  }catch(error){timetableWeeklySetStatus(error?.message||"تعذر حفظ اليوم.","error");}
+  }catch(error){const detail=error?.message||error?.details||error?.hint||error?.code||"سبب غير محدد";timetableWeeklySetStatus("تعذر حفظ يوم "+weekday+": "+detail,"error");}
 }
 async function timetableActivateWeek() {
   if (Array.isArray(timetableDayImportPreview?.periodTimes) && !timetablePdfTimesMatch(timetableDayImportPreview.periodTimes)) {
