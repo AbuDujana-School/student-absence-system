@@ -7,8 +7,17 @@ declare
   v_audit_count integer;
 begin
   insert into public.timetable_weekly_versions(version,status,created_by,period_count)
-  values (9801,'draft','admin-reset-test',8)
+  values (9801,'active','admin-reset-test',8)
   returning id into v_version;
+
+  insert into public.teachers(name,role,permissions)
+  values ('Reserve reset EN coordinator','teacher',jsonb_build_object('category','اللغة الإنجليزية','reserve',true));
+
+  insert into public.timetable_weekly_cells(
+    version_id,teacher_source_name,matched_teacher_name,match_status,weekday,period,cell_status,class_sections,subject
+  ) values (
+    v_version,'Reserve reset EN coordinator','Reserve reset EN coordinator','matched','الأحد',1,'teaching','["10/1"]'::jsonb,'اللغة الإنجليزية'
+  );
 
   insert into public.timetable_assignments(
     version_id,teacher_name,assignment_type,weekday,period,assignment_date,subject,status,created_by
@@ -19,18 +28,39 @@ begin
     (v_version,'Substitute EN Other Day','substitution','الاثنين',1,date '2026-11-16','اللغة الإنجليزية','assigned','admin-reset-test'),
     (v_version,'Substitute Completed','substitution','الأحد',4,date '2026-11-15','اللغة الإنجليزية','completed','admin-reset-test');
 
+  v_result := public.reset_timetable_substitution_records(jsonb_build_object(
+    'actor_name','Reserve reset EN coordinator','actor_type','teacher','mode','subject_day',
+    'assignment_date','2026-11-15','subject','اللغة الإنجليزية'
+  ));
+  if (v_result->>'cancelled_count')::integer <> 2 then
+    raise exception 'Department coordinator should cancel exactly two English assignments';
+  end if;
+
   begin
     perform public.reset_timetable_substitution_records(jsonb_build_object(
-      'actor_name','Not Admin','actor_type','teacher','mode','all_active'
+      'actor_name','Reserve reset EN coordinator','actor_type','teacher','mode','subject_day',
+      'assignment_date','2026-11-15','subject','العلوم'
     ));
-    raise exception 'A non-admin reset unexpectedly succeeded';
+    raise exception 'A coordinator unexpectedly cancelled another department subject';
   exception when others then
-    if sqlerrm = 'A non-admin reset unexpectedly succeeded' then raise; end if;
+    if sqlerrm = 'A coordinator unexpectedly cancelled another department subject' then raise; end if;
   end;
 
+  begin
+    perform public.reset_timetable_substitution_records(jsonb_build_object(
+      'actor_name','Reserve reset EN coordinator','actor_type','teacher','mode','all_active'
+    ));
+    raise exception 'A department coordinator unexpectedly performed a full reset';
+  exception when others then
+    if sqlerrm = 'A department coordinator unexpectedly performed a full reset' then raise; end if;
+  end;
+
+  select count(*) into v_audit_count from public.timetable_assignment_audit
+   where version_id=v_version and action='department_reset_subject_day';
+  if v_audit_count <> 2 then raise exception 'Expected two department-scope audit rows'; end if;
+
   v_result := public.reset_timetable_substitution_records(jsonb_build_object(
-    'actor_name','مدير النظام العام','actor_type','admin','mode','subject_day',
-    'assignment_date','2026-11-15','subject','اللغة الإنجليزية'
+    'actor_name','مدير النظام العام','actor_type','admin','mode':'all_active'
   ));
   if (v_result->>'cancelled_count')::integer <> 2 then
     raise exception 'Expected exactly two English assignments to be cancelled; got %', v_result->>'cancelled_count';
