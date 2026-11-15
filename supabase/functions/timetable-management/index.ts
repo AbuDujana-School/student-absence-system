@@ -559,7 +559,7 @@ async function handle(req: Request) {
         }
       } else {
         const sourceText = String(body.text || "");
-        if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً." });
+        if ((!sourceText.trim() && (body.allowEmptyDay !== true || principal.type !== "admin")) || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً، أو فعّل حفظ اليوم الفارغ بصلاحية المدير." });
         parsed = parseTimetableDay(weekday, sourceText);
         if (parsed.teachers.length > 500) throw new Error("عدد المعلمين في النص غير صالح.");
         matchedTeachers = parsed.teachers.map((teacher: any) => {
