@@ -91,6 +91,18 @@
       const description = title.parentElement?.querySelector("p");
       if (description) description.textContent = "حدد المعلمين الغائبين، وسيحلل النظام جميع حصصهم معاً ليقترح توزيعاً متوازناً قبل الحفظ.";
       title.parentElement?.classList.add("rounded-2xl", "bg-gradient-to-l", "from-slate-950", "via-slate-900", "to-emerald-950", "p-5", "text-white", "shadow-lg");
+      title.parentElement?.insertAdjacentHTML("afterend",
+        '<nav class="tt-reserve-steps tt-no-print" aria-label="خطوات توزيع الاحتياط">' +
+        '<button type="button" data-reserve-step="1"><span>١</span><strong>تحديد الغياب</strong><small>اختر التاريخ والمعلمين</small></button>' +
+        '<button type="button" data-reserve-step="2"><span>٢</span><strong>التوزيع الذكي</strong><small>حلّل جميع الحصص</small></button>' +
+        '<button type="button" data-reserve-step="3"><span>٣</span><strong>المراجعة والحفظ</strong><small>راجع البدلاء ثم احفظ</small></button>' +
+        '</nav>');
+      title.parentElement?.parentElement?.querySelectorAll("[data-reserve-step]").forEach(button=>button.addEventListener("click",()=>{
+        const target=button.dataset.reserveStep==="1"?$("timetableDailyAbsentSearch"):
+          button.dataset.reserveStep==="2"?panel.querySelector('button[onclick*="timetableDailyAutoAssign"]'):$("timetableSubstitutionResults");
+        target?.scrollIntoView({behavior:"smooth",block:"center"});
+        if(button.dataset.reserveStep==="1")$("timetableDailyAbsentSearch")?.focus({preventScroll:true});
+      }));
     }
     const toolbar = panel.querySelector(".tt-toolbar");
     if (toolbar) {
@@ -139,6 +151,12 @@
     style.id = "reserve-workflow-styles";
     style.textContent = [
       "#timetableSubstitutionPanel{isolation:isolate}",
+      "#timetableSubstitutionPanel .tt-reserve-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;margin:.2rem 0}",
+      "#timetableSubstitutionPanel .tt-reserve-steps button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;column-gap:.55rem;text-align:right;padding:.7rem;border:1px solid #dbe4ed;border-radius:1rem;background:#f8fafc;min-width:0}",
+      "#timetableSubstitutionPanel .tt-reserve-steps button span{grid-row:1/3;display:grid;place-items:center;width:2rem;height:2rem;border-radius:.7rem;background:#d1fae5;color:#065f46;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-reserve-steps button strong{font-size:.72rem;color:#0f172a}",
+      "#timetableSubstitutionPanel .tt-reserve-steps button small{font-size:.58rem;color:#64748b}",
+      "@media(max-width:520px){#timetableSubstitutionPanel .tt-reserve-steps{grid-template-columns:1fr}#timetableSubstitutionPanel .tt-reserve-steps button{grid-template-columns:2rem 1fr;grid-template-rows:auto auto}}",
       "#timetableSubstitutionPanel .tt-lesson{border-color:#dbe4ed;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 5px 18px rgba(15,23,42,.045);border-radius:1rem}",
       "#timetableSubstitutionPanel .tt-lesson:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.1)}",
       "#timetableSubstitutionPanel .tt-lesson-choice{min-width:0}",
