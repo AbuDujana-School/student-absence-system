@@ -155,7 +155,7 @@ async function getActiveDepartmentSubjects(departmentId: string): Promise<string
   if (versionError) throw versionError;
   if (!version) return [];
   const { data: cells, error } = await db.from("timetable_weekly_cells")
-    .select("subject").eq("version_id", version.id).in("matched_teacher_name", teacherNames);
+    .select("subject").eq("version_id", version.id).eq("cell_status","teaching").in("matched_teacher_name", teacherNames);
   if (error) throw error;
   return [...new Set((cells || []).map((cell: any) => String(cell.subject || "").trim()).filter(Boolean))]
     .sort((a,b) => a.localeCompare(b,"ar"));
