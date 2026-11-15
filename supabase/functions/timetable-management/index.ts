@@ -909,12 +909,21 @@ async function handle(req: Request) {
 
   if (action === "timetable_substitution_departments") {
     if (principal.type !== "admin" && principal.type !== "teacher") return reply(403,{error:"اختيار قسم آخر متاح لموزّعي الاحتياط المعتمدين فقط."});
-    const directory = await teacherDirectory();
+    const [directory, activeVersionResult] = await Promise.all([
+      teacherDirectory(),
+      db.from("timetable_weekly_versions").select("id").eq("status","active").maybeSingle(),
+    ]);
+    if(activeVersionResult.error)throw activeVersionResult.error;
+    if(!activeVersionResult.data)return reply(200,{ok:true,departments:[]});
+    const teachingCells=await fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells")
+      .select("matched_teacher_name").eq("version_id",activeVersionResult.data.id)
+      .eq("cell_status","teaching").order("id").range(from,to));
+    const teachersInActiveTimetable=new Set((teachingCells||[]).map((cell:any)=>String(cell.matched_teacher_name||"")).filter(Boolean));
     const actor = directory.find((teacher:any)=>teacher.name===principal.name);
     if (principal.type !== "admin" && actor?.canManageSubstitutions !== true) return reply(403,{error:"لا تملك صلاحية اختيار بدلاء من قسم آخر."});
     const ownDepartment = String(actor?.departmentId||"");
     const departments = [...new Map(directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId&&
-      (principal.type==="admin"||teacher.departmentId!==ownDepartment))
+      teachersInActiveTimetable.has(teacher.name)&&(principal.type==="admin"||teacher.departmentId!==ownDepartment))
       .map((teacher:any)=>[String(teacher.departmentId),{
         id:String(teacher.departmentId),name:String(teacher.departmentName||teacher.departmentId)
       }])).values()].sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"));
