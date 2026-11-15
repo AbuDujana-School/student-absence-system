@@ -174,10 +174,16 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
 import { canUseTimetableAction } from "../session_auth.ts";
 
 Deno.test("non-admin substitution access requires the correct explicit authorization", () => {
-  const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own","teacher_substitution_get_today"];
+  const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own"];
   for (const action of allowed) {
     if (!canUseTimetableAction("teacher", action)) throw new Error("Expected teacher read action to be allowed: " + action);
     if (!canUseTimetableAction("custom", action)) throw new Error("Expected custom read action to be allowed: " + action);
+  }
+  if (!canUseTimetableAction("teacher", "teacher_substitution_get_today")) {
+    throw new Error("Teacher daily reserve notice action was denied");
+  }
+  if (canUseTimetableAction("custom", "teacher_substitution_get_today")) {
+    throw new Error("Custom account gained teacher-only daily reserve notice access");
   }
   for (const action of ["timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel"]) {
     if (canUseTimetableAction("teacher", action)) throw new Error("Teacher without reserve permission was allowed: " + action);
