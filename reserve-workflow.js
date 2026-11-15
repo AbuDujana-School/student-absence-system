@@ -692,14 +692,15 @@
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
       const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
       let message="*توزيع حصص الاحتياط*\n*لمادة "+subject+"*\n\n*"+weekday+"*\n_"+formatReserveDateArabic(date)+"_\n\n";
+      const absentOrdinals=["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر"];
       groups.forEach((group,index)=>{
-        const heading=groups.length===1?group.absentName:"المعلم الغائب "+(index+1)+": "+group.absentName;
-        message+="*"+heading+"*\n\n";
-        group.rows.forEach(row=>{
-          message+="الحصة "+formatReservePeriod(row.period)+" – الصف "+(row.className||"غير محدد")+"\n";
+        if(groups.length>1)message+="*المعلم الغائب "+(absentOrdinals[index]||String(index+1))+"*\n";
+        message+="*"+group.absentName+"*\n\n";
+        group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(row=>{
+          message+="الحصة "+formatReservePeriod(row.period)+"، الصف "+(row.className||"غير محدد")+"\n";
           message+="المعلم البديل: *"+(row.substitute||"لم يحدد")+"*\n\n";
         });
-        if(index<groups.length-1)message+="\n";
+        if(index<groups.length-1)message+="\n\n";
       });
       popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
     }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
