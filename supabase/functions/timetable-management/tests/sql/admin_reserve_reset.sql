@@ -28,14 +28,14 @@ begin
     (v_version,'Reserve reset SCI teacher','Reserve reset SCI teacher','matched','الأحد',2,'teaching','["10/2"]'::jsonb,'اللغة الإنجليزية');
 
   insert into public.timetable_assignments(
-    version_id,teacher_name,assignment_type,weekday,period,assignment_date,subject,status,created_by
+    version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,assignment_date,subject,status,created_by
   ) values
-    (v_version,'Substitute EN 1','substitution','الأحد',1,date '2026-11-15','اللغة الإنجليزية','assigned','admin-reset-test'),
-    (v_version,'Substitute EN 2','substitution','الأحد',2,date '2026-11-15','اللغة الإنجليزية','confirmed','admin-reset-test'),
-    (v_version,'Substitute SCI','substitution','الأحد',3,date '2026-11-15','العلوم','assigned','admin-reset-test'),
-    (v_version,'Substitute EN Other Department','substitution','الأحد',5,date '2026-11-15','اللغة الإنجليزية','assigned','admin-reset-test'),
-    (v_version,'Substitute EN Other Day','substitution','الاثنين',1,date '2026-11-16','اللغة الإنجليزية','assigned','admin-reset-test'),
-    (v_version,'Substitute Completed','substitution','الأحد',4,date '2026-11-15','اللغة الإنجليزية','completed','admin-reset-test');
+    (v_version,'Substitute EN 1','Reserve reset EN coordinator','substitution','الأحد',1,date '2026-11-15','اللغة الإنجليزية','assigned','admin-reset-test'),
+    (v_version,'Substitute EN 2','Reserve reset EN coordinator','substitution','الأحد',2,date '2026-11-15','اللغة الإنجليزية','confirmed','admin-reset-test'),
+    (v_version,'Substitute SCI','Reserve reset EN coordinator','substitution','الأحد',3,date '2026-11-15','العلوم','assigned','admin-reset-test'),
+    (v_version,'Substitute EN Other Department','Reserve reset SCI teacher','substitution','الأحد',5,date '2026-11-15','اللغة الإنجليزية','assigned','admin-reset-test'),
+    (v_version,'Substitute EN Other Day','Reserve reset EN coordinator','substitution','الاثنين',1,date '2026-11-16','اللغة الإنجليزية','assigned','admin-reset-test'),
+    (v_version,'Substitute Completed','Reserve reset EN coordinator','substitution','الأحد',4,date '2026-11-15','اللغة الإنجليزية','completed','admin-reset-test');
 
   v_result := public.reset_timetable_substitution_records(jsonb_build_object(
     'actor_name','Reserve reset EN coordinator','actor_type','teacher','mode','subject_day',
