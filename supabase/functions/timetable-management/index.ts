@@ -1044,6 +1044,8 @@ async function handle(req: Request) {
         if(!absentTeacherName||!substitute||!Number.isInteger(period)||period<1||period>Number(activeVersion.period_count||7)||!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate))return reply(400,{error:"حدد التاريخ والمعلم الغائب والبديل والحصة."});
         const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
         if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
+        if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId)return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
+        if(!includeOtherDepartments && substituteTeacher.departmentId!==absent?.departmentId)return reply(403,{error:"المعلم البديل من قسم آخر."});
         const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
         if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
@@ -1147,6 +1149,9 @@ async function handle(req: Request) {
           if(!substituteTeacher||!absentTeacher)return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل في دليل المعلمين."});
           const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
           if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل "+item.substituteTeacherName+" مكلف بالمناوبة في هذا اليوم."});
+          if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId){
+            return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
+          }
           if(!includeOtherDepartments&&substituteTeacher.departmentId!==absentTeacher.departmentId){
             return reply(403,{error:"المعلم البديل "+item.substituteTeacherName+" من قسم آخر. فعّل خيار إظهار الأقسام الأخرى إذا كان ذلك ضرورياً."});
           }
