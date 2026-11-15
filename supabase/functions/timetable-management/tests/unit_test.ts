@@ -472,3 +472,28 @@ Deno.test("batch planner skips already-saved absent-teacher lessons instead of d
   equal(plan.assignedCount,1,"Only the not-yet-assigned lesson should be proposed");
   equal(plan.assignments[0].period,2,"The already-saved lesson must not be duplicated");
 });
+
+
+Deno.test("manual override options retain teachers who already have one daily cover", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent",name:"غائب",departmentId:"science",pointsBalance:0},
+    {id:"fresh",name:"بديل جديد",departmentId:"science",pointsBalance:3},
+    {id:"one-cover",name:"بديل بحصة",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const teacher of teachers){
+    for(let period=1;period<=3;period++){
+      timetable.push({teacherId:teacher.id,weekday:"الأحد",period,className:"",status:teacher.id==="absent"&&period===1?"teaching":"free"});
+    }
+  }
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[{
+      substituteTeacherId:"one-cover",weekday:"الأحد",period:3,assignmentDate:"2026-11-15",
+      versionId:"active",assignmentType:"substitution",status:"assigned",
+    }],
+    absentTeachers:[{id:"absent",name:"غائب",departmentId:"science"}],
+    weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignments[0].substituteTeacherName,"بديل جديد","The automatic suggestion should prefer a teacher with no daily cover");
+  assert(plan.assignments[0].candidateOptions.some(option=>option.teacherName==="بديل بحصة"&&option.dailySubstitutionCount===1),"A one-cover teacher remains available for manual override up to the two-cover cap");
+});

@@ -245,7 +245,8 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       excludedTeacherIds,maxDailySubstitutions:limit,
     });
     const firstPass=candidatesFor(1);
-    const rankedCandidates=firstPass.length?firstPass:candidatesFor(2);
+    const allCandidates=candidatesFor(2);
+    const rankedCandidates=firstPass.length?firstPass:allCandidates;
     const candidate=rankedCandidates[0];
     if(!candidate){
       unassigned.push({absentTeacherName:absent.name,weekday:lesson.weekday,period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{})});
@@ -262,7 +263,7 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       points,pointsBalanceAfter:teacher.pointsBalance??0,absentPointsBalanceAfter:absentTeacher?.pointsBalance??0,
       substituteDailyTeachingCount:candidate.dailyTeachingCount??0,
       createsThreeConsecutive:candidate.wouldCreateTriple===true,
-      candidateOptions:rankedCandidates.map(option=>({
+      candidateOptions:allCandidates.map(option=>({
         teacherName:option.name,pointsBalance:option.pointsBalance??0,weeklyQuota:option.weeklyQuota??0,
         dailyTeachingCount:option.dailyTeachingCount??0,dailySubstitutionCount:option.dailySubstitutionCount??0,
         occupiedPeriods:option.occupiedPeriods??[],adjacent:option.proximityScore===1,
