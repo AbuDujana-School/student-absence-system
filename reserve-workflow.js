@@ -533,6 +533,21 @@
     popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
   };
 
+  function applyTeacherTimetablePresentation() {
+    const view=$("teacherTimetableView"),host=$("teacherTimetableWeekGrid");
+    if(!view||!host)return;
+    view.querySelectorAll(".flex.flex-wrap.gap-2").forEach(node=>{
+      const text=String(node.textContent||"");
+      if(text.includes("حصة فارغة")&&text.includes("حصة تدريس")&&text.includes("الحصة الآن")&&text.includes("حصة احتياط")){
+        node.classList.add("tt-teacher-timetable-legend");
+        node.setAttribute("aria-hidden","true");
+      }
+    });
+    const wrapper=host.firstElementChild;
+    if(wrapper)wrapper.style.overflowX="hidden";
+    const table=host.querySelector("table");
+    if(table){table.style.minWidth="0";table.style.width="100%";table.style.tableLayout="fixed";}
+  }
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
     if(!panel || panel.dataset.adminReserveTools==="1" || appAuthSession?.principal?.type!=="admin")return;
@@ -633,8 +648,14 @@
   installReserveEnhancements();
   window.timetableDailyInstallAdminTools=installAdminReserveTools;
   installAdminReserveTools();
+  applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const adminToolsObserver=new MutationObserver(()=>installAdminReserveTools());
+    const adminToolsObserver=new MutationObserver(()=>{installAdminReserveTools();applyTeacherTimetablePresentation();});
     adminToolsObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});
+    const timetableHost=$("teacherTimetableWeekGrid");
+    if(timetableHost){
+      const timetableObserver=new MutationObserver(()=>applyTeacherTimetablePresentation());
+      timetableObserver.observe(timetableHost,{childList:true,subtree:true});
+    }
   }
 })();
