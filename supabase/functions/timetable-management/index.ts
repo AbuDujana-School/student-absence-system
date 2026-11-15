@@ -10,6 +10,9 @@ const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+// Maximum accepted import: 500 teachers × 5 weekdays × 8 periods = 20,000 cells.
+// Every full-version read must exceed PostgREST’s default 1,000-row response cap.
+const WEEKLY_CELL_FETCH_LIMIT = 25000;
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -55,7 +58,7 @@ const timetableAuthStore: TimetableAuthStore = {
     if (versionError || !version) return false;
     const [{ data: cells, error: cellsError }, directory] = await Promise.all([
       db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
-        .eq("version_id", version.id).eq("cell_status", "teaching"),
+        .eq("version_id", version.id).eq("cell_status", "teaching").limit(WEEKLY_CELL_FETCH_LIMIT),
       teacherDirectory(),
     ]);
     if (cellsError) return false;
@@ -317,7 +320,7 @@ async function handle(req: Request) {
       if (version && principal.type === "teacher") {
         const [{ data: teachingCells, error: ownError }, directory] = await Promise.all([
           db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
-            .eq("version_id", version.id).eq("cell_status", "teaching"),
+            .eq("version_id", version.id).eq("cell_status", "teaching").limit(WEEKLY_CELL_FETCH_LIMIT),
           teacherDirectory(),
         ]);
         if (ownError) throw ownError;
@@ -353,7 +356,7 @@ async function handle(req: Request) {
       if (version) {
         const [{ data: teachers, error: teachersError }, { data: cells, error: cellsError }] = await Promise.all([
           db.from("teachers").select("name,permissions").eq("role", "teacher").order("name"),
-          db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name").eq("version_id", version.id).eq("cell_status", "teaching"),
+          db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name").eq("version_id", version.id).eq("cell_status", "teaching").limit(WEEKLY_CELL_FETCH_LIMIT),
         ]);
         if (teachersError) throw teachersError;
         if (cellsError) throw cellsError;
@@ -535,7 +538,7 @@ async function handle(req: Request) {
         if (error) throw error;
         if (!draft) return reply(200, { ok: true, draft: null });
         const [{ data: cells, error: cellsError }, { data: dayAudits, error: auditError }] = await Promise.all([
-          db.from("timetable_weekly_cells").select("weekday,teacher_source_name").eq("version_id", draft.id),
+          db.from("timetable_weekly_cells").select("weekday,teacher_source_name").eq("version_id", draft.id).limit(WEEKLY_CELL_FETCH_LIMIT),
           db.from("timetable_weekly_audit").select("weekday").eq("version_id", draft.id).in("action", ["day_saved","day_replaced"]),
         ]);
         if (cellsError) throw cellsError;
@@ -558,7 +561,7 @@ async function handle(req: Request) {
           db.from("timetable_weekly_versions").select("period_count").eq("id", body.versionId).eq("status", "draft").maybeSingle(),
           db.from("timetable_weekly_cells").select("version_id", { count: "exact", head: true }).eq("version_id", body.versionId).eq("cell_status", "unclear"),
           db.from("timetable_weekly_cells").select("version_id", { count: "exact", head: true }).eq("version_id", body.versionId).neq("match_status", "matched"),
-          db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name").eq("version_id", body.versionId),
+          db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name").eq("version_id", body.versionId).limit(WEEKLY_CELL_FETCH_LIMIT),
           db.from("timetable_weekly_audit").select("weekday").eq("version_id", body.versionId).in("action", ["day_saved","day_replaced"]),
           schoolClassDirectory(),
         ]);
@@ -725,7 +728,7 @@ async function handle(req: Request) {
       const [{ data: cells, error: cellsError }, { data: teacherIndex, error: teacherIndexError }, classNames] = await Promise.all([
         db.from("timetable_weekly_cells")
           .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name,source_data")
-          .eq("version_id", version.id).order("weekday").order("period"),
+          .eq("version_id", version.id).order("weekday").order("period").limit(WEEKLY_CELL_FETCH_LIMIT),
         db.from("teachers").select("name").eq("role", "teacher").order("name"),
         schoolClassDirectory(),
       ]);
@@ -768,7 +771,7 @@ async function handle(req: Request) {
       if (!version) return reply(404, { error: "لا توجد نسخة جدول مطلوبة." });
       const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
         .select("weekday,period,cell_status,class_sections,subject,source_page,teacher_source_name,matched_teacher_name,match_status")
-        .eq("version_id", version.id).eq("matched_teacher_name", teacherName).order("weekday").order("period");
+        .eq("version_id", version.id).eq("matched_teacher_name", teacherName).order("weekday").order("period").limit(WEEKLY_CELL_FETCH_LIMIT);
       if (cellsError) throw cellsError;
       const order = new Map(DAYS.map((day, i) => [day, i]));
       const sorted = (cells || []).sort((a: any,b: any) => (order.get(a.weekday) ?? 99)-(order.get(b.weekday) ?? 99) || Number(a.period)-Number(b.period));
@@ -796,7 +799,7 @@ async function handle(req: Request) {
       if (error) throw error;
       if (!version) return reply(200, { ok:true, teacherName: principal.name, version:null, cells:[], assignments:[] });
       const [{data:allCells,error:cellsError},{data:assignments,error:assignError},directory] = await Promise.all([
-        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name").eq("version_id",version.id),
+        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name").eq("version_id",version.id).limit(WEEKLY_CELL_FETCH_LIMIT),
         db.from("timetable_assignments").select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,absent_teacher_name,status").eq("version_id",version.id).eq("teacher_name",principal.name).neq("status","cancelled"),
         teacherDirectory(),
       ]);
@@ -824,9 +827,9 @@ async function handle(req: Request) {
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
       const [directory,dayCellsResult,dutySettingsResult,weeklyLoadResult]=await Promise.all([
         teacherDirectory(),
-        db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject").eq("version_id",activeVersion.id).eq("weekday",weekday),
+        db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject").eq("version_id",activeVersion.id).eq("weekday",weekday).limit(WEEKLY_CELL_FETCH_LIMIT),
         db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
-        db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status").eq("version_id",activeVersion.id),
+        db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status").eq("version_id",activeVersion.id).limit(WEEKLY_CELL_FETCH_LIMIT),
       ]);
       if (dayCellsResult.error) throw dayCellsResult.error;
       if (dutySettingsResult.error) throw dutySettingsResult.error;
