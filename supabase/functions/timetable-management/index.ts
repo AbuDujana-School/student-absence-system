@@ -637,7 +637,7 @@ async function handle(req: Request) {
       if (portalSetting?.enabled !== true) {
         return reply(403, { error: "خدمة الجدول الشخصي غير مفعّلة حالياً من المدير العام." });
       }
-      const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at").eq("status","active").maybeSingle();
+      const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count").eq("status","active").maybeSingle();
       if (error) throw error;
       if (!version) return reply(200, { ok:true, teacherName: principal.name, version:null, cells:[], assignments:[] });
       const [{data:cells,error:cellsError},{data:assignments,error:assignError}] = await Promise.all([
