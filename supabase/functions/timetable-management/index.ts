@@ -161,8 +161,11 @@ async function handle(req: Request) {
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
 
   const action = String(body.action || "");
-  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true)) {
-    return reply(403, { error: "يمكن لمنسق القسم المخوّل إدارة احتياط قسمه فقط؛ بقية عمليات تعديل الجداول متاحة لمدير النظام." });
+  const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
+    ? await timetableAuthStore.hasSubstitutionAccess(principal.name)
+    : false;
+  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission)) {
+    return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط الممنوحة صراحةً؛ تحقق من صلاحيات حسابك." });
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
