@@ -77,9 +77,18 @@ function isGroupMarker(value) {
 function isOnlyDigitsOrPunctuation(value) {
   return /^[\d\s/.,،؛:()\-]+$/.test(normalizeDigits(normalizePdfArabic(value)));
 }
+function teacherNameAnchorPosition(item) {
+  const transform = item.transform || [];
+  const x = Number(transform[4]), y = Number(transform[5]);
+  return { x, y };
+}
 function teacherNameInfoFromItems(items) {
-  const candidates = items.map(item => ({ item, pos: itemPosition(item), normalized: normalizePdfArabic(item.str) }))
-    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\u0600-\u06ff]/.test(normalized))
+  // For the rotated aSc teacher heading, PDF.js keeps each text fragment's
+  // baseline anchor in the same narrow x-column. The visual text-item center
+  // shifts with fragment width, so use the transform anchor for column
+  // grouping and reading order (not itemPosition's width-adjusted center).
+  const candidates = items.map(item => ({ item, pos: teacherNameAnchorPosition(item), normalized: normalizePdfArabic(item.str) }))
+    .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) && pos.x >= 0 && pos.x < 58 && /[\\u0600-\\u06ff]/.test(normalized))
     .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
   if (!candidates.length) return { name: "", original: "" };
 
@@ -101,8 +110,8 @@ function teacherNameInfoFromItems(items) {
       a.entries.reduce((sum, entry) => sum + entry.normalized.length, 0)
   );
   const selected = columns[0].entries.sort((a, b) => b.pos.y - a.pos.y);
-  const name = selected.map(entry => entry.normalized).join(" ").replace(/\s+/g, " ").trim();
-  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\s+/g, " ").trim();
+  const name = selected.map(entry => entry.normalized).join(" ").replace(/\\s+/g, " ").trim();
+  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\\s+/g, " ").trim();
   return { name, original };
 }
 export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
