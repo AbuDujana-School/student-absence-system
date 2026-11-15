@@ -9731,7 +9731,7 @@ async function timetableActivateWeek() {
     const coverage=response.classValidation||{};
     const warningText=" الحصص التدريسية: "+(coverage.teachingLessons??"—")+"؛ الخانات غير المغطاة: "+(coverage.missingSlots??"—")+"؛ التعارضات: "+(coverage.conflictSlots??"—")+"؛ الأسماء غير المرتبطة: "+(response.warnings?.unmatchedCells??"—")+".";
     timetableClassReviewVersionId=versionId;
-    timetableWeeklySetStatus("تم نشر النسخة رقم "+response.result.version+" كجدول رسمي مع حفظ تقرير الملاحظات."+warningText,"success");
+    timetableWeeklySetStatus("تم نشر النسخة "+(response.result.version||String(versionId).slice(0,8))+" كجدول رسمي مع حفظ تقرير الملاحظات."+warningText,"success");
     timetableWeeklyDraftId=null;timetableWeeklyDraftDays=new Set();timetableDayImportPreview=null;
     const saveButton=document.getElementById("timetableSaveDayButton");if(saveButton)saveButton.disabled=true;
     document.getElementById("timetableDayPreview")?.classList.add("hidden");
