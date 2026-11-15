@@ -68,7 +68,7 @@ Deno.test("PDF viewport transforms rotate text matrices and horizontal grid divi
  const textItem=transformPdfTextItem({str:"الرياضيات",transform:[0,8,-8,0,167,681],width:50,height:8},ROTATE_90);
  if(textItem.transform[0]!==-8||textItem.transform[1]!==0||textItem.transform[4]!==161||textItem.transform[5]!==167)throw new Error("Text matrix was not rotated into landscape coordinates");
  const lines=transformPdfGridLines([{x1:100,x2:500,y:300}],[],ROTATE_90);
- if(lines.verticalLines.length!==1||lines.verticalLines[0].x!==300||lines.verticalLines[0].y1!==100||lines.verticalLines[0].y2!==500)throw new Error("Horizontal PDF divider was not converted to a vertical timetable divider");
+ if(lines.verticalLines.length!==1||lines.verticalLines[0].x!==542||lines.verticalLines[0].y1!==100||lines.verticalLines[0].y2!==500)throw new Error("Horizontal PDF divider was not converted to a vertical timetable divider");
 });
 Deno.test("PDF parser rebuilds a teacher name split into vertically stacked fragments",()=>{
  const page=makeTeacherPage();
