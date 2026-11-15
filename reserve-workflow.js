@@ -607,6 +607,7 @@
     if(!Number.isFinite(date.getTime()))return String(dateValue);
     return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",numberingSystem:"latn",timeZone:"Asia/Muscat"}).format(date);
   }
+  function formatReservePrintPeriod(period){return ({1:"١",2:"٢",3:"٣",4:"٤",5:"٥",6:"٦",7:"٧",8:"٨"})[Number(period)]||String(period);}
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 15;
   function reserveOfficialPrintPages(groups,date,weekday){
     const pages=[];let current=[],count=0;
@@ -630,7 +631,7 @@
       const absent=esc(group.absentName||""),rawReason=String(group.reason||"").trim(),reason=esc(rawReason==="-"||rawReason==="—"?"":rawReason);
       return rows.map((row,rowIndex)=>{
         const merged=rowIndex===0?'<td class="tt-official-merged" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged" rowspan="'+rows.length+'">'+reason+'</td>':"";
-        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
+        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
     const remaining=Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
