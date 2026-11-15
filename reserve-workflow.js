@@ -6,6 +6,7 @@
   let reserveReasons = Object.create(null);
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
+  let reserveOtherDepartmentId = "";
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
@@ -33,6 +34,7 @@
       const otherToggle=$("timetableSubstitutionOtherDepartments");
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
       const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
+      if(saved.otherDepartmentId)reserveOtherDepartmentId=String(saved.otherDepartmentId);
       if(otherDepartmentSelect&&saved.otherDepartmentId)otherDepartmentSelect.value=saved.otherDepartmentId;
       const otherButton=$("timetableDailyOtherDepartmentsButton");
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
@@ -68,16 +70,16 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
-  const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||"").trim();
+  const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||reserveOtherDepartmentId||"").trim();
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
     const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
     const select=$("timetableDailyOtherDepartmentSelect");
     if(!select)return;
-    const current=selectedOtherDepartmentId();
+    const current=reserveOtherDepartmentId||selectedOtherDepartmentId();
     select.innerHTML='<option value="">اختر المادة / القسم المساند</option>'+
       (result.departments||[]).map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
-    if(current && (result.departments||[]).some(item=>item.id===current))select.value=current;
+    if(current && (result.departments||[]).some(item=>item.id===current)){select.value=current;reserveOtherDepartmentId=current;}
   }
 
   function reasonControlMarkup(absentName, reason) {
@@ -149,14 +151,14 @@
             if(!selectedOtherDepartmentId()){status("اختر القسم أولاً، ثم سيعرض النظام معلميه المتاحين فقط.","info");return;}
           }catch(error){toggle.checked=false;if(select)select.classList.add("hidden");status(error?.message||"تعذر تحميل قائمة الأقسام.","error");return;}
         }else{
-          if(select){select.classList.add("hidden");select.value="";}
+          if(select){select.classList.add("hidden");select.value="";reserveOtherDepartmentId="";}
           $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
         }
         await timetableDailyRefreshAll();
       });
       const toolbarSelect='<label id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[190px] text-[10px] font-bold text-slate-600"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" class="w-full rounded-xl border border-indigo-200 bg-white p-2 text-xs"><option value="">اختر المادة / القسم المساند</option></select></label>';
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
-      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",async()=>{if(includeOthers()&&selectedOtherDepartmentId())await timetableDailyRefreshAll();});
+      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",async()=>{reserveOtherDepartmentId=selectedOtherDepartmentId();if(includeOthers()&&reserveOtherDepartmentId)await timetableDailyRefreshAll();});
       $("timetableDailyOtherDepartmentSelect")?.closest("label")?.classList.toggle("hidden",!includeOthers());
       if(includeOthers())loadOtherDepartments().then(()=>{$("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");}).catch(()=>{});
     }
@@ -629,5 +631,10 @@
   }
 
   installReserveEnhancements();
+  window.timetableDailyInstallAdminTools=installAdminReserveTools;
   installAdminReserveTools();
+  if(typeof MutationObserver!=="undefined"&&document.body){
+    const adminToolsObserver=new MutationObserver(()=>installAdminReserveTools());
+    adminToolsObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});
+  }
 })();
