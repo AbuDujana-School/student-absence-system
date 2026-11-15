@@ -1,6 +1,6 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
-import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
+import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal } from "../session_auth.ts";
 import { buildBatchSubstitutionPlan, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
@@ -370,4 +370,20 @@ Deno.test("batch plan excludes all selected absentees and prefers one assignment
   equal(plan.assignedCount,2,"Both absent lessons should be covered");
   equal(new Set(plan.assignments.map(a=>a.substituteTeacherName)).size,2,"Use one lesson per substitute before assigning a second");
   assert(!plan.assignments.some(a=>a.substituteTeacherName==="غائب أ"||a.substituteTeacherName==="غائب ب"),"Selected absent teachers must never be substitutes");
+});
+
+
+Deno.test("reserve permission grants substitution actions only", async () => {
+  const token="a".repeat(64);
+  const principal=await resolveTimetablePrincipal("Bearer "+token,{
+    async findSession(){return {principal_type:"teacher",principal_name:"معلم مخوّل",expires_at:"2026-11-16T00:00:00.000Z"};},
+    async hasAdminCredential(){return false;},
+    async findTeacher(name){return {name,role:"teacher"};},
+    async hasTimetableAccess(){return false;},
+    async hasSubstitutionAccess(){return true;},
+  },Date.parse("2026-11-15T12:00:00.000Z"));
+  equal(principal?.name,"معلم مخوّل","Reserve-enabled teacher should authenticate for substitution");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),true,"Batch preview is allowed");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save"),true,"Batch save is allowed");
+  equal(canUseTimetableAction("teacher","timetable_save_day"),false,"Reserve must not grant timetable editing");
 });
