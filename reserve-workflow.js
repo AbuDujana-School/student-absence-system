@@ -609,7 +609,7 @@
   }
   function formatReservePrintPeriod(period){return ({1:"١",2:"٢",3:"٣",4:"٤",5:"٥",6:"٦",7:"٧",8:"٨"})[Number(period)]||String(period);}
   function formatReservePrintFullDate(dateValue){
-    const match=String(dateValue||"").match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);
+    const match=String(dateValue||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
   }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 15;
