@@ -5853,6 +5853,10 @@ async function finalizeLoginState() {
     // Let the authenticated dashboard become visible before placing the daily reserve notice above it.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
     await teacherShowDailySubstitutionWelcome();
+    teacherStartDailySubstitutionWatcher();
+  } else if (teacherReserveNoticeRefreshTimer) {
+    clearInterval(teacherReserveNoticeRefreshTimer);
+    teacherReserveNoticeRefreshTimer = null;
   }
   document.getElementById('activeUserName').textContent = activeUser.name;
 
@@ -6055,6 +6059,9 @@ function _performLogout() {
   if (teacherTimetableBtn) teacherTimetableBtn.classList.add('hidden');
   teacherPortalCanAccess = false;
   teacherTimetableData = null;
+  if (teacherReserveNoticeRefreshTimer) { clearInterval(teacherReserveNoticeRefreshTimer); teacherReserveNoticeRefreshTimer = null; }
+  document.getElementById("teacherReserveWelcomeModal")?.classList.add("hidden");
+  document.body.classList.remove("overflow-hidden");
   if (teacherTimetableRefreshTimer) { clearInterval(teacherTimetableRefreshTimer); teacherTimetableRefreshTimer = null; }
 
   ['attendanceView','classesView','behaviorClassesView','behaviorSessionView','dashboardSelectionView','dutyView','dutyClassesView','dutyDashboardCard','teacherTimetableView','substitutionView','studentAffairsView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
@@ -9069,6 +9076,8 @@ let teacherPortalMode = "all";
 let teacherPortalEligibleCount = 0;
 let teacherTimetableData = null;
 let teacherTimetableRefreshTimer = null;
+let teacherReserveNoticeRefreshTimer = null;
+let teacherReserveNoticeCheckBusy = false;
 let teacherTimetableLoadBusy = false;
 let teacherTimetableLastFetchAt = 0;
 let timetableAccessUsers = [];
@@ -9398,20 +9407,38 @@ async function teacherTimetableLoad(showLoading = false) {
   }
 }
 const TEACHER_RESERVE_WELCOME_KEY = "abuDujana_teacher_reserve_welcome_v1";
-function teacherReserveWelcomeStorageKey(teacherName, date) {
-  return TEACHER_RESERVE_WELCOME_KEY + ":" + encodeURIComponent(String(teacherName || "")) + ":" + date;
+function teacherReserveWelcomeStorageKey(teacherName, date, assignmentSignature) {
+  return TEACHER_RESERVE_WELCOME_KEY + ":" + encodeURIComponent(String(teacherName || "")) + ":" + date +
+    (assignmentSignature ? ":" + assignmentSignature : "");
+}
+function teacherReserveWelcomeFingerprint(assignments) {
+  const source = assignments.map(item => [
+    item.id || "",
+    item.period || "",
+    Array.isArray(item.class_sections) ? item.class_sections.join(",") : String(item.class_sections || ""),
+    item.subject || ""
+  ].join("|")).join(";");
+  let hash = 2166136261;
+  for (let i = 0; i < source.length; i++) {
+    hash ^= source.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
 }
 function teacherDismissReserveWelcome() {
   const modal = document.getElementById("teacherReserveWelcomeModal");
   const date = modal?.dataset.assignmentDate || getOmanLocalDate();
+  const signature = modal?.dataset.assignmentSignature || "";
   const teacher = activeUser?.name || "";
-  try { localStorage.setItem(teacherReserveWelcomeStorageKey(teacher,date), "1"); }
-  catch (error) { try { sessionStorage.setItem(teacherReserveWelcomeStorageKey(teacher,date), "1"); } catch (ignore) {} }
+  const storageKey = teacherReserveWelcomeStorageKey(teacher,date,signature);
+  try { localStorage.setItem(storageKey, "1"); }
+  catch (error) { try { sessionStorage.setItem(storageKey, "1"); } catch (ignore) {} }
   modal?.classList.add("hidden");
   document.body.classList.remove("overflow-hidden");
 }
 async function teacherShowDailySubstitutionWelcome() {
-  if (activeUser?.type !== "teacher") return;
+  if (activeUser?.type !== "teacher" || teacherReserveNoticeCheckBusy) return;
+  teacherReserveNoticeCheckBusy = true;
   try {
     const token = appAuthSession?.token || readAppAuthToken();
     if (!token) return;
@@ -9424,16 +9451,18 @@ async function teacherShowDailySubstitutionWelcome() {
         String(item.assignment_date || "") === today && String(item.weekday || "") === weekday)
       .sort((a,b) => Number(a.period) - Number(b.period));
     if (!assignments.length) return;
-    const storageKey = teacherReserveWelcomeStorageKey(activeUser.name,today);
+    const signature = teacherReserveWelcomeFingerprint(assignments);
+    const storageKey = teacherReserveWelcomeStorageKey(activeUser.name,today,signature);
+    const modal = document.getElementById("teacherReserveWelcomeModal");
+    const list = document.getElementById("teacherReserveWelcomeAssignments");
+    if (!modal || !list || !modal.classList.contains("hidden")) return;
     try {
       if (localStorage.getItem(storageKey) === "1" || sessionStorage.getItem(storageKey) === "1") return;
     } catch (error) {
       try { if (sessionStorage.getItem(storageKey) === "1") return; } catch (ignore) {}
     }
-    const modal = document.getElementById("teacherReserveWelcomeModal");
-    const list = document.getElementById("teacherReserveWelcomeAssignments");
-    if (!modal || !list) return;
     modal.dataset.assignmentDate = today;
+    modal.dataset.assignmentSignature = signature;
     list.innerHTML = assignments.map(item => {
       const values = Array.isArray(item.class_sections)
         ? item.class_sections.map(value => String(value || "").trim()).filter(Boolean)
@@ -9451,7 +9480,21 @@ async function teacherShowDailySubstitutionWelcome() {
     requestAnimationFrame(() => document.getElementById("teacherReserveWelcomeOk")?.focus());
   } catch (error) {
     console.warn("تعذر عرض تنبيه حصة الاحتياط اليومية:", error?.message || "unknown");
+  } finally {
+    teacherReserveNoticeCheckBusy = false;
   }
+}
+function teacherStartDailySubstitutionWatcher() {
+  if (teacherReserveNoticeRefreshTimer) {
+    clearInterval(teacherReserveNoticeRefreshTimer);
+    teacherReserveNoticeRefreshTimer = null;
+  }
+  if (activeUser?.type !== "teacher") return;
+  teacherReserveNoticeRefreshTimer = setInterval(() => {
+    if (activeUser?.type === "teacher" && document.visibilityState !== "prerender") {
+      void teacherShowDailySubstitutionWelcome();
+    }
+  }, 45000);
 }
 
 async function openTeacherTimetableView() {
