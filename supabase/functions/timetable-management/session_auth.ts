@@ -24,6 +24,7 @@ export interface TimetableAuthStore {
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
+  hasSubstitutionAccess?(name: string): Promise<boolean>;
 }
 
 async function sha256(value: string): Promise<string> {
@@ -81,6 +82,7 @@ export function canUseTimetableAction(
   principalType: TimetablePrincipalType,
   action: string,
   portalOnly = false,
+  hasReservePermission = false,
 ): boolean {
   if (principalType === "admin") return true;
   if (portalOnly) return new Set([
@@ -88,13 +90,23 @@ export function canUseTimetableAction(
     "timetable_check_access",
     "teacher_timetable_get_own",
   ]).has(action);
+  if (action.startsWith("timetable_substitution_")) {
+    return principalType === "teacher" && hasReservePermission && new Set([
+      "timetable_substitution_preview",
+      "timetable_substitution_save",
+      "timetable_substitution_cancel",
+      "timetable_substitution_batch_preview",
+      "timetable_substitution_batch_save",
+      "timetable_substitution_stats",
+      "timetable_substitution_archive",
+      "timetable_substitution_update",
+      "timetable_substitution_update_batch",
+    ]).has(action);
+  }
   return new Set([
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
-    "timetable_substitution_preview",
-    "timetable_substitution_save",
-    "timetable_substitution_cancel",
   ]).has(action);
 }
 
