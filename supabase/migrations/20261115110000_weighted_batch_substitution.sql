@@ -190,7 +190,7 @@ begin
     from public.timetable_assignments
     where teacher_name=v_substitute_name and assignment_type='substitution'
       and status in ('assigned','confirmed','completed')
-      and (assignment_date=v_date or (assignment_date is null and weekday=v_weekday));
+      and (assignment_date=v_date or (assignment_date is null and version_id=v_version_id and weekday=v_weekday));
   if v_daily_sub_count>=2 then
     raise exception 'وصل المعلم المرشح إلى الحد الأعلى لحصتي احتياط في هذا اليوم.';
   end if;

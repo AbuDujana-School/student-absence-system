@@ -97,3 +97,24 @@ jobs:
           }
           new Function(html.slice(scriptOpenEnd + 1, scriptEnd));
           NODE
+
+      - name: Check all main application inline JavaScript syntax
+        run: |
+          python3 - <<'PY'
+          import pathlib, re, subprocess, tempfile
+          source = pathlib.Path("index.html").read_text(encoding="utf-8")
+          scripts = re.findall(r'<script\\b([^>]*)>([\\s\\S]*?)</script\\s*>', source, re.IGNORECASE)
+          checked = 0
+          with tempfile.TemporaryDirectory() as directory:
+              for index, (attributes, body) in enumerate(scripts):
+                  if re.search(r'\\bsrc\\s*=', attributes, re.IGNORECASE):
+                      continue
+                  if re.search(r'application/(?:ld\\+)?json', attributes, re.IGNORECASE) or not body.strip():
+                      continue
+                  suffix = ".mjs" if re.search(r'\\btype\\s*=\\s*["\\']module["\\']', attributes, re.IGNORECASE) else ".js"
+                  path = pathlib.Path(directory) / f"inline-{index}{suffix}"
+                  path.write_text(body, encoding="utf-8")
+                  subprocess.run(["node", "--check", str(path)], check=True)
+                  checked += 1
+          print(f"Checked {checked} inline application scripts.")
+          PY
