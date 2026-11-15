@@ -452,6 +452,34 @@ Deno.test("weekly teaching quota counts distinct periods rather than duplicate s
 });
 
 
+Deno.test("batch planner completes the first absent teacher before processing the next", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent-a",name:"الغائب الأول",departmentId:"science",pointsBalance:0},
+    {id:"absent-b",name:"الغائب الثاني",departmentId:"science",pointsBalance:0},
+    {id:"candidate-a",name:"بديل أ",departmentId:"science",pointsBalance:0},
+    {id:"candidate-b",name:"بديل ب",departmentId:"science",pointsBalance:0},
+    {id:"candidate-c",name:"بديل ج",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const teacher of teachers){
+    for(let period=1;period<=4;period++){
+      const teaching=(teacher.id==="absent-a"&&(period===2||period===4))||(teacher.id==="absent-b"&&period===1);
+      timetable.push({teacherId:teacher.id,weekday:"الأحد",period,className:teaching?"1/1":"",status:teaching?"teaching":"free"});
+    }
+  }
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[],
+    absentTeachers:[
+      {id:"absent-a",name:"الغائب الأول",departmentId:"science"},
+      {id:"absent-b",name:"الغائب الثاني",departmentId:"science"},
+    ],
+    weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignedCount,3,"All three absent lessons should be covered");
+  equal(plan.assignments.map(item=>item.absentTeacherName).join("|"),"الغائب الأول|الغائب الأول|الغائب الثاني","Every lesson for the first absent teacher must be allocated before the next absent teacher");
+  equal(plan.assignments.map(item=>item.period).join("|"),"2|4|1","Each absent teacher's lessons remain in period order");
+});
+
 Deno.test("batch planner skips already-saved absent-teacher lessons instead of duplicating them", () => {
   const teachers:SubstitutionTeacher[]=[
     {id:"absent",name:"غائب",departmentId:"science",pointsBalance:0},
