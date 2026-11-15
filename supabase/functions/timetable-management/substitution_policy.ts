@@ -1,15 +1,46 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
-export interface SubstitutionTeacher { id:string; name:string; departmentId:string; dutyDay?:string; weeklyQuota?:number; substitutionsCount?:number; workloadScore?:number; historicalWorkloadScore?:number; }
+export interface SubstitutionTeacher {
+  id:string; name:string; departmentId:string; dutyDay?:string; weeklyQuota?:number;
+  pointsBalance?:number; dailyTeachingCount?:number; dailySubstitutionCount?:number;
+  substitutionsCount?:number; workloadScore?:number; historicalWorkloadScore?:number;
+  proximityScore?:number; wouldCreateTriple?:boolean;
+}
 export type TimetableCellStatus="teaching"|"free"|"meeting"|"activity"|"other"|"unclear";
 export interface TimetableEntry { teacherId:string; weekday:string; period:number; className:string; subject?:string; status?:TimetableCellStatus; }
-export interface SubstitutionAssignment { substituteTeacherId:string; weekday:string; period:number; assignmentDate?:string|null; versionId?:string; assignmentType?:string; status?:"assigned"|"confirmed"|"cancelled"|"completed"; }
+export interface SubstitutionAssignment {
+  substituteTeacherId:string; absentTeacherId?:string; weekday:string; period:number;
+  assignmentDate?:string|null; versionId?:string; assignmentType?:string;
+  status?:"assigned"|"confirmed"|"cancelled"|"completed";
+}
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
-  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean; assignmentDate?:string; versionId?:string;
+  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean;
+  assignmentDate?:string; versionId?:string; excludedTeacherIds?:string[]; maxDailySubstitutions?:number;
 }
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
   return a.weekday===b.weekday && a.period===b.period;
+}
+
+/** School-approved points for a single substitute lesson (periods 1–8). */
+export function getSubstitutionPeriodPoints(period:number):number {
+  return ({1:1,2:1,3:2,4:2,5:4,6:3,7:5,8:7} as Record<number,number>)[period] ?? 0;
+}
+
+function assignmentBelongsToDate(
+  assignment:SubstitutionAssignment, weekday:string, assignmentDate?:string, versionId?:string,
+):boolean {
+  if(assignment.weekday!==weekday) return false;
+  if(assignmentDate && assignment.assignmentDate) return assignment.assignmentDate===assignmentDate;
+  return !versionId || !assignment.versionId || assignment.versionId===versionId;
+}
+
+function hasThreeConsecutive(periods:Set<number>, target:number):boolean {
+  const occupied=new Set(periods); occupied.add(target);
+  for(let start=Math.max(1,target-2);start<=target;start++){
+    if(occupied.has(start)&&occupied.has(start+1)&&occupied.has(start+2)) return true;
+  }
+  return false;
 }
 /** Only explicit teaching cells are lessons that need a replacement. */
 export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:string,weekday:string):SubstitutionLesson[] {
@@ -19,7 +50,7 @@ export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:str
 }
 /** Missing, duplicated, meeting, activity, other and unclear cells are never treated as free. */
 export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
-  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate,versionId}=query;
+  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate,versionId,excludedTeacherIds=[],maxDailySubstitutions=2}=query;
   const cells=new Map<string,{count:number;isFree:boolean}>();
   for(const entry of timetable.filter(e=>sameCell(e,{weekday,period}))){
     const current=cells.get(entry.teacherId)??{count:0,isFree:true};
@@ -34,20 +65,54 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     (a.assignmentType==="substitution"||!a.assignmentType)&&
     (!assignmentDate||!a.assignmentDate||a.assignmentDate<=assignmentDate)
   );
+  const sameDayAssignments=(teacherId:string)=>activeAssignments.filter(a=>
+    a.substituteTeacherId===teacherId &&
+    (a.assignmentType==="substitution"||!a.assignmentType) &&
+    assignmentBelongsToDate(a,weekday,assignmentDate,versionId)
+  );
   const historicalScore=(history:SubstitutionAssignment[]):number=>
     calculateSubstitutionWorkloadScore(history,assignmentDate,period);
-  return teachers.filter(t=>t.id!==absentTeacherId)
-    // Teachers assigned to a school/category duty day are unavailable for substitution that day.
+  const hasPointBalances=teachers.some(t=>typeof t.pointsBalance==="number");
+  return teachers.filter(t=>t.id!==absentTeacherId&&!excludedTeacherIds.includes(t.id))
     .filter(t=>!t.dutyDay||t.dutyDay!==weekday)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).map(t=>{
       const history=historyFor(t.id);
+      const today=sameDayAssignments(t.id);
+      const teachingPeriods=new Set(timetable.filter(e=>e.teacherId===t.id&&e.weekday===weekday&&(e.status??"teaching")==="teaching").map(e=>e.period));
+      for(const a of today) teachingPeriods.add(a.period);
+      const dailyTeachingCount=timetable.filter(e=>e.teacherId===t.id&&e.weekday===weekday&&(e.status??"teaching")==="teaching").length;
+      const adjacent=teachingPeriods.has(period-1)||teachingPeriods.has(period+1);
+      const triple=hasThreeConsecutive(teachingPeriods,period);
       const substitutionsCount=history.length;
+      const dailySubstitutionCount=today.length;
       const weeklyQuota=Math.max(0,Number(t.weeklyQuota)||0);
-      return {...t,substitutionsCount,workloadScore:weeklyQuota+substitutionsCount*2,historicalWorkloadScore:historicalScore(history)};
+      return {
+        ...t,dailyTeachingCount,dailySubstitutionCount,substitutionsCount,
+        proximityScore:adjacent?1:0,wouldCreateTriple:triple,
+        workloadScore:weeklyQuota+substitutionsCount*2,
+        historicalWorkloadScore:historicalScore(history),
+      };
     })
-    .sort((a,b)=>(a.workloadScore??0)-(b.workloadScore??0)||(a.historicalWorkloadScore??0)-(b.historicalWorkloadScore??0)||a.name.localeCompare(b.name,"ar"));
+    .filter(t=>(t.dailySubstitutionCount??0)<maxDailySubstitutions)
+    .sort((a,b)=>{
+      if(hasPointBalances){
+        const points=(a.pointsBalance??0)-(b.pointsBalance??0);
+        if(points!==0) return points;
+        const dailySubs=(a.dailySubstitutionCount??0)-(b.dailySubstitutionCount??0);
+        if(dailySubs!==0) return dailySubs;
+        const dailyLoad=(a.dailyTeachingCount??0)-(b.dailyTeachingCount??0);
+        if(dailyLoad!==0) return dailyLoad;
+        const triple=Number(a.wouldCreateTriple)-Number(b.wouldCreateTriple);
+        if(triple!==0) return triple;
+        const proximity=(b.proximityScore??0)-(a.proximityScore??0);
+        if(proximity!==0) return proximity;
+      }
+      return (a.workloadScore??0)-(b.workloadScore??0)||
+        (a.historicalWorkloadScore??0)-(b.historicalWorkloadScore??0)||
+        a.name.localeCompare(b.name,"ar");
+    });
 }
 
 
@@ -101,4 +166,72 @@ export function getVisibleAbsentTeachers(
     })
     .map((cell) => String(cell.matchedTeacherName))))
     .sort((a, b) => a.localeCompare(b, "ar"));
+}
+
+
+export interface BatchAbsentTeacher { id:string; name:string; departmentId:string; }
+export interface BatchSubstitutionPlanQuery {
+  teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
+  absentTeachers:BatchAbsentTeacher[]; weekday:string; assignmentDate:string; versionId:string;
+  includeOtherDepartments?:boolean;
+}
+export interface BatchSubstitutionPlan {
+  assignments:Array<{
+    absentTeacherName:string; substituteTeacherName:string; weekday:string; period:number;
+    className:string; subject?:string; points:number; pointsBalanceAfter:number;
+    substituteDailyTeachingCount:number; createsThreeConsecutive:boolean;
+  }>;
+  unassigned:Array<{absentTeacherName:string;weekday:string;period:number;className:string;subject?:string}>;
+  assignedCount:number; unassignedCount:number;
+}
+
+/** Whole-morning allocator: one lesson per substitute first, two only if needed. */
+export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):BatchSubstitutionPlan {
+  const absentById=new Map(query.absentTeachers.map(t=>[t.id,t]));
+  const excludedTeacherIds=Array.from(absentById.keys());
+  const orderedLessons=query.absentTeachers.flatMap(absent=>
+    getAbsentTeacherLessons(query.timetable,absent.id,query.weekday).map(lesson=>({absent,lesson}))
+  ).sort((a,b)=>a.lesson.period-b.lesson.period||a.absent.name.localeCompare(b.absent.name,"ar"));
+  const simulatedAssignments=[...query.assignments];
+  const mutableTeachers=query.teachers.map(t=>({...t,pointsBalance:Number(t.pointsBalance)||0}));
+  const assignments:BatchSubstitutionPlan["assignments"]=[];
+  const unassigned:BatchSubstitutionPlan["unassigned"]=[];
+  for(const {absent,lesson} of orderedLessons){
+    const alreadyAssigned=simulatedAssignments.some(a=>
+      a.absentTeacherId===absent.id&&a.weekday===query.weekday&&a.period===lesson.period&&
+      a.status!=="cancelled"&&assignmentBelongsToDate(a,query.weekday,query.assignmentDate,query.versionId)
+    );
+    if(alreadyAssigned) continue;
+    const candidatesFor=(limit:number)=>getAvailableSubstitutionCandidates({
+      teachers:mutableTeachers,timetable:query.timetable,assignments:simulatedAssignments,
+      absentTeacherId:absent.id,weekday:query.weekday,period:lesson.period,
+      departmentId:query.includeOtherDepartments?"":absent.departmentId,
+      includeOtherDepartments:query.includeOtherDepartments===true,
+      assignmentDate:query.assignmentDate,versionId:query.versionId,
+      excludedTeacherIds,maxDailySubstitutions:limit,
+    });
+    const candidate=candidatesFor(1)[0]??candidatesFor(2)[0];
+    if(!candidate){
+      unassigned.push({absentTeacherName:absent.name,weekday:lesson.weekday,period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{})});
+      continue;
+    }
+    const points=getSubstitutionPeriodPoints(lesson.period);
+    const teacher=mutableTeachers.find(t=>t.id===candidate.id)!;
+    teacher.pointsBalance=(teacher.pointsBalance??0)+points;
+    const absentTeacher=mutableTeachers.find(t=>t.id===absent.id);
+    if(absentTeacher) absentTeacher.pointsBalance=(absentTeacher.pointsBalance??0)-points;
+    assignments.push({
+      absentTeacherName:absent.name,substituteTeacherName:candidate.name,weekday:lesson.weekday,
+      period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{}),
+      points,pointsBalanceAfter:teacher.pointsBalance??0,
+      substituteDailyTeachingCount:candidate.dailyTeachingCount??0,
+      createsThreeConsecutive:candidate.wouldCreateTriple===true,
+    });
+    simulatedAssignments.push({
+      substituteTeacherId:candidate.id,absentTeacherId:absent.id,weekday:query.weekday,
+      period:lesson.period,assignmentDate:query.assignmentDate,versionId:query.versionId,
+      assignmentType:"substitution",status:"assigned",
+    });
+  }
+  return {assignments,unassigned,assignedCount:assignments.length,unassignedCount:unassigned.length};
 }

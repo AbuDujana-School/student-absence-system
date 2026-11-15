@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
-import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { buildBatchSubstitutionPlan, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -302,4 +302,72 @@ Deno.test("personal timetable portal selection is enforced for global and custom
   equal(canAccessTeacherTimetablePortal(true, [], "معلم أ"), true, "Empty selection is global mode");
   equal(canAccessTeacherTimetablePortal(true, ["معلم أ"], "معلم أ"), true, "Selected teacher is allowed");
   equal(canAccessTeacherTimetablePortal(true, ["معلم أ"], "معلم ب"), false, "Unselected teacher is denied");
+});
+
+
+Deno.test("weighted points exactly follow the eight-period school scale", () => {
+  const expected=[1,1,2,2,4,3,5,7];
+  expected.forEach((points,index)=>equal(getSubstitutionPeriodPoints(index+1),points,"Period "+(index+1)));
+  equal(getSubstitutionPeriodPoints(9),0,"Periods outside the school day have no points");
+});
+
+Deno.test("points balance is the first fairness priority", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"more-points",name:"رصيد أعلى",departmentId:"science",pointsBalance:4,dailyTeachingCount:0},
+    {id:"fewer-points",name:"رصيد أقل",departmentId:"science",pointsBalance:-2,dailyTeachingCount:7},
+  ];
+  const timetable=teachers.map(t=>({teacherId:t.id,weekday:"الأحد",period:2,className:"",status:"free" as const}));
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:2,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"fewer-points","Lowest points balance takes priority even when daily teaching load is higher");
+});
+
+Deno.test("three consecutive lessons are avoided before adjacent-period preference", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"triple",name:"يصبح ثلاثياً",departmentId:"science",pointsBalance:0},
+    {id:"adjacent",name:"حصة مجاورة",departmentId:"science",pointsBalance:0},
+    {id:"far",name:"بعيد",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[
+    {teacherId:"triple",weekday:"الأحد",period:1,className:"1/1",status:"teaching"},
+    {teacherId:"triple",weekday:"الأحد",period:2,className:"1/2",status:"teaching"},
+    {teacherId:"triple",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"adjacent",weekday:"الأحد",period:2,className:"1/2",status:"teaching"},
+    {teacherId:"adjacent",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"far",weekday:"الأحد",period:3,className:"",status:"free"},
+  ];
+  const ranked=getAvailableSubstitutionCandidates({
+    teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
+    departmentId:"science",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(ranked[0].id,"adjacent","Avoid three consecutive periods");
+  equal(ranked[1].id,"far","Non-adjacent teacher follows");
+  equal(ranked[2].id,"triple","Three-consecutive teacher is last");
+});
+
+Deno.test("batch plan excludes all selected absentees and prefers one assignment per substitute", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent-a",name:"غائب أ",departmentId:"science",pointsBalance:0},
+    {id:"absent-b",name:"غائب ب",departmentId:"science",pointsBalance:0},
+    {id:"candidate-a",name:"بديل أ",departmentId:"science",pointsBalance:0},
+    {id:"candidate-b",name:"بديل ب",departmentId:"science",pointsBalance:0},
+  ];
+  const timetable:TimetableEntry[]=[];
+  for(const teacher of teachers){
+    for(let period=1;period<=7;period++){
+      const teaching=(teacher.id==="absent-a"&&period===1)||(teacher.id==="absent-b"&&period===2);
+      timetable.push({teacherId:teacher.id,weekday:"الأحد",period,className:teaching?"1/1":"",status:teaching?"teaching":"free"});
+    }
+  }
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[],absentTeachers:[
+      {id:"absent-a",name:"غائب أ",departmentId:"science"},
+      {id:"absent-b",name:"غائب ب",departmentId:"science"},
+    ],weekday:"الأحد",assignmentDate:"2026-11-15",versionId:"active",
+  });
+  equal(plan.assignedCount,2,"Both absent lessons should be covered");
+  equal(new Set(plan.assignments.map(a=>a.substituteTeacherName)).size,2,"Use one lesson per substitute before assigning a second");
+  assert(!plan.assignments.some(a=>a.substituteTeacherName==="غائب أ"||a.substituteTeacherName==="غائب ب"),"Selected absent teachers must never be substitutes");
 });

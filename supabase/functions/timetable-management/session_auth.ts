@@ -23,6 +23,7 @@ export interface TimetableAuthStore {
   hasAdminCredential(): Promise<boolean>;
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
+  hasSubstitutionAccess?(name: string): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
 }
 
@@ -68,6 +69,10 @@ export async function resolveTimetablePrincipal(
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   if (await store.hasTimetableAccess(type, name)) return { type, name };
+  // Existing reserve permission is narrower than general timetable access.
+  if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
+    return { type, name };
+  }
   if (type === "teacher" && store.hasLinkedTeacherPortalAccess
     && await store.hasLinkedTeacherPortalAccess(name)) {
     return { type, name, portalOnly: true };
