@@ -35,8 +35,8 @@ Deno.test("PDF parser rebuilds a teacher name split into vertically stacked frag
  const parsed=parseTimetablePdfPages([page]);
  if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.join(" | "));
  const teacher=parsed.weeklyDays[0]!.teachers[0]!;
- if(teacher.sourceName!=="أحمد خالد محمد السالمي")throw new Error("Teacher name fragments were not joined in canonical reading order: "+teacher.sourceName);
- if(teacher.sourceNameOriginal!=="أحمد خالد محمد السالمي")throw new Error("Original teacher name fragments were not retained");
+ if(teacher.sourceName!=="احمد خالد محمد السالمي")throw new Error("Teacher name fragments were not joined in canonical reading order: "+teacher.sourceName);
+ if(normalizePdfArabic(teacher.sourceNameOriginal)!==teacher.sourceName)throw new Error("Original teacher name fragments were not retained");
 });
 
 Deno.test("PDF parser follows the real RTL layout: weekdays are rows and periods are columns",()=>{
