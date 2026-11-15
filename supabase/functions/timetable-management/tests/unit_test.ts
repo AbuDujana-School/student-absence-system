@@ -337,6 +337,9 @@ Deno.test("three consecutive lessons are avoided before adjacent-period preferen
     {teacherId:"adjacent",weekday:"الأحد",period:2,className:"1/2",status:"teaching"},
     {teacherId:"adjacent",weekday:"الأحد",period:3,className:"",status:"free"},
     {teacherId:"far",weekday:"الأحد",period:3,className:"",status:"free"},
+    {teacherId:"far",weekday:"الأحد",period:5,className:"1/5",status:"teaching"},
+    {teacherId:"far",weekday:"الأحد",period:6,className:"1/6",status:"teaching"},
+    {teacherId:"adjacent",weekday:"الأحد",period:5,className:"1/5",status:"teaching"},
   ];
   const ranked=getAvailableSubstitutionCandidates({
     teachers,timetable,assignments:[],absentTeacherId:"absent",weekday:"الأحد",period:3,
