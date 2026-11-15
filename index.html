@@ -9078,8 +9078,8 @@ async function timetableLoadPortalStatus() {
       : "لم تُسجل تغييرات سابقة على إعدادات الخدمة.";
     if (button) {
       button.disabled = false;
-      button.textContent = !teacherPortalEnabled ? "إظهار الجدول للجميع" : teacherPortalMode === "custom" ? "التحويل إلى العرض العام" : "إيقاف الظهور للجميع";
-      button.className = "rounded-xl px-5 py-2.5 text-xs font-black text-white disabled:opacity-50 " + (teacherPortalEnabled && teacherPortalMode === "all" ? "bg-rose-700 hover:bg-rose-800" : "bg-emerald-700 hover:bg-emerald-800");
+      button.textContent = teacherPortalEnabled ? "إيقاف الظهور للجميع" : "إظهار الجدول للجميع";
+      button.className = "rounded-xl px-5 py-2.5 text-xs font-black text-white disabled:opacity-50 " + (teacherPortalEnabled ? "bg-rose-700 hover:bg-rose-800" : "bg-emerald-700 hover:bg-emerald-800");
     }
     if (customButton) customButton.disabled = teacherPortalEligibleCount === 0;
     if (retry) retry.classList.add("hidden");
@@ -9091,6 +9091,8 @@ async function timetableLoadPortalStatus() {
     const detail = error?.message || "خطأ غير محدد";
     if (status) status.textContent = "تعذر تحميل الحالة: " + detail;
     if (button) { button.disabled = true; button.textContent = "الحالة غير متاحة"; }
+    const customButton = document.getElementById("teacherTimetablePortalCustomButton");
+    if (customButton) customButton.disabled = true;
     if (teacherList) teacherList.innerHTML = '<span class="text-[10px] text-rose-600">تعذر تحميل قائمة المعلمين. أعد المحاولة بعد التحقق من اتصال الخدمة.</span>';
     if (retry) retry.classList.remove("hidden");
     return null;
@@ -9124,17 +9126,17 @@ async function timetableSaveCustomPortalTeachers() {
 }
 async function timetableToggleTeacherPortal() {
   if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
-  const switchingToAll = !teacherPortalEnabled || teacherPortalMode === "custom";
-  const message = switchingToAll
-    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط. هل تريد التفعيل العام؟"
-    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
-  const confirmed = await showConfirm(message, {danger: !switchingToAll});
+  const nextEnabled = !teacherPortalEnabled;
+  const message = nextEnabled
+    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط، مع إلغاء أي تخصيص سابق. هل تريد التفعيل العام؟"
+    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين، بمن فيهم المحددون في العرض المخصص. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
+  const confirmed = await showConfirm(message, {danger: !nextEnabled});
   if (!confirmed) return;
   const button = document.getElementById("teacherTimetablePortalToggle");
   if (button) { button.disabled = true; button.textContent = "جارٍ تحديث الحالة..."; }
   try {
     const token = appAuthSession?.token || readAppAuthToken();
-    if (switchingToAll) {
+    if (nextEnabled) {
       await appAuthRequest({action:"timetable_portal_set_mode",mode:"all"},token);
       teacherPortalEnabled = true;
       teacherPortalMode = "all";
@@ -9142,7 +9144,7 @@ async function timetableToggleTeacherPortal() {
       await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
       teacherPortalEnabled = false;
     }
-    showToast(switchingToAll ? "تم تفعيل عرض الجدول لجميع المعلمين المرتبطين." : "تم إيقاف ظهور الجداول عن الجميع.", "success");
+    showToast(nextEnabled ? "تم تفعيل عرض الجدول لجميع المعلمين المرتبطين." : "تم إيقاف ظهور الجداول عن الجميع.", "success");
     await timetableLoadPortalStatus();
   } catch (error) {
     showToast(error?.message || "تعذر تحديث حالة الخدمة.", "error");

@@ -43,3 +43,17 @@ Deno.test("class timetable sorts Arabic-Indic class digits numerically",()=>{
  const expected=["١/٩","١/١٠","١/١١","١/١٢"];
  if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error("Arabic-Indic class order is incorrect: "+names.join(", "));
 });
+
+
+Deno.test("class timetable renders explicitly marked elective groups separately from real conflicts",()=>{
+ const cells:any[]=[
+  {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الأحياء",matched_teacher_name:"معلم أ",source_group_note:"مجموعة مادة اختيارية"},
+  {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الفنون التشكيلية",matched_teacher_name:"معلم ب",source_group_note:"مجموعة مادة اختيارية"},
+  {weekday:"الأحد",period:2,cell_status:"teaching",class_sections:["1/12"],subject:"الرياضيات",matched_teacher_name:"معلم ج"},
+  {weekday:"الأحد",period:2,cell_status:"teaching",class_sections:["1/12"],subject:"العلوم",matched_teacher_name:"معلم د"}
+ ];
+ const result=aggregateClassTimetables(cells,DAYS,7,["1/12"])[0];
+ if(result.parallelGroups.length!==1)throw new Error("An explicitly marked elective slot must be a parallel group");
+ if(result.conflicts.length!==1)throw new Error("An unmarked double assignment must remain a real conflict");
+ if(result.parallelGroups[0].assignments.length!==2)throw new Error("All elective group subjects must remain visible");
+});
