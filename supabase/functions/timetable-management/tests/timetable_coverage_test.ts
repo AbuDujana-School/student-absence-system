@@ -21,7 +21,7 @@ Deno.test("class audit includes every expected class and counts shared lessons o
   assert(first.teachingCount===2,"shared teaching counts once and occupied activity counts as a lesson");
   assert(first.entries.find(item=>item.period===1)?.coTeachingCount===2,"shared teachers must remain visible");
   assert(first.freePeriods.length===1,"free period must be excluded from teaching count");
-  assert(first.meetingPeriods.length===1,"meeting must be excluded from teaching count");
+  assert(first.meetingPeriods.length===1,"meeting period must be excluded from teaching count");
   assert(first.vacancies.length===31,"unassigned class periods must be reported");
   assert(second.vacancies.length===35,"an entirely missing class must still be audited");
 });
@@ -35,6 +35,17 @@ Deno.test("different subjects assigned to one class period are reported as a con
   assert(first.conflicts.length===1,"different subjects in the same slot must be a conflict");
   assert(first.teachingCount===0,"conflicted slots must not be counted as a confirmed lesson");
   assert(first.complete===false,"a conflicted class week is not complete");
+});
+
+Deno.test("dash placeholders in teacher free cells are not treated as school classes", () => {
+  const weekdays = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+  const summaries = aggregateClassTimetables([
+    {weekday:"الأحد",period:1,cell_status:"free",class_sections:["—"],subject:"—"},
+    {weekday:"الاثنين",period:2,cell_status:"free",class_sections:["–"],subject:"—"},
+  ],weekdays,7,["11/1"]);
+  assert(summaries.length===1,"placeholder dashes must not create phantom class rows");
+  assert(summaries[0].className==="11/1","the canonical class must remain in the audit");
+  assert(summaries[0].vacancies.length===35,"teacher free placeholders must not falsely cover a class period");
 });
 
 Deno.test("empty text day is preserved as an empty day with a warning", () => {

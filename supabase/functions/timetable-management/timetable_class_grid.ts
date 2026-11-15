@@ -19,6 +19,12 @@ function key(value: unknown): string {
   return String(value ?? "").normalize("NFKC").replace(/[\u064b-\u065f\u0670\u0640]/g,"")
     .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim();
 }
+function isPlaceholderClassName(value: string): boolean {
+  const compact = value.normalize("NFKC").replace(/\s+/g, "");
+  // Teacher-only free cells commonly use a dash instead of a class name.
+  // These are not real class labels and must not create phantom class rows.
+  return !compact || /^[-‐‑‒–—―−]+$/u.test(compact);
+}
 function slotIdentity(slot: ClassTimetableSlot): string {
   return key(slot.status)+"|"+key(slot.subject);
 }
@@ -46,7 +52,7 @@ export function aggregateClassTimetables(
     const sections = Array.isArray(cell.class_sections) ? cell.class_sections : [];
     for (const sectionValue of sections) {
       const className = String(sectionValue || "").trim();
-      if (!className) continue;
+      if (isPlaceholderClassName(className)) continue;
       if (!classMap.has(className)) classMap.set(className,new Map());
       const slots = classMap.get(className)!;
       const slotKey = cell.weekday + ":" + Number(cell.period);
