@@ -456,27 +456,15 @@
     records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
     const days=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
     const pages=days.map(([date,items])=>{
-      items.sort((a,b)=>String(a.absentTeacherName).localeCompare(String(b.absentTeacherName),"ar")||Number(a.period)-Number(b.period));
-      const groups=new Map();
-      items.forEach(item=>{const name=String(item.absentTeacherName||"-");if(!groups.has(name))groups.set(name,[]);groups.get(name).push(item);});
-      const subject=[...new Set(items.map(item=>String(item.subject||"").trim()).filter(Boolean))].join("، ")||"المادة المحددة";
-      const groupMarkup=[...groups.entries()].map(([absentName,teacherItems],index)=>{
-        const heading=groups.size===1?esc(absentName):"المعلم الغائب "+(index+1)+": "+esc(absentName);
-        const rows=teacherItems.map(item=>"<tr><td>"+esc("الحصة "+formatReservePeriod(item.period))+"</td><td>"+esc(item.className||"-")+"</td><td>"+esc(item.substituteTeacherName||"-")+"</td></tr>").join("");
-        return '<section class="tt-print-teacher" style="margin:7mm 0 0;break-inside:avoid;page-break-inside:avoid"><h3 style="font-size:12pt;font-weight:900;text-align:right;margin:0 0 3mm">'+heading+'</h3><table><thead><tr><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
-      }).join("");
-      const count=items.length,weekday=items[0]?.weekday||"";
-      return '<section class="tt-print-day" style="break-after:page;page-break-after:always">'+
-        '<div class="tt-print-header"><strong>توزيع حصص الاحتياط</strong><br><strong>لمادة '+esc(subject)+'</strong></div>'+
-        '<div class="tt-print-meta"><strong>'+esc(weekday)+'</strong><em>'+esc(formatReserveDateArabic(date))+'</em></div>'+
-        groupMarkup+
-        '<div class="tt-print-footer"><span>إجمالي الحصص: '+count+'</span><span>المعلم الأول: ............................</span></div></section>';
+      const byAbsent=new Map();
+      items.forEach(item=>{
+        const name=String(item.absentTeacherName||"");
+        if(!byAbsent.has(name))byAbsent.set(name,{absentName:name,reason:String(item.reason||""),rows:[]});
+        byAbsent.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||""});
+      });
+      return reserveOfficialPrintMarkup([...byAbsent.values()],date,items[0]?.weekday||"");
     });
-    const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=pages.join("");
-    root.querySelectorAll(".tt-print-day").forEach((page,index)=>{if(index===pages.length-1){page.style.breakAfter="auto";page.style.pageBreakAfter="auto";}});
-    document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
-    const cleanup=()=>{document.body.classList.remove("tt-reserve-print-mode");root.remove();window.removeEventListener("afterprint",cleanup);};
-    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,5000);
+    printOfficialReservePages(pages);
   };
 
   async function fetchArchivePreview(absentName, date, weekday) {
@@ -628,15 +616,50 @@
     if(!Number.isFinite(date.getTime()))return String(dateValue);
     return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",numberingSystem:"latn",timeZone:"Asia/Muscat"}).format(date);
   }
+  function reserveOfficialPrintMarkup(groups,date,weekday){
+    const columns='<colgroup><col style="width:15%"><col style="width:14%"><col style="width:8%"><col style="width:10%"><col style="width:20%"><col style="width:13%"><col style="width:20%"></colgroup>';
+    const header='<thead><tr><th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th></tr></thead>';
+    const body=groups.map((group,index)=>{
+      const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
+      if(!rows.length)return "";
+      const absent=esc(group.absentName||"");
+      const reason=esc(group.reason||"");
+      const cells=rows.map((row,rowIndex)=>{
+        const merged=rowIndex===0?'<td class="tt-official-merged" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged" rowspan="'+rows.length+'">'+reason+'</td>':"";
+        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+
+          '<td>'+esc(formatReservePeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
+      }).join("");
+      return '<table class="tt-official-table">'+columns+header+'<tbody>'+cells+'</tbody></table>';
+    }).join("");
+    return '<main class="tt-official-page"><header class="tt-official-heading">'+
+      '<div>سلطنة عمان</div><div>وزارة التعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div>'+
+      '<div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
+      '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(weekday||"")+'</div><div><strong>التاريخ:</strong> '+esc(formatReserveDateArabic(date))+'</div></div>'+
+      '<div class="tt-official-tables">'+body+'</div>'+
+      '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp">ختم المدرسة</div></footer></main>';
+  }
+  function printOfficialReservePages(pages){
+    const style=document.createElement("style");style.id="ttReserveOfficialPrintStyle";
+    style.textContent='@page{size:A4 portrait;margin:11mm}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;margin:0!important;padding:0!important}#ttReservePrintRoot{display:block!important;color:#111!important;font-family:Tahoma,Arial,sans-serif;direction:rtl}'+
+      '.tt-official-page{box-sizing:border-box;width:100%;min-height:275mm;display:flex;flex-direction:column;direction:rtl;background:#fff;page-break-after:always;break-after:page}'+
+      '.tt-official-page:last-child{page-break-after:auto;break-after:auto}.tt-official-heading{text-align:center;font-size:12pt;font-weight:700;line-height:1.85;padding:0 0 5mm;border-bottom:1px solid #222}.tt-official-school{font-weight:900;font-size:13pt;margin-top:1mm}'+
+      '.tt-official-meta{display:flex;justify-content:space-between;gap:10mm;font-size:12pt;font-weight:700;margin:6mm 0 5mm}.tt-official-tables{flex:1}.tt-official-table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0 0 4mm;font-size:10pt;break-inside:auto}.tt-official-table thead{display:table-header-group}.tt-official-table th,.tt-official-table td{border:1px solid #333;text-align:center;vertical-align:middle;padding:3mm 1.3mm;overflow-wrap:anywhere}.tt-official-table th{font-weight:900;background:#f1f1f1}.tt-official-table tbody tr{break-inside:avoid;page-break-inside:avoid;height:13mm}.tt-official-table .tt-official-merged{font-weight:800;min-height:18mm}.tt-official-table .tt-official-group-start td{border-top-width:2px}.tt-official-table .tt-official-blank{height:13mm}.tt-official-footer{display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:12mm;min-height:27mm;font-size:12pt}.tt-official-manager{display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{width:42mm;height:22mm;display:flex;align-items:flex-start;justify-content:center;font-weight:700}'+
+      '@media screen{#ttReservePrintRoot{max-width:210mm;margin:12px auto;padding:11mm;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{min-height:275mm}}@media print{#ttReservePrintRoot{margin:0;padding:0}.tt-official-page{min-height:275mm}}';
+    document.head.appendChild(style);
+    const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=pages.join("");
+    document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
+    const cleanup=()=>{document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();window.removeEventListener("afterprint",cleanup);};
+    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,8000);
+  }
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
     return timetableDailyAbsentTeachers.map(absentName=>{
       const rows=[
         ...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName})),
         ...planned.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName})),
-        ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:"-"}))
+        ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:""}))
       ].sort((a,b)=>Number(a.period)-Number(b.period));
-      return {absentName,rows};
+      return {absentName,reason:String(reserveReasons[absentName]||rows.find(row=>row.reason)?.reason||""),rows};
     }).filter(group=>group.rows.length);
   }
   window.timetableDailyPrintReport = async function () {
@@ -645,20 +668,7 @@
     const groups=buildReserveReportGroups(reserveBatchPreview||{});
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
     const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-    const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
-    const body=groups.map((group,index)=>{
-      const heading=groups.length===1?esc(group.absentName):"المعلم الغائب "+(index+1)+": "+esc(group.absentName);
-      const rows=group.rows.map(row=>"<tr><td>"+esc("الحصة "+formatReservePeriod(row.period))+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>").join("");
-      return '<section class="tt-print-teacher" style="margin:7mm 0 0;break-inside:avoid;page-break-inside:avoid"><h3 style="font-size:12pt;font-weight:900;text-align:right;margin:0 0 3mm">'+heading+'</h3><table><thead><tr><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
-    }).join("");
-    const count=groups.reduce((sum,group)=>sum+group.rows.length,0);
-    const root=document.createElement("div");root.id="ttReservePrintRoot";
-    root.innerHTML='<div class="tt-print-header"><strong>توزيع حصص الاحتياط</strong><br><strong>لمادة '+esc(subject)+'</strong></div>'+
-      '<div class="tt-print-meta"><strong>'+esc(weekday)+'</strong><em>'+esc(formatReserveDateArabic(date))+'</em></div>'+body+
-      '<div class="tt-print-footer"><span>إجمالي الحصص: '+count+'</span><span>المعلم الأول: ............................</span></div>';
-    document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
-    const cleanup=()=>{document.body.classList.remove("tt-reserve-print-mode");root.remove();window.removeEventListener("afterprint",cleanup);};
-    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,5000);
+    printOfficialReservePages([reserveOfficialPrintMarkup(groups,date,weekday)]);
   };
 
   window.timetableDailyShareWhatsApp = async function () {
