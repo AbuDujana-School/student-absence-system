@@ -6,7 +6,38 @@
   let reserveReasons = Object.create(null);
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
+  let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
+  const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
+  function currentActorName(){return String(appAuthSession?.principal?.name||"").trim();}
+  function clearStoredDraft(){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}}
+  function persistStoredDraft(){
+    try{
+      const actor=currentActorName();if(!actor)return;
+      const {date,weekday}=timetableSubstitutionGetDate();
+      localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons}));
+    }catch{}
+  }
+  function restoreStoredDraft(){
+    if(reserveDraftRestoreChecked)return false;
+    reserveDraftRestoreChecked=true;
+    try{
+      const actor=currentActorName();if(!actor)return false;
+      const raw=localStorage.getItem(DRAFT_STORAGE_KEY);if(!raw)return false;
+      const saved=JSON.parse(raw),current=timetableSubstitutionGetDate();
+      if(saved.actor!==actor||saved.date!==current.date||saved.weekday!==current.weekday||
+         !Number.isFinite(saved.savedAt)||Date.now()-saved.savedAt>8*60*60*1000){clearStoredDraft();return false;}
+      if(!Array.isArray(saved.absentTeachers)||!saved.absentTeachers.length)return false;
+      timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
+      reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
+      reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
+      reserveDraftScope=currentDraftScope();
+      if(typeof timetableDailyRenderTags==="function")timetableDailyRenderTags();
+      status("استُعيدت مسودة الاحتياط غير المحفوظة من هذا الجهاز. راجعها قبل الاعتماد.","info");
+      return true;
+    }catch{return false;}
+  }
   const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
   function currentDraftScope() {
     try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"all":"department"].join("|"); }
@@ -104,6 +135,10 @@
       "#timetableSubstitutionPanel{isolation:isolate}",
       "#timetableSubstitutionPanel .tt-lesson{border-color:#dbe4ed;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 5px 18px rgba(15,23,42,.045);border-radius:1rem}",
       "#timetableSubstitutionPanel .tt-lesson:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.1)}",
+      "#timetableSubstitutionPanel .tt-lesson-choice{min-width:0}",
+      "#timetableSubstitutionPanel .tt-lesson-choice select{display:block;width:100%;min-width:0;max-width:100%;border:1px solid #cbd5e1;border-radius:.8rem;background:#fff;padding:.7rem;font-size:16px;line-height:1.4}",
+      "#timetableSubstitutionPanel .tt-lesson{min-width:0}",
+      "@media(max-width:640px){#timetableSubstitutionPanel .tt-lesson{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem;padding:.85rem}#timetableSubstitutionPanel .tt-lesson-actions{display:flex;flex-wrap:wrap;gap:.4rem}#timetableSubstitutionPanel .tt-group-head{padding:.85rem}}",
       "#timetableSubstitutionPanel .tt-group{overflow:hidden;border:1px solid #dbe4ed;border-radius:1.25rem;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.04)}",
       "#timetableSubstitutionPanel .tt-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.1rem;background:linear-gradient(90deg,#f8fafc,#ecfdf5)}",
       "#timetableSubstitutionPanel .tt-reason{width:100%;min-height:2.6rem;border:1px solid #cbd5e1;border-radius:.8rem;padding:.7rem;background:#fff;color:#0f172a;font-size:.75rem}",
@@ -137,6 +172,7 @@
 
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
+    if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
     }
@@ -151,9 +187,9 @@
         const candidates=item.candidateOptions||[];
         const validManual=manual&&candidates.some(candidate=>candidate.teacherName===manual);
         if(manual&&!validManual)delete reserveManualChoices[key];
-        return {absentTeacherName:item.absentTeacherName,substituteTeacherName:validManual?manual:item.substituteTeacherName,period:Number(item.period),candidateOptions:candidates};
+        return {absentTeacherName:item.absentTeacherName,substituteTeacherName:validManual?manual:item.substituteTeacherName,period:Number(item.period),candidateOptions:candidates,createsThreeConsecutive:item.createsThreeConsecutive===true};
       });
-      window.timetableDailyRenderLessons(); return reserveBatchPreview;
+      window.timetableDailyRenderLessons(); persistStoredDraft(); return reserveBatchPreview;
     } catch (error) {
       reserveBatchPreview = {error:error?.message || "تعذر تحليل حصص الاحتياط."};
       reserveDraftAssignments = []; reserveManualChoices=Object.create(null); window.timetableDailyRenderLessons();
@@ -232,6 +268,7 @@
         item.substituteTeacherName=chosen;
         reserveManualChoices[draftKey(item.absentTeacherName,item.period)]=chosen;
         status(triple?"تم الاختيار، لكن سيؤدي إلى ثلاث حصص متتالية أو أكثر؛ راجع الاختيار قبل الحفظ.":"تم تغيير البديل. احفظ التوزيع بعد مراجعة جميع الحصص.","info");
+        persistStoredDraft();
       }else{
         item.substituteTeacherName="";
         delete reserveManualChoices[draftKey(item.absentTeacherName,item.period)];
@@ -242,10 +279,12 @@
       const name=select.dataset.ttReasonSelect,custom=host.querySelector('[data-tt-reason-custom="'+name+'"]');
       if(custom){custom.classList.toggle("hidden",select.value!=="أخرى");if(select.value!=="أخرى")custom.value="";}
       reserveReasons[name]=select.value==="أخرى"?(custom?.value||"").trim():select.value;
+      persistStoredDraft();
       if(select.value==="أخرى")custom?.focus();
     }));
     host.querySelectorAll("[data-tt-reason-custom]").forEach(input=>input.addEventListener("input",()=>{
       reserveReasons[input.dataset.ttReasonCustom]=input.value.trim();
+      persistStoredDraft();
     }));
     host.querySelectorAll("[data-tt-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttEdit)));
   };
@@ -280,6 +319,7 @@
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
         absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers()},token);
       status("تم حفظ "+(result.assignmentCount||assignments.length)+" تكليف في عملية واحدة. يجري تحديث الأرشيف.","success");
+      clearStoredDraft();reserveManualChoices=Object.create(null);
       await timetableDailyRefreshAll();await timetableDailyLoadArchive();
     }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي. لم يتم حفظ جزء من العملية.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
