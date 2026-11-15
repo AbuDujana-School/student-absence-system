@@ -9757,21 +9757,25 @@ async function timetableResumeWeeklyDraft() {
     if (!draft) {
       timetableWeeklyDraftId = null;
       timetableWeeklyDraftDays = new Set();
+      timetableClassReviewVersionId = null;
       const activate = document.getElementById("timetableActivateWeekButton");
       if (activate) activate.disabled = true;
       timetableWeeklySetStatus("لا توجد مسودة أسبوعية محفوظة لاستعادتها.", "info");
       return;
     }
     timetableWeeklyDraftId = draft.id;
+    timetableClassReviewVersionId = draft.id;
     timetableWeeklyDraftDays = new Set(Array.isArray(draft.weekdays) ? draft.weekdays : []);
     const activate = document.getElementById("timetableActivateWeekButton");
     if (activate) activate.disabled = timetableWeeklyDraftDays.size !== 5;
     const savedDays = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].filter(day => timetableWeeklyDraftDays.has(day));
+    const coverageReport = await timetableFetchClassCoverage(draft.id);
     timetableWeeklySetStatus(
       "تم استرجاع مسودة الأسبوع رقم " + draft.version + ". الأيام المحفوظة: " +
       (savedDays.join("، ") || "لا توجد أيام") + ". عدد المعلمين: " + (draft.teacherCount || 0) +
       "؛ الخانات المحفوظة: " + (draft.cellCount || 0) +
-      ". يمكنك متابعة إدخال الأيام الناقصة، أو إعادة تحليل يوم محفوظ لتحديثه بعد المراجعة.",
+      ". يمكنك متابعة إدخال الأيام الناقصة، أو إعادة تحليل يوم محفوظ لتحديثه بعد المراجعة." +
+      (coverageReport ? " " + coverageReport.message : ""),
       "success"
     );
   } catch (error) {
