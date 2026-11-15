@@ -875,7 +875,7 @@ async function handle(req: Request) {
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
       const absentTeacherName=String(body.absentTeacherName||"").trim();
-      const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true);
+      const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments);
       if (body.action==="timetable_substitution_cancel") {
         if (!validUuid(body.assignmentId)) return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
         const {data:assignment,error}=await db.from("timetable_assignments").select("id,version_id,absent_teacher_name,weekday,assignment_date").eq("id",body.assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
@@ -1040,7 +1040,7 @@ async function handle(req: Request) {
       }
       if(body.action==="timetable_substitution_stats"){
         const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||includeOtherDepartments||teacher.departmentId===actorDepartmentId));
-        const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution");
+        const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&row.status!=="cancelled");
         const stats=visible.map((teacher:any)=>{
           const own=activeRows.filter((row:any)=>String(row.teacher_name)===teacher.name);
           const points=pointsBalanceByTeacher.get(teacher.name)||0;
