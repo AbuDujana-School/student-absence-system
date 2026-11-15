@@ -6,12 +6,15 @@ on:
       - feature/smart-substitution-system
       - feature/timetable-robust-fairness-v2
       - feature/timetable-hardening-fixes-20261114
+      - fix/timetable-pdf-rotated-viewport-order-20261115
       - main
     paths:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
       - "timetable-text.worker.js"
+      - "timetable_pdf_import.js"
+      - "timetable-pdf-import.js"
       - "supabase/migrations/**"
   pull_request:
     paths:
