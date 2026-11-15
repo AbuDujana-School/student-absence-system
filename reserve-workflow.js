@@ -16,7 +16,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,includeOtherDepartments:includeOthers()}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -29,6 +29,12 @@
       if(saved.actor!==actor||saved.date!==current.date||saved.weekday!==current.weekday||
          !Number.isFinite(saved.savedAt)||Date.now()-saved.savedAt>8*60*60*1000){clearStoredDraft();return false;}
       if(!Array.isArray(saved.absentTeachers)||!saved.absentTeachers.length)return false;
+      const otherToggle=$("timetableSubstitutionOtherDepartments");
+      if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
+      const otherButton=$("timetableDailyOtherDepartmentsButton");
+      if(otherButton)otherButton.innerHTML=saved.includeOtherDepartments
+        ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
+        :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
       timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
