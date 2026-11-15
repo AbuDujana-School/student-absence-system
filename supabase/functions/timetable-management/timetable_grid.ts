@@ -106,7 +106,7 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
     const rowDay=weekdayFromSource(fields[1]||"");
     if(!rowDay) continue;
     recognizedRows++;
-    if(rowDay!==day) throw new Error("السطر "+(index+1)+" يخص يوم "+rowDay+" وليس يوم "+day+".");
+    if(rowDay!==day){warnings.push("السطر "+(index+1)+" يخص يوم "+rowDay+" وليس اليوم المحدد "+day+"؛ تم تجاوزه.");continue;}
     const sourceName=fields[0];
     const period=parsePeriod(fields[2]||"");
     if(!sourceName){warnings.push("السطر "+(index+1)+": اسم المعلم فارغ؛ تم تجاوز السطر.");continue;}
@@ -160,8 +160,12 @@ export function validateSchoolTeacherCount(day: ParsedTimetableDay, expectedCoun
 export function parseTimetableDay(weekday: string, sourceText: string): ParsedTimetableDay {
   const day=weekdayFromSource(weekday);
   if (!day) throw new Error("يجب تحديد يوم دراسي صحيح من الأحد إلى الخميس.");
-  if (typeof sourceText!=="string" || !sourceText.trim()) throw new Error("لم يتم إدخال نص الجدول.");
+  if (typeof sourceText!=="string") throw new Error("نص الجدول غير صالح.");
   if (sourceText.length>500000) throw new Error("نص الجدول أكبر من الحد المسموح.");
+  if (!sourceText.trim()) return {
+    weekday:day,teachers:[],totals:emptyTotals(),totalCells:0,
+    warnings:["لم يُرفق محتوى لهذا اليوم؛ حُفظ اليوم فارغاً ليظهر نقص التغطية في التقرير."]
+  };
   const tabular=parseTabularTimetableDay(day,sourceText);
   if(tabular) return tabular;
 
