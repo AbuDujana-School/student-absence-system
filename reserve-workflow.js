@@ -4,6 +4,7 @@
   let reserveBatchPreview = null;
   let reserveDraftAssignments = [];
   let reserveDraftApproved = new Set();
+  let reserveLastAbsentSignature = "";
   let reserveReasons = Object.create(null);
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
@@ -32,6 +33,7 @@
          !Number.isFinite(saved.savedAt)||Date.now()-saved.savedAt>8*60*60*1000){clearStoredDraft();return false;}
       if(!Array.isArray(saved.absentTeachers)||!saved.absentTeachers.length)return false;
       timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
+      reserveLastAbsentSignature=timetableDailyAbsentTeachers.join("\u0000");
       const otherToggle=$("timetableSubstitutionOtherDepartments");
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
       const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
@@ -237,8 +239,11 @@
     if(appAuthSession?.principal?.type==="admin")installAdminReserveTools();
     if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
-      reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
+      reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftApproved=new Set(); reserveLastAbsentSignature=""; reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
     }
+    const absentSignature=timetableDailyAbsentTeachers.join("\u0000");
+    if(reserveLastAbsentSignature&&reserveLastAbsentSignature!==absentSignature)reserveDraftApproved=new Set();
+    reserveLastAbsentSignature=absentSignature;
     const scope=currentDraftScope();
     if(reserveDraftScope&&reserveDraftScope!==scope){reserveManualChoices=Object.create(null);reserveDraftApproved=new Set();}
     reserveDraftScope=scope;
@@ -274,11 +279,11 @@
     if (!host) return;
     if (reserveBatchPreview?.error) {
       host.innerHTML = '<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-xs font-bold text-red-700">' + esc(reserveBatchPreview.error) + "</div>";
-      if (summary) summary.innerHTML = ""; return;
+      if (summary) summary.innerHTML = ""; updateBatchSaveVisibility(); return;
     }
     if (!timetableDailyAbsentTeachers.length) {
       host.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500"><i class="fa-solid fa-user-plus mb-2 block text-2xl text-slate-400"></i>ابحث عن المعلم الغائب ثم أضفه إلى القائمة.</div>';
-      if (summary) summary.innerHTML = ""; return;
+      if (summary) summary.innerHTML = ""; updateBatchSaveVisibility(); return;
     }
     const planned = reserveBatchPreview?.assignments || [], missing = reserveBatchPreview?.unassigned || [], saved = reserveBatchPreview?.existingAssignments || [];
     const total = planned.length + missing.length + saved.length;
@@ -286,6 +291,11 @@
       ["المعلمون الغائبون",timetableDailyAbsentTeachers.length,"fa-users"],["إجمالي الحصص",total,"fa-book-open"],
       ["اقتراحات جاهزة",planned.length,"fa-circle-check"],["تحتاج معالجة",missing.length,"fa-triangle-exclamation"]
     ].map(([label,value,icon]) => '<div class="tt-stat"><span class="text-[10px] font-bold text-slate-500"><i class="fa-solid ' + icon + ' ml-1"></i>' + label + '</span><strong>' + Number(value) + "</strong></div>").join("");
+    const activeAbsentName=timetableDailyAbsentTeachers.find(name=>
+      !reserveDraftApproved.has(name)&&(
+        planned.some(item=>item.absentTeacherName===name)||missing.some(item=>item.absentTeacherName===name)
+      )
+    )||"";
     host.innerHTML = timetableDailyAbsentTeachers.map(absentName => {
       const rows = [
         ...planned.filter(item=>item.absentTeacherName===absentName).map(item=>({...item,kind:"planned"})),
@@ -293,6 +303,13 @@
         ...saved.filter(item=>item.absentTeacherName===absentName).map(item=>({...item,kind:"saved"}))
       ].sort((a,b)=>Number(a.period)-Number(b.period));
       if (!rows.length) return "";
+      const pendingRows=rows.filter(item=>item.kind!=="saved");
+      const approved=reserveDraftApproved.has(absentName);
+      if(pendingRows.length&&approved){
+        return '<section class="tt-group border border-emerald-200 bg-emerald-50"><div class="flex items-center justify-between gap-2 p-3"><div><div class="text-[10px] font-black text-emerald-700">تم اعتماد المعلم</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+pendingRows.length+' حصة ضمن مسودة اليوم</div></div><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action border border-emerald-300 bg-white text-emerald-800">مراجعة التوزيع</button></div></section>';
+      }
+      if(pendingRows.length&&absentName!==activeAbsentName)return "";
+      if(!pendingRows.length)return '<section class="tt-group border border-emerald-200 bg-emerald-50 p-3"><div class="text-[10px] font-black text-emerald-700">محفوظ مسبقاً</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+rows.length+' حصة محفوظة</div></section>';
       const savedReason = saved.find(item=>item.absentTeacherName===absentName&&item.reason&&item.reason!=="-")?.reason || "";
       if (reserveReasons[absentName] === undefined && savedReason) reserveReasons[absentName] = savedReason;
       const reason = reserveReasons[absentName] ?? savedReason;
@@ -312,8 +329,6 @@
         }
         return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
-      const pendingRows=rows.filter(item=>item.kind!=="saved");
-      const approved=reserveDraftApproved.has(absentName);
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
         : '<div class="border-t border-slate-200 bg-emerald-50 p-3 text-[10px] font-bold text-emerald-700">لا توجد تكليفات جديدة لهذا المعلم؛ الحصص الظاهرة محفوظة مسبقاً.</div>';
@@ -607,7 +622,7 @@
     if(!dateValue)return "";
     const date=new Date(String(dateValue)+"T12:00:00+04:00");
     if(!Number.isFinite(date.getTime()))return String(dateValue);
-    return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",timeZone:"Asia/Muscat"}).format(date);
+    return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",numberingSystem:"latn",timeZone:"Asia/Muscat"}).format(date);
   }
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
@@ -651,16 +666,16 @@
       if(!groups.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
       const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
-      let message="*توزيع حصص الاحتياط*\\n*لمادة "+subject+"*\\n\\n*"+weekday+"*\\n_"+formatReserveDateArabic(date)+"_\\n\\n";
+      let message="*توزيع حصص الاحتياط*\n*لمادة "+subject+"*\n\n*"+weekday+"*\n_"+formatReserveDateArabic(date)+"_\n\n";
       groups.forEach((group,index)=>{
         const heading=groups.length===1?group.absentName:"المعلم الغائب "+(index+1)+": "+group.absentName;
-        message+="*"+heading+"*\\n\\n";
+        message+="*"+heading+"*\n\n";
         group.rows.forEach(row=>{
           const periodNames={1:"الأولى",2:"الثانية",3:"الثالثة",4:"الرابعة",5:"الخامسة",6:"السادسة",7:"السابعة",8:"الثامنة"};
-          message+="الحصة "+(periodNames[Number(row.period)]||String(row.period))+" – الصف "+(row.className||"غير محدد")+"\\n";
-          message+="المعلم البديل: *"+(row.substitute||"لم يحدد")+"*\\n\\n";
+          message+="الحصة "+(periodNames[Number(row.period)]||String(row.period))+" – الصف "+(row.className||"غير محدد")+"\n";
+          message+="المعلم البديل: *"+(row.substitute||"لم يحدد")+"*\n\n";
         });
-        if(index<groups.length-1)message+="\\n";
+        if(index<groups.length-1)message+="\n";
       });
       popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
     }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
