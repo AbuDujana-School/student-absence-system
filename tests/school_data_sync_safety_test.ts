@@ -40,7 +40,7 @@ Deno.test("queued cloud deletions remain inert and require a separate reviewed w
 });
 
 Deno.test("reconnect and tab-resume handlers cannot upload local snapshots automatically", () => {
-  const retry = section("async function retryOfflineSyncSilently()", "/* ============ LocalStorage ============ */");
+  const retry = section("async function retryOfflineSyncSilently()", "let manualOfflineSyncInProgress");
   assert(retry.includes("return false"), "Background retry must remain disabled");
   assert(!retry.includes("saveSystemDataToCloud("), "Background retry must not write cloud data");
 });
