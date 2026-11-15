@@ -11,6 +11,23 @@ const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+function muscatDateAndWeekday(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const weekdayName = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Muscat", weekday: "long",
+  }).format(now);
+  const weekdayMap: Record<string,string> = {
+    Sunday: "الأحد", Monday: "الاثنين", Tuesday: "الثلاثاء",
+    Wednesday: "الأربعاء", Thursday: "الخميس",
+  };
+  return {
+    date: String(values.year) + "-" + String(values.month).padStart(2,"0") + "-" + String(values.day).padStart(2,"0"),
+    weekday: weekdayMap[weekdayName] || "",
+  };
+}
 // Maximum accepted import: 500 teachers × 5 weekdays × 8 periods = 20,000 cells.
 // PostgREST may cap each response at 1,000 rows, so full-week reads are paginated.
 const TIMETABLE_CELL_PAGE_SIZE = 1000;
@@ -81,18 +98,7 @@ const timetableAuthStore: TimetableAuthStore = {
     );
   },
   async hasOwnDailySubstitutionAssignment(name) {
-    const now = new Date();
-    const today = new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
-    }).format(now);
-    const englishWeekday = new Intl.DateTimeFormat("en-US", {
-      timeZone: "Asia/Muscat", weekday: "long",
-    }).format(now);
-    const weekdayMap: Record<string,string> = {
-      Sunday: "الأحد", Monday: "الاثنين", Tuesday: "الثلاثاء",
-      Wednesday: "الأربعاء", Thursday: "الخميس",
-    };
-    const weekday = weekdayMap[englishWeekday] || "";
+    const { date: today, weekday } = muscatDateAndWeekday();
     if (!DAYS.includes(weekday)) return false;
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
@@ -135,6 +141,24 @@ async function teacherDirectory() {
     personalDutyDay: String(item.permissions?.dutyDay || ""),
     canManageSubstitutions: item.permissions?.reserve === true,
   })).filter((item: any) => item.name);
+}
+async function getActiveDepartmentSubjects(departmentId: string): Promise<string[]> {
+  const normalizedDepartmentId = String(departmentId || "").trim();
+  if (!normalizedDepartmentId) return [];
+  const directory = await teacherDirectory();
+  const teacherNames = directory
+    .filter((teacher: any) => teacher.role === "teacher" && teacher.departmentId === normalizedDepartmentId)
+    .map((teacher: any) => teacher.name);
+  if (!teacherNames.length) return [];
+  const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
+    .select("id").eq("status", "active").maybeSingle();
+  if (versionError) throw versionError;
+  if (!version) return [];
+  const { data: cells, error } = await db.from("timetable_weekly_cells")
+    .select("subject").eq("version_id", version.id).in("matched_teacher_name", teacherNames);
+  if (error) throw error;
+  return [...new Set((cells || []).map((cell: any) => String(cell.subject || "").trim()).filter(Boolean))]
+    .sort((a,b) => a.localeCompare(b,"ar"));
 }
 function timetableTeacherIdentityKey(value: unknown): string {
   return String(value??"").normalize("NFKC").replace(/[\u064b-\u065f\u0670\u0640]/g,"")
@@ -839,18 +863,7 @@ async function handle(req: Request) {
   if (body.action === "teacher_substitution_get_today") {
     if (principal.type !== "teacher") return reply(403, { error: "هذا الإشعار متاح لحسابات المعلمين فقط." });
     try {
-      const now = new Date();
-      const today = new Intl.DateTimeFormat("en-CA", {
-        timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
-      }).format(now);
-      const englishWeekday = new Intl.DateTimeFormat("en-US", {
-        timeZone: "Asia/Muscat", weekday: "long",
-      }).format(now);
-      const weekdayMap: Record<string,string> = {
-        Sunday: "الأحد", Monday: "الاثنين", Tuesday: "الثلاثاء",
-        Wednesday: "الأربعاء", Thursday: "الخميس",
-      };
-      const weekday = weekdayMap[englishWeekday] || "";
+      const { date: today, weekday } = muscatDateAndWeekday();
       if (!DAYS.includes(weekday)) return reply(200, { ok: true, assignmentDate: today, weekday, assignments: [] });
       const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
         .select("id").eq("status", "active").maybeSingle();
@@ -963,28 +976,53 @@ async function handle(req: Request) {
   }
 
   if (action === "timetable_substitution_reset_options") {
-    if (principal.type !== "admin") return reply(403,{error:"تفريغ سجلات الاحتياط متاح لمدير النظام العام فقط."});
+    if (principal.type !== "admin" && !(principal.type === "teacher" && hasReservePermission)) {
+      return reply(403,{error:"عرض مواد تفريغ الاحتياط متاح لمدير النظام العام ومنسق المادة المخوّل فقط."});
+    }
     const date=String(body.assignmentDate||"").trim();
     if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !isValidSubstitutionDate(date)) return reply(400,{error:"اختر تاريخاً دراسياً صحيحاً."});
     const {data,error}=await db.from("timetable_assignments").select("subject")
       .eq("assignment_type","substitution").eq("assignment_date",date)
       .in("status",["assigned","confirmed"]);
     if(error)throw error;
-    const subjects=[...new Set((data||[]).map((row:any)=>String(row.subject||"").trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b,"ar"));
+    let allowedSubjects: Set<string> | null = null;
+    if(principal.type === "teacher") {
+      const directory=await teacherDirectory();
+      const actor=directory.find((teacher:any)=>teacher.name===principal.name&&teacher.role==="teacher");
+      if(!actor?.canManageSubstitutions||!actor.departmentId) return reply(403,{error:"حسابك غير مخوّل لإدارة احتياط قسم محدد."});
+      allowedSubjects=new Set(await getActiveDepartmentSubjects(actor.departmentId));
+    }
+    const subjects=[...new Set((data||[])
+      .map((row:any)=>String(row.subject||"").trim())
+      .filter((subject:string)=>Boolean(subject)&&(!allowedSubjects||allowedSubjects.has(subject))))]
+      .sort((a,b) => a.localeCompare(b,"ar"));
     return reply(200,{ok:true,subjects});
   }
 
   if (action === "timetable_substitution_reset") {
-    if (principal.type !== "admin") return reply(403,{error:"تفريغ سجلات الاحتياط متاح لمدير النظام العام فقط."});
     const mode=String(body.mode||"");
     const date=String(body.assignmentDate||"").trim();
     const subject=String(body.subject||"").trim();
+    const isSystemAdmin=principal.type==="admin"&&principal.name==="مدير النظام العام";
+    if(!isSystemAdmin && !(principal.type==="teacher"&&hasReservePermission&&mode==="subject_day")) {
+      return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل لمدير النظام العام."});
+    }
     if(mode==="subject_day" && (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
       return reply(400,{error:"حدد التاريخ والمادة المراد تفريغ احتياطها."});
     }
     if(!["subject_day","all_active"].includes(mode)) return reply(400,{error:"نوع التفريغ غير معروف."});
+    let actorDepartmentId="";
+    if(!isSystemAdmin) {
+      const directory=await teacherDirectory();
+      const actor=directory.find((teacher:any)=>teacher.name===principal.name&&teacher.role==="teacher");
+      if(!actor?.canManageSubstitutions||!actor.departmentId) return reply(403,{error:"لا تملك صلاحية إدارة احتياط مادة محددة."});
+      actorDepartmentId=actor.departmentId;
+      const allowedSubjects=new Set(await getActiveDepartmentSubjects(actorDepartmentId));
+      if(!allowedSubjects.has(subject)) return reply(403,{error:"لا يمكنك إلغاء احتياط مادة خارج قسمك."});
+    }
     const {data,error}=await db.rpc("reset_timetable_substitution_records",{p_payload:{
-      actor_name:principal.name,actor_type:"admin",mode,assignment_date:mode==="subject_day"?date:null,
+      actor_name:principal.name,actor_type:isSystemAdmin?"admin":"teacher",
+      actor_department_id:actorDepartmentId,mode,assignment_date:mode==="subject_day"?date:null,
       subject:mode==="subject_day"?subject:null,
     }});
     if(error)throw error;
