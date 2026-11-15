@@ -83,6 +83,7 @@
     const ready=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
     button.classList.toggle("hidden",!ready);
     button.disabled=!ready||timetableDailyBusy;
+    document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyPrintReport],#timetableSubstitutionPanel button[onclick*=timetableDailyShareWhatsApp]").forEach(control=>control.classList.toggle("hidden",!ready));
   }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
@@ -452,23 +453,20 @@
     records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
     const days=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
     const pages=days.map(([date,items])=>{
-      items.sort((a,b)=>Number(a.period)-Number(b.period)||String(a.absentTeacherName).localeCompare(String(b.absentTeacherName),"ar"));
+      items.sort((a,b)=>String(a.absentTeacherName).localeCompare(String(b.absentTeacherName),"ar")||Number(a.period)-Number(b.period));
       const groups=new Map();
       items.forEach(item=>{const name=String(item.absentTeacherName||"-");if(!groups.has(name))groups.set(name,[]);groups.get(name).push(item);});
-      let rows="",count=0;
-      for(const [absentName,itemsForTeacher] of groups){
-        itemsForTeacher.forEach((item,index)=>{
-          rows+="<tr>"+(index===0?'<td rowspan="'+itemsForTeacher.length+'">'+esc(absentName)+'</td><td rowspan="'+itemsForTeacher.length+'">'+esc(itemsForTeacher.find(x=>String(x.reason||"-").trim()&&x.reason!=="-")?.reason||"-")+"</td>":"")+
-            "<td>"+Number(item.period)+"</td><td>"+esc(item.className||"-")+"</td><td>"+esc(item.substituteTeacherName||"-")+"</td></tr>";
-          count++;
-        });
-      }
-      const weekday=items[0]?.weekday||"";
-      const formattedDate=date.split("-").reverse().join(" / ")+" م";
+      const subject=[...new Set(items.map(item=>String(item.subject||"").trim()).filter(Boolean))].join("، ")||"المادة المحددة";
+      const groupMarkup=[...groups.entries()].map(([absentName,teacherItems],index)=>{
+        const heading=groups.size===1?esc(absentName):"المعلم الغائب "+(index+1)+": "+esc(absentName);
+        const rows=teacherItems.map(item=>"<tr><td>"+esc("الحصة "+formatReservePeriod(item.period))+"</td><td>"+esc(item.className||"-")+"</td><td>"+esc(item.substituteTeacherName||"-")+"</td></tr>").join("");
+        return '<section class="tt-print-teacher" style="margin:7mm 0 0;break-inside:avoid;page-break-inside:avoid"><h3 style="font-size:12pt;font-weight:900;text-align:right;margin:0 0 3mm">'+heading+'</h3><table><thead><tr><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
+      }).join("");
+      const count=items.length,weekday=items[0]?.weekday||"";
       return '<section class="tt-print-day" style="break-after:page;page-break-after:always">'+
-        '<div class="tt-print-header">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br><strong>مدرسة أبو دجانة الأنصاري للبنين (٩ - ١٢)</strong><br><strong>كشف توزيع الاحتياط</strong></div>'+
-        '<div class="tt-print-meta"><span>اليوم: '+esc(weekday)+'</span><span>التاريخ: '+esc(formattedDate)+'</span></div>'+
-        '<table><thead><tr><th>المعلم الغائب</th><th>سبب الاحتياط</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+        '<div class="tt-print-header"><strong>توزيع حصص الاحتياط</strong><br><strong>لمادة '+esc(subject)+'</strong></div>'+
+        '<div class="tt-print-meta"><strong>'+esc(weekday)+'</strong><em>'+esc(formatReserveDateArabic(date))+'</em></div>'+
+        groupMarkup+
         '<div class="tt-print-footer"><span>إجمالي الحصص: '+count+'</span><span>المعلم الأول: ............................</span></div></section>';
     });
     const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=pages.join("");
@@ -618,6 +616,9 @@
     }catch(error){status(error?.message||"تعذر فتح نافذة تعديل تكليف الاحتياط.","error");}
   };
 
+  function formatReservePeriod(period){
+    return ({1:"الأولى",2:"الثانية",3:"الثالثة",4:"الرابعة",5:"الخامسة",6:"السادسة",7:"السابعة",8:"الثامنة"})[Number(period)]||String(period);
+  }
   function formatReserveDateArabic(dateValue){
     if(!dateValue)return "";
     const date=new Date(String(dateValue)+"T12:00:00+04:00");
@@ -644,7 +645,7 @@
     const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
     const body=groups.map((group,index)=>{
       const heading=groups.length===1?esc(group.absentName):"المعلم الغائب "+(index+1)+": "+esc(group.absentName);
-      const rows=group.rows.map(row=>"<tr><td>"+esc("الحصة "+row.period)+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>").join("");
+      const rows=group.rows.map(row=>"<tr><td>"+esc("الحصة "+formatReservePeriod(row.period))+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>").join("");
       return '<section class="tt-print-teacher" style="margin:7mm 0 0;break-inside:avoid;page-break-inside:avoid"><h3 style="font-size:12pt;font-weight:900;text-align:right;margin:0 0 3mm">'+heading+'</h3><table><thead><tr><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
     }).join("");
     const count=groups.reduce((sum,group)=>sum+group.rows.length,0);
@@ -671,8 +672,7 @@
         const heading=groups.length===1?group.absentName:"المعلم الغائب "+(index+1)+": "+group.absentName;
         message+="*"+heading+"*\n\n";
         group.rows.forEach(row=>{
-          const periodNames={1:"الأولى",2:"الثانية",3:"الثالثة",4:"الرابعة",5:"الخامسة",6:"السادسة",7:"السابعة",8:"الثامنة"};
-          message+="الحصة "+(periodNames[Number(row.period)]||String(row.period))+" – الصف "+(row.className||"غير محدد")+"\n";
+          message+="الحصة "+formatReservePeriod(row.period)+" – الصف "+(row.className||"غير محدد")+"\n";
           message+="المعلم البديل: *"+(row.substitute||"لم يحدد")+"*\n\n";
         });
         if(index<groups.length-1)message+="\n";
