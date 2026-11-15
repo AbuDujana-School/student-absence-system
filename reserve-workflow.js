@@ -303,6 +303,7 @@
       reserveDraftScope=currentDraftScope();
       reserveDraftAssignments=(reserveBatchPreview.assignments||[]).map(item=>({absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:Number(item.period),candidateOptions:item.candidateOptions||[]}));
       timetableDailyRenderLessons();
+      persistStoredDraft();
       status("قرأ النظام جميع حصص الغياب معاً وأعد أفضل توزيع شامل. راجع البدلاء والأسباب ثم اضغط حفظ التوزيع.","success");
     }catch(error){status(error?.message||"تعذر إعداد التوزيع الذكي.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
