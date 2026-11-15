@@ -981,18 +981,23 @@ async function handle(req: Request) {
     }
     const date=String(body.assignmentDate||"").trim();
     if(!/^\d{4}-\d{2}-\d{2}$/.test(date) || !isValidSubstitutionDate(date)) return reply(400,{error:"اختر تاريخاً دراسياً صحيحاً."});
-    const {data,error}=await db.from("timetable_assignments").select("subject")
+    const {data,error}=await db.from("timetable_assignments").select("subject,absent_teacher_name")
       .eq("assignment_type","substitution").eq("assignment_date",date)
       .in("status",["assigned","confirmed"]);
     if(error)throw error;
     let allowedSubjects: Set<string> | null = null;
+    let allowedAbsentTeachers: Set<string> | null = null;
     if(principal.type === "teacher") {
       const directory=await teacherDirectory();
       const actor=directory.find((teacher:any)=>teacher.name===principal.name&&teacher.role==="teacher");
       if(!actor?.canManageSubstitutions||!actor.departmentId) return reply(403,{error:"حسابك غير مخوّل لإدارة احتياط قسم محدد."});
       allowedSubjects=new Set(await getActiveDepartmentSubjects(actor.departmentId));
+      allowedAbsentTeachers=new Set(directory
+        .filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId===actor.departmentId)
+        .map((teacher:any)=>teacher.name));
     }
     const subjects=[...new Set((data||[])
+      .filter((row:any)=>!allowedAbsentTeachers||allowedAbsentTeachers.has(String(row.absent_teacher_name||"")))
       .map((row:any)=>String(row.subject||"").trim())
       .filter((subject:string)=>Boolean(subject)&&(!allowedSubjects||allowedSubjects.has(subject))))]
       .sort((a,b) => a.localeCompare(b,"ar"));
