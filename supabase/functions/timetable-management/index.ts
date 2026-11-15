@@ -467,52 +467,58 @@ async function handle(req: Request) {
         }});
       }
       if (body.action === "timetable_activate_weekly_version") {
+        if (principal.type !== "admin") return reply(403, { error: "اعتماد الجدول الرسمي متاح لمدير النظام العام فقط." });
         if (!validUuid(body.versionId)) return reply(400, { error: "رقم نسخة الجدول غير صالح." });
-        const { count: unclearCount, error: unclearError } = await db.from("timetable_weekly_cells")
-          .select("version_id", { count: "exact", head: true })
-          .eq("version_id", body.versionId).eq("cell_status", "unclear");
-        if (unclearError) throw unclearError;
-        if ((unclearCount || 0) > 0) return reply(409, {
-          error: "لا يمكن اعتماد الجدول قبل مراجعة وتصحيح " + unclearCount + " خانة غير واضحة. افتح الخانات البرتقالية وعدّل تصنيفها أولاً.",
-        });
-
-        // Class schedules are derived from the same teacher cells. Block approval
-        // when a class-period is empty or has more than one teacher assignment.
-        const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
-          .select("period_count").eq("id", body.versionId).eq("status", "draft").maybeSingle();
+        const forceWithWarnings = body.forceWithWarnings === true;
+        const [{ data: version, error: versionError }, { count: unclearCount, error: unclearError },
+          { count: unmatchedCount, error: unmatchedError }, { data: classSourceCells, error: classCellsError },
+          { data: savedDays, error: savedDaysError }, classNames] = await Promise.all([
+          db.from("timetable_weekly_versions").select("period_count").eq("id", body.versionId).eq("status", "draft").maybeSingle(),
+          db.from("timetable_weekly_cells").select("version_id", { count: "exact", head: true }).eq("version_id", body.versionId).eq("cell_status", "unclear"),
+          db.from("timetable_weekly_cells").select("version_id", { count: "exact", head: true }).eq("version_id", body.versionId).neq("match_status", "matched"),
+          db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name").eq("version_id", body.versionId),
+          db.from("timetable_weekly_audit").select("weekday").eq("version_id", body.versionId).in("action", ["day_saved","day_replaced"]),
+          schoolClassDirectory(),
+        ]);
         if (versionError) throw versionError;
-        if (!version) return reply(404, { error: "نسخة المسودة غير موجودة أو لم تعد قابلة للاعتماد." });
-        const { data: classSourceCells, error: classCellsError } = await db.from("timetable_weekly_cells")
-          .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name")
-          .eq("version_id", body.versionId);
+        if (unclearError) throw unclearError;
+        if (unmatchedError) throw unmatchedError;
         if (classCellsError) throw classCellsError;
-        const classSummaries = aggregateClassTimetables(classSourceCells || [], DAYS, Number(version.period_count || 7));
-        const classVacancies = classSummaries.reduce((sum, item) => sum + item.vacancies.length, 0);
-        const classConflicts = classSummaries.reduce((sum, item) => sum + item.conflicts.length, 0);
-        // Empty class periods are potential gaps, not proven vacancies: a class
-        // may legitimately have a free period. Keep reporting them for review,
-        // but only confirmed overlapping assignments block activation.
-        if (classConflicts) return reply(409, {
-          error: "لا يمكن اعتماد الجدول قبل معالجة تعارضات جداول الصفوف: " +
-            classConflicts + " تعارض. راجع تبويب «جداول الصفوف».",
-          classValidation: {
-            vacancies: classVacancies,
-            conflicts: classConflicts,
-            vacancyWarning: classVacancies > 0
-              ? "توجد فترات غير محددة للصفوف؛ قد تكون فترات حرة طبيعية، لذا تُعرض للمراجعة ولا تمنع الاعتماد وحدها."
-              : null,
-            affectedClasses: classSummaries.filter(item => item.vacancies.length || item.conflicts.length).map(item => ({
-              className: item.className,
-              vacancies: item.vacancies,
-              conflicts: item.conflicts,
-            })),
-          },
-        });
+        if (savedDaysError) throw savedDaysError;
+        if (!version) return reply(404, { error: "نسخة المسودة غير موجودة أو لم تعد قابلة للاعتماد." });
+        const savedWeekdays = Array.from(new Set((savedDays || []).map((item: any) => String(item.weekday || ""))));
+        if (DAYS.some(day => !savedWeekdays.includes(day))) {
+          return reply(409, { error: "لا يمكن نشر الجدول رسمياً قبل حفظ الأيام الخمسة. الأيام المحفوظة: " + savedWeekdays.join("، ") + "." });
+        }
+        const periodCount = Number(version.period_count || 7);
+        const coverage = buildClassCoverage(classSourceCells || [], classNames, periodCount);
+        const warningCount = Number(unclearCount || 0) + Number(unmatchedCount || 0) +
+          coverage.missingSlots + coverage.conflictSlots + coverage.unclearSlots;
+        if (!forceWithWarnings && warningCount > 0) {
+          return reply(409, {
+            error: "توجد ملاحظات في الجدول. راجع التقرير أو اختر الاعتماد الرسمي مع الاحتفاظ بالملاحظات.",
+            classValidation: coverage,
+            unclearCells: Number(unclearCount || 0),
+            unmatchedCells: Number(unmatchedCount || 0),
+          });
+        }
+        const warnings = {
+          unclearCells: Number(unclearCount || 0),
+          unmatchedCells: Number(unmatchedCount || 0),
+          missingClassSlots: coverage.missingSlots,
+          classConflicts: coverage.conflictSlots,
+          unclearClassSlots: coverage.unclearSlots,
+          classCount: coverage.classCount,
+          requiredSlots: coverage.requiredSlots,
+          teachingLessons: coverage.teachingLessons,
+          freeSlots: coverage.freeSlots,
+          meetingSlots: coverage.meetingSlots,
+        };
         const { data, error } = await db.rpc("activate_timetable_weekly_version", {
-          p_payload: { version_id: body.versionId, actor_name: principal.name },
+          p_payload: { version_id: body.versionId, actor_name: principal.name, force_with_warnings: forceWithWarnings, warnings },
         });
         if (error) throw error;
-        return reply(200, { ok: true, result: data });
+        return reply(200, { ok: true, result: data, classValidation: coverage, warnings });
       }
       const weekday = String(body.weekday || "");
       if (!DAYS.includes(weekday)) return reply(400, { error: "اختر يوماً دراسياً صحيحاً." });
