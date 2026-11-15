@@ -22,6 +22,28 @@ function itemPosition(item) {
   const dy = ((Number(t[1]) || 0) / firstLength) * width + ((Number(t[3]) || 0) / secondLength) * height;
   return { x: x + dx / 2, y: y + dy / 2 };
 }
+export function transformPdfTextItem(item, matrix) {
+  const [a,b,c,d,e,f] = matrix;
+  const [ta,tb,tc,td,te,tf] = item.transform || [];
+  return {...item, transform:[
+    a*ta+c*tb, b*ta+d*tb,
+    a*tc+c*td, b*tc+d*td,
+    a*te+c*tf+e, b*te+d*tf+f
+  ]};
+}
+export function transformPdfGridLines(horizontal, vertical, matrix) {
+  const result = {horizontalLines:[],verticalLines:[]};
+  const add = (start,end) => {
+    const x1=matrix[0]*start.x+matrix[2]*start.y+matrix[4], y1=matrix[1]*start.x+matrix[3]*start.y+matrix[5];
+    const x2=matrix[0]*end.x+matrix[2]*end.y+matrix[4], y2=matrix[1]*end.x+matrix[3]*end.y+matrix[5];
+    if(Math.abs(x1-x2)<=1.5&&Math.abs(y1-y2)>=25)result.verticalLines.push({x:(x1+x2)/2,y1:Math.min(y1,y2),y2:Math.max(y1,y2)});
+    else if(Math.abs(y1-y2)<=1.5&&Math.abs(x1-x2)>=60)result.horizontalLines.push({x1:Math.min(x1,x2),x2:Math.max(x1,x2),y:(y1+y2)/2});
+  };
+  for(const line of horizontal||[])add({x:line.x1,y:line.y},{x:line.x2,y:line.y});
+  for(const line of vertical||[])add({x:line.x,y:line.y1},{x:line.x,y:line.y2});
+  return result;
+}
+
 function dayIndex(text) {
   const key = normalizePdfArabic(text).replace(/[\sـ]/g, "");
   return ["الاحد", "الاثنين", "الثلاثاء", "الاربعاء", "الخميس"].findIndex(alias => key === alias);
