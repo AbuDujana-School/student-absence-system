@@ -61,6 +61,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115010000_atomic_class_timetable_assignment.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115082010_timetable_class_coverage_force_publish.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115083655_timetable_weekly_audit_cell_counts.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115084152_timetable_activation_accepts_full_week_clones.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/atomic_class_assignment.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/weekly_class_coverage_force_publish.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "BEGIN; INSERT INTO public.timetable_weekly_versions(version,status,expected_teacher_count,period_count,created_by) VALUES (999,'draft',1,8,'migration-test'); INSERT INTO public.timetable_weekly_cells(version_id,teacher_source_name,match_status,weekday,period,cell_status) SELECT id,'migration-test','unmatched','الأحد',8,'free' FROM public.timetable_weekly_versions WHERE version=999; INSERT INTO public.timetable_assignments(version_id,teacher_name,assignment_type,weekday,period,created_by) SELECT id,'migration-test','other','الأحد',8,'migration-test' FROM public.timetable_weekly_versions WHERE version=999; ROLLBACK;"
