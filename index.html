@@ -10254,6 +10254,7 @@ async function timetableImportPdf() {
   if(!file){timetableSetStatus("اختر ملف PDF أولاً.","error");return;}
   if(!window.TimetablePdfImporter?.parseFile){timetableSetStatus("تعذر تحميل قارئ PDF. حدّث الصفحة وتأكد من اتصال الإنترنت.","error");return;}
   const old=button?.innerHTML;
+  let failureDiagnostics=null;
   if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ تحليل جميع الصفحات...';}
   if(panel)panel.classList.remove("hidden");if(bar)bar.style.width="0%";if(value)value.textContent="0%";if(label)label.textContent="بدء قراءة الملف...";
   timetableInvalidateDayPreview();document.getElementById("timetablePdfDiagnostics")?.classList.add("hidden");
@@ -10262,6 +10263,7 @@ async function timetableImportPdf() {
       if(bar)bar.style.width=progress.percent+"%";if(value)value.textContent=progress.percent+"%";if(label)label.textContent=progress.message||"جارٍ تحليل صفحات PDF...";
     });
     const diagnostics=parsed?.diagnostics||{};
+    failureDiagnostics=diagnostics;
     diagnostics.currentDutyTimesMatch=timetablePdfTimesMatch(diagnostics.periodTimes);
     if(Array.isArray(diagnostics.blockingErrors)&&diagnostics.blockingErrors.length)throw new Error(diagnostics.blockingErrors.slice(0,6).join("\n"));
     const days=Array.isArray(parsed?.weeklyDays)?parsed.weeklyDays:[];
@@ -10296,7 +10298,11 @@ async function timetableImportPdf() {
     if(bar)bar.style.width="100%";if(value)value.textContent="100%";if(label)label.textContent="اكتمل فحص "+diagnostics.pageCount+" صفحة";
     document.getElementById("timetableDayPreview")?.scrollIntoView({behavior:"smooth",block:"start"});
   }catch(error){
-    timetableInvalidateDayPreview();timetablePdfRenderDiagnostics({pageCount:0,teacherPageCount:0,importedCellCount:0,warnings:[],blockingErrors:[error?.message||"تعذر تحليل ملف PDF."]});
+    timetableInvalidateDayPreview();
+    const diagnostics=failureDiagnostics||{};
+    const blocking=Array.isArray(diagnostics.blockingErrors)?diagnostics.blockingErrors.slice():[];
+    if(!blocking.length)blocking.push(error?.message||"تعذر تحليل ملف PDF.");
+    timetablePdfRenderDiagnostics({...diagnostics,blockingErrors:blocking});
     timetableSetStatus(error?.message||"تعذر تحليل ملف PDF.","error");timetableWeeklySetStatus("لم تُنشأ معاينة أسبوعية. لم يتم حفظ أي بيانات.","error");
   }finally{if(button){button.disabled=false;button.innerHTML=old||'<i class="fa-solid fa-file-pdf ml-1"></i> تحليل PDF وإنشاء المعاينة';}}
 }
