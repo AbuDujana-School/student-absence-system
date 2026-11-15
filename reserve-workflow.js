@@ -619,23 +619,21 @@
   function reserveOfficialPrintMarkup(groups,date,weekday){
     const columns='<colgroup><col style="width:15%"><col style="width:14%"><col style="width:8%"><col style="width:10%"><col style="width:20%"><col style="width:13%"><col style="width:20%"></colgroup>';
     const header='<thead><tr><th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th></tr></thead>';
-    const body=groups.map((group,index)=>{
+    const rowsMarkup=(groups||[]).map((group,index)=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return "";
-      const absent=esc(group.absentName||"");
-      const reason=esc(group.reason||"");
-      const cells=rows.map((row,rowIndex)=>{
+      const absent=esc(group.absentName||""),reason=esc(group.reason||"");
+      return rows.map((row,rowIndex)=>{
         const merged=rowIndex===0?'<td class="tt-official-merged" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged" rowspan="'+rows.length+'">'+reason+'</td>':"";
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+
           '<td>'+esc(formatReservePeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
-      return '<table class="tt-official-table">'+columns+header+'<tbody>'+cells+'</tbody></table>';
     }).join("");
     return '<main class="tt-official-page"><header class="tt-official-heading">'+
       '<div>سلطنة عمان</div><div>وزارة التعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div>'+
       '<div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(weekday||"")+'</div><div><strong>التاريخ:</strong> '+esc(formatReserveDateArabic(date))+'</div></div>'+
-      '<div class="tt-official-tables">'+body+'</div>'+
+      '<table class="tt-official-table">'+columns+header+'<tbody>'+rowsMarkup+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp">ختم المدرسة</div></footer></main>';
   }
   function printOfficialReservePages(pages){
