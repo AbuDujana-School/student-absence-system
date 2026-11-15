@@ -23,8 +23,8 @@ export interface TimetableAuthStore {
   hasAdminCredential(): Promise<boolean>;
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
-  hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
   hasSubstitutionAccess?(name: string): Promise<boolean>;
+  hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
 }
 
 async function sha256(value: string): Promise<string> {
@@ -69,6 +69,10 @@ export async function resolveTimetablePrincipal(
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   if (await store.hasTimetableAccess(type, name)) return { type, name };
+  // Existing reserve permission is narrower than general timetable access.
+  if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
+    return { type, name };
+  }
   if (type === "teacher" && store.hasLinkedTeacherPortalAccess
     && await store.hasLinkedTeacherPortalAccess(name)) {
     return { type, name, portalOnly: true };
@@ -90,27 +94,39 @@ export function canUseTimetableAction(
     "timetable_check_access",
     "teacher_timetable_get_own",
   ]).has(action);
-  if (action.startsWith("timetable_substitution_")) {
-    return principalType === "teacher" && hasReservePermission && new Set([
-      "timetable_substitution_preview",
-      "timetable_substitution_save",
-      "timetable_substitution_cancel",
-      "timetable_substitution_batch_preview",
-      "timetable_substitution_batch_save",
-      "timetable_substitution_stats",
-      "timetable_substitution_archive",
-      "timetable_substitution_update",
-      "timetable_substitution_update_batch",
-    ]).has(action);
-  }
+  const substitutionActions = new Set([
+    "timetable_substitution_preview",
+    "timetable_substitution_save",
+    "timetable_substitution_cancel",
+    "timetable_substitution_batch_preview",
+    "timetable_substitution_batch_save",
+    "timetable_substitution_stats",
+    "timetable_substitution_archive",
+    "timetable_substitution_update",
+    "timetable_substitution_update_batch",
+  ]);
+  // General timetable access is not a substitute for the explicit reserve grant.
+  // Custom department coordinators retain their existing scoped workflow.
+  if (principalType === "teacher" && substitutionActions.has(action) && !hasReservePermission) return false;
   return new Set([
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
+    ...substitutionActions,
   ]).has(action);
 }
 
-/** Only the system administrator may broaden substitution beyond the actor's department. */
-export function canIncludeOtherDepartments(principalType: TimetablePrincipalType, requested: unknown): boolean {
-  return principalType === "admin" && requested === true;
+/** The administrator or a teacher explicitly granted reserve-distribution permission may broaden substitute candidates. */
+export function canIncludeOtherDepartments(
+  principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
+): boolean {
+  return requested === true && (principalType === "admin" || (principalType === "teacher" && hasReservePermission));
+}
+
+export function canAccessTeacherTimetablePortal(enabled: unknown, selectedTeacherNames: unknown, teacherName: string): boolean {
+  if (enabled !== true || !String(teacherName || "").trim()) return false;
+  const selected = Array.isArray(selectedTeacherNames)
+    ? selectedTeacherNames.map((value) => String(value || "").trim()).filter(Boolean)
+    : [];
+  return selected.length === 0 || selected.includes(String(teacherName).trim());
 }
