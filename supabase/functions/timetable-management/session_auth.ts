@@ -86,6 +86,7 @@ export function canUseTimetableAction(
   principalType: TimetablePrincipalType,
   action: string,
   portalOnly = false,
+  hasReservePermission = false,
 ): boolean {
   if (principalType === "admin") return true;
   if (portalOnly) return new Set([
@@ -93,16 +94,22 @@ export function canUseTimetableAction(
     "timetable_check_access",
     "teacher_timetable_get_own",
   ]).has(action);
-  return new Set([
-    "health",
-    "timetable_check_access",
-    "teacher_timetable_get_own",
+  const substitutionActions = new Set([
     "timetable_substitution_preview",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
     "timetable_substitution_stats",
+  ]);
+  // General timetable access is not a substitute for the explicit reserve grant.
+  // Custom department coordinators retain their existing scoped workflow.
+  if (principalType === "teacher" && substitutionActions.has(action) && !hasReservePermission) return false;
+  return new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_timetable_get_own",
+    ...substitutionActions,
   ]).has(action);
 }
 
