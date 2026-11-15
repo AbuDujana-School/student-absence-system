@@ -42,6 +42,35 @@ function compareClassNames(left:string,right:string):number {
   if(b)return 1;
   return left.localeCompare(right,"ar");
 }
+function asciiDigits(value:string):string {
+  return String(value||"").normalize("NFKC").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+function classSectionsForCell(cell:ClassTimetableSourceCell):string[] {
+  const raw=Array.isArray(cell.class_sections)?cell.class_sections:[];
+  const sections=new Set<string>();
+  for(const value of raw){
+    for(const part of String(value||"").split(/[،,؛;]+/)){
+      const section=asciiDigits(part).trim();
+      if(section&&!isPlaceholderClassName(section))sections.add(section);
+    }
+  }
+  if(String(cell.cell_status||"")!=="teaching")return Array.from(sections);
+  // Legacy imports sometimes retained group class codes in the subject field
+  // (e.g. 12/6 or 2/11/3/11) while class_sections kept only the first section.
+  // Recover only codes in the same senior grade already attached to this cell.
+  const grades=new Set(Array.from(sections).map(classOrder)
+    .filter((v):v is {grade:number;section:number}=>!!v&&[11,12].includes(v.grade))
+    .map(v=>v.grade));
+  const subject=asciiDigits(String(cell.subject||""));
+  for(const match of subject.matchAll(/(\d{1,2})\s*\/\s*(\d{1,2})/g)){
+    const first=Number(match[1]),second=Number(match[2]);
+    let grade=0,section=0;
+    if([11,12].includes(first)&&second>=1&&second<=8){grade=first;section=second;}
+    else if([11,12].includes(second)&&first>=1&&first<=8){grade=second;section=first;}
+    if(grade&&grades.has(grade))sections.add(section+"/"+grade);
+  }
+  return Array.from(sections);
+}
 function isOptionalGroup(slot:ClassTimetableSlot):boolean {
   return key(slot.sourceGroupNote||"").includes("مجموعه ماده اختياريه");
 }
@@ -69,7 +98,7 @@ export function aggregateClassTimetables(
   for (const cell of cells || []) {
     if (!weekdays.includes(cell.weekday) || !Number.isInteger(Number(cell.period)) ||
         Number(cell.period)<1 || Number(cell.period)>periodCount) continue;
-    const sections = Array.isArray(cell.class_sections) ? cell.class_sections : [];
+    const sections = classSectionsForCell(cell);
     for (const sectionValue of sections) {
       const className = String(sectionValue || "").trim();
       if (isPlaceholderClassName(className)) continue;
