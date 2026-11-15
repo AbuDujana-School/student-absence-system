@@ -80,10 +80,12 @@
     if(!button)return;
     const planned=reserveBatchPreview?.assignments||[],missing=reserveBatchPreview?.unassigned||[];
     const required=[...new Set([...planned,...missing].map(item=>String(item.absentTeacherName||"")).filter(Boolean))];
-    const ready=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
-    button.classList.toggle("hidden",!ready);
-    button.disabled=!ready||timetableDailyBusy;
-    document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyPrintReport],#timetableSubstitutionPanel button[onclick*=timetableDailyShareWhatsApp]").forEach(control=>control.classList.toggle("hidden",!ready));
+    const readyToSave=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
+    const hasSaved=(reserveBatchPreview?.existingAssignments||[]).length>0;
+    const reportsReady=readyToSave||(required.length===0&&hasSaved);
+    button.classList.toggle("hidden",!readyToSave);
+    button.disabled=!readyToSave||timetableDailyBusy;
+    document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyPrintReport],#timetableSubstitutionPanel button[onclick*=timetableDailyShareWhatsApp]").forEach(control=>control.classList.toggle("hidden",!reportsReady));
   }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
