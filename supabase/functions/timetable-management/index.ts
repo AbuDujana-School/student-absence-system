@@ -918,7 +918,7 @@ async function handle(req: Request) {
         const requestedDate=String(body.assignmentDate||"").trim();
         if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
         const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
-          (principal.type==="admin"||includeOtherDepartments||teacher.departmentId===actorDepartmentId)).map((teacher:any)=>teacher.name));
+          (principal.type==="admin"||teacher.departmentId===actorDepartmentId)).map((teacher:any)=>teacher.name));
         const archive=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&
           visibleNames.has(String(row.absent_teacher_name||""))&&
           (!requestedDate||String(row.assignment_date||"")===requestedDate))
@@ -1039,7 +1039,7 @@ async function handle(req: Request) {
         return reply(200,{ok:true,active:true,version:activeVersion,weekday,assignmentDate,absentTeachers:selectedNames,existingAssignments,...plan});
       }
       if(body.action==="timetable_substitution_stats"){
-        const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||includeOtherDepartments||teacher.departmentId===actorDepartmentId));
+        const visible=directory.filter((teacher:any)=>teacher.role==="teacher"&&(principal.type==="admin"||teacher.departmentId===actorDepartmentId));
         const activeRows=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&row.status!=="cancelled");
         const stats=visible.map((teacher:any)=>{
           const own=activeRows.filter((row:any)=>String(row.teacher_name)===teacher.name);
