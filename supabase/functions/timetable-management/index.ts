@@ -851,7 +851,7 @@ async function handle(req: Request) {
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
           .eq("version_id",activeVersion.id).eq("weekday",weekday).order("id").range(from,to)),
         db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
-        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status")
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status,weekday,period")
           .eq("version_id",activeVersion.id).order("id").range(from,to)),
         fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
           .order("id").range(from,to)),
@@ -864,13 +864,10 @@ async function handle(req: Request) {
       };
       const configuredDutyDays=dutySettingsResult.data?.value?.subjectDays;
       const dutySubjectDays={...defaultDutySubjectDays,...(configuredDutyDays&&typeof configuredDutyDays==="object"?configuredDutyDays:{})};
-      const weeklyQuotaByTeacher=new Map<string,number>();
-      for(const cell of weeklyLoad){
-        if(cell.matched_teacher_name&&cell.cell_status==="teaching"){
-          const name=String(cell.matched_teacher_name);
-          weeklyQuotaByTeacher.set(name,(weeklyQuotaByTeacher.get(name)||0)+1);
-        }
-      }
+      const weeklyQuotaByTeacher=countTeacherTeachingPeriods((weeklyLoad||[]).filter((cell:any)=>cell.matched_teacher_name).map((cell:any)=>({
+        teacherId:String(cell.matched_teacher_name),weekday:String(cell.weekday||""),period:Number(cell.period),
+        className:"",status:cell.cell_status,
+      })));
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});

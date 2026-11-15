@@ -427,3 +427,24 @@ Deno.test("weekly teaching quota is considered after equal point and daily-cover
   });
   equal(ranked[0].id,"low-quota","Lower weekly teaching quota wins when points and daily load are equal");
 });
+
+
+Deno.test("duplicate shared-class rows for an absent teacher produce one replacement per period", () => {
+  const lessons=getAbsentTeacherLessons([
+    {teacherId:"absent",weekday:"الأحد",period:3,className:"10/1",subject:"العلوم",status:"teaching"},
+    {teacherId:"absent",weekday:"الأحد",period:3,className:"10/2",subject:"العلوم",status:"teaching"},
+    {teacherId:"absent",weekday:"الأحد",period:4,className:"10/3",subject:"العلوم",status:"teaching"},
+  ],"absent","الأحد");
+  equal(lessons.length,2,"Duplicate period rows must not create duplicate substitute assignments");
+  equal(lessons[0].className,"10/1، 10/2","Shared class names should be combined for the report");
+});
+
+Deno.test("weekly teaching quota counts distinct periods rather than duplicate shared rows", () => {
+  const counts=countTeacherTeachingPeriods([
+    {teacherId:"teacher",weekday:"الأحد",period:1,className:"10/1",status:"teaching"},
+    {teacherId:"teacher",weekday:"الأحد",period:1,className:"10/2",status:"teaching"},
+    {teacherId:"teacher",weekday:"الأحد",period:2,className:"10/3",status:"teaching"},
+    {teacherId:"teacher",weekday:"الأحد",period:3,className:"",status:"free"},
+  ]);
+  equal(counts.get("teacher"),2,"A teacher's shared class at the same period counts once");
+});

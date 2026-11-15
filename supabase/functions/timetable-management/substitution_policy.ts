@@ -51,9 +51,31 @@ function hasThreeConsecutive(periods:Set<number>, target:number):boolean {
 }
 /** Only explicit teaching cells are lessons that need a replacement. */
 export function getAbsentTeacherLessons(timetable:TimetableEntry[],teacherId:string,weekday:string):SubstitutionLesson[] {
-  return timetable.filter(e=>e.teacherId===teacherId && e.weekday===weekday && (e.status??"teaching")==="teaching")
-    .map(e=>({weekday:e.weekday,period:e.period,className:e.className,...(e.subject?{subject:e.subject}:{})}))
-    .sort((a,b)=>a.period-b.period);
+  const byPeriod=new Map<number,{classNames:Set<string>;subjects:Set<string>}>();
+  for(const entry of timetable.filter(e=>e.teacherId===teacherId&&e.weekday===weekday&&(e.status??"teaching")==="teaching")){
+    const group=byPeriod.get(entry.period)??{classNames:new Set<string>(),subjects:new Set<string>()};
+    if(entry.className)group.classNames.add(entry.className);
+    if(entry.subject)group.subjects.add(entry.subject);
+    byPeriod.set(entry.period,group);
+  }
+  return Array.from(byPeriod.entries()).sort((a,b)=>a[0]-b[0]).map(([period,group])=>({
+    weekday,period,className:Array.from(group.classNames).join("، "),
+    ...(group.subjects.size?{subject:Array.from(group.subjects).join("، ")}:{})
+  }));
+}
+
+/** Counts distinct teacher/day/period teaching slots; shared-class duplicate rows count once. */
+export function countTeacherTeachingPeriods(entries:TimetableEntry[]):Map<string,number> {
+  const seen=new Set<string>();
+  const counts=new Map<string,number>();
+  for(const entry of entries){
+    if(!entry.teacherId||!entry.weekday||(entry.status??"teaching")!=="teaching")continue;
+    const key=entry.teacherId+"\\u0000"+entry.weekday+"\\u0000"+entry.period;
+    if(seen.has(key))continue;
+    seen.add(key);
+    counts.set(entry.teacherId,(counts.get(entry.teacherId)||0)+1);
+  }
+  return counts;
 }
 /** Missing, duplicated, meeting, activity, other and unclear cells are never treated as free. */
 export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
@@ -87,9 +109,10 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     .filter(t=>!assigned.has(t.id)).map(t=>{
       const history=historyFor(t.id);
       const today=sameDayAssignments(t.id);
-      const teachingPeriods=new Set(timetable.filter(e=>e.teacherId===t.id&&e.weekday===weekday&&(e.status??"teaching")==="teaching").map(e=>e.period));
+      const dailyTeachingPeriods=new Set(timetable.filter(e=>e.teacherId===t.id&&e.weekday===weekday&&(e.status??"teaching")==="teaching").map(e=>e.period));
+      const teachingPeriods=new Set(dailyTeachingPeriods);
       for(const a of today) teachingPeriods.add(a.period);
-      const dailyTeachingCount=timetable.filter(e=>e.teacherId===t.id&&e.weekday===weekday&&(e.status??"teaching")==="teaching").length;
+      const dailyTeachingCount=dailyTeachingPeriods.size;
       const adjacent=teachingPeriods.has(period-1)||teachingPeriods.has(period+1);
       const triple=hasThreeConsecutive(teachingPeriods,period);
       const substitutionsCount=history.length;
