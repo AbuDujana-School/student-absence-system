@@ -68,10 +68,11 @@ begin
            jsonb_build_object(
              'teacher_name',c.teacher_name,'absent_teacher_name',c.absent_teacher_name,
              'weekday',c.weekday,'period',c.period,'assignment_date',c.assignment_date,
-             'subject',c.subject,'status','assigned_or_confirmed'
+             'subject',c.subject,'status',t.status
            ),
            jsonb_build_object('status','cancelled','reset_mode',v_mode)
       from changed c
+      join targets t on t.id=c.id
     returning id
   )
   select count(*) into v_count from changed;
