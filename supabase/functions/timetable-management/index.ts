@@ -193,7 +193,7 @@ async function handle(req: Request) {
   const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
     ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
     : false;
-  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true)) {
+  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true)) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط الممنوحة صراحةً؛ تحقق من صلاحيات حسابك." });
   }
 
