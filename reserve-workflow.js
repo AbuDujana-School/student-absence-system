@@ -452,18 +452,9 @@
   window.timetableDailyPrintArchiveRange = function () {
     const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){status("لا توجد سجلات احتياط غير ملغاة للطباعة في الفترة المحددة.","error");return;}
-    const grouped=new Map();
-    records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
+    const grouped=new Map();records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
     const days=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    const pages=days.map(([date,items])=>{
-      const byAbsent=new Map();
-      items.forEach(item=>{
-        const name=String(item.absentTeacherName||"");
-        if(!byAbsent.has(name))byAbsent.set(name,{absentName:name,reason:(String(item.reason||"").trim()==="-"||String(item.reason||"").trim()==="—")?"":String(item.reason||""),rows:[]});
-        byAbsent.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||""});
-      });
-      return reserveOfficialPrintMarkup([...byAbsent.values()],date,items[0]?.weekday||"");
-    });
+    const pages=days.flatMap(([date,items])=>{const byAbsent=new Map();items.forEach(item=>{const name=String(item.absentTeacherName||"");if(!byAbsent.has(name))byAbsent.set(name,{absentName:name,reason:(String(item.reason||"").trim()==="-"||String(item.reason||"").trim()==="—")?"":String(item.reason||""),rows:[]});byAbsent.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||""});});return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");});
     printOfficialReservePages(pages);
   };
 
@@ -616,38 +607,54 @@
     if(!Number.isFinite(date.getTime()))return String(dateValue);
     return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",numberingSystem:"latn",timeZone:"Asia/Muscat"}).format(date);
   }
-  function reserveOfficialPrintMarkup(groups,date,weekday){
-    const columns='<colgroup><col style="width:15%"><col style="width:14%"><col style="width:8%"><col style="width:10%"><col style="width:20%"><col style="width:13%"><col style="width:20%"></colgroup>';
-    const header='<thead><tr><th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th></tr></thead>';
-    const rowsMarkup=(groups||[]).map((group,index)=>{
+  function formatReservePrintPeriod(period){return ({1:"١",2:"٢",3:"٣",4:"٤",5:"٥",6:"٦",7:"٧",8:"٨"})[Number(period)]||String(period);}
+  const RESERVE_OFFICIAL_ROWS_PER_PAGE = 15;
+  function reserveOfficialPrintPages(groups,date,weekday){
+    const pages=[];let current=[],count=0;
+    (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
-      if(!rows.length)return "";
+      if(!rows.length)return;
+      if(rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){if(count){pages.push(current);current=[];count=0;}for(let i=0;i<rows.length;i+=RESERVE_OFFICIAL_ROWS_PER_PAGE)pages.push([{...group,rows:rows.slice(i,i+RESERVE_OFFICIAL_ROWS_PER_PAGE)}]);return;}
+      if(count+rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){pages.push(current);current=[];count=0;}
+      current.push({...group,rows});count+=rows.length;
+    });
+    if(current.length)pages.push(current);if(!pages.length)pages.push([]);
+    return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday));
+  }
+  function reserveOfficialPrintMarkup(groups,date,weekday){
+    const widths=[19,15,8,10,17,11,20];
+    const columns='<colgroup>'+widths.map(width=>'<col style="width:'+width+'%">').join('')+'</colgroup>';
+    const header='<thead><tr><th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>الاحتياط</th><th>التوقيع</th><th>الملاحظات</th></tr></thead>';
+    let used=0;
+    const rowsMarkup=(groups||[]).map(group=>{
+      const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
       const absent=esc(group.absentName||""),rawReason=String(group.reason||"").trim(),reason=esc(rawReason==="-"||rawReason==="—"?"":rawReason);
       return rows.map((row,rowIndex)=>{
         const merged=rowIndex===0?'<td class="tt-official-merged" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged" rowspan="'+rows.length+'">'+reason+'</td>':"";
-        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+
-          '<td>'+esc(formatReservePeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
+        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
-    return '<main class="tt-official-page"><header class="tt-official-heading">'+
-      '<div>سلطنة عمان</div><div>وزارة التعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div>'+
-      '<div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
-      '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(weekday||"")+'</div><div><strong>التاريخ:</strong> '+esc(formatReserveDateArabic(date))+'</div></div>'+
-      '<table class="tt-official-table">'+columns+header+'<tbody>'+rowsMarkup+'</tbody></table>'+
+    const remaining=Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
+    const blankRows=remaining?Array.from({length:remaining},(_,i)=>'<tr class="'+(i===0?'tt-official-group-start':'')+'">'+(i===0?'<td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td>':"")+'<td></td><td></td><td></td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>').join(""):"";
+    const safeDate=String(date||"");let resolvedWeekday=String(weekday||"").trim();
+    if(!resolvedWeekday&&safeDate){const d=new Date(safeDate+"T12:00:00+04:00");if(Number.isFinite(d.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(d);}
+    return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عمان</div><div>وزارة التعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
+      '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReserveDateArabic(safeDate))+'</div></div>'+
+      '<table class="tt-official-table">'+columns+header+'<tbody>'+rowsMarkup+blankRows+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp">ختم المدرسة</div></footer></main>';
   }
   function printOfficialReservePages(pages){
+    document.getElementById("ttReservePrintRoot")?.remove();document.getElementById("ttReserveOfficialPrintStyle")?.remove();
     const style=document.createElement("style");style.id="ttReserveOfficialPrintStyle";
-    style.textContent='@page{size:A4 portrait;margin:11mm}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;margin:0!important;padding:0!important}#ttReservePrintRoot{display:block!important;color:#111!important;font-family:Tahoma,Arial,sans-serif;direction:rtl}'+
-      '.tt-official-page{box-sizing:border-box;width:100%;min-height:275mm;display:flex;flex-direction:column;direction:rtl;background:#fff;page-break-after:always;break-after:page}'+
-      '.tt-official-page:last-child{page-break-after:auto;break-after:auto}.tt-official-heading{text-align:center;font-size:12pt;font-weight:700;line-height:1.85;padding:0 0 5mm;border-bottom:1px solid #222}.tt-official-school{font-weight:900;font-size:13pt;margin-top:1mm}'+
-      '.tt-official-meta{display:flex;justify-content:space-between;gap:10mm;font-size:12pt;font-weight:700;margin:6mm 0 5mm}.tt-official-tables{flex:1}.tt-official-table{width:100%;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0 0 4mm;font-size:10pt;break-inside:auto}.tt-official-table thead{display:table-header-group}.tt-official-table th,.tt-official-table td{border:1px solid #333;text-align:center;vertical-align:middle;padding:3mm 1.3mm;overflow-wrap:anywhere}.tt-official-table th{font-weight:900;background:#f1f1f1}.tt-official-table tbody tr{break-inside:avoid;page-break-inside:avoid;height:13mm}.tt-official-table .tt-official-merged{font-weight:800;min-height:18mm}.tt-official-table .tt-official-group-start td{border-top-width:2px}.tt-official-table .tt-official-blank{height:13mm}.tt-official-footer{direction:ltr;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:12mm;min-height:27mm;font-size:12pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:22mm;display:flex;align-items:flex-start;justify-content:center;font-weight:700}'+
-      '@media screen{#ttReservePrintRoot{max-width:210mm;margin:12px auto;padding:11mm;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{min-height:275mm}}@media print{#ttReservePrintRoot{margin:0;padding:0}.tt-official-page{min-height:275mm}}';
-    document.head.appendChild(style);
-    const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=pages.join("");
-    document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
-    const cleanup=()=>{document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();window.removeEventListener("afterprint",cleanup);};
-    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,8000);
+    style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:Tahoma,Arial,sans-serif;direction:rtl}'+
+      '.tt-official-page{box-sizing:border-box;width:100%;height:281mm;min-height:281mm;max-height:281mm;display:flex;flex-direction:column;direction:rtl;background:#fff;overflow:hidden;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
+      '.tt-official-heading{flex:0 0 auto;text-align:center;font-size:12pt;font-weight:700;line-height:1.7;padding:0 0 3mm;border-bottom:1px solid #222}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:13pt;margin-top:1mm!important}'+
+      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-size:12pt;font-weight:700;margin:4mm 0 3mm}.tt-official-table{flex:0 0 auto;width:100%;height:180mm;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-size:10pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table thead{display:table-header-group;height:12mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #333;text-align:center;vertical-align:middle;padding:1mm .8mm;overflow-wrap:anywhere}.tt-official-table th{height:12mm;font-size:10.5pt;font-weight:900;background:#f4f4f4}.tt-official-table tbody tr{height:11.2mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:11.2mm}.tt-official-table .tt-official-merged{font-weight:800}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #222}.tt-official-table .tt-official-blank{height:11.2mm}'+
+      '.tt-official-footer{direction:ltr;flex:0 0 25mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:3mm;font-size:12pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:20mm;display:flex;align-items:flex-start;justify-content:center;font-weight:700}'+
+      '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
+    document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
+    let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();window.removeEventListener("afterprint",cleanup);};
+    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,15000);
   }
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
@@ -666,7 +673,7 @@
     const groups=buildReserveReportGroups(reserveBatchPreview||{});
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
     const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-    printOfficialReservePages([reserveOfficialPrintMarkup(groups,date,weekday)]);
+    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday));
   };
 
   window.timetableDailyShareWhatsApp = async function () {
