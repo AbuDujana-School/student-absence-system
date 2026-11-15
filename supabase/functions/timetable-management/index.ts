@@ -493,8 +493,11 @@ async function handle(req: Request) {
         if (savedDaysError) throw savedDaysError;
         if (!version) return reply(404, { error: "نسخة المسودة غير موجودة أو لم تعد قابلة للاعتماد." });
         const savedWeekdays = Array.from(new Set((savedDays || []).map((item: any) => String(item.weekday || ""))));
-        if (DAYS.some(day => !savedWeekdays.includes(day))) {
-          return reply(409, { error: "لا يمكن نشر الجدول رسمياً قبل حفظ الأيام الخمسة. الأيام المحفوظة: " + savedWeekdays.join("، ") + "." });
+        const cellWeekdays = Array.from(new Set((classSourceCells || []).map((item: any) => String(item.weekday || ""))));
+        const auditHasFullWeek = DAYS.every(day => savedWeekdays.includes(day));
+        const cellsHaveFullWeek = DAYS.every(day => cellWeekdays.includes(day));
+        if (!auditHasFullWeek && !cellsHaveFullWeek) {
+          return reply(409, { error: "لا يمكن نشر الجدول رسمياً قبل حفظ الأيام الخمسة أو استنساخ نسخة تحتوي عليها. الأيام المسجلة: " + (savedWeekdays.join("، ") || "لا توجد") + "؛ الأيام ذات الخانات: " + (cellWeekdays.join("، ") || "لا توجد") + "." });
         }
         const periodCount = Number(version.period_count || 7);
         const coverage = buildClassCoverage(classSourceCells || [], classNames, periodCount);
