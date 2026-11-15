@@ -256,7 +256,7 @@ async function handle(req: Request) {
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
-        canEdit:Boolean(activeVersion.data?.id)&&String(row.version_id)===String(activeVersion.data.id),
+        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
