@@ -34,8 +34,15 @@
         ]);
         const rawItems=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
         // Apply the page's declared /Rotate transform to text and vector paths.
-        // The timetable parser expects weekdays on Y and periods on X.
-        const matrix=viewport.transform;
+        // The timetable parser uses one canonical layout: weekdays on Y, periods on X.
+        // This aSc PDF stores its landscape timetable on a portrait page with /Rotate 90:
+        // after PDF.js applies /Rotate, weekdays run along X and periods along Y.
+        // Swap the transformed axes for quarter-turn pages so text and grid paths
+        // use the parser's canonical coordinates. Compose S * viewport.transform.
+        const viewportMatrix=viewport.transform;
+        const matrix=(page.rotate%180)!==0
+          ?[viewportMatrix[1],viewportMatrix[0],viewportMatrix[3],viewportMatrix[2],viewportMatrix[5],viewportMatrix[4]]
+          :viewportMatrix;
         const items=rawItems.map(item=>parser.transformPdfTextItem(item,matrix));
         const rawHorizontal=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
         const rawVertical=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
