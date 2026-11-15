@@ -330,9 +330,29 @@ async function handle(req: Request) {
         return reply(200, { ok: true, result: data });
       }
       const weekday = String(body.weekday || "");
-      const sourceText = String(body.text || "");
+      let sourceText = String(body.text || "");
       if (!DAYS.includes(weekday)) return reply(400, { error: "اختر يوماً دراسياً صحيحاً." });
-      if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "أدخل نص يوم دراسي صحيحاً." });
+      // Accept structured preview payloads from older clients as well as source text.
+      if (!sourceText.trim() && Array.isArray(body.teachers)) {
+        const statusLabels: Record<string,string> = { teaching:"تدريس", free:"فراغ", meeting:"اجتماع", activity:"نشاط", other:"أخرى", unclear:"غير واضح" };
+        const rows: string[] = [];
+        for (const teacher of body.teachers as any[]) {
+          const teacherName = String(teacher?.sourceName || teacher?.name || "").trim();
+          if (!teacherName || !Array.isArray(teacher.cells)) throw new Error("بيانات المعلم غير مكتملة في اليوم "+weekday+".");
+          for (const cell of teacher.cells) {
+            const period = Number(cell?.period);
+            if (!Number.isInteger(period) || period < 1 || period > 7) throw new Error("رقم الحصة غير صحيح للمعلم "+teacherName+".");
+            const classValue = Array.isArray(cell.classSections) ? cell.classSections.join("، ") : String(cell.sourceClass || cell.className || "");
+            const subjectValue = String(cell.sourceSubject || cell.subject || statusLabels[cell.status] || "غير محدد");
+            const statusValue = String(cell.sourceStatus || statusLabels[cell.status] || "غير واضح");
+            const noteValue = String(cell.sourceNote || "");
+            rows.push([teacherName, weekday, String(period), classValue || (cell.status === "free" ? "فراغ" : "غير محدد"), subjectValue, statusValue, noteValue]
+              .map(value => String(value).replace(/[\\t\\r\\n]/g, " ").trim()).join("\\t"));
+          }
+        }
+        sourceText = rows.join("\\n");
+      }
+      if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "بيانات اليوم غير مكتملة: لم يصل نص اليوم أو بيانات المعلمين المنظمة." });
       const parsed = parseTimetableDay(weekday, sourceText);
       validateSchoolTeacherCount(parsed, 69);
       const directory = await teacherDirectory();
@@ -376,8 +396,11 @@ async function handle(req: Request) {
       if (error) throw error;
       return reply(200, { ok: true, result: data, matchingTotals });
     } catch (error) {
-      console.error("Timetable day operation failed:", error instanceof Error ? error.message : "unknown");
-      return reply(400, { error: error instanceof Error ? error.message : "تعذر معالجة اليوم." });
+      const detail = error && typeof error === "object"
+        ? String((error as any).message || (error as any).details || (error as any).hint || (error as any).code || JSON.stringify(error))
+        : String(error || "سبب غير محدد");
+      console.error("Timetable day operation failed:", detail);
+      return reply(400, { error: detail || "تعذر معالجة اليوم." });
     }
   }
 
