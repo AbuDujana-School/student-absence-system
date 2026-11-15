@@ -113,7 +113,7 @@ function teacherNameInfoFromItems(items) {
     .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) &&
       (pos.x >= 0 && pos.x < 58 || pos.y >= 0 && pos.y < 58) &&
       /[\u0600-\u06ff]/.test(normalized))
-    .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
+    .filter(({ normalized }) => normalized.length >= 1 && !normalized.includes("تم إنشاء الجدول"));
   if (!candidates.length) return { name: "", original: "" };
 
   const rotated = candidates.filter(entry => entry.pos.y >= 0 && entry.pos.y < 58).length >
