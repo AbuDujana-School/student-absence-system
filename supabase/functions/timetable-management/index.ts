@@ -1201,10 +1201,13 @@ async function handle(req: Request) {
       if(body.action==="timetable_substitution_update"){
         const assignmentId=String(body.assignmentId||"");
         const substituteTeacherName=String(body.substituteTeacherName||"").trim();
+        const absentTeacherName=String(body.absentTeacherName||"").trim();
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
         if(!validUuid(assignmentId)||!substituteTeacherName)return reply(400,{error:"حدد سجل الاحتياط والبديل الجديد."});
-        const {data,error}=await db.rpc("replace_timetable_substitution_with_reason",{p_payload:{
-          assignment_id:assignmentId,substitute_teacher_name:substituteTeacherName,reserve_reason:reserveReason,
+        const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
+        const {data,error}=await db.rpc(rpcName,{p_payload:{
+          assignment_id:assignmentId,absent_teacher_name:absentTeacherName,
+          substitute_teacher_name:substituteTeacherName,reserve_reason:reserveReason,
           actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,
         }});
         if(error)throw error;
@@ -1284,6 +1287,7 @@ async function handle(req: Request) {
           row.weekday===weekday&&row.status!=="cancelled"&&
           (row.assignment_date?String(row.assignment_date)===assignmentDate:String(row.version_id)===String(activeVersion.id))
         ).map((row:any)=>({
+          id:String(row.id),assignmentDate:row.assignment_date||assignmentDate,canEdit:String(row.version_id)===String(activeVersion.id),
           absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
           weekday:String(row.weekday),period:Number(row.period),
           className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
