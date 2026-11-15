@@ -116,6 +116,7 @@ declare
   v_candidate_department text;
   v_actor_department text;
   v_candidate_free_count integer;
+  v_daily_sub_count integer := 0;
   v_assignment public.timetable_assignments%rowtype;
 begin
   if v_version_id is null or v_date is null
@@ -184,6 +185,15 @@ begin
       and period=v_period and status in ('assigned','confirmed','completed')
       and (assignment_date=v_date or (assignment_date is null and weekday=v_weekday))
   ) then raise exception 'المعلم المرشح لديه تكليف آخر في الحصة نفسها.'; end if;
+
+  select count(*) into v_daily_sub_count
+    from public.timetable_assignments
+    where teacher_name=v_substitute_name and assignment_type='substitution'
+      and status in ('assigned','confirmed','completed')
+      and (assignment_date=v_date or (assignment_date is null and weekday=v_weekday));
+  if v_daily_sub_count>=2 then
+    raise exception 'وصل المعلم المرشح إلى الحد الأعلى لحصتي احتياط في هذا اليوم.';
+  end if;
 
   insert into public.timetable_assignments(
     version_id,teacher_name,assignment_type,weekday,period,assignment_date,class_sections,subject,

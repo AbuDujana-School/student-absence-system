@@ -968,7 +968,7 @@ async function handle(req: Request) {
           return {teacherName:teacher.name,pointsBalance:points,substitutionCount:own.length,coveredAbsenceDays,periods};
         });
         const ownStats=stats.find((item:any)=>item.teacherName===principal.name)||null;
-        return reply(200,{ok:true,ownStats,teachers:principal.type==="admin"?stats:[],topPoints:[...stats].sort((a:any,b:any)=>b.pointsBalance-a.pointsBalance).slice(0,10),mostSubstitutions:[...stats].sort((a:any,b:any)=>b.substitutionCount-a.substitutionCount).slice(0,10),mostCoveredAbsenceDays:[...stats].sort((a:any,b:any)=>b.coveredAbsenceDays-a.coveredAbsenceDays).slice(0,10)});
+        return reply(200,{ok:true,ownStats,teachers:stats,topPoints:[...stats].sort((a:any,b:any)=>b.pointsBalance-a.pointsBalance).slice(0,10),mostSubstitutions:[...stats].sort((a:any,b:any)=>b.substitutionCount-a.substitutionCount).slice(0,10),mostCoveredAbsenceDays:[...stats].sort((a:any,b:any)=>b.coveredAbsenceDays-a.coveredAbsenceDays).slice(0,10)});
       }
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
