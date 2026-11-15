@@ -347,10 +347,10 @@ async function handle(req: Request) {
             const statusValue = String(cell.sourceStatus || statusLabels[cell.status] || "غير واضح");
             const noteValue = String(cell.sourceNote || "");
             rows.push([teacherName, weekday, String(period), classValue || (cell.status === "free" ? "فراغ" : "غير محدد"), subjectValue, statusValue, noteValue]
-              .map(value => String(value).replace(/[\\t\\r\\n]/g, " ").trim()).join("\\t"));
+              .map(value => String(value).replace(/[\t\r\n]/g, " ").trim()).join("\t"));
           }
         }
-        sourceText = rows.join("\\n");
+        sourceText = rows.join("\n");
       }
       if (!sourceText.trim() || sourceText.length > 500000) return reply(400, { error: "بيانات اليوم غير مكتملة: لم يصل نص اليوم أو بيانات المعلمين المنظمة." });
       const parsed = parseTimetableDay(weekday, sourceText);
