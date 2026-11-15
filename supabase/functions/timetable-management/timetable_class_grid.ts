@@ -87,7 +87,7 @@ export function aggregateClassTimetables(
       };
       entries.push(entry);
       coveredCount++;
-      if(first.status==="teaching")teachingCount++;
+      if(first.status!=="free"&&first.status!=="meeting"&&first.status!=="unclear")teachingCount++;
       else if(first.status==="free")freePeriods.push(position);
       else if(first.status==="meeting")meetingPeriods.push(position);
       else if(first.status==="unclear")unclearPeriods.push(position);
