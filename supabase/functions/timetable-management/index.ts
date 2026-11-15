@@ -217,8 +217,52 @@ async function handle(req: Request) {
   const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
     ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
     : false;
-  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true)) {
-    return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط الممنوحة صراحةً؛ تحقق من صلاحيات حسابك." });
+  const hasTimetableGrant = (principal.type === "teacher" || principal.type === "custom")
+    ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
+    : false;
+  const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
+  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true)
+    && !(action === "timetable_substitution_archive" && hasArchivePermission)) {
+    return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط أو صلاحية أرشيف الاحتياط الممنوحة من مدير النظام العام." });
+  }
+
+  // Archive is independent of the currently active timetable version: historical
+  // reserve records remain printable even after a new timetable is activated.
+  if (action === "timetable_substitution_archive") {
+    if (!hasArchivePermission) return reply(403,{error:"لا تملك صلاحية عرض أرشيف الاحتياط."});
+    const dateFrom=String(body.dateFrom||"").trim(),dateTo=String(body.dateTo||"").trim();
+    if(!isValidSubstitutionDate(dateFrom)||!isValidSubstitutionDate(dateTo)||dateFrom>dateTo) {
+      return reply(400,{error:"حدد فترة زمنية صحيحة لأرشيف الاحتياط."});
+    }
+    const fromMs=Date.parse(dateFrom+"T00:00:00Z"),toMs=Date.parse(dateTo+"T00:00:00Z");
+    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs-fromMs>366*86400000) {
+      return reply(400,{error:"الفترة القصوى لطباعة أرشيف الاحتياط هي 366 يوماً."});
+    }
+    const [directory,activeVersion]=await Promise.all([
+      teacherDirectory(),
+      db.from("timetable_weekly_versions").select("id").eq("status","active").maybeSingle(),
+    ]);
+    if(activeVersion.error)throw activeVersion.error;
+    const actor=directory.find((teacher:any)=>teacher.name===principal.name);
+    const schoolwide=principal.type==="admin"||hasTimetableGrant;
+    const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
+      (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
+    const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
+      .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason")
+      .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
+      .order("assignment_date").order("period").order("id").range(from,to));
+    const archive=(rows||[]).filter((row:any)=>visibleNames.has(String(row.absent_teacher_name||"")))
+      .sort((a:any,b:any)=>String(a.assignment_date||"").localeCompare(String(b.assignment_date||""))||
+        Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
+      .map((row:any)=>({
+        id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
+        canEdit:Boolean(activeVersion.data?.id)&&String(row.version_id)===String(activeVersion.data.id),
+        absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
+        period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
+        subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
+        status:String(row.status||"assigned"),versionId:String(row.version_id||""),
+      }));
+    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
