@@ -13,15 +13,16 @@ Deno.test("class audit includes every expected class and counts shared lessons o
     {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["11/1"],subject:"رياضيات",matched_teacher_name:"معلم ب"},
     {weekday:"الأحد",period:2,cell_status:"free",class_sections:["11/1"],subject:"فراغ"},
     {weekday:"الأحد",period:3,cell_status:"meeting",class_sections:["11/1"],subject:"اجتماع"},
+    {weekday:"الأحد",period:4,cell_status:"activity",class_sections:["11/1"],subject:"نشاط"},
   ],weekdays,7,classes);
   assert(summaries.length===2,"must return all expected classes, including empty ones");
   const first=summaries.find(item=>item.className==="11/1")!;
   const second=summaries.find(item=>item.className==="11/2")!;
-  assert(first.teachingCount===1,"shared teaching must count as one class lesson");
+  assert(first.teachingCount===2,"shared teaching counts once and occupied activity counts as a lesson");
   assert(first.entries.find(item=>item.period===1)?.coTeachingCount===2,"shared teachers must remain visible");
   assert(first.freePeriods.length===1,"free period must be excluded from teaching count");
   assert(first.meetingPeriods.length===1,"meeting must be excluded from teaching count");
-  assert(first.vacancies.length===32,"unassigned class periods must be reported");
+  assert(first.vacancies.length===31,"unassigned class periods must be reported");
   assert(second.vacancies.length===35,"an entirely missing class must still be audited");
 });
 
