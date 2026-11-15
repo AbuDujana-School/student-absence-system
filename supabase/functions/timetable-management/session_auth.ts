@@ -25,6 +25,7 @@ export interface TimetableAuthStore {
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasSubstitutionAccess?(name: string): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
+  hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
 }
 
 async function sha256(value: string): Promise<string> {
@@ -77,6 +78,11 @@ export async function resolveTimetablePrincipal(
     && await store.hasLinkedTeacherPortalAccess(name)) {
     return { type, name, portalOnly: true };
   }
+  // A teacher assigned reserve today may read only their own daily notice.
+  if (type === "teacher" && store.hasOwnDailySubstitutionAssignment
+    && await store.hasOwnDailySubstitutionAssignment(name)) {
+    return { type, name };
+  }
   return null;
 }
 
@@ -93,6 +99,7 @@ export function canUseTimetableAction(
     "health",
     "timetable_check_access",
     "teacher_timetable_get_own",
+    "teacher_substitution_get_today",
   ]).has(action);
   const substitutionActions = new Set([
     "timetable_substitution_preview",
@@ -107,7 +114,7 @@ export function canUseTimetableAction(
   ]);
   if (principalType === "teacher") {
     if (substitutionActions.has(action)) return hasReservePermission;
-    return new Set(["health","timetable_check_access","teacher_timetable_get_own"]).has(action);
+    return new Set(["health","timetable_check_access","teacher_timetable_get_own","teacher_substitution_get_today"]).has(action);
   }
   const customSubstitutionActions = new Set([
     "timetable_substitution_preview",

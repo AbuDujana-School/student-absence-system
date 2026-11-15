@@ -80,6 +80,29 @@ const timetableAuthStore: TimetableAuthStore = {
       resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === name
     );
   },
+  async hasOwnDailySubstitutionAssignment(name) {
+    const now = new Date();
+    const today = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
+    }).format(now);
+    const englishWeekday = new Intl.DateTimeFormat("en-US", {
+      timeZone: "Asia/Muscat", weekday: "long",
+    }).format(now);
+    const weekdayMap: Record<string,string> = {
+      Sunday: "الأحد", Monday: "الاثنين", Tuesday: "الثلاثاء",
+      Wednesday: "الأربعاء", Thursday: "الخميس",
+    };
+    const weekday = weekdayMap[englishWeekday] || "";
+    if (!DAYS.includes(weekday)) return false;
+    const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
+      .select("id").eq("status", "active").maybeSingle();
+    if (versionError || !version) return false;
+    const { data, error } = await db.from("timetable_assignments").select("id")
+      .eq("version_id", version.id).eq("teacher_name", name)
+      .eq("assignment_type", "substitution").eq("assignment_date", today)
+      .eq("weekday", weekday).neq("status", "cancelled").limit(1).maybeSingle();
+    return !error && !!data;
+  },
 };
 
 async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
@@ -804,6 +827,42 @@ async function handle(req: Request) {
     } catch (error) {
       console.error("Teacher weekly timetable read failed:", error instanceof Error ? error.message : "unknown");
       return reply(500, { error: "تعذر استعراض جدول المعلم." });
+    }
+  }
+
+  if (body.action === "teacher_substitution_get_today") {
+    if (principal.type !== "teacher") return reply(403, { error: "هذا الإشعار متاح لحسابات المعلمين فقط." });
+    try {
+      const now = new Date();
+      const today = new Intl.DateTimeFormat("en-CA", {
+        timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
+      }).format(now);
+      const englishWeekday = new Intl.DateTimeFormat("en-US", {
+        timeZone: "Asia/Muscat", weekday: "long",
+      }).format(now);
+      const weekdayMap: Record<string,string> = {
+        Sunday: "الأحد", Monday: "الاثنين", Tuesday: "الثلاثاء",
+        Wednesday: "الأربعاء", Thursday: "الخميس",
+      };
+      const weekday = weekdayMap[englishWeekday] || "";
+      if (!DAYS.includes(weekday)) return reply(200, { ok: true, assignmentDate: today, weekday, assignments: [] });
+      const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
+        .select("id").eq("status", "active").maybeSingle();
+      if (versionError) throw versionError;
+      if (!version) return reply(200, { ok: true, assignmentDate: today, weekday, assignments: [] });
+      const { data: assignments, error: assignmentsError } = await db.from("timetable_assignments")
+        .select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,status")
+        .eq("version_id", version.id).eq("teacher_name", principal.name)
+        .eq("assignment_type", "substitution").eq("assignment_date", today)
+        .eq("weekday", weekday).neq("status", "cancelled").order("period");
+      if (assignmentsError) throw assignmentsError;
+      return reply(200, {
+        ok: true, assignmentDate: today, weekday,
+        assignments: assignments || [],
+      });
+    } catch (error) {
+      console.error("Teacher daily substitution notice failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر التحقق من تكليفات الاحتياط لهذا اليوم." });
     }
   }
 
