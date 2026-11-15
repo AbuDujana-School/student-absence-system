@@ -89,6 +89,8 @@ jobs:
         run: deno test --allow-read=supabase/migrations supabase/functions/timetable-management/tests
       - name: Check timetable worker JavaScript syntax
         run: node --check timetable-text.worker.js
+      - name: Check reserve workflow JavaScript syntax
+        run: node --check reserve-workflow.js
       - name: Check timetable import UI JavaScript syntax
         run: |
           node <<'NODE'
