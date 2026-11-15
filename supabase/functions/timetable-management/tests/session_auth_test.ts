@@ -253,7 +253,10 @@ Deno.test("explicit timetable permissions keep their existing scoped substitutio
   });
   const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
   if (principal?.portalOnly === true) throw new Error("Explicit timetable permission was downgraded");
-  if (!canUseTimetableAction("teacher", "timetable_substitution_preview")) {
-    throw new Error("Existing substitution capability was changed");
+  if (canUseTimetableAction("teacher", "timetable_substitution_preview")) {
+    throw new Error("General timetable access must not grant reserve permission automatically");
+  }
+  if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, true)) {
+    throw new Error("Explicit reserve permission was not honored");
   }
 });
