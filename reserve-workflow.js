@@ -167,9 +167,11 @@
       results.insertAdjacentHTML("beforebegin", '<div id="timetableDailySummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div>');
       results.insertAdjacentHTML("afterend",
         '<section id="timetableDailyArchivePanel" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">' +
-        '<div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="font-black text-sm text-slate-900 dark:text-white">أرشيف توزيع الاحتياط</h4><p class="mt-1 text-[10px] text-slate-500">جميع التكليفات السابقة محفوظة بالتاريخ، ويمكن فتح التكليف وتعديله.</p></div><button type="button" id="timetableDailyArchiveReload" class="tt-action border border-slate-300 bg-white text-slate-800">تحديث الأرشيف</button></div>' +
-        '<div id="timetableDailyArchiveResults" class="space-y-3"></div></section>');
+        '<div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="font-black text-sm text-slate-900 dark:text-white">أرشيف توزيع الاحتياط</h4><p class="mt-1 text-[10px] text-slate-500">اختر فترة زمنية لعرض السجلات وطباعتها؛ كل يوم في صفحة مستقلة.</p></div></div>' +
+        '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"><label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="timetableDailyArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><label class="text-[10px] font-bold text-slate-600">إلى تاريخ<input id="timetableDailyArchiveTo" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><button type="button" id="timetableDailyArchiveReload" class="tt-action border border-slate-300 bg-white text-slate-800">عرض السجلات</button><button type="button" id="timetableDailyArchivePrint" class="tt-action bg-indigo-700 text-white"><i class="fa-solid fa-print ml-1"></i> طباعة الفترة</button></div><div id="timetableDailyArchiveResults" class="space-y-3"></div></section>');
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
+      $("timetableDailyArchivePrint")?.addEventListener("click", timetableDailyPrintArchiveRange);
+      try{const today=timetableSubstitutionGetDate().date;$("timetableDailyArchiveFrom").value=today;$("timetableDailyArchiveTo").value=today;}catch{}
     }
     const style = document.createElement("style");
     style.id = "reserve-workflow-styles";
@@ -220,6 +222,7 @@
 
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
+    if(appAuthSession?.principal?.type==="admin")installAdminReserveTools();
     if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
@@ -381,8 +384,10 @@
     const host=$("timetableDailyArchiveResults");if(!host)return;
     host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
     try{
-      const {weekday}=timetableSubstitutionGetDate(),token=appAuthSession?.token||readAppAuthToken();
-      const response=await appAuthRequest({action:"timetable_substitution_archive",weekday},token);
+      const from=$("timetableDailyArchiveFrom")?.value||"",to=$("timetableDailyArchiveTo")?.value||"",token=appAuthSession?.token||readAppAuthToken();
+      if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
+      if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
+      const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
       reserveArchive=response.archive||[];timetableDailyRenderArchive();
     }catch(error){host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(error?.message||"تعذر تحميل الأرشيف.")+"</div>";}
   };
@@ -709,7 +714,7 @@
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
     const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();applyTeacherTimetablePresentation();});
-    adminToolsObserver.observe(document.body,{subtree:true,attributes:true,attributeFilter:["class","style"]});
+    adminToolsObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class","style"]});
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
       const timetableObserver=new MutationObserver(()=>applyTeacherTimetablePresentation());
