@@ -75,8 +75,8 @@ BEGIN
   RETURNING id INTO v_clone_id;
   INSERT INTO public.timetable_weekly_cells(version_id,teacher_source_name,match_status,weekday,period,cell_status)
   SELECT v_clone_id,'clone-test-teacher','unmatched',day_name,period_number,'free'
-  FROM unnest(ARRAY['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس']) AS day_name
-  CROSS JOIN generate_series(1,7) AS period_number;
+  FROM unnest(ARRAY['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس']) AS weekdays(day_name)
+  CROSS JOIN generate_series(1,7) AS periods(period_number);
   v_clone_result := public.activate_timetable_weekly_version(jsonb_build_object(
     'version_id',v_clone_id,'actor_name','coverage-clone-test','force_with_warnings',true,
     'warnings',jsonb_build_object('test_clone',true)
