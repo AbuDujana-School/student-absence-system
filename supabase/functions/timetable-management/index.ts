@@ -96,7 +96,8 @@ function buildClassCoverage(cells: any[], classNames: string[], periodCount: num
   const classes = aggregateClassTimetables(cells, DAYS, periodCount, classNames);
   const expected = new Set(classNames);
   const expectedClasses = classes.filter(item => expected.has(item.className));
-  const sum = (key: string) => expectedClasses.reduce((total: number, item: any) => total + Number(Array.isArray(item[key]) ? item[key].length : item[key] || 0), 0);
+  const sum = (key: "vacancies" | "conflicts" | "teachingCount" | "freePeriods" | "meetingPeriods" | "unclearPeriods") =>
+    expectedClasses.reduce((total: number, item: any) => total + Number(Array.isArray(item[key]) ? item[key].length : item[key] || 0), 0);
   const missingSlots = sum("vacancies");
   const conflictSlots = sum("conflicts");
   const teachingLessons = sum("teachingCount");
@@ -174,10 +175,11 @@ async function handle(req: Request) {
           }));
         });
         const inferredPeriodCount = placementCells.some((cell: any) => cell.period === 8) ? 8 : 7;
-        parsed.totals.classCoverage = buildClassCoverage(placementCells, classNames, inferredPeriodCount);
-        if (parsed.totals.classCoverage.missingSlots > 0) parsed.warnings.push(
-          "فحص الصفوف: توجد " + parsed.totals.classCoverage.missingSlots + " خانات غير مغطاة من أصل " +
-          parsed.totals.classCoverage.requiredSlots + "؛ راجع تقرير جداول الصفوف."
+        const classCoverage = buildClassCoverage(placementCells, classNames, inferredPeriodCount);
+        (parsed.totals as any).classCoverage = classCoverage;
+        if (classCoverage.missingSlots > 0) parsed.warnings.push(
+          "فحص الصفوف: توجد " + classCoverage.missingSlots + " خانات غير مغطاة من أصل " +
+          classCoverage.requiredSlots + "؛ راجع تقرير جداول الصفوف."
         );
       }
       if (action === "timetable_preview") {
