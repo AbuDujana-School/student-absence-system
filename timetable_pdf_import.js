@@ -89,7 +89,7 @@ function teacherNameInfoFromItems(items) {
   const candidates = items.map(item => ({ item, pos: teacherNameAnchorPosition(item), normalized: normalizePdfArabic(item.str) }))
     .filter(({ pos, normalized }) => Number.isFinite(pos.x) && Number.isFinite(pos.y) &&
       (pos.x >= 0 && pos.x < 58 || pos.y >= 0 && pos.y < 58) &&
-      /[\\u0600-\\u06ff]/.test(normalized))
+      /[\u0600-\u06ff]/.test(normalized))
     .filter(({ normalized }) => normalized.length >= 2 && !normalized.includes("تم إنشاء الجدول"));
   if (!candidates.length) return { name: "", original: "" };
 
@@ -113,8 +113,8 @@ function teacherNameInfoFromItems(items) {
   const selected = columns[0].entries.sort((a, b) =>
     rotated ? b.pos.x - a.pos.x : b.pos.y - a.pos.y
   );
-  const name = selected.map(entry => entry.normalized).join(" ").replace(/\\s+/g, " ").trim();
-  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\\s+/g, " ").trim();
+  const name = selected.map(entry => entry.normalized).join(" ").replace(/\s+/g, " ").trim();
+  const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\s+/g, " ").trim();
   return { name, original };
 }
 export function extractHorizontalLinesFromOperatorList(operatorList, OPS) {
