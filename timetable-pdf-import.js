@@ -47,9 +47,7 @@
         if(typeof onProgress==="function")onProgress({page:pageNumber,total:document.numPages,percent:Math.round(pageNumber/document.numPages*100),message:"قراءة صفحة "+pageNumber+" من "+document.numPages});
         page.cleanup();
       }
-      const parsed=parser.parseTimetablePdfPages(pages);
-      if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.slice(0,5).join("\n"));
-      return parsed;
+      return parser.parseTimetablePdfPages(pages);
     }finally{await document.destroy();}
   }
   window.TimetablePdfImporter=Object.freeze({parseFile});
