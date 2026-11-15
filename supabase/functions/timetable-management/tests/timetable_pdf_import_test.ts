@@ -29,7 +29,7 @@ Deno.test("PDF parser rebuilds a teacher name split into vertically stacked frag
  page.items.unshift(
   rotatedNamePart("السالمي",228,118),
   rotatedNamePart("محمد",350,77),
-  rotatedNamePart("خالد",429,91),
+  rotatedNamePart("خالد",429,190),
   rotatedNamePart("أحمد",492,58),
  );
  const parsed=parseTimetablePdfPages([page]);
