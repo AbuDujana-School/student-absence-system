@@ -86,6 +86,15 @@ Deno.test("PDF parser rebuilds a teacher name split into vertically stacked frag
  if(normalizePdfArabic(teacher.sourceNameOriginal)!==teacher.sourceName)throw new Error("Original teacher name fragments were not retained");
 });
 
+
+Deno.test("PDF parser retains one-character Arabic fragments in teacher headings",()=>{
+ const page=makeTeacherPage();
+ page.items=page.items.filter((item:any)=>item.str!=="أحمد خالد محمد السالمي");
+ page.items.unshift(rotatedNamePart("فيزياء",366,70),rotatedNamePart("س",439,12));
+ const parsed=parseTimetablePdfPages([page]);
+ if(parsed.diagnostics.blockingErrors.length)throw new Error(parsed.diagnostics.blockingErrors.join(" | "));
+ if(parsed.weeklyDays[0]!.teachers[0]!.sourceName!=="س فيزياء")throw new Error("Single-character teacher heading fragment was discarded");
+});
 Deno.test("PDF parser follows the real RTL layout: weekdays are rows and periods are columns",()=>{
  const page=makeTeacherPage(2,cell(1,0,"الرياضيات","1/12/6/12"));
  const parsed=parseTimetablePdfPages([page]);
