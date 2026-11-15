@@ -9,8 +9,27 @@
   }
   function normalizeDigits(value){return String(value||"").replace(/[٠-٩۰-۹]/g,digit=>String("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹".indexOf(digit)%10));}
   function normalizeArabic(value){return normalizeDigits(String(value||"").normalize("NFKC")).replace(/[\u064b-\u065f\u0670\u0640]/g,"").replace(/[أإآٱ]/g,"ا").replace(/[\u200e\u200f\u202a-\u202e]/g,"").replace(/\s+/g," ").trim();}
-  function isArabicTeacherName(item){const x=Number(item.transform?.[4]),value=normalizeArabic(item.str);return Number.isFinite(x)&&x>=0&&x<58&&/[\u0600-\u06ff]/.test(value)&&value.length>=3;}
+  function isArabicTeacherName(item){
+    const x=Number(item.transform?.[4]),y=Number(item.transform?.[5]),value=normalizeArabic(item.str);
+    return Number.isFinite(x)&&Number.isFinite(y)&&(x>=0&&x<58||y>=0&&y<58)&&/[\u0600-\u06ff]/.test(value)&&value.length>=3;
+  }
   function getItemSnapshot(item){return {str:String(item.str||""),transform:Array.isArray(item.transform)?item.transform.map(Number):[],width:Number(item.width)||0,height:Number(item.height)||0};}
+  function transformTextItem(item,matrix){
+    const [a,b,c,d,e,f]=matrix,[ta,tb,tc,td,te,tf]=item.transform;
+    return {...item,transform:[a*ta+c*tb,b*ta+d*tb,a*tc+c*td,b*tc+d*td,a*te+c*tf+e,b*te+d*tf+f]};
+  }
+  function transformGridLines(horizontal,vertical,matrix){
+    const result={horizontalLines:[],verticalLines:[]};
+    const add=(start,end)=>{
+      const x1=matrix[0]*start.x+matrix[2]*start.y+matrix[4],y1=matrix[1]*start.x+matrix[3]*start.y+matrix[5];
+      const x2=matrix[0]*end.x+matrix[2]*end.y+matrix[4],y2=matrix[1]*end.x+matrix[3]*end.y+matrix[5];
+      if(Math.abs(x1-x2)<=1.5&&Math.abs(y1-y2)>=25)result.verticalLines.push({x:(x1+x2)/2,y1:Math.min(y1,y2),y2:Math.max(y1,y2)});
+      else if(Math.abs(y1-y2)<=1.5&&Math.abs(x1-x2)>=60)result.horizontalLines.push({x1:Math.min(x1,x2),x2:Math.max(x1,x2),y:(y1+y2)/2});
+    };
+    for(const line of horizontal)add({x:line.x1,y:line.y},{x:line.x2,y:line.y});
+    for(const line of vertical)add({x:line.x,y:line.y1},{x:line.x,y:line.y2});
+    return result;
+  }
   async function parseFile(file,onProgress){
     if(!(file instanceof File)||file.size<=0)throw new Error("ملف PDF فارغ أو غير صالح.");
     if(file.size>20*1024*1024)throw new Error("حجم ملف PDF يتجاوز 20 ميجابايت.");
@@ -24,14 +43,19 @@
       if(!document.numPages||document.numPages>150)throw new Error("يجب أن يحتوي الملف على 1 إلى 150 صفحة.");
       const pages=[];
       for(let pageNumber=1;pageNumber<=document.numPages;pageNumber++){
-        const page=await document.getPage(pageNumber),viewport=page.getViewport({scale:1,rotation:0});
+        const page=await document.getPage(pageNumber),viewport=page.getViewport({scale:1});
         const [textContent,operatorList]=await Promise.all([
           page.getTextContent({includeMarkedContent:false,disableNormalization:true}),
           page.getOperatorList(),
         ]);
-        const items=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
-        const horizontalLines=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
-        const verticalLines=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const rawItems=(textContent.items||[]).filter(item=>typeof item.str==="string"&&item.str.trim()&&Array.isArray(item.transform)).map(getItemSnapshot);
+        // Apply the page's declared /Rotate transform to text and vector paths.
+        // The timetable parser expects weekdays on Y and periods on X.
+        const matrix=viewport.transform;
+        const items=rawItems.map(item=>transformTextItem(item,matrix));
+        const rawHorizontal=parser.extractHorizontalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const rawVertical=parser.extractVerticalLinesFromOperatorList(operatorList,pdfjs.OPS);
+        const {horizontalLines,verticalLines}=transformGridLines(rawHorizontal,rawVertical,matrix);
         const teacherItems=items.filter(isArabicTeacherName);
         const hasTimeRows=items.filter(item=>/\d{1,2}:\d{2}/.test(normalizeDigits(item.str))).length>=7;
         if(pageNumber>1&&(!teacherItems.length||!hasTimeRows||items.length<12))throw new Error("تعذر التحقق من محتوى الصفحة "+pageNumber+". قد تكون ممسوحة ضوئياً أو غير مطابقة لتخطيط الجدول؛ لم يتم تجاوزها.");
