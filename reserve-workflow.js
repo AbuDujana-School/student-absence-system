@@ -192,7 +192,7 @@
       window.timetableDailyRenderLessons(); persistStoredDraft(); return reserveBatchPreview;
     } catch (error) {
       reserveBatchPreview = {error:error?.message || "تعذر تحليل حصص الاحتياط."};
-      reserveDraftAssignments = []; reserveManualChoices=Object.create(null); window.timetableDailyRenderLessons();
+      reserveDraftAssignments = []; window.timetableDailyRenderLessons();
       status(error?.message || "تعذر تحليل جميع الحصص دفعة واحدة.", "error"); throw error;
     }
   };
@@ -271,6 +271,7 @@
         reserveManualChoices[draftKey(item.absentTeacherName,item.period)]=chosen;
         status(triple?"تم الاختيار، لكن سيؤدي إلى ثلاث حصص متتالية أو أكثر؛ راجع الاختيار قبل الحفظ.":"تم تغيير البديل. احفظ التوزيع بعد مراجعة جميع الحصص.","info");
         persistStoredDraft();
+        window.timetableDailyRenderLessons();
       }else{
         item.substituteTeacherName="";
         delete reserveManualChoices[draftKey(item.absentTeacherName,item.period)];
