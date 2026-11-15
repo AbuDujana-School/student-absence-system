@@ -9111,15 +9111,19 @@ async function timetableSaveCustomPortalTeachers() {
   const names = Array.from(document.querySelectorAll("[data-timetable-portal-teacher]:checked"))
     .map(input => String(input.value || "").trim()).filter(Boolean);
   if (!names.length) { showToast("اختر معلماً واحداً على الأقل. للتفعيل للجميع استخدم زر العرض العام.", "error"); return; }
+  const token = appAuthSession?.token || readAppAuthToken();
   try {
-    const token = appAuthSession?.token || readAppAuthToken();
-    await appAuthRequest({action:"timetable_portal_set_mode",mode:"custom",teacherNames:names},token);
+    // Fail closed while changing the audience: if any later step fails, the portal stays hidden.
+    await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
+    await appAuthRequest({action:"timetable_portal_set_custom_teachers",teacherNames:names},token);
+    await appAuthRequest({action:"timetable_portal_set_enabled",enabled:true},token);
     teacherPortalEnabled = true;
     teacherPortalMode = "custom";
     showToast("تم تفعيل العرض المخصص لـ " + names.length + " معلماً.", "success");
     await timetableLoadPortalStatus();
   } catch (error) {
-    showToast(error?.message || "تعذر حفظ قائمة العرض المخصص.", "error");
+    showToast(error?.message || "تعذر حفظ قائمة العرض المخصص. تم إبقاء الخدمة متوقفة حمايةً من إظهارها لمستخدمين غير مقصودين.", "error");
+    await timetableLoadPortalStatus();
   }
 }
 async function timetableToggleTeacherPortal() {
@@ -9132,15 +9136,15 @@ async function timetableToggleTeacherPortal() {
   if (!confirmed) return;
   const button = document.getElementById("teacherTimetablePortalToggle");
   if (button) { button.disabled = true; button.textContent = "جارٍ تحديث الحالة..."; }
+  const token = appAuthSession?.token || readAppAuthToken();
   try {
-    const token = appAuthSession?.token || readAppAuthToken();
     if (switchingToAll) {
-      await appAuthRequest({action:"timetable_portal_set_mode",mode:"all"},token);
-      teacherPortalEnabled = true;
-      teacherPortalMode = "all";
+      // Clear any custom audience before enabling the global audience.
+      await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
+      await appAuthRequest({action:"timetable_portal_set_custom_teachers",teacherNames:[]},token);
+      await appAuthRequest({action:"timetable_portal_set_enabled",enabled:true},token);
     } else {
       await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
-      teacherPortalEnabled = false;
     }
     showToast(switchingToAll ? "تم تفعيل عرض الجدول لجميع المعلمين المرتبطين." : "تم إيقاف ظهور الجداول عن الجميع.", "success");
     await timetableLoadPortalStatus();

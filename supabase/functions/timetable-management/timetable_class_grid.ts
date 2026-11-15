@@ -45,6 +45,48 @@ function compareClassNames(left:string,right:string):number {
 function isOptionalGroup(slot:ClassTimetableSlot):boolean {
   return key(slot.sourceGroupNote||"").includes("مجموعه ماده اختياريه");
 }
+function asciiDigits(value:string):string {
+  return String(value||"").normalize("NFKC").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
+}
+function classSectionsForCell(cell:ClassTimetableSourceCell):string[] {
+  const raw=Array.isArray(cell.class_sections)?cell.class_sections:[];
+  const sections=new Set<string>();
+  for(const value of raw){
+    for(const part of String(value||"").split(/[،,؛;]+/)){
+      const section=asciiDigits(part).trim();
+      if(section&&!isPlaceholderClassName(section))sections.add(section);
+    }
+  }
+  // Some earlier imports retained the optional-group class codes in the subject
+  // text (for example 12/6 or 2/11/3/11) but stored only the first class section.
+  // Recover only codes that belong to the same senior grade as an explicit class
+  // already attached to this cell; this is read-only display normalization.
+  const grades=new Set(Array.from(sections).map(classOrder).filter((v):v is {grade:number;section:number}=>!!v&&[11,12].includes(v.grade)).map(v=>v.grade));
+  const subject=asciiDigits(String(cell.subject||""));
+  for(const match of subject.matchAll(/(\d{1,2})\s*\/\s*(\d{1,2})/g)){
+    const first=Number(match[1]),second=Number(match[2]);
+    let grade=0,section=0;
+    if([11,12].includes(first)&&second>=1&&second<=8){grade=first;section=second;}
+    else if([11,12].includes(second)&&first>=1&&first<=8){grade=second;section=first;}
+    if(grade&&grades.has(grade))sections.add(section+"/"+grade);
+  }
+  return Array.from(sections);
+}
+function hasOptionalGroupEvidence(assignments:ClassTimetableSlot[],className:string):boolean {
+  if(assignments.every(isOptionalGroup))return true;
+  const parsed=classOrder(className);
+  if(!parsed||![11,12].includes(parsed.grade)||assignments.some(item=>item.status!=="teaching"))return false;
+  // In older saved versions the explicit group note was not persisted. The
+  // subject still carries the source's grade/section marker, which is a reliable
+  // signal for these optional groups when multiple subjects share one class slot.
+  return assignments.some(item=>{
+    const subject=asciiDigits(item.subject);
+    return Array.from(subject.matchAll(/(\d{1,2})\s*\/\s*(\d{1,2})/g)).some(match=>{
+      const first=Number(match[1]),second=Number(match[2]);
+      return (first===parsed.grade&&second>=1&&second<=8)||(second===parsed.grade&&first>=1&&first<=8);
+    });
+  });
+}
 function slotIdentity(slot: ClassTimetableSlot): string {
   return key(slot.status)+"|"+key(slot.subject);
 }
@@ -69,7 +111,7 @@ export function aggregateClassTimetables(
   for (const cell of cells || []) {
     if (!weekdays.includes(cell.weekday) || !Number.isInteger(Number(cell.period)) ||
         Number(cell.period)<1 || Number(cell.period)>periodCount) continue;
-    const sections = Array.isArray(cell.class_sections) ? cell.class_sections : [];
+    const sections = classSectionsForCell(cell);
     for (const sectionValue of sections) {
       const className = String(sectionValue || "").trim();
       if (isPlaceholderClassName(className)) continue;
@@ -102,7 +144,7 @@ export function aggregateClassTimetables(
       // same time are co-teachers, not duplicate lessons or a timetable clash.
       const identities=new Set(assignments.map(slotIdentity));
       if(assignments.length>1 && identities.size>1){
-        if(assignments.every(item=>item.status==="teaching"&&isOptionalGroup(item))){
+        if(assignments.every(item=>item.status==="teaching")&&hasOptionalGroupEvidence(assignments,className)){
           parallelGroups.push({...position,assignments});
           coveredCount++;
           teachingCount++;

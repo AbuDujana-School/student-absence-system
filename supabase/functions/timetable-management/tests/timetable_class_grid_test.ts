@@ -43,3 +43,21 @@ Deno.test("class timetable sorts Arabic-Indic class digits numerically",()=>{
  const expected=["١/٩","١/١٠","١/١١","١/١٢"];
  if(JSON.stringify(names)!==JSON.stringify(expected))throw new Error("Arabic-Indic class order is incorrect: "+names.join(", "));
 });
+
+Deno.test("legacy elective group codes restore parallel groups and missing sections without database writes",()=>{
+ const cells:any[]=[
+  {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الاحيا ٢ 12/1",matched_teacher_name:"معلم الأحياء"},
+  {weekday:"الأحد",period:1,cell_status:"teaching",class_sections:["1/12"],subject:"الفنون التشكيلية ٣ 12/6",matched_teacher_name:"معلم الفنون"},
+  {weekday:"الأحد",period:6,cell_status:"teaching",class_sections:["7/11"],subject:"الفنون التشكيلية ١ 2/11/3/11",matched_teacher_name:"معلم الفنون"},
+  {weekday:"الأحد",period:6,cell_status:"teaching",class_sections:["3/11","7/11"],subject:"الرياضة المدرسية ٢",matched_teacher_name:"معلم الرياضة"}
+ ];
+ const result=aggregateClassTimetables(cells,DAYS,7,["1/12","6/12","2/11","3/11","7/11"]);
+ const class112=result.find(item=>item.className==="1/12")!;
+ if(class112.parallelGroups.length!==1||class112.conflicts.length!==0)throw new Error("Encoded elective subjects must be shown as parallel groups");
+ const class612=result.find(item=>item.className==="6/12")!;
+ if(class612.entries.length!==1||class612.entries[0].teacherName!=="معلم الفنون")throw new Error("A secondary section encoded in the group marker must receive its lesson");
+ const class211=result.find(item=>item.className==="2/11")!;
+ if(class211.entries.length!==1||class211.entries[0].teacherName!=="معلم الفنون")throw new Error("The source group code must restore the omitted 2/11 section in the read model");
+ const class311=result.find(item=>item.className==="3/11")!;
+ if(class311.parallelGroups.length!==1||class311.conflicts.length!==0)throw new Error("The same optional-group marker must classify the 3/11 parallel slot");
+});
