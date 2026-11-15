@@ -4,7 +4,27 @@
   let reserveBatchPreview = null;
   let reserveDraftAssignments = [];
   let reserveReasons = Object.create(null);
+  let reserveManualChoices = Object.create(null);
+  let reserveDraftScope = "";
   let reserveArchive = [];
+  const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
+  function currentDraftScope() {
+    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"all":"department"].join("|"); }
+    catch { return ""; }
+  }
+  function currentPlanRows(response) {
+    const planned=(response.assignments||[]).map(item=>{
+      const draft=reserveDraftAssignments.find(row=>row.absentTeacherName===item.absentTeacherName&&Number(row.period)===Number(item.period));
+      return {...item,substituteTeacherName:draft?draft.substituteTeacherName:item.substituteTeacherName};
+    });
+    return {planned,saved:response.existingAssignments||[],missing:response.unassigned||[]};
+  }
+  function hasTriple(periods, target) {
+    const occupied=new Set((periods||[]).map(Number)); occupied.add(Number(target));
+    for(let start=Math.max(1,Number(target)-2);start<=Number(target);start++)
+      if(occupied.has(start)&&occupied.has(start+1)&&occupied.has(start+2))return true;
+    return false;
+  }
   const $ = id => document.getElementById(id);
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
@@ -118,18 +138,25 @@
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
     if (!timetableDailyAbsentTeachers.length) {
-      reserveBatchPreview = null; reserveDraftAssignments = []; window.timetableDailyRenderLessons(); return;
+      reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
     }
+    const scope=currentDraftScope();
+    if(reserveDraftScope&&reserveDraftScope!==scope)reserveManualChoices=Object.create(null);
+    reserveDraftScope=scope;
     try {
       reserveBatchPreview = await fetchBatchPreview();
       if (reserveBatchPreview.active === false) throw new Error("لا يوجد جدول أسبوعي نشط لتوزيع الاحتياط.");
-      reserveDraftAssignments = (reserveBatchPreview.assignments || []).map(item => ({
-        absentTeacherName:item.absentTeacherName, substituteTeacherName:item.substituteTeacherName, period:Number(item.period)
-      }));
+      reserveDraftAssignments = (reserveBatchPreview.assignments || []).map(item => {
+        const key=draftKey(item.absentTeacherName,item.period),manual=reserveManualChoices[key];
+        const candidates=item.candidateOptions||[];
+        const validManual=manual&&candidates.some(candidate=>candidate.teacherName===manual);
+        if(manual&&!validManual)delete reserveManualChoices[key];
+        return {absentTeacherName:item.absentTeacherName,substituteTeacherName:validManual?manual:item.substituteTeacherName,period:Number(item.period),candidateOptions:candidates};
+      });
       window.timetableDailyRenderLessons(); return reserveBatchPreview;
     } catch (error) {
       reserveBatchPreview = {error:error?.message || "تعذر تحليل حصص الاحتياط."};
-      reserveDraftAssignments = []; window.timetableDailyRenderLessons();
+      reserveDraftAssignments = []; reserveManualChoices=Object.create(null); window.timetableDailyRenderLessons();
       status(error?.message || "تعذر تحليل جميع الحصص دفعة واحدة.", "error"); throw error;
     }
   };
@@ -137,7 +164,9 @@
   window.timetableDailyRemoveAbsent = async function (name) {
     if (timetableDailyBusy) return;
     timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(item => item !== name);
-    delete reserveReasons[name]; timetableDailyRenderTags(); await window.timetableDailyRefreshAll();
+    delete reserveReasons[name];
+    Object.keys(reserveManualChoices).filter(key=>key.startsWith(String(name)+"\u0000")).forEach(key=>delete reserveManualChoices[key]);
+    timetableDailyRenderTags(); await window.timetableDailyRefreshAll();
   };
 
   window.timetableDailyRenderLessons = function () {
@@ -186,8 +215,28 @@
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
-      if(item)item.substituteTeacherName=select.value;
-      status(select.value?"تم تغيير البديل المقترح. احفظ التوزيع بعد مراجعة جميع الحصص.":"لم يتم اختيار بديل لهذه الحصة.","info");
+      if(!item)return;
+      const chosen=select.value;
+      if(chosen){
+        const candidate=(item.candidateOptions||[]).find(row=>row.teacherName===chosen);
+        const samePeriod=reserveDraftAssignments.some(row=>row!==item&&row.substituteTeacherName===chosen&&Number(row.period)===Number(item.period));
+        const alreadyChosen=reserveDraftAssignments.filter(row=>row!==item&&row.substituteTeacherName===chosen).length;
+        const dailyCount=Number(candidate?.dailySubstitutionCount||0)+alreadyChosen;
+        if(samePeriod||dailyCount>=2){
+          select.value=item.substituteTeacherName||"";
+          status(samePeriod?"هذا المعلم اختير بالفعل للحصة نفسها. اختر بديلاً آخر.":"سيؤدي هذا الاختيار إلى تجاوز حد حصتين احتياط في اليوم.","error");
+          return;
+        }
+        const otherPeriods=reserveDraftAssignments.filter(row=>row!==item&&row.substituteTeacherName===chosen).map(row=>Number(row.period));
+        const triple=hasTriple([...(candidate?.occupiedPeriods||[]),...otherPeriods],item.period);
+        item.substituteTeacherName=chosen;
+        reserveManualChoices[draftKey(item.absentTeacherName,item.period)]=chosen;
+        status(triple?"تم الاختيار، لكن سيؤدي إلى ثلاث حصص متتالية أو أكثر؛ راجع الاختيار قبل الحفظ.":"تم تغيير البديل. احفظ التوزيع بعد مراجعة جميع الحصص.","info");
+      }else{
+        item.substituteTeacherName="";
+        delete reserveManualChoices[draftKey(item.absentTeacherName,item.period)];
+        status("أزيل اختيار البديل لهذه الحصة.","info");
+      }
     }));
     host.querySelectorAll("[data-tt-reason-select]").forEach(select=>select.addEventListener("change",()=>{
       const name=select.dataset.ttReasonSelect,custom=host.querySelector('[data-tt-reason-custom="'+name+'"]');
@@ -206,9 +255,11 @@
     if(!timetableDailyAbsentTeachers.length){status("أضف معلماً غائباً واحداً على الأقل.","error");return;}
     timetableDailyBusy=true;timetableDailySetBusy(true);
     try{
+      reserveManualChoices=Object.create(null);
       reserveBatchPreview=await fetchBatchPreview();
       if(reserveBatchPreview.active===false)throw new Error("لا يوجد جدول أسبوعي نشط لتوزيع الاحتياط.");
-      reserveDraftAssignments=(reserveBatchPreview.assignments||[]).map(item=>({absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:Number(item.period)}));
+      reserveDraftScope=currentDraftScope();
+      reserveDraftAssignments=(reserveBatchPreview.assignments||[]).map(item=>({absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:Number(item.period),candidateOptions:item.candidateOptions||[]}));
       timetableDailyRenderLessons();
       status("قرأ النظام جميع حصص الغياب معاً وأعد أفضل توزيع شامل. راجع البدلاء والأسباب ثم اضغط حفظ التوزيع.","success");
     }catch(error){status(error?.message||"تعذر إعداد التوزيع الذكي.","error");}
@@ -356,7 +407,7 @@
   window.timetableDailyPrintReport = async function () {
     if(!reserveBatchPreview&&timetableDailyAbsentTeachers.length)await timetableDailyRefreshAll();
     if(!timetableDailyAbsentTeachers.length){status("اختر المعلمين الغائبين قبل الطباعة.","error");return;}
-    const response=reserveBatchPreview||{},planned=response.assignments||[],saved=response.existingAssignments||[],missing=response.unassigned||[];
+    const {planned,saved,missing}=currentPlanRows(reserveBatchPreview||{});
     const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"",formattedDate=date.split("-").reverse().join(" / ")+" م";
     const groups=timetableDailyAbsentTeachers.map(absentName=>{
       const rows=[...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,substitute:x.substituteTeacherName})),
@@ -370,7 +421,6 @@
     let tableRows="",count=0;
     groups.forEach(group=>group.rows.forEach((row,index)=>{
       tableRows+=(index===0?'<tr class="tt-print-group-start">':'<tr>')+(index===0?'<td rowspan="'+group.rows.length+'">'+esc(group.absentName)+'</td><td rowspan="'+group.rows.length+'">'+esc(group.reason)+'</td>':'')+
-        "<td>"+Number(row.period)+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>";count++;
         "<td>"+Number(row.period)+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>";count++;
     }));
     const root=document.createElement("div");root.id="ttReservePrintRoot";
@@ -387,9 +437,12 @@
     if(!timetableDailyAbsentTeachers.length){status("أضف المعلمين الغائبين أولاً.","error");return;}
     const popup=window.open("about:blank","_blank");if(!popup){status("اسمح بالنوافذ المنبثقة لمشاركة كشف واتساب.","error");return;}
     if(!reserveBatchPreview)await timetableDailyRefreshAll();
-    const response=reserveBatchPreview||{},date=$("timetableSubstitutionDate")?.value||"",rows=[...(response.existingAssignments||[]),...(response.assignments||[]),...(response.unassigned||[])];
+    const response=reserveBatchPreview||{},date=$("timetableSubstitutionDate")?.value||"",current=currentPlanRows(response),rows=[...current.saved,...current.planned,...current.missing];
     let message="*📋 كشف الاحتياط اليومي*\\n📅 التاريخ: "+date+"\\n\\n";
-    rows.forEach(item=>{message+="• "+item.absentTeacherName+" | الحصة "+item.period+" | "+(item.className||"غير محدد")+" ← "+(item.substituteTeacherName||"⚠️ لم يحدد")+"\\n";});
+    rows.forEach(item=>{
+      const reason=reserveReasons[item.absentTeacherName]||item.reason||"-";
+      message+="• "+item.absentTeacherName+" | السبب: "+reason+" | الحصة "+item.period+" | "+(item.className||"غير محدد")+" ← "+(item.substituteTeacherName||"⚠️ لم يحدد")+"\\n";
+    });
     if(!rows.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
     popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
   };
