@@ -16,7 +16,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,includeOtherDepartments:includeOthers()}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -32,6 +32,8 @@
       timetableDailyAbsentTeachers=[...new Set(saved.absentTeachers.map(String).filter(Boolean))];
       const otherToggle=$("timetableSubstitutionOtherDepartments");
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
+      const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
+      if(otherDepartmentSelect&&saved.otherDepartmentId)otherDepartmentSelect.value=saved.otherDepartmentId;
       const otherButton=$("timetableDailyOtherDepartmentsButton");
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
         ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
@@ -46,7 +48,7 @@
   }
   const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
   function currentDraftScope() {
-    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"all":"department"].join("|"); }
+    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+selectedOtherDepartmentId():"department"].join("|"); }
     catch { return ""; }
   }
   function currentPlanRows(response) {
@@ -66,6 +68,18 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
+  const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||"").trim();
+  async function loadOtherDepartments() {
+    const token=appAuthSession?.token||readAppAuthToken();
+    const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
+    const select=$("timetableDailyOtherDepartmentSelect");
+    if(!select)return;
+    const current=selectedOtherDepartmentId();
+    select.innerHTML='<option value="">اختر المادة / القسم المساند</option>'+
+      (result.departments||[]).map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
+    if(current && (result.departments||[]).some(item=>item.id===current))select.value=current;
+  }
+
   function reasonControlMarkup(absentName, reason) {
     const value=String(reason||"").trim();
     return '<div class="w-full max-w-md"><label class="mb-1 block text-[10px] font-black text-slate-600">سبب الاحتياط <span class="font-normal text-slate-400">(اختياري)</span></label>'+
@@ -126,11 +140,25 @@
         const toggle = $("timetableSubstitutionOtherDepartments");
         if (!toggle) return;
         toggle.checked = !toggle.checked;
-        $("timetableDailyOtherDepartmentsButton").innerHTML = toggle.checked
-          ? '<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
-          : '<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        const select=$("timetableDailyOtherDepartmentSelect");
+        if(toggle.checked){
+          try{
+            await loadOtherDepartments();
+            if(select)select.classList.remove("hidden");
+            $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
+            if(!selectedOtherDepartmentId()){status("اختر القسم أولاً، ثم سيعرض النظام معلميه المتاحين فقط.","info");return;}
+          }catch(error){toggle.checked=false;if(select)select.classList.add("hidden");status(error?.message||"تعذر تحميل قائمة الأقسام.","error");return;}
+        }else{
+          if(select){select.classList.add("hidden");select.value="";}
+          $("timetableDailyOtherDepartmentsButton").innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        }
         await timetableDailyRefreshAll();
       });
+      const toolbarSelect='<label id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[190px] text-[10px] font-bold text-slate-600"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" class="w-full rounded-xl border border-indigo-200 bg-white p-2 text-xs"><option value="">اختر المادة / القسم المساند</option></select></label>';
+      $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
+      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",async()=>{if(includeOthers()&&selectedOtherDepartmentId())await timetableDailyRefreshAll();});
+      $("timetableDailyOtherDepartmentSelect")?.closest("label")?.classList.toggle("hidden",!includeOthers());
+      if(includeOthers())loadOtherDepartments().then(()=>{$("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");}).catch(()=>{});
     }
     const results = $("timetableSubstitutionResults");
     if (results) {
@@ -176,7 +204,7 @@
     if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({
       action: "timetable_substitution_batch_preview", weekday, assignmentDate: date,
-      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers()
+      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId()
     }, token);
   }
 
@@ -332,7 +360,7 @@
     try{
       const {date,weekday}=timetableSubstitutionGetDate(),token=appAuthSession?.token||readAppAuthToken();
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
-        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers()},token);
+        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
       status("تم حفظ "+(result.assignmentCount||assignments.length)+" تكليف في عملية واحدة. يجري تحديث الأرشيف.","success");
       reserveManualChoices=Object.create(null);
       await timetableDailyRefreshAll();await timetableDailyLoadArchive();
@@ -358,7 +386,7 @@
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
-      absentTeacherName:absentName,includeOtherDepartments:includeOthers()},token);
+      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
   }
 
   window.timetableDailyRenderArchive = function () {
