@@ -133,9 +133,14 @@ function teacherNameInfoFromItems(items) {
     b.entries.reduce((sum, entry) => sum + entry.normalized.length, 0) -
       a.entries.reduce((sum, entry) => sum + entry.normalized.length, 0)
   );
-  const selected = columns[0].entries.sort((a, b) =>
-    rotated ? b.pos.x - a.pos.x : b.pos.y - a.pos.y
-  );
+  const selected = columns[0].entries.sort((a, b) => {
+    if (!rotated) return b.pos.y - a.pos.y;
+    // A 90-degree PDF.js viewport maps the original vertical name column to
+    // a horizontal row with a negative X basis. Preserve top-to-bottom
+    // reading order by sorting the transformed anchors from left to right.
+    const negativeHorizontalAxis = Number(columns[0].entries[0]?.item?.transform?.[0]) < 0;
+    return negativeHorizontalAxis ? a.pos.x - b.pos.x : b.pos.x - a.pos.x;
+  });
   const name = selected.map(entry => entry.normalized).join(" ").replace(/\s+/g, " ").trim();
   const original = selected.map(entry => String(entry.item.str || "").trim()).join(" ").replace(/\s+/g, " ").trim();
   return { name, original };
