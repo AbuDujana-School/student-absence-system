@@ -114,7 +114,7 @@ Deno.test("force refresh cannot discard unsaved attendance or behavior session e
 Deno.test("successful record saves do not report full sync while deletions remain queued", () => {
   const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
   assert(save.includes("const pendingDeleteCount = getPendingDeletes().length"), "Save completion must inspect queued deletions");
-  assert(save.includes("updateSyncStatus(!pendingDeleteCount"), "Pending deletions must keep the status unsynced");
+  assert(save.includes("updateSyncStatus(!pendingDeleteCount && !pendingRecords"), "Pending deletions or newer local edits must keep the status unsynced");
   assert(save.includes("طلب حذف بانتظار المراجعة"), "The status must explain why synchronization is incomplete");
 });
 
@@ -209,4 +209,26 @@ Deno.test("sync indicator offers upload only when marked local records are pendi
 Deno.test("sync settings button invokes the explicit local upload workflow", () => {
   assert(html.includes('onclick="syncPendingLocalChanges()"'), "Settings sync action must invoke the safe manual upload");
   assert(!html.includes('onclick="forceSyncWithCloud()" class="bg-emerald-700'), "Settings upload button must not be a read-only cloud refresh");
+});
+
+
+Deno.test("in-flight local edits remain dirty after an earlier snapshot is uploaded", () => {
+  const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
+  assert(save.includes("const syncSnapshotDb = cloneOfflineValue(db)"), "The upload must freeze a local data snapshot before asynchronous persistence or network work");
+  assert(save.includes("const syncDirty = serializeDirtySets()"), "The upload must freeze the exact dirty-key set");
+  assert(save.includes("syncSnapshotDb.students?.[c]"), "Student upload rows must come from the frozen snapshot");
+  assert(save.includes("clearSyncedDirtyKeys('students', studentKeys, syncSnapshotDb)"), "Student dirty markers must be cleared selectively");
+  assert(save.includes("if (syncValuesEqual(before, now)) set.delete(key)"), "A dirty key must remain queued if its value changed during upload");
+  assert(save.includes("const pendingRecords = hasPendingOfflineRecordChanges()"), "Completion must report newer local edits as still pending");
+  assert(save.includes("return !pendingRecords"), "An upload with concurrent local edits must not report full success");
+});
+
+Deno.test("sync upload does not clear whole dirty sets after network writes", () => {
+  const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
+  assert(!save.includes("dirtySets.classes.clear()"), "Class upload must not clear edits created while the request is in flight");
+  assert(!save.includes("dirtySets.teachers.clear()"), "Teacher upload must not clear edits created while the request is in flight");
+  assert(!save.includes("dirtySets.students.clear()"), "Student upload must not clear edits created while the request is in flight");
+  assert(!save.includes("dirtySets.attendance.clear()"), "Attendance upload must not clear edits created while the request is in flight");
+  assert(!save.includes("dirtySets.behaviors.clear()"), "Behavior upload must not clear edits created while the request is in flight");
+  assert(!save.includes("dirtySets.duty_reports.clear()"), "Duty report upload must not clear edits created while the request is in flight");
 });
