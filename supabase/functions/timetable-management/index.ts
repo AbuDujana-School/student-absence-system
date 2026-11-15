@@ -899,7 +899,7 @@ async function handle(req: Request) {
         const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
         if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
         const reserveReason=String(body.reserveReason||'').trim().slice(0,500)||'-';
-        const {data,error}=await db.rpc("create_timetable_substitution_with_reason",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,reserve_reason:reserveReason}});
+        const {data,error}=await db.rpc("create_timetable_substitution_with_reason",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments||principal.type==="admin",reserve_reason:reserveReason}});
         if(error)throw error;
         return reply(201,{ok:true,assignment:data});
       }
