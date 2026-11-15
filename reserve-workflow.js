@@ -3,6 +3,7 @@
   "use strict";
   let reserveBatchPreview = null;
   let reserveDraftAssignments = [];
+  let reserveDraftApproved = new Set();
   let reserveReasons = Object.create(null);
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
@@ -17,7 +18,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -41,6 +42,7 @@
         ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
         :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
+      reserveDraftApproved=new Set(Array.isArray(saved.approvedAbsentTeachers)?saved.approvedAbsentTeachers.filter(name=>timetableDailyAbsentTeachers.includes(name)):[]);
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
       reserveDraftScope=currentDraftScope();
       if(typeof timetableDailyRenderTags==="function")timetableDailyRenderTags();
@@ -71,6 +73,15 @@
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
   const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||reserveOtherDepartmentId||"").trim();
+  function updateBatchSaveVisibility(){
+    const button=$("timetableDailySaveBatchButton");
+    if(!button)return;
+    const planned=reserveBatchPreview?.assignments||[],missing=reserveBatchPreview?.unassigned||[];
+    const required=[...new Set([...planned,...missing].map(item=>String(item.absentTeacherName||"")).filter(Boolean))];
+    const ready=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
+    button.classList.toggle("hidden",!ready);
+    button.disabled=!ready||timetableDailyBusy;
+  }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
     const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
@@ -124,6 +135,7 @@
       toolbar.insertAdjacentHTML("beforeend",
         '<button type="button" id="timetableDailySaveBatchButton" class="tt-action bg-emerald-700 text-white"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التوزيع</button>' +
         '<button type="button" id="timetableDailyArchiveButton" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800"><i class="fa-solid fa-box-archive ml-1"></i> أرشيف الاحتياط</button>');
+      $("timetableDailySaveBatchButton")?.classList.add("hidden");
       $("timetableDailySaveBatchButton")?.addEventListener("click", timetableDailySaveBatch);
       $("timetableDailyArchiveButton")?.addEventListener("click", timetableDailyToggleArchive);
     }
@@ -228,7 +240,7 @@
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
     }
     const scope=currentDraftScope();
-    if(reserveDraftScope&&reserveDraftScope!==scope)reserveManualChoices=Object.create(null);
+    if(reserveDraftScope&&reserveDraftScope!==scope){reserveManualChoices=Object.create(null);reserveDraftApproved=new Set();}
     reserveDraftScope=scope;
     try {
       reserveBatchPreview = await fetchBatchPreview();
@@ -251,6 +263,7 @@
   window.timetableDailyRemoveAbsent = async function (name) {
     if (timetableDailyBusy) return;
     timetableDailyAbsentTeachers = timetableDailyAbsentTeachers.filter(item => item !== name);
+    reserveDraftApproved.delete(name);
     delete reserveReasons[name];
     Object.keys(reserveManualChoices).filter(key=>key.startsWith(String(name)+"\u0000")).forEach(key=>delete reserveManualChoices[key]);
     timetableDailyRenderTags(); await window.timetableDailyRefreshAll();
@@ -299,7 +312,12 @@
         }
         return '<article class="tt-lesson"><div class="tt-lesson-main"><div class="text-[10px] font-bold text-slate-500">الحصة '+Number(item.period)+'</div><strong class="mt-1 block text-xs text-slate-900">'+esc(item.className||"الشعبة غير محددة")+'</strong><div class="mt-1 text-[10px] text-slate-500">'+esc(item.subject||"المادة غير محددة")+'</div></div><div class="tt-lesson-choice">'+choice+'</div><div class="tt-lesson-actions">'+action+"</div></article>";
       }).join("");
-      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason)+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div></section>';
+      const pendingRows=rows.filter(item=>item.kind!=="saved");
+      const approved=reserveDraftApproved.has(absentName);
+      const approvalControl=pendingRows.length
+        ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
+        : '<div class="border-t border-slate-200 bg-emerald-50 p-3 text-[10px] font-bold text-emerald-700">لا توجد تكليفات جديدة لهذا المعلم؛ الحصص الظاهرة محفوظة مسبقاً.</div>';
+      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason)+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
@@ -329,12 +347,25 @@
         status("أزيل اختيار البديل لهذه الحصة.","info");
       }
     }));
+    host.querySelectorAll("[data-tt-approve]").forEach(button=>button.addEventListener("click",()=>{
+      const absentName=button.dataset.ttApprove;
+      if(reserveDraftApproved.has(absentName)){reserveDraftApproved.delete(absentName);status("أُلغي اعتماد "+absentName+" ويمكنك مراجعة بدائله.","info");}
+      else{
+        const required=(reserveBatchPreview?.assignments||[]).filter(item=>item.absentTeacherName===absentName);
+        const unresolved=required.filter(item=>!reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period))?.substituteTeacherName);
+        const missing=(reserveBatchPreview?.unassigned||[]).filter(item=>item.absentTeacherName===absentName);
+        if(unresolved.length||missing.length){status("لا يمكن اعتماد "+absentName+" قبل معالجة جميع حصصه غير المغطاة.","error");return;}
+        reserveDraftApproved.add(absentName);status("تم اعتماد توزيع "+absentName+" ضمن مسودة اليوم. انتقل إلى المعلم التالي.","success");
+      }
+      persistStoredDraft();window.timetableDailyRenderLessons();
+    }));
     host.querySelectorAll("[data-tt-reason]").forEach(input=>input.addEventListener("input",()=>{
       reserveReasons[input.dataset.ttReason]=input.value.trim();
       persistStoredDraft();
     }));
     host.querySelectorAll("[data-tt-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttEdit)));
     host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
+    updateBatchSaveVisibility();
   };
 
   window.timetableDailyAutoAssign = async function () {
@@ -343,6 +374,7 @@
     timetableDailyBusy=true;timetableDailySetBusy(true);
     try{
       reserveManualChoices=Object.create(null);
+      reserveDraftApproved=new Set();
       reserveBatchPreview=await fetchBatchPreview();
       if(reserveBatchPreview.active===false)throw new Error("لا يوجد جدول أسبوعي نشط لتوزيع الاحتياط.");
       reserveDraftScope=currentDraftScope();
@@ -357,7 +389,12 @@
   window.timetableDailySaveBatch = async function () {
     if(timetableDailyBusy)return;
     if(!timetableDailyAbsentTeachers.length){status("اختر المعلمين الغائبين أولاً.","error");return;}
-    const assignments=reserveDraftAssignments.filter(item=>item.substituteTeacherName).map(item=>({
+    const required=[...new Set([...(reserveBatchPreview?.assignments||[]),...(reserveBatchPreview?.unassigned||[])].map(item=>String(item.absentTeacherName||"")).filter(Boolean))];
+    const unapproved=required.filter(name=>!reserveDraftApproved.has(name));
+    if(unapproved.length){status("اعتمد توزيع كل معلم غائب أولاً: "+unapproved.join("، "), "error");return;}
+    const unresolved=(reserveBatchPreview?.unassigned||[]);
+    if(unresolved.length){status("لا يمكن الحفظ قبل معالجة جميع الحصص التي تحتاج إلى بديل.", "error");return;}
+    const assignments=reserveDraftAssignments.filter(item=>item.substituteTeacherName&&reserveDraftApproved.has(item.absentTeacherName)).map(item=>({
       absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:Number(item.period),
       reserveReason:(reserveReasons[item.absentTeacherName]||"").trim()||"-"
     }));
@@ -369,6 +406,7 @@
         absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
       status("تم حفظ "+(result.assignmentCount||assignments.length)+" تكليف في عملية واحدة. يجري تحديث الأرشيف.","success");
       reserveManualChoices=Object.create(null);
+      reserveDraftApproved=new Set();
       await timetableDailyRefreshAll();await timetableDailyLoadArchive();
       clearStoredDraft();
       // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
@@ -565,29 +603,39 @@
     }catch(error){status(error?.message||"تعذر فتح نافذة تعديل تكليف الاحتياط.","error");}
   };
 
+  function formatReserveDateArabic(dateValue){
+    if(!dateValue)return "";
+    const date=new Date(String(dateValue)+"T12:00:00+04:00");
+    if(!Number.isFinite(date.getTime()))return String(dateValue);
+    return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",timeZone:"Asia/Muscat"}).format(date);
+  }
+  function buildReserveReportGroups(response){
+    const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
+    return timetableDailyAbsentTeachers.map(absentName=>{
+      const rows=[
+        ...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName})),
+        ...planned.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName})),
+        ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:"-"}))
+      ].sort((a,b)=>Number(a.period)-Number(b.period));
+      return {absentName,rows};
+    }).filter(group=>group.rows.length);
+  }
   window.timetableDailyPrintReport = async function () {
     if(!reserveBatchPreview&&timetableDailyAbsentTeachers.length)await timetableDailyRefreshAll();
     if(!timetableDailyAbsentTeachers.length){status("اختر المعلمين الغائبين قبل الطباعة.","error");return;}
-    const {planned,saved,missing}=currentPlanRows(reserveBatchPreview||{});
-    const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"",formattedDate=date.split("-").reverse().join(" / ")+" م";
-    const groups=timetableDailyAbsentTeachers.map(absentName=>{
-      const rows=[...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,substitute:x.substituteTeacherName})),
-        ...planned.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,substitute:x.substituteTeacherName})),
-        ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,substitute:"-"}))]
-        .sort((a,b)=>Number(a.period)-Number(b.period));
-      const savedReason=saved.find(x=>x.absentTeacherName===absentName&&x.reason&&x.reason!=="-")?.reason||"";
-      return {absentName,reason:(reserveReasons[absentName]||savedReason||"").trim()||"-",rows};
-    }).filter(group=>group.rows.length);
+    const groups=buildReserveReportGroups(reserveBatchPreview||{});
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
-    let tableRows="",count=0;
-    groups.forEach(group=>group.rows.forEach((row,index)=>{
-      tableRows+=(index===0?'<tr class="tt-print-group-start">':'<tr>')+(index===0?'<td rowspan="'+group.rows.length+'">'+esc(group.absentName)+'</td><td rowspan="'+group.rows.length+'">'+esc(group.reason)+'</td>':'')+
-        "<td>"+Number(row.period)+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>";count++;
-    }));
+    const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
+    const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
+    const body=groups.map((group,index)=>{
+      const heading=groups.length===1?esc(group.absentName):"المعلم الغائب "+(index+1)+": "+esc(group.absentName);
+      const rows=group.rows.map(row=>"<tr><td>"+esc("الحصة "+row.period)+"</td><td>"+esc(row.className||"-")+"</td><td>"+esc(row.substitute||"-")+"</td></tr>").join("");
+      return '<section class="tt-print-teacher" style="margin:7mm 0 0;break-inside:avoid;page-break-inside:avoid"><h3 style="font-size:12pt;font-weight:900;text-align:right;margin:0 0 3mm">'+heading+'</h3><table><thead><tr><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+rows+'</tbody></table></section>';
+    }).join("");
+    const count=groups.reduce((sum,group)=>sum+group.rows.length,0);
     const root=document.createElement("div");root.id="ttReservePrintRoot";
-    root.innerHTML='<div class="tt-print-header">سلطنة عمان<br>وزارة التعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br><strong>مدرسة أبو دجانة الأنصاري للبنين (٩ - ١٢)</strong><br><strong>كشف توزيع الاحتياط</strong></div>'+
-      '<div class="tt-print-meta"><span>اليوم: '+esc(weekday)+'</span><span>التاريخ: '+esc(formattedDate)+'</span></div>'+
-      '<table><thead><tr><th>المعلم الغائب</th><th>سبب الاحتياط</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th></tr></thead><tbody>'+tableRows+"</tbody></table>"+
+    root.innerHTML='<div class="tt-print-header"><strong>توزيع حصص الاحتياط</strong><br><strong>لمادة '+esc(subject)+'</strong></div>'+
+      '<div class="tt-print-meta"><strong>'+esc(weekday)+'</strong><em>'+esc(formatReserveDateArabic(date))+'</em></div>'+body+
       '<div class="tt-print-footer"><span>إجمالي الحصص: '+count+'</span><span>المعلم الأول: ............................</span></div>';
     document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
     const cleanup=()=>{document.body.classList.remove("tt-reserve-print-mode");root.remove();window.removeEventListener("afterprint",cleanup);};
@@ -597,15 +645,25 @@
   window.timetableDailyShareWhatsApp = async function () {
     if(!timetableDailyAbsentTeachers.length){status("أضف المعلمين الغائبين أولاً.","error");return;}
     const popup=window.open("about:blank","_blank");if(!popup){status("اسمح بالنوافذ المنبثقة لمشاركة كشف واتساب.","error");return;}
-    if(!reserveBatchPreview)await timetableDailyRefreshAll();
-    const response=reserveBatchPreview||{},date=$("timetableSubstitutionDate")?.value||"",current=currentPlanRows(response),rows=[...current.saved,...current.planned,...current.missing];
-    let message="*📋 كشف الاحتياط اليومي*\\n📅 التاريخ: "+date+"\\n\\n";
-    rows.forEach(item=>{
-      const reason=reserveReasons[item.absentTeacherName]||item.reason||"-";
-      message+="• "+item.absentTeacherName+" | السبب: "+reason+" | الحصة "+item.period+" | "+(item.className||"غير محدد")+" ← "+(item.substituteTeacherName||"⚠️ لم يحدد")+"\\n";
-    });
-    if(!rows.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
-    popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
+    try{
+      if(!reserveBatchPreview)await timetableDailyRefreshAll();
+      const groups=buildReserveReportGroups(reserveBatchPreview||{});
+      if(!groups.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
+      const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
+      const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
+      let message="*توزيع حصص الاحتياط*\\n*لمادة "+subject+"*\\n\\n*"+weekday+"*\\n_"+formatReserveDateArabic(date)+"_\\n\\n";
+      groups.forEach((group,index)=>{
+        const heading=groups.length===1?group.absentName:"المعلم الغائب "+(index+1)+": "+group.absentName;
+        message+="*"+heading+"*\\n\\n";
+        group.rows.forEach(row=>{
+          const periodNames={1:"الأولى",2:"الثانية",3:"الثالثة",4:"الرابعة",5:"الخامسة",6:"السادسة",7:"السابعة",8:"الثامنة"};
+          message+="الحصة "+(periodNames[Number(row.period)]||String(row.period))+" – الصف "+(row.className||"غير محدد")+"\\n";
+          message+="المعلم البديل: *"+(row.substitute||"لم يحدد")+"*\\n\\n";
+        });
+        if(index<groups.length-1)message+="\\n";
+      });
+      popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
+    }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
   };
 
   function applyTeacherTimetablePresentation() {
