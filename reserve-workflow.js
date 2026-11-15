@@ -42,12 +42,20 @@
       search.insertAdjacentHTML("beforebegin", '<label class="mb-2 block text-xs font-black text-slate-700 dark:text-slate-200">١. اختر المعلمين الغائبين</label>');
     }
     const otherLabel = $("timetableSubstitutionOtherDepartments")?.closest("label");
-    if (otherLabel) {
-      otherLabel.classList.add("rounded-2xl", "border", "border-indigo-200", "bg-indigo-50", "p-3", "dark:border-indigo-900", "dark:bg-indigo-950/30");
-      const textNode = Array.from(otherLabel.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
-      if (textNode) textNode.textContent = " توسيع نطاق البدلاء إلى الأقسام والتخصصات الأخرى — مع التحقق من التفرغ";
-      const otherToggle = $("timetableSubstitutionOtherDepartments");
-      if (otherToggle) otherToggle.setAttribute("onchange", "timetableDailyRefreshAll()");
+    const otherToggle = $("timetableSubstitutionOtherDepartments");
+    if (otherLabel) otherLabel.classList.add("hidden");
+    if (otherToggle) otherToggle.setAttribute("onchange", "timetableDailyRefreshAll()");
+    if (toolbar) {
+      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800"><i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى</button>');
+      $("timetableDailyOtherDepartmentsButton")?.addEventListener("click", async () => {
+        const toggle = $("timetableSubstitutionOtherDepartments");
+        if (!toggle) return;
+        toggle.checked = !toggle.checked;
+        $("timetableDailyOtherDepartmentsButton").innerHTML = toggle.checked
+          ? '<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
+          : '<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        await timetableDailyRefreshAll();
+      });
     }
     const results = $("timetableSubstitutionResults");
     if (results) {
@@ -92,7 +100,7 @@
       const control = $(id); if (control) control.disabled = disabled;
     });
     document.querySelectorAll("#timetableDailyAbsentTags [data-tt-remove-absent]").forEach(button => button.disabled = disabled);
-    document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyAutoAssign],#timetableSubstitutionPanel button[onclick*=timetableDailySaveBatch],#timetableDailySaveBatchButton").forEach(button => button.disabled = disabled);
+    document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyAutoAssign],#timetableSubstitutionPanel button[onclick*=timetableDailySaveBatch],#timetableDailySaveBatchButton,#timetableDailyOtherDepartmentsButton").forEach(button => button.disabled = disabled);
   };
 
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
