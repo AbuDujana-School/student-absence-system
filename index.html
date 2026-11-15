@@ -9113,38 +9113,38 @@ async function timetableSaveCustomPortalTeachers() {
   const names = Array.from(document.querySelectorAll("[data-timetable-portal-teacher]:checked"))
     .map(input => String(input.value || "").trim()).filter(Boolean);
   if (!names.length) { showToast("اختر معلماً واحداً على الأقل. للتفعيل للجميع استخدم زر العرض العام.", "error"); return; }
+  const token = appAuthSession?.token || readAppAuthToken();
   try {
-    const token = appAuthSession?.token || readAppAuthToken();
+    // One atomic server-side update changes the audience and enables the portal together.
     await appAuthRequest({action:"timetable_portal_set_mode",mode:"custom",teacherNames:names},token);
     teacherPortalEnabled = true;
     teacherPortalMode = "custom";
     showToast("تم تفعيل العرض المخصص لـ " + names.length + " معلماً.", "success");
     await timetableLoadPortalStatus();
   } catch (error) {
-    showToast(error?.message || "تعذر حفظ قائمة العرض المخصص.", "error");
+    showToast(error?.message || "تعذر حفظ قائمة العرض المخصص. تم إبقاء الخدمة متوقفة حمايةً من إظهارها لمستخدمين غير مقصودين.", "error");
+    await timetableLoadPortalStatus();
   }
 }
 async function timetableToggleTeacherPortal() {
   if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
-  const nextEnabled = !teacherPortalEnabled;
-  const message = nextEnabled
-    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط، مع إلغاء أي تخصيص سابق. هل تريد التفعيل العام؟"
-    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين، بمن فيهم المحددون في العرض المخصص. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
-  const confirmed = await showConfirm(message, {danger: !nextEnabled});
+  const switchingToAll = !teacherPortalEnabled || teacherPortalMode === "custom";
+  const message = switchingToAll
+    ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط. هل تريد التفعيل العام؟"
+    : "سيتم إخفاء أيقونة الجدول الشخصي عن جميع المعلمين. لن تُحذف أي بيانات أو تكليفات. هل تريد الإيقاف؟";
+  const confirmed = await showConfirm(message, {danger: !switchingToAll});
   if (!confirmed) return;
   const button = document.getElementById("teacherTimetablePortalToggle");
   if (button) { button.disabled = true; button.textContent = "جارٍ تحديث الحالة..."; }
+  const token = appAuthSession?.token || readAppAuthToken();
   try {
-    const token = appAuthSession?.token || readAppAuthToken();
-    if (nextEnabled) {
+    if (switchingToAll) {
+      // One atomic server-side update clears custom restrictions and enables global visibility.
       await appAuthRequest({action:"timetable_portal_set_mode",mode:"all"},token);
-      teacherPortalEnabled = true;
-      teacherPortalMode = "all";
     } else {
       await appAuthRequest({action:"timetable_portal_set_enabled",enabled:false},token);
-      teacherPortalEnabled = false;
     }
-    showToast(nextEnabled ? "تم تفعيل عرض الجدول لجميع المعلمين المرتبطين." : "تم إيقاف ظهور الجداول عن الجميع.", "success");
+    showToast(switchingToAll ? "تم تفعيل عرض الجدول لجميع المعلمين المرتبطين." : "تم إيقاف ظهور الجداول عن الجميع.", "success");
     await timetableLoadPortalStatus();
   } catch (error) {
     showToast(error?.message || "تعذر تحديث حالة الخدمة.", "error");
