@@ -351,7 +351,12 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
     });
     teacherIds.forEach((id,i)=>{
       const used=Number(candidateLists.flat().find(c=>c.id===id)?.dailySubstitutionCount)||0;
-      addFlowEdge(graph,teacherBase+i,sink,Math.max(0,dailyLimit-used),0);
+      const remaining=Math.max(0,dailyLimit-used);
+      // Prefer giving a first cover to another eligible teacher before assigning
+      // a second daily cover to the same person. The second slot remains available
+      // when it is needed to achieve full coverage.
+      if(remaining>0)addFlowEdge(graph,teacherBase+i,sink,1,used>0?1000000:0);
+      if(remaining>1)addFlowEdge(graph,teacherBase+i,sink,1,1000000);
     });
     const flow=minCostFlow(graph,source,sink,pending.length);
     const selected=new Map<number,SubstitutionTeacher>();
