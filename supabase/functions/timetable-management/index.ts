@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
 import { aggregateClassTimetables } from "./timetable_class_grid.ts";
+import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
@@ -11,8 +12,12 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
 // Maximum accepted import: 500 teachers × 5 weekdays × 8 periods = 20,000 cells.
-// Every full-version read must exceed PostgREST’s default 1,000-row response cap.
+// PostgREST may cap each response at 1,000 rows, so full-week reads are paginated.
+const TIMETABLE_CELL_PAGE_SIZE = 1000;
 const WEEKLY_CELL_FETCH_LIMIT = 25000;
+async function fetchAllTimetableCells(queryForRange: (from:number,to:number)=>any): Promise<any[]> {
+  return fetchAllTimetablePages(queryForRange, TIMETABLE_CELL_PAGE_SIZE, WEEKLY_CELL_FETCH_LIMIT);
+}
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -56,12 +61,11 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
     if (versionError || !version) return false;
-    const [{ data: cells, error: cellsError }, directory] = await Promise.all([
-      db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
-        .eq("version_id", version.id).eq("cell_status", "teaching").limit(WEEKLY_CELL_FETCH_LIMIT),
+    const [cells, directory] = await Promise.all([
+      fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
+        .eq("version_id", version.id).eq("cell_status", "teaching").order("id").range(from,to)),
       teacherDirectory(),
     ]);
-    if (cellsError) return false;
     const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
     return (cells || []).some((cell: any) =>
       resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === name
@@ -318,12 +322,11 @@ async function handle(req: Request) {
       if (versionError) throw versionError;
       let hasPersonalSchedule = false;
       if (version && principal.type === "teacher") {
-        const [{ data: teachingCells, error: ownError }, directory] = await Promise.all([
-          db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
-            .eq("version_id", version.id).eq("cell_status", "teaching").limit(WEEKLY_CELL_FETCH_LIMIT),
+        const [teachingCells, directory] = await Promise.all([
+          fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
+            .eq("version_id", version.id).eq("cell_status", "teaching").order("id").range(from,to)),
           teacherDirectory(),
         ]);
-        if (ownError) throw ownError;
         const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
         hasPersonalSchedule = (teachingCells || []).some((cell: any) =>
           resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === principal.name
@@ -354,12 +357,12 @@ async function handle(req: Request) {
       if (versionError) throw versionError;
       let eligibleTeachers: Array<{name:string;category:string}> = [];
       if (version) {
-        const [{ data: teachers, error: teachersError }, { data: cells, error: cellsError }] = await Promise.all([
+        const [{ data: teachers, error: teachersError }, cells] = await Promise.all([
           db.from("teachers").select("name,permissions").eq("role", "teacher").order("name"),
-          db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name").eq("version_id", version.id).eq("cell_status", "teaching").limit(WEEKLY_CELL_FETCH_LIMIT),
+          fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
+            .eq("version_id", version.id).eq("cell_status", "teaching").order("id").range(from,to)),
         ]);
         if (teachersError) throw teachersError;
-        if (cellsError) throw cellsError;
         const systemTeachers: SystemTeacher[] = (teachers || []).map((item: any) => ({
           name: String(item.name || ""),
           departmentId: typeof item.permissions?.category === "string" ? item.permissions.category
@@ -537,11 +540,11 @@ async function handle(req: Request) {
           .eq("status", "draft").order("created_at", { ascending: false }).limit(1).maybeSingle();
         if (error) throw error;
         if (!draft) return reply(200, { ok: true, draft: null });
-        const [{ data: cells, error: cellsError }, { data: dayAudits, error: auditError }] = await Promise.all([
-          db.from("timetable_weekly_cells").select("weekday,teacher_source_name").eq("version_id", draft.id).limit(WEEKLY_CELL_FETCH_LIMIT),
+        const [cells, { data: dayAudits, error: auditError }] = await Promise.all([
+          fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("weekday,teacher_source_name")
+            .eq("version_id", draft.id).order("id").range(from,to)),
           db.from("timetable_weekly_audit").select("weekday").eq("version_id", draft.id).in("action", ["day_saved","day_replaced"]),
         ]);
-        if (cellsError) throw cellsError;
         if (auditError) throw auditError;
         const rows = cells || [];
         return reply(200, { ok: true, draft: {
@@ -556,19 +559,17 @@ async function handle(req: Request) {
         if (!validUuid(body.versionId)) return reply(400, { error: "رقم نسخة الجدول غير صالح." });
         const forceWithWarnings = body.forceWithWarnings === true;
         const [{ data: version, error: versionError }, { count: unclearCount, error: unclearError },
-          { count: unmatchedCount, error: unmatchedError }, { data: classSourceCells, error: classCellsError },
-          { data: savedDays, error: savedDaysError }, classNames] = await Promise.all([
+          classSourceCells, { data: savedDays, error: savedDaysError }, classNames, directory] = await Promise.all([
           db.from("timetable_weekly_versions").select("period_count").eq("id", body.versionId).eq("status", "draft").maybeSingle(),
           db.from("timetable_weekly_cells").select("version_id", { count: "exact", head: true }).eq("version_id", body.versionId).eq("cell_status", "unclear"),
-          db.from("timetable_weekly_cells").select("version_id", { count: "exact", head: true }).eq("version_id", body.versionId).neq("match_status", "matched"),
-          db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name").eq("version_id", body.versionId).limit(WEEKLY_CELL_FETCH_LIMIT),
+          fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name,source_data")
+            .eq("version_id", body.versionId).order("id").range(from,to)),
           db.from("timetable_weekly_audit").select("weekday").eq("version_id", body.versionId).in("action", ["day_saved","day_replaced"]),
           schoolClassDirectory(),
+          teacherDirectory(),
         ]);
         if (versionError) throw versionError;
         if (unclearError) throw unclearError;
-        if (unmatchedError) throw unmatchedError;
-        if (classCellsError) throw classCellsError;
         if (savedDaysError) throw savedDaysError;
         if (!version) return reply(404, { error: "نسخة المسودة غير موجودة أو لم تعد قابلة للاعتماد." });
         const savedWeekdays = Array.from(new Set((savedDays || []).map((item: any) => String(item.weekday || ""))));
@@ -579,20 +580,31 @@ async function handle(req: Request) {
           return reply(409, { error: "لا يمكن نشر الجدول رسمياً قبل حفظ الأيام الخمسة أو استنساخ نسخة تحتوي عليها. الأيام المسجلة: " + (savedWeekdays.join("، ") || "لا توجد") + "؛ الأيام ذات الخانات: " + (cellWeekdays.join("، ") || "لا توجد") + "." });
         }
         const periodCount = Number(version.period_count || 7);
-        const coverage = buildClassCoverage(classSourceCells || [], classNames, periodCount);
-        const warningCount = Number(unclearCount || 0) + Number(unmatchedCount || 0) +
+        const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
+        const normalizedClassSourceCells = (classSourceCells || []).map((cell: any) => {
+          const sourceData: any = cell.source_data && typeof cell.source_data === "object" ? cell.source_data : {};
+          const sourceGroupNote = String(sourceData.sourceGroupNote || (String(sourceData.sourceNote || "").includes("مجموعة مادة اختيارية") ? sourceData.sourceNote : "") || "");
+          return {
+            ...cell,
+            matched_teacher_name: resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers),
+            source_group_note: sourceGroupNote,
+          };
+        });
+        const effectiveUnmatchedCount = normalizedClassSourceCells.filter((cell: any) => !cell.matched_teacher_name).length;
+        const coverage = buildClassCoverage(normalizedClassSourceCells, classNames, periodCount);
+        const warningCount = Number(unclearCount || 0) + effectiveUnmatchedCount +
           coverage.missingSlots + coverage.conflictSlots + coverage.unclearSlots;
         if (!forceWithWarnings && warningCount > 0) {
           return reply(409, {
             error: "توجد ملاحظات في الجدول. راجع التقرير أو اختر الاعتماد الرسمي مع الاحتفاظ بالملاحظات.",
             classValidation: coverage,
             unclearCells: Number(unclearCount || 0),
-            unmatchedCells: Number(unmatchedCount || 0),
+            unmatchedCells: effectiveUnmatchedCount,
           });
         }
         const warnings = {
           unclearCells: Number(unclearCount || 0),
-          unmatchedCells: Number(unmatchedCount || 0),
+          unmatchedCells: effectiveUnmatchedCount,
           missingClassSlots: coverage.missingSlots,
           classConflicts: coverage.conflictSlots,
           unclearClassSlots: coverage.unclearSlots,
@@ -725,14 +737,13 @@ async function handle(req: Request) {
       const { data: version, error: versionError } = await (validUuid(body.versionId) ? versionQuery.eq("id", body.versionId) : versionQuery.eq("status", "active")).maybeSingle();
       if (versionError) throw versionError;
       if (!version) return reply(404, { error: "لا توجد نسخة جدول معتمدة لعرض جداول الصفوف." });
-      const [{ data: cells, error: cellsError }, { data: teacherIndex, error: teacherIndexError }, classNames] = await Promise.all([
-        db.from("timetable_weekly_cells")
+      const [cells, { data: teacherIndex, error: teacherIndexError }, classNames] = await Promise.all([
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells")
           .select("weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name,source_data")
-          .eq("version_id", version.id).order("weekday").order("period").limit(WEEKLY_CELL_FETCH_LIMIT),
+          .eq("version_id", version.id).order("weekday").order("period").order("id").range(from,to)),
         db.from("teachers").select("name").eq("role", "teacher").order("name"),
         schoolClassDirectory(),
       ]);
-      if (cellsError) throw cellsError;
       if (teacherIndexError) throw teacherIndexError;
       // Resolve displayed teacher names only through the canonical teachers index.
       // PDF/source abbreviations are deliberately never shown as teacher names.
@@ -798,12 +809,12 @@ async function handle(req: Request) {
       const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count").eq("status","active").maybeSingle();
       if (error) throw error;
       if (!version) return reply(200, { ok:true, teacherName: principal.name, version:null, cells:[], assignments:[] });
-      const [{data:allCells,error:cellsError},{data:assignments,error:assignError},directory] = await Promise.all([
-        db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name").eq("version_id",version.id).limit(WEEKLY_CELL_FETCH_LIMIT),
+      const [allCells,{data:assignments,error:assignError},directory] = await Promise.all([
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name")
+          .eq("version_id",version.id).order("id").range(from,to)),
         db.from("timetable_assignments").select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,absent_teacher_name,status").eq("version_id",version.id).eq("teacher_name",principal.name).neq("status","cancelled"),
         teacherDirectory(),
       ]);
-      if (cellsError) throw cellsError;
       if (assignError) throw assignError;
       const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
       const ownCells = (allCells || []).filter((cell: any) =>
@@ -825,16 +836,15 @@ async function handle(req: Request) {
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status,period_count").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
-      const [directory,dayCellsResult,dutySettingsResult,weeklyLoadResult]=await Promise.all([
+      const [directory,dayCells,dutySettingsResult,weeklyLoad]=await Promise.all([
         teacherDirectory(),
-        db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject").eq("version_id",activeVersion.id).eq("weekday",weekday).limit(WEEKLY_CELL_FETCH_LIMIT),
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
+          .eq("version_id",activeVersion.id).eq("weekday",weekday).order("id").range(from,to)),
         db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
-        db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status").eq("version_id",activeVersion.id).limit(WEEKLY_CELL_FETCH_LIMIT),
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status")
+          .eq("version_id",activeVersion.id).order("id").range(from,to)),
       ]);
-      if (dayCellsResult.error) throw dayCellsResult.error;
       if (dutySettingsResult.error) throw dutySettingsResult.error;
-      if (weeklyLoadResult.error) throw weeklyLoadResult.error;
-      const dayCells=dayCellsResult.data||[];
       const defaultDutySubjectDays:Record<string,string> = {
         "اللغة العربية":"الأحد","اللغة الإنجليزية":"الاثنين","التربية الإسلامية":"الثلاثاء",
         "الرياضيات":"الأربعاء","مواد العلوم":"الخميس","مواد المهارات الحياتية":"",
@@ -843,7 +853,7 @@ async function handle(req: Request) {
       const configuredDutyDays=dutySettingsResult.data?.value?.subjectDays;
       const dutySubjectDays={...defaultDutySubjectDays,...(configuredDutyDays&&typeof configuredDutyDays==="object"?configuredDutyDays:{})};
       const weeklyQuotaByTeacher=new Map<string,number>();
-      for(const cell of weeklyLoadResult.data||[]){
+      for(const cell of weeklyLoad){
         if(cell.matched_teacher_name&&cell.cell_status==="teaching"){
           const name=String(cell.matched_teacher_name);
           weeklyQuotaByTeacher.set(name,(weeklyQuotaByTeacher.get(name)||0)+1);
