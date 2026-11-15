@@ -39,3 +39,21 @@ Deno.test("workbook import does not invent placements from weekly totals or teac
     throw new Error("Teacher period notes were not preserved as unconfirmed notes");
   }
 });
+
+
+Deno.test("workbook import normalizes Arabic and English weekday labels", () => {
+  const result = parseTimetableWorkbook({
+    "المعلمون": [
+      ["الاسم", "الاختصار", "التفريغ"],
+      ["معلم تجريبي", "م ت", ""],
+    ],
+    "الحصص": [
+      ["المعلم", "الشعبة", "المادة", "اليوم", "الحصة"],
+      ["معلم تجريبي", "11/1", "الرياضيات", "الاحد", 1],
+      ["معلم تجريبي", "11/1", "العلوم", "Wednesday", 2],
+    ],
+  }, [{ name: "معلم تجريبي", departmentId: "science" }]);
+  if (result.placements.length !== 2) throw new Error("Weekday variants must remain explicit placements");
+  if (result.placements[0].weekday !== "الأحد") throw new Error("Arabic weekday spelling was not normalized");
+  if (result.placements[1].weekday !== "الأربعاء") throw new Error("English weekday was not normalized");
+});
