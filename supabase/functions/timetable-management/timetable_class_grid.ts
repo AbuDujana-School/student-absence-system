@@ -122,7 +122,8 @@ export function aggregateClassTimetables(
       if(assignments.length>1 && identities.size>1){
         const pairKey=assignments.map(item=>key(item.subject)).sort().join("||");
         const explicitlyMarked=assignments.every(item=>item.status==="teaching"&&isOptionalGroup(item));
-        const safelyInferred=assignments.length===2&&assignments.every(item=>item.status==="teaching")&&recurringElectivePairs.has(pairKey);
+        const hasExplicitGroupMetadata=assignments.some(item=>String(item.sourceGroupNote||"").trim().length>0);
+        const safelyInferred=assignments.length===2&&assignments.every(item=>item.status==="teaching")&&!hasExplicitGroupMetadata&&recurringElectivePairs.has(pairKey);
         if(explicitlyMarked||safelyInferred){
           parallelGroups.push({...position,assignments});
           coveredCount++;
