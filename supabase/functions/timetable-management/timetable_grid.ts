@@ -14,7 +14,7 @@ export interface ParsedTimetableDay {
 const PERIOD_WORDS: Record<string, number> = {
   "الاولى":1,"الأولى":1,"الاول":1,"الأول":1,"الثانية":2,"الثانيه":2,
   "الثالثة":3,"الثالثه":3,"الرابعة":4,"الرابعه":4,"الخامسة":5,"الخامسه":5,
-  "السادسة":6,"السادسه":6,"السابعة":7,"السابعه":7
+  "السادسة":6,"السادسه":6,"السابعة":7,"السابعه":7,"الثامنة":8,"الثامنه":8,"الثامن":8
 };
 function cleanLine(value: string): string {
   return value.replace(/\u00a0/g," ").replace(/[\u200e\u200f\u202a-\u202e]/g,"").trim();
@@ -47,7 +47,7 @@ function subjectFromSource(value: string): string {
 }
 function parsePeriod(value: string): number | null {
   const text=normalizedKey(value).replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
-  if (/^[1-7]$/.test(text)) return Number(text);
+  if (/^[1-8]$/.test(text)) return Number(text);
   const normalizedWords = new Map(Object.entries(PERIOD_WORDS).map(([word, number]) => [normalizedKey(word), number]));
   return normalizedWords.get(text) ?? null;
 }
@@ -71,10 +71,26 @@ function parseClassSections(value: string): string[] {
 function emptyTotals(): Record<TimetableCellStatus,number> {
   return {teaching:0,free:0,meeting:0,activity:0,other:0,unclear:0};
 }
-function validateTeacherGrid(teacher: ParsedTimetableTeacher): void {
-  const periods=teacher.cells.map(v=>v.period).sort((a,b)=>a-b);
-  if (periods.length!==7 || periods.some((v,i)=>v!==i+1))
-    throw new Error("المعلم «"+teacher.sourceName+"» لا يحتوي على الحصص السبع كاملة. الموجود: "+(periods.join(", ")||"لا توجد حصص")+".");
+function fillMissingPeriods(teacher: ParsedTimetableTeacher, periodCount: number, warnings: string[]): void {
+  const periods = new Set<number>();
+  for (const cell of teacher.cells) {
+    if (!Number.isInteger(cell.period) || cell.period < 1 || cell.period > periodCount) {
+      throw new Error("رقم حصة خارج النطاق للمعلم «"+teacher.sourceName+"»: "+cell.period+".");
+    }
+    if (periods.has(cell.period)) throw new Error("الحصة "+cell.period+" مكررة للمعلم «"+teacher.sourceName+"».");
+    periods.add(cell.period);
+  }
+  const missing: number[] = [];
+  for (let period=1; period<=periodCount; period++) if (!periods.has(period)) {
+    missing.push(period);
+    teacher.cells.push({
+      period, classSections:[], subject:"", status:"unclear",
+      sourceClass:"", sourceSubject:"", sourceStatus:"غير مستخرج",
+      sourceNote:"لم يتم استخراج بيانات هذه الحصة من المصدر؛ يلزم مراجعتها يدوياً.",
+    });
+  }
+  teacher.cells.sort((a,b)=>a.period-b.period);
+  if (missing.length) warnings.push("المعلم «"+teacher.sourceName+"»: لم تُستخرج بيانات الحصص "+missing.join("، ")+"؛ أُضيفت كخانات غير واضحة للحفظ والمراجعة.");
 }
 function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): ParsedTimetableDay | null {
   const teachers: ParsedTimetableTeacher[]=[];
@@ -115,11 +131,13 @@ function parseTabularTimetableDay(day: SchoolWeekday, sourceText: string): Parse
     teacher.cells.push({period,classSections:parseClassSections(sourceClass),subject:subjectFromSource(sourceSubject),status,sourceClass,sourceSubject,sourceStatus,...(sourceNote?{sourceNote}:{})});
   }
   if(!recognizedRows) return null;
-  for(const teacher of teachers){teacher.cells.sort((a,b)=>a.period-b.period);validateTeacherGrid(teacher);}
+  const periodCount=Math.max(7,...teachers.flatMap(teacher=>teacher.cells.map(cell=>cell.period)));
+  const warnings:string[]=[];
+  for(const teacher of teachers)fillMissingPeriods(teacher,periodCount,warnings);
   const totals=emptyTotals();
   for(const teacher of teachers)for(const cell of teacher.cells)totals[cell.status]++;
   const totalCells=teachers.reduce((sum,teacher)=>sum+teacher.cells.length,0);
-  return {weekday:day,teachers,totals,totalCells,warnings:[]};
+  return {weekday:day,teachers,totals,totalCells,warnings};
 }
 /** Parse a single day. Input may use one teacher section with seven labelled cells or one tab-separated row per teacher/period:
  * teacher name, weekday, period, class, subject, status, optional note.
@@ -168,7 +186,7 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
   const finishTeacher=()=>{
     finishCell();
     if(!teacher)return;
-    teacher.cells.sort((a,b)=>a.period-b.period);validateTeacherGrid(teacher);teachers.push(teacher);teacher=null;
+    teacher.cells.sort((a,b)=>a.period-b.period);teachers.push(teacher);teacher=null;
   };
   const lines=sourceText.split(/\r?\n/);
   for(let i=0;i<lines.length;i++){
@@ -211,8 +229,14 @@ export function parseTimetableDay(weekday: string, sourceText: string): ParsedTi
     }
   }
   finishTeacher();
-  if(!teachers.length)throw new Error("لم أتعرف على أسماء المعلمين. استخدم «اسم المعلم: الاسم» أو صفوفاً مفصولة بعلامات تبويب.");
+  if(!teachers.length){
+    warnings.push("لم يتم استخراج سجلات معلمين من النص؛ حُفظ اليوم فارغاً ليظهر نقصه في تقرير التغطية.");
+    return {weekday:day,teachers,totals:emptyTotals(),totalCells:0,warnings};
+  }
+  const periodCount=Math.max(7,...teachers.flatMap(item=>item.cells.map(cell=>cell.period)));
+  for(const item of teachers)fillMissingPeriods(item,periodCount,warnings);
+  const finalTotals=emptyTotals();
+  for(const item of teachers)for(const cell of item.cells)finalTotals[cell.status]++;
   const totalCells=teachers.reduce((sum,v)=>sum+v.cells.length,0);
-  if(totalCells!==teachers.length*7)throw new Error("عدد خانات الجدول لا يساوي سبع حصص لكل معلم.");
-  return {weekday:day,teachers,totals,totalCells,warnings};
+  return {weekday:day,teachers,totals:finalTotals,totalCells,warnings};
 }
