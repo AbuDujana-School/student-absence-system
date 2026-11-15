@@ -1,6 +1,6 @@
 BEGIN;
 CREATE TABLE IF NOT EXISTS public.teachers(name text, role text);
-DO $
+DO $coverage$
 DECLARE
   v_version_id uuid;
   v_result jsonb;
@@ -84,5 +84,5 @@ BEGIN
   IF v_clone_result->>'status' <> 'active' THEN
     RAISE EXCEPTION 'A complete five-day clone must be eligible for warning-enabled activation: %',v_clone_result;
   END IF;
-END $;
+END $coverage$;
 ROLLBACK;
