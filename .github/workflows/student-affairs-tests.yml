@@ -342,8 +342,6 @@ jobs:
             v_wrong_department_actor_blocked boolean := false;
             v_busy_candidate_blocked boolean := false;
             v_wrong_date_blocked boolean := false;
-            v_personal_duty_allowed boolean := false;
-            v_department_duty_allowed boolean := false;
             v_duplicate_substitution_blocked boolean := false;
             v_substitution_audit_count integer;
           BEGIN
@@ -460,8 +458,6 @@ jobs:
               'actor_type','admin','actor_name','synthetic-admin',
               'include_other_departments',true
             ));
-            v_personal_duty_allowed := true;
-            IF NOT v_personal_duty_allowed THEN RAISE EXCEPTION 'personal duty-day reserve assignment was not allowed'; END IF;
 
             -- The configured department duty day must also allow reserve coverage.
             UPDATE public.teachers SET permissions='{"category":"الرياضيات","dutyDay":""}'::jsonb
@@ -473,8 +469,6 @@ jobs:
               'actor_type','admin','actor_name','synthetic-admin',
               'include_other_departments',true
             ));
-            v_department_duty_allowed := true;
-            IF NOT v_department_duty_allowed THEN RAISE EXCEPTION 'department duty-day reserve assignment was not allowed'; END IF;
 
             v_substitution := public.create_timetable_substitution(jsonb_build_object(
               'version_id',v_version_id::text,'weekday','الثلاثاء','period',1,'assignment_date','2026-11-17',
