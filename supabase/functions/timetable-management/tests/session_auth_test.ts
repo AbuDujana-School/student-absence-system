@@ -185,7 +185,7 @@ Deno.test("non-admin substitution access requires the correct explicit authoriza
   if (canUseTimetableAction("custom", "teacher_substitution_get_today")) {
     throw new Error("Custom account gained teacher-only daily reserve notice access");
   }
-  for (const action of ["timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel"]) {
+  for (const action of ["timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel", "timetable_substitution_cancel_batch"]) {
     if (canUseTimetableAction("teacher", action)) throw new Error("Teacher without reserve permission was allowed: " + action);
     if (!canUseTimetableAction("teacher", action, false, true)) throw new Error("Reserve-enabled teacher was denied: " + action);
     if (!canUseTimetableAction("custom", action)) throw new Error("Scoped custom coordinator was denied: " + action);
