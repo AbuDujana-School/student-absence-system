@@ -533,7 +533,7 @@
     const grouped=new Map();
     reserveArchive.forEach(item=>{const key=item.assignmentDate||"تاريخ غير محدد";if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(item);});
     const activeTotal=reserveArchive.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status)).length;
-    const archivedTotal=reserveArchive.filter(item=>item.canEdit===false&&["assigned","confirmed"].includes(item.status)).length;
+    const archivedTotal=reserveArchive.length-activeTotal;
     host.innerHTML='<div class="mb-3 grid gap-2 sm:grid-cols-2">'+
       '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات نشطة قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' تكليف ضمن مهلة 20 ساعة</span></div>'+
       '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي للقراءة والطباعة</strong><span class="text-[10px] text-slate-600">'+archivedTotal+' تكليف محفوظ في الأرشيف</span></div></div>'+
@@ -554,7 +554,7 @@
             const readOnly=item.canEdit===false&&["assigned","confirmed"].includes(item.status);
             const actions=editable?
               '<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button></div>':
-              '<span class="text-[10px] text-slate-400">'+(readOnly?"انتهت مهلة التعديل · للقراءة فقط":state)+'</span>';
+              '<span class="text-[10px] text-slate-400">'+(readOnly?"سجل تاريخي · للقراءة فقط":state)+'</span>';
             return '<div class="tt-archive-row"><div><div class="text-xs font-black text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</div>'+
               '<small>سبب الاحتياط: '+esc(item.reason||"-")+' · '+state+'</small></div>'+actions+'</div>';
           }).join("");
@@ -619,7 +619,7 @@
   window.timetableDailyCancelAssignment = async function (assignmentId) {
     const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
-    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف غير نشط أو مرتبط بإصدار جدول سابق؛ لا يمكن إلغاؤه من هذه الشاشة.","error");return;}
+    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف خارج مهلة التعديل أو مرتبط بإصدار جدول سابق؛ لا يمكن حذفه من هذه الشاشة.","error");return;}
     if(!window.confirm("سيتم حذف هذا التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
     try{
       const token=appAuthSession?.token||readAppAuthToken();
@@ -652,7 +652,7 @@
     const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
     try{
-      if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف مرتبط بإصدار سابق أو حالته غير نشطة؛ يمكن مراجعته فقط.","error");return;}
+      if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف خارج مهلة التعديل أو مرتبط بإصدار سابق؛ يمكن مراجعته فقط.","error");return;}
       const token=appAuthSession?.token||readAppAuthToken();
       const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
       const absentNames=Array.isArray(directoryResult.absentTeachers)?directoryResult.absentTeachers:[];
@@ -1203,7 +1203,7 @@
   installAdminReserveTools();
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();applyTeacherTimetablePresentation();});
+    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();installHomeReserveArchive();applyTeacherTimetablePresentation();});
     adminToolsObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class","style"]});
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
