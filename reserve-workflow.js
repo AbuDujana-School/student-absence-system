@@ -784,6 +784,7 @@
           message+="*الاحتياط: "+(row.substitute||"لم يحدد")+"*\n\n";
         });
       });
+      message+="إدارة المدرسة";
       popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
     }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
   };
