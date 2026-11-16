@@ -46,6 +46,7 @@ Deno.test("reconnect retries upload only after explicit approval of an unchanged
   assert(retry.includes("offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint"), "Changed local data must invalidate prior approval");
   assert(retry.includes("saveSystemDataToCloud({ silent: true, automatic: true })"), "Approved retries must reuse the existing scoped dirty-record uploader");
   assert(retry.includes("scheduleOfflineAutoSyncRetry()"), "Failed approved uploads must retry with backoff");
+  assert(retry.includes("offlineSyncApprovalFingerprint()"), "Retries must remain tied to the unchanged local data snapshot");
   assert(!retry.includes("flushPendingDeletes("), "Background retry must never execute queued deletions");
 });
 
