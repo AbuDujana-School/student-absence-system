@@ -93,10 +93,10 @@ jobs:
             ('2026-11-01_10/2_p1','2026-11-01','10/2',1,'destination-teacher','{"destination-peer":{"type":"late","note":"synthetic"}}');
           INSERT INTO public.student_affairs_notice_issues(
             class_name,student_name,issue_number,issued_on,issued_by_type,issued_by_name,
-            delivered,threshold,period_start,period_end,selected_types,events
+            delivered,delivered_at,threshold,period_start,period_end,selected_types,events
           ) VALUES (
             '10/1','student-transfer-test',1,'2026-11-01','admin','synthetic-admin',
-            true,1,'2026-10-01','2026-11-01','["late"]',
+            true,now(),1,'2026-10-01','2026-11-01','["late"]',
             '[{"type":"late","date":"2026-11-01","period":"1","note":"synthetic"}]'
           );
           SQL
