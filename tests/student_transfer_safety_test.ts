@@ -36,6 +36,13 @@ Deno.test("Edge Function accepts transfers only from the active general admin se
   assert(action.includes('db.rpc("admin_transfer_student"'), "Transfer must run in the database transaction");
 });
 
+Deno.test("a queued student removal can be converted into a transfer", () => {
+  const review = section(html, "function openPendingDeleteReview()", "async function queueCloudDelete(");
+  assert(review.includes("data-pending-delete-action=\"transfer-student\""), "Student delete requests must offer a direct transfer action");
+  assert(review.includes("item?.filters?.student_name"), "The transfer action must use the exact queued student");
+  assert(review.includes("promptStudentTransferClass(studentName, fromClass)"), "The queued transfer must request a destination class");
+  assert(review.includes("transferStudentToClass(studentName, fromClass, toClass)"), "The queued transfer must use the atomic transfer workflow");
+});
 Deno.test("database transfer is atomic and scoped to one student's records", () => {
   assert(migration.includes("SECURITY DEFINER"), "RPC must execute in its controlled server context");
   assert(migration.includes("REVOKE ALL ON FUNCTION"), "RPC must not be directly callable by public or authenticated clients");
