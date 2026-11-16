@@ -30,19 +30,23 @@ Deno.test("loading does not rename classes or rewrite related school records", (
   assert(!load.includes("dirtySets.duty_reports.add("), "Loading must not create duty report class rewrites");
 });
 
-Deno.test("queued cloud deletions remain inert and require a separate reviewed workflow", () => {
+Deno.test("queued cloud deletions stay local until a confirmed administrator sync", () => {
   const queue = section("async function queueCloudDelete(", "// Queued deletes are processed only after an explicit administrator confirmation.");
-  const flush = section("async function flushPendingDeletes()", "async function robustUpsert(");
-  assert(queue.includes("setPendingDeletes(arr)"), "Deletion intent may be retained locally for review");
-  assert(!queue.includes(".delete("), "Queueing must not delete server data");
-  assert(flush.includes("return false"), "Pending deletion executor must remain disabled");
-  assert(!flush.includes(".delete("), "Pending deletion executor must not issue server deletes");
+  const flush = section("async function flushPendingDeletes(", "async function robustUpsert(");
+  assert(queue.includes("setPendingDeletes(arr)"), "Deletion intent must be retained locally before cloud processing");
+  assert(!queue.includes(".delete("), "Queueing must never delete server data");
+  assert(flush.includes("options.confirmed !== true"), "Deletion executor must require explicit confirmation");
+  assert(flush.includes("!isAdminAuthorized()"), "Deletion executor must require administrator authorization");
+  assert(flush.includes(".delete()"), "Confirmed deletion executor must perform supported server deletes");
 });
 
-Deno.test("reconnect and tab-resume handlers cannot upload local snapshots automatically", () => {
+Deno.test("reconnect and tab-resume handlers retry marked records but never queued deletes", () => {
   const retry = section("async function retryOfflineSyncSilently()", "let manualOfflineSyncInProgress");
-  assert(retry.includes("return false"), "Background retry must remain disabled");
-  assert(!retry.includes("saveSystemDataToCloud("), "Background retry must not write cloud data");
+  assert(retry.includes("!navigator.onLine"), "Background retry must require an online connection");
+  assert(retry.includes("!activeUser"), "Background retry must require an active session");
+  assert(retry.includes("hasPendingOfflineRecordChanges()"), "Background retry must upload only marked record changes");
+  assert(retry.includes("saveSystemDataToCloud({ silent: true, automatic: true })"), "Background retry must use the safe uploader");
+  assert(!retry.includes("flushPendingDeletes("), "Background retry must never process queued deletes");
 });
 
 Deno.test("default PIN initialization and credential migration are not invoked automatically", () => {
@@ -135,7 +139,7 @@ Deno.test("destructive UI actions do not claim that server-side deletion complet
 
 
 Deno.test("pending deletion intent survives localStorage failure through the durable snapshot path", () => {
-  const queue = section("let pendingDeleteQueueCache = null;", "async function flushPendingDeletes()");
+  const queue = section("let pendingDeleteQueueCache = null;", "async function flushPendingDeletes(");
   assert(queue.includes("pendingDeleteQueueCache = Array.isArray(arr) ? arr : []"), "Deletion intent must remain in memory if localStorage is unavailable");
   assert(queue.includes("const localStorageSaved = setPendingDeletes(arr)"), "Queueing must verify localStorage persistence");
   assert(queue.includes("const indexedDbSaved = await persistOfflineState()"), "Queueing must attempt durable IndexedDB persistence");
