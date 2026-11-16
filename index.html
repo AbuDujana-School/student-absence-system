@@ -5188,12 +5188,15 @@ function refreshVisibleViewsAfterCloudSync() {
 }
 async function refreshCloudChangesSilently() {
   if (!activeUser || !navigator.onLine || document.hidden || cloudRefreshInProgress ||
-      cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty ||
+      cloudDataLoadState === 'loading' || attendanceDirty || behaviorDirty ||
       manualOfflineSyncInProgress || offlineAutoSyncInProgress) return false;
   cloudRefreshInProgress = true;
   try {
     const refreshed = await loadSystemDataFromCloud();
-    if (refreshed) refreshVisibleViewsAfterCloudSync();
+    if (refreshed) {
+      refreshVisibleViewsAfterCloudSync();
+      if (hasPendingOfflineRecordChanges()) await retryOfflineSyncSilently();
+    }
     return refreshed;
   } finally {
     cloudRefreshInProgress = false;
@@ -5753,7 +5756,7 @@ function updateSyncStatus(isSynced, text) {
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
   else {
     ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
-    ind.onclick = () => hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
+    ind.onclick = () => hasPendingOfflineChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
     ind.title = hasPendingOfflineRecordChanges()
       ? "انقر لمراجعة ورفع التغييرات المحلية؛ الحذف المعلّق يحتاج تأكيد المدير"
       : "انقر لتحديث بيانات الخادم أو تنفيذ طلبات الحذف بعد تأكيد المدير";
