@@ -5125,7 +5125,9 @@ function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
 }
 function offlineSyncApprovalFingerprint() {
-  try { return JSON.stringify({ dirty: serializeDirtySets(), db }); }
+  // Approval follows the exact local data snapshot, not dirty markers. Successfully
+  // uploaded subsets may clear their markers while a failed remainder is retried.
+  try { return JSON.stringify(db); }
   catch (_) { return null; }
 }
 function scheduleOfflineAutoSyncRetry() {
@@ -5226,6 +5228,10 @@ function hasPendingOfflineRecordChanges() {
 }
 
 async function syncPendingLocalChanges() {
+  if (cloudSaveInProgress || offlineAutoSyncInProgress) {
+    showToast('توجد عملية مزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
+    return false;
+  }
   if (manualOfflineSyncInProgress) {
     showToast('المزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
     return false;
