@@ -33,3 +33,13 @@ Deno.test("changing the supporting department clears the previous department sel
   assert(controls.includes("window.substitutionSelectedOtherTeacherNames=new Set()"), "Changing departments must clear the previous department's selected teachers");
   assert(controls.includes("renderSubstitutionOtherTeacherChoices()"), "The new department must render its own teacher choices");
 });
+
+Deno.test("a checked support teacher is not discarded by a stale department tracker", () => {
+  const getter = section("function getSubstitutionSelectedOtherTeacherNames()", "async function timetableToggleOtherDepartments(");
+  const render = section("function renderSubstitutionOtherTeacherChoices()", "function getSubstitutionSelectedOtherTeacherNames()");
+  assert(!getter.includes("if(!department||String(window.substitutionSelectedOtherDepartmentId||\"\")!==departmentId)return []"), "A stale department tracker must not discard a valid current selection");
+  assert(getter.includes('host.dataset.departmentId||""') && getter.includes("===departmentId"), "Checkboxes must be read only when rendered for the current department");
+  assert(getter.includes("else selected.delete(name)"), "Unchecked current-department controls must remove stale selections");
+  assert(getter.includes("window.substitutionSelectedOtherDepartmentId=departmentId"), "The current department tracker must be reconciled before returning");
+  assert(render.includes("host.dataset.departmentId=departmentKey"), "The picker must tag its DOM with the department it displays");
+});
