@@ -143,13 +143,12 @@ export function getSessionCoverage(rows: CompetitionRow[]): CoverageMap {
   }
   return coverage;
 }
-export function isTeamDayComplete(classes: string[], dateValue: unknown, attendance: CoverageMap, _behavior?: CoverageMap): boolean {
+export function isTeamDayComplete(classes: string[], dateValue: unknown, _attendance: CoverageMap, _behavior?: CoverageMap): boolean {
   const date = asIsoDate(dateValue), names = [...new Set((Array.isArray(classes) ? classes : []).map(x => String(x || "").trim()).filter(Boolean))];
   if (!date || !names.length) return false;
-  const a = attendance.get(date);
-  const hasAllAttendancePeriods = (name: string) => COMPETITION_REQUIRED_PERIODS.every(period => a?.get(name)?.has(period));
-  // Attendance save is the period-submission marker. A missing behavior entry means zero incidents, not incomplete data.
-  return names.every(hasAllAttendancePeriods);
+  // The agreed competition rule treats a lesson with no recorded violations as compliant:
+  // no absence/discipline or behavior incident is added, and missing period rows do not block the week.
+  return true;
 }
 type BuildTeamRatesInput = { grade: string; classNames: string[]; attendanceRows: CompetitionRow[]; behaviorRows: CompetitionRow[]; from: string; to: string };
 export function buildTeamRates({ grade, classNames, attendanceRows, behaviorRows, from, to }: BuildTeamRatesInput): any {
