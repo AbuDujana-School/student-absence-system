@@ -4999,14 +4999,18 @@ function openPendingDeleteReview() {
         <button type="button" data-pending-delete-action="close" class="rounded-xl bg-white/10 px-3 py-2 text-sm" aria-label="إغلاق">إغلاق</button>
       </header>
       <div class="max-h-[52vh] space-y-2 overflow-y-auto p-4">
-        ${queue.map((item, index) => `
-          <article class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+        ${queue.map((item, index) => {
+          const transferableStudent = item?.table === 'students' && typeof item?.filters?.student_name === 'string' && typeof item?.filters?.class_name === 'string';
+          return `
+          <article class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
             <div class="min-w-0">
               <p class="font-bold">${escapeHtml(pendingDeleteTableLabel(item?.table))}</p>
-              <p class="mt-1 text-xs text-slate-400">طلب محلي رقم ${index + 1}</p>
+              ${transferableStudent ? `<p class="mt-1 text-xs text-slate-300">الطالب: ${escapeHtml(item.filters.student_name)} · الصف: ${escapeHtml(formatClassName(item.filters.class_name))}</p>` : `<p class="mt-1 text-xs text-slate-400">طلب محلي رقم ${index + 1}</p>`}
             </div>
+            ${transferableStudent ? `<button type="button" data-pending-delete-action="transfer-student" data-pending-delete-index="${index}" class="shrink-0 rounded-xl border border-sky-300/30 bg-sky-500/15 px-3 py-2 text-xs font-bold text-sky-100">نقل الطالب</button>` : ''}
             <button type="button" data-pending-delete-action="cancel-one" data-pending-delete-index="${index}" class="shrink-0 rounded-xl border border-amber-300/30 bg-amber-500/15 px-3 py-2 text-xs font-bold text-amber-100">إلغاء الطلب</button>
-          </article>`).join('')}
+          </article>`;
+        }).join('')}
       </div>
       <footer class="flex flex-wrap justify-between gap-2 border-t border-white/10 p-4">
         <p class="w-full text-xs leading-5 text-slate-300">إلغاء الطلب يزيل نية الحذف من الجهاز فقط، ولا يحذف أو يعدّل أي بيانات في قاعدة المدرسة.</p>
@@ -5020,6 +5024,16 @@ function openPendingDeleteReview() {
     if (!button) return;
     const action = button.dataset.pendingDeleteAction;
     if (action === 'close') closePendingDeleteReview();
+    if (action === 'transfer-student') {
+      button.disabled = true;
+      const item = getPendingDeletes()[Number(button.dataset.pendingDeleteIndex)];
+      const studentName = String(item?.filters?.student_name || '').trim();
+      const fromClass = String(item?.filters?.class_name || '').trim();
+      closePendingDeleteReview();
+      if (!studentName || !fromClass) { showToast('بيانات طلب نقل الطالب غير مكتملة.', 'error'); return; }
+      const toClass = await promptStudentTransferClass(studentName, fromClass);
+      if (toClass) await transferStudentToClass(studentName, fromClass, toClass);
+    }
     if (action === 'cancel-one') {
       button.disabled = true;
       await cancelPendingDeleteAt(Number(button.dataset.pendingDeleteIndex));
