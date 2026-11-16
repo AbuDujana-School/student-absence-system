@@ -4999,14 +4999,18 @@ function openPendingDeleteReview() {
         <button type="button" data-pending-delete-action="close" class="rounded-xl bg-white/10 px-3 py-2 text-sm" aria-label="إغلاق">إغلاق</button>
       </header>
       <div class="max-h-[52vh] space-y-2 overflow-y-auto p-4">
-        ${queue.map((item, index) => `
-          <article class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+        ${queue.map((item, index) => {
+          const transferableStudent = item?.table === 'students' && typeof item?.filters?.student_name === 'string' && typeof item?.filters?.class_name === 'string';
+          return `
+          <article class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
             <div class="min-w-0">
               <p class="font-bold">${escapeHtml(pendingDeleteTableLabel(item?.table))}</p>
-              <p class="mt-1 text-xs text-slate-400">طلب محلي رقم ${index + 1}</p>
+              ${transferableStudent ? `<p class="mt-1 text-xs text-slate-300">الطالب: ${escapeHtml(item.filters.student_name)} · الصف: ${escapeHtml(formatClassName(item.filters.class_name))}</p>` : `<p class="mt-1 text-xs text-slate-400">طلب محلي رقم ${index + 1}</p>`}
             </div>
+            ${transferableStudent ? `<button type="button" data-pending-delete-action="transfer-student" data-pending-delete-index="${index}" class="shrink-0 rounded-xl border border-sky-300/30 bg-sky-500/15 px-3 py-2 text-xs font-bold text-sky-100">نقل الطالب</button>` : ''}
             <button type="button" data-pending-delete-action="cancel-one" data-pending-delete-index="${index}" class="shrink-0 rounded-xl border border-amber-300/30 bg-amber-500/15 px-3 py-2 text-xs font-bold text-amber-100">إلغاء الطلب</button>
-          </article>`).join('')}
+          </article>`;
+        }).join('')}
       </div>
       <footer class="flex flex-wrap justify-between gap-2 border-t border-white/10 p-4">
         <p class="w-full text-xs leading-5 text-slate-300">إلغاء الطلب يزيل نية الحذف من الجهاز فقط، ولا يحذف أو يعدّل أي بيانات في قاعدة المدرسة.</p>
@@ -5020,6 +5024,16 @@ function openPendingDeleteReview() {
     if (!button) return;
     const action = button.dataset.pendingDeleteAction;
     if (action === 'close') closePendingDeleteReview();
+    if (action === 'transfer-student') {
+      button.disabled = true;
+      const item = getPendingDeletes()[Number(button.dataset.pendingDeleteIndex)];
+      const studentName = String(item?.filters?.student_name || '').trim();
+      const fromClass = String(item?.filters?.class_name || '').trim();
+      closePendingDeleteReview();
+      if (!studentName || !fromClass) { showToast('بيانات طلب نقل الطالب غير مكتملة.', 'error'); return; }
+      const toClass = await promptStudentTransferClass(studentName, fromClass);
+      if (toClass) await transferStudentToClass(studentName, fromClass, toClass);
+    }
     if (action === 'cancel-one') {
       button.disabled = true;
       await cancelPendingDeleteAt(Number(button.dataset.pendingDeleteIndex));
@@ -7792,19 +7806,83 @@ function loadAdminStudentsList() {
   const c = document.getElementById('adminStudentsDisplay');
   const bi = document.getElementById('bulkStudentsInput'); if (bi && document.activeElement !== bi) bi.value = list.join('\n');
   c.innerHTML = list.length === 0 ? `<div class="text-slate-400 text-center py-2 font-bold">لا طلاب.</div>` : '';
-  list.forEach((st, i) => { const d = document.createElement('div'); d.className = 'flex justify-between items-center p-2.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80'; d.innerHTML = `<span class="font-bold">${escapeHtml(st)}</span><button data-class="${escapeHtml(s)}" data-idx="${i}" onclick="removeStudentFromBtn(this)" class="text-red-500 text-xs font-bold px-3 py-1 bg-red-50 rounded-xl">حذف</button>`; c.appendChild(d); });
+  list.forEach((st, i) => { const d = document.createElement('div'); d.className = 'flex justify-between items-center gap-2 p-2.5 bg-white dark:bg-slate-800 rounded-2xl border border-slate-200/80'; d.innerHTML = '<span class="font-bold min-w-0">'+escapeHtml(st)+'</span><div class="flex shrink-0 items-center gap-1"><button data-class="'+escapeHtml(s)+'" data-student="'+escapeHtml(st)+'" onclick="transferStudentFromBtn(this)" class="text-blue-700 text-xs font-bold px-3 py-1.5 bg-blue-50 dark:bg-blue-950/40 rounded-xl">نقل</button><button data-class="'+escapeHtml(s)+'" data-idx="'+i+'" onclick="removeStudentFromBtn(this)" class="text-red-500 text-xs font-bold px-3 py-1.5 bg-red-50 rounded-xl">حذف</button></div>'; c.appendChild(d); });
 }
 function removeStudentFromBtn(btn) { removeStudent(btn.dataset.class, parseInt(btn.dataset.idx)); }
+function promptStudentTransferClass(studentName, fromClass) {
+  return new Promise(resolve => {
+    const available = sortClassesList(db.classes).filter(name => name !== fromClass);
+    if (!available.length) { showToast('لا يوجد صف آخر متاح للنقل إليه.', 'error'); resolve(null); return; }
+    const modal = document.createElement('div');
+    modal.className = 'modal-shell';
+    modal.innerHTML = '<div class="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700"><h3 class="font-extrabold text-lg mb-2 text-slate-800 dark:text-white">نقل الطالب إلى صف آخر</h3><p class="text-sm text-slate-600 dark:text-slate-300 mb-4">الطالب: <strong>'+escapeHtml(studentName)+'</strong><br>من: <strong>'+escapeHtml(formatClassName(fromClass))+'</strong></p><label class="block text-xs font-bold mb-2 text-slate-600 dark:text-slate-300">الصف الجديد</label><select data-transfer-class class="w-full p-3 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-bold text-slate-800 dark:text-white">'+available.map(name => '<option value="'+escapeHtml(name)+'">'+escapeHtml(formatClassName(name))+'</option>').join('')+'</select><div class="flex gap-2 justify-end mt-5"><button data-action="cancel" class="px-4 py-2.5 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-2xl text-xs font-bold">إلغاء</button><button data-action="ok" class="px-5 py-2.5 bg-blue-700 hover:bg-blue-800 text-white rounded-2xl text-xs font-bold shadow-md">متابعة النقل</button></div></div>';
+    document.body.appendChild(modal);
+    const finish = value => { modal.remove(); resolve(value); };
+    modal.querySelector('[data-action=cancel]').onclick = () => finish(null);
+    modal.querySelector('[data-action=ok]').onclick = () => finish(modal.querySelector('[data-transfer-class]').value || null);
+    modal.onclick = event => { if (event.target === modal) finish(null); };
+    modal.querySelector('[data-transfer-class]')?.focus();
+  });
+}
+async function transferStudentFromBtn(btn) {
+  const studentName = String(btn?.dataset?.student || '').trim();
+  const fromClass = String(btn?.dataset?.class || '').trim();
+  if (!studentName || !fromClass) return;
+  const toClass = await promptStudentTransferClass(studentName, fromClass);
+  if (!toClass) return;
+  await transferStudentToClass(studentName, fromClass, toClass);
+}
+async function transferStudentToClass(studentName, fromClass, toClass) {
+  if (!isAdminAuthorized()) { showToast('هذه العملية متاحة لمدير النظام العام فقط.', 'error'); return false; }
+  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges()) {
+    showToast('احفظ التعديلات المحلية المعلّقة أولاً ثم أعد عملية النقل؛ لم يتم تغيير أي بيانات.', 'error');
+    return false;
+  }
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) { showToast('انتهت جلسة مدير النظام. سجّل الدخول مجدداً.', 'error'); return false; }
+  const message = 'سيُنقل "'+studentName+'" من "'+formatClassName(fromClass)+'" إلى "'+formatClassName(toClass)+'"، مع نقل سجلات الحضور والسلوك والتنبيهات الرسمية الخاصة به فقط. ستبقى تواريخ الوقائع ومحتوياتها كما هي، ولن تتغير بيانات المعلمين أو إعدادات المدرسة أو سجلات بقية الطلاب. هل تريد المتابعة؟';
+  const confirmed = await showConfirm(message, { title: 'تأكيد نقل الطالب', okText: 'تنفيذ النقل' });
+  if (!confirmed) return false;
+  try {
+    const response = await appAuthRequest({ action: 'admin_transfer_student', student_name: studentName, from_class: fromClass, to_class: toClass }, token);
+    const previousQueue = getPendingDeletes().map(item => ({ ...item }));
+    const nextQueue = previousQueue.filter(item => !(item?.table === 'students' && item?.filters?.class_name === fromClass && item?.filters?.student_name === studentName));
+    if (nextQueue.length !== previousQueue.length) {
+      const localSaved = setPendingDeletes(nextQueue);
+      const durableSaved = await persistOfflineState();
+      if (!localSaved && !durableSaved) {
+        setPendingDeletes(previousQueue);
+        await persistOfflineState();
+        showToast('تم النقل في الخادم، لكن تعذر تحديث قائمة طلب الحذف المحلية القديمة. لن يُنفذ طلب الحذف تلقائياً.', 'error');
+        return false;
+      }
+    }
+    const loaded = await loadSystemDataFromCloud();
+    if (!loaded) {
+      showToast('اكتمل النقل في الخادم، لكن تعذر تحديث العرض المحلي الآن. أعد تحميل بيانات النظام.', 'error');
+      return false;
+    }
+    populateAdminClassSelect();
+    populateReportClassSelect();
+    populateBehaviorReportClassSelect();
+    loadAdminStudentsList();
+    renderClassesGrid();
+    const counts = response?.transfer || {};
+    showToast('تم نقل الطالب بنجاح. الحضور: '+Number(counts.attendance_records || 0)+'، السلوك: '+Number(counts.behavior_records || 0)+'، التنبيهات الرسمية: '+Number(counts.notice_records || 0)+'.', 'success');
+    return true;
+  } catch (error) {
+    console.error('Student transfer failed:', error);
+    showToast(error?.message || 'تعذر نقل الطالب. لم تُعتمد العملية.', 'error');
+    return false;
+  }
+}
 async function saveBulkStudents() {
   const s = document.getElementById('adminClassSelect').value; if (!s) return;
   const ol = db.students[s] || [];
   const nl = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('\n').map(x => x.trim()).filter(Boolean))]);
   const rm = ol.filter(x => !nl.includes(x));
   db.students[s] = nl; dirtySets.students.add(s);
-  if (rm.length > 0) {
-    Object.entries(db.attendance).forEach(([k, sess]) => { if (parseAttendanceKey(k).className === s && sess.records) { let ch = false; rm.forEach(r => { if (sess.records[r] !== undefined) { delete sess.records[r]; ch = true; } }); if (ch) dirtySets.attendance.add(k); } });
-    Object.entries(db.behaviors).forEach(([k, sess]) => { if (parseAttendanceKey(k).className === s && sess.records) { let ch = false; rm.forEach(r => { if (sess.records[r] !== undefined) { delete sess.records[r]; ch = true; } }); if (ch) dirtySets.behaviors.add(k); } });
-  }
+  // Removing a student from the roster must never erase their attendance or behavior history. Use the dedicated transfer action to move a student.
   const success = await saveSystemDataToCloud();
   for (const st of rm) await queueCloudDelete('students', { class_name: s, student_name: st });
   loadAdminStudentsList();
@@ -7830,10 +7908,9 @@ async function removeStudent(className, idx) {
   const n = l[idx];
   const ok = await showConfirm(`حذف (${n})؟`, { danger: true }); if (!ok) return;
   l.splice(idx, 1); dirtySets.students.add(className);
-  Object.entries(db.attendance).forEach(([k, s]) => { if (parseAttendanceKey(k).className === className && s.records && s.records[n] !== undefined) { delete s.records[n]; dirtySets.attendance.add(k); } });
-  Object.entries(db.behaviors).forEach(([k, s]) => { if (parseAttendanceKey(k).className === className && s.records && s.records[n] !== undefined) { delete s.records[n]; dirtySets.behaviors.add(k); } });
+  // Keep the student's historical attendance and behavior entries intact for later review or transfer.
   await saveSystemDataToCloud(); await queueCloudDelete('students', { class_name: className, student_name: n });
-  loadAdminStudentsList(); showToast('أُزيل الطالب محلياً؛ حذف سجله من الخادم بانتظار المراجعة.', 'info');
+  loadAdminStudentsList(); showToast('أُزيل الطالب من العرض المحلي؛ بقي تاريخه محفوظاً، وطلب حذف العضوية بانتظار المراجعة.', 'info');
 }
 async function addNewClassPrompt() {
   const name = await showPrompt('اسم الصف الجديد:', { title: 'إضافة صف', okText: 'إضافة' });
