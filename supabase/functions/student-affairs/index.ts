@@ -779,6 +779,46 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر إتمام تسجيل الدخول حالياً" });
     }
   }
+  if (body?.action === "admin_transfer_student") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "نقل الطلاب بين الصفوف متاح لمدير النظام العام فقط." });
+      }
+      const studentName = String(body.student_name || "").trim();
+      const fromClass = String(body.from_class || "").trim();
+      const toClass = String(body.to_class || "").trim();
+      if (!studentName || !fromClass || !toClass || studentName.length > 160 || fromClass.length > 120 || toClass.length > 120 || fromClass === toClass) {
+        return reply(400, { error: "بيانات نقل الطالب غير مكتملة أو غير صحيحة." });
+      }
+      const { data, error } = await db.rpc("admin_transfer_student", {
+        p_student_name: studentName,
+        p_from_class: fromClass,
+        p_to_class: toClass,
+        p_actor_name: principal.name
+      });
+      if (error) {
+        const code = String(error.message || "");
+        const messages: Record<string, string> = {
+          STUDENT_TRANSFER_CLASS_NOT_FOUND: "الصف المصدر أو الصف الوجهة غير موجود.",
+          STUDENT_TRANSFER_SOURCE_NOT_FOUND: "لم يُعثر على الطالب في الصف المصدر.",
+          STUDENT_TRANSFER_ALREADY_IN_DESTINATION: "الطالب موجود بالفعل في الصف الوجهة.",
+          STUDENT_TRANSFER_NOTICE_CONFLICT: "تعذر النقل لأن أرقام التنبيهات الرسمية تتعارض مع سجل سابق في الصف الوجهة. لم تُغيّر أي بيانات.",
+          STUDENT_TRANSFER_ATTENDANCE_CONFLICT: "تعذر النقل بسبب تعارض في سجل حضور موجود بالصف الوجهة. لم تُغيّر أي بيانات.",
+          STUDENT_TRANSFER_BEHAVIOR_CONFLICT: "تعذر النقل بسبب تعارض في سجل سلوك موجود بالصف الوجهة. لم تُغيّر أي بيانات.",
+          STUDENT_TRANSFER_INVALID_INPUT: "بيانات النقل غير صالحة."
+        };
+        const matched = Object.entries(messages).find(([key]) => code.includes(key));
+        return reply(code.includes("INVALID_INPUT") ? 400 : 409, { error: matched?.[1] || "تعذر إتمام النقل؛ لم تُعتمد العملية." });
+      }
+      return reply(200, { ok: true, transfer: data });
+    } catch (error) {
+      console.error("Atomic student transfer failed:", error);
+      return reply(500, { error: "حدث خطأ أثناء نقل الطالب. لم تُعتمد العملية." });
+    }
+  }
   if (body?.action === "app_student_affairs_session") {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
