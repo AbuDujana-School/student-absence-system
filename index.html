@@ -10575,6 +10575,7 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
   const select=document.getElementById(selectId);
   if(!checkbox||!select)return [];
   if(!checkbox.checked){select.classList.add("hidden");select.disabled=true;select.value="";select.innerHTML='<option value="">اختر القسم المطلوب</option>';return [];}
+  const previous=select.value;
   select.classList.remove("hidden");
   select.disabled=true;
   select.innerHTML='<option value="">جارٍ تحميل الأقسام...</option>';
@@ -10582,7 +10583,6 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
   if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
   const response=await appAuthRequest({action:"timetable_substitution_departments"},token);
   const departments=Array.isArray(response.departments)?response.departments:[];
-  const previous=select.value;
   select.innerHTML='<option value="">اختر القسم المطلوب</option>'+departments.map(item=>'<option value="'+timetableEsc(item.id)+'">'+timetableEsc(item.name)+'</option>').join("");
   if(departments.some(item=>String(item.id)===previous))select.value=previous;
   select.disabled=departments.length===0;
@@ -11720,9 +11720,43 @@ async function timetableSaveOwner() {
     const allowed=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
     card.classList.toggle('hidden',!allowed);
   };
+  function bindOtherDepartmentControls(){
+    const other=document.getElementById('substitutionOtherDepartments');
+    if(other&&other.dataset.departmentBinding!=='ready'){
+      other.addEventListener('change',async function(){
+        clearPlan();
+        const select=document.getElementById('substitutionOtherDepartmentSelect');
+        if(!other.checked){
+          await timetableLoadOtherDepartmentOptions('substitutionOtherDepartments','substitutionOtherDepartmentSelect');
+          setStatus('تم إيقاف الاستعانة بالأقسام الأخرى. سيقتصر التوزيع على قسمك.');
+        }else{
+          setStatus('جارٍ تحميل أقسام المعلمين في الجدول النشط...');
+          try{
+            const departments=await timetableLoadOtherDepartmentOptions('substitutionOtherDepartments','substitutionOtherDepartmentSelect');
+            setStatus(departments.length?'تم تحميل '+departments.length+' أقسام. اختر القسم المطلوب.':'لا توجد أقسام أخرى لديها معلمون في الجدول النشط.',!departments.length);
+          }catch(error){
+            if(select){select.disabled=true;select.classList.remove('hidden');select.innerHTML='<option value="">تعذر تحميل الأقسام — حاول مجدداً</option>';}
+            setStatus(error?.message||'تعذر تحميل أقسام المدرسة.',true);
+          }
+        }
+        await window.substitutionLoadStats();
+      });
+      other.dataset.departmentBinding='ready';
+    }
+    const department=document.getElementById('substitutionOtherDepartmentSelect');
+    if(department&&department.dataset.departmentBinding!=='ready'){
+      department.addEventListener('change',function(){
+        clearPlan();
+        if(department.value)setStatus('تم اختيار قسم '+(department.options[department.selectedIndex]?.text||'')+'. أنشئ التوزيع لعرض البدلاء المتاحين.');
+        else setStatus('اختر القسم المطلوب أولاً.',true);
+      });
+      department.dataset.departmentBinding='ready';
+    }
+  }
   window.openSubstitutionView=async function(){
     const allowed=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
     if(!allowed){showToast('لا تملك صلاحية توزيع حصص الاحتياط.','error');return;}
+    bindOtherDepartmentControls();
     ['dashboardSelectionView','dutyView','dutyClassesView','teacherTimetableView','attendanceView','classesView','behaviorClassesView','behaviorSessionView'].forEach(function(id){document.getElementById(id)?.classList.add('hidden');});
     document.getElementById('substitutionView')?.classList.remove('hidden');
     const date=document.getElementById('substitutionDate');
@@ -11954,17 +11988,7 @@ async function timetableSaveOwner() {
       root.innerHTML=ownCard+ranking+'<h4 class="mb-2 text-xs font-black text-slate-800 dark:text-white">توزيع حصص الاحتياط من الأولى إلى الثامنة</h4>'+table+'<p class="mt-3 text-[10px] leading-5 text-slate-400">أيام الغياب المغطاة هنا تُحسب من تكليفات الاحتياط المسجلة، ولا تمثل سجلاً مستقلاً لكل حالات غياب المعلمين.</p>';
     }catch(error){root.innerHTML='<p class="text-xs font-bold text-rose-600">'+esc(error?.message||'تعذر تحميل الإحصائيات.')+'</p>';}
   };
-  document.addEventListener('DOMContentLoaded',function(){
-    const other=document.getElementById('substitutionOtherDepartments');
-    if(other)other.addEventListener('change',async function(){
-      clearPlan();
-      try{await timetableLoadOtherDepartmentOptions('substitutionOtherDepartments','substitutionOtherDepartmentSelect');}
-      catch(error){setStatus(error?.message||'تعذر تحميل أقسام المدرسة.',true);}
-      await window.substitutionLoadStats();
-    });
-    const department=document.getElementById('substitutionOtherDepartmentSelect');
-    if(department)department.addEventListener('change',function(){clearPlan();setStatus('تم اختيار قسم '+(department.options[department.selectedIndex]?.text||'')+'. أنشئ التوزيع لعرض البدلاء المتاحين.');});
-  });
+  // Bind controls on view activation; this is reliable even when navigation occurs after DOMContentLoaded.
 })();
 </script>
 
