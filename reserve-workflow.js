@@ -708,7 +708,13 @@
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'">'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
-  function printOfficialReservePages(pages){
+  function reservePrintDocumentTitle(subject){
+    const label=String(subject||"").trim().replace(/^مادة\\s+/,"");
+    return label?"احتياط مادة "+label:"احتياط";
+  }
+  function printOfficialReservePages(pages,subject){
+    const previousTitle=document.title;
+    document.title=reservePrintDocumentTitle(subject);
     document.getElementById("ttReservePrintRoot")?.remove();document.getElementById("ttReserveOfficialPrintStyle")?.remove();
     const style=document.createElement("style");style.id="ttReserveOfficialPrintStyle";
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
@@ -718,8 +724,10 @@
       '.tt-official-footer{direction:ltr;flex:0 0 19mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:1.5mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:16mm;flex:0 0 42mm;display:block;font-weight:700}'+
       '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
-    let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();window.removeEventListener("afterprint",cleanup);};
-    window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,15000);
+    let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();document.title=previousTitle;window.removeEventListener("afterprint",cleanup);};
+    window.addEventListener("afterprint",cleanup,{once:true});
+    try{window.print();}catch(error){cleanup();throw error;}
+    setTimeout(cleanup,15000);
   }
   async function reservePrintActorSubject(){
     const token=appAuthSession?.token||readAppAuthToken();
@@ -734,9 +742,10 @@
   }
   // Shared official A4 print entry point for every reserve workflow.
   // Keeps the legacy planner and the daily timetable on one canonical template.
-  window.printOfficialReserveReport=function(groups,date,weekday){
-    const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"");
-    printOfficialReservePages(pages);
+  window.printOfficialReserveReport=async function(groups,date,weekday){
+    const subject=await reservePrintActorSubject();
+    const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"",subject);
+    printOfficialReservePages(pages,subject);
   };
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
@@ -756,7 +765,7 @@
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
     const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
     const subject=await reservePrintActorSubject();
-    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday,subject));
+    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday,subject),subject);
   };
 
   window.timetableDailyShareWhatsApp = async function () {
