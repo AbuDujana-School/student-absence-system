@@ -953,6 +953,10 @@
 
   // Legacy reserve screen: explicitly choose supporting teachers from the selected department.
   function installLegacyOtherDepartmentTeacherPicker(){
+    // The current index.html already owns this picker and its selection state.
+    // Do not install the legacy picker: it reused the same DOM id and overwrote
+    // the native checkboxes, making selected teachers invisible to generation.
+    if($("substitutionOtherTeacherChoices"))return;
     const departmentSelect=$("substitutionOtherDepartmentSelect");
     const departmentToggle=$("substitutionOtherDepartments");
     if(!departmentSelect||!departmentToggle||departmentSelect.dataset.teacherPickerReady==="1")return;
