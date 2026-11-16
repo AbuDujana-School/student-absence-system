@@ -2052,16 +2052,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   </div>
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 space-y-3">
     <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-black text-slate-900 dark:text-white">جدولي الأسبوعي</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تُحدّد الحصة الحالية تلقائياً وفق أوقات الحصص المعتمدة في إعدادات المناوبة.</p></div><span id="teacherTimetableCurrentStatus" class="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-200">جارٍ تحديد الحصة الحالية...</span></div>
-    <div class="flex flex-wrap gap-2 text-[10px] font-bold">
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-slate-100 px-2.5 py-1.5 text-slate-700"><i class="h-2.5 w-2.5 rounded-sm bg-slate-300"></i> حصة فارغة</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1.5 text-emerald-800"><i class="h-2.5 w-2.5 rounded-sm bg-emerald-200"></i> حصة تدريس</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-violet-800"><i class="h-2.5 w-2.5 rounded-sm bg-violet-200"></i> اجتماع</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-2.5 py-1.5 text-amber-800"><i class="h-2.5 w-2.5 rounded-sm bg-amber-200"></i> نشاط / مناوبة</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-cyan-200 bg-cyan-50 px-2.5 py-1.5 text-cyan-800"><i class="h-2.5 w-2.5 rounded-sm bg-cyan-200"></i> تكليف آخر</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-orange-200 bg-orange-50 px-2.5 py-1.5 text-orange-800"><i class="h-2.5 w-2.5 rounded-sm bg-orange-200"></i> يحتاج مراجعة</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-2.5 py-1.5 text-blue-800"><i class="h-2.5 w-2.5 rounded-sm bg-blue-300"></i> الحصة الحالية (إطار أزرق)</span>
-      <span class="inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-rose-800"><i class="h-2.5 w-2.5 rounded-sm bg-rose-200"></i> حصة احتياط</span>
-    </div>
     <div id="teacherTimetableStatus" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" role="status" aria-live="polite"></div>
   </div>
   <div id="teacherTimetableWeekGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"></div>
@@ -9236,16 +9226,15 @@ function teacherTimetableRender() {
   const status = document.getElementById("teacherTimetableCurrentStatus");
   const periods = dutyData().periods || [];
   if (status) {
-    const currentTiming = current.period ? periods[current.period - 1] : null;
-    const timeLabel = currentTiming?.start && currentTiming?.end
-      ? " · " + currentTiming.start + " – " + currentTiming.end
+    const periodName = current.period
+      ? String(periodNamesMap[current.period] || ("الحصة " + current.period)).replace(/^الحصة\s*/, "")
       : "";
     status.textContent = current.period
-      ? "الحصة الحالية: " + (periodNamesMap[current.period] || ("الحصة " + current.period)) + timeLabel
-      : "لا توجد حصة جارية حسب أوقات الحصص المضبوطة";
-    status.className = "rounded-xl px-3 py-2 text-[10px] font-black " + (current.period
-      ? "bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-200"
-      : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-200");
+      ? "الحصة " + periodName + " الآن"
+      : "لا توجد حصة الآن";
+    status.className = "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-xs font-black shadow-sm " + (current.period
+      ? "bg-blue-600 text-white dark:bg-blue-500 dark:text-white"
+      : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300");
   }
 
   const cells = Array.isArray(teacherTimetableData.cells) ? teacherTimetableData.cells : [];
@@ -9262,13 +9251,7 @@ function teacherTimetableRender() {
     '<th scope="col" class="min-w-[92px] border-b border-slate-200 bg-slate-50 px-2 py-3 text-center text-[11px] font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200">' + (index+1) + '</th>'
   ).join("");
 
-  const statusPresentation = {
-    meeting: {label:"اجتماع", tone:"border-violet-200 bg-violet-100 text-violet-950 dark:border-violet-900 dark:bg-violet-950/50 dark:text-violet-100"},
-    activity: {label:"نشاط / مناوبة", tone:"border-amber-200 bg-amber-100 text-amber-950 dark:border-amber-900 dark:bg-amber-950/50 dark:text-amber-100"},
-    other: {label:"تكليف آخر", tone:"border-cyan-200 bg-cyan-100 text-cyan-950 dark:border-cyan-900 dark:bg-cyan-950/50 dark:text-cyan-100"},
-    unclear: {label:"بيانات تحتاج مراجعة", tone:"border-orange-200 bg-orange-100 text-orange-950 dark:border-orange-900 dark:bg-orange-950/50 dark:text-orange-100"},
-    free: {label:"حصة فارغة", tone:"border-slate-200 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300"}
-  };
+  const neutralCellTone = "border-slate-200 bg-white text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100";
 
   const bodyRows = days.map(day => {
     const dateForDay = teacherTimetableDayDate(day);
@@ -9287,35 +9270,30 @@ function teacherTimetableRender() {
         : String(classValues || "").split(/[،,]/).map(value => value.trim()).filter(Boolean);
       const cellFrame = "h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800";
 
-      let tone;
-      if (substitution) {
-        tone = "border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-100";
-      } else if (isTeaching) {
-        tone = "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100";
-      } else {
-        tone = (statusPresentation[cellStatus] || statusPresentation.unclear).tone;
-      }
-      if (isCurrent) tone += " ring-2 ring-inset ring-blue-600 dark:ring-blue-400";
+      const tone = substitution
+        ? "border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-100"
+        : isTeaching
+          ? "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+          : neutralCellTone;
 
       const classMarkup = classList.length
-        ? '<div class="text-[12px] font-black leading-tight" dir="rtl">' +
-          classList.map(value => '<bdi dir="ltr" class="inline-block font-bold">' + timetableEsc(formatClassName(value)) + '</bdi>').join('<span class="mx-1 text-[9px] opacity-50">،</span>') +
+        ? '<div class="text-[14px] font-black leading-tight tracking-tight" dir="rtl">' +
+          classList.map(value => '<bdi dir="ltr" class="inline-block font-black">' + timetableEsc(formatClassName(value)) + '</bdi>').join('<span class="mx-1 text-[9px] opacity-50">،</span>') +
           '</div>'
         : "";
       const subject = String(substitution?.subject || cell?.subject || "").trim();
-      const stateLabel = substitution
-        ? '<span class="mb-1 inline-flex rounded-md bg-rose-200 px-2 py-0.5 text-[9px] font-black text-rose-950 dark:bg-rose-900 dark:text-rose-100">حصة احتياط</span>'
+      const isMeeting = !substitution && !isTeaching && cellStatus === "meeting";
+      const cellContent = substitution
+        ? (classMarkup || '<div class="text-[12px] font-black">احتياط</div>') +
+          '<div class="mt-1 text-[9px] font-bold">حصة احتياط</div>'
         : isTeaching
-          ? '<span class="mb-1 inline-flex rounded-md bg-emerald-200 px-2 py-0.5 text-[9px] font-black text-emerald-950 dark:bg-emerald-900 dark:text-emerald-100">تدريس</span>'
-          : '<span class="mb-1 text-[9px] font-black opacity-80">' + timetableEsc((statusPresentation[cellStatus] || statusPresentation.unclear).label) + '</span>';
-      const nowBadge = isCurrent
-        ? '<span class="inline-flex rounded-md bg-blue-700 px-2 py-0.5 text-[9px] font-black text-white shadow-sm">الآن</span>'
-        : "";
-      return '<td class="' + cellFrame + '" aria-label="' + (isCurrent ? "الحصة الحالية، " : "") + (substitution ? "احتياط" : (isTeaching ? "تدريس" : (statusPresentation[cellStatus] || statusPresentation.unclear).label)) + '">' +
+          ? classMarkup + (subject ? '<div class="mt-1 max-w-full truncate text-[9px] font-medium opacity-80">' + timetableEsc(subject) + '</div>' : '')
+          : isMeeting
+            ? '<div class="text-[11px] font-bold">اجتماع المادة</div>'
+            : "";
+      return '<td class="' + cellFrame + '" aria-label="' + (substitution ? "حصة احتياط" : (isTeaching ? "تدريس " + classList.join("، ") : (isMeeting ? "اجتماع المادة" : "حصة فارغة"))) + '">' +
         '<div class="flex h-[62px] flex-col items-center justify-center overflow-hidden rounded-lg border px-1.5 py-1.5 text-center ' + tone + '">' +
-        '<div class="mb-0.5 flex w-full items-center justify-center gap-1">' + stateLabel + nowBadge + '</div>' +
-        classMarkup +
-        (subject ? '<div class="mt-1 max-w-full truncate text-[9px] font-medium opacity-75">' + timetableEsc(subject) + '</div>' : '') +
+        cellContent +
         '</div></td>';
     }).join("");
 
