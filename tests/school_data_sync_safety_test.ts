@@ -117,12 +117,15 @@ Deno.test("local fallback snapshot carries its own dirty markers and pending del
 });
 
 
-Deno.test("force refresh cannot discard unsaved attendance or behavior session edits", () => {
-  const refresh = section("function forceSyncWithCloud()", "function updateSyncStatus(");
+Deno.test("sync indicator routes pending local records to the explicit upload workflow", () => {
+  const refresh = section("function forceSyncWithCloud()", "function doForceSync()");
   assert(refresh.includes("if (attendanceDirty || behaviorDirty)"), "Refresh must stop while a live attendance or behavior session is dirty");
   assert(refresh.includes("احفظ تغييرات الرصد الحالية"), "The user must be told to save the active session first");
-  assert(refresh.includes("hasPendingOfflineChanges()"), "Refresh confirmation must account for queued offline work and deletions");
-  assert(refresh.includes("لن تُرفع التغييرات المحلية أو تُنفذ طلبات الحذف تلقائياً"), "Refresh must not imply it uploads or deletes queued work");
+  assert(refresh.includes("if (hasPendingOfflineRecordChanges())"), "Pending record edits must be detected before cloud refresh");
+  assert(refresh.includes("void syncPendingLocalChanges()"), "Pending record edits must enter the explicit upload-and-confirm workflow");
+  assert(refresh.indexOf("syncPendingLocalChanges()") < refresh.indexOf("doForceSync()"), "Dirty records must never be routed to read-only refresh");
+  assert(refresh.includes("getPendingDeletes().length"), "Queued deletions must be handled separately");
+  assert(refresh.includes("لن تُرفع تعديلات أو تُنفذ عمليات حذف"), "Delete-only refresh must not claim to upload or delete");
 });
 
 Deno.test("successful record saves do not report full sync while deletions remain queued", () => {

@@ -5717,8 +5717,18 @@ function forceSyncWithCloud() {
     showToast('احفظ تغييرات الرصد الحالية قبل تحديث بيانات الخادم.', 'error');
     return;
   }
-  if (hasPendingOfflineChanges()) {
-    showConfirm('سيتم جلب بيانات الخادم مع الاحتفاظ بالتعديلات المحلية المعلّمة. لن تُرفع التغييرات المحلية أو تُنفذ طلبات الحذف تلقائياً. متابعة؟', { danger: true }).then(ok => { if (ok) doForceSync(); });
+  // A sync-indicator click with dirty records must upload them, not perform a
+  // read-only cloud refresh that leaves the local-pending badge unchanged.
+  if (hasPendingOfflineRecordChanges()) {
+    void syncPendingLocalChanges();
+    return;
+  }
+  const pendingDeletes = getPendingDeletes().length;
+  if (pendingDeletes) {
+    showConfirm(
+      `سيتم جلب بيانات الخادم مع إبقاء ${pendingDeletes} طلب حذف محلياً للمراجعة. لن تُرفع تعديلات أو تُنفذ عمليات حذف. متابعة؟`,
+      { danger: false, okText: 'جلب بيانات الخادم' }
+    ).then(ok => { if (ok) doForceSync(); });
     return;
   }
   doForceSync();
