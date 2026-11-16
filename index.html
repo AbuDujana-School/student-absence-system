@@ -12038,19 +12038,33 @@ async function timetableSaveOwner() {
   function buildShareMessage(){
     if(!currentPlan)return '';
     const date=selectedDate(),weekday=weekdayFor(date);
-    let message='توزيع حصص الاحتياط\n'+dateLabel(date)+'\n\n';
+    const parsedDate=new Date(String(date)+'T12:00:00+04:00');
+    const formattedDate=Number.isFinite(parsedDate.getTime())
+      ? new Intl.DateTimeFormat('ar-OM',{day:'numeric',month:'long',year:'numeric',numberingSystem:'arab',timeZone:'Asia/Muscat'}).format(parsedDate)
+      : dateLabel(date);
+    let message='*توزيع حصص الاحتياط*\n\n*'+weekday+'، '+formattedDate+'*\n\n';
     const groups=new Map();
-    [...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[])].forEach(function(item){
-      if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
-      groups.get(item.absentTeacherName).push(item);
+    const addRow=function(item){
+      const absentName=String(item?.absentTeacherName||'').trim();
+      if(!absentName)return;
+      if(!groups.has(absentName))groups.set(absentName,[]);
+      groups.get(absentName).push({
+        period:Number(item.period),
+        className:item.className||'غير محدد',
+        substitute:item.substituteTeacherName||'لم يحدد'
+      });
+    };
+    [...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[]),...(currentPlan.unassigned||[])].forEach(addRow);
+    const orderedNames=[...currentAbsentNames,...[...groups.keys()].filter(name=>!currentAbsentNames.includes(name))];
+    const orderedGroups=orderedNames.map(name=>({name,rows:groups.get(name)||[]})).filter(group=>group.rows.length);
+    orderedGroups.forEach(function(group,index){
+      message+='*'+(index+1)+'-* المعلم الغائب: *'+group.name+'*\n\n';
+      group.rows.sort((a,b)=>a.period-b.period).forEach(function(row){
+        message+='- الحصة *'+String(row.period)+'* | الصف '+row.className+'\n';
+        message+='*الاحتياط: '+row.substitute+'*\n\n';
+      });
     });
-    groups.forEach(function(items,name){
-      message+='المعلم الغائب: '+name+'\n';
-      items.forEach(function(item){message+='الحصة '+item.period+' | الصف '+(item.className||'—')+' | '+(item.subject||'')+' | البديل: '+item.substituteTeacherName+'\n';});
-      message+='\n';
-    });
-    if(currentPlan.unassigned?.length)message+='حصص دون بديل: '+currentPlan.unassigned.length+'\n';
-    message+='\nإدارة المدرسة';
+    message+='إدارة المدرسة';
     return message;
   }
   window.substitutionShareWhatsapp=function(){
