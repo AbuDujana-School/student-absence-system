@@ -1097,7 +1097,7 @@ async function handle(req: Request) {
         teacherDirectory(),
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
           .eq("version_id",activeVersion.id).eq("weekday",weekday).order("id").range(from,to)),
-        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status,weekday,period")
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name,cell_status,weekday,period")
           .eq("version_id",activeVersion.id).order("id").range(from,to)),
         fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
           .order("id").range(from,to)),
@@ -1106,6 +1106,14 @@ async function handle(req: Request) {
         teacherId:String(cell.matched_teacher_name),weekday:String(cell.weekday||""),period:Number(cell.period),
         className:"",status:cell.cell_status,
       })));
+      const systemTeachersForReserve: SystemTeacher[] = directory
+        .filter((teacher:any)=>teacher.role==="teacher")
+        .map((teacher:any)=>({name:String(teacher.name||"").trim()}))
+        .filter((teacher:SystemTeacher)=>teacher.name);
+      const activeTeachingTeacherNames = new Set((weeklyLoad||[])
+        .filter((cell:any)=>cell.cell_status==="teaching")
+        .map((cell:any)=>resolveTimetableTeacherName(cell.matched_teacher_name,cell.teacher_source_name,systemTeachersForReserve))
+        .filter((name:string|null):name is string=>Boolean(name)));
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
       if(principal.type!=="admin"&&!actorDepartmentId&&!principal.schoolwideReserveStats)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
@@ -1115,8 +1123,9 @@ async function handle(req: Request) {
       if(includeOtherDepartments && !otherDepartmentId && ["timetable_substitution_preview","timetable_substitution_batch_preview"].includes(String(body.action||""))) {
         return reply(400,{error:"اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً."});
       }
-      if(includeOtherDepartments && otherDepartmentId && !directory.some((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId===otherDepartmentId)) {
-        return reply(400,{error:"القسم المحدد غير موجود في دليل المعلمين."});
+      if(includeOtherDepartments && otherDepartmentId && !directory.some((teacher:any)=>
+        teacher.role==="teacher"&&teacher.departmentId===otherDepartmentId&&activeTeachingTeacherNames.has(teacher.name))) {
+        return reply(400,{error:"القسم المحدد لا يضم معلماً لديه حصة تدريس في الجدول النشط."});
       }
       if (body.action==="timetable_substitution_cancel") {
         if (!validUuid(body.assignmentId)) return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
@@ -1137,7 +1146,7 @@ async function handle(req: Request) {
         const period=Number(body.period), assignmentDate=String(body.assignmentDate||""), substitute=String(body.substituteTeacherName||"").trim();
         if(!absentTeacherName||!substitute||!Number.isInteger(period)||period<1||period>Number(activeVersion.period_count||7)||!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate))return reply(400,{error:"حدد التاريخ والمعلم الغائب والبديل والحصة."});
         const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
-        if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
+        if(!substituteTeacher||!activeTeachingTeacherNames.has(substituteTeacher.name))return reply(404,{error:"المعلم البديل غير موجود ضمن معلمي التدريس في الجدول النشط."});
         if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId)return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
         if(!includeOtherDepartments && substituteTeacher.departmentId!==directory.find((teacher:any)=>teacher.name===absentTeacherName&&teacher.role==="teacher")?.departmentId)return reply(403,{error:"المعلم البديل من قسم آخر."});
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
@@ -1213,7 +1222,7 @@ async function handle(req: Request) {
         const name=String(entry.teacher_name||"");
         pointsBalanceByTeacher.set(name,(pointsBalanceByTeacher.get(name)||0)+Number(entry.points_delta||0));
       }
-      const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
+      const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher"&&activeTeachingTeacherNames.has(t.name)).map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
         weeklyQuota:weeklyQuotaByTeacher.get(t.name)||0,
         pointsBalance:pointsBalanceByTeacher.get(t.name)||0,
@@ -1240,7 +1249,7 @@ async function handle(req: Request) {
         for(const item of normalized){
           const substituteTeacher=directory.find((teacher:any)=>teacher.name===item.substituteTeacherName&&teacher.role==="teacher");
           const absentTeacher=directory.find((teacher:any)=>teacher.name===item.absentTeacherName&&teacher.role==="teacher");
-          if(!substituteTeacher||!absentTeacher)return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل في دليل المعلمين."});
+          if(!substituteTeacher||!activeTeachingTeacherNames.has(substituteTeacher.name)||!absentTeacher)return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل ضمن معلمي الجدول النشط."});
           if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId){
             return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
           }
