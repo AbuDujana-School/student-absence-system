@@ -666,7 +666,7 @@
     const match=String(dateValue||"").match(/^(\d{4})-(\d{2})-(\d{2})$/);
     return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
   }
-  const RESERVE_OFFICIAL_ROWS_PER_PAGE = 15;
+  const RESERVE_OFFICIAL_ROWS_PER_PAGE = 22;
   function reserveOfficialPrintPages(groups,date,weekday,subject){
     const pages=[];let current=[],count=0;
     (groups||[]).forEach(group=>{
@@ -712,14 +712,25 @@
     document.getElementById("ttReservePrintRoot")?.remove();document.getElementById("ttReserveOfficialPrintStyle")?.remove();
     const style=document.createElement("style");style.id="ttReserveOfficialPrintStyle";
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
-      '.tt-official-page{box-sizing:border-box;width:100%;min-height:281mm;height:auto;max-height:none;display:flex;flex-direction:column;direction:rtl;background:#fff;border:.35mm solid #333;padding:3mm 3mm 2mm;overflow:visible;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
-      '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:12pt;font-weight:700;line-height:1.7;padding:2mm 0 1mm}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:13pt;margin-top:1mm!important}'+
-      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt;font-weight:700;margin:5mm 0 4mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:12pt;font-weight:900;margin:-1mm auto 3mm;width:max-content;max-width:92%;padding:2mm 9mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:180mm}.tt-official-table thead{display:table-header-group;height:12mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:1.5mm 1mm;overflow-wrap:anywhere}.tt-official-table th{height:12mm;font-size:11pt;font-weight:900;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:11.2mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:11.2mm}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
-      '.tt-official-footer{direction:ltr;flex:0 0 25mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:3mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:20mm;flex:0 0 42mm;display:block;font-weight:700}'+
+      '.tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm;display:flex;flex-direction:column;direction:rtl;background:#fff;border:.35mm solid #333;padding:2.5mm 3mm 2mm;overflow:hidden;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
+      '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;line-height:1.45;padding:1mm 0 .5mm}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:11.5pt;margin-top:.5mm!important}'+
+      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}.tt-official-table th{height:9mm;font-size:9.5pt;font-weight:900;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
+      '.tt-official-footer{direction:ltr;flex:0 0 19mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:1.5mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:16mm;flex:0 0 42mm;display:block;font-weight:700}'+
       '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
     let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();window.removeEventListener("afterprint",cleanup);};
     window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,15000);
+  }
+  async function reservePrintActorSubject(){
+    const token=appAuthSession?.token||readAppAuthToken();
+    if(!token)return "";
+    try{
+      const response=await appAuthRequest({action:"timetable_substitution_departments"},token);
+      return String(response?.actorDepartmentName||"").trim();
+    }catch(error){
+      console.warn("Could not resolve reserve distributor subject for print:",error?.message||error);
+      return "";
+    }
   }
   // Shared official A4 print entry point for every reserve workflow.
   // Keeps the legacy planner and the daily timetable on one canonical template.
@@ -744,7 +755,7 @@
     const groups=buildReserveReportGroups(reserveBatchPreview||{});
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
     const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday));
+    const subject=await reservePrintActorSubject();\n    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday,subject));
   };
 
   window.timetableDailyShareWhatsApp = async function () {
