@@ -1,6 +1,7 @@
 const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
 const edge = await Deno.readTextFile(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url));
 const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261116120000_atomic_student_transfer.sql", import.meta.url));
+const recoveryMigration = await Deno.readTextFile(new URL("../supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql", import.meta.url));
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -42,6 +43,12 @@ Deno.test("a queued student removal can be converted into a transfer", () => {
   assert(review.includes("item?.filters?.student_name"), "The transfer action must use the exact queued student");
   assert(review.includes("promptStudentTransferClass(studentName, fromClass)"), "The queued transfer must request a destination class");
   assert(review.includes("transferStudentToClass(studentName, fromClass, toClass)"), "The queued transfer must use the atomic transfer workflow");
+});
+Deno.test("existing destination membership is preserved while stale source membership is removed", () => {
+  assert(recoveryMigration.includes("v_destination_student_id"), "Recovery migration must detect an existing destination membership");
+  assert(recoveryMigration.includes("DELETE FROM public.students"), "Recovery migration must remove only the stale source membership");
+  assert(recoveryMigration.includes("LOCK TABLE public.students IN SHARE ROW EXCLUSIVE MODE"), "Recovery must serialize roster writes while reconciling memberships");
+  assert(recoveryMigration.includes("destination_membership_reused"), "Transfer response must identify the recovery path");
 });
 Deno.test("database transfer is atomic and scoped to one student's records", () => {
   assert(migration.includes("SECURITY DEFINER"), "RPC must execute in its controlled server context");

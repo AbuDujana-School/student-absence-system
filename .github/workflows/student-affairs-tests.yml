@@ -84,6 +84,9 @@ jobs:
           GRANT ALL ON public.classes, public.students, public.attendance, public.behaviors TO service_role;
           INSERT INTO public.classes(name) VALUES ('10/1'), ('10/2');
           INSERT INTO public.students(class_name, student_name) VALUES ('10/1', 'student-transfer-test');
+          INSERT INTO public.students(class_name, student_name) VALUES
+            ('10/1', 'student-transfer-existing-destination'),
+            ('10/2', 'student-transfer-existing-destination');
           INSERT INTO public.attendance(record_key,date_str,class_name,period,teacher_name,records)
           VALUES
             ('2026-11-01_10/1_p1','2026-11-01','10/1',1,'source-teacher','{"student-transfer-test":"absent","source-peer":"present"}'),
@@ -92,6 +95,14 @@ jobs:
           VALUES
             ('2026-11-01_10/1_p1','2026-11-01','10/1',1,'source-teacher','{"student-transfer-test":{"type":"positive","note":"synthetic"},"source-peer":{"type":"normal","note":""}}'),
             ('2026-11-01_10/2_p1','2026-11-01','10/2',1,'destination-teacher','{"destination-peer":{"type":"late","note":"synthetic"}}');
+          INSERT INTO public.attendance(record_key,date_str,class_name,period,teacher_name,records)
+          VALUES
+            ('2026-11-02_10/1_p2','2026-11-02','10/1',2,'source-teacher','{"student-transfer-existing-destination":"absent","source-peer":"present"}'),
+            ('2026-11-02_10/2_p2','2026-11-02','10/2',2,'destination-teacher','{"destination-peer":"late"}');
+          INSERT INTO public.behaviors(record_key,date_str,class_name,period,teacher_name,records)
+          VALUES
+            ('2026-11-02_10/1_p2','2026-11-02','10/1',2,'source-teacher','{"student-transfer-existing-destination":{"type":"positive","note":"synthetic"},"source-peer":{"type":"normal","note":""}}'),
+            ('2026-11-02_10/2_p2','2026-11-02','10/2',2,'destination-teacher','{"destination-peer":{"type":"late","note":"synthetic"}}');
           INSERT INTO public.student_affairs_notice_issues(
             class_name,student_name,issue_number,issued_on,issued_by_type,issued_by_name,
             delivered,delivered_at,threshold,period_start,period_end,selected_types,events
@@ -99,10 +110,16 @@ jobs:
             '10/1','student-transfer-test',1,'2026-11-01','admin','synthetic-admin',
             true,now(),1,'2026-10-01','2026-11-01','["late"]',
             '[{"type":"late","date":"2026-11-01","period":"1","note":"synthetic"}]'
+          ), (
+            '10/1','student-transfer-existing-destination',1,'2026-11-02','admin','synthetic-admin',
+            true,now(),1,'2026-10-02','2026-11-02','["late"]',
+            '[{"type":"late","date":"2026-11-02","period":"2","note":"synthetic"}]'
           );
           SQL
       - name: Apply atomic student transfer migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116120000_atomic_student_transfer.sql
+      - name: Apply existing-destination student transfer recovery migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql
       - name: Verify atomic student transfer and access boundaries
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/student_transfer_atomicity.sql
       - name: Apply isolated timetable import migration
@@ -733,7 +750,7 @@ jobs:
           print(f"Checked {len(scripts)} inline script blocks")
           PY
       - name: Run school data sync and student transfer safety regression tests
-        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts,supabase/migrations/20261116120000_atomic_student_transfer.sql tests/school_data_sync_safety_test.ts tests/student_transfer_safety_test.ts
+        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts,supabase/migrations/20261116120000_atomic_student_transfer.sql,supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql tests/school_data_sync_safety_test.ts tests/student_transfer_safety_test.ts
       - name: Verify general app session migration safety contract
         run: |
           python - <<'PY'

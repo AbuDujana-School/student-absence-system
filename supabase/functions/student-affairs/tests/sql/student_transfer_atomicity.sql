@@ -81,3 +81,36 @@ $verify$;
 RESET ROLE;
 
 SELECT 'atomic student transfer integration checks passed' AS result;
+
+-- Recovery path: destination membership already exists from a prior manual roster edit.
+CREATE TEMP TABLE expected_transfer_destination AS
+SELECT id FROM public.students
+WHERE class_name='10/2' AND student_name='student-transfer-existing-destination';
+SELECT public.admin_transfer_student('student-transfer-existing-destination','10/1','10/2','synthetic-admin');
+DO $recovery_verify$
+DECLARE v_count integer; v_expected_id bigint; v_actual_id bigint; v_records jsonb; v_class text; v_audit integer;
+BEGIN
+  SELECT id INTO v_expected_id FROM expected_transfer_destination;
+  SELECT count(*) INTO v_count FROM public.students
+  WHERE class_name='10/1' AND student_name='student-transfer-existing-destination';
+  IF v_count <> 0 THEN RAISE EXCEPTION 'recovery left the stale source membership'; END IF;
+  SELECT count(*),min(id) INTO v_count,v_actual_id FROM public.students
+  WHERE class_name='10/2' AND student_name='student-transfer-existing-destination';
+  IF v_count <> 1 OR v_actual_id <> v_expected_id THEN RAISE EXCEPTION 'existing destination membership was not preserved'; END IF;
+  SELECT records INTO v_records FROM public.attendance WHERE record_key='2026-11-02_10/2_p2';
+  IF v_records <> '{"destination-peer":"late","student-transfer-existing-destination":"absent"}'::jsonb THEN RAISE EXCEPTION 'recovery attendance merge failed'; END IF;
+  SELECT records INTO v_records FROM public.attendance WHERE record_key='2026-11-02_10/1_p2';
+  IF v_records <> '{"source-peer":"present"}'::jsonb THEN RAISE EXCEPTION 'recovery changed another student attendance'; END IF;
+  SELECT records INTO v_records FROM public.behaviors WHERE record_key='2026-11-02_10/2_p2';
+  IF v_records <> '{"destination-peer":{"type":"late","note":"synthetic"},"student-transfer-existing-destination":{"type":"positive","note":"synthetic"}}'::jsonb THEN RAISE EXCEPTION 'recovery behavior merge failed'; END IF;
+  SELECT records INTO v_records FROM public.behaviors WHERE record_key='2026-11-02_10/1_p2';
+  IF v_records <> '{"source-peer":{"type":"normal","note":""}}'::jsonb THEN RAISE EXCEPTION 'recovery changed another student behavior'; END IF;
+  SELECT class_name INTO v_class FROM public.student_affairs_notice_issues WHERE student_name='student-transfer-existing-destination';
+  IF v_class <> '10/2' THEN RAISE EXCEPTION 'recovery did not move official notice'; END IF;
+  SELECT count(*) INTO v_audit FROM public.student_transfer_audit
+  WHERE student_name='student-transfer-existing-destination' AND from_class='10/1' AND to_class='10/2'
+    AND attendance_records=1 AND behavior_records=1 AND notice_records=1 AND transferred_by='synthetic-admin';
+  IF v_audit <> 1 THEN RAISE EXCEPTION 'recovery audit record missing'; END IF;
+END
+$recovery_verify$;
+SELECT 'existing-destination student transfer recovery checks passed' AS result;
