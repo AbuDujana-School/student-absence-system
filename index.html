@@ -4935,8 +4935,65 @@ async function queueCloudDelete(table, filters) {
   updateSyncStatus(false, `${arr.length} طلب حذف بانتظار المراجعة`);
   return false;
 }
-// Fail-closed protection: queued deletions are retained for review and are never auto-executed.
-async function flushPendingDeletes() { return false; }
+// Queued deletes are processed only after an explicit administrator confirmation.
+async function flushPendingDeletes(options = {}) {
+  if (options.confirmed !== true || !isAdminAuthorized()) return false;
+  if (!navigator.onLine) return false;
+  const priority = { students: 0, attendance: 1, behaviors: 1, duty_reports: 1, teachers: 1, classes: 2 };
+  const pending = [...getPendingDeletes()].sort((a, b) =>
+    (priority[a?.table] ?? 99) - (priority[b?.table] ?? 99)
+  );
+
+  for (const item of pending) {
+    const filters = item?.filters;
+    if (!filters || typeof filters !== 'object' || Array.isArray(filters)) {
+      updateSyncStatus(false, 'تعذر التحقق من طلب حذف؛ بقي محفوظاً للمراجعة');
+      return false;
+    }
+
+    let query = null;
+    const keys = Object.keys(filters).sort().join(',');
+    if (item.table === 'classes' && keys === 'name' && typeof filters.name === 'string' && filters.name.trim()) {
+      query = sb.from('classes').delete().eq('name', filters.name);
+    } else if (item.table === 'students' && keys === 'class_name,student_name' &&
+      typeof filters.class_name === 'string' && filters.class_name.trim() &&
+      typeof filters.student_name === 'string' && filters.student_name.trim()) {
+      query = sb.from('students').delete().eq('class_name', filters.class_name).eq('student_name', filters.student_name);
+    } else if ((item.table === 'attendance' || item.table === 'behaviors') &&
+      keys === 'record_key' && typeof filters.record_key === 'string' && filters.record_key.trim()) {
+      query = sb.from(item.table).delete().eq('record_key', filters.record_key);
+    } else if (item.table === 'teachers' && keys === 'name,role' &&
+      typeof filters.name === 'string' && filters.name.trim() &&
+      ['teacher', 'custom'].includes(filters.role)) {
+      query = sb.from('teachers').delete().eq('name', filters.name).eq('role', filters.role);
+    } else if (item.table === 'duty_reports' && keys === 'id' &&
+      typeof filters.id === 'string' && filters.id.trim()) {
+      query = sb.from('duty_reports').delete().eq('id', filters.id);
+    }
+
+    if (!query) {
+      updateSyncStatus(false, 'يوجد طلب حذف غير معروف؛ لم يُنفذ وبقي محفوظاً للمراجعة');
+      return false;
+    }
+
+    const { error } = await query;
+    if (error) {
+      console.error('Pending cloud delete failed:', item.table, error);
+      updateSyncStatus(false, 'تعذر تنفيذ بعض طلبات الحذف؛ بقيت محفوظة لإعادة المحاولة');
+      return false;
+    }
+
+    const remaining = getPendingDeletes().filter(candidate => candidate !== item);
+    const localSaved = setPendingDeletes(remaining);
+    const durableSaved = await persistOfflineState();
+    if (!localSaved && !durableSaved) {
+      updateSyncStatus(false, 'نُفذ الحذف على الخادم؛ تعذر تحديث سجل الانتظار المحلي');
+      return false;
+    }
+  }
+
+  return getPendingDeletes().length === 0;
+}
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
   const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
@@ -5114,12 +5171,53 @@ function markOfflineDatabaseForUpload() {
   dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
 }
 let offlineAutoSyncInProgress = false;
+let cloudRefreshInProgress = false;
+let cloudSaveInProgress = false;
+function refreshVisibleViewsAfterCloudSync() {
+  if (!activeUser) return;
+  try {
+    if (isAdminAuthorized()) {
+      if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+      if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+    }
+    if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
+    if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
+    if (!document.getElementById('dutyView')?.classList.contains('hidden')) renderDutyPeriods();
+    refreshDutyDashboardCard();
+  } catch (error) { console.warn('Visible views refresh after cloud sync failed:', error); }
+}
+async function refreshCloudChangesSilently() {
+  if (!activeUser || !navigator.onLine || document.hidden || cloudRefreshInProgress ||
+      cloudDataLoadState === 'loading' || attendanceDirty || behaviorDirty ||
+      manualOfflineSyncInProgress || offlineAutoSyncInProgress) return false;
+  cloudRefreshInProgress = true;
+  try {
+    const refreshed = await loadSystemDataFromCloud();
+    if (refreshed) {
+      refreshVisibleViewsAfterCloudSync();
+      if (hasPendingOfflineRecordChanges()) await retryOfflineSyncSilently();
+    }
+    return refreshed;
+  } finally {
+    cloudRefreshInProgress = false;
+  }
+}
 function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
 }
 async function retryOfflineSyncSilently() {
-  // Background retries stay disabled: local school records are never uploaded silently.
-  return false;
+  if (!navigator.onLine || cloudDataLoadState !== 'ready' || !activeUser) return false;
+  if (attendanceDirty || behaviorDirty || manualOfflineSyncInProgress || offlineAutoSyncInProgress) return false;
+  if (!hasPendingOfflineRecordChanges()) return false;
+  offlineAutoSyncInProgress = true;
+  updateSyncStatus(false, 'عاد الاتصال - جارِ استكمال رفع التغييرات المحفوظة...');
+  try {
+    const saved = await saveSystemDataToCloud({ silent: true, automatic: true });
+    if (!saved) updateSyncStatus(false, 'بعض التغييرات ما زالت محفوظة محلياً');
+    return saved;
+  } finally {
+    offlineAutoSyncInProgress = false;
+  }
 }
 
 let manualOfflineSyncInProgress = false;
@@ -5130,7 +5228,7 @@ function hasPendingOfflineRecordChanges() {
 }
 
 async function syncPendingLocalChanges() {
-  if (manualOfflineSyncInProgress) {
+  if (manualOfflineSyncInProgress || offlineAutoSyncInProgress) {
     showToast('المزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
     return false;
   }
@@ -5148,51 +5246,70 @@ async function syncPendingLocalChanges() {
     return false;
   }
 
+  const hasRecordChanges = hasPendingOfflineRecordChanges();
   const pendingDeletes = getPendingDeletes().length;
-  if (!hasPendingOfflineRecordChanges()) {
-    if (pendingDeletes) {
-      updateSyncStatus(false, `لا توجد تعديلات قابلة للرفع؛ ${pendingDeletes} طلب حذف بانتظار المراجعة`);
-      showToast('طلبات الحذف لا تُنفذ ضمن المزامنة الآمنة. تحتاج إلى مراجعة مستقلة.', 'info');
-      return false;
-    }
-    showToast('لا توجد تغييرات محلية معلّقة للرفع.', 'info');
+  if (!hasRecordChanges && !pendingDeletes) {
+    showToast('لا توجد تغييرات محلية معلّقة للمزامنة.', 'info');
+    return false;
+  }
+  if (pendingDeletes && !isAdminAuthorized()) {
+    updateSyncStatus(false, `${pendingDeletes} طلب حذف بانتظار اعتماد مدير النظام`);
+    showToast('رفع التعديلات متاح، لكن تنفيذ طلبات الحذف يحتاج صلاحية مدير النظام.', 'error');
     return false;
   }
 
-  const message = pendingDeletes
-    ? `سيتم رفع التعديلات المحلية المعلّمة فقط. ستبقى ${pendingDeletes} طلبات حذف معلّقة ولن تُنفذ، ولن يتم استبدال بيانات الجهاز ببيانات الخادم. هل تريد المتابعة؟`
-    : 'سيتم رفع التعديلات المحلية المعلّمة فقط بعد حفظ نسخة محلية آمنة. لن يتم تنفيذ أي طلب حذف أو استبدال بيانات الجهاز ببيانات الخادم. هل تريد المتابعة؟';
-  const approved = await showConfirm(message, { danger: false, okText: 'رفع التعديلات' });
-  if (!approved) return false;
-
+  const parts = [];
+  if (hasRecordChanges) parts.push('رفع التغييرات المحلية المحفوظة');
+  if (pendingDeletes) parts.push(`تنفيذ ${pendingDeletes} طلب حذف سبق طلبها من واجهة النظام`);
   manualOfflineSyncInProgress = true;
+  let approved = false;
   try {
-    const saved = await saveSystemDataToCloud({ manual: true });
-    if (!saved) {
-      updateSyncStatus(false, 'تعذر رفع بعض التعديلات - النسخة المحلية محفوظة');
-      showToast('لم تكتمل المزامنة. بقيت التعديلات غير المرفوعة محفوظة محلياً.', 'error');
-      return false;
+    approved = await showConfirm(
+      `سيتم ${parts.join('، وكذلك ')}. لن تُستبدل التعديلات المحلية ببيانات أقدم. هل تريد المتابعة؟`,
+      { danger: pendingDeletes > 0, okText: pendingDeletes ? 'مزامنة وتنفيذ الحذف' : 'رفع التعديلات' }
+    );
+  } catch (error) {
+    manualOfflineSyncInProgress = false;
+    throw error;
+  }
+  if (!approved) {
+    manualOfflineSyncInProgress = false;
+    return false;
+  }
+
+  try {
+    if (hasRecordChanges) {
+      const saved = await saveSystemDataToCloud({ manual: true });
+      if (!saved) {
+        updateSyncStatus(false, 'تعذر رفع بعض التعديلات - النسخة المحلية محفوظة');
+        showToast('لم تكتمل المزامنة. بقيت التعديلات غير المرفوعة محفوظة محلياً.', 'error');
+        return false;
+      }
     }
+
+    if (pendingDeletes) {
+      const deleted = await flushPendingDeletes({ confirmed: true });
+      if (!deleted) {
+        updateSyncStatus(false, `${getPendingDeletes().length} طلب حذف ما زال بانتظار التنفيذ`);
+        showToast('تم رفع التغييرات الممكنة، لكن بعض طلبات الحذف ما زالت معلّقة ولم تُمحَ من قائمة الانتظار.', 'error');
+        return false;
+      }
+    }
+
     const remainingRecords = hasPendingOfflineRecordChanges();
     const remainingDeletes = getPendingDeletes().length;
-    if (remainingRecords) {
-      updateSyncStatus(false, 'تم رفع جزء من التعديلات؛ ما زالت تغييرات محلية معلّقة');
-      showToast('تم رفع بعض التغييرات، وما زالت تغييرات أخرى معلّقة. لم تُحذف.', 'info');
+    if (remainingRecords || remainingDeletes) {
+      updateSyncStatus(false, 'ما زالت تغييرات محلية بانتظار المزامنة');
+      showToast('لم تكتمل المزامنة؛ بقيت تغييرات محفوظة محلياً.', 'info');
       return false;
     }
-    if (remainingDeletes) {
-      updateSyncStatus(false, `تم رفع التعديلات؛ ${remainingDeletes} طلب حذف بانتظار المراجعة`);
-      showToast(`تم رفع التعديلات. بقيت ${remainingDeletes} طلبات حذف دون تنفيذ.`, 'success');
-      return true;
-    }
     updateSyncStatus(true, 'متزامن');
-    showToast('تم رفع التعديلات المحلية والتحقق من اكتمالها.', 'success');
+    showToast('اكتملت المزامنة وجرى التحقق من رفع التغييرات وتنفيذ طلبات الحذف المعتمدة.', 'success');
     return true;
   } finally {
     manualOfflineSyncInProgress = false;
   }
 }
-
 /* ============ LocalStorage ============ */
 function saveToLocalStorageSafe() {
   try {
@@ -5272,17 +5389,28 @@ window.addEventListener('DOMContentLoaded', async () => {
     updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
   });
   window.addEventListener('online', () => {
-    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - التغييرات المحلية بانتظار مراجعة يدوية" : "تم الاتصال");
-    setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - جارِ استكمال المزامنة..." : "تم الاتصال");
+    setTimeout(() => {
+      void retryOfflineSyncSilently();
+      void refreshCloudChangesSilently();
+    }, 1200);
   });
   window.addEventListener('pageshow', () => {
-    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+    if (navigator.onLine) {
+      void retryOfflineSyncSilently();
+      void refreshCloudChangesSilently();
+    }
   });
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+    if (!document.hidden && navigator.onLine) {
+      void retryOfflineSyncSilently();
+      void refreshCloudChangesSilently();
+    }
   });
   setInterval(() => {
-    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+    if (!navigator.onLine) return;
+    void retryOfflineSyncSilently();
+    void refreshCloudChangesSilently();
   }, 60000);
 });
 
@@ -5454,14 +5582,20 @@ function clearSyncedDirtyFlag(kind, uploadedSnapshot) {
 
 async function saveSystemDataToCloud(options = {}) {
   if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
+  if (cloudSaveInProgress) {
+    updateSyncStatus(false, 'توجد عملية مزامنة جارية؛ ستبقى التغييرات الجديدة محفوظة للمحاولة التالية');
+    return false;
+  }
+  cloudSaveInProgress = true;
   // Freeze the exact upload intent before the first await. Edits made while the
   // network request is in flight remain dirty and are never accidentally cleared.
   const syncSnapshotDb = cloneOfflineValue(db);
   const syncDirty = serializeDirtySets();
-  updateSyncStatus(true, "جارِ الحفظ...");
+  updateSyncStatus(false, "جارِ الحفظ...");
   const localCacheSaved = saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
   if (!localCacheSaved && !durableSaved) {
+    cloudSaveInProgress = false;
     updateSyncStatus(false, "تعذر حفظ نسخة محلية آمنة؛ أُوقف الإرسال السحابي");
     if (!options.silent) showToast("تعذر تأمين نسخة محلية من التعديلات. لم تُرسل إلى الخادم.", "error");
     return false;
@@ -5586,6 +5720,8 @@ async function saveSystemDataToCloud(options = {}) {
     const errMsg = (error?.message || String(error)).substring(0, 200);
     if (!options.silent) showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
+  } finally {
+    cloudSaveInProgress = false;
   }
 }
 
@@ -5620,10 +5756,10 @@ function updateSyncStatus(isSynced, text) {
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
   else {
     ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
-    ind.onclick = () => hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
+    ind.onclick = () => hasPendingOfflineChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
     ind.title = hasPendingOfflineRecordChanges()
-      ? "انقر لمراجعة ورفع التغييرات المحلية المعلّمة"
-      : "انقر لتحديث بيانات الخادم؛ طلبات الحذف لا تُنفذ تلقائياً";
+      ? "انقر لمراجعة ورفع التغييرات المحلية؛ الحذف المعلّق يحتاج تأكيد المدير"
+      : "انقر لتحديث بيانات الخادم أو تنفيذ طلبات الحذف بعد تأكيد المدير";
   }
 }
 
