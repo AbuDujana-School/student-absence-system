@@ -2051,7 +2051,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
   </div>
   <div class="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 space-y-3">
-    <div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-black text-slate-900 dark:text-white">جدولي الأسبوعي</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تُحدّد الحصة الحالية تلقائياً وفق أوقات الحصص المعتمدة في إعدادات المناوبة.</p></div><span id="teacherTimetableCurrentStatus" class="rounded-xl bg-slate-100 px-3 py-2 text-[10px] font-black text-slate-600 dark:bg-slate-800 dark:text-slate-200">جارٍ تحديد الحصة الحالية...</span></div>
+    <div class="flex items-center justify-between gap-2"><h3 class="text-sm font-black text-slate-900 dark:text-white">جدولي الأسبوعي</h3></div>
     <div id="teacherTimetableStatus" class="hidden rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300" role="status" aria-live="polite"></div>
   </div>
   <div id="teacherTimetableWeekGrid" class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"></div>
@@ -9223,19 +9223,6 @@ function teacherTimetableRender() {
   if (!host || !teacherTimetableData) return;
 
   const current = teacherTimetableCurrentPeriod();
-  const status = document.getElementById("teacherTimetableCurrentStatus");
-  if (status) {
-    const periodName = current.period
-      ? String(periodNamesMap[current.period] || ("الحصة " + current.period)).replace(/^الحصة\s*/, "")
-      : "";
-    status.textContent = current.period
-      ? "الحصة " + periodName + " الآن"
-      : "لا توجد حصة الآن";
-    status.className = "inline-flex items-center justify-center rounded-xl px-4 py-2.5 text-xs font-black shadow-sm " + (current.period
-      ? "bg-blue-600 text-white dark:bg-blue-500 dark:text-white"
-      : "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-300");
-  }
-
   const cells = Array.isArray(teacherTimetableData.cells) ? teacherTimetableData.cells : [];
   const assignments = (Array.isArray(teacherTimetableData.assignments) ? teacherTimetableData.assignments : [])
     .filter(item => item.assignment_type === "substitution" && item.status !== "cancelled");
@@ -9266,13 +9253,16 @@ function teacherTimetableRender() {
       const classList = Array.isArray(classValues)
         ? classValues.map(value => String(value || "").trim()).filter(Boolean)
         : String(classValues || "").split(/[،,]/).map(value => value.trim()).filter(Boolean);
-      const cellFrame = "h-[76px] border-b border-l border-slate-100 p-1.5 align-middle dark:border-slate-800";
+      const isCurrentPeriod = isToday && Number(current.period) === period;
+      const cellFrame = "h-[76px] border-b border-l border-slate-100 p-0 align-middle dark:border-slate-800";
 
-      const tone = substitution
-        ? "border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-100"
-        : isTeaching
-          ? "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
-          : neutralCellTone;
+      const tone = isCurrentPeriod
+        ? "border-blue-500 bg-blue-600 text-white dark:border-blue-400 dark:bg-blue-500 dark:text-white"
+        : substitution
+          ? "border-rose-300 bg-rose-100 text-rose-950 dark:border-rose-900 dark:bg-rose-950/60 dark:text-rose-100"
+          : isTeaching
+            ? "border-emerald-200 bg-emerald-100 text-emerald-950 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-100"
+            : neutralCellTone;
 
       const classMarkup = classList.length
         ? '<div class="text-[14px] font-black leading-tight tracking-tight" dir="rtl">' +
@@ -9281,16 +9271,22 @@ function teacherTimetableRender() {
         : "";
       const subject = String(substitution?.subject || cell?.subject || "").trim();
       const isMeeting = !substitution && !isTeaching && cellStatus === "meeting";
-      const cellContent = substitution
-        ? (classMarkup || '<div class="text-[12px] font-black">احتياط</div>') +
-          '<div class="mt-1 text-[9px] font-bold">حصة احتياط</div>'
-        : isTeaching
-          ? classMarkup + (subject ? '<div class="mt-1 max-w-full truncate text-[9px] font-medium opacity-80">' + timetableEsc(subject) + '</div>' : '')
-          : isMeeting
-            ? '<div class="text-[11px] font-bold">اجتماع المادة</div>'
-            : "";
-      return '<td class="' + cellFrame + '" aria-label="' + (substitution ? "حصة احتياط" : (isTeaching ? "تدريس " + classList.join("، ") : (isMeeting ? "اجتماع المادة" : "حصة فارغة"))) + '">' +
-        '<div class="flex h-[62px] flex-col items-center justify-center overflow-hidden rounded-lg border px-1.5 py-1.5 text-center ' + tone + '">' +
+      const currentPeriodName = String(periodNamesMap[period] || ("الحصة " + period)).replace(/^الحصة\s*/, "");
+      const cellContent = isCurrentPeriod
+        ? '<div class="text-[12px] font-black leading-tight">الحصة ' + timetableEsc(currentPeriodName) + ' الآن</div>'
+        : substitution
+          ? (classMarkup || '<div class="text-[12px] font-black">احتياط</div>') +
+            '<div class="mt-1 text-[9px] font-bold">حصة احتياط</div>'
+          : isTeaching
+            ? classMarkup + (subject ? '<div class="mt-1 max-w-full truncate text-[9px] font-medium opacity-80">' + timetableEsc(subject) + '</div>' : '')
+            : isMeeting
+              ? '<div class="text-[11px] font-bold">اجتماع المادة</div>'
+              : "";
+      const ariaLabel = isCurrentPeriod
+        ? "الحصة " + currentPeriodName + " الآن"
+        : (substitution ? "حصة احتياط" : (isTeaching ? "تدريس " + classList.join("، ") : (isMeeting ? "اجتماع المادة" : "حصة فارغة")));
+      return '<td class="' + cellFrame + ' ' + tone + '" aria-label="' + timetableEsc(ariaLabel) + '">' +
+        '<div class="flex h-full min-h-[76px] flex-col items-center justify-center overflow-hidden px-1.5 py-1.5 text-center">' +
         cellContent +
         '</div></td>';
     }).join("");
