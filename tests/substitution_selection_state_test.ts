@@ -24,7 +24,7 @@ Deno.test("distribution reads the canonical selected-teacher state, not only tra
   assert(getter.includes("window.substitutionSelectedOtherTeacherNames instanceof Set"), "The selected teacher Set must remain the source of truth");
   assert(getter.includes("selected.add(name)"), "Checked controls still present in the DOM must be captured");
   assert(getter.includes("filter(name=>allowedNames.has(name))"), "Only teachers in the currently selected supporting department may be sent");
-  assert(!getter.includes("window.substitutionSelectedOtherTeacherNames=new Set(names)"), "An empty redraw must not overwrite a valid in-memory selection");
+  assert(getter.includes("const names=[...selected].filter(name=>allowedNames.has(name))"), "The returned names must come from the canonical selection filtered by the current department");
 });
 
 Deno.test("changing the supporting department clears the previous department selection", () => {
