@@ -750,7 +750,7 @@ jobs:
           print(f"Checked {len(scripts)} inline script blocks")
           PY
       - name: Run school data sync and student transfer safety regression tests
-        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts,supabase/migrations/20261116120000_atomic_student_transfer.sql tests/school_data_sync_safety_test.ts tests/student_transfer_safety_test.ts
+        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts,supabase/migrations/20261116120000_atomic_student_transfer.sql,supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql tests/school_data_sync_safety_test.ts tests/student_transfer_safety_test.ts
       - name: Verify general app session migration safety contract
         run: |
           python - <<'PY'
