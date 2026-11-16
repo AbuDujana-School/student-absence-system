@@ -1193,17 +1193,35 @@
     host.querySelectorAll("[data-home-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.homeDeleteGroupDate,button.dataset.homeDeleteGroupAbsent)));
   };
 
+  function installReserveArchiveAutoRefresh() {
+    if(window.__reserveArchiveAutoRefreshInstalled||window.__legacyOtherTeacherRequestGuard)return;
+    const originalRequest=window.appAuthRequest;
+    if(typeof originalRequest!=="function")return;
+    window.__reserveArchiveAutoRefreshInstalled=true;
+    window.appAuthRequest=async function(body,token) {
+      const action=String(body?.action||"");
+      const result=await originalRequest.call(this,body,token);
+      if(["timetable_substitution_batch_save","timetable_substitution_save"].includes(action)&&
+        !$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&
+        typeof window.substitutionLoadCumulativeArchive==="function") {
+        try{await window.substitutionLoadCumulativeArchive();}catch{}
+      }
+      return result;
+    };
+  }
+
   installLegacyOtherDepartmentTeacherPicker();
 
   installReserveEnhancements();
   installHomeReserveArchive();
+  installReserveArchiveAutoRefresh();
   window.timetableDailyInstallAdminTools=installAdminReserveTools;
   window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
   installDepartmentReserveTools();
   installAdminReserveTools();
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();installHomeReserveArchive();applyTeacherTimetablePresentation();});
+    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();installHomeReserveArchive();installReserveArchiveAutoRefresh();applyTeacherTimetablePresentation();});
     adminToolsObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class","style"]});
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
