@@ -1998,6 +1998,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <span><span class="block text-xs font-black text-indigo-900 dark:text-indigo-200">إظهار البدلاء من الأقسام الأخرى</span><span class="mt-1 block text-[10px] leading-5 text-indigo-800 dark:text-indigo-300">للمدير أو المعلم المخوّل بتوزيع الاحتياط، عند الضرورة. تبقى قائمة الغائبين ضمن نطاق قسمك.</span></span>
       </label>
       <select id="substitutionOtherDepartmentSelect" class="hidden mt-3 w-full rounded-xl border border-indigo-200 bg-white p-3 text-xs font-bold text-slate-800 dark:border-indigo-900 dark:bg-slate-900 dark:text-white" disabled><option value="">اختر القسم المطلوب</option></select>
+      <div id="substitutionOtherTeacherChoices" class="hidden mt-3 rounded-2xl border border-indigo-100 bg-white p-3 dark:border-indigo-900 dark:bg-slate-900" aria-live="polite"><p class="text-xs text-slate-500">اختر القسم لعرض المعلمين.</p></div>
     </div>
     <div class="rounded-3xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-900 dark:bg-cyan-950/30">
       <div class="text-xs font-black text-cyan-900 dark:text-cyan-200">قاعدة النقاط</div>
@@ -10574,7 +10575,15 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
   const checkbox=document.getElementById(checkboxId);
   const select=document.getElementById(selectId);
   if(!checkbox||!select)return [];
-  if(!checkbox.checked){select.classList.add("hidden");select.disabled=true;select.value="";select.innerHTML='<option value="">اختر القسم المطلوب</option>';return [];}
+  if(!checkbox.checked){
+    select.classList.add("hidden");select.disabled=true;select.value="";select.innerHTML='<option value="">اختر القسم المطلوب</option>';
+    if(checkboxId==="substitutionOtherDepartments"){
+      window.substitutionOtherDepartmentsData=[];
+      window.substitutionSelectedOtherTeacherNames=new Set();
+      document.getElementById("substitutionOtherTeacherChoices")?.classList.add("hidden");
+    }
+    return [];
+  }
   const previous=select.value;
   select.classList.remove("hidden");
   select.disabled=true;
@@ -10583,11 +10592,50 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
   if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
   const response=await appAuthRequest({action:"timetable_substitution_departments"},token);
   const departments=Array.isArray(response.departments)?response.departments:[];
+  if(checkboxId==="substitutionOtherDepartments"){
+    window.substitutionOtherDepartmentsData=departments;
+    window.substitutionSelectedOtherTeacherNames=new Set();
+  }
   select.innerHTML='<option value="">اختر القسم المطلوب</option>'+departments.map(item=>'<option value="'+timetableEsc(item.id)+'">'+timetableEsc(item.name)+'</option>').join("");
   if(departments.some(item=>String(item.id)===previous))select.value=previous;
   select.disabled=departments.length===0;
   if(!departments.length)select.innerHTML='<option value="">لا توجد أقسام أخرى لها معلمون في الجدول النشط</option>';
   return departments;
+}
+window.substitutionOtherDepartmentsData=window.substitutionOtherDepartmentsData||[];
+window.substitutionSelectedOtherTeacherNames=window.substitutionSelectedOtherTeacherNames||new Set();
+function renderSubstitutionOtherTeacherChoices(){
+  const host=document.getElementById("substitutionOtherTeacherChoices");
+  const select=document.getElementById("substitutionOtherDepartmentSelect");
+  if(!host||!select)return;
+  const department=window.substitutionOtherDepartmentsData.find(item=>String(item.id)===String(select.value));
+  window.substitutionSelectedOtherTeacherNames=new Set();
+  if(!department){
+    host.classList.add("hidden");
+    host.innerHTML='<p class="text-xs text-slate-500">اختر القسم لعرض المعلمين.</p>';
+    return;
+  }
+  const teachers=Array.isArray(department.teachers)?department.teachers:[];
+  host.classList.remove("hidden");
+  if(!teachers.length){
+    host.innerHTML='<p class="text-xs text-amber-700">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>';
+    return;
+  }
+  host.innerHTML='<div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-indigo-900 dark:text-indigo-200">معلمو '+timetableEsc(department.name)+'</strong><span class="text-[10px] text-slate-500">حدد المعلمين المطلوبين فقط</span></div><div class="grid max-h-60 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2">'+
+    teachers.map((teacher,index)=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs font-bold text-slate-800 hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"><input type="checkbox" class="h-4 w-4 accent-indigo-700" data-other-department-teacher="'+timetableEsc(teacher.name)+'"><span>'+timetableEsc(teacher.name)+'</span></label>').join('')+
+    '</div><p id="substitutionOtherTeacherSelectionCount" class="mt-2 text-[10px] font-bold text-slate-500">لم يتم تحديد أي معلم.</p>';
+  host.querySelectorAll('[data-other-department-teacher]').forEach(function(box){
+    box.addEventListener('change',function(){
+      const name=box.getAttribute('data-other-department-teacher');
+      if(box.checked)window.substitutionSelectedOtherTeacherNames.add(name);
+      else window.substitutionSelectedOtherTeacherNames.delete(name);
+      const count=document.getElementById('substitutionOtherTeacherSelectionCount');
+      if(count)count.textContent=window.substitutionSelectedOtherTeacherNames.size
+        ?'تم تحديد '+window.substitutionSelectedOtherTeacherNames.size+' معلم/معلمين.'
+        :'لم يتم تحديد أي معلم.';
+      clearPlan();
+    });
+  });
 }
 async function timetableToggleOtherDepartments(checkboxId,selectId) {
   try {
@@ -11747,7 +11795,8 @@ async function timetableSaveOwner() {
     if(department&&department.dataset.departmentBinding!=='ready'){
       department.addEventListener('change',function(){
         clearPlan();
-        if(department.value)setStatus('تم اختيار قسم '+(department.options[department.selectedIndex]?.text||'')+'. أنشئ التوزيع لعرض البدلاء المتاحين.');
+        renderSubstitutionOtherTeacherChoices();
+        if(department.value)setStatus('تم اختيار القسم. حدد المعلمين المطلوبين من القائمة التي ظهرت أسفل القسم.');
         else setStatus('اختر القسم المطلوب أولاً.',true);
       });
       department.dataset.departmentBinding='ready';
@@ -11809,12 +11858,22 @@ async function timetableSaveOwner() {
     const button=document.getElementById('substitutionGenerateButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ حساب التوزيع...';}
     setStatus('يجري فحص التعارضات والنصاب والنقاط والحصص المتجاورة...');
+    const includeOtherDepartments=document.getElementById('substitutionOtherDepartments')?.checked===true;
+    const otherDepartmentId=includeOtherDepartments?document.getElementById('substitutionOtherDepartmentSelect')?.value||"":"";
+    const otherTeacherNames=includeOtherDepartments?Array.from(window.substitutionSelectedOtherTeacherNames||[]):[];
+    if(includeOtherDepartments&&(!otherDepartmentId||!otherTeacherNames.length)){
+      showToast('اختر القسم وحدد معلماً واحداً على الأقل من قائمته.','error');
+      setStatus('يجب تحديد معلم واحد على الأقل من القسم المساند قبل إنشاء التوزيع.',true);
+      if(button){button.disabled=false;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع المقترح';}
+      return;
+    }
     try{
       const result=await appAuthRequest({
         action:'timetable_substitution_batch_preview',weekday:weekday,assignmentDate:date,
         absentTeacherNames:names,
-        includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true,
-        otherDepartmentId:document.getElementById('substitutionOtherDepartments')?.checked===true?document.getElementById('substitutionOtherDepartmentSelect')?.value||"":""
+        includeOtherDepartments,
+        otherDepartmentId,
+        otherTeacherNames
       },getToken());
       currentPlan=result;
       currentAbsentNames=names.slice();
@@ -11894,13 +11953,24 @@ async function timetableSaveOwner() {
     if(!currentPlan||!currentPlan.assignments?.length)return;
     const button=document.getElementById('substitutionSaveButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ الاعتماد والحفظ...';}
+    const includeOtherDepartments=document.getElementById('substitutionOtherDepartments')?.checked===true;
+    const otherDepartmentId=includeOtherDepartments?document.getElementById('substitutionOtherDepartmentSelect')?.value||"":"";
+    const otherTeacherNames=includeOtherDepartments?Array.from(window.substitutionSelectedOtherTeacherNames||[]):[];
+    if(includeOtherDepartments&&(!otherDepartmentId||!otherTeacherNames.length)){
+      showToast('اختر القسم وحدد معلماً واحداً على الأقل من قائمته.','error');
+      if(button)button.disabled=false;
+      const status=document.getElementById('substitutionSaveStatus');
+      if(status)status.textContent='حدد معلماً واحداً على الأقل من القسم المساند قبل الحفظ.';
+      return;
+    }
     try{
       const result=await appAuthRequest({
         action:'timetable_substitution_batch_save',weekday:weekdayFor(selectedDate()),assignmentDate:selectedDate(),
         absentTeacherNames:currentAbsentNames,
         assignments:currentPlan.assignments.map(function(item){return {absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:item.period};}),
-        includeOtherDepartments:document.getElementById('substitutionOtherDepartments')?.checked===true,
-        otherDepartmentId:document.getElementById('substitutionOtherDepartments')?.checked===true?document.getElementById('substitutionOtherDepartmentSelect')?.value||"":""
+        includeOtherDepartments,
+        otherDepartmentId,
+        otherTeacherNames
       },getToken());
       savedPlan=true;
       const status=document.getElementById('substitutionSaveStatus');
