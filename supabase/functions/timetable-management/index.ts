@@ -138,7 +138,6 @@ async function teacherDirectory() {
     department: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
     departmentId: String(item.permissions?.category || item.permissions?.department_id || item.permissions?.department_name || ""),
     departmentName: String(item.permissions?.category || item.permissions?.department_name || ""),
-    personalDutyDay: String(item.permissions?.dutyDay || ""),
     canManageSubstitutions: item.permissions?.reserve === true,
   })).filter((item: any) => item.name);
 }
@@ -1088,24 +1087,15 @@ async function handle(req: Request) {
       const {data:activeVersion,error:versionError}=await db.from("timetable_weekly_versions").select("id,version,status,period_count").eq("status","active").maybeSingle();
       if (versionError) throw versionError;
       if (!activeVersion) return reply(200,{ok:true,active:false,absentTeachers:[],lessons:[]});
-      const [directory,dayCells,dutySettingsResult,weeklyLoad,pointsLedger]=await Promise.all([
+      const [directory,dayCells,weeklyLoad,pointsLedger]=await Promise.all([
         teacherDirectory(),
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
           .eq("version_id",activeVersion.id).eq("weekday",weekday).order("id").range(from,to)),
-        db.from("school_settings").select("value").eq("key","duty_module").maybeSingle(),
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,cell_status,weekday,period")
           .eq("version_id",activeVersion.id).order("id").range(from,to)),
         fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
           .order("id").range(from,to)),
       ]);
-      if (dutySettingsResult.error) throw dutySettingsResult.error;
-      const defaultDutySubjectDays:Record<string,string> = {
-        "اللغة العربية":"الأحد","اللغة الإنجليزية":"الاثنين","التربية الإسلامية":"الثلاثاء",
-        "الرياضيات":"الأربعاء","مواد العلوم":"الخميس","مواد المهارات الحياتية":"",
-        "قسم الأخصائيين":"","قسم الإدارة":"",
-      };
-      const configuredDutyDays=dutySettingsResult.data?.value?.subjectDays;
-      const dutySubjectDays={...defaultDutySubjectDays,...(configuredDutyDays&&typeof configuredDutyDays==="object"?configuredDutyDays:{})};
       const weeklyQuotaByTeacher=countTeacherTeachingPeriods((weeklyLoad||[]).filter((cell:any)=>cell.matched_teacher_name).map((cell:any)=>({
         teacherId:String(cell.matched_teacher_name),weekday:String(cell.weekday||""),period:Number(cell.period),
         className:"",status:cell.cell_status,
@@ -1144,8 +1134,6 @@ async function handle(req: Request) {
         if(!substituteTeacher)return reply(404,{error:"المعلم البديل غير موجود في دليل المعلمين."});
         if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId)return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
         if(!includeOtherDepartments && substituteTeacher.departmentId!==directory.find((teacher:any)=>teacher.name===absentTeacherName&&teacher.role==="teacher")?.departmentId)return reply(403,{error:"المعلم البديل من قسم آخر."});
-        const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
-        if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل مكلف بالمناوبة في هذا اليوم."});
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
         const {data,error}=await db.rpc("create_timetable_substitution_with_reason",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,reserve_reason:reserveReason}});
         if(error)throw error;
@@ -1221,7 +1209,6 @@ async function handle(req: Request) {
       }
       const candidates:SubstitutionTeacher[]=directory.filter((t:any)=>t.role==="teacher").map((t:any)=>({
         id:t.name,name:t.name,departmentId:t.departmentId,
-        dutyDay:String(t.personalDutyDay||dutySubjectDays[t.departmentId]||""),
         weeklyQuota:weeklyQuotaByTeacher.get(t.name)||0,
         pointsBalance:pointsBalanceByTeacher.get(t.name)||0,
       }));
@@ -1248,8 +1235,6 @@ async function handle(req: Request) {
           const substituteTeacher=directory.find((teacher:any)=>teacher.name===item.substituteTeacherName&&teacher.role==="teacher");
           const absentTeacher=directory.find((teacher:any)=>teacher.name===item.absentTeacherName&&teacher.role==="teacher");
           if(!substituteTeacher||!absentTeacher)return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل في دليل المعلمين."});
-          const substituteDutyDay=String(substituteTeacher.personalDutyDay||dutySubjectDays[substituteTeacher.departmentId]||"");
-          if(substituteDutyDay===weekday)return reply(409,{error:"المعلم البديل "+item.substituteTeacherName+" مكلف بالمناوبة في هذا اليوم."});
           if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId){
             return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
           }
