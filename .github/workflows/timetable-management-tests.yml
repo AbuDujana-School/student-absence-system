@@ -145,3 +145,6 @@ jobs:
           }
           console.log("Checked " + checked + " inline application scripts.");
           NODE
+
+      - name: Test supporting-teacher selection state
+        run: deno test --allow-read=index.html tests/substitution_selection_state_test.ts
