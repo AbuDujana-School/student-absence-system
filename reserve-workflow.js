@@ -358,17 +358,20 @@
         return '<section class="tt-group border border-emerald-200 bg-emerald-50"><div class="flex items-center justify-between gap-2 p-3"><div><div class="text-[10px] font-black text-emerald-700">تم اعتماد المعلم</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+pendingRows.length+' حصة ضمن مسودة اليوم</div></div><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action border border-emerald-300 bg-white text-emerald-800">مراجعة التوزيع</button></div></section>';
       }
       if(pendingRows.length&&absentName!==activeAbsentName)return "";
-      if(!pendingRows.length)return '<section class="tt-group border border-emerald-200 bg-emerald-50 p-3"><div class="text-[10px] font-black text-emerald-700">محفوظ مسبقاً</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+rows.length+' حصة محفوظة</div></section>';
       const savedReason = saved.find(item=>item.absentTeacherName===absentName&&item.reason&&item.reason!=="-")?.reason || "";
       if (reserveReasons[absentName] === undefined && savedReason) reserveReasons[absentName] = savedReason;
       const reason = reserveReasons[absentName] ?? savedReason;
+      const activeSavedRows=rows.filter(item=>item.kind==="saved"&&["assigned","confirmed"].includes(item.status));
+      const canDeleteWholeDistribution=activeSavedRows.length>0&&activeSavedRows.every(item=>item.canEdit!==false&&item.id);
+      const savedDistributionDate=String(activeSavedRows[0]?.assignmentDate||$("timetableSubstitutionDate")?.value||"");
+      const deleteWholeDistributionButton=canDeleteWholeDistribution?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete-absent="' + esc(absentName) + '" data-tt-delete-date="' + esc(savedDistributionDate) + '">حذف توزيع المعلم بالكامل (' + activeSavedRows.length + ' حصص)</button>':"";
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
         let choice="", action="";
         if (item.kind==="saved") {
           const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="cancelled"?"ملغى":"محفوظ";
           choice='<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"><div>البديل المحفوظ: '+esc(item.substituteTeacherName)+' · '+state+'</div><div class="mt-1 text-[10px] font-normal">سبب الاحتياط: '+esc(item.reason||"-")+'</div></div>';
-          action=["assigned","confirmed"].includes(item.status)&&item.canEdit!==false&&item.id?'<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">إلغاء</button></div>':(item.canEdit===false?'<span class="text-[10px] text-slate-400">إصدار سابق · للعرض فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
+          action=["assigned","confirmed"].includes(item.status)&&item.canEdit!==false&&item.id?'<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button></div>':(item.canEdit===false?'<span class="text-[10px] text-slate-400">إصدار سابق · للعرض فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
         } else {
           const candidates=item.candidateOptions||[];
           const options=candidates.map(candidate=>'<option value="'+esc(candidate.teacherName)+'" '+(draft?.substituteTeacherName===candidate.teacherName?"selected":"")+'>'+esc(candidate.teacherName)+' · رصيد '+Number(candidate.pointsBalance||0)+' · احتياط اليوم '+Number(candidate.dailySubstitutionCount||0)+'</option>').join("");
@@ -381,7 +384,7 @@
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
         : '<div class="border-t border-slate-200 bg-emerald-50 p-3 text-[10px] font-bold text-emerald-700">لا توجد تكليفات جديدة لهذا المعلم؛ الحصص الظاهرة محفوظة مسبقاً.</div>';
-      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason)+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
+      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason)+'</div><div class="flex flex-wrap justify-end gap-2 border-t border-slate-100 px-3 pt-3">'+deleteWholeDistributionButton+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
@@ -429,6 +432,7 @@
     }));
     host.querySelectorAll("[data-tt-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttEdit)));
     host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
+    host.querySelectorAll("[data-tt-delete-absent]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.ttDeleteDate,button.dataset.ttDeleteAbsent)));
     updateBatchSaveVisibility();
   };
 
