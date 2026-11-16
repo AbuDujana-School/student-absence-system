@@ -15,7 +15,7 @@ export interface SubstitutionAssignment {
 export interface SubstitutionLesson { weekday:string; period:number; className:string; subject?:string; }
 export interface CandidateQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
-  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean;
+  absentTeacherId:string; weekday:string; period:number; departmentId:string; includeOtherDepartments?:boolean; otherDepartmentTeacherIds?:string[];
   assignmentDate?:string; versionId?:string; excludedTeacherIds?:string[]; maxDailySubstitutions?:number;
 }
 function sameCell(a:{weekday:string;period:number},b:{weekday:string;period:number}):boolean {
@@ -79,7 +79,7 @@ export function countTeacherTeachingPeriods(entries:TimetableEntry[]):Map<string
 }
 /** Missing, duplicated, meeting, activity, other and unclear cells are never treated as free. */
 export function getAvailableSubstitutionCandidates(query:CandidateQuery):SubstitutionTeacher[] {
-  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,assignmentDate,versionId,excludedTeacherIds=[],maxDailySubstitutions=2}=query;
+  const {teachers,timetable,assignments,absentTeacherId,weekday,period,departmentId,includeOtherDepartments=false,otherDepartmentTeacherIds=[],assignmentDate,versionId,excludedTeacherIds=[],maxDailySubstitutions=2}=query;
   const cells=new Map<string,{count:number;isFree:boolean}>();
   for(const entry of timetable.filter(e=>sameCell(e,{weekday,period}))){
     const current=cells.get(entry.teacherId)??{count:0,isFree:true};
@@ -103,7 +103,7 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     calculateSubstitutionWorkloadScore(history,assignmentDate,period);
   const hasPointBalances=teachers.some(t=>typeof t.pointsBalance==="number");
   return teachers.filter(t=>t.id!==absentTeacherId&&!excludedTeacherIds.includes(t.id))
-    .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
+    .filter(t=>t.departmentId===departmentId||(includeOtherDepartments&&otherDepartmentTeacherIds.includes(t.id)))
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).map(t=>{
       const history=historyFor(t.id);
@@ -205,7 +205,7 @@ export interface BatchAbsentTeacher { id:string; name:string; departmentId:strin
 export interface BatchSubstitutionPlanQuery {
   teachers:SubstitutionTeacher[]; timetable:TimetableEntry[]; assignments:SubstitutionAssignment[];
   absentTeachers:BatchAbsentTeacher[]; weekday:string; assignmentDate:string; versionId:string;
-  includeOtherDepartments?:boolean;
+  includeOtherDepartments?:boolean; otherDepartmentTeacherIds?:string[];
 }
 export interface BatchSubstitutionPlan {
   assignments:Array<{
@@ -242,8 +242,9 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
     const candidatesFor=(limit:number)=>getAvailableSubstitutionCandidates({
       teachers:mutableTeachers,timetable:query.timetable,assignments:simulatedAssignments,
       absentTeacherId:absent.id,weekday:query.weekday,period:lesson.period,
-      departmentId:query.includeOtherDepartments?"":absent.departmentId,
+      departmentId:absent.departmentId,
       includeOtherDepartments:query.includeOtherDepartments===true,
+      otherDepartmentTeacherIds:query.otherDepartmentTeacherIds??[],
       assignmentDate:query.assignmentDate,versionId:query.versionId,
       excludedTeacherIds,maxDailySubstitutions:limit,
     });
