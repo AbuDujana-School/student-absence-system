@@ -145,18 +145,21 @@ async function getActiveDepartmentSubjects(departmentId: string): Promise<string
   const normalizedDepartmentId = String(departmentId || "").trim();
   if (!normalizedDepartmentId) return [];
   const directory = await teacherDirectory();
-  const teacherNames = directory
-    .filter((teacher: any) => teacher.role === "teacher" && teacher.departmentId === normalizedDepartmentId)
-    .map((teacher: any) => teacher.name);
-  if (!teacherNames.length) return [];
+  const systemTeachers: SystemTeacher[] = directory.filter((teacher: any) =>
+    teacher.role === "teacher" && teacher.departmentId === normalizedDepartmentId
+  );
+  if (!systemTeachers.length) return [];
+  const teacherNames = new Set(systemTeachers.map((teacher) => teacher.name));
   const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
     .select("id").eq("status", "active").maybeSingle();
   if (versionError) throw versionError;
   if (!version) return [];
-  const { data: cells, error } = await db.from("timetable_weekly_cells")
-    .select("subject").eq("version_id", version.id).eq("cell_status","teaching").in("matched_teacher_name", teacherNames);
-  if (error) throw error;
-  return [...new Set((cells || []).map((cell: any) => String(cell.subject || "").trim()).filter(Boolean))]
+  const cells = await fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells")
+    .select("matched_teacher_name,teacher_source_name,subject").eq("version_id",version.id)
+    .eq("cell_status","teaching").order("id").range(from,to));
+  return [...new Set((cells || []).filter((cell:any) =>
+    teacherNames.has(resolveTimetableTeacherName(cell.matched_teacher_name,cell.teacher_source_name,systemTeachers) || "")
+  ).map((cell:any) => String(cell.subject || "").trim()).filter(Boolean))]
     .sort((a,b) => a.localeCompare(b,"ar"));
 }
 function timetableTeacherIdentityKey(value: unknown): string {
@@ -974,9 +977,12 @@ async function handle(req: Request) {
     const activeVersionId=activeVersionResult.data?.id;
     if(!activeVersionId)return reply(200,{ok:true,departments:[]});
     const teachingCells=await fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells")
-      .select("matched_teacher_name").eq("version_id",activeVersionId)
+      .select("matched_teacher_name,teacher_source_name").eq("version_id",activeVersionId)
       .eq("cell_status","teaching").order("id").range(from,to));
-    const teachersInActiveTimetable=new Set((teachingCells||[]).map((cell:any)=>String(cell.matched_teacher_name||"")).filter(Boolean));
+    const systemTeachers: SystemTeacher[] = directory.filter((teacher:any)=>teacher.role==="teacher");
+    const teachersInActiveTimetable=new Set((teachingCells||[]).map((cell:any)=>
+      resolveTimetableTeacherName(cell.matched_teacher_name,cell.teacher_source_name,systemTeachers)
+    ).filter(Boolean));
     const actor = directory.find((teacher:any)=>teacher.name===principal.name);
     if (principal.type !== "admin" && actor?.canManageSubstitutions !== true) return reply(403,{error:"لا تملك صلاحية اختيار بدلاء من قسم آخر."});
     const ownDepartment = String(actor?.departmentId||"");
