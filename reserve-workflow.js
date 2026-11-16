@@ -709,7 +709,7 @@
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
   function reservePrintDocumentTitle(subject){
-    const label=String(subject||"").trim().replace(/^مادة\\s+/,"");
+    const label=String(subject||"").trim().replace(/^مادة\s+/,"");
     return label?"احتياط مادة "+label:"احتياط";
   }
   function printOfficialReservePages(pages,subject){
