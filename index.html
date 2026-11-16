@@ -10627,6 +10627,9 @@ function renderSubstitutionOtherTeacherChoices(){
   window.substitutionRenderedOtherDepartmentId=departmentKey;
   window.substitutionSelectedOtherDepartmentId=departmentKey;
   window.substitutionSelectedOtherTeacherNames=previousSelected;
+  // Bind the rendered controls to their department so stale DOM can never be
+  // mistaken for the selection belonging to a newly chosen department.
+  host.dataset.departmentId=departmentKey;
   if(!department){
     host.classList.add("hidden");
     host.innerHTML='<p class="text-xs text-slate-500">اختر القسم لعرض المعلمين.</p>';
@@ -10659,17 +10662,23 @@ function getSubstitutionSelectedOtherTeacherNames(){
   const select=document.getElementById("substitutionOtherDepartmentSelect");
   const departmentId=String(select?.value||"");
   const department=window.substitutionOtherDepartmentsData.find(item=>String(item.id)===departmentId);
-  if(!department||String(window.substitutionSelectedOtherDepartmentId||"")!==departmentId)return [];
+  if(!departmentId||!department)return [];
   const allowedNames=new Set((department.teachers||[]).map(teacher=>String(teacher.name||"")).filter(Boolean));
-  const selected=window.substitutionSelectedOtherTeacherNames instanceof Set
+  const sameDepartment=String(window.substitutionSelectedOtherDepartmentId||"")===departmentId;
+  const selected=sameDepartment&&window.substitutionSelectedOtherTeacherNames instanceof Set
     ?new Set(window.substitutionSelectedOtherTeacherNames):new Set();
-  // Capture any checked controls still present, but keep the canonical selection
-  // when a harmless redraw/reload has replaced the checkbox DOM.
-  host?.querySelectorAll('[data-other-department-teacher]:checked').forEach(box=>{
-    const name=String(box.getAttribute("data-other-department-teacher")||"");
-    if(allowedNames.has(name))selected.add(name);
-  });
+  // Only read checkbox DOM rendered for this exact department. The canonical
+  // Set remains usable if a redraw replaced the controls or the tracker lagged.
+  if(host&&String(host.dataset.departmentId||"")===departmentId){
+    host.querySelectorAll('[data-other-department-teacher]').forEach(box=>{
+      const name=String(box.getAttribute("data-other-department-teacher")||"");
+      if(!allowedNames.has(name))return;
+      if(box.checked)selected.add(name);
+      else selected.delete(name);
+    });
+  }
   const names=[...selected].filter(name=>allowedNames.has(name));
+  window.substitutionSelectedOtherDepartmentId=departmentId;
   window.substitutionSelectedOtherTeacherNames=new Set(names);
   return names;
 }
