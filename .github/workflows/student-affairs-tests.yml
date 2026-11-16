@@ -81,6 +81,7 @@ jobs:
             records jsonb NOT NULL DEFAULT '{}'::jsonb,
             updated_at timestamptz NOT NULL DEFAULT now()
           );
+          GRANT ALL ON public.classes, public.students, public.attendance, public.behaviors TO service_role;
           INSERT INTO public.classes(name) VALUES ('10/1'), ('10/2');
           INSERT INTO public.students(class_name, student_name) VALUES ('10/1', 'student-transfer-test');
           INSERT INTO public.attendance(record_key,date_str,class_name,period,teacher_name,records)
