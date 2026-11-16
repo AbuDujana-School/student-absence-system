@@ -950,6 +950,81 @@
     }
   }
 
+
+  // Legacy reserve screen: explicitly choose supporting teachers from the selected department.
+  function installLegacyOtherDepartmentTeacherPicker(){
+    const departmentSelect=$("substitutionOtherDepartmentSelect");
+    const departmentToggle=$("substitutionOtherDepartments");
+    if(!departmentSelect||!departmentToggle||departmentSelect.dataset.teacherPickerReady==="1")return;
+    departmentSelect.dataset.teacherPickerReady="1";
+    departmentSelect.insertAdjacentHTML("afterend",
+      '<section id="substitutionOtherTeacherPicker" class="hidden mt-3 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3">'+
+      '<p class="mb-2 text-xs font-black text-indigo-900">اختر المعلمين المتعاونين من هذا القسم</p>'+
+      '<div id="substitutionOtherTeacherChoices" class="grid max-h-56 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"></div>'+
+      '<p id="substitutionOtherTeacherSelectionStatus" class="mt-2 text-[10px] text-indigo-800">حدد معلماً واحداً أو أكثر ليظهروا ضمن البدلاء المقترحين.</p></section>');
+    const picker=$("substitutionOtherTeacherPicker"),host=$("substitutionOtherTeacherChoices"),statusBox=$("substitutionOtherTeacherSelectionStatus");
+    let selectedNames=new Set();
+    let loading=false;
+    async function loadTeachers(){
+      const departmentId=String(departmentSelect.value||"").trim();
+      selectedNames=new Set();
+      if(!departmentToggle.checked||!departmentId){picker?.classList.add("hidden");if(host)host.innerHTML="";return;}
+      picker?.classList.remove("hidden");
+      if(host)host.innerHTML='<p class="text-xs text-slate-500">جارٍ تحميل معلمي القسم...</p>';
+      if(loading)return;
+      loading=true;
+      try{
+        const token=appAuthSession?.token||readAppAuthToken();
+        if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+        const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
+        const department=(result.departments||[]).find(item=>String(item.id)===departmentId);
+        const teachers=Array.isArray(department?.teachers)?department.teachers:[];
+        if(!teachers.length){
+          if(host)host.innerHTML='<p class="text-xs text-slate-600">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>';
+          if(statusBox)statusBox.textContent="لا توجد أسماء متاحة للاختيار في هذا القسم.";
+          return;
+        }
+        if(host)host.innerHTML=teachers.map(teacher=>
+          '<label class="flex items-center gap-2 rounded-lg border border-indigo-100 bg-white p-2 text-xs font-semibold text-slate-800">'+
+          '<input type="checkbox" class="h-4 w-4" data-legacy-other-teacher="'+esc(teacher.name)+'">'+
+          '<span>'+esc(teacher.name)+'</span></label>'
+        ).join("");
+        host?.querySelectorAll("[data-legacy-other-teacher]").forEach(input=>input.addEventListener("change",()=>{
+          const name=String(input.dataset.legacyOtherTeacher||"");
+          if(input.checked)selectedNames.add(name);else selectedNames.delete(name);
+          if(statusBox)statusBox.textContent="تم تحديد "+selectedNames.size+" من المعلمين.";
+        }));
+        if(statusBox)statusBox.textContent="حدد المعلمين الذين تريد إضافتهم إلى البدلاء المقترحين.";
+      }catch(error){
+        if(host)host.innerHTML='<p class="text-xs font-bold text-red-700">'+esc(error?.message||"تعذر تحميل معلمي القسم.")+'</p>';
+        if(statusBox)statusBox.textContent="تعذر تحميل القائمة. غيّر القسم أو أعد فتح شاشة الاحتياط للمحاولة.";
+      }finally{loading=false;}
+    }
+    departmentSelect.addEventListener("change",loadTeachers);
+    departmentToggle.addEventListener("change",()=>{
+      if(!departmentToggle.checked){selectedNames=new Set();picker?.classList.add("hidden");if(host)host.innerHTML="";}
+      else if(departmentSelect.value)loadTeachers();
+    });
+    const originalRequest=window.appAuthRequest;
+    if(typeof originalRequest==="function"&&!window.__legacyOtherTeacherRequestGuard){
+      window.__legacyOtherTeacherRequestGuard=true;
+      window.appAuthRequest=async function(body,token){
+        const action=String(body?.action||"");
+        const legacyActions=["timetable_substitution_batch_preview","timetable_substitution_batch_save"];
+        if(legacyActions.includes(action)&&body?.includeOtherDepartments===true){
+          const departmentId=String(departmentSelect.value||"").trim();
+          if(departmentId&&departmentId===String(body.otherDepartmentId||"")){
+            const names=[...selectedNames];
+            if(!names.length)throw new Error("اختر معلماً واحداً على الأقل من قائمة معلمي القسم قبل إنشاء التوزيع أو حفظه.");
+            body={...body,otherTeacherNames:names};
+          }
+        }
+        return originalRequest.call(this,body,token);
+      };
+    }
+  }
+  installLegacyOtherDepartmentTeacherPicker();
+
   installReserveEnhancements();
   window.timetableDailyInstallAdminTools=installAdminReserveTools;
   window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
