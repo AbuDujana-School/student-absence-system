@@ -13,7 +13,7 @@ The suite uses synthetic names and in-memory fixtures only. It verifies:
 - Normalization of the Islamic subject label.
 - Preservation of meeting and unclear states.
 - Conservative teacher-name matching.
-- Substitution eligibility, including explicit free status, duplicate cells, department scope, and existing assignments.
+- Substitution eligibility, including explicit free status, duplicate cells, department scope, existing assignments, and eligibility on duty days.
 
 ## Environment boundary
 
