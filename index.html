@@ -5114,12 +5114,110 @@ function markOfflineDatabaseForUpload() {
   dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
 }
 let offlineAutoSyncInProgress = false;
+let offlineAutoSyncPromptInProgress = false;
+let offlineAutoSyncApprovedFingerprint = null;
+let offlineAutoSyncDeclinedFingerprint = null;
+let offlineAutoSyncRetryCount = 0;
+let offlineAutoSyncRetryTimer = null;
+let cloudSaveInProgress = false;
+let cloudRefreshInProgress = false;
 function hasPendingOfflineChanges() {
   return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length);
 }
+function offlineSyncApprovalFingerprint() {
+  // Approval follows the exact local data snapshot, not dirty markers. Successfully
+  // uploaded subsets may clear their markers while a failed remainder is retried.
+  try { return JSON.stringify(db); }
+  catch (_) { return null; }
+}
+function scheduleOfflineAutoSyncRetry() {
+  if (offlineAutoSyncRetryTimer || !navigator.onLine || !activeUser || !hasPendingOfflineRecordChanges()) return;
+  const delay = Math.min(60000, 2000 * (2 ** Math.min(offlineAutoSyncRetryCount, 5)));
+  offlineAutoSyncRetryCount += 1;
+  offlineAutoSyncRetryTimer = setTimeout(() => {
+    offlineAutoSyncRetryTimer = null;
+    retryOfflineSyncSilently();
+  }, delay);
+}
 async function retryOfflineSyncSilently() {
-  // Background retries stay disabled: local school records are never uploaded silently.
-  return false;
+  if (offlineAutoSyncInProgress || offlineAutoSyncPromptInProgress || cloudSaveInProgress || manualOfflineSyncInProgress) return false;
+  if (!navigator.onLine || !activeUser || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty || !hasPendingOfflineRecordChanges()) return false;
+
+  const fingerprint = offlineSyncApprovalFingerprint();
+  if (!fingerprint) return false;
+  if (offlineAutoSyncApprovedFingerprint !== fingerprint) {
+    if (offlineAutoSyncDeclinedFingerprint === fingerprint) return false;
+    offlineAutoSyncPromptInProgress = true;
+    let approved = false;
+    try {
+      approved = await showConfirm(
+        'توجد تعديلات مدرسية محفوظة على هذا الجهاز. هل توافق على رفع هذه التعديلات المحددة إلى السحابة تلقائياً عند توفر الاتصال؟ لن تُنفذ طلبات الحذف، وإذا تغيرت البيانات أثناء الرفع فستحتاج إلى موافقة جديدة.',
+        { danger: false, okText: 'الموافقة على المزامنة' }
+      );
+    } finally {
+      offlineAutoSyncPromptInProgress = false;
+    }
+    if (!approved) {
+      offlineAutoSyncDeclinedFingerprint = fingerprint;
+      return false;
+    }
+    offlineAutoSyncApprovedFingerprint = offlineSyncApprovalFingerprint();
+  }
+
+  if (offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint) {
+    offlineAutoSyncApprovedFingerprint = null;
+    return false;
+  }
+
+  offlineAutoSyncInProgress = true;
+  updateSyncStatus(false, 'جارِ مزامنة التعديلات المحلية...');
+  try {
+    const saved = await saveSystemDataToCloud({ silent: true, automatic: true });
+    const remaining = hasPendingOfflineRecordChanges();
+    if (saved && !remaining) {
+      offlineAutoSyncApprovedFingerprint = null;
+      offlineAutoSyncDeclinedFingerprint = null;
+      offlineAutoSyncRetryCount = 0;
+      if (offlineAutoSyncRetryTimer) clearTimeout(offlineAutoSyncRetryTimer);
+      offlineAutoSyncRetryTimer = null;
+      const pendingDeletes = getPendingDeletes().length;
+      updateSyncStatus(!pendingDeletes, pendingDeletes
+        ? `تمت مزامنة التعديلات؛ ${pendingDeletes} طلب حذف بانتظار المراجعة`
+        : 'متزامن');
+      return true;
+    }
+    if (offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint) {
+      offlineAutoSyncApprovedFingerprint = null;
+      return false;
+    }
+    scheduleOfflineAutoSyncRetry();
+    return false;
+  } finally {
+    offlineAutoSyncInProgress = false;
+  }
+}
+async function refreshCloudDataSilently() {
+  if (cloudRefreshInProgress || cloudSaveInProgress || !navigator.onLine || !activeUser ||
+      document.hidden || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty ||
+      hasPendingOfflineRecordChanges()) return false;
+  cloudRefreshInProgress = true;
+  try {
+    const success = await loadSystemDataFromCloud();
+    if (success && activeUser) {
+      try {
+        if (isAdminAuthorized()) {
+          if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+          if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+        }
+        if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
+        if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
+        refreshDutyDashboardCard();
+      } catch (error) { console.error('Cloud refresh view update failed:', error); }
+    }
+    return success;
+  } finally {
+    cloudRefreshInProgress = false;
+  }
 }
 
 let manualOfflineSyncInProgress = false;
@@ -5130,6 +5228,10 @@ function hasPendingOfflineRecordChanges() {
 }
 
 async function syncPendingLocalChanges() {
+  if (cloudSaveInProgress || offlineAutoSyncInProgress) {
+    showToast('توجد عملية مزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
+    return false;
+  }
   if (manualOfflineSyncInProgress) {
     showToast('المزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
     return false;
@@ -5271,19 +5373,31 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('offline', () => {
     updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
   });
+  const resumeCloudSync = () => {
+    if (!navigator.onLine || !activeUser) return;
+    setTimeout(() => {
+      if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
+      else refreshCloudDataSilently();
+    }, 1200);
+  };
   window.addEventListener('online', () => {
-    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - التغييرات المحلية بانتظار مراجعة يدوية" : "تم الاتصال");
-    setTimeout(() => { retryOfflineSyncSilently(); }, 1200);
+    updateSyncStatus(false, hasPendingOfflineChanges() ? "عاد الاتصال - بانتظار مزامنة التعديلات" : "تم الاتصال - جارِ تحديث البيانات");
+    resumeCloudSync();
   });
-  window.addEventListener('pageshow', () => {
-    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
-  });
+  window.addEventListener('pageshow', resumeCloudSync);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden && navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+    if (!document.hidden) resumeCloudSync();
   });
+  // Poll the cloud safely while the app is active. Local pending edits are never
+  // overwritten; uploads require explicit approval and queued deletions stay inert.
   setInterval(() => {
-    if (navigator.onLine && hasPendingOfflineChanges()) retryOfflineSyncSilently();
+    if (!navigator.onLine || !activeUser || document.hidden) return;
+    if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
+    else refreshCloudDataSilently();
   }, 60000);
+  if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
+    setTimeout(() => retryOfflineSyncSilently(), 1800);
+  }
 });
 
 function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_darkMode') === 'true'; if (isDark) { document.documentElement.classList.add('dark'); document.getElementById('darkModeIcon').className = 'fa-solid fa-sun text-sm'; } } catch(e) {} }
@@ -5454,11 +5568,17 @@ function clearSyncedDirtyFlag(kind, uploadedSnapshot) {
 
 async function saveSystemDataToCloud(options = {}) {
   if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
+  if (cloudSaveInProgress) {
+    if (!options.silent) showToast('توجد عملية مزامنة جارية؛ ستبقى التعديلات الجديدة معلّمة للمزامنة التالية.', 'info');
+    return false;
+  }
+  cloudSaveInProgress = true;
+  try {
   // Freeze the exact upload intent before the first await. Edits made while the
   // network request is in flight remain dirty and are never accidentally cleared.
   const syncSnapshotDb = cloneOfflineValue(db);
   const syncDirty = serializeDirtySets();
-  updateSyncStatus(true, "جارِ الحفظ...");
+  updateSyncStatus(false, "جارِ الحفظ...");
   const localCacheSaved = saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
   if (!localCacheSaved && !durableSaved) {
@@ -5587,6 +5707,9 @@ async function saveSystemDataToCloud(options = {}) {
     if (!options.silent) showToast('فشل الحفظ السحابي: ' + errMsg, 'error');
     return false;
   }
+  } finally {
+    cloudSaveInProgress = false;
+  }
 }
 
 function forceSyncWithCloud() {
@@ -5617,6 +5740,13 @@ function updateSyncStatus(isSynced, text) {
   const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
   if (!ind || !txt) return;
   txt.textContent = text || (isSynced ? "متزامن" : "محلي");
+  const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل)/.test(String(text || ''));
+  if (isWorking) {
+    ind.className = "bg-amber-800/90 text-amber-100 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-amber-600/70";
+    ind.onclick = null;
+    ind.title = "تتم مزامنة البيانات الآن؛ انتظر تأكيد اكتمال العملية";
+    return;
+  }
   if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
   else {
     ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
