@@ -1177,11 +1177,14 @@
 
   window.substitutionRenderCumulativeArchive = function() {
     const host=$("substitutionCumulativeArchiveResults");if(!host)return;
-    if(!reserveArchive.length){host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد توزيعات احتياط في الفترة المحددة.</div>';return;}
-    const active=reserveArchive.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
-    const historical=reserveArchive.length-active.length;
+    // Cancelled assignments remain in the audit trail, but are not part of the
+    // current cumulative reserve record shown to coordinators or sent to print.
+    const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
+    if(!records.length){host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد توزيعات احتياط فعلية في الفترة المحددة.</div>';return;}
+    const active=records.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+    const historical=records.length-active.length;
     const byDate=new Map();
-    reserveArchive.forEach(item=>{const date=item.assignmentDate||"تاريخ غير محدد";if(!byDate.has(date))byDate.set(date,[]);byDate.get(date).push(item);});
+    records.forEach(item=>{const date=item.assignmentDate;if(!byDate.has(date))byDate.set(date,[]);byDate.get(date).push(item);});
     host.innerHTML='<div class="grid gap-2 sm:grid-cols-2"><div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+active.length+' تكليف ضمن المهلة</span></div><div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي</strong><span class="text-[10px] text-slate-600">'+historical+' تكليف محفوظ للمراجعة</span></div></div>'+
       Array.from(byDate.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,items])=>{
         const byAbsent=new Map();
