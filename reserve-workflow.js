@@ -659,7 +659,7 @@
     if(!dateValue)return "";
     const date=new Date(String(dateValue)+"T12:00:00+04:00");
     if(!Number.isFinite(date.getTime()))return String(dateValue);
-    return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",numberingSystem:"latn",timeZone:"Asia/Muscat"}).format(date);
+    return new Intl.DateTimeFormat("ar-OM",{day:"numeric",month:"long",year:"numeric",numberingSystem:"arab",timeZone:"Asia/Muscat"}).format(date);
   }
   function formatReservePrintPeriod(period){return ({1:"١",2:"٢",3:"٣",4:"٤",5:"٥",6:"٦",7:"٧",8:"٨"})[Number(period)]||String(period);}
   function formatReservePrintFullDate(dateValue){
@@ -776,17 +776,13 @@
       const groups=buildReserveReportGroups(reserveBatchPreview||{});
       if(!groups.length){popup.close();status("لا توجد حصص لعرضها في كشف اليوم.","info");return;}
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-      const subject=[...new Set(groups.flatMap(group=>group.rows.map(row=>String(row.subject||"").trim()).filter(Boolean)))].join("، ")||"المادة المحددة";
-      let message="*توزيع حصص الاحتياط*\n*لمادة "+subject+"*\n\n*"+weekday+"*\n_"+formatReserveDateArabic(date)+"_\n\n";
-      const absentOrdinals=["الأول","الثاني","الثالث","الرابع","الخامس","السادس","السابع","الثامن","التاسع","العاشر"];
+      let message="*توزيع حصص الاحتياط*\n\n*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
       groups.forEach((group,index)=>{
-        if(groups.length>1)message+="*المعلم الغائب "+(absentOrdinals[index]||String(index+1))+"*\n";
-        message+="*"+group.absentName+"*\n\n";
+        message+="*"+(index+1)+"-* المعلم الغائب: *"+group.absentName+"*\n\n";
         group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(row=>{
-          message+="الحصة "+formatReservePeriod(row.period)+"، الصف "+(row.className||"غير محدد")+"\n";
-          message+="المعلم البديل: *"+(row.substitute||"لم يحدد")+"*\n\n";
+          message+="- الحصة *"+String(row.period)+"* | الصف "+(row.className||"غير محدد")+"\n";
+          message+="*الاحتياط: "+(row.substitute||"لم يحدد")+"*\n\n";
         });
-        if(index<groups.length-1)message+="\n\n";
       });
       popup.location.href="https://wa.me/?text="+encodeURIComponent(message);
     }catch(error){popup.close();status(error?.message||"تعذر تجهيز رسالة الواتساب.","error");}
