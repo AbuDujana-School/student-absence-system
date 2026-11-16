@@ -224,8 +224,12 @@ async function handle(req: Request) {
     : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true)
-    && !(action === "timetable_substitution_archive" && hasArchivePermission)) {
+    && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط أو صلاحية أرشيف الاحتياط الممنوحة من مدير النظام العام." });
+  }
+
+  if (action === "timetable_substitution_archive_access") {
+    return reply(200,{ok:true,canView:hasArchivePermission});
   }
 
   // Archive is independent of the currently active timetable version: historical
