@@ -10954,9 +10954,11 @@ async function timetableDailyAutoAssign() {
             const {date,weekday} = timetableSubstitutionGetDate();
             const token = appAuthSession?.token || readAppAuthToken();
             const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
+            const otherDepartmentId = includeOtherDepartments ? document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value || "" : "";
+            if (includeOtherDepartments && !otherDepartmentId) throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
             await appAuthRequest({
               action:"timetable_substitution_save",weekday,assignmentDate:date,absentTeacherName:absentName,
-              substituteTeacherName:candidate.name,period:freshLesson.period,includeOtherDepartments
+              substituteTeacherName:candidate.name,period:freshLesson.period,includeOtherDepartments,otherDepartmentId
             },token);
             assigned++;
             saved = true;
