@@ -95,9 +95,8 @@
     if(!host)return;
     const department=reserveOtherDepartments.find(item=>String(item.id)===selectedOtherDepartmentId());
     const teachers=Array.isArray(department?.teachers)?department.teachers:[];
-    reserveSelectedOtherTeacherNames=new Set();
     host.innerHTML=department ? (teachers.length ? teachers.map(teacher=>
-      '<label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs font-semibold"><input type="checkbox" class="h-4 w-4" data-other-teacher-name="'+esc(teacher.name)+'"><span>'+esc(teacher.name)+'</span></label>'
+      '<label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs font-semibold"><input type="checkbox" class="h-4 w-4" data-other-teacher-name="'+esc(teacher.name)+'"'+(reserveSelectedOtherTeacherNames.has(String(teacher.name))?" checked":"")+'><span>'+esc(teacher.name)+'</span></label>'
     ).join("") : '<p class="text-xs text-slate-500">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>') : '<p class="text-xs text-slate-500">اختر القسم لعرض معلميه.</p>';
     if(add)add.disabled=!department||teachers.length===0;
   }
@@ -198,7 +197,7 @@
         }
         toggle.checked=false;
         if(select){select.value="";select.closest("label")?.classList.add("hidden");}
-        reserveOtherDepartmentId="";reserveDraftScope="";
+        reserveOtherDepartmentId="";reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
         button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
         await timetableDailyRefreshAll();
       });
@@ -508,7 +507,7 @@
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
-      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
+      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
   }
 
   window.timetableDailyRenderArchive = function () {
@@ -608,7 +607,7 @@
     try{
       if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف مرتبط بإصدار سابق أو حالته غير نشطة؛ يمكن مراجعته فقط.","error");return;}
       const token=appAuthSession?.token||readAppAuthToken();
-      const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId()},token);
+      const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
       const absentNames=Array.isArray(directoryResult.absentTeachers)?directoryResult.absentTeachers:[];
       if(!absentNames.includes(item.absentTeacherName))absentNames.unshift(item.absentTeacherName);
       const initialPreview=await fetchArchivePreview(item.absentTeacherName,item.assignmentDate,item.weekday);
