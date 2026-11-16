@@ -10580,11 +10580,17 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
     if(checkboxId==="substitutionOtherDepartments"){
       window.substitutionOtherDepartmentsData=[];
       window.substitutionSelectedOtherTeacherNames=new Set();
+      window.substitutionSelectedOtherDepartmentId="";
+      window.substitutionRenderedOtherDepartmentId="";
       document.getElementById("substitutionOtherTeacherChoices")?.classList.add("hidden");
     }
     return [];
   }
-  const previous=select.value;
+  const previous=String(select.value||"");
+  const previousSelectionDepartment=String(window.substitutionSelectedOtherDepartmentId||"");
+  const previousNames=previous&&previous===previousSelectionDepartment
+    ?new Set(window.substitutionSelectedOtherTeacherNames instanceof Set?window.substitutionSelectedOtherTeacherNames:[])
+    :new Set();
   select.classList.remove("hidden");
   select.disabled=true;
   select.innerHTML='<option value="">جارٍ تحميل الأقسام...</option>';
@@ -10594,7 +10600,10 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
   const departments=Array.isArray(response.departments)?response.departments:[];
   if(checkboxId==="substitutionOtherDepartments"){
     window.substitutionOtherDepartmentsData=departments;
-    window.substitutionSelectedOtherTeacherNames=new Set();
+    const selectedDepartment=departments.find(item=>String(item.id)===previous);
+    const allowedNames=new Set((selectedDepartment?.teachers||[]).map(teacher=>String(teacher.name||"")).filter(Boolean));
+    window.substitutionSelectedOtherDepartmentId=selectedDepartment?previous:"";
+    window.substitutionSelectedOtherTeacherNames=new Set([...previousNames].filter(name=>allowedNames.has(name)));
   }
   select.innerHTML='<option value="">اختر القسم المطلوب</option>'+departments.map(item=>'<option value="'+timetableEsc(item.id)+'">'+timetableEsc(item.name)+'</option>').join("");
   if(departments.some(item=>String(item.id)===previous))select.value=previous;
@@ -10603,18 +10612,20 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
   return departments;
 }
 window.substitutionOtherDepartmentsData=window.substitutionOtherDepartmentsData||[];
-window.substitutionSelectedOtherTeacherNames=window.substitutionSelectedOtherTeacherNames||new Set();
+window.substitutionSelectedOtherTeacherNames=window.substitutionSelectedOtherTeacherNames instanceof Set?window.substitutionSelectedOtherTeacherNames:new Set();
+window.substitutionSelectedOtherDepartmentId=String(window.substitutionSelectedOtherDepartmentId||"");
 function renderSubstitutionOtherTeacherChoices(){
   const host=document.getElementById("substitutionOtherTeacherChoices");
   const select=document.getElementById("substitutionOtherDepartmentSelect");
   if(!host||!select)return;
   const department=window.substitutionOtherDepartmentsData.find(item=>String(item.id)===String(select.value));
   const departmentKey=department?String(department.id):"";
-  const sameDepartment=window.substitutionRenderedOtherDepartmentId===departmentKey;
+  const sameDepartment=String(window.substitutionSelectedOtherDepartmentId||"")===departmentKey;
   const previousSelected=sameDepartment
-    ?new Set(window.substitutionSelectedOtherTeacherNames||[])
+    ?new Set(window.substitutionSelectedOtherTeacherNames instanceof Set?window.substitutionSelectedOtherTeacherNames:[])
     :new Set();
   window.substitutionRenderedOtherDepartmentId=departmentKey;
+  window.substitutionSelectedOtherDepartmentId=departmentKey;
   window.substitutionSelectedOtherTeacherNames=previousSelected;
   if(!department){
     host.classList.add("hidden");
@@ -10645,11 +10656,20 @@ function renderSubstitutionOtherTeacherChoices(){
 }
 function getSubstitutionSelectedOtherTeacherNames(){
   const host=document.getElementById("substitutionOtherTeacherChoices");
-  const names=host
-    ?Array.from(host.querySelectorAll('[data-other-department-teacher]:checked'))
-      .map(box=>box.getAttribute("data-other-department-teacher"))
-      .filter(Boolean)
-    :[];
+  const select=document.getElementById("substitutionOtherDepartmentSelect");
+  const departmentId=String(select?.value||"");
+  const department=window.substitutionOtherDepartmentsData.find(item=>String(item.id)===departmentId);
+  if(!department||String(window.substitutionSelectedOtherDepartmentId||"")!==departmentId)return [];
+  const allowedNames=new Set((department.teachers||[]).map(teacher=>String(teacher.name||"")).filter(Boolean));
+  const selected=window.substitutionSelectedOtherTeacherNames instanceof Set
+    ?new Set(window.substitutionSelectedOtherTeacherNames):new Set();
+  // Capture any checked controls still present, but keep the canonical selection
+  // when a harmless redraw/reload has replaced the checkbox DOM.
+  host?.querySelectorAll('[data-other-department-teacher]:checked').forEach(box=>{
+    const name=String(box.getAttribute("data-other-department-teacher")||"");
+    if(allowedNames.has(name))selected.add(name);
+  });
+  const names=[...selected].filter(name=>allowedNames.has(name));
   window.substitutionSelectedOtherTeacherNames=new Set(names);
   return names;
 }
@@ -11811,6 +11831,8 @@ async function timetableSaveOwner() {
     if(department&&department.dataset.departmentBinding!=='ready'){
       department.addEventListener('change',function(){
         clearPlan();
+        window.substitutionSelectedOtherDepartmentId=String(department.value||"");
+        window.substitutionSelectedOtherTeacherNames=new Set();
         renderSubstitutionOtherTeacherChoices();
         if(department.value)setStatus('تم اختيار القسم. حدد المعلمين المطلوبين من القائمة التي ظهرت أسفل القسم.');
         else setStatus('اختر القسم المطلوب أولاً.',true);
