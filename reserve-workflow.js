@@ -755,7 +755,8 @@
     const groups=buildReserveReportGroups(reserveBatchPreview||{});
     if(!groups.length){status("لا توجد حصص متاحة للطباعة.","error");return;}
     const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
-    const subject=await reservePrintActorSubject();\n    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday,subject));
+    const subject=await reservePrintActorSubject();
+    printOfficialReservePages(reserveOfficialPrintPages(groups,date,weekday,subject));
   };
 
   window.timetableDailyShareWhatsApp = async function () {
