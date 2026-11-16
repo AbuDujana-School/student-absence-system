@@ -989,7 +989,8 @@ async function handle(req: Request) {
     const departments = [...new Map(directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId&&
       teachersInActiveTimetable.has(teacher.name)&&(principal.type==="admin"||teacher.departmentId!==ownDepartment))
       .map((teacher:any)=>[String(teacher.departmentId),{
-        id:String(teacher.departmentId),name:String(teacher.departmentName||teacher.departmentId)
+        id:String(teacher.departmentId),name:String(teacher.departmentName||teacher.departmentId),
+        teachers:directory.filter((candidate:any)=>candidate.role==="teacher"&&String(candidate.departmentId)===String(teacher.departmentId)&&teachersInActiveTimetable.has(candidate.name)).map((candidate:any)=>({name:String(candidate.name)})).sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"))
       }])).values()].sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"));
     return reply(200,{ok:true,departments});
   }
@@ -1120,6 +1121,10 @@ async function handle(req: Request) {
       const absentTeacherName=String(body.absentTeacherName||"").trim();
       const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true);
       const otherDepartmentId=String(body.otherDepartmentId||"").trim();
+      const otherTeacherNames=Array.isArray(body.otherTeacherNames)?Array.from(new Set<string>(body.otherTeacherNames.map((name:any)=>String(name||"").trim()).filter(Boolean))):[];
+      const requiresExplicitOtherTeachers=includeOtherDepartments&&["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_batch_preview","timetable_substitution_batch_save"].includes(String(body.action||""));
+      if(requiresExplicitOtherTeachers&&!otherTeacherNames.length)return reply(400,{error:"حدد معلماً واحداً على الأقل من القسم المساند أولاً."});
+      if(requiresExplicitOtherTeachers&&otherTeacherNames.some((name:string)=>!directory.some((teacher:any)=>teacher.role==="teacher"&&teacher.name===name&&teacher.departmentId===otherDepartmentId&&activeTeachingTeacherNames.has(name))))return reply(403,{error:"تتضمن قائمة الاختيار معلماً لا ينتمي إلى القسم المحدد أو لا يملك حصة تدريس في الجدول النشط."});
       if(includeOtherDepartments && !otherDepartmentId && ["timetable_substitution_preview","timetable_substitution_batch_preview"].includes(String(body.action||""))) {
         return reply(400,{error:"اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً."});
       }
@@ -1147,7 +1152,7 @@ async function handle(req: Request) {
         if(!absentTeacherName||!substitute||!Number.isInteger(period)||period<1||period>Number(activeVersion.period_count||7)||!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate))return reply(400,{error:"حدد التاريخ والمعلم الغائب والبديل والحصة."});
         const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
         if(!substituteTeacher||!activeTeachingTeacherNames.has(substituteTeacher.name))return reply(404,{error:"المعلم البديل غير موجود ضمن معلمي التدريس في الجدول النشط."});
-        if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId)return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
+        if(includeOtherDepartments && (substituteTeacher.departmentId!==otherDepartmentId||!otherTeacherNames.includes(substituteTeacher.name)))return reply(403,{error:"يجب أن يكون البديل من المعلمين الذين حددتهم من القسم المختار."});
         if(!includeOtherDepartments && substituteTeacher.departmentId!==directory.find((teacher:any)=>teacher.name===absentTeacherName&&teacher.role==="teacher")?.departmentId)return reply(403,{error:"المعلم البديل من قسم آخر."});
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
         const {data,error}=await db.rpc("create_timetable_substitution_with_reason",{p_payload:{version_id:activeVersion.id,weekday,period,assignment_date:assignmentDate,absent_teacher_name:absentTeacherName,substitute_teacher_name:substitute,actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,reserve_reason:reserveReason}});
@@ -1250,8 +1255,8 @@ async function handle(req: Request) {
           const substituteTeacher=directory.find((teacher:any)=>teacher.name===item.substituteTeacherName&&teacher.role==="teacher");
           const absentTeacher=directory.find((teacher:any)=>teacher.name===item.absentTeacherName&&teacher.role==="teacher");
           if(!substituteTeacher||!activeTeachingTeacherNames.has(substituteTeacher.name)||!absentTeacher)return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل ضمن معلمي الجدول النشط."});
-          if(includeOtherDepartments && substituteTeacher.departmentId!==otherDepartmentId){
-            return reply(403,{error:"يجب أن يكون البديل من القسم الذي اخترته تحديداً."});
+          if(includeOtherDepartments && (substituteTeacher.departmentId!==otherDepartmentId||!otherTeacherNames.includes(substituteTeacher.name))){
+            return reply(403,{error:"يجب أن يكون البديل من المعلمين الذين حددتهم من القسم المختار."});
           }
           if(!includeOtherDepartments&&substituteTeacher.departmentId!==absentTeacher.departmentId){
             return reply(403,{error:"المعلم البديل "+item.substituteTeacherName+" من قسم آخر. فعّل خيار إظهار الأقسام الأخرى إذا كان ذلك ضرورياً."});
@@ -1277,7 +1282,7 @@ async function handle(req: Request) {
         const selectedAbsent=selectedNames.map((name:string)=>directory.find((teacher:any)=>teacher.name===name&&teacher.role==="teacher"))
           .filter(Boolean).map((teacher:any)=>({id:teacher.name,name:teacher.name,departmentId:teacher.departmentId}));
         const scopedCandidates=includeOtherDepartments
-          ? candidates.filter((teacher:any)=>teacher.departmentId===otherDepartmentId)
+          ? candidates.filter((teacher:any)=>teacher.departmentId===otherDepartmentId&&otherTeacherNames.includes(teacher.name))
           : candidates;
         const plan=buildBatchSubstitutionPlan({
           teachers:scopedCandidates,timetable,assignments,absentTeachers:selectedAbsent,weekday,
@@ -1313,7 +1318,7 @@ async function handle(req: Request) {
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
       const lessonOptions=lessons.map((lesson)=>{
         const scopedCandidates=includeOtherDepartments
-          ? candidates.filter((teacher:any)=>teacher.departmentId===otherDepartmentId)
+          ? candidates.filter((teacher:any)=>teacher.departmentId===otherDepartmentId&&otherTeacherNames.includes(teacher.name))
           : candidates;
         const eligible=getAvailableSubstitutionCandidates({teachers:scopedCandidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,assignmentDate:date||undefined,versionId:activeVersion.id});
         const sourceCell=dayCells.find((c:any)=>c.matched_teacher_name===absentTeacherName&&Number(c.period)===lesson.period);
