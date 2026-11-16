@@ -717,6 +717,12 @@
     let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();window.removeEventListener("afterprint",cleanup);};
     window.addEventListener("afterprint",cleanup,{once:true});window.print();setTimeout(cleanup,15000);
   }
+  // Shared official A4 print entry point for every reserve workflow.
+  // Keeps the legacy planner and the daily timetable on one canonical template.
+  window.printOfficialReserveReport=function(groups,date,weekday){
+    const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"");
+    printOfficialReservePages(pages);
+  };
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
     return timetableDailyAbsentTeachers.map(absentName=>{
