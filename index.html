@@ -12060,23 +12060,23 @@ async function timetableSaveOwner() {
   };
   window.substitutionPrintPdf=function(){
     if(!savedPlan||!currentPlan){showToast('احفظ التوزيع أولاً قبل الطباعة.','error');return;}
-    const popup=window.open('','_blank');
-    if(!popup){showToast('اسمح بفتح نافذة الطباعة لإعداد كشف PDF.','error');return;}
+    if(typeof window.printOfficialReserveReport!=='function'){
+      showToast('قالب الطباعة الرسمي غير جاهز. حدّث الصفحة ثم حاول مرة أخرى.','error');return;
+    }
+    const groups=new Map();
     const allAssignments=[...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[])];
-    const rows=allAssignments.map(function(item,index){
-      return '<tr><td>'+(index+1)+'</td><td>'+esc(item.absentTeacherName)+'</td><td>'+item.period+'</td><td>'+esc(item.className||'—')+'</td><td>'+esc(item.subject||'—')+'</td><td>'+esc(item.substituteTeacherName)+'</td></tr>';
-    }).join('');
-    const unassigned=(currentPlan.unassigned||[]).map(function(item){return '<li>'+esc(item.absentTeacherName)+' — الحصة '+item.period+' — '+esc(item.className||'—')+'</li>';}).join('');
-    popup.document.open();
-    popup.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>كشف توزيع الاحتياط</title><style>'+
-      'body{font-family:Arial,Tahoma,sans-serif;color:#172033;padding:24px}h1{text-align:center;font-size:22px;margin:0 0 8px}.meta{text-align:center;color:#475569;margin-bottom:22px;font-size:13px}.summary{display:flex;gap:12px;margin-bottom:18px}.summary div{flex:1;padding:12px;border:1px solid #cbd5e1;border-radius:10px;text-align:center;font-weight:bold}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #94a3b8;padding:9px;text-align:center}th{background:#e2e8f0;font-weight:900}tr{break-inside:avoid}h3{margin-top:24px}@page{size:A4 landscape;margin:12mm}@media print{*{print-color-adjust:exact;-webkit-print-color-adjust:exact}}'+
-      '</style></head><body><h1>مدرسة أبو دجانة — كشف توزيع الاحتياط</h1><div class="meta">'+esc(dateLabel(selectedDate()))+' · اليوم: '+esc(weekdayFor(selectedDate()))+'</div>'+
-      '<div class="summary"><div>إجمالي الحصص: '+allAssignments.length+'</div><div>حصص دون بديل: '+(currentPlan.unassigned||[]).length+'</div><div>عدد المعلمين الغائبين: '+currentAbsentNames.length+'</div></div>'+
-      '<table><thead><tr><th>م</th><th>المعلم الغائب</th><th>الحصة</th><th>الصف</th><th>المادة</th><th>المعلم البديل</th></tr></thead><tbody>'+rows+'</tbody></table>'+
-      (unassigned?'<h3>حصص لم يتوفر لها بديل</h3><ul>'+unassigned+'</ul>':'')+
-      '<p style="margin-top:35px;font-size:11px">إعداد: إدارة المدرسة ____________________ &nbsp;&nbsp; اعتماد: ____________________</p></body></html>');
-    popup.document.close();
-    setTimeout(function(){popup.focus();popup.print();},450);
+    const addRow=function(item){
+      const name=String(item?.absentTeacherName||'').trim();
+      if(!name)return;
+      if(!groups.has(name))groups.set(name,{absentName:name,reason:String(item?.absenceReason||item?.reason||''),rows:[]});
+      groups.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||''});
+    };
+    allAssignments.forEach(addRow);
+    (currentPlan.unassigned||[]).forEach(addRow);
+    if(!groups.size){showToast('لا توجد حصص احتياط لعرضها في الكشف.','error');return;}
+    const orderedNames=[...currentAbsentNames,...[...groups.keys()].filter(name=>!currentAbsentNames.includes(name))];
+    const orderedGroups=orderedNames.map(name=>groups.get(name)).filter(Boolean);
+    window.printOfficialReserveReport(orderedGroups,selectedDate(),weekdayFor(selectedDate()));
   };
   window.substitutionLoadStats=async function(){
     const root=document.getElementById('substitutionStatsContent');
