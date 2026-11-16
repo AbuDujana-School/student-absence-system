@@ -3900,7 +3900,6 @@ function saRenderCompetition(data){
   const count=document.getElementById("saCompetitionOtherRanksCount");
   if(count)count.textContent=other.length?other.length+" معلماً":(IS_UI_REVIEW_PREVIEW?"لا توجد بيانات":"");
 }
-}
 async function openStudentAffairsAssignments(){
   const isAdmin=activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();
   if(!isAdmin){showToast("إدارة تكليفات شؤون الطلبة متاحة للإدارة فقط","error");return;}
