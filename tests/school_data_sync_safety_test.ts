@@ -217,10 +217,21 @@ Deno.test("manual offline sync is explicit, scoped to dirty records, and never e
   assert(!manual.includes("loadSystemDataFromCloud("), "Manual upload must not reload and replace the current local view");
 });
 
-Deno.test("sync indicator offers upload only when marked local records are pending", () => {
+Deno.test("sync indicator distinguishes upload, review-only deletion requests, and cloud refresh", () => {
   const status = section("function updateSyncStatus(", "async function initDefaults()");
-  assert(status.includes("hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud()"), "Indicator must route pending edits to explicit upload");
-  assert(status.includes("طلبات الحذف لا تُنفذ تلقائياً"), "Indicator must disclose that queued deletions remain inert");
+  assert(status.includes("if (hasPendingOfflineRecordChanges()) void syncPendingLocalChanges()"), "Dirty records must route to the explicit upload workflow");
+  assert(status.includes("else if (getPendingDeletes().length) openPendingDeleteReview()"), "Delete-only state must open local review rather than show a false upload state");
+  assert(status.includes("const reviewOnly = !pendingRecords && pendingDeletes > 0"), "Delete-only state must be distinct from unsynced record edits");
+  assert(status.includes("المزامنة مكتملة؛"), "A successful cloud sync with queued deletions must be reported as synced with review pending");
+});
+Deno.test("pending deletion review can cancel one or all local intents without server deletion", () => {
+  const review = section("function pendingDeleteTableLabel(", "async function robustUpsert(");
+  assert(review.includes("async function cancelPendingDeleteAt(index)"), "A single queued deletion must be cancellable");
+  assert(review.includes("async function cancelAllPendingDeletes()"), "All queued deletion intents must be cancellable");
+  assert(review.includes("setPendingDeletes(nextQueue)"), "Cancellation must update only the local deletion queue");
+  assert(review.includes("await persistOfflineState()"), "Cancellation must persist the updated local queue durably");
+  assert(!review.includes(".delete("), "Cancellation must never delete a server record");
+  assert(review.includes("لم يتغير أي سجل على الخادم"), "The user must be told that cancellation changes no server data");
 });
 
 Deno.test("sync settings button invokes the explicit local upload workflow", () => {
@@ -275,4 +286,17 @@ Deno.test("a newer edit to a setting remains pending after an older snapshot upl
   assert(helper.includes("syncSnapshotValue(kind, true, uploadedSnapshot)"), "Flag comparison must inspect the uploaded snapshot");
   assert(helper.includes("syncSnapshotValue(kind, true, db)"), "Flag comparison must inspect current local state after the request");
   assert(helper.includes("if (syncValuesEqual(before, now)) dirtySets[kind] = false"), "Only an unchanged setting may be marked clean");
+});
+
+Deno.test("delete-only pending state is review-only and never masquerades as an offline upload", () => {
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("!pendingRecords && pendingDeletes > 0"), "Queued deletions without dirty records must use review-only state");
+  assert(status.includes("ind.onclick = openPendingDeleteReview"), "Review-only status must expose the local review action");
+  assert(status.includes("!pendingRecords && !pendingDeletes"), "Green synced state must require an empty deletion queue");
+});
+Deno.test("mixed dirty edits and queued deletions remain separately visible", () => {
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("pendingRecords && pendingDeletes"), "The status must detect simultaneous edits and queued deletions");
+  assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
+  assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });

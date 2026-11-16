@@ -4922,6 +4922,115 @@ function setPendingDeletes(arr) {
   try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(pendingDeleteQueueCache)); return true; }
   catch(e) { return false; }
 }
+function pendingDeleteTableLabel(table) {
+  return ({
+    classes: 'صف دراسي',
+    students: 'طالب',
+    attendance: 'سجل حضور',
+    behaviors: 'سجل سلوك',
+    teachers: 'معلم',
+    duty_reports: 'تقرير مناوبة'
+  })[table] || 'سجل';
+}
+function closePendingDeleteReview() {
+  document.getElementById('pendingDeleteReviewModal')?.remove();
+}
+async function persistReviewedPendingDeletes(nextQueue, successMessage) {
+  const previous = getPendingDeletes().map(item => ({ ...item }));
+  const localSaved = setPendingDeletes(nextQueue);
+  const durableSaved = await persistOfflineState();
+  if (!localSaved && !durableSaved) {
+    setPendingDeletes(previous);
+    await persistOfflineState();
+    showToast('تعذر حفظ التغيير محلياً؛ بقيت طلبات الحذف كما هي.', 'error');
+    return false;
+  }
+  closePendingDeleteReview();
+  const remaining = getPendingDeletes().length;
+  const dirty = hasPendingOfflineRecordChanges();
+  if (remaining && !dirty && cloudDataLoadState === 'ready' && navigator.onLine) {
+    updateSyncStatus(true, `المزامنة مكتملة؛ ${remaining} طلب حذف للمراجعة`);
+  } else if (remaining) {
+    updateSyncStatus(false, `${remaining} طلب حذف بانتظار المراجعة`);
+  } else {
+    updateSyncStatus(!dirty, dirty ? 'توجد تعديلات محلية بانتظار الرفع' : 'متزامن');
+  }
+  showToast(successMessage, 'success');
+  return true;
+}
+async function cancelPendingDeleteAt(index) {
+  const current = getPendingDeletes();
+  if (!Number.isInteger(index) || index < 0 || index >= current.length) return false;
+  const next = current.filter((_, i) => i !== index);
+  return persistReviewedPendingDeletes(next, 'تم إلغاء طلب الحذف محلياً؛ لم يتغير أي سجل على الخادم.');
+}
+async function cancelAllPendingDeletes() {
+  const current = getPendingDeletes();
+  if (!current.length) return false;
+  const approved = await showConfirm(
+    `سيتم إلغاء ${current.length} طلب حذف من هذا الجهاز فقط. لن يتم حذف أي سجل من الخادم. هل تريد المتابعة؟`,
+    { danger: false, okText: 'إلغاء الطلبات' }
+  );
+  if (!approved) return false;
+  return persistReviewedPendingDeletes([], 'تم إلغاء جميع طلبات الحذف المحلية؛ لم تُحذف أي سجلات من الخادم.');
+}
+function openPendingDeleteReview() {
+  const queue = getPendingDeletes();
+  if (!queue.length) {
+    showToast('لا توجد طلبات حذف بانتظار المراجعة.', 'info');
+    updateSyncStatus(!hasPendingOfflineRecordChanges(), hasPendingOfflineRecordChanges() ? 'توجد تعديلات محلية بانتظار الرفع' : 'متزامن');
+    return;
+  }
+  if (!isAdminAuthorized()) {
+    showToast('توجد طلبات حذف محلية بانتظار مراجعة مدير النظام.', 'info');
+    return;
+  }
+  closePendingDeleteReview();
+  const overlay = document.createElement('div');
+  overlay.id = 'pendingDeleteReviewModal';
+  overlay.className = 'fixed inset-0 z-[10000] flex items-center justify-center bg-slate-950/75 backdrop-blur-md p-3';
+  overlay.innerHTML = `
+    <section role="dialog" aria-modal="true" aria-labelledby="pendingDeleteReviewTitle" class="w-full max-w-xl max-h-[85vh] overflow-hidden rounded-3xl border border-white/15 bg-slate-900/95 text-white shadow-2xl">
+      <header class="flex items-center justify-between gap-3 border-b border-white/10 p-5">
+        <div>
+          <h2 id="pendingDeleteReviewTitle" class="text-lg font-black">مراجعة طلبات الحذف</h2>
+          <p class="mt-1 text-xs text-slate-300">هذه الطلبات محفوظة على هذا الجهاز ولم تُنفذ على الخادم.</p>
+        </div>
+        <button type="button" data-pending-delete-action="close" class="rounded-xl bg-white/10 px-3 py-2 text-sm" aria-label="إغلاق">إغلاق</button>
+      </header>
+      <div class="max-h-[52vh] space-y-2 overflow-y-auto p-4">
+        ${queue.map((item, index) => `
+          <article class="flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+            <div class="min-w-0">
+              <p class="font-bold">${escapeHtml(pendingDeleteTableLabel(item?.table))}</p>
+              <p class="mt-1 text-xs text-slate-400">طلب محلي رقم ${index + 1}</p>
+            </div>
+            <button type="button" data-pending-delete-action="cancel-one" data-pending-delete-index="${index}" class="shrink-0 rounded-xl border border-amber-300/30 bg-amber-500/15 px-3 py-2 text-xs font-bold text-amber-100">إلغاء الطلب</button>
+          </article>`).join('')}
+      </div>
+      <footer class="flex flex-wrap justify-between gap-2 border-t border-white/10 p-4">
+        <p class="w-full text-xs leading-5 text-slate-300">إلغاء الطلب يزيل نية الحذف من الجهاز فقط، ولا يحذف أو يعدّل أي بيانات في قاعدة المدرسة.</p>
+        <button type="button" data-pending-delete-action="cancel-all" class="rounded-xl bg-rose-700/80 px-4 py-2 text-sm font-bold">إلغاء جميع الطلبات</button>
+        <button type="button" data-pending-delete-action="close" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold">إغلاق</button>
+      </footer>
+    </section>`;
+  overlay.addEventListener('click', async (event) => {
+    if (event.target === overlay) { closePendingDeleteReview(); return; }
+    const button = event.target.closest('[data-pending-delete-action]');
+    if (!button) return;
+    const action = button.dataset.pendingDeleteAction;
+    if (action === 'close') closePendingDeleteReview();
+    if (action === 'cancel-one') {
+      button.disabled = true;
+      await cancelPendingDeleteAt(Number(button.dataset.pendingDeleteIndex));
+    }
+    if (action === 'cancel-all') {
+      button.disabled = true;
+      await cancelAllPendingDeletes();
+    }
+  });
+  document.body.appendChild(overlay);
+}
 async function queueCloudDelete(table, filters) {
   const arr = getPendingDeletes();
   if (!arr.some(x => x.table === table && JSON.stringify(x.filters) === JSON.stringify(filters))) arr.push({ table, filters, ts: Date.now() });
@@ -5749,21 +5858,42 @@ function doForceSync() {
 function updateSyncStatus(isSynced, text) {
   const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
   if (!ind || !txt) return;
-  txt.textContent = text || (isSynced ? "متزامن" : "محلي");
+  const pendingRecords = hasPendingOfflineRecordChanges();
+  const pendingDeletes = getPendingDeletes().length;
   const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل)/.test(String(text || ''));
+  const reviewOnly = !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
+  let displayText = text || (isSynced ? "متزامن" : "محلي");
+  if (reviewOnly) displayText = `المزامنة مكتملة؛ ${pendingDeletes} طلب حذف للمراجعة`;
+  else if (pendingRecords && pendingDeletes) displayText = `${displayText}؛ ${pendingDeletes} طلب حذف للمراجعة`;
+  txt.textContent = displayText;
   if (isWorking) {
     ind.className = "bg-amber-800/90 text-amber-100 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-amber-600/70";
     ind.onclick = null;
     ind.title = "تتم مزامنة البيانات الآن؛ انتظر تأكيد اكتمال العملية";
     return;
   }
-  if (isSynced) { ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60"; ind.onclick = null; ind.removeAttribute('title'); }
-  else {
+  if (reviewOnly) {
+    ind.className = "bg-amber-900/90 text-amber-100 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-amber-500/70 cursor-pointer";
+    ind.onclick = openPendingDeleteReview;
+    ind.title = "المزامنة مكتملة؛ انقر لمراجعة أو إلغاء طلبات الحذف المحلية";
+    return;
+  }
+  if (isSynced && !pendingRecords && !pendingDeletes) {
+    ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60";
+    ind.onclick = null;
+    ind.removeAttribute('title');
+  } else {
     ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
-    ind.onclick = () => hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud();
-    ind.title = hasPendingOfflineRecordChanges()
+    ind.onclick = () => {
+      if (hasPendingOfflineRecordChanges()) void syncPendingLocalChanges();
+      else if (getPendingDeletes().length) openPendingDeleteReview();
+      else forceSyncWithCloud();
+    };
+    ind.title = pendingRecords
       ? "انقر لمراجعة ورفع التغييرات المحلية المعلّمة"
-      : "انقر لتحديث بيانات الخادم؛ طلبات الحذف لا تُنفذ تلقائياً";
+      : pendingDeletes
+        ? "انقر لمراجعة طلبات الحذف المحلية؛ لن يُحذف أي سجل تلقائياً"
+        : "انقر لتحديث بيانات الخادم";
   }
 }
 
