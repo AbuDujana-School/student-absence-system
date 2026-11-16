@@ -1103,8 +1103,21 @@
   function installHomeReserveArchive() {
     const view=$("substitutionView");
     if(!view||view.dataset.cumulativeArchiveInstalled==="1")return;
-    const canView=activeUser?.type==="admin"||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.type==="admin";
-    if(!canView)return;
+    const accessCheck=view.dataset.cumulativeArchiveAccessCheck||"";
+    if(accessCheck==="pending"||accessCheck==="denied")return;
+    const canViewLocally=activeUser?.type==="admin"||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.type==="admin";
+    if(!canViewLocally&&accessCheck!=="allowed"){
+      const token=appAuthSession?.token||readAppAuthToken();
+      if(!token)return;
+      view.dataset.cumulativeArchiveAccessCheck="pending";
+      appAuthRequest({action:"timetable_substitution_archive_access"},token).then(result=>{
+        view.dataset.cumulativeArchiveAccessCheck=result?.canView===true?"allowed":"denied";
+        if(result?.canView===true)installHomeReserveArchive();
+      }).catch(()=>{
+        view.dataset.cumulativeArchiveAccessCheck="denied";
+      });
+      return;
+    }
     const header=view.querySelector(".relative.z-10.flex.flex-wrap.items-center.justify-between.gap-3");
     const stats=$("substitutionStatsPanel");
     if(!header||!stats)return;
