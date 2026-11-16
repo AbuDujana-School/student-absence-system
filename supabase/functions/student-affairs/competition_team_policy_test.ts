@@ -2,7 +2,7 @@ import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope } fro
 
 Deno.test("only explicitly enrolled teachers become competition teams", () => {
   const teams = buildCompetitionTeams([
-    { name: "Teacher A", permissions: { competition_participant: true, competition_team_name: "فريق الأمل", competition_team_classes: ["1/9", "2/9"] } },
+    { name: "Teacher A", permissions: { student_affairs_role: "team_leader", competition_participant: true, competition_team_name: "فريق الأمل", competition_team_classes: ["1/9", "2/9"] } },
     { name: "Counselor", role: "custom", permissions: { competition_participant: false } },
     { name: "Teacher B", permissions: { competition_participant: false, competition_team_name: "ignored", competition_team_classes: ["3/9"] } }
   ], ["1/9", "2/9", "3/9"]);
@@ -41,7 +41,7 @@ Deno.test("team name and assigned classes are mandatory", () => {
     { competition_participant: true, competition_team_name: "فريق", competition_team_classes: [] }
   ]) {
     let rejected = false;
-    try { buildCompetitionTeams([{ name: "Teacher", permissions }], ["1/9"]); } catch { rejected = true; }
+    try { buildCompetitionTeams([{ name: "Teacher", permissions: { student_affairs_role: "team_leader", ...permissions } }], ["1/9"]); } catch { rejected = true; }
     if (!rejected) throw new Error("invalid team configuration must be rejected");
   }
 });
@@ -50,8 +50,8 @@ Deno.test("a class cannot be assigned to more than one team", () => {
   let rejected = false;
   try {
     buildCompetitionTeams([
-      { name: "A", permissions: { competition_participant: true, competition_team_name: "A", competition_team_classes: ["1/9"] } },
-      { name: "B", permissions: { competition_participant: true, competition_team_name: "B", competition_team_classes: ["1/9"] } }
+      { name: "A", permissions: { student_affairs_role: "team_leader", competition_participant: true, competition_team_name: "A", competition_team_classes: ["1/9"] } },
+      { name: "B", permissions: { student_affairs_role: "team_leader", competition_participant: true, competition_team_name: "B", competition_team_classes: ["1/9"] } }
     ], ["1/9"]);
   } catch { rejected = true; }
   if (!rejected) throw new Error("duplicate class assignments must be rejected");
@@ -63,4 +63,14 @@ Deno.test("custom users cannot become competition participants", () => {
     buildCompetitionTeams([{ name: "Counselor", role: "custom", permissions: { competition_participant: true, competition_team_name: "Team", competition_team_classes: ["1/9"] } }], ["1/9"]);
   } catch { rejected = true; }
   if (!rejected) throw new Error("custom users must remain outside the competition");
+});
+
+Deno.test("legacy test participants without Student Affairs assignments are excluded", () => {
+  const teams = buildCompetitionTeams([
+    { name: "Tester", permissions: { competition_participant: true, competition_team_name: "فريق تجريبي", competition_team_classes: ["1/9"] } },
+    { name: "مشرف فعلي", permissions: { student_affairs_role: "supervisor", competition_participant: true, competition_team_name: "فريق التاسع", competition_team_classes: ["2/9"] } }
+  ], ["1/9", "2/9"]);
+  if (teams.length !== 1 || teams[0].leaderName !== "مشرف فعلي") {
+    throw new Error("only actual Student Affairs team leaders and supervisors may participate");
+  }
 });
