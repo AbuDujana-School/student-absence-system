@@ -31,7 +31,7 @@ Deno.test("loading does not rename classes or rewrite related school records", (
 });
 
 Deno.test("queued cloud deletions remain inert and require a separate reviewed workflow", () => {
-  const queue = section("async function queueCloudDelete(", "// Fail-closed protection");
+  const queue = section("async function queueCloudDelete(", "// Queued deletes are processed only after an explicit administrator confirmation.");
   const flush = section("async function flushPendingDeletes()", "async function robustUpsert(");
   assert(queue.includes("setPendingDeletes(arr)"), "Deletion intent may be retained locally for review");
   assert(!queue.includes(".delete("), "Queueing must not delete server data");
@@ -120,7 +120,7 @@ Deno.test("successful record saves do not report full sync while deletions remai
 
 
 Deno.test("queued deletions immediately remain visibly pending instead of appearing synced", () => {
-  const queue = section("async function queueCloudDelete(", "// Fail-closed protection");
+  const queue = section("async function queueCloudDelete(", "// Queued deletes are processed only after an explicit administrator confirmation.");
   assert(queue.includes("updateSyncStatus(false"), "Queueing a deletion must immediately show an unsynced state");
   assert(queue.includes("طلب حذف بانتظار المراجعة"), "The sync status must explain that deletion is pending review");
 });
