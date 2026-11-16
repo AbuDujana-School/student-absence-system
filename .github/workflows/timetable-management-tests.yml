@@ -62,6 +62,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114180000_teacher_personal_timetable_portal.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114100000_timetable_substitution_duty_guard.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116100000_allow_substitution_on_duty_day.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_duty_day.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114194500_timetable_dynamic_periods.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115110000_weighted_batch_substitution.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115140639_timetable_substitution_reason_archive_edit.sql
