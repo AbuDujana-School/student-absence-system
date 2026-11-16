@@ -39,10 +39,23 @@ Deno.test("queued cloud deletions remain inert and require a separate reviewed w
   assert(!flush.includes(".delete("), "Pending deletion executor must not issue server deletes");
 });
 
-Deno.test("reconnect and tab-resume handlers cannot upload local snapshots automatically", () => {
+Deno.test("reconnect retries upload only after explicit approval of an unchanged local snapshot", () => {
   const retry = section("async function retryOfflineSyncSilently()", "let manualOfflineSyncInProgress");
-  assert(retry.includes("return false"), "Background retry must remain disabled");
-  assert(!retry.includes("saveSystemDataToCloud("), "Background retry must not write cloud data");
+  assert(retry.includes("await showConfirm("), "Automatic retry must obtain explicit user approval");
+  assert(retry.includes("offlineAutoSyncApprovedFingerprint"), "Approval must be bound to the exact local snapshot");
+  assert(retry.includes("offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint"), "Changed local data must invalidate prior approval");
+  assert(retry.includes("saveSystemDataToCloud({ silent: true, automatic: true })"), "Approved retries must reuse the existing scoped dirty-record uploader");
+  assert(retry.includes("scheduleOfflineAutoSyncRetry()"), "Failed approved uploads must retry with backoff");
+  assert(!retry.includes("flushPendingDeletes("), "Background retry must never execute queued deletions");
+});
+
+Deno.test("cloud refresh polling is read-only whenever local edits or live capture are pending", () => {
+  const refresh = section("async function refreshCloudDataSilently()", "let manualOfflineSyncInProgress");
+  assert(refresh.includes("hasPendingOfflineRecordChanges()"), "Refresh must stop when local dirty records exist");
+  assert(refresh.includes("attendanceDirty || behaviorDirty"), "Refresh must not replace an active unsaved capture session");
+  assert(refresh.includes("await loadSystemDataFromCloud()"), "Safe refresh must fetch the latest cloud state");
+  const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
+  assert(events.includes("}, 60000);"), "Active sessions must poll cloud data periodically");
 });
 
 Deno.test("default PIN initialization and credential migration are not invoked automatically", () => {
