@@ -188,22 +188,23 @@ Deno.test("offline fallback restores cached data but does not report a successfu
 });
 
 
-Deno.test("manual offline sync is explicit, scoped to dirty records, and never executes queued deletions", () => {
+Deno.test("manual offline sync confirms record uploads and administrator-approved queued deletions", () => {
   const manual = section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */");
   assert(manual.includes("if (!navigator.onLine)"), "Manual sync must require an online connection");
   assert(manual.includes("cloudDataLoadState !== 'ready'"), "Manual sync must wait for a successful cloud load");
   assert(manual.includes("attendanceDirty || behaviorDirty"), "Manual sync must stop while a live capture session is unsaved");
   assert(manual.includes("await showConfirm("), "Manual sync must require user confirmation");
   assert(manual.includes("saveSystemDataToCloud({ manual: true })"), "Manual sync must reuse the existing dirty-record uploader");
-  assert(manual.includes("getPendingDeletes().length"), "Manual sync must keep queued deletions visible");
-  assert(!manual.includes("flushPendingDeletes("), "Manual sync must never execute queued deletions");
+  assert(manual.includes("flushPendingDeletes({ confirmed: true })"), "Queued deletes must be processed only after explicit confirmation");
+  assert(manual.includes("isAdminAuthorized()"), "Queued deletes must require administrator authorization");
+  assert(manual.includes("!hasRecordChanges && !pendingDeletes"), "Delete-only queues must also be synchronizable");
   assert(!manual.includes("loadSystemDataFromCloud("), "Manual upload must not reload and replace the current local view");
 });
 
 Deno.test("sync indicator offers upload only when marked local records are pending", () => {
   const status = section("function updateSyncStatus(", "async function initDefaults()");
   assert(status.includes("hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud()"), "Indicator must route pending edits to explicit upload");
-  assert(status.includes("طلبات الحذف لا تُنفذ تلقائياً"), "Indicator must disclose that queued deletions remain inert");
+  assert(status.includes("الحذف المعلّق يحتاج تأكيد المدير"), "Indicator must disclose that queued deletions require administrator confirmation");
 });
 
 Deno.test("sync settings button invokes the explicit local upload workflow", () => {
@@ -258,4 +259,42 @@ Deno.test("a newer edit to a setting remains pending after an older snapshot upl
   assert(helper.includes("syncSnapshotValue(kind, true, uploadedSnapshot)"), "Flag comparison must inspect the uploaded snapshot");
   assert(helper.includes("syncSnapshotValue(kind, true, db)"), "Flag comparison must inspect current local state after the request");
   assert(helper.includes("if (syncValuesEqual(before, now)) dirtySets[kind] = false"), "Only an unchanged setting may be marked clean");
+});
+
+
+Deno.test("automatic retry uploads only dirty records and never processes queued deletes", () => {
+  const retry = section("async function retryOfflineSyncSilently()", "let manualOfflineSyncInProgress");
+  assert(retry.includes("!navigator.onLine"), "Automatic retry must require connectivity");
+  assert(retry.includes("cloudDataLoadState !== 'ready'"), "Automatic retry must wait for a successful cloud load");
+  assert(retry.includes("!activeUser"), "Automatic retry must require an active user session");
+  assert(retry.includes("hasPendingOfflineRecordChanges()"), "Automatic retry must be limited to marked record changes");
+  assert(retry.includes("saveSystemDataToCloud({ silent: true, automatic: true })"), "Automatic retry must reuse the guarded snapshot uploader");
+  assert(!retry.includes("flushPendingDeletes("), "Background retry must never execute destructive operations");
+});
+
+Deno.test("remote changes are polled through the safe loader and local dirty state is preserved", () => {
+  const polling = section("async function refreshCloudChangesSilently()", "function hasPendingOfflineChanges()");
+  assert(polling.includes("loadSystemDataFromCloud()"), "Remote refresh must use the validated cloud loader");
+  assert(polling.includes("attendanceDirty || behaviorDirty"), "Remote refresh must not overwrite an active unsaved capture session");
+  assert(polling.includes("cloudRefreshInProgress"), "Remote refresh must prevent overlapping pulls");
+  assert(html.includes("}, 60000);"), "Remote changes must be checked periodically");
+  const load = section("async function loadSystemDataFromCloud()", "function syncValuesEqual(");
+  assert(load.includes("mergeDirtyLocalState(pendingLocalState)"), "Remote refresh must preserve local dirty records");
+});
+
+Deno.test("queued deletes require explicit confirmation, administrator access, and strict filter allow-lists", () => {
+  const deletes = section("async function flushPendingDeletes(", "async function robustUpsert(");
+  assert(deletes.includes("options.confirmed !== true"), "Deletes must fail closed without explicit confirmation");
+  assert(deletes.includes("!isAdminAuthorized()"), "Deletes must require administrator authorization");
+  for (const table of ["classes", "students", "attendance", "behaviors", "teachers", "duty_reports"]) {
+    assert(deletes.includes("item.table === '" + table + "'") || (table === "behaviors" && deletes.includes("item.table === 'attendance' || item.table === 'behaviors'")), "Missing delete allow-list for " + table);
+  }
+  assert(deletes.includes("const { error } = await query"), "A queued delete may be removed only after the cloud operation succeeds");
+  assert(deletes.includes("setPendingDeletes(remaining)"), "Successful deletes must be removed from the pending queue");
+});
+
+Deno.test("sync indicator never marks an in-flight upload as green/synced", () => {
+  const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
+  assert(save.includes('updateSyncStatus(false, "جارِ الحفظ...")'), "In-flight upload must remain visibly unsynced");
+  assert(!save.includes('updateSyncStatus(true, "جارِ الحفظ...")'), "In-flight upload must never show the synced state");
 });
