@@ -627,6 +627,7 @@
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
   };
 
@@ -642,6 +643,7 @@
       status("تم حذف التوزيع بالكامل من السجل النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
     }catch(error){status(error?.message||"تعذر حذف التوزيع بالكامل؛ لم يتم اعتماد حذف جزئي.","error");}
   };
 
@@ -692,6 +694,7 @@
           status("تم حفظ التعديل؛ أُبقي السجل السابق والجديد في سجل المراجعة.","success");
           await timetableDailyRefreshAll();
           if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
         }catch(error){errorBox.textContent=error?.message||"تعذر حفظ التعديل.";errorBox.classList.remove("hidden");button.disabled=false;button.textContent="حفظ التعديل";}
       });
     }catch(error){status(error?.message||"تعذر فتح نافذة تعديل تكليف الاحتياط.","error");}
@@ -1088,13 +1091,112 @@
             body={...body,otherTeacherNames:names};
           }
         }
-        return originalRequest.call(this,body,token);
+        const result=await originalRequest.call(this,body,token);
+        if(["timetable_substitution_batch_save","timetable_substitution_save"].includes(action)&&!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function"){
+          try{await window.substitutionLoadCumulativeArchive();}catch{}
+        }
+        return result;
       };
     }
   }
+
+  function installHomeReserveArchive() {
+    const view=$("substitutionView");
+    if(!view||view.dataset.cumulativeArchiveInstalled==="1")return;
+    const canView=activeUser?.type==="admin"||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.type==="admin";
+    if(!canView)return;
+    const header=view.querySelector(".relative.z-10.flex.flex-wrap.items-center.justify-between.gap-3");
+    const stats=$("substitutionStatsPanel");
+    if(!header||!stats)return;
+    view.dataset.cumulativeArchiveInstalled="1";
+    const back=header.querySelector('button[onclick="closeSubstitutionView()"]');
+    const buttonHtml='<button type="button" id="substitutionCumulativeArchiveButton" class="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-xs font-black text-cyan-900 hover:bg-cyan-100"><i class="fa-solid fa-box-archive ml-1"></i> سجل الاحتياط التراكمي</button>';
+    if(back)back.insertAdjacentHTML("beforebegin",buttonHtml);else header.insertAdjacentHTML("beforeend",buttonHtml);
+    stats.insertAdjacentHTML("afterend",
+      '<section id="substitutionCumulativeArchivePanel" class="hidden mt-5 space-y-3 rounded-3xl border border-indigo-200 bg-white p-4 shadow-sm dark:border-indigo-900 dark:bg-slate-900">'+
+      '<div><h3 class="text-sm font-black text-slate-900 dark:text-white">سجل الاحتياط التراكمي</h3><p class="mt-1 text-[10px] text-slate-500">سجل موحّد لجميع المواد، مرتب حسب أيام التوزيع الفعلية، دون إظهار المادة أو اسم من أنشأ التوزيع.</p></div>'+
+      '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">'+
+      '<label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="substitutionArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"></label>'+
+      '<label class="text-[10px] font-bold text-slate-600">إلى تاريخ<input id="substitutionArchiveTo" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"></label>'+
+      '<button type="button" id="substitutionArchiveReload" class="rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-black text-slate-800">عرض السجلات</button>'+
+      '<button type="button" id="substitutionArchivePrint" class="rounded-xl bg-indigo-700 px-4 py-3 text-xs font-black text-white"><i class="fa-solid fa-print ml-1"></i> طباعة السجل</button></div>'+
+      '<div id="substitutionCumulativeArchiveStatus" class="text-[10px] font-bold text-slate-500" role="status" aria-live="polite"></div>'+
+      '<div id="substitutionCumulativeArchiveResults" class="space-y-3"><p class="rounded-xl border border-dashed p-4 text-center text-xs text-slate-500">اختر الفترة الزمنية ثم اعرض السجلات.</p></div></section>');
+    try{const today=timetableSubstitutionGetDate().date;$("substitutionArchiveFrom").value=today;$("substitutionArchiveTo").value=today;}catch{}
+    $("substitutionCumulativeArchiveButton")?.addEventListener("click",async()=>{
+      const panel=$("substitutionCumulativeArchivePanel");
+      const opening=panel?.classList.contains("hidden");
+      panel?.classList.toggle("hidden");
+      if(opening)await window.substitutionLoadCumulativeArchive();
+    });
+    $("substitutionArchiveReload")?.addEventListener("click",()=>window.substitutionLoadCumulativeArchive());
+    $("substitutionArchivePrint")?.addEventListener("click",()=>{
+      if(!(reserveArchive||[]).some(item=>item.status!=="cancelled"&&item.assignmentDate)){
+        setHomeArchiveStatus("حمّل السجلات أولاً، ولا توجد توزيعات غير ملغاة للطباعة.","error");return;
+      }
+      window.timetableDailyPrintArchiveRange();
+    });
+  }
+
+  function setHomeArchiveStatus(message,kind) {
+    const node=$("substitutionCumulativeArchiveStatus");if(!node)return;
+    node.textContent=String(message||"");
+    node.className="text-[10px] font-bold "+(kind==="error"?"text-rose-700":kind==="success"?"text-emerald-700":"text-slate-500");
+  }
+
+  window.substitutionLoadCumulativeArchive = async function() {
+    const host=$("substitutionCumulativeArchiveResults");if(!host)return;
+    const from=$("substitutionArchiveFrom")?.value||"",to=$("substitutionArchiveTo")?.value||"";
+    if(!from||!to||from>to){setHomeArchiveStatus("حدد فترة زمنية صحيحة قبل عرض السجل.","error");return;}
+    host.innerHTML='<div class="rounded-xl bg-slate-50 p-4 text-center text-xs text-slate-500">جارٍ تحميل سجل الاحتياط...</div>';
+    setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
+    try{
+      const token=appAuthSession?.token||readAppAuthToken();
+      const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+      reserveArchive=response.archive||[];
+      window.substitutionRenderCumulativeArchive();
+      setHomeArchiveStatus("تم تحديث السجل من قاعدة البيانات مباشرة.","success");
+    }catch(error){
+      host.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">'+esc(error?.message||"تعذر تحميل السجل.")+'</div>';
+      setHomeArchiveStatus(error?.message||"تعذر تحميل السجل.","error");
+    }
+  };
+
+  window.substitutionRenderCumulativeArchive = function() {
+    const host=$("substitutionCumulativeArchiveResults");if(!host)return;
+    if(!reserveArchive.length){host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد توزيعات احتياط في الفترة المحددة.</div>';return;}
+    const active=reserveArchive.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+    const historical=reserveArchive.length-active.length;
+    const byDate=new Map();
+    reserveArchive.forEach(item=>{const date=item.assignmentDate||"تاريخ غير محدد";if(!byDate.has(date))byDate.set(date,[]);byDate.get(date).push(item);});
+    host.innerHTML='<div class="grid gap-2 sm:grid-cols-2"><div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+active.length+' تكليف ضمن المهلة</span></div><div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي</strong><span class="text-[10px] text-slate-600">'+historical+' تكليف محفوظ للمراجعة</span></div></div>'+
+      Array.from(byDate.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,items])=>{
+        const byAbsent=new Map();
+        items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
+        const groups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
+          rows.sort((a,b)=>Number(a.period)-Number(b.period));
+          const current=rows.filter(item=>["assigned","confirmed"].includes(item.status));
+          const canDelete=current.length>0&&current.every(item=>item.canEdit!==false);
+          const deleteAll=canDelete?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-delete-group-date="'+esc(date)+'" data-home-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+current.length+')</button>':"";
+          const rowHtml=rows.map(item=>{
+            const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
+            const editable=item.canEdit!==false&&["assigned","confirmed"].includes(item.status);
+            const actions=editable?'<div class="flex gap-1"><button type="button" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800" data-home-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-archive-delete="'+esc(item.id)+'">حذف</button></div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&["assigned","confirmed"].includes(item.status)?"سجل تاريخي · للقراءة فقط":state)+'</span>';
+            return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3"><div><strong class="block text-xs text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</strong><span class="text-[10px] text-slate-500">'+state+' · '+esc(item.reason||"-")+'</span></div>'+actions+'</div>';
+          }).join("");
+          return '<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+deleteAll+'</div><div class="space-y-2">'+rowHtml+'</div></section>';
+        }).join("");
+        return '<details open class="rounded-xl border border-slate-200 bg-white p-3"><summary class="cursor-pointer text-xs font-black text-slate-800">'+esc(date)+' · '+items.length+' تكليف</summary><div class="mt-3 space-y-3">'+groups+'</div></details>';
+      }).join("");
+    host.querySelectorAll("[data-home-archive-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.homeArchiveEdit)));
+    host.querySelectorAll("[data-home-archive-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.homeArchiveDelete)));
+    host.querySelectorAll("[data-home-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.homeDeleteGroupDate,button.dataset.homeDeleteGroupAbsent)));
+  };
+
   installLegacyOtherDepartmentTeacherPicker();
 
   installReserveEnhancements();
+  installHomeReserveArchive();
   window.timetableDailyInstallAdminTools=installAdminReserveTools;
   window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
   installDepartmentReserveTools();
