@@ -110,6 +110,10 @@ jobs:
             '10/1','student-transfer-test',1,'2026-11-01','admin','synthetic-admin',
             true,now(),1,'2026-10-01','2026-11-01','["late"]',
             '[{"type":"late","date":"2026-11-01","period":"1","note":"synthetic"}]'
+          ), (
+            '10/1','student-transfer-existing-destination',1,'2026-11-02','admin','synthetic-admin',
+            true,now(),1,'2026-10-02','2026-11-02','["late"]',
+            '[{"type":"late","date":"2026-11-02","period":"2","note":"synthetic"}]'
           );
           SQL
       - name: Apply atomic student transfer migration
