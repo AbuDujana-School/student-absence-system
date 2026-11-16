@@ -9224,7 +9224,6 @@ function teacherTimetableRender() {
 
   const current = teacherTimetableCurrentPeriod();
   const status = document.getElementById("teacherTimetableCurrentStatus");
-  const periods = dutyData().periods || [];
   if (status) {
     const periodName = current.period
       ? String(periodNamesMap[current.period] || ("الحصة " + current.period)).replace(/^الحصة\s*/, "")
@@ -9261,7 +9260,6 @@ function teacherTimetableRender() {
       const cell = cellMap.get(day + ":" + period);
       const substitution = assignmentMap.get(day + ":" + period + ":" + dateForDay)
         || assignmentMap.get(day + ":" + period + ":");
-      const isCurrent = current.day === day && current.period === period;
       const cellStatus = String(cell?.cell_status || "unclear");
       const isTeaching = cellStatus === "teaching";
       const classValues = substitution?.class_sections || cell?.class_sections || [];
