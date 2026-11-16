@@ -51,14 +51,13 @@ Deno.test("behavior events are counted per student, class, date, period and type
   ];
   if (countBehaviorIncidents(rows) !== 3) throw new Error("behavior period counting failed");
 });
-Deno.test("a team day requires all eight attendance periods, while missing behavior records mean zero", () => {
-  const attendance = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
-  const noBehavior = getSessionCoverage([]);
-  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",attendance,noBehavior)) throw new Error("missing behavior must be treated as zero");
+Deno.test("a lesson with no recorded violations is treated as compliant and does not block the week", () => {
+  const noRows = getSessionCoverage([]);
+  if (!isTeamDayComplete(["1/9"],"2026-11-08",noRows,noRows)) throw new Error("a clean lesson must count as zero incidents, not incomplete");
   const partialAttendance = getSessionCoverage(sessions("1/9").slice(0,7));
-  if (isTeamDayComplete(["1/9"],"2026-11-08",partialAttendance,noBehavior)) throw new Error("unsaved attendance period must remain incomplete");
-  const full = getSessionCoverage([...sessions("1/9"),...sessions("2/9")]);
-  if (!isTeamDayComplete(["1/9","2/9"],"2026-11-08",full,noBehavior)) throw new Error("complete attendance day rejected");
+  if (!isTeamDayComplete(["1/9"],"2026-11-08",partialAttendance,noRows)) throw new Error("a clean or unrecorded lesson must not block the week");
+  if (isTeamDayComplete(["1/9"],"invalid",noRows,noRows)) throw new Error("invalid date must remain invalid");
+  if (isTeamDayComplete([],"2026-11-08",noRows,noRows)) throw new Error("empty team must remain invalid");
 });
 Deno.test("team rates are the unweighted average of class rates, not student-weighted rates", () => {
   const team = buildTeamRates({
