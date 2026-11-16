@@ -1,6 +1,6 @@
 /** Availability rules for a complete, explicit weekly timetable grid. */
 export interface SubstitutionTeacher {
-  id:string; name:string; departmentId:string; dutyDay?:string; weeklyQuota?:number;
+  id:string; name:string; departmentId:string; weeklyQuota?:number;
   pointsBalance?:number; dailyTeachingCount?:number; dailySubstitutionCount?:number;
   substitutionsCount?:number; workloadScore?:number; historicalWorkloadScore?:number;
   proximityScore?:number; wouldCreateTriple?:boolean; occupiedPeriods?:number[];
@@ -103,7 +103,6 @@ export function getAvailableSubstitutionCandidates(query:CandidateQuery):Substit
     calculateSubstitutionWorkloadScore(history,assignmentDate,period);
   const hasPointBalances=teachers.some(t=>typeof t.pointsBalance==="number");
   return teachers.filter(t=>t.id!==absentTeacherId&&!excludedTeacherIds.includes(t.id))
-    .filter(t=>!t.dutyDay||t.dutyDay!==weekday)
     .filter(t=>includeOtherDepartments||!!departmentId&&t.departmentId===departmentId)
     .filter(t=>{const cell=cells.get(t.id);return !!cell&&cell.count===1&&cell.isFree;})
     .filter(t=>!assigned.has(t.id)).map(t=>{
