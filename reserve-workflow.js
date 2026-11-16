@@ -698,7 +698,7 @@
       :"";
     const safeDate=String(date||"");let resolvedWeekday=String(weekday||"").trim();
     if(!resolvedWeekday&&safeDate){const d=new Date(safeDate+"T12:00:00+04:00");if(Number.isFinite(d.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(d);}
-    return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة للتعليم بمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة الأنصاري للبنين (9 - 12)</div></header>'+
+    return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة السويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
 
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'">'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+

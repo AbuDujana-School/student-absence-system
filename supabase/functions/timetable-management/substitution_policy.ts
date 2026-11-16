@@ -250,7 +250,17 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
     });
     const firstPass=candidatesFor(1);
     const allCandidates=candidatesFor(2);
-    const rankedCandidates=firstPass.length?firstPass:allCandidates;
+    // Subject/department teachers always take priority. Cross-department
+    // support is a fallback only when no eligible same-department teacher
+    // can take the lesson within the one-per-day first pass.
+    const sameDepartment=(candidate:SubstitutionTeacher)=>candidate.departmentId===absent.departmentId;
+    const firstPassSameDepartment=firstPass.filter(sameDepartment);
+    const firstPassOtherDepartments=firstPass.filter(candidate=>!sameDepartment(candidate));
+    const allSameDepartment=allCandidates.filter(sameDepartment);
+    const allOtherDepartments=allCandidates.filter(candidate=>!sameDepartment(candidate));
+    const rankedCandidates=firstPassSameDepartment.length?firstPassSameDepartment:
+      firstPassOtherDepartments.length?firstPassOtherDepartments:
+      allSameDepartment.length?allSameDepartment:allOtherDepartments;
     const candidate=rankedCandidates[0];
     if(!candidate){
       unassigned.push({absentTeacherName:absent.name,weekday:lesson.weekday,period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{})});

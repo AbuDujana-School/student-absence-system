@@ -391,6 +391,26 @@ Deno.test("batch plan excludes all selected absentees and prefers one assignment
 });
 
 
+Deno.test("batch planner prioritizes the absent teacher's own subject department before cross-department support", () => {
+  const teachers:SubstitutionTeacher[]=[
+    {id:"absent",name:"معلم المادة الغائب",departmentId:"science",pointsBalance:0},
+    {id:"cross",name:"بديل من قسم آخر",departmentId:"english",pointsBalance:-100},
+    {id:"same",name:"بديل من نفس المادة",departmentId:"science",pointsBalance:100},
+  ];
+  const timetable=[
+    {teacherId:"absent",weekday:"الأحد",period:3,className:"10/1",subject:"العلوم",status:"teaching" as const},
+    {teacherId:"cross",weekday:"الأحد",period:3,className:"",status:"free" as const},
+    {teacherId:"same",weekday:"الأحد",period:3,className:"",status:"free" as const},
+  ];
+  const plan=buildBatchSubstitutionPlan({
+    teachers,timetable,assignments:[],absentTeachers:[{id:"absent",name:"معلم المادة الغائب",departmentId:"science"}],
+    weekday:"الأحد",assignmentDate:"2026-11-16",versionId:"active",
+    includeOtherDepartments:true,otherDepartmentTeacherIds:["cross"],
+  });
+  equal(plan.assignedCount,1,"The absent lesson should be covered");
+  equal(plan.assignments[0].substituteTeacherName,"بديل من نفس المادة","Same-department teacher must outrank cross-department support even with a higher points balance");
+});
+
 Deno.test("reserve permission grants substitution actions only", async () => {
   const token="a".repeat(64);
   const principal=await resolveTimetablePrincipal("Bearer "+token,{
