@@ -207,7 +207,7 @@ Deno.test("manual offline sync confirms record uploads and administrator-approve
 
 Deno.test("sync indicator offers upload only when marked local records are pending", () => {
   const status = section("function updateSyncStatus(", "async function initDefaults()");
-  assert(status.includes("hasPendingOfflineRecordChanges() ? syncPendingLocalChanges() : forceSyncWithCloud()"), "Indicator must route pending edits to explicit upload");
+  assert(status.includes("hasPendingOfflineChanges() ? syncPendingLocalChanges() : forceSyncWithCloud()"), "Indicator must route pending edits and delete-only queues to explicit sync");
   assert(status.includes("الحذف المعلّق يحتاج تأكيد المدير"), "Indicator must disclose that queued deletions require administrator confirmation");
 });
 
@@ -301,4 +301,17 @@ Deno.test("sync indicator never marks an in-flight upload as green/synced", () =
   const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
   assert(save.includes('updateSyncStatus(false, "جارِ الحفظ...")'), "In-flight upload must remain visibly unsynced");
   assert(!save.includes('updateSyncStatus(true, "جارِ الحفظ...")'), "In-flight upload must never show the synced state");
+});
+
+
+Deno.test("cloud refresh can recover a session that started offline", () => {
+  const polling = section("async function refreshCloudChangesSilently()", "function hasPendingOfflineChanges()");
+  assert(!polling.includes("cloudDataLoadState !== 'ready'"), "Refresh must be able to recover after an earlier failed offline load");
+  assert(polling.includes("cloudDataLoadState === 'loading'"), "Refresh must still avoid overlapping an active initial load");
+  assert(polling.includes("if (hasPendingOfflineRecordChanges()) await retryOfflineSyncSilently()"), "A successful recovery must resume queued record uploads");
+});
+
+Deno.test("sync indicator routes delete-only pending queues to the confirmed sync workflow", () => {
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("hasPendingOfflineChanges() ? syncPendingLocalChanges() : forceSyncWithCloud()"), "Delete-only queues must not be sent to read-only refresh");
 });
