@@ -5592,6 +5592,7 @@ async function saveSystemDataToCloud(options = {}) {
   const localCacheSaved = saveToLocalStorageSafe();
   const durableSaved = await persistOfflineState();
   if (!localCacheSaved && !durableSaved) {
+    cloudSaveInProgress = false;
     updateSyncStatus(false, "تعذر حفظ نسخة محلية آمنة؛ أُوقف الإرسال السحابي");
     if (!options.silent) showToast("تعذر تأمين نسخة محلية من التعديلات. لم تُرسل إلى الخادم.", "error");
     return false;
