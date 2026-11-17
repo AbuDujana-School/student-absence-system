@@ -75,6 +75,8 @@ async function fetchTeacherTimetableCells(
   const directory = await teacherDirectory();
   const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
   const fallback = unresolved.filter((cell: any) =>
+    // Exact-name rows are already returned by the indexed query above.
+    cell.matched_teacher_name !== teacherName &&
     resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === teacherName
   );
   return [...(matched || []), ...fallback];
