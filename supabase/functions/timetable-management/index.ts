@@ -909,23 +909,55 @@ async function handle(req: Request) {
       }
       const [directory, versionResult] = await Promise.all([
         teacherDirectory(),
-        db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count").eq("status", "active").maybeSingle(),
+        db.from("timetable_weekly_versions")
+          .select("id,version,status,activated_at,period_count")
+          .in("status", ["active", "superseded"])
+          .not("activated_at", "is", null)
+          .lte("activated_at", dateTo + "T23:59:59+04:00")
+          .order("activated_at", { ascending: true }),
       ]);
       if (versionResult.error) throw versionResult.error;
-      const version = versionResult.data;
-      if (!version) return reply(200, { ok: true, version: null, teachers: [], cells: [], assignments: [] });
-      const [rawCells, rawAssignments] = await Promise.all([
-        fetchAllTimetableCells((from,to) => db.from("timetable_weekly_cells")
-          .select("matched_teacher_name,teacher_source_name,weekday,period,cell_status,class_sections,subject")
-          .eq("version_id", version.id).order("id").range(from,to)),
+      const allVersions = versionResult.data || [];
+      const omanDate = (value:any) => {
+        const date = new Date(String(value || ""));
+        if (!Number.isFinite(date.getTime())) return "";
+        const parts = new Intl.DateTimeFormat("en-US", {
+          timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
+        }).formatToParts(date);
+        const part = (type:string) => parts.find((item:any) => item.type === type)?.value || "";
+        return part("year") + "-" + part("month") + "-" + part("day");
+      };
+      const datedVersions = allVersions.map((version:any) => ({
+        id: String(version.id),
+        version: Number(version.version),
+        activatedAt: version.activated_at,
+        activatedDate: omanDate(version.activated_at),
+        periodCount: Number(version.period_count || 7),
+      })).filter((version:any) => version.activatedDate && version.activatedDate <= dateTo);
+      const previousVersion = datedVersions.filter((version:any) => version.activatedDate < dateFrom).slice(-1);
+      const inRangeVersions = datedVersions.filter((version:any) => version.activatedDate >= dateFrom);
+      const relevantVersions = [...previousVersion, ...inRangeVersions];
+      if (!relevantVersions.length) {
+        return reply(200, { ok: true, version: null, versions: [], teachers: [], cells: [], assignments: [] });
+      }
+      const versionIds = relevantVersions.map((version:any) => version.id);
+      const [cellGroups, rawAssignments] = await Promise.all([
+        Promise.all(relevantVersions.map(async (version:any) => {
+          const rows = await fetchAllTimetableCells((from,to) => db.from("timetable_weekly_cells")
+            .select("version_id,matched_teacher_name,teacher_source_name,weekday,period,cell_status,class_sections,subject")
+            .eq("version_id", version.id).order("id").range(from,to));
+          return rows || [];
+        })),
         fetchAllSubstitutionRows((from,to) => db.from("timetable_assignments")
-          .select("teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,version_id")
-          .eq("assignment_type", "substitution").gte("assignment_date", dateFrom).lte("assignment_date", dateTo)
+          .select("version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject")
+          .in("version_id", versionIds).eq("assignment_type", "substitution")
+          .gte("assignment_date", dateFrom).lte("assignment_date", dateTo)
           .order("assignment_date").order("period").order("id").range(from,to)),
       ]);
       const systemTeachers = directory.filter((teacher:any) => teacher.role === "teacher")
         .map((teacher:any) => ({ name: String(teacher.name || "").trim() })).filter((teacher:any) => teacher.name);
-      const cells = (rawCells || []).map((cell:any) => ({
+      const cells = cellGroups.flat().map((cell:any) => ({
+        versionId: String(cell.version_id || ""),
         teacherName: resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers),
         weekday: String(cell.weekday || ""),
         period: Number(cell.period),
@@ -934,6 +966,7 @@ async function handle(req: Request) {
         subject: String(cell.subject || ""),
       })).filter((cell:any) => cell.teacherName);
       const assignments = (rawAssignments || []).map((row:any) => ({
+        versionId: String(row.version_id || ""),
         teacherName: String(row.teacher_name || "").trim(),
         absentTeacherName: String(row.absent_teacher_name || "").trim(),
         assignmentType: String(row.assignment_type || ""),
@@ -945,7 +978,8 @@ async function handle(req: Request) {
         subject: String(row.subject || ""),
       }));
       return reply(200, {
-        ok: true, version: { version: version.version, period_count: version.period_count },
+        ok: true, version: relevantVersions[relevantVersions.length - 1],
+        versions: relevantVersions,
         teachers: directory.filter((teacher:any) => teacher.role === "teacher").map((teacher:any) => String(teacher.name || "").trim()).filter(Boolean),
         cells, assignments,
       });

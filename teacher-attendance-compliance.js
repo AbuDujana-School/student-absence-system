@@ -56,11 +56,18 @@
     cells.forEach(cell => { const name = String(cell.teacherName || "").trim(); if (name && !teacherNames.has(normalize(name))) teacherNames.set(normalize(name), name); });
     assignments.forEach(item => { const name = String(item.teacherName || "").trim(); if (name && !teacherNames.has(normalize(name))) teacherNames.set(normalize(name), name); });
 
-    const scheduleByDay = new Map();
+    const versions = (Array.isArray(data.versions) ? data.versions : (data.version ? [data.version] : []))
+      .map(version => ({
+        id: String(version.id || ""),
+        activatedDate: String(version.activatedDate || ""),
+      }))
+      .filter(version => version.id && /^\d{4}-\d{2}-\d{2}$/.test(version.activatedDate))
+      .sort((a,b) => a.activatedDate.localeCompare(b.activatedDate));
+    const scheduleByVersionDay = new Map();
     cells.filter(cell => cell.status === "teaching").forEach(cell => {
-      const key = String(cell.weekday || "");
-      if (!scheduleByDay.has(key)) scheduleByDay.set(key, []);
-      scheduleByDay.get(key).push(cell);
+      const key = String(cell.versionId || "") + "|" + String(cell.weekday || "");
+      if (!scheduleByVersionDay.has(key)) scheduleByVersionDay.set(key, []);
+      scheduleByVersionDay.get(key).push(cell);
     });
     const expected = new Map();
     const ensure = name => {
@@ -76,7 +83,13 @@
       if (dateStr > today) continue;
       const weekday = typeof dutyDayForDate === "function" ? dutyDayForDate(dateStr) : DAYS[date.getUTCDay()];
       if (!DAYS.includes(weekday)) continue;
-      for (const cell of scheduleByDay.get(weekday) || []) {
+      let effectiveVersion = null;
+      for (const version of versions) {
+        if (version.activatedDate <= dateStr) effectiveVersion = version;
+        else break;
+      }
+      if (!effectiveVersion) continue;
+      for (const cell of scheduleByVersionDay.get(effectiveVersion.id + "|" + weekday) || []) {
         const teacher = ensure(cell.teacherName);
         if (!teacher) continue;
         for (const className of classValues(cell.classSections)) {
@@ -85,7 +98,7 @@
         }
       }
       for (const item of assignments) {
-        if (item.assignmentDate !== dateStr || item.assignmentType !== "substitution") continue;
+        if (item.assignmentDate !== dateStr || item.versionId !== effectiveVersion.id || item.assignmentType !== "substitution") continue;
         if (!["assigned", "confirmed", "completed"].includes(String(item.status || ""))) continue;
         const teacher = ensure(item.teacherName);
         if (!teacher) continue;
@@ -209,11 +222,26 @@
     if (!report?.rows?.length) { setStatus("لا توجد بيانات جاهزة للطباعة.", "error"); return; }
     const w = window.open("", "_blank");
     if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
-    const rows = report.rows.map((row,index) =>
-      '<tr><td class="name">'+esc(row.name)+'</td><td class="num">'+row.total+'</td>'+
-      '<td>'+row.complete.map(esc).join("<br>")+'</td><td>'+row.pending.map(esc).join("<br>")+'</td>'+
-      '<td class="pct">'+row.percentage.toFixed(1)+'%</td></tr>'
-    ).join("");
+    const rows = report.rows.map(row => {
+      const chunkSize = 6;
+      const chunks = values => {
+        const result = [];
+        for (let i = 0; i < values.length; i += chunkSize) result.push(values.slice(i, i + chunkSize));
+        return result.length ? result : [[]];
+      };
+      const completeChunks = chunks(row.complete);
+      const pendingChunks = chunks(row.pending);
+      const count = Math.max(completeChunks.length, pendingChunks.length);
+      return Array.from({ length: count }, (_, index) => {
+        const complete = completeChunks[index] || [];
+        const pending = pendingChunks[index] || [];
+        const first = index === 0;
+        return '<tr><td class="name">'+(first ? esc(row.name) : '<span class="continuation">تكملة</span>')+'</td>'+
+          '<td class="num">'+(first ? row.total : '')+'</td>'+
+          '<td>'+complete.map(esc).join("<br>")+'</td><td>'+pending.map(esc).join("<br>")+'</td>'+
+          '<td class="pct">'+(first ? row.percentage.toFixed(1)+'%' : '')+'</td></tr>';
+      }).join("");
+    }).join("");
     const period = report.from === report.to ? report.from : report.from + " — " + report.to;
     const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير الالتزام برصد الغياب</title>'+
       '<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap" rel="stylesheet"><style>'+
@@ -222,8 +250,8 @@
       'header strong{display:block;font-size:13px;line-height:1.8}header h1{font-size:17px;margin:5px 0;color:#183653}header p{margin:3px 0;color:#475569;font-weight:700}'+
       '.summary{display:flex;gap:8px;justify-content:space-between;margin:8px 0 12px}.summary span{flex:1;text-align:center;border:1px solid #dbe4ea;background:#f8fafc;border-radius:7px;padding:7px;font-weight:800}'+
       'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:7px 6px;vertical-align:top;overflow-wrap:anywhere}th{background:#eaf1f6;color:#183653;font-weight:900;text-align:center}'+
-      'td.num,td.pct{text-align:center;font-weight:900}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}'+
-      'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
+      'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}'+
+      'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}td{line-height:1.65}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
       '@media print{header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
       '</style></head><body><header><strong>سلطنة عُمان<br>وزارة التربية والتعليم<br>المديرية العامة لمحافظة شمال الباطنة<br>إدارة السويق<br>مدرسة أبو دجانة</strong>'+
       '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
