@@ -40,6 +40,45 @@ async function fetchAllSubstitutionRows(queryForRange: (from:number,to:number)=>
   // Historical fairness and points must not silently stop at the weekly-grid row limit.
   return fetchAllTimetablePages(queryForRange, TIMETABLE_CELL_PAGE_SIZE, 100000);
 }
+
+/**
+ * Read only one teacher's active timetable cells. Matched names are canonical
+ * teacher-directory values and are indexed; unresolved legacy rows retain the
+ * previous name-resolution fallback without downloading the whole weekly grid.
+ */
+async function fetchTeacherTimetableCells(
+  versionId: string,
+  teacherName: string,
+  selectColumns: string,
+  teachingOnly = false,
+): Promise<any[]> {
+  let exactQuery = db.from("timetable_weekly_cells")
+    .select(selectColumns)
+    .eq("version_id", versionId)
+    .eq("matched_teacher_name", teacherName);
+  if (teachingOnly) exactQuery = exactQuery.eq("cell_status", "teaching");
+
+  const [{ data: matched, error: matchedError }, unresolved] = await Promise.all([
+    exactQuery.order("id"),
+    fetchAllTimetableCells((from, to) => {
+      let query = db.from("timetable_weekly_cells")
+        .select(selectColumns)
+        .eq("version_id", versionId)
+        .neq("match_status", "matched");
+      if (teachingOnly) query = query.eq("cell_status", "teaching");
+      return query.order("id").range(from, to);
+    }),
+  ]);
+  if (matchedError) throw matchedError;
+  if (!unresolved.length) return matched || [];
+
+  const directory = await teacherDirectory();
+  const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
+  const fallback = unresolved.filter((cell: any) =>
+    resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === teacherName
+  );
+  return [...(matched || []), ...fallback];
+}
 const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
@@ -93,15 +132,10 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
     if (versionError || !version) return false;
-    const [cells, directory] = await Promise.all([
-      fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
-        .eq("version_id", version.id).eq("cell_status", "teaching").order("id").range(from,to)),
-      teacherDirectory(),
-    ]);
-    const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
-    return (cells || []).some((cell: any) =>
-      resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === name
+    const cells = await fetchTeacherTimetableCells(
+      version.id, name, "matched_teacher_name,teacher_source_name", true,
     );
+    return cells.length > 0;
   },
   async hasOwnDailySubstitutionAssignment(name) {
     const { date: today, weekday } = muscatDateAndWeekday();
@@ -528,15 +562,10 @@ async function handle(req: Request) {
       if (versionError) throw versionError;
       let hasPersonalSchedule = false;
       if (version && principal.type === "teacher") {
-        const [teachingCells, directory] = await Promise.all([
-          fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name")
-            .eq("version_id", version.id).eq("cell_status", "teaching").order("id").range(from,to)),
-          teacherDirectory(),
-        ]);
-        const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
-        hasPersonalSchedule = (teachingCells || []).some((cell: any) =>
-          resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === principal.name
+        const teachingCells = await fetchTeacherTimetableCells(
+          version.id, principal.name, "matched_teacher_name,teacher_source_name", true,
         );
+        hasPersonalSchedule = teachingCells.length > 0;
       }
       return reply(200, {
         canAccess: principal.type === "admin" || principal.portalOnly !== true,
@@ -1135,17 +1164,15 @@ async function handle(req: Request) {
       const { data: version, error } = await db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count").eq("status","active").maybeSingle();
       if (error) throw error;
       if (!version) return reply(200, { ok:true, teacherName: principal.name, version:null, cells:[], assignments:[] });
-      const [allCells,{data:assignments,error:assignError},directory] = await Promise.all([
-        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name")
-          .eq("version_id",version.id).order("id").range(from,to)),
+      const [allOwnCells,{data:assignments,error:assignError}] = await Promise.all([
+        fetchTeacherTimetableCells(
+          version.id, principal.name,
+          "weekday,period,cell_status,class_sections,subject,source_page,matched_teacher_name,teacher_source_name",
+        ),
         db.from("timetable_assignments").select("id,assignment_type,weekday,period,assignment_date,class_sections,subject,absent_teacher_name,status").eq("version_id",version.id).eq("teacher_name",principal.name).neq("status","cancelled"),
-        teacherDirectory(),
       ]);
       if (assignError) throw assignError;
-      const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
-      const ownCells = (allCells || []).filter((cell: any) =>
-        resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === principal.name
-      ).map(({matched_teacher_name,teacher_source_name,...cell}: any) => cell);
+      const ownCells = allOwnCells.map(({matched_teacher_name,teacher_source_name,...cell}: any) => cell);
       const order = new Map(DAYS.map((day,i)=>[day,i]));
       const sort = (a:any,b:any)=>(order.get(a.weekday)??99)-(order.get(b.weekday)??99)||a.period-b.period;
       return reply(200,{ok:true,teacherName:principal.name,version,cells:ownCells.sort(sort),assignments:(assignments||[]).sort(sort)});
