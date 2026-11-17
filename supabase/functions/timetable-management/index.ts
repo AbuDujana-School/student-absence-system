@@ -317,7 +317,7 @@ async function handle(req: Request) {
       return reply(400,{error:"حدد فترة زمنية صحيحة لأرشيف الاحتياط."});
     }
     const fromMs=Date.parse(dateFrom+"T00:00:00Z"),toMs=Date.parse(dateTo+"T00:00:00Z");
-    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||(principal.type!=="admin"&&toMs-fromMs>366*86400000)) {
+    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||(principal.type!=="admin"&&!hasReservePermission&&toMs-fromMs>366*86400000)) {
       return reply(400,{error:principal.type==="admin"?"نطاق التاريخ غير صحيح.":"الفترة القصوى لطباعة أرشيف الاحتياط هي 366 يوماً."});
     }
     const [directory,activeVersion]=await Promise.all([
