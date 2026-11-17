@@ -222,7 +222,8 @@
     if (!report?.rows?.length) { setStatus("لا توجد بيانات جاهزة للطباعة.", "error"); return; }
     const w = window.open("", "_blank");
     if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
-    const rows = report.rows.map(row => {\n      const status = row.percentage === 100 ? 'full' : row.complete.length === 0 ? 'zero' : 'partial';
+    const rows = report.rows.map(row => {
+      const status = row.percentage === 100 ? 'full' : row.complete.length === 0 ? 'zero' : 'partial';
       const chunkSize = 6;
       const chunks = values => {
         const result = [];
