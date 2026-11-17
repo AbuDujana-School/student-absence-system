@@ -697,7 +697,7 @@
   window.timetableDailyCancelAssignment = async function (assignmentId) {
     const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
-    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف خارج مهلة التعديل أو مرتبط بإصدار جدول سابق؛ لا يمكن حذفه من هذه الشاشة.","error");return;}
+    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("لا يمكن حذف هذا التكليف إلا خلال يومه، أو لأنه مكتمل أو مرتبط بإصدار جدول سابق.","error");return;}
     if(!window.confirm("سيتم حذف هذا التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
     try{
       const token=appAuthSession?.token||readAppAuthToken();
@@ -729,51 +729,96 @@
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
     const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
+    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){
+      status("يمكن تعديل أو حذف التكليفات النشطة في يومها فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان.","error");return;
+    }
     try{
-      if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("هذا التكليف خارج مهلة التعديل أو مرتبط بإصدار سابق؛ يمكن مراجعته فقط.","error");return;}
       const token=appAuthSession?.token||readAppAuthToken();
       const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
-      const absentNames=Array.isArray(directoryResult.absentTeachers)?directoryResult.absentTeachers:[];
+      const absentNames=Array.isArray(directoryResult.absentTeachers)?directoryResult.absentTeachers.slice():[];
       if(!absentNames.includes(item.absentTeacherName))absentNames.unshift(item.absentTeacherName);
-      const initialPreview=await fetchArchivePreview(item.absentTeacherName,item.assignmentDate,item.weekday);
-      const initialLesson=(initialPreview.lessons||[]).find(row=>Number(row.period)===Number(item.period));
-      const makeOptions=(candidates,selected)=>{
+      let currentPreview=await fetchArchivePreview(item.absentTeacherName,item.assignmentDate,item.weekday);
+      const makePeriodOptions=(lessons,selected)=>{
+        return (Array.isArray(lessons)?lessons:[]).slice().sort((a,b)=>Number(a.period)-Number(b.period)).map(lesson=>
+          '<option value="'+Number(lesson.period)+'" '+(Number(lesson.period)===Number(selected)?"selected":"")+'>الحصة '+Number(lesson.period)+' · '+esc(lesson.className||"—")+'</option>'
+        ).join("");
+      };
+      const makeSubstituteOptions=(candidates,selected)=>{
         const rows=Array.isArray(candidates)?candidates:[];
-        const choices=rows.filter(candidate=>candidate.name!==selected).map(candidate=>'<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · رصيد '+Number(candidate.pointsBalance||0)+'</option>').join("");
+        const choices=rows.filter(candidate=>candidate.name!==selected).map(candidate=>
+          '<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · رصيد '+Number(candidate.pointsBalance||0)+'</option>'
+        ).join("");
         return '<option value="'+esc(selected)+'" selected>'+esc(selected)+' (الحالي)</option>'+choices;
       };
+      const initialLessons=Array.isArray(currentPreview.lessons)?currentPreview.lessons:[];
+      if(!initialLessons.length)throw new Error("لا توجد حصص تدريس قابلة للتعديل للمعلم الغائب في هذا اليوم.");
+      const selectedInitialPeriod=initialLessons.some(row=>Number(row.period)===Number(item.period))?Number(item.period):Number(initialLessons[0].period);
       const modal=document.createElement("div");modal.id="timetableDailyArchiveEditModal";
       modal.className="fixed inset-0 z-[99999] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-      modal.innerHTML='<div class="max-h-[90vh] w-full max-w-xl space-y-4 overflow-y-auto rounded-3xl border border-white/30 bg-white/95 p-5 shadow-2xl backdrop-blur-xl"><div class="flex items-center justify-between"><div><h3 class="font-black text-base text-slate-900">تعديل تكليف الاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">الحصة '+Number(item.period)+' · '+esc(item.assignmentDate||"")+'</p></div><button type="button" data-close-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div>'+
+      modal.innerHTML='<div class="max-h-[92vh] w-full max-w-2xl space-y-4 overflow-y-auto rounded-3xl border border-white/30 bg-white/95 p-5 shadow-2xl backdrop-blur-xl">'+
+        '<div class="flex items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-900">تعديل سجل الاحتياط</h3><p class="mt-1 text-[10px] text-slate-500">يمكن التعديل خلال اليوم الحالي وحتى نهايته بتوقيت سلطنة عمان</p></div><button type="button" data-close-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div>'+
+        '<div class="grid gap-3 sm:grid-cols-2">'+
         '<label class="block text-xs font-black text-slate-700">المعلم الغائب<select id="ttArchiveEditAbsent" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+absentNames.map(name=>'<option value="'+esc(name)+'" '+(name===item.absentTeacherName?"selected":"")+'>'+esc(name)+'</option>').join("")+'</select></label>'+
-        '<label class="block text-xs font-black text-slate-700">المعلم البديل<select id="ttArchiveEditSubstitute" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makeOptions(initialLesson?.candidates,item.substituteTeacherName)+'</select></label>'+
-        '<label class="block text-xs font-black text-slate-700">سبب الاحتياط (اختياري)<textarea id="ttArchiveEditReason" rows="2" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs" placeholder="اكتب السبب أو اتركه فارغاً">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label>'+
-        '<div id="ttArchiveEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex flex-wrap justify-end gap-2"><button type="button" data-close-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ التعديل</button></div></div>';
+        '<label class="block text-xs font-black text-slate-700">الحصة<select id="ttArchiveEditPeriod" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makePeriodOptions(initialLessons,selectedInitialPeriod)+'</select></label>'+
+        '<label class="block text-xs font-black text-slate-700 sm:col-span-2">المعلم البديل<select id="ttArchiveEditSubstitute" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makeSubstituteOptions((initialLessons.find(row=>Number(row.period)===selectedInitialPeriod)||{}).candidates,item.substituteTeacherName)+'</select></label>'+
+        '<div id="ttArchiveEditClassInfo" class="rounded-xl border border-sky-100 bg-sky-50 p-3 text-xs text-sky-900 sm:col-span-2"></div>'+
+        '<label class="block text-xs font-black text-slate-700 sm:col-span-2">سبب الاحتياط (اختياري)<textarea id="ttArchiveEditReason" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs" placeholder="اكتب السبب أو اتركه فارغاً">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label></div>'+
+        '<p class="text-[10px] leading-5 text-slate-500">الصف والمادة يُحدّثان تلقائياً حسب المعلم الغائب والحصة المختارة في الجدول الأسبوعي المعتمد؛ وذلك لمنع حفظ بيانات لا تطابق الجدول.</p>'+
+        '<div id="ttArchiveEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex flex-wrap justify-end gap-2"><button type="button" data-close-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ التعديلات</button></div></div>';
       document.body.appendChild(modal);
       modal.querySelectorAll("[data-close-edit]").forEach(button=>button.addEventListener("click",()=>modal.remove()));
-      const absentSelect=modal.querySelector("#ttArchiveEditAbsent"),subSelect=modal.querySelector("#ttArchiveEditSubstitute");
+      const absentSelect=modal.querySelector("#ttArchiveEditAbsent");
+      const periodSelect=modal.querySelector("#ttArchiveEditPeriod");
+      const subSelect=modal.querySelector("#ttArchiveEditSubstitute");
+      const classInfo=modal.querySelector("#ttArchiveEditClassInfo");
+      const errorBox=modal.querySelector("#ttArchiveEditError");
+      const getSelectedLesson=()=>((currentPreview.lessons||[]).find(row=>Number(row.period)===Number(periodSelect.value))||null);
+      const renderSelectedLesson=()=>{
+        const lesson=getSelectedLesson();
+        if(!lesson){
+          classInfo.textContent="لا توجد حصة مطابقة في الجدول لهذا الاختيار.";
+          subSelect.innerHTML="";
+          return;
+        }
+        classInfo.innerHTML='<strong>الصف:</strong> '+esc(lesson.className||"—")+' <span class="mx-2">|</span> <strong>المادة:</strong> '+esc(lesson.subject||"—");
+        subSelect.innerHTML=makeSubstituteOptions(lesson.candidates,item.substituteTeacherName);
+      };
+      renderSelectedLesson();
       absentSelect.addEventListener("change",async()=>{
-        absentSelect.disabled=true;subSelect.disabled=true;
+        absentSelect.disabled=true;periodSelect.disabled=true;subSelect.disabled=true;
+        errorBox.classList.add("hidden");
         try{
-          const preview=await fetchArchivePreview(absentSelect.value,item.assignmentDate,item.weekday);
-          const lesson=(preview.lessons||[]).find(row=>Number(row.period)===Number(item.period));
-          subSelect.innerHTML=makeOptions(lesson?.candidates,item.substituteTeacherName);
+          currentPreview=await fetchArchivePreview(absentSelect.value,item.assignmentDate,item.weekday);
+          const lessons=Array.isArray(currentPreview.lessons)?currentPreview.lessons:[];
+          if(!lessons.length)throw new Error("لا توجد حصص تدريس لهذا المعلم في اليوم المحدد.");
+          const preferred=lessons.some(row=>Number(row.period)===Number(periodSelect.value))?Number(periodSelect.value):Number(lessons[0].period);
+          periodSelect.innerHTML=makePeriodOptions(lessons,preferred);
+          renderSelectedLesson();
         }catch(error){
-          const box=modal.querySelector("#ttArchiveEditError");box.textContent=error?.message||"تعذر تحميل البدائل للمعلم الغائب المحدد.";box.classList.remove("hidden");
-        }finally{absentSelect.disabled=false;subSelect.disabled=false;}
+          errorBox.textContent=error?.message||"تعذر تحميل حصص المعلم الغائب المحدد.";
+          errorBox.classList.remove("hidden");
+        }finally{absentSelect.disabled=false;periodSelect.disabled=false;subSelect.disabled=false;}
       });
+      periodSelect.addEventListener("change",renderSelectedLesson);
       modal.querySelector("#ttArchiveEditSave").addEventListener("click",async()=>{
-        const button=modal.querySelector("#ttArchiveEditSave"),errorBox=modal.querySelector("#ttArchiveEditError");
-        button.disabled=true;button.textContent="جارٍ الحفظ...";
+        const button=modal.querySelector("#ttArchiveEditSave");
+        const lesson=getSelectedLesson();
+        if(!lesson){errorBox.textContent="اختر حصة صحيحة من جدول المعلم الغائب.";errorBox.classList.remove("hidden");return;}
+        if(!subSelect.value){errorBox.textContent="اختر معلماً بديلاً للحصة المحددة.";errorBox.classList.remove("hidden");return;}
+        button.disabled=true;button.textContent="جارٍ حفظ التعديلات...";
+        errorBox.classList.add("hidden");
         try{
-          await appAuthRequest({action:"timetable_substitution_update",assignmentId,absentTeacherName:absentSelect.value,substituteTeacherName:subSelect.value,reserveReason:modal.querySelector("#ttArchiveEditReason").value.trim()||"-",includeOtherDepartments:includeOthers()},token);
+          await appAuthRequest({action:"timetable_substitution_update",assignmentId,absentTeacherName:absentSelect.value,period:Number(periodSelect.value),substituteTeacherName:subSelect.value,reserveReason:modal.querySelector("#ttArchiveEditReason").value.trim()||"-",includeOtherDepartments:includeOthers()},token);
           modal.remove();
           if(absentSelect.value!==item.absentTeacherName&&!timetableDailyAbsentTeachers.includes(absentSelect.value)){timetableDailyAbsentTeachers.push(absentSelect.value);timetableDailyRenderTags();}
-          status("تم حفظ التعديل؛ أُبقي السجل السابق والجديد في سجل المراجعة.","success");
+          status("تم حفظ التعديلات وتحديث الحصة والصف والمادة وفق الجدول، مع الاحتفاظ بالسجل السابق في سجل المراجعة.","success");
           await timetableDailyRefreshAll();
           if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
-      if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
-        }catch(error){errorBox.textContent=error?.message||"تعذر حفظ التعديل.";errorBox.classList.remove("hidden");button.disabled=false;button.textContent="حفظ التعديل";}
+          if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
+        }catch(error){
+          errorBox.textContent=error?.message||"تعذر حفظ التعديل.";
+          errorBox.classList.remove("hidden");button.disabled=false;button.textContent="حفظ التعديلات";
+        }
       });
     }catch(error){status(error?.message||"تعذر فتح نافذة تعديل تكليف الاحتياط.","error");}
   };
