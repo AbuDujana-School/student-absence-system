@@ -1,15 +1,15 @@
-const CACHE_NAME = 'abudujana-app-v30';
+const CACHE_NAME = 'abudujana-app-v31';
 const APP_SHELL = [
   './',
   './index.html',
   './manifest.webmanifest',
   './sw.js',
-  './teacher-attendance-compliance.js?v=1',
+  './teacher-attendance-compliance.js?v=2',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v37';
+const RUNTIME_CACHE = 'abudujana-static-v38';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
