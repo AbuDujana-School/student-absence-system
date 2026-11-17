@@ -222,7 +222,7 @@
     if (!report?.rows?.length) { setStatus("لا توجد بيانات جاهزة للطباعة.", "error"); return; }
     const w = window.open("", "_blank");
     if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
-    const rows = report.rows.map(row => {
+    const rows = report.rows.map(row => {\n      const status = row.percentage === 100 ? 'full' : row.complete.length === 0 ? 'zero' : 'partial';
       const chunkSize = 6;
       const chunks = values => {
         const result = [];
@@ -236,7 +236,7 @@
         const complete = completeChunks[index] || [];
         const pending = pendingChunks[index] || [];
         const first = index === 0;
-        return '<tr><td class="name">'+(first ? esc(row.name) : '<span class="continuation">تكملة</span>')+'</td>'+
+        return '<tr class="status-' + status + '"><td class="name">'+(first ? esc(row.name) : '<span class="continuation">تكملة</span>')+'</td>'+
           '<td class="num">'+(first ? row.total : '')+'</td>'+
           '<td>'+complete.map(esc).join("<br>")+'</td><td>'+pending.map(esc).join("<br>")+'</td>'+
           '<td class="pct">'+(first ? row.percentage.toFixed(1)+'%' : '')+'</td></tr>';
@@ -250,12 +250,12 @@
       'header strong{display:block;font-size:13px;line-height:1.8}header h1{font-size:17px;margin:5px 0;color:#183653}header p{margin:3px 0;color:#475569;font-weight:700}'+
       '.summary{display:flex;gap:8px;justify-content:space-between;margin:8px 0 12px}.summary span{flex:1;text-align:center;border:1px solid #dbe4ea;background:#f8fafc;border-radius:7px;padding:7px;font-weight:800}'+
       'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:7px 6px;vertical-align:top;overflow-wrap:anywhere}th{background:#eaf1f6;color:#183653;font-weight:900;text-align:center}'+
-      'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}'+
+      'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}.status-full{background:#ecfdf5!important}.status-partial{background:#fffbeb!important}.status-zero{background:#fff1f2!important}'+
       'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}td{line-height:1.65}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
       '@media print{header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
-      '</style></head><body><header><strong>سلطنة عُمان<br>وزارة التربية والتعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
+      '</style></head><body><header><strong>سلطنة عمان<br>وزارة التربية والتعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
       '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
-      '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
+      '<div class="summary"><span>المعلمون الملتزمون بالكامل: '+report.rows.filter(r=>r.percentage===100).length+'</span><span>المعلمون برصد جزئي: '+report.rows.filter(r=>r.complete.length>0&&r.percentage<100).length+'</span><span>غير الملتزمين: '+report.rows.filter(r=>r.complete.length===0).length+'</span></div>' + '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
       '<table><thead><tr><th style="width:19%">المعلم</th><th style="width:10%">عدد الحصص</th><th style="width:27%">رصد الغياب</th><th style="width:32%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
       '<div class="signatures"><span>مساعد مدير المدرسة: ....................................</span><span>مدير المدرسة: ....................................</span></div>'+
       '<script>window.onload=()=>setTimeout(()=>window.print(),300);<\\/script></body></html>';
