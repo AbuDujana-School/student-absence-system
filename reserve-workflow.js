@@ -507,7 +507,7 @@
     const rowCount=rows.length;
     const rowHeight=rowCount>32?"4mm":rowCount>22?"5mm":"6.8mm";
     const fontSize=rowCount>32?"7pt":rowCount>22?"8pt":"9pt";
-    const numberArabic=value=>String(value).replace(/\\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)]);
+    const numberArabic=value=>String(value).replace(/\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)]);
     let previousAbsent="";
     const bodyRows=rows.map((item,index)=>{
       const absent=String(item.absentTeacherName||"غير محدد");
