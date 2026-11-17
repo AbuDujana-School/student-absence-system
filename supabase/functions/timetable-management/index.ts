@@ -58,15 +58,16 @@ async function fetchTeacherTimetableCells(
     .eq("matched_teacher_name", teacherName);
   if (teachingOnly) exactQuery = exactQuery.eq("cell_status", "teaching");
 
-  let unresolvedQuery = db.from("timetable_weekly_cells")
-    .select(selectColumns)
-    .eq("version_id", versionId)
-    .neq("match_status", "matched");
-  if (teachingOnly) unresolvedQuery = unresolvedQuery.eq("cell_status", "teaching");
-
   const [{ data: matched, error: matchedError }, unresolved] = await Promise.all([
     exactQuery.order("id"),
-    fetchAllTimetableCells((from, to) => unresolvedQuery.order("id").range(from, to)),
+    fetchAllTimetableCells((from, to) => {
+      let query = db.from("timetable_weekly_cells")
+        .select(selectColumns)
+        .eq("version_id", versionId)
+        .neq("match_status", "matched");
+      if (teachingOnly) query = query.eq("cell_status", "teaching");
+      return query.order("id").range(from, to);
+    }),
   ]);
   if (matchedError) throw matchedError;
   if (!unresolved.length) return matched || [];
