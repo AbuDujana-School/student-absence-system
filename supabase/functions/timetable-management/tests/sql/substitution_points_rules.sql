@@ -6,7 +6,6 @@ declare
   v_version_id uuid;
   v_version_number integer;
   v_emergency_id uuid;
-  v_normal_id uuid;
   v_gap_id uuid;
   v_recent_delete_id uuid;
   v_old_delete_id uuid;
@@ -24,48 +23,27 @@ begin
   ) values
     (v_version_id,'__points_emergency__','__points_emergency__','matched','الأحد',1,'teaching','["10/1"]'::jsonb,'العلوم'),
     (v_version_id,'__points_emergency__','__points_emergency__','matched','الأحد',2,'teaching','["10/1"]'::jsonb,'العلوم'),
-    (v_version_id,'__points_normal__','__points_normal__','matched','الأحد',1,'teaching','["10/1"]'::jsonb,'العلوم'),
-    (v_version_id,'__points_normal__','__points_normal__','matched','الأحد',2,'teaching','["10/1"]'::jsonb,'العلوم'),
     (v_version_id,'__points_gap__','__points_gap__','matched','الأحد',1,'teaching','["10/1"]'::jsonb,'العلوم'),
     (v_version_id,'__points_gap__','__points_gap__','matched','الأحد',3,'teaching','["10/1"]'::jsonb,'العلوم');
 
-  -- Emergency reason + exactly the two immediately preceding teaching periods => +2.
+  -- Two immediately preceding teaching periods automatically qualify the reserve
+  -- for the two-point bonus; no text label or manual checkbox is required.
   insert into public.timetable_assignments(
     version_id,teacher_name,assignment_type,weekday,period,assignment_date,reserve_reason,status,created_by
   ) values (
     v_version_id,'__points_emergency__','substitution','الأحد',3,date '2026-11-15','-','assigned','reserve-points-rules-test'
   ) returning id into v_emergency_id;
-  update public.timetable_assignments set reserve_reason='احتياط اضطراري' where id=v_emergency_id;
   select coalesce(sum(points_delta),0) into v_net
   from public.timetable_substitution_points_ledger
   where assignment_id=v_emergency_id and teacher_name='__points_emergency__';
-  if v_net<>4 then raise exception 'Emergency reserve should earn period points plus two bonus points; got %',v_net; end if;
+  if v_net<>4 then raise exception 'Two teaching periods followed by reserve should earn period points plus two bonus points; got %',v_net; end if;
 
-  -- Removing the emergency marker removes only the two-point bonus.
-  update public.timetable_assignments set reserve_reason='احتياط عادي' where id=v_emergency_id;
-  select coalesce(sum(points_delta),0) into v_net
-  from public.timetable_substitution_points_ledger
-  where assignment_id=v_emergency_id and teacher_name='__points_emergency__';
-  if v_net<>2 then raise exception 'Changing the reason must remove the emergency bonus only; got %',v_net; end if;
-
-  -- Restore emergency, then cancellation inside 14 hours must reverse base and bonus.
-  update public.timetable_assignments set reserve_reason='احتياط اضطراري' where id=v_emergency_id;
+  -- Cancellation inside 14 hours must reverse both the normal points and bonus.
   update public.timetable_assignments set status='cancelled' where id=v_emergency_id;
   select coalesce(sum(points_delta),0) into v_net
   from public.timetable_substitution_points_ledger
   where assignment_id=v_emergency_id and teacher_name='__points_emergency__';
   if v_net<>0 then raise exception 'Cancellation inside 14 hours must reverse the teacher points; got %',v_net; end if;
-
-  -- A reason saying ordinary reserve must not create the emergency bonus.
-  insert into public.timetable_assignments(
-    version_id,teacher_name,assignment_type,weekday,period,assignment_date,reserve_reason,status,created_by
-  ) values (
-    v_version_id,'__points_normal__','substitution','الأحد',3,date '2026-11-15','احتياط عادي','assigned','reserve-points-rules-test'
-  ) returning id into v_normal_id;
-  select coalesce(sum(points_delta),0) into v_net
-  from public.timetable_substitution_points_ledger
-  where assignment_id=v_normal_id and teacher_name='__points_normal__';
-  if v_net<>2 then raise exception 'Ordinary reserve must receive only the standard two points; got %',v_net; end if;
 
   -- An emergency reserve after a gap does not qualify as the third consecutive period.
   insert into public.timetable_assignments(
