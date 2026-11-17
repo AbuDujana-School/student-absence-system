@@ -706,7 +706,7 @@
 
 
   window.timetableDailyCancelAssignment = async function (assignmentId) {
-    const item=reserveArchive.find(row=>row.id===assignmentId)||reserveHomeToday.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
     if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("لا يمكن حذف هذا التكليف إلا خلال يومه، أو لأنه مكتمل أو مرتبط بإصدار جدول سابق.","error");return;}
     if(!window.confirm("سيتم حذف هذا التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
@@ -740,7 +740,7 @@
 
 
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
-    const item=reserveArchive.find(row=>row.id===assignmentId)||reserveHomeToday.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
     if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){
       status("يمكن تعديل أو حذف التكليفات النشطة في يومها فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان.","error");return;
