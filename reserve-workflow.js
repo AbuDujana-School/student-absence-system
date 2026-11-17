@@ -228,9 +228,10 @@
         '<div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="font-black text-sm text-slate-900 dark:text-white">سجل الاحتياط التراكمي</h4><p class="mt-1 text-[10px] text-slate-500">يعرض جميع توزيعات المدرسة من المواد كافة، مرتبة حسب التاريخ. كل يوم في صفحة مستقلة.</p></div></div>' +
         '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"><label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="timetableDailyArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><label class="text-[10px] font-bold text-slate-600">إلى تاريخ<input id="timetableDailyArchiveTo" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><button type="button" id="timetableDailyArchiveReload" class="tt-action border border-slate-300 bg-white text-slate-800">عرض السجلات</button><button type="button" id="timetableDailyArchivePrint" class="tt-action bg-indigo-700 text-white"><i class="fa-solid fa-print ml-1"></i> طباعة السجل</button></div><div id="timetableDailyArchiveResults" class="space-y-3"></div></section>');
       $("timetableDailyArchivePanel")?.insertAdjacentHTML("afterend",
-        '<section id="timetableDailyActivePanel" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="text-sm font-black text-emerald-950">التوزيعات الحالية — قابلة للتعديل والحذف خلال اليوم الحالي</h4><p class="mt-1 text-[10px] text-emerald-800">يمكن تصحيح تكليفات هذا اليوم حتى نهايته بتوقيت سلطنة عمان، ثم تتحول تلقائياً إلى سجلات تاريخية للقراءة والطباعة.</p></div><span id="timetableDailyActiveCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span></div><div id="timetableDailyActiveResults" class="space-y-2"><p class="text-center text-xs text-slate-500">تظهر السجلات بعد تحميل أرشيف اليوم أو حفظ توزيع جديد.</p></div></section>');
+        '<section id="timetableDailyActivePanel" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="text-sm font-black text-emerald-950">التوزيعات الحالية — قابلة للتعديل والحذف خلال اليوم الحالي</h4><p class="mt-1 text-[10px] text-emerald-800">تُحمّل سجلات اليوم تلقائياً بعد التحقق من صلاحية الدخول. ويمكنك تحديثها يدوياً في أي وقت.</p></div><div class="flex items-center gap-2"><span id="timetableDailyActiveCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="timetableDailyActiveReload" class="tt-action border border-emerald-300 bg-white text-emerald-900">تحديث سجلات اليوم</button></div></div><div id="timetableDailyActiveResults" class="space-y-2"><p class="text-center text-xs text-slate-500">جارٍ انتظار التحقق من صلاحية الدخول لتحميل سجلات اليوم.</p></div></section>');
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
       $("timetableDailyArchivePrint")?.addEventListener("click", timetableDailyPrintArchiveRange);
+      $("timetableDailyActiveReload")?.addEventListener("click", timetableDailyLoadArchive);
       try{const today=timetableSubstitutionGetDate().date;$("timetableDailyArchiveFrom").value=today;$("timetableDailyArchiveTo").value=today;}catch{}
     }
     const style = document.createElement("style");
@@ -484,15 +485,23 @@
     const opening=panel.classList.contains("hidden");panel.classList.toggle("hidden");if(opening)await timetableDailyLoadArchive();
   };
   window.timetableDailyLoadArchive = async function () {
-    const host=$("timetableDailyArchiveResults");if(!host)return;
+    const host=$("timetableDailyArchiveResults");if(!host)return false;
     host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
+    const activeHost=$("timetableDailyActiveResults");
+    if(activeHost)activeHost.innerHTML='<p class="text-center text-xs text-slate-500">جارٍ تحميل سجلات اليوم...</p>';
     try{
       const from=$("timetableDailyArchiveFrom")?.value||"",to=$("timetableDailyArchiveTo")?.value||"",token=appAuthSession?.token||readAppAuthToken();
+      if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
       if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
       if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
       const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
-      reserveArchive=response.archive||[];timetableDailyRenderArchive();
-    }catch(error){host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(error?.message||"تعذر تحميل الأرشيف.")+"</div>";}
+      reserveArchive=response.archive||[];timetableDailyRenderArchive();return true;
+    }catch(error){
+      const message=error?.message||"تعذر تحميل الأرشيف.";
+      host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(message)+"</div>";
+      if(activeHost)activeHost.innerHTML='<div class="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">'+esc(message)+'</div>';
+      return false;
+    }
   };
   function reserveCumulativeOfficialPage(date, weekday, rows) {
     const safeDate=String(date||"");
@@ -1337,13 +1346,31 @@
   };
 
   function installReserveArchiveAutoRefresh() {
-    if(window.__reserveArchiveAutoRefreshInstalled||window.__legacyOtherTeacherRequestGuard)return;
+    if(window.__reserveArchiveAutoRefreshInstalled)return;
     const originalRequest=window.appAuthRequest;
     if(typeof originalRequest!=="function")return;
     window.__reserveArchiveAutoRefreshInstalled=true;
+    let loadedActorDateKey="",dailyArchiveLoadPromise=null;
     window.appAuthRequest=async function(body,token) {
       const action=String(body?.action||"");
       const result=await originalRequest.call(this,body,token);
+      const accessGranted=action==="timetable_substitution_archive_access"&&result?.canView===true;
+      const reserveAction=action.startsWith("timetable_substitution_")&&
+        !["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action);
+      if((accessGranted||reserveAction)&&$("timetableDailyActivePanel")&&
+        typeof window.timetableDailyLoadArchive==="function"){
+        const actor=String(appAuthSession?.principal?.name||"");
+        let date="";
+        try{date=String(timetableSubstitutionGetDate().date||"");}catch{}
+        const key=actor+"|"+date;
+        if(actor&&key!==loadedActorDateKey&&!dailyArchiveLoadPromise){
+          loadedActorDateKey=key;
+          dailyArchiveLoadPromise=(async()=>{
+            const loaded=await window.timetableDailyLoadArchive();
+            if(loaded!==true)loadedActorDateKey="";
+          })().catch(()=>{loadedActorDateKey="";}).finally(()=>{dailyArchiveLoadPromise=null;});
+        }
+      }
       if(["timetable_substitution_batch_save","timetable_substitution_save"].includes(action)&&
         !$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&
         typeof window.substitutionLoadCumulativeArchive==="function") {
