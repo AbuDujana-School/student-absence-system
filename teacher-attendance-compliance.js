@@ -61,7 +61,7 @@
         id: String(version.id || ""),
         activatedDate: String(version.activatedDate || ""),
       }))
-      .filter(version => version.id && /^\\d{4}-\\d{2}-\\d{2}$/.test(version.activatedDate))
+      .filter(version => version.id && /^\d{4}-\d{2}-\d{2}$/.test(version.activatedDate))
       .sort((a,b) => a.activatedDate.localeCompare(b.activatedDate));
     const scheduleByVersionDay = new Map();
     cells.filter(cell => cell.status === "teaching").forEach(cell => {
