@@ -1343,7 +1343,7 @@
     setHomeTodayStatus("يتم جلب تكليفات اليوم من قاعدة البيانات...");
     reserveHomeTodayLoadPromise=(async()=>{
       try{
-        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:today,dateTo:today},token);
+        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:today,dateTo:today,homeToday:true},token);
         reserveHomeToday=Array.isArray(response.archive)?response.archive:[];
         window.substitutionRenderHomeTodayAssignments();
         setHomeTodayStatus("تم تحديث القائمة من قاعدة البيانات مباشرة.","success");
