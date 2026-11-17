@@ -36,7 +36,7 @@ function classIdentity(value: unknown): string {
 }
 function teacherIdentity(value: unknown): string {
   return String(value ?? "").normalize("NFKC")
-    .replace(/[\\u064b-\\u065f\\u0670\\u0640]/g, "")
+    .replace(/[\u064b-\u065f\u0670\u0640]/g, "")
     .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/ة/g, "ه")
     .replace(/\\s+/g, "").trim();
 }
