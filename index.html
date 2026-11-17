@@ -5535,11 +5535,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   // Poll the cloud safely while the app is active. Local pending edits are never
   // overwritten; uploads require explicit approval and queued deletions stay inert.
+  // A full refresh reads six tables, so run this background safety refresh every
+  // two minutes instead of every minute. Reconnect/return-to-app refreshes remain
+  // immediate, and the dedicated attendance/behavior workflows are unchanged.
   setInterval(() => {
     if (!navigator.onLine || !activeUser || document.hidden) return;
     if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
     else refreshCloudDataSilently();
-  }, 60000);
+  }, 120000);
   if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
     setTimeout(() => retryOfflineSyncSilently(), 1800);
   }
