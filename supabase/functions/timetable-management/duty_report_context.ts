@@ -34,7 +34,7 @@ function classIdentity(value: unknown): string {
   if (first >= 9 && first <= 12) return first + "/" + second;
   return normalized;
 }
-function teacherIdentity(value: unknown): string {
+// Match the canonical teacher identity rules used by timetable-management.\nfunction teacherIdentity(value: unknown): string {
   return String(value ?? "").normalize("NFKC")
     .replace(/[\u064b-\u065f\u0670\u0640]/g, "")
     .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/ة/g, "ه")
