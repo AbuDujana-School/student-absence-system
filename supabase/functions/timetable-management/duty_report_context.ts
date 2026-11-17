@@ -34,11 +34,12 @@ function classIdentity(value: unknown): string {
   if (first >= 9 && first <= 12) return first + "/" + second;
   return normalized;
 }
-// Match the canonical teacher identity rules used by timetable-management.\nfunction teacherIdentity(value: unknown): string {
+// Match the canonical teacher identity rules used by timetable-management.
+function teacherIdentity(value: unknown): string {
   return String(value ?? "").normalize("NFKC")
     .replace(/[\u064b-\u065f\u0670\u0640]/g, "")
     .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/ة/g, "ه")
-    .replace(/\\s+/g, "").trim();
+    .replace(/\s+/g, "").trim();
 }
 function sections(value: unknown, subject = ""): string[] {
   return classSectionsForCell({
@@ -68,7 +69,7 @@ export function buildDutyReportContext(
       if (!sections(cell.class_sections, String(cell.subject || "")).some(value => classIdentity(value) === classKey)) continue;
       const teacherName = String(cell.matched_teacher_name || "").trim();
       const subject = String(cell.subject || "").trim();
-      const lessonKey = classIdentity(teacherName) + "\u001f" + classIdentity(subject);
+      const lessonKey = teacherIdentity(teacherName) + "\u001f" + classIdentity(subject);
       let lesson = lessonMap.get(lessonKey);
       if (!lesson) {
         lesson = { teacherName, subject, substituteNames: [] };
