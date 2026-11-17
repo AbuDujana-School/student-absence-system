@@ -1260,12 +1260,13 @@
     }
     const header=view.querySelector(".relative.z-10.flex.flex-wrap.items-center.justify-between.gap-3");
     const stats=$("substitutionStatsPanel");
-    if(!header||!stats)return;
+    const plan=$("substitutionPlanPanel");
+    if(!header||!stats||!plan)return;
     view.dataset.cumulativeArchiveInstalled="1";
     const back=header.querySelector('button[onclick="closeSubstitutionView()"]');
     const buttonHtml='<button type="button" id="substitutionCumulativeArchiveButton" class="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-xs font-black text-cyan-900 hover:bg-cyan-100"><i class="fa-solid fa-box-archive ml-1"></i> سجل الاحتياط التراكمي</button>';
     if(back)back.insertAdjacentHTML("beforebegin",buttonHtml);else header.insertAdjacentHTML("beforeend",buttonHtml);
-    stats.insertAdjacentHTML("afterend",
+    plan.insertAdjacentHTML("beforebegin",
       '<section id="substitutionTodayAssignmentsPanel" class="mt-5 space-y-3 rounded-3xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">'+
       '<div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-black text-emerald-950 dark:text-emerald-100">تكليفات الاحتياط لهذا اليوم</h3><p class="mt-1 text-[10px] text-emerald-800 dark:text-emerald-300">تظهر هنا التكليفات الحالية مباشرة، مع إتاحة التعديل والحذف للتكليفات النشطة المسموح بها خلال اليوم.</p></div><div class="flex items-center gap-2"><span id="substitutionTodayAssignmentsCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="substitutionTodayAssignmentsReload" class="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-[10px] font-black text-emerald-900 hover:bg-emerald-100">تحديث القائمة</button></div></div>'+
       '<div id="substitutionTodayAssignmentsStatus" class="text-[10px] font-bold text-slate-500" role="status" aria-live="polite">جارٍ تحميل تكليفات اليوم...</div>'+
