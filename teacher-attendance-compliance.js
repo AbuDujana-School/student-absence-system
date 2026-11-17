@@ -253,7 +253,7 @@
       'td.num,td.pct{text-align:center;font-weight:900}.continuation{color:#64748b;font-size:9px}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}'+
       'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}td{line-height:1.65}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
       '@media print{header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
-      '</style></head><body><header><strong>سلطنة عُمان<br>وزارة التربية والتعليم<br>المديرية العامة لمحافظة شمال الباطنة<br>إدارة السويق<br>مدرسة أبو دجانة</strong>'+
+      '</style></head><body><header><strong>سلطنة عُمان<br>وزارة التربية والتعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</strong>'+
       '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
       '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
       '<table><thead><tr><th style="width:19%">المعلم</th><th style="width:10%">عدد الحصص</th><th style="width:27%">رصد الغياب</th><th style="width:32%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
@@ -273,4 +273,63 @@
     if (to && !to.value) to.value = today;
     loadReport();
   });
+
+  function installComplianceModernUI() {
+    if (document.getElementById("teacherComplianceModernStyles")) return;
+    const style = document.createElement("style");
+    style.id = "teacherComplianceModernStyles";
+    style.textContent = "#teachersActivityReportHeader{direction:rtl;text-align:center;padding:16px 12px;margin:0 0 14px;border:1px solid #dbe4ee;border-radius:16px;background:linear-gradient(145deg,#fff,#f4f8fc);color:#17324d}#teachersActivityReportHeader .official-lines{font-size:clamp(12px,2vw,16px);font-weight:800;line-height:1.85}#teachersActivityReportHeader h2{font-size:clamp(18px,2.5vw,24px);font-weight:900;margin:8px 0 2px;color:#123653}#teachersActivityReportHeader .report-period{font-size:12px;color:#64748b;font-weight:700}#teachersActivityKpis{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:0 0 14px;direction:rtl}#teachersActivityKpis .kpi{border:1px solid;border-radius:14px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:8px}#teachersActivityKpis .kpi-label{font-size:12px;font-weight:800;line-height:1.5}#teachersActivityKpis .kpi-value{font-size:28px;font-weight:900;line-height:1}#teachersActivityKpis .kpi--full{background:#ecfdf5;border-color:#a7f3d0;color:#065f46}#teachersActivityKpis .kpi--partial{background:#fffbeb;border-color:#fde68a;color:#92400e}#teachersActivityKpis .kpi--zero{background:#fff1f2;border-color:#fecdd3;color:#9f1239}#teachersActivityTableBody tr.compliance-row--full{background:#ecfdf5!important}#teachersActivityTableBody tr.compliance-row--partial{background:#fffbeb!important}#teachersActivityTableBody tr.compliance-row--zero{background:#fff1f2!important}#teachersActivityTableBody .compliance-status{display:inline-flex;border-radius:99px;padding:5px 9px;font-size:11px;font-weight:900;white-space:nowrap}#teachersActivityTableBody .compliance-status--full{background:#d1fae5;color:#065f46}#teachersActivityTableBody .compliance-status--partial{background:#fef3c7;color:#92400e}#teachersActivityTableBody .compliance-status--zero{background:#ffe4e6;color:#9f1239}#teachersActivityTableBody .compliance-progress{height:5px;background:#e2e8f0;border-radius:99px;overflow:hidden;margin-top:7px;min-width:60px}#teachersActivityTableBody .compliance-progress>span{display:block;height:100%;border-radius:99px}#teachersActivityTableBody .compliance-row--full .compliance-progress>span{background:#059669}#teachersActivityTableBody .compliance-row--partial .compliance-progress>span{background:#d97706}#teachersActivityTableBody .compliance-row--zero .compliance-progress>span{background:#e11d48}.teachers-activity-table-scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:12px}.teachers-activity-table-scroll table{min-width:850px;width:100%}#teachersActivityTableBody td{overflow-wrap:anywhere;line-height:1.7}@media(max-width:640px){#teachersActivityKpis{gap:6px}#teachersActivityKpis .kpi{display:block;text-align:center;padding:9px 6px}#teachersActivityKpis .kpi-label{font-size:10px;min-height:30px;display:flex;align-items:center;justify-content:center}#teachersActivityKpis .kpi-value{font-size:24px;margin-top:5px}#teachersActivityReportHeader{padding:12px 8px}#teachersActivityReportHeader .official-lines{font-size:11px}}@media print{#teachersActivityReportHeader{box-shadow:none;border:1.5px solid #183653;border-radius:0;padding:7px;margin-bottom:7px}#teachersActivityKpis{gap:6px;margin-bottom:7px}#teachersActivityKpis .kpi{padding:6px 8px;border-radius:5px}.teachers-activity-table-scroll{overflow:visible!important}.teachers-activity-table-scroll table{min-width:0!important;width:100%!important}#teachersActivityTableBody tr{break-inside:avoid;page-break-inside:avoid}}";
+    document.head.appendChild(style);
+    const summary = document.getElementById("teachersActivitySummary");
+    if (!summary) return;
+    if (!document.getElementById("teachersActivityReportHeader")) {
+      const header = document.createElement("section");
+      header.id = "teachersActivityReportHeader";
+      header.innerHTML = '<div class="official-lines">سلطنة عمان<br>وزارة التربية والتعليم<br>المديرية العامة للتعليم بمحافظة شمال الباطنة<br>إدارة التعليم بالسويق<br>مدرسة أبو دجانة الأنصاري للبنين ( 9 - 12 )</div><h2>تقرير الالتزام برصد الغياب</h2><div class="report-period" id="teachersActivityHeaderPeriod"></div>';
+      summary.parentElement.insertBefore(header, summary);
+    }
+    if (!document.getElementById("teachersActivityKpis")) {
+      const kpis = document.createElement("section");
+      kpis.id = "teachersActivityKpis";
+      kpis.innerHTML = '<div class="kpi kpi--full"><div class="kpi-label">المعلمون الملتزمون بالكامل</div><div class="kpi-value" id="teachersActivityFullCount">0</div></div><div class="kpi kpi--partial"><div class="kpi-label">المعلمون برصد جزئي</div><div class="kpi-value" id="teachersActivityPartialCount">0</div></div><div class="kpi kpi--zero"><div class="kpi-label">المعلمون غير الملتزمين</div><div class="kpi-value" id="teachersActivityZeroCount">0</div></div>';
+      summary.parentElement.insertBefore(kpis, summary);
+    }
+    const table = document.getElementById("teachersActivityTableBody")?.closest("table");
+    if (table && table.parentElement && !table.parentElement.classList.contains("teachers-activity-table-scroll")) {
+      const wrap = document.createElement("div");
+      wrap.className = "teachers-activity-table-scroll";
+      table.parentElement.insertBefore(wrap, table);
+      wrap.appendChild(table);
+    }
+  }
+  render = function(report) {
+    installComplianceModernUI();
+    const body = document.getElementById("teachersActivityTableBody");
+    if (!body) return;
+    const rows = report.rows;
+    const full = rows.filter(r => r.percentage === 100).length;
+    const zero = rows.filter(r => r.complete.length === 0).length;
+    const partial = rows.length - full - zero;
+    const setCount = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = value; };
+    setCount("teachersActivityFullCount", full);
+    setCount("teachersActivityPartialCount", partial);
+    setCount("teachersActivityZeroCount", zero);
+    const period = report.from === report.to ? report.from : report.from + " إلى " + report.to;
+    setCount("teachersActivityHeaderPeriod", "الفترة: " + period);
+    if (!rows.length) {
+      body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500">لا توجد حصص تدريس أو احتياط مطلوبة ضمن الفترة المحددة.</td></tr>';
+    } else {
+      body.innerHTML = rows.map(row => {
+        const status = row.percentage === 100 ? "full" : row.complete.length === 0 ? "zero" : "partial";
+        const label = status === "full" ? "التزام كامل" : status === "zero" ? "لم يسجل" : "رصد جزئي";
+        return '<tr class="align-top compliance-row--' + status + '"><td class="p-3 min-w-[150px] font-black text-slate-800">' + esc(row.name) + '<div class="mt-2"><span class="compliance-status compliance-status--' + status + '">' + label + '</span></div></td><td class="p-3 text-center font-black tabular-nums">' + row.total + '</td><td class="p-3 min-w-[210px]">' + listHtml(row.complete,"complete") + '</td><td class="p-3 min-w-[210px]">' + listHtml(row.pending,"pending") + '</td><td class="p-3 text-center"><span class="compliance-status compliance-status--' + status + '">' + row.percentage.toFixed(1) + '%</span><div class="compliance-progress"><span style="width:' + row.percentage + '%"></span></div></td></tr>';
+      }).join("");
+    }
+    const summaryEl = document.getElementById("teachersActivitySummary");
+    if (summaryEl) summaryEl.innerHTML = '<span class="rounded-xl bg-slate-100 px-3 py-2">الفترة: <b>' + esc(period) + '</b></span><span class="rounded-xl bg-slate-100 px-3 py-2">إجمالي الحصص: <b>' + report.totalLessons + '</b></span><span class="rounded-xl bg-emerald-50 px-3 py-2 text-emerald-800">رُصدت: <b>' + report.completeLessons + '</b></span><span class="rounded-xl bg-rose-50 px-3 py-2 text-rose-800">لم تُرصد: <b>' + report.pendingLessons + '</b></span>';
+    const button = document.getElementById("teachersActivityPrintBtn");
+    if (button) button.disabled = !rows.length;
+  };
+  document.addEventListener("DOMContentLoaded", installComplianceModernUI);
+
 })();
