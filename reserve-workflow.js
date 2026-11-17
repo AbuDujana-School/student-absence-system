@@ -228,7 +228,7 @@
       results.insertAdjacentHTML("afterend",
         '<section id="timetableDailyArchivePanel" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">' +
         '<div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="font-black text-sm text-slate-900 dark:text-white">سجل الاحتياط التراكمي</h4><p class="mt-1 text-[10px] text-slate-500">يعرض جميع توزيعات المدرسة من المواد كافة، مرتبة حسب التاريخ. كل يوم في صفحة مستقلة.</p></div></div>' +
-        '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"><label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="timetableDailyArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><label class="text-[10px] font-bold text-slate-600">إلى تاريخ<input id="timetableDailyArchiveTo" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><button type="button" id="timetableDailyArchiveReload" class="tt-action border border-slate-300 bg-white text-slate-800">عرض السجلات</button><button type="button" id="timetableDailyArchivePrint" class="tt-action bg-indigo-700 text-white"><i class="fa-solid fa-print ml-1"></i> طباعة السجل</button></div><div id="timetableDailyArchiveResults" class="space-y-3"></div></section>');
+        '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"><label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="timetableDailyArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><label class="text-[10px] font-bold text-slate-600">إلى تاريخ<input id="timetableDailyArchiveTo" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><button type="button" id="timetableDailyArchiveReload" class="tt-action border border-slate-300 bg-white text-slate-800">عرض السجلات</button><button type="button" id="timetableDailyArchivePrint" class="tt-action bg-indigo-700 text-white"><i class="fa-solid fa-print ml-1"></i> طباعة كشف PDF</button></div><div id="timetableDailyArchiveResults" class="space-y-3"></div></section>');
       $("timetableDailyArchivePanel")?.insertAdjacentHTML("afterend",
         '<section id="timetableDailyActivePanel" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="text-sm font-black text-emerald-950">التوزيعات الحالية — قابلة للتعديل والحذف خلال اليوم الحالي</h4><p class="mt-1 text-[10px] text-emerald-800">تُحمّل سجلات اليوم تلقائياً بعد التحقق من صلاحية الدخول. ويمكنك تحديثها يدوياً في أي وقت.</p></div><div class="flex items-center gap-2"><span id="timetableDailyActiveCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="timetableDailyActiveReload" class="tt-action border border-emerald-300 bg-white text-emerald-900">تحديث سجلات اليوم</button></div></div><div id="timetableDailyActiveResults" class="space-y-2"><p class="text-center text-xs text-slate-500">جارٍ انتظار التحقق من صلاحية الدخول لتحميل سجلات اليوم.</p></div></section>');
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
@@ -557,7 +557,7 @@
       grouped.get(date).push(item);
     });
     const pages=[];
-    for(const [date,items] of [...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+    for(const [date,items] of [...grouped.entries()].sort((a,b)=>b[0].localeCompare(a[0]))){
       const byAbsent=new Map();
       items.forEach(item=>{
         const name=String(item.absentTeacherName||"غير محدد");
@@ -1263,16 +1263,13 @@
     const plan=$("substitutionPlanPanel");
     if(!header||!stats||!plan)return;
     view.dataset.cumulativeArchiveInstalled="1";
-    const back=header.querySelector('button[onclick="closeSubstitutionView()"]');
-    const buttonHtml='<button type="button" id="substitutionCumulativeArchiveButton" class="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-xs font-black text-cyan-900 hover:bg-cyan-100"><i class="fa-solid fa-box-archive ml-1"></i> سجل الاحتياط التراكمي</button>';
-    if(back)back.insertAdjacentHTML("beforebegin",buttonHtml);else header.insertAdjacentHTML("beforeend",buttonHtml);
     plan.insertAdjacentHTML("beforebegin",
       '<section id="substitutionTodayAssignmentsPanel" class="mt-5 space-y-3 rounded-3xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">'+
       '<div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-black text-emerald-950 dark:text-emerald-100">تكليفات الاحتياط لهذا اليوم</h3><p class="mt-1 text-[10px] text-emerald-800 dark:text-emerald-300">تظهر هنا التكليفات الحالية مباشرة، مع إتاحة التعديل والحذف للتكليفات النشطة المسموح بها خلال اليوم.</p></div><div class="flex items-center gap-2"><span id="substitutionTodayAssignmentsCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="substitutionTodayAssignmentsReload" class="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-[10px] font-black text-emerald-900 hover:bg-emerald-100">تحديث القائمة</button></div></div>'+
       '<div id="substitutionTodayAssignmentsStatus" class="text-[10px] font-bold text-slate-500" role="status" aria-live="polite">جارٍ تحميل تكليفات اليوم...</div>'+
       '<div id="substitutionTodayAssignmentsResults" class="space-y-2"><p class="rounded-xl border border-dashed border-emerald-200 bg-white p-4 text-center text-xs text-slate-500">جارٍ تحميل السجلات...</p></div></section>');
     $("substitutionTodayAssignmentsPanel").insertAdjacentHTML("afterend",
-      '<section id="substitutionCumulativeArchivePanel" class="hidden mt-5 space-y-3 rounded-3xl border border-indigo-200 bg-white p-4 shadow-sm dark:border-indigo-900 dark:bg-slate-900">'+
+      '<section id="substitutionCumulativeArchivePanel" class="mt-5 space-y-3 rounded-3xl border border-indigo-200 bg-white p-4 shadow-sm dark:border-indigo-900 dark:bg-slate-900">'+
       '<div><h3 class="text-sm font-black text-slate-900 dark:text-white">سجل الاحتياط التراكمي</h3><p class="mt-1 text-[10px] text-slate-500">سجل موحّد لجميع المواد، مرتب حسب أيام التوزيع الفعلية، دون إظهار المادة أو اسم من أنشأ التوزيع.</p></div>'+
       '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">'+
       '<label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="substitutionArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"></label>'+
@@ -1281,13 +1278,7 @@
       '<button type="button" id="substitutionArchivePrint" class="rounded-xl bg-indigo-700 px-4 py-3 text-xs font-black text-white"><i class="fa-solid fa-print ml-1"></i> طباعة السجل</button></div>'+
       '<div id="substitutionCumulativeArchiveStatus" class="text-[10px] font-bold text-slate-500" role="status" aria-live="polite"></div>'+
       '<div id="substitutionCumulativeArchiveResults" class="space-y-3"><p class="rounded-xl border border-dashed p-4 text-center text-xs text-slate-500">اختر الفترة الزمنية ثم اعرض السجلات.</p></div></section>');
-    try{const today=timetableSubstitutionGetDate().date;$("substitutionArchiveFrom").value=today;$("substitutionArchiveTo").value=today;}catch{}
-    $("substitutionCumulativeArchiveButton")?.addEventListener("click",async()=>{
-      const panel=$("substitutionCumulativeArchivePanel");
-      const opening=panel?.classList.contains("hidden");
-      panel?.classList.toggle("hidden");
-      if(opening)await window.substitutionLoadCumulativeArchive();
-    });
+    try{const today=timetableSubstitutionGetDate().date;$("substitutionArchiveFrom").value="1900-01-01";$("substitutionArchiveTo").value=today;}catch{}
     $("substitutionArchiveReload")?.addEventListener("click",()=>window.substitutionLoadCumulativeArchive());
     $("substitutionTodayAssignmentsReload")?.addEventListener("click",()=>window.substitutionLoadHomeTodayAssignments());
     $("substitutionArchivePrint")?.addEventListener("click",()=>{
@@ -1297,6 +1288,8 @@
       window.timetableDailyPrintArchiveRange();
     });
     window.substitutionLoadHomeTodayAssignments();
+    // Keep the cumulative report visible and loaded automatically for authorized reserve coordinators.
+    window.substitutionLoadCumulativeArchive();
   }
 
   function setHomeArchiveStatus(message,kind) {
@@ -1401,7 +1394,7 @@
     const byDate=new Map();
     records.forEach(item=>{const date=item.assignmentDate;if(!byDate.has(date))byDate.set(date,[]);byDate.get(date).push(item);});
     host.innerHTML='<div class="grid gap-2 sm:grid-cols-2"><div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+active.length+' تكليف ضمن المهلة</span></div><div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي</strong><span class="text-[10px] text-slate-600">'+historical+' تكليف محفوظ للمراجعة</span></div></div>'+
-      Array.from(byDate.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,items])=>{
+      Array.from(byDate.entries()).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
         const byAbsent=new Map();
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
         const groups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
