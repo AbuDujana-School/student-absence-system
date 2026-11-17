@@ -266,16 +266,18 @@ async function handle(req: Request) {
       .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,created_at,reserve_created_at")
       .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
       .order("assignment_date").order("period").order("id").range(from,to));
+    const todayInMuscat=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
     const archive=(rows||[]).filter((row:any)=>visibleNames.has(String(row.absent_teacher_name||"")))
       .sort((a:any,b:any)=>String(a.assignment_date||"").localeCompare(String(b.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
         createdAt:row.reserve_created_at||row.created_at||null,
-        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&Date.parse(row.reserve_created_at||row.created_at||"")>Date.now()-20*60*60*1000),
+        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
+          String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
-        reason:String(row.reserve_reason||"-"),
+        subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
       }));
     return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
