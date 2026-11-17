@@ -259,7 +259,10 @@ async function handle(req: Request) {
     ]);
     if(activeVersion.error)throw activeVersion.error;
     const actor=directory.find((teacher:any)=>teacher.name===principal.name);
-    const schoolwide=principal.type==="admin"||hasTimetableGrant||hasReservePermission;
+    const homeToday=body.homeToday===true;
+    // The home panel is department-scoped for teachers even when they hold
+    // reserve/archive permissions. Archive access remains schoolwide as granted.
+    const schoolwide=principal.type==="admin"||(!homeToday&&(hasTimetableGrant||hasReservePermission));
     const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
       (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
     const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
@@ -267,7 +270,14 @@ async function handle(req: Request) {
       .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
       .order("assignment_date").order("period").order("id").range(from,to));
     const todayInMuscat=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
-    const archive=(rows||[]).filter((row:any)=>visibleNames.has(String(row.absent_teacher_name||"")))
+    const homeCutoff=Date.now()-14*60*60*1000;
+    const archive=(rows||[]).filter((row:any)=>{
+      if(!visibleNames.has(String(row.absent_teacher_name||"")))return false;
+      if(!homeToday)return true;
+      if(String(row.status||"assigned")==="cancelled")return false;
+      const approvedAt=Date.parse(String(row.reserve_created_at||row.created_at||""));
+      return Number.isFinite(approvedAt)&&approvedAt>=homeCutoff;
+    })
       .sort((a:any,b:any)=>String(a.assignment_date||"").localeCompare(String(b.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
