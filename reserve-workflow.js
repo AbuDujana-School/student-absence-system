@@ -494,12 +494,76 @@
       reserveArchive=response.archive||[];timetableDailyRenderArchive();
     }catch(error){host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(error?.message||"تعذر تحميل الأرشيف.")+"</div>";}
   };
+  function reserveCumulativeOfficialPage(date, weekday, rows) {
+    const safeDate=String(date||"");
+    let resolvedWeekday=String(weekday||"").trim();
+    if(!resolvedWeekday&&safeDate){
+      const parsed=new Date(safeDate+"T12:00:00+04:00");
+      if(Number.isFinite(parsed.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(parsed);
+    }
+    const widths=[8,17,25,30,20];
+    const columns='<colgroup>'+widths.map(width=>'<col style="width:'+width+'%">').join('')+'</colgroup>';
+    const header='<thead><tr><th>م</th><th>الحصة</th><th>الصف</th><th>المعلم البديل</th><th>التوقيع</th></tr></thead>';
+    const rowCount=rows.length;
+    const rowHeight=rowCount>32?"4mm":rowCount>22?"5mm":"6.8mm";
+    const fontSize=rowCount>32?"7pt":rowCount>22?"8pt":"9pt";
+    const numberArabic=value=>String(value).replace(/\\d/g,d=>"٠١٢٣٤٥٦٧٨٩"[Number(d)]);
+    let previousAbsent="";
+    const bodyRows=rows.map((item,index)=>{
+      const absent=String(item.absentTeacherName||"غير محدد");
+      const groupHeader=absent!==previousAbsent
+        ?'<tr><td colspan="5" style="height:6mm;background:#e5f2f4;border-right:1.2mm solid #078b98;text-align:right;font-weight:900;padding:1mm 2mm">المعلم الغائب: '+esc(absent)+'</td></tr>'
+        :"";
+      previousAbsent=absent;
+      return groupHeader+'<tr style="height:'+rowHeight+';break-inside:avoid;page-break-inside:avoid">'+
+        '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+numberArabic(index+1)+'</td>'+
+        '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+esc(formatReservePrintPeriod(item.period))+'</td>'+
+        '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+esc(item.className||"")+'</td>'+
+        '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+esc(item.substituteTeacherName||"")+'</td>'+
+        '<td style="height:'+rowHeight+';font-size:'+fontSize+'"></td></tr>';
+    }).join("");
+    return '<main class="tt-official-page"><header class="tt-official-heading">'+
+      '<div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div>'+
+      '<div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة السويق</div>'+
+      '<div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
+      '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div>'+
+      '<div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
+      '<div class="tt-official-subject">كشف توزيع حصص الاحتياط</div>'+
+      '<table class="tt-official-table tt-cumulative-table">'+columns+header+'<tbody>'+bodyRows+'</tbody></table>'+
+      '<footer class="tt-official-footer">'+
+      '<div class="tt-official-manager"><span>مساعد مدير المدرسة</span><span>........................</span></div>'+
+      '<div class="tt-official-manager"><span>مدير المدرسة</span><span>........................</span></div>'+
+      '</footer></main>';
+  }
+
   window.timetableDailyPrintArchiveRange = function () {
     const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){status("لا توجد سجلات احتياط غير ملغاة للطباعة في الفترة المحددة.","error");return;}
-    const grouped=new Map();records.forEach(item=>{const date=String(item.assignmentDate);if(!grouped.has(date))grouped.set(date,[]);grouped.get(date).push(item);});
-    const days=[...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-    const pages=days.flatMap(([date,items])=>{const byAbsent=new Map();items.forEach(item=>{const name=String(item.absentTeacherName||"");if(!byAbsent.has(name))byAbsent.set(name,{absentName:name,reason:(String(item.reason||"").trim()==="-"||String(item.reason||"").trim()==="—")?"":String(item.reason||""),rows:[]});byAbsent.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||""});});return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");});
+    const grouped=new Map();
+    records.forEach(item=>{
+      const date=String(item.assignmentDate);
+      if(!grouped.has(date))grouped.set(date,[]);
+      grouped.get(date).push(item);
+    });
+    const pages=[];
+    for(const [date,items] of [...grouped.entries()].sort((a,b)=>a[0].localeCompare(b[0]))){
+      const byAbsent=new Map();
+      items.forEach(item=>{
+        const name=String(item.absentTeacherName||"غير محدد");
+        if(!byAbsent.has(name))byAbsent.set(name,[]);
+        byAbsent.get(name).push(item);
+      });
+      const rows=[...byAbsent.entries()].sort((a,b)=>a[0].localeCompare(b[0],"ar"))
+        .flatMap(([absentTeacherName,assignments])=>assignments
+          .slice().sort((a,b)=>Number(a.period)-Number(b.period))
+          .map(item=>({...item,absentTeacherName})));
+      // Each date starts on a fresh A4 page. Very large days are split only
+      // when necessary to keep every row legible and inside the page frame.
+      const maxRowsPerPage=42;
+      for(let offset=0;offset<rows.length;offset+=maxRowsPerPage){
+        pages.push(reserveCumulativeOfficialPage(date,items[0]?.weekday||"",rows.slice(offset,offset+maxRowsPerPage)));
+      }
+    }
     printOfficialReservePages(pages);
   };
 
