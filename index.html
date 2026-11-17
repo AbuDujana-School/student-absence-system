@@ -8762,56 +8762,78 @@ function updateDutySelectionCount() {
 }
 
 /* ============ WhatsApp Message ============ */
-function buildDutyWhatsAppMessage(classes, period) {
+async function buildDutyWhatsAppMessage(classes, period) {
   const date = getOmanLocalDate();
   const day = dutyDayForDate(date);
   const time = getOmanLocalTime();
-  const periodName = periodNamesMap[period] || `الحصة ${period}`;
+  const periodName = periodNamesMap[period] || ("الحصة " + period);
+  const sortedClasses = sortClassesList(classes);
+  const tick = String.fromCharCode(96);
+  let contextLoaded = true;
+  let contextUnavailableMessage = "تعذر تحميل بيانات الجدول";
+  let detailsByClass = new Map();
 
-  const sortedClasses = [...classes].sort((a, b) => {
-    const [ga, sa] = String(a).split(/[\/\-]/).map(Number);
-    const [gb, sb] = String(b).split(/[\/\-]/).map(Number);
-    if (!isNaN(ga) && !isNaN(gb)) {
-      return (ga - gb) || ((sa || 0) - (sb || 0)) || String(a).localeCompare(String(b), 'ar');
+  if (sortedClasses.length) {
+    try {
+      const token = appAuthSession?.token || readAppAuthToken();
+      if (!token) throw new Error("انتهت جلسة الدخول الآمنة.");
+      const result = await appAuthRequest({
+        action: "timetable_duty_report_context",
+        date: date,
+        weekday: day,
+        period: Number(period),
+        classNames: sortedClasses
+      }, token);
+      if (!result?.version?.id || !Array.isArray(result.classes)) {
+        throw new Error("لا توجد نسخة جدول معتمدة متاحة.");
+      }
+      detailsByClass = new Map(result.classes.map(item => [String(item.className), item]));
+    } catch (error) {
+      contextLoaded = false;
+      console.warn("Duty WhatsApp timetable context unavailable:", error?.message || error);
     }
-    return String(a).localeCompare(String(b), 'ar');
-  });
-
-  let msg = '';
-  msg += `📌 *تقرير المناوبة*
-
-`;
-  msg += `📅 التاريخ: ${date}
-`;
-  msg += `📆 اليوم: ${day}
-`;
-  msg += `⏰ وقت الرصد: ${time}
-`;
-  msg += `🕒 الحصة: *${periodName}*
-`;
-  msg += `👤 المعلم المناوب: *${activeUser?.name || '—'}*
-
-`;
-
-  if (sortedClasses.length === 0) {
-    msg += `✅ لا يوجد صف بدون معلم
-
-`;
-  } else {
-    msg += `🚨 *الصفوف بدون معلم:*
-`;
-    sortedClasses.forEach((c, idx) => { 
-      msg += `${idx + 1}- صف *${ltrIsolate(formatClassName(c))}*
-`; 
-    });
-    msg += `
-`;
   }
 
-  msg += `🏫 مدرسة أبو دجانة الأنصاري`;
-  return msg;
-}
+  let msg = "";
+  msg += "📌 *تقرير المناوبة*\n\n";
+  msg += "📅 التاريخ: " + date + "\n";
+  msg += "📆 اليوم: " + day + "\n";
+  msg += "⏰ وقت الرصد: *" + time + "*\n";
+  msg += "🕒 الحصة: " + tick + "*" + periodName + "*" + tick + "\n\n";
 
+  if (sortedClasses.length === 0) {
+    msg += "✅ لا يوجد صف بدون معلم\n\n";
+  } else {
+    msg += "🚨 *الصفوف بدون معلم:*\n";
+    sortedClasses.forEach((className, index) => {
+      msg += "*" + (index + 1) + "-* صف *" + ltrIsolate(formatClassName(className)) + "*\n";
+      if (!contextLoaded) {
+        msg += "*المعلم*  :" + tick + contextUnavailableMessage + tick + "\n";
+      } else {
+        const detail = detailsByClass.get(String(className));
+        const lessons = Array.isArray(detail?.lessons) ? detail.lessons : [];
+        if (!lessons.length) {
+          msg += "*المعلم*  :" + tick + "لم يُعثر على الحصة في الجدول المعتمد" + tick + "\n";
+        } else {
+          lessons.forEach(lesson => {
+            const teacherName = String(lesson.teacherName || "").trim();
+            const subject = String(lesson.subject || "").trim();
+            const substitutes = Array.isArray(lesson.substituteNames)
+              ? [...new Set(lesson.substituteNames.map(name => String(name || "").trim()).filter(Boolean))]
+              : [];
+            msg += "*المعلم*  :" + tick + (teacherName || "لم يُربط اسم المعلم في الجدول المعتمد") + tick + "\n";
+            if (subject) msg += "*" + subject + "*\n";
+            if (substitutes.length) msg += "*الاحتياط:* " + tick + substitutes.join("، ") + tick + "\n";
+          });
+        }
+      }
+      if (index < sortedClasses.length - 1) msg += "\n";
+    });
+    msg += "\n";
+  }
+  msg += "🏫 مدرسة أبو دجانة الأنصاري";
+  return { message: msg, contextLoaded: contextLoaded };
+}
 async function submitDutyReport() {
   if (!selectedDutyPeriod || !activeUser) return;
   const selected = [...document.querySelectorAll('#dutyClassesPageGrid button[data-no-teacher="true"]')];
@@ -8840,7 +8862,8 @@ async function submitDutyReport() {
       for (const oldR of oldRecords) { await queueCloudDelete('duty_reports', { id: String(oldR.id) }); }
       renderDutyTodayRecords();
     }
-    lastDutyMessage = buildDutyWhatsAppMessage([], selectedDutyPeriod);
+    const builtMessage = await buildDutyWhatsAppMessage([], selectedDutyPeriod);
+    lastDutyMessage = builtMessage.message;
     showToast('✓ سليم — لا يوجد صف بدون معلم. تم إرسال التقرير.', 'success');
     openWhatsAppSafely(lastDutyMessage);
     setTimeout(() => { backToDutyPeriods(); }, 800);
@@ -8872,8 +8895,9 @@ async function submitDutyReport() {
   }
 
   renderDutyTodayRecords();
-  lastDutyMessage = buildDutyWhatsAppMessage(selectedClasses, selectedDutyPeriod);
-  showToast(`تم حفظ ${selectedClasses.length} صف.`, 'success');
+  const builtMessage = await buildDutyWhatsAppMessage(selectedClasses, selectedDutyPeriod);
+  lastDutyMessage = builtMessage.message;
+  showToast(builtMessage.contextLoaded ? `تم حفظ ${selectedClasses.length} صف.` : 'تم حفظ البلاغ، لكن تعذر تحميل بيانات الجدول؛ تحقق من الاتصال والجدول المعتمد.', builtMessage.contextLoaded ? 'success' : 'info');
   openWhatsAppSafely(lastDutyMessage);
   setTimeout(() => { backToDutyPeriods(); }, 900);
 }

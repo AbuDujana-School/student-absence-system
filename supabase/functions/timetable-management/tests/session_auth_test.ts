@@ -22,6 +22,7 @@ function storeWith(
     reserve?: boolean;
     linkedPortalAccess?: boolean;
     ownDailyAssignment?: boolean;
+    duty?: boolean;
     calls?: string[];
   } = {},
 ): TimetableAuthStore {
@@ -54,6 +55,10 @@ function storeWith(
     async hasOwnDailySubstitutionAssignment(name) {
       calls.push("own-assignment:" + name);
       return options.ownDailyAssignment === true;
+    },
+    async hasDutyReportAccess(type, name) {
+      calls.push("duty:" + type + ":" + name);
+      return options.duty === true;
     },
   };
 }
@@ -332,5 +337,38 @@ Deno.test("schoolwide reserve statistics grants do not grant reserve management"
   }
   if (!canUseTimetableAction("admin", "timetable_reserve_stats_access_save")) {
     throw new Error("System administrator was denied statistics permission management");
+  }
+});
+
+
+Deno.test("duty-only teachers receive read-only access to duty report timetable context", async () => {
+  const session = { principal_type: "teacher", principal_name: "Duty Teacher", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Duty Teacher", role: "teacher" },
+    duty: true,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
+  if (principal?.type !== "teacher" || principal.name !== "Duty Teacher" || principal.dutyReportOnly !== true) {
+    throw new Error("Existing duty permission did not resolve a duty-only principal");
+  }
+  if (!canUseTimetableAction("teacher", "timetable_duty_report_context", false, false, false, false, true)) {
+    throw new Error("Duty-only principal could not read the duty report context");
+  }
+  if (!canUseTimetableAction("teacher", "teacher_substitution_get_today", false, false, false, false, true)) {
+    throw new Error("Duty-only principal lost access to their own daily substitution notice");
+  }
+  if (canUseTimetableAction("teacher", "timetable_class_weekly_get", false, false, false, false, true)) {
+    throw new Error("Duty-only principal was granted broader timetable access");
+  }
+});
+
+Deno.test("teacher without duty permission cannot obtain duty-only timetable access", async () => {
+  const session = { principal_type: "teacher", principal_name: "No Duty Teacher", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "No Duty Teacher", role: "teacher" },
+    duty: false,
+  });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW) !== null) {
+    throw new Error("Teacher without any timetable, reserve, portal, or duty permission was accepted");
   }
 });

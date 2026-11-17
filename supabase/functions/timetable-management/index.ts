@@ -3,6 +3,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
 import { aggregateClassTimetables } from "./timetable_class_grid.ts";
+import { buildDutyReportContext } from "./duty_report_context.ts";
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
@@ -78,6 +79,11 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data, error } = await db.from("teachers")
       .select("permissions").eq("name", name).eq("role", "teacher").maybeSingle();
     return !error && data?.permissions?.reserve === true;
+  },
+  async hasDutyReportAccess(type, name) {
+    const { data, error } = await db.from("teachers")
+      .select("permissions").eq("name", name).eq("role", type).maybeSingle();
+    return !error && (data?.permissions?.duty === true || data?.permissions?.admin === true);
   },
   async hasLinkedTeacherPortalAccess(name) {
     const { data: setting, error: settingError } = await db.from("teacher_timetable_portal_settings")
@@ -223,6 +229,9 @@ async function handle(req: Request) {
     ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
     : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
+  const hasDutyReportPermission = action === "timetable_duty_report_context" && (
+    principal.type === "admin" || await timetableAuthStore.hasDutyReportAccess?.(principal.type, principal.name) === true
+  );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
     principal.type === "admin" || await (async () => {
       const { data, error } = await db.from("teachers").select("permissions")
@@ -231,10 +240,68 @@ async function handle(req: Request) {
       return data?.permissions?.teachers === true || data?.permissions?.admin === true;
     })()
   );
-  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true)
+  if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
+    && !hasDutyReportPermission
     && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)
     && !hasTeacherActivityPermission) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط أو صلاحية أرشيف الاحتياط الممنوحة من مدير النظام العام." });
+  }
+
+  if (action === "timetable_duty_report_context") {
+    if (!hasDutyReportPermission) return reply(403, { error: "تحتاج إلى صلاحية المناوبة لقراءة بيانات الحصة." });
+    try {
+      const { date: today, weekday: todayWeekday } = muscatDateAndWeekday();
+      const date = String(body.date || "").trim();
+      const weekday = String(body.weekday || "").trim();
+      const period = Number(body.period);
+      const classNames = Array.isArray(body.classNames)
+        ? body.classNames.map((value: unknown) => String(value || "").trim()).filter(Boolean)
+        : [];
+      if (date !== today || weekday !== todayWeekday || !DAYS.includes(weekday) ||
+          !Number.isInteger(period) || period < 1 || period > 8 ||
+          classNames.length < 1 || classNames.length > 50 ||
+          classNames.some((name: string) => name.length > 100) ||
+          new Set(classNames).size !== classNames.length) {
+        return reply(400, { error: "بيانات تقرير المناوبة غير صالحة أو لا تخص اليوم الحالي." });
+      }
+      const [classDirectory, versionResult] = await Promise.all([
+        schoolClassDirectory(),
+        db.from("timetable_weekly_versions").select("id,version,status,period_count").eq("status", "active").maybeSingle(),
+      ]);
+      if (versionResult.error) throw versionResult.error;
+      if (classNames.some((name: string) => !classDirectory.includes(name))) {
+        return reply(400, { error: "توجد صفوف غير معتمدة ضمن طلب تقرير المناوبة." });
+      }
+      if (!versionResult.data) return reply(200, { ok: true, version: null, classes: [] });
+      const version = versionResult.data;
+      const [cells, assignments, directory] = await Promise.all([
+        fetchAllTimetableCells((from, to) => db.from("timetable_weekly_cells")
+          .select("id,weekday,period,cell_status,class_sections,subject,matched_teacher_name,teacher_source_name")
+          .eq("version_id", version.id).eq("weekday", weekday).eq("period", period)
+          .eq("cell_status", "teaching").order("id").range(from, to)),
+        fetchAllSubstitutionRows((from, to) => db.from("timetable_assignments")
+          .select("id,source_cell_id,teacher_name,absent_teacher_name,assignment_type,status,class_sections")
+          .eq("version_id", version.id).eq("assignment_type", "substitution")
+          .eq("assignment_date", date).eq("weekday", weekday).eq("period", period)
+          .in("status", ["assigned", "confirmed", "completed"]).order("id").range(from, to)),
+        teacherDirectory(),
+      ]);
+      const systemTeachers: SystemTeacher[] = directory
+        .filter((teacher: any) => teacher.role === "teacher")
+        .map((teacher: any) => ({ name: String(teacher.name || "").trim() }))
+        .filter((teacher: SystemTeacher) => teacher.name);
+      const resolvedCells = (cells || []).map((cell: any) => ({
+        ...cell,
+        matched_teacher_name: resolveTimetableTeacherName(
+          cell.matched_teacher_name, cell.teacher_source_name, systemTeachers,
+        ),
+      }));
+      const classes = buildDutyReportContext(classNames, resolvedCells, assignments || []);
+      return reply(200, { ok: true, version: { id: version.id, number: version.version }, classes });
+    } catch (error) {
+      console.error("Duty report timetable context failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحميل بيانات جدول الحصص والاحتياط لتقرير المناوبة." });
+    }
   }
 
   if (action === "timetable_substitution_archive_access") {

@@ -9,6 +9,8 @@ export interface TimetablePrincipal {
   schoolwideReserveStats?: boolean;
   /** Has only the schoolwide reserve-statistics view, with no other timetable grant. */
   reserveStatsOnly?: boolean;
+  /** Can only read the timetable context needed to compose an authorized duty report. */
+  dutyReportOnly?: boolean;
 }
 
 export interface TimetableSessionLookup {
@@ -28,6 +30,7 @@ export interface TimetableAuthStore {
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasSubstitutionAccess?(name: string): Promise<boolean>;
+  hasDutyReportAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
   hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
   hasSchoolwideReserveStatsAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
@@ -99,6 +102,9 @@ export async function resolveTimetablePrincipal(
     && await store.hasOwnDailySubstitutionAssignment(name)) {
     return { type, name };
   }
+  if (store.hasDutyReportAccess && await store.hasDutyReportAccess(type, name)) {
+    return { type, name, dutyReportOnly: true };
+  }
   return null;
 }
 
@@ -111,8 +117,10 @@ export function canUseTimetableAction(
   hasReservePermission = false,
   reserveStatsOnly = false,
   schoolwideReserveStats = false,
+  dutyReportOnly = false,
 ): boolean {
   if (principalType === "admin") return true;
+  if (dutyReportOnly) return new Set(["health", "timetable_check_access", "timetable_duty_report_context", "teacher_substitution_get_today"]).has(action);
   if (schoolwideReserveStats && action === "timetable_substitution_stats") return true;
   if (portalOnly) return new Set([
     "health",

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v36';
+const CACHE_NAME = 'abudujana-app-v37';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v43';
+const RUNTIME_CACHE = 'abudujana-static-v44';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
