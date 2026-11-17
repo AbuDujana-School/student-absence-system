@@ -16,8 +16,6 @@ declare
   v_reverse_points boolean := false;
   v_prior_teaching_periods integer := 0;
   v_bonus_net integer := 0;
-  v_reason_normalized text := '';
-  v_is_emergency boolean := false;
 begin
   -- Create the normal points once. The follow-up UPDATE that saves reserve_reason
   -- re-enters this branch safely because the ledger event keys are idempotent.
@@ -47,18 +45,10 @@ begin
           ) on conflict(event_key) do nothing;
         end if;
 
-        -- Emergency is an explicit reason marker. Only the two immediately
-        -- preceding timetable periods count, and both must be teaching periods.
-        v_reason_normalized:=regexp_replace(
-          translate(lower(coalesce(v_assignment.reserve_reason,'')),'أإآٱىة','اااايه'),
-          '[[:space:]ـ]+','','g'
-        );
-        v_is_emergency:=(
-          position('اضطرار' in v_reason_normalized)>0
-          and v_reason_normalized !~ '(غير|ليس|مو).*اضطرار'
-        ) or position('emergency' in lower(coalesce(v_assignment.reserve_reason,'')))>0;
-
-        if v_is_emergency and v_assignment.period>=3 then
+        -- The emergency case is derived from the actual timetable: the two
+        -- immediately preceding periods must both be teaching periods. No
+        -- free-text reason is required or trusted for this points decision.
+        if v_assignment.period>=3 then
           select count(distinct c.period) into v_prior_teaching_periods
           from public.timetable_weekly_cells c
           where c.version_id=v_assignment.version_id
@@ -75,7 +65,7 @@ begin
         where assignment_id=v_assignment.id
           and event_key like 'assignment:'||v_assignment.id::text||':emergency-bonus:%';
 
-        if v_is_emergency and v_prior_teaching_periods=2 then
+        if v_prior_teaching_periods=2 then
           if v_bonus_net<2 then
             insert into public.timetable_substitution_points_ledger(
               assignment_id,teacher_name,event_key,event_type,points_delta,period,weekday,assignment_date,absent_teacher_name
@@ -87,8 +77,8 @@ begin
             );
           end if;
         elsif v_bonus_net>0 then
-          -- If the reason is edited and no longer says emergency, remove only
-          -- the extra bonus; the normal period points remain unchanged.
+          -- If the assignment is changed so it no longer forms the required
+          -- three-period sequence, remove only the extra bonus.
           insert into public.timetable_substitution_points_ledger(
             assignment_id,teacher_name,event_key,event_type,points_delta,period,weekday,assignment_date,absent_teacher_name
           ) values (
