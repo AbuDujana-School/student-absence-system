@@ -258,7 +258,7 @@
       '<table><thead><tr><th style="width:19%">المعلم</th><th style="width:10%">عدد الحصص</th><th style="width:27%">رصد الغياب</th><th style="width:32%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
       '<div class="signatures"><span>مساعد مدير المدرسة: ....................................</span><span>مدير المدرسة: ....................................</span></div>'+
       '<div class="print-toolbar" role="region" aria-label="أدوات الطباعة"><strong>هذه معاينة التقرير. لحفظه بصيغة PDF اضغط الزر ثم اختر «حفظ كملف PDF» من خيارات الطباعة.</strong><button type="button" onclick="window.focus();window.print();">طباعة / حفظ PDF</button></div>'+
-      '<script>function openPrintDialog(){window.focus();window.print();}window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(openPrintDialog,650);});});<\\/script></body></html>';
+      '<script>function openPrintDialog(){window.focus();window.print();}window.addEventListener("load",function(){var ready=document.fonts&&document.fonts.ready?document.fonts.ready:Promise.resolve();ready.then(function(){setTimeout(openPrintDialog,650);});});<\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close();
     w.focus();
   }
