@@ -104,6 +104,30 @@ begin
   where assignment_id=v_old_delete_id and teacher_name='__points_old_delete__';
   if v_net<>4 then raise exception 'Deletion after 14 hours must preserve earned reserve points; got %',v_net; end if;
 
+  -- Changing the substitute's name removes the old teacher's points and credits the new teacher.
+  insert into public.timetable_assignments(
+    version_id,teacher_name,assignment_type,weekday,period,assignment_date,reserve_reason,status,created_by,created_at,reserve_created_at
+  ) values (
+    v_version_id,'__points_old_substitute__','substitution','الأحد',2,date '2026-11-15','-','assigned',
+    'reserve-points-rules-test',now()-interval '15 hours',now()-interval '15 hours'
+  ) returning id into v_move_old_id;
+  perform set_config('app.force_substitution_points_reversal','true',true);
+  update public.timetable_assignments set status='cancelled' where id=v_move_old_id;
+  perform set_config('app.force_substitution_points_reversal','false',true);
+  insert into public.timetable_assignments(
+    version_id,teacher_name,assignment_type,weekday,period,assignment_date,reserve_reason,status,created_by
+  ) values (
+    v_version_id,'__points_new_substitute__','substitution','الأحد',2,date '2026-11-15','-','assigned','reserve-points-rules-test'
+  ) returning id into v_move_new_id;
+  select coalesce(sum(points_delta),0) into v_net
+  from public.timetable_substitution_points_ledger
+  where assignment_id=v_move_old_id and teacher_name='__points_old_substitute__';
+  if v_net<>0 then raise exception 'Changing the substitute must remove all points from the previous teacher; got %',v_net; end if;
+  select coalesce(sum(points_delta),0) into v_net
+  from public.timetable_substitution_points_ledger
+  where assignment_id=v_move_new_id and teacher_name='__points_new_substitute__';
+  if v_net<>1 then raise exception 'Changing the substitute must credit the new teacher for the selected period; got %',v_net; end if;
+
   -- A move/replacement always reverses the old period, even after 14 hours,
   -- then awards the new period's standard score only.
   insert into public.timetable_assignments(
