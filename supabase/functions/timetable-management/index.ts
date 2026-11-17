@@ -278,7 +278,7 @@ async function handle(req: Request) {
         canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&isSameMuscatSchoolDay(row.assignment_date)&&["assigned","confirmed"].includes(String(row.status||""))),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
-        reason:String(row.reserve_reason||"-"),
+        subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
       }));
     return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
