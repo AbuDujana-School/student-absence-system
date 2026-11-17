@@ -13,6 +13,8 @@
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
+  let reserveHomeToday = [];
+  let reserveHomeTodayLoadPromise = null;
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
   function currentActorName(){return String(appAuthSession?.principal?.name||"").trim();}
   function clearStoredDraft(){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}}
@@ -704,7 +706,7 @@
 
 
   window.timetableDailyCancelAssignment = async function (assignmentId) {
-    const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
     if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("لا يمكن حذف هذا التكليف إلا خلال يومه، أو لأنه مكتمل أو مرتبط بإصدار جدول سابق.","error");return;}
     if(!window.confirm("سيتم حذف هذا التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
@@ -714,6 +716,7 @@
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(typeof window.substitutionLoadHomeTodayAssignments==="function")await window.substitutionLoadHomeTodayAssignments();
       if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
   };
@@ -730,13 +733,14 @@
       status("تم حذف التوزيع بالكامل من السجل النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(typeof window.substitutionLoadHomeTodayAssignments==="function")await window.substitutionLoadHomeTodayAssignments();
       if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
     }catch(error){status(error?.message||"تعذر حذف التوزيع بالكامل؛ لم يتم اعتماد حذف جزئي.","error");}
   };
 
 
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
-    const item=reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
     if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){
       status("يمكن تعديل أو حذف التكليفات النشطة في يومها فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان.","error");return;
@@ -1262,6 +1266,11 @@
     const buttonHtml='<button type="button" id="substitutionCumulativeArchiveButton" class="rounded-xl border border-cyan-200 bg-cyan-50 px-4 py-2.5 text-xs font-black text-cyan-900 hover:bg-cyan-100"><i class="fa-solid fa-box-archive ml-1"></i> سجل الاحتياط التراكمي</button>';
     if(back)back.insertAdjacentHTML("beforebegin",buttonHtml);else header.insertAdjacentHTML("beforeend",buttonHtml);
     stats.insertAdjacentHTML("afterend",
+      '<section id="substitutionTodayAssignmentsPanel" class="mt-5 space-y-3 rounded-3xl border border-emerald-200 bg-emerald-50/70 p-4 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/20">'+
+      '<div class="flex flex-wrap items-center justify-between gap-2"><div><h3 class="text-sm font-black text-emerald-950 dark:text-emerald-100">تكليفات الاحتياط لهذا اليوم</h3><p class="mt-1 text-[10px] text-emerald-800 dark:text-emerald-300">تظهر هنا التكليفات الحالية مباشرة، مع إتاحة التعديل والحذف للتكليفات النشطة المسموح بها خلال اليوم.</p></div><div class="flex items-center gap-2"><span id="substitutionTodayAssignmentsCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="substitutionTodayAssignmentsReload" class="rounded-xl border border-emerald-300 bg-white px-3 py-2 text-[10px] font-black text-emerald-900 hover:bg-emerald-100">تحديث القائمة</button></div></div>'+
+      '<div id="substitutionTodayAssignmentsStatus" class="text-[10px] font-bold text-slate-500" role="status" aria-live="polite">جارٍ تحميل تكليفات اليوم...</div>'+
+      '<div id="substitutionTodayAssignmentsResults" class="space-y-2"><p class="rounded-xl border border-dashed border-emerald-200 bg-white p-4 text-center text-xs text-slate-500">جارٍ تحميل السجلات...</p></div></section>');
+    $("substitutionTodayAssignmentsPanel").insertAdjacentHTML("afterend",
       '<section id="substitutionCumulativeArchivePanel" class="hidden mt-5 space-y-3 rounded-3xl border border-indigo-200 bg-white p-4 shadow-sm dark:border-indigo-900 dark:bg-slate-900">'+
       '<div><h3 class="text-sm font-black text-slate-900 dark:text-white">سجل الاحتياط التراكمي</h3><p class="mt-1 text-[10px] text-slate-500">سجل موحّد لجميع المواد، مرتب حسب أيام التوزيع الفعلية، دون إظهار المادة أو اسم من أنشأ التوزيع.</p></div>'+
       '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-indigo-50/50 p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end">'+
@@ -1279,12 +1288,14 @@
       if(opening)await window.substitutionLoadCumulativeArchive();
     });
     $("substitutionArchiveReload")?.addEventListener("click",()=>window.substitutionLoadCumulativeArchive());
+    $("substitutionTodayAssignmentsReload")?.addEventListener("click",()=>window.substitutionLoadHomeTodayAssignments());
     $("substitutionArchivePrint")?.addEventListener("click",()=>{
       if(!(reserveArchive||[]).some(item=>item.status!=="cancelled"&&item.assignmentDate)){
         setHomeArchiveStatus("حمّل السجلات أولاً، ولا توجد توزيعات غير ملغاة للطباعة.","error");return;
       }
       window.timetableDailyPrintArchiveRange();
     });
+    window.substitutionLoadHomeTodayAssignments();
   }
 
   function setHomeArchiveStatus(message,kind) {
@@ -1309,6 +1320,73 @@
       host.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">'+esc(error?.message||"تعذر تحميل السجل.")+'</div>';
       setHomeArchiveStatus(error?.message||"تعذر تحميل السجل.","error");
     }
+  };
+
+  function setHomeTodayStatus(message,kind) {
+    const node=$("substitutionTodayAssignmentsStatus");if(!node)return;
+    node.textContent=String(message||"");
+    node.className="text-[10px] font-bold "+(kind==="error"?"text-rose-700":kind==="success"?"text-emerald-700":"text-slate-500");
+  }
+
+  window.substitutionLoadHomeTodayAssignments = async function() {
+    const host=$("substitutionTodayAssignmentsResults");if(!host)return false;
+    if(reserveHomeTodayLoadPromise)return reserveHomeTodayLoadPromise;
+    const today=timetableSubstitutionGetDate().date;
+    const token=appAuthSession?.token||readAppAuthToken();
+    if(!token){
+      const message="تعذر التحقق من جلسة الدخول. أعد تسجيل الدخول ثم حدّث القائمة.";
+      host.innerHTML='<div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">'+esc(message)+'</div>';
+      setHomeTodayStatus(message,"error");return false;
+    }
+    host.innerHTML='<div class="rounded-xl bg-white p-4 text-center text-xs text-slate-500">جارٍ تحميل تكليفات اليوم...</div>';
+    setHomeTodayStatus("يتم جلب تكليفات اليوم من قاعدة البيانات...");
+    reserveHomeTodayLoadPromise=(async()=>{
+      try{
+        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:today,dateTo:today},token);
+        reserveHomeToday=Array.isArray(response.archive)?response.archive:[];
+        window.substitutionRenderHomeTodayAssignments();
+        setHomeTodayStatus("تم تحديث القائمة من قاعدة البيانات مباشرة.","success");
+        return true;
+      }catch(error){
+        const message=error?.message||"تعذر تحميل تكليفات اليوم.";
+        host.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-700">'+esc(message)+'</div>';
+        setHomeTodayStatus(message,"error");return false;
+      }finally{reserveHomeTodayLoadPromise=null;}
+    })();
+    return reserveHomeTodayLoadPromise;
+  };
+
+  window.substitutionRenderHomeTodayAssignments = function() {
+    const host=$("substitutionTodayAssignmentsResults");if(!host)return;
+    const today=timetableSubstitutionGetDate().date;
+    const records=(reserveHomeToday||[]).filter(item=>item.assignmentDate===today&&item.status!=="cancelled")
+      .sort((a,b)=>Number(a.period)-Number(b.period)||String(a.absentTeacherName||"").localeCompare(String(b.absentTeacherName||""),"ar"));
+    const count=$("substitutionTodayAssignmentsCount");
+    if(count)count.textContent=String(records.length);
+    if(!records.length){
+      host.innerHTML='<div class="rounded-xl border border-dashed border-emerald-200 bg-white p-5 text-center text-xs text-slate-500">لا توجد تكليفات احتياط محفوظة لهذا اليوم.</div>';
+      return;
+    }
+    const byAbsent=new Map();
+    records.forEach(item=>{
+      const name=String(item.absentTeacherName||"غير محدد");
+      if(!byAbsent.has(name))byAbsent.set(name,[]);
+      byAbsent.get(name).push(item);
+    });
+    host.innerHTML=Array.from(byAbsent.entries()).map(([absentName,items])=>
+      '<section class="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">'+
+      '<div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-900">المعلم الغائب: '+esc(absentName)+'</strong><span class="text-[10px] text-slate-500">'+items.length+' حصص</span></div>'+
+      '<div class="space-y-2">'+items.map(item=>{
+        const editable=item.canEdit===true&&["assigned","confirmed"].includes(item.status);
+        const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="assigned"?"محفوظ":String(item.status||"");
+        const actions=editable
+          ?'<div class="flex shrink-0 flex-wrap gap-2"><button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-xs font-black text-indigo-900 hover:bg-indigo-100" data-home-today-edit="'+esc(item.id)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button><button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-xs font-black text-rose-800 hover:bg-rose-100" data-home-today-delete="'+esc(item.id)+'"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button></div>'
+          :'<span class="text-[10px] font-bold text-slate-400">'+(item.status==="completed"?"مكتمل · لا يقبل التعديل":"للقراءة فقط · تحقق من صلاحية الإدارة وإصدار الجدول")+'</span>';
+        return '<article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="min-w-0 flex-1"><strong class="block text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' · '+esc(item.subject||"—")+'</strong><span class="mt-1 block text-xs text-slate-700">المعلم البديل: '+esc(item.substituteTeacherName||"—")+'</span><span class="mt-1 block text-[10px] text-slate-500">'+state+' · السبب: '+esc(item.reason||"-")+'</span></div>'+actions+'</article>';
+      }).join("")+'</div></section>'
+    ).join("");
+    host.querySelectorAll("[data-home-today-edit]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveEdit(button.dataset.homeTodayEdit)));
+    host.querySelectorAll("[data-home-today-delete]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyCancelAssignment(button.dataset.homeTodayDelete)));
   };
 
   window.substitutionRenderCumulativeArchive = function() {
@@ -1371,7 +1449,11 @@
           })().catch(()=>{loadedActorDateKey="";}).finally(()=>{dailyArchiveLoadPromise=null;});
         }
       }
-      if(["timetable_substitution_batch_save","timetable_substitution_save"].includes(action)&&
+      if(["timetable_substitution_batch_save","timetable_substitution_save","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_cancel","timetable_substitution_cancel_batch"].includes(action)&&
+        $("substitutionTodayAssignmentsResults")&&typeof window.substitutionLoadHomeTodayAssignments==="function") {
+        try{await window.substitutionLoadHomeTodayAssignments();}catch{}
+      }
+      if(["timetable_substitution_batch_save","timetable_substitution_save","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_cancel","timetable_substitution_cancel_batch"].includes(action)&&
         !$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&
         typeof window.substitutionLoadCumulativeArchive==="function") {
         try{await window.substitutionLoadCumulativeArchive();}catch{}
