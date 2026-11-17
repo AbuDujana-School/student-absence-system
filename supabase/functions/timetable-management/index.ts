@@ -275,9 +275,7 @@ async function handle(req: Request) {
         createdAt:row.reserve_created_at||row.created_at||null,
         canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
           String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))&&
-          (principal.type==="admin"||hasReservePermission||
-            (principal.type==="custom"&&hasTimetableGrant&&Boolean(actor?.departmentId)&&
-              directory.some((teacher:any)=>teacher.name===String(row.absent_teacher_name||"")&&teacher.departmentId===actor?.departmentId)))),
+          (principal.type==="admin"||hasReservePermission)),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
