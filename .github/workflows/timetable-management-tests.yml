@@ -99,6 +99,8 @@ jobs:
         run: node --check timetable-text.worker.js
       - name: Check reserve workflow JavaScript syntax
         run: node --check reserve-workflow.js
+      - name: Check teacher attendance compliance report JavaScript syntax
+        run: node --check teacher-attendance-compliance.js
       - name: Check optional reserve reason UI
         run: |
           grep -q 'data-tt-reason' reserve-workflow.js
