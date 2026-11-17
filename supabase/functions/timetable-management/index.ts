@@ -266,16 +266,19 @@ async function handle(req: Request) {
       .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,created_at,reserve_created_at")
       .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
       .order("assignment_date").order("period").order("id").range(from,to));
+    const todayInMuscat=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
     const archive=(rows||[]).filter((row:any)=>visibleNames.has(String(row.absent_teacher_name||"")))
       .sort((a:any,b:any)=>String(a.assignment_date||"").localeCompare(String(b.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
         createdAt:row.reserve_created_at||row.created_at||null,
-        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&Date.parse(row.reserve_created_at||row.created_at||"")>Date.now()-20*60*60*1000),
+        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
+          String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))&&
+          (principal.type==="admin"||hasReservePermission)),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
-        reason:String(row.reserve_reason||"-"),
+        subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
       }));
     return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
@@ -1196,6 +1199,7 @@ async function handle(req: Request) {
   if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_cancel_batch"].includes(String(body.action || ""))) {
     try {
       const actionName=String(body.action||"");
+      const todayInMuscat=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
       const weekday = String(body.weekday || "");
       const weekdayOptionalActions=new Set(["timetable_substitution_update","timetable_substitution_update_batch"]);
       if (!DAYS.includes(weekday) && !weekdayOptionalActions.has(actionName)) return reply(400,{error:"اختر يوماً دراسياً صحيحاً."});
@@ -1242,10 +1246,11 @@ async function handle(req: Request) {
       }
       if (body.action==="timetable_substitution_cancel") {
         if (!validUuid(body.assignmentId)) return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
-        const {data:assignment,error}=await db.from("timetable_assignments").select("id,version_id,absent_teacher_name,weekday,assignment_date").eq("id",body.assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
+        const {data:assignment,error}=await db.from("timetable_assignments").select("id,version_id,absent_teacher_name,weekday,assignment_date,status").eq("id",body.assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
         if(error)throw error;
         const cancellationDate=String(body.assignmentDate||"");
-        if(!assignment||assignment.weekday!==weekday||(assignment.assignment_date&&assignment.assignment_date!==cancellationDate))return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
+        if(!assignment||assignment.weekday!==weekday||String(assignment.assignment_date||"")!==cancellationDate)return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
+        if(cancellationDate!==todayInMuscat||!["assigned","confirmed"].includes(String(assignment.status||"")))return reply(409,{error:"يمكن حذف تكليف الاحتياط النشط خلال يومه فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان."});
         const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type}});
         if(cancelError)throw cancelError;
         return reply(200,{ok:true,assignment:data});
@@ -1258,6 +1263,7 @@ async function handle(req: Request) {
           !absentName||!isValidSubstitutionDate(assignmentDate)) {
           return reply(400,{error:"حدد سجلات توزيع المعلم الغائب وتاريخها بصورة صحيحة."});
         }
+        if(assignmentDate!==todayInMuscat)return reply(409,{error:"يمكن حذف التوزيع خلال يومه فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان."});
         const {data:batchRows,error:batchRowsError}=await db.from("timetable_assignments")
           .select("id,version_id,absent_teacher_name,weekday,assignment_date,status")
           .in("id",rawIds).eq("version_id",activeVersion.id).eq("assignment_type","substitution");
@@ -1314,10 +1320,11 @@ async function handle(req: Request) {
           .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
             Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
           .map((row:any)=>({
-            id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),canEdit:String(row.version_id)===String(activeVersion.id),
+            id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
+            canEdit:String(row.version_id)===String(activeVersion.id)&&String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||"")),
             absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
             period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
-            reason:String(row.reserve_reason||"-"),
+            subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),
             status:String(row.status||"assigned"),versionId:String(row.version_id||""),
           }));
         return reply(200,{ok:true,archive});
@@ -1327,11 +1334,14 @@ async function handle(req: Request) {
         if(!proposed.length||proposed.length>500)return reply(400,{error:"حدد تعديلات الأرشيف قبل الحفظ."});
         const normalized=proposed.map((item:any)=>({
           assignmentId:String(item?.assignmentId||""),
+          absentTeacherName:String(item?.absentTeacherName||"").trim(),
+          period:item?.period==null?null:Number(item.period),
           substituteTeacherName:String(item?.substituteTeacherName||"").trim(),
           reserveReason:String(item?.reserveReason||"").trim().slice(0,500)||"-",
         }));
-        if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName)){
-          return reply(400,{error:"توجد بيانات غير مكتملة في تعديلات الأرشيف."});
+        if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName||
+          (item.period!==null&&(!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||7))))){
+          return reply(400,{error:"توجد بيانات غير مكتملة أو حصة غير صالحة في تعديلات الأرشيف."});
         }
         const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,
@@ -1346,9 +1356,21 @@ async function handle(req: Request) {
         const absentTeacherName=String(body.absentTeacherName||"").trim();
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
         if(!validUuid(assignmentId)||!substituteTeacherName)return reply(400,{error:"حدد سجل الاحتياط والبديل الجديد."});
+        const {data:editableAssignment,error:editableError}=await db.from("timetable_assignments")
+          .select("id,version_id,assignment_date,status,period").eq("id",assignmentId)
+          .eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
+        if(editableError)throw editableError;
+        if(!editableAssignment||String(editableAssignment.assignment_date||"")!==todayInMuscat||
+          !["assigned","confirmed"].includes(String(editableAssignment.status||""))){
+          return reply(409,{error:"لا يمكن تعديل هذا السجل إلا خلال يومه، ويجب أن يكون تكليفاً نشطاً في الجدول المعتمد."});
+        }
+        const requestedPeriod=body.period==null?Number(editableAssignment.period):Number(body.period);
+        if(!Number.isInteger(requestedPeriod)||requestedPeriod<1||requestedPeriod>Number(activeVersion.period_count||7)){
+          return reply(400,{error:"اختر حصة صحيحة ضمن حصص اليوم."});
+        }
         const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
         const {data,error}=await db.rpc(rpcName,{p_payload:{
-          assignment_id:assignmentId,absent_teacher_name:absentTeacherName,
+          assignment_id:assignmentId,absent_teacher_name:absentTeacherName,period:requestedPeriod,
           substitute_teacher_name:substituteTeacherName,reserve_reason:reserveReason,
           actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,
         }});
