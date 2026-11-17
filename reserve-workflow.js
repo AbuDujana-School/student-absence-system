@@ -556,39 +556,29 @@
       if(!grouped.has(date))grouped.set(date,[]);
       grouped.get(date).push(item);
     });
-    const pages=[];
-    for(const [date,items] of [...grouped.entries()].sort((a,b)=>b[0].localeCompare(a[0]))){
+    // Preserve the original approved official A4 PDF template; only reverse
+    // the date order so the newest distribution appears first.
+    const days=[...grouped.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
+    const pages=days.flatMap(([date,items])=>{
       const byAbsent=new Map();
       items.forEach(item=>{
-        const name=String(item.absentTeacherName||"غير محدد");
-        if(!byAbsent.has(name))byAbsent.set(name,[]);
-        byAbsent.get(name).push(item);
+        const name=String(item.absentTeacherName||"");
+        if(!byAbsent.has(name)){
+          const rawReason=String(item.reason||"").trim();
+          byAbsent.set(name,{
+            absentName:name,
+            reason:rawReason==="-"||rawReason==="—"?"":String(item.reason||""),
+            rows:[]
+          });
+        }
+        byAbsent.get(name).rows.push({
+          period:item.period,
+          className:item.className,
+          substitute:item.substituteTeacherName||""
+        });
       });
-      const rows=[...byAbsent.entries()].sort((a,b)=>a[0].localeCompare(b[0],"ar"))
-        .flatMap(([absentTeacherName,assignments])=>assignments
-          .slice().sort((a,b)=>Number(a.period)-Number(b.period))
-          .map(item=>({...item,absentTeacherName})));
-      // Each date starts on a fresh A4 page. Estimate actual table height,
-      // including absent-teacher group headers, before splitting oversized days.
-      const numberedRows=rows.map((item,index)=>({...item,serialNo:index+1}));
-      const dayPages=[];
-      let pageRows=[];
-      const estimatedTableHeight=candidate=>{
-        const count=candidate.length;
-        const groups=new Set(candidate.map(row=>row.absentTeacherName)).size;
-        const rowHeight=count>32?4:count>22?5:6.8;
-        return 9+(count*rowHeight)+(groups*6);
-      };
-      numberedRows.forEach(item=>{
-        const candidate=[...pageRows,item];
-        if(pageRows.length&&estimatedTableHeight(candidate)>195){
-          dayPages.push(pageRows);
-          pageRows=[item];
-        }else pageRows=candidate;
-      });
-      if(pageRows.length)dayPages.push(pageRows);
-      dayPages.forEach(dayPage=>pages.push(reserveCumulativeOfficialPage(date,items[0]?.weekday||"",dayPage)));
-    }
+      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");
+    });
     printOfficialReservePages(pages);
   };
 
@@ -1278,7 +1268,7 @@
       '<button type="button" id="substitutionArchivePrint" class="rounded-xl bg-indigo-700 px-4 py-3 text-xs font-black text-white"><i class="fa-solid fa-print ml-1"></i> طباعة السجل</button></div>'+
       '<div id="substitutionCumulativeArchiveStatus" class="text-[10px] font-bold text-slate-500" role="status" aria-live="polite"></div>'+
       '<div id="substitutionCumulativeArchiveResults" class="space-y-3"><p class="rounded-xl border border-dashed p-4 text-center text-xs text-slate-500">اختر الفترة الزمنية ثم اعرض السجلات.</p></div></section>');
-    try{const today=timetableSubstitutionGetDate().date;$("substitutionArchiveFrom").value="1900-01-01";$("substitutionArchiveTo").value=today;}catch{}
+    try{const today=timetableSubstitutionGetDate().date;$("substitutionArchiveFrom").value=today;$("substitutionArchiveTo").value=today;}catch{}
     $("substitutionArchiveReload")?.addEventListener("click",()=>window.substitutionLoadCumulativeArchive());
     $("substitutionTodayAssignmentsReload")?.addEventListener("click",()=>window.substitutionLoadHomeTodayAssignments());
     $("substitutionArchivePrint")?.addEventListener("click",()=>{
