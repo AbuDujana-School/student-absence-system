@@ -5,6 +5,7 @@ import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema,
 import { aggregateClassTimetables } from "./timetable_class_grid.ts";
 import { buildDutyReportContext } from "./duty_report_context.ts";
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
+import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
@@ -64,7 +65,7 @@ async function fetchTeacherTimetableCells(
       let query = db.from("timetable_weekly_cells")
         .select(selectColumns)
         .eq("version_id", versionId)
-        .or("matched_teacher_name.is.null,match_status.is.null,match_status.neq.matched");
+        .or(TEACHER_TIMETABLE_FALLBACK_FILTER);
       if (teachingOnly) query = query.eq("cell_status", "teaching");
       return query.order("id").range(from, to);
     }),
@@ -74,12 +75,12 @@ async function fetchTeacherTimetableCells(
 
   const directory = await teacherDirectory();
   const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
-  const fallback = unresolved.filter((cell: any) =>
-    // Exact-name rows are already returned by the indexed query above.
-    cell.matched_teacher_name !== teacherName &&
-    resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers) === teacherName
+  return selectTeacherTimetableCells(
+    matched || [],
+    unresolved,
+    teacherName,
+    (cell) => resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers),
   );
-  return [...(matched || []), ...fallback];
 }
 const cors = {
   "Access-Control-Allow-Origin": "*",
