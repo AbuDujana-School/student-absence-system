@@ -1339,7 +1339,7 @@ async function handle(req: Request) {
           reserveReason:String(item?.reserveReason||"").trim().slice(0,500)||"-",
         }));
         if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName||
-          (item.period!==null&&(!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||7)))){
+          (item.period!==null&&(!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||7))))){
           return reply(400,{error:"توجد بيانات غير مكتملة أو حصة غير صالحة في تعديلات الأرشيف."});
         }
         const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
