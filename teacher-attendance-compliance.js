@@ -149,7 +149,6 @@
     } else {
       body.innerHTML = rows.map((row,index) =>
         '<tr class="align-top hover:bg-slate-50/80">'+
-        '<td class="p-3 text-center text-slate-400">'+(index+1)+'</td>'+
         '<td class="p-3 min-w-[150px] font-black text-slate-800">'+esc(row.name)+'</td>'+
         '<td class="p-3 text-center font-black tabular-nums">'+row.total+'</td>'+
         '<td class="p-3 min-w-[210px]">'+listHtml(row.complete,"complete")+'</td>'+
@@ -181,7 +180,7 @@
       setStatus("الفترة القصوى للتقرير 367 يوماً.", "error"); return;
     }
     const body = document.getElementById("teachersActivityTableBody");
-    if (body) body.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ احتساب الحصص والتحقق من كشوف الرصد...</td></tr>';
+    if (body) body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-slate-500"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ احتساب الحصص والتحقق من كشوف الرصد...</td></tr>';
     setStatus("جارٍ تحميل الجدول الأسبوعي وتكليفات الاحتياط وسجلات الحفظ.", "info");
     try {
       const token = appAuthSession?.token || readAppAuthToken();
@@ -195,7 +194,7 @@
       setStatus("تم تحديث التقرير. الحصة مكتملة فقط إذا وُجد سجل حفظ للحصة وكان اسم المعلم المسجل مطابقاً للمعلم المكلف.", "success");
     } catch (error) {
       if (requestId !== state.requestId) return;
-      if (body) body.innerHTML = '<tr><td colspan="6" class="p-8 text-center text-rose-700">'+esc(error?.message || "تعذر تحميل التقرير.")+'</td></tr>';
+      if (body) body.innerHTML = '<tr><td colspan="5" class="p-8 text-center text-rose-700">'+esc(error?.message || "تعذر تحميل التقرير.")+'</td></tr>';
       state.lastReport = null;
       document.getElementById("teachersActivityPrintBtn")?.setAttribute("disabled","disabled");
       setStatus(error?.message || "تعذر تحميل التقرير.", "error");
@@ -207,7 +206,7 @@
     const w = window.open("", "_blank");
     if (!w) { setStatus("يرجى السماح بالنوافذ المنبثقة لفتح تقرير PDF.", "error"); return; }
     const rows = report.rows.map((row,index) =>
-      '<tr><td class="rank">'+(index+1)+'</td><td class="name">'+esc(row.name)+'</td><td class="num">'+row.total+'</td>'+
+      '<tr><td class="name">'+esc(row.name)+'</td><td class="num">'+row.total+'</td>'+
       '<td>'+row.complete.map(esc).join("<br>")+'</td><td>'+row.pending.map(esc).join("<br>")+'</td>'+
       '<td class="pct">'+row.percentage.toFixed(1)+'%</td></tr>'
     ).join("");
@@ -219,13 +218,13 @@
       'header strong{display:block;font-size:13px;line-height:1.8}header h1{font-size:17px;margin:5px 0;color:#183653}header p{margin:3px 0;color:#475569;font-weight:700}'+
       '.summary{display:flex;gap:8px;justify-content:space-between;margin:8px 0 12px}.summary span{flex:1;text-align:center;border:1px solid #dbe4ea;background:#f8fafc;border-radius:7px;padding:7px;font-weight:800}'+
       'table{width:100%;border-collapse:collapse;table-layout:fixed}th,td{border:1px solid #cbd5e1;padding:7px 6px;vertical-align:top;overflow-wrap:anywhere}th{background:#eaf1f6;color:#183653;font-weight:900;text-align:center}'+
-      'td.rank,td.num,td.pct{text-align:center;font-weight:900}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}'+
+      'td.num,td.pct{text-align:center;font-weight:900}td.name{font-weight:900}td.pct{background:#eff6ff;color:#1d4ed8;font-size:11px}tbody tr:nth-child(even){background:#f8fafc}'+
       'tr{break-inside:avoid;page-break-inside:avoid}thead{display:table-header-group}.signatures{display:flex;justify-content:space-between;margin-top:22px;font-weight:800}.signatures span{width:45%}'+
       '@media print{header,tbody tr{break-inside:avoid;page-break-inside:avoid}}'+
       '</style></head><body><header><strong>سلطنة عُمان<br>وزارة التربية والتعليم<br>المديرية العامة لمحافظة شمال الباطنة<br>إدارة السويق<br>مدرسة أبو دجانة</strong>'+
       '<h1>تقرير الالتزام برصد الغياب</h1><p>الفترة: '+esc(period)+'</p></header>'+
       '<div class="summary"><span>إجمالي الحصص: '+report.totalLessons+'</span><span>رُصدت: '+report.completeLessons+'</span><span>لم تُرصد: '+report.pendingLessons+'</span><span>عدد المعلمين: '+report.rows.length+'</span></div>'+
-      '<table><thead><tr><th style="width:5%">م</th><th style="width:18%">المعلم</th><th style="width:9%">عدد الحصص</th><th style="width:26%">رصد الغياب</th><th style="width:26%">لم يرصد الغياب</th><th style="width:10%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+      '<table><thead><tr><th style="width:19%">المعلم</th><th style="width:10%">عدد الحصص</th><th style="width:27%">رصد الغياب</th><th style="width:32%">لم يرصد الغياب</th><th style="width:12%">نسبة الالتزام</th></tr></thead><tbody>'+rows+'</tbody></table>'+
       '<div class="signatures"><span>مساعد مدير المدرسة: ....................................</span><span>مدير المدرسة: ....................................</span></div>'+
       '<script>window.onload=()=>setTimeout(()=>window.print(),300);<\\/script></body></html>';
     w.document.open(); w.document.write(html); w.document.close();
