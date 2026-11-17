@@ -89,8 +89,12 @@
         if (!["assigned", "confirmed", "completed"].includes(String(item.status || ""))) continue;
         const teacher = ensure(item.teacherName);
         if (!teacher) continue;
+        const absentTeacher = expected.get(normalize(item.absentTeacherName));
         for (const className of classValues(item.classSections)) {
           const key = slotKey(dateStr, item.period, className);
+          // The active reserve assignment transfers this exact lesson away from
+          // the absent teacher; only the substitute is responsible for its register.
+          absentTeacher?.slots.delete(key);
           teacher.slots.set(key, { date: dateStr, period: Number(item.period), className, source: "reserve" });
         }
       }
