@@ -45,7 +45,7 @@ function compareClassNames(left:string,right:string):number {
 function asciiDigits(value:string):string {
   return String(value||"").normalize("NFKC").replace(/[٠-٩]/g,d=>String("٠١٢٣٤٥٦٧٨٩".indexOf(d)));
 }
-function classSectionsForCell(cell:ClassTimetableSourceCell):string[] {
+export function classSectionsForCell(cell:ClassTimetableSourceCell):string[] {
   const raw=Array.isArray(cell.class_sections)?cell.class_sections:[];
   const sections=new Set<string>();
   for(const value of raw){
