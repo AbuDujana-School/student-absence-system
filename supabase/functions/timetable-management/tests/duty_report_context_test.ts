@@ -46,3 +46,11 @@ Deno.test("classes without a timetable lesson do not inherit another class teach
   const result = buildDutyReportContext(["9/12"], cells, assignments);
   equal(result[0].lessons, [], "No unrelated class lesson should leak into this class");
 });
+
+
+Deno.test("teacher name normalization tolerates common Arabic hamza and letter variants", () => {
+  const result = buildDutyReportContext(["8/12"], cells, [
+    { assignment_type: "substitution", status: "assigned", source_cell_id: "cell-arabic", class_sections: ["8/12"], absent_teacher_name: "احمد سالم", teacher_name: "بديل الاسم" },
+  ]);
+  equal(result[0].lessons[0].substituteNames, ["بديل الاسم"], "The saved absent-teacher name should match the canonical timetable teacher");
+});

@@ -34,6 +34,12 @@ function classIdentity(value: unknown): string {
   if (first >= 9 && first <= 12) return first + "/" + second;
   return normalized;
 }
+function teacherIdentity(value: unknown): string {
+  return String(value ?? "").normalize("NFKC")
+    .replace(/[\\u064b-\\u065f\\u0670\\u0640]/g, "")
+    .replace(/[أإآٱ]/g, "ا").replace(/ى/g, "ي").replace(/ؤ/g, "و").replace(/ئ/g, "ي").replace(/ة/g, "ه")
+    .replace(/\\s+/g, "").trim();
+}
 function sections(value: unknown, subject = ""): string[] {
   return classSectionsForCell({
     weekday: "الأحد", period: 1, cell_status: "teaching",
@@ -71,7 +77,7 @@ export function buildDutyReportContext(
       if (!teacherName) continue;
       const substituteNames = [...lesson.substituteNames];
       for (const assignment of activeAssignments) {
-        if (classIdentity(assignment.absent_teacher_name) !== classIdentity(teacherName)) continue;
+        if (teacherIdentity(assignment.absent_teacher_name) !== teacherIdentity(teacherName)) continue;
         const sourceCellId = String(assignment.source_cell_id || "");
         if (sourceCellId && sourceCellId !== String(cell.id || "")) continue;
         const assignmentSections = sections(assignment.class_sections);
