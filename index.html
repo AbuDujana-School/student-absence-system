@@ -9683,15 +9683,15 @@ function teacherTimetableRender() {
       const ariaLabel = isCurrentPeriod
         ? "الحصة " + currentPeriodName + " الآن"
         : (substitution ? "حصة احتياط" : (isTeaching ? "تدريس " + classList.join("، ") : (isMeeting ? "اجتماع المادة" : "حصة فارغة")));
-      return '<td class="' + cellFrame + ' ' + tone + (isToday ? ' teacher-timetable-current-day-cell' : '') + '" aria-label="' + timetableEsc(ariaLabel) + '">' +
+      return '<td class="' + cellFrame + ' ' + tone + (isToday ? ' teacher-timetable-current-day-cell' : '') + ((isToday && (isCurrentPeriod || substitution || isTeaching)) ? ' teacher-timetable-preserve-cell-colour' : '') + '" aria-label="' + timetableEsc(ariaLabel) + '">' +
         '<div class="flex h-full min-h-[76px] flex-col items-center justify-center overflow-hidden px-1.5 py-1.5 text-center">' +
         cellContent +
         '</div></td>';
     }).join("");
 
-    return '<tr class="' + (isToday ? 'bg-cyan-50/30 dark:bg-cyan-950/10' : '') + '">' +
+    return '<tr class="' + (isToday ? 'teacher-timetable-current-day-row' : '') + '">' +
       '<th scope="row" class="min-w-[92px] border-b border-l border-slate-200 bg-slate-50 px-2 py-3 text-center text-[11px] font-black text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100' + (isToday ? ' teacher-timetable-current-day-heading' : '') + '">' +
-      '<span class="block">' + day + '</span>' + (isToday ? '<span class="mt-1 inline-block rounded-full bg-cyan-100 px-2 py-0.5 text-[8px] font-black text-cyan-800 dark:bg-cyan-900 dark:text-cyan-100">اليوم</span>' : '') +
+      '<span class="block">' + day + '</span>' + (isToday ? '<span class="mt-1 inline-block rounded-full bg-amber-100 px-2 py-0.5 text-[8px] font-black text-amber-800 dark:bg-amber-900/60 dark:text-amber-100">اليوم</span>' : '') +
       '</th>' + cellsHtml + '</tr>';
   }).join("");
 
@@ -12237,26 +12237,31 @@ async function timetableSaveOwner() {
   #teacherTimetableWeekGrid tbody td > div > div:nth-child(2) { font-size: 6px !important; margin-top: 2px !important; }
   #teacherTimetableWeekGrid tbody th span { font-size: 7px !important; }
 }
-/* Highlight today's complete weekday column without replacing its existing lesson colours. */
-#teacherTimetableWeekGrid .teacher-timetable-current-day-heading {
-  background-color: #fff2bf !important;
+/* Highlight the current weekday as one horizontal row while preserving lesson-state fills. */
+#teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > th.teacher-timetable-current-day-heading {
+  background-color: #fff7dc !important;
   color: #594719 !important;
-  border-color: #e6c65c !important;
+  border-color: #ead99a !important;
 }
-#teacherTimetableWeekGrid td.teacher-timetable-current-day-cell {
-  background-image: linear-gradient(rgba(255, 231, 145, 0.16), rgba(255, 231, 145, 0.16)) !important;
-  box-shadow: inset 0 0 0 1px rgba(210, 166, 45, 0.42);
-  border-color: rgba(210, 166, 45, 0.55) !important;
+#teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.teacher-timetable-current-day-cell {
+  border-top-color: rgba(210, 166, 45, 0.38) !important;
+  border-bottom-color: rgba(210, 166, 45, 0.38) !important;
 }
-html.dark #teacherTimetableWeekGrid .teacher-timetable-current-day-heading {
-  background-color: #594b25 !important;
+/* Only empty cells receive a faint yellow wash; teaching, reserve and current-period colours stay untouched. */
+#teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.teacher-timetable-current-day-cell:not(.teacher-timetable-preserve-cell-colour) {
+  background-image: linear-gradient(rgba(255, 239, 184, 0.22), rgba(255, 239, 184, 0.22)) !important;
+}
+html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > th.teacher-timetable-current-day-heading {
+  background-color: #514724 !important;
   color: #fff4c8 !important;
-  border-color: #b99a43 !important;
+  border-color: #9b8545 !important;
 }
-html.dark #teacherTimetableWeekGrid td.teacher-timetable-current-day-cell {
-  background-image: linear-gradient(rgba(255, 214, 105, 0.11), rgba(255, 214, 105, 0.11)) !important;
-  box-shadow: inset 0 0 0 1px rgba(218, 184, 91, 0.38);
-  border-color: rgba(218, 184, 91, 0.48) !important;
+html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.teacher-timetable-current-day-cell {
+  border-top-color: rgba(218, 184, 91, 0.32) !important;
+  border-bottom-color: rgba(218, 184, 91, 0.32) !important;
+}
+html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.teacher-timetable-current-day-cell:not(.teacher-timetable-preserve-cell-colour) {
+  background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
 <script src="./reserve-workflow.js"></script>
