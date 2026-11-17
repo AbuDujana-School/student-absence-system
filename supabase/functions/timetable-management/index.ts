@@ -955,6 +955,67 @@ async function handle(req: Request) {
     }
   }
 
+  if (body.action === "timetable_activity_report_data") {
+    if (principal.type !== "admin") return reply(403, { error: "تقرير التزام رصد الغياب متاح لمدير النظام العام فقط." });
+    try {
+      const dateFrom = String(body.dateFrom || "").trim();
+      const dateTo = String(body.dateTo || "").trim();
+      if (!isValidSubstitutionDate(dateFrom) || !isValidSubstitutionDate(dateTo) || dateFrom > dateTo) {
+        return reply(400, { error: "حدد فترة زمنية صحيحة للتقرير." });
+      }
+      const fromMs = Date.parse(dateFrom + "T00:00:00Z");
+      const toMs = Date.parse(dateTo + "T00:00:00Z");
+      if (!Number.isFinite(fromMs) || !Number.isFinite(toMs) || toMs - fromMs > 366 * 86400000) {
+        return reply(400, { error: "الفترة القصوى للتقرير 367 يوماً." });
+      }
+      const [directory, versionResult] = await Promise.all([
+        teacherDirectory(),
+        db.from("timetable_weekly_versions").select("id,version,status,activated_at,period_count").eq("status", "active").maybeSingle(),
+      ]);
+      if (versionResult.error) throw versionResult.error;
+      const version = versionResult.data;
+      if (!version) return reply(200, { ok: true, version: null, teachers: [], cells: [], assignments: [] });
+      const [rawCells, rawAssignments] = await Promise.all([
+        fetchAllTimetableCells((from,to) => db.from("timetable_weekly_cells")
+          .select("matched_teacher_name,teacher_source_name,weekday,period,cell_status,class_sections,subject")
+          .eq("version_id", version.id).order("id").range(from,to)),
+        fetchAllSubstitutionRows((from,to) => db.from("timetable_assignments")
+          .select("teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,version_id")
+          .eq("assignment_type", "substitution").gte("assignment_date", dateFrom).lte("assignment_date", dateTo)
+          .order("assignment_date").order("period").order("id").range(from,to)),
+      ]);
+      const systemTeachers = directory.filter((teacher:any) => teacher.role === "teacher")
+        .map((teacher:any) => ({ name: String(teacher.name || "").trim() })).filter((teacher:any) => teacher.name);
+      const cells = (rawCells || []).map((cell:any) => ({
+        teacherName: resolveTimetableTeacherName(cell.matched_teacher_name, cell.teacher_source_name, systemTeachers),
+        weekday: String(cell.weekday || ""),
+        period: Number(cell.period),
+        status: String(cell.cell_status || ""),
+        classSections: Array.isArray(cell.class_sections) ? cell.class_sections : [],
+        subject: String(cell.subject || ""),
+      })).filter((cell:any) => cell.teacherName);
+      const assignments = (rawAssignments || []).map((row:any) => ({
+        teacherName: String(row.teacher_name || "").trim(),
+        absentTeacherName: String(row.absent_teacher_name || "").trim(),
+        assignmentType: String(row.assignment_type || ""),
+        weekday: String(row.weekday || ""),
+        period: Number(row.period),
+        status: String(row.status || ""),
+        assignmentDate: row.assignment_date || null,
+        classSections: Array.isArray(row.class_sections) ? row.class_sections : [],
+        subject: String(row.subject || ""),
+      }));
+      return reply(200, {
+        ok: true, version: { version: version.version, period_count: version.period_count },
+        teachers: directory.filter((teacher:any) => teacher.role === "teacher").map((teacher:any) => String(teacher.name || "").trim()).filter(Boolean),
+        cells, assignments,
+      });
+    } catch (error) {
+      console.error("Teacher attendance compliance report data failed:", error instanceof Error ? error.message : "unknown");
+      return reply(500, { error: "تعذر تحميل بيانات الجدول والاحتياط لتقرير الالتزام." });
+    }
+  }
+
   if (body.action === "timetable_teacher_weekly_get") {
     try {
       const teacherName = String(body.teacherName || "").trim();
