@@ -781,7 +781,11 @@
           return;
         }
         classInfo.innerHTML='<strong>الصف:</strong> '+esc(lesson.className||"—")+' <span class="mx-2">|</span> <strong>المادة:</strong> '+esc(lesson.subject||"—");
-        subSelect.innerHTML=makeSubstituteOptions(lesson.candidates,item.substituteTeacherName);
+        const candidates=Array.isArray(lesson.candidates)?lesson.candidates:[];
+        const currentRecordCell=absentSelect.value===item.absentTeacherName&&Number(periodSelect.value)===Number(item.period);
+        const selectedIsAvailable=candidates.some(candidate=>candidate.name===subSelect.value);
+        const selectedSubstitute=selectedIsAvailable||currentRecordCell?subSelect.value:(candidates[0]?.name||"");
+        subSelect.innerHTML=(selectedSubstitute?makeSubstituteOptions(candidates,selectedSubstitute):'<option value="" selected disabled>لا يوجد معلم بديل متاح لهذه الحصة</option>'+candidates.map(candidate=>'<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+'</option>').join(""));
       };
       renderSelectedLesson();
       absentSelect.addEventListener("change",async()=>{
