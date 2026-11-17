@@ -120,7 +120,7 @@ export function canUseTimetableAction(
   dutyReportOnly = false,
 ): boolean {
   if (principalType === "admin") return true;
-  if (dutyReportOnly) return new Set(["health", "timetable_check_access", "timetable_duty_report_context"]).has(action);
+  if (dutyReportOnly) return new Set(["health", "timetable_check_access", "timetable_duty_report_context", "teacher_substitution_get_today"]).has(action);
   if (schoolwideReserveStats && action === "timetable_substitution_stats") return true;
   if (portalOnly) return new Set([
     "health",
