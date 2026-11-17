@@ -64,7 +64,7 @@ async function fetchTeacherTimetableCells(
       let query = db.from("timetable_weekly_cells")
         .select(selectColumns)
         .eq("version_id", versionId)
-        .neq("match_status", "matched");
+        .or("matched_teacher_name.is.null,match_status.neq.matched");
       if (teachingOnly) query = query.eq("cell_status", "teaching");
       return query.order("id").range(from, to);
     }),
