@@ -516,7 +516,7 @@
         :"";
       previousAbsent=absent;
       return groupHeader+'<tr style="height:'+rowHeight+';break-inside:avoid;page-break-inside:avoid">'+
-        '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+numberArabic(index+1)+'</td>'+
+        '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+numberArabic(item.serialNo||index+1)+'</td>'+
         '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+esc(formatReservePrintPeriod(item.period))+'</td>'+
         '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+esc(item.className||"")+'</td>'+
         '<td style="height:'+rowHeight+';font-size:'+fontSize+'">'+esc(item.substituteTeacherName||"")+'</td>'+
@@ -557,12 +557,26 @@
         .flatMap(([absentTeacherName,assignments])=>assignments
           .slice().sort((a,b)=>Number(a.period)-Number(b.period))
           .map(item=>({...item,absentTeacherName})));
-      // Each date starts on a fresh A4 page. Very large days are split only
-      // when necessary to keep every row legible and inside the page frame.
-      const maxRowsPerPage=42;
-      for(let offset=0;offset<rows.length;offset+=maxRowsPerPage){
-        pages.push(reserveCumulativeOfficialPage(date,items[0]?.weekday||"",rows.slice(offset,offset+maxRowsPerPage)));
-      }
+      // Each date starts on a fresh A4 page. Estimate actual table height,
+      // including absent-teacher group headers, before splitting oversized days.
+      const numberedRows=rows.map((item,index)=>({...item,serialNo:index+1}));
+      const dayPages=[];
+      let pageRows=[];
+      const estimatedTableHeight=candidate=>{
+        const count=candidate.length;
+        const groups=new Set(candidate.map(row=>row.absentTeacherName)).size;
+        const rowHeight=count>32?4:count>22?5:6.8;
+        return 9+(count*rowHeight)+(groups*6);
+      };
+      numberedRows.forEach(item=>{
+        const candidate=[...pageRows,item];
+        if(pageRows.length&&estimatedTableHeight(candidate)>195){
+          dayPages.push(pageRows);
+          pageRows=[item];
+        }else pageRows=candidate;
+      });
+      if(pageRows.length)dayPages.push(pageRows);
+      dayPages.forEach(dayPage=>pages.push(reserveCumulativeOfficialPage(date,items[0]?.weekday||"",dayPage)));
     }
     printOfficialReservePages(pages);
   };
