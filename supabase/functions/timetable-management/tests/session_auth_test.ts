@@ -354,6 +354,9 @@ Deno.test("duty-only teachers receive read-only access to duty report timetable 
   if (!canUseTimetableAction("teacher", "timetable_duty_report_context", false, false, false, false, true)) {
     throw new Error("Duty-only principal could not read the duty report context");
   }
+  if (!canUseTimetableAction("teacher", "teacher_substitution_get_today", false, false, false, false, true)) {
+    throw new Error("Duty-only principal lost access to their own daily substitution notice");
+  }
   if (canUseTimetableAction("teacher", "timetable_class_weekly_get", false, false, false, false, true)) {
     throw new Error("Duty-only principal was granted broader timetable access");
   }
