@@ -223,8 +223,17 @@ async function handle(req: Request) {
     ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
     : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
+  const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
+    principal.type === "admin" || await (async () => {
+      const { data, error } = await db.from("teachers").select("permissions")
+        .eq("name", principal.name).eq("role", principal.type).maybeSingle();
+      if (error) throw error;
+      return data?.permissions?.teachers === true || data?.permissions?.admin === true;
+    })()
+  );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true)
-    && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)) {
+    && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)
+    && !hasTeacherActivityPermission) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط أو صلاحية أرشيف الاحتياط الممنوحة من مدير النظام العام." });
   }
 
@@ -886,7 +895,7 @@ async function handle(req: Request) {
   }
 
   if (body.action === "timetable_activity_report_data") {
-    if (principal.type !== "admin") return reply(403, { error: "تقرير التزام رصد الغياب متاح لمدير النظام العام فقط." });
+    if (!hasTeacherActivityPermission) return reply(403, { error: "تحتاج إلى صلاحية إدارة المعلمين لعرض تقرير الالتزام." });
     try {
       const dateFrom = String(body.dateFrom || "").trim();
       const dateTo = String(body.dateTo || "").trim();
