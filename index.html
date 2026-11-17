@@ -2723,32 +2723,30 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
         <div id="dashboardTeachersActivity" class="p-5 sm:p-7 rounded-[2rem] bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xl space-y-5" dir="rtl">
           <div class="flex flex-wrap justify-between items-center gap-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-            <div class="flex items-center gap-3.5"><div class="w-13 h-13 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg shadow-teal-500/20"><i class="fa-solid fa-clipboard-check"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">جدول تقييم ونشاط المعلمين</h3><p class="text-xs text-slate-500 font-bold">متابعة التزام المعلمين برصد الغياب في حصصهم التدريسية وحصص الاحتياط</p></div></div>
-            <button id="teachersActivityPrintBtn" onclick="printTeachersActivityPDF()" disabled class="disabled:opacity-40 disabled:cursor-not-allowed bg-gradient-to-r from-slate-900 to-slate-800 hover:from-slate-800 hover:to-slate-700 text-white px-6 py-3 rounded-2xl text-xs font-black shadow-lg active:scale-95 transition-all flex items-center gap-2.5"><i class="fa-solid fa-file-pdf text-rose-400 text-base"></i><span>طباعة التقرير PDF</span></button>
+            <div class="flex items-center gap-3.5"><div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-teal-600 to-emerald-600 text-white flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-clipboard-check"></i></div><div><h3 class="font-black text-lg text-slate-800 dark:text-white">جدول تقييم ونشاط المعلمين</h3><p class="text-xs text-slate-500 font-bold">تقرير الالتزام برصد الغياب وفق الحصص الفعلية والاحتياط</p></div></div>
+            <button id="teachersActivityPrintBtn" onclick="printTeachersActivityPDF()" disabled class="disabled:opacity-40 bg-gradient-to-r from-slate-900 to-slate-800 text-white px-5 py-3 rounded-2xl text-xs font-black shadow-lg active:scale-95 transition-all flex items-center gap-2"><i class="fa-solid fa-file-pdf text-rose-300"></i><span>طباعة التقرير PDF</span></button>
           </div>
-          <div class="flex flex-wrap items-center justify-between gap-3">
-            <div class="inline-flex rounded-xl border border-slate-200 bg-slate-100 p-1 text-xs font-black">
-              <button id="teachersActivityTodayBtn" onclick="setTeachersActivityMode('today')" class="rounded-lg bg-slate-900 px-4 py-2 text-white">تقرير اليوم</button>
-              <button id="teachersActivityRangeBtn" onclick="setTeachersActivityMode('range')" class="rounded-lg px-4 py-2 text-slate-700">من تاريخ إلى تاريخ</button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button id="teachersActivityTodayBtn" onclick="setTeachersActivityMode('today')" class="bg-slate-900 text-white px-4 py-2.5 rounded-xl text-xs font-black">تقرير اليوم</button>
+            <button id="teachersActivityRangeBtn" onclick="setTeachersActivityMode('range')" class="bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 px-4 py-2.5 rounded-xl text-xs font-black">تقرير فترة</button>
+            <div id="teachersActivityRange" class="hidden flex flex-wrap items-center gap-2 text-xs font-bold">
+              <label for="teachersActivityFrom">من</label><input id="teachersActivityFrom" type="date" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
+              <label for="teachersActivityTo">إلى</label><input id="teachersActivityTo" type="date" class="rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2">
+              <button onclick="loadTeachersActivityCompliance()" class="rounded-xl bg-teal-700 hover:bg-teal-800 text-white px-4 py-2.5 font-black">تحديث التقرير</button>
             </div>
-            <button onclick="loadTeachersActivityCompliance()" class="rounded-xl border border-teal-200 bg-teal-50 px-4 py-2 text-xs font-black text-teal-800 hover:bg-teal-100"><i class="fa-solid fa-rotate ml-1"></i> تحديث البيانات</button>
           </div>
-          <div id="teachersActivityRange" class="hidden grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 sm:grid-cols-2">
-            <label class="text-xs font-bold text-slate-600">من تاريخ<input id="teachersActivityFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold"></label>
-            <label class="text-xs font-bold text-slate-600">إلى تاريخ<input id="teachersActivityTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-sm font-bold"></label>
-            <div class="sm:col-span-2"><button onclick="loadTeachersActivityCompliance()" class="rounded-xl bg-teal-700 px-5 py-2.5 text-xs font-black text-white hover:bg-teal-800">عرض الفترة المحددة</button></div>
-          </div>
-          <div id="teachersActivitySummary" class="flex flex-wrap gap-2 text-xs font-bold"></div>
           <div id="teachersActivityStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
-          <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white shadow-inner">
-            <table class="w-full min-w-[900px] text-xs text-right">
-              <thead class="bg-slate-50 text-slate-700 font-black border-b border-slate-200"><tr><th class="p-3">المعلم</th><th class="p-3 text-center">عدد الحصص</th><th class="p-3">رصد الغياب</th><th class="p-3">لم يرصد الغياب</th><th class="p-3 text-center">نسبة الالتزام</th></tr></thead>
-              <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 font-bold"><tr><td colspan="5" class="p-8 text-center text-slate-400">جارٍ تحميل تقرير الالتزام...</td></tr></tbody>
+          <div id="teachersActivitySummary" class="flex flex-wrap gap-2 text-xs font-bold"></div>
+          <div class="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-700 shadow-inner">
+            <table class="w-full min-w-[850px] text-xs text-right border-collapse">
+              <thead class="bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-100 font-black border-b border-slate-200 dark:border-slate-700">
+                <tr><th class="p-3 min-w-[150px]">المعلم</th><th class="p-3 text-center min-w-[90px]">عدد الحصص</th><th class="p-3 min-w-[210px]">رصد الغياب</th><th class="p-3 min-w-[210px]">لم يرصد الغياب</th><th class="p-3 text-center min-w-[110px]">نسبة الالتزام</th></tr>
+              </thead>
+              <tbody id="teachersActivityTableBody" class="divide-y divide-slate-100 dark:divide-slate-800 font-bold"><tr><td colspan="5" class="p-6 text-center text-slate-400">يتم تحميل تقرير الالتزام عند فتح لوحة الإدارة.</td></tr></tbody>
             </table>
           </div>
-          <p class="text-[10px] leading-5 text-slate-500">تُحتسب الحصة مكتملة عند حفظ كشف الغياب باسم المعلم المكلف، حتى إذا لم يوجد غياب. وتُضاف حصص الاحتياط النشطة إلى حصص المعلم الأصلية، ولا تُحتسب التكليفات الملغاة.</p>
+          <p class="text-[10px] leading-6 text-slate-500">تُحتسب الحصة مكتملة عند وجود سجل حفظ للغياب مطابق للمعلم والصف والحصة. وتُضاف حصص الاحتياط المسندة إلى حصص المعلم الأصلية، مع استبعاد التكليفات الملغاة.</p>
         </div>
-
 
       </section>
 
@@ -12209,6 +12207,7 @@ async function timetableSaveOwner() {
   #teacherTimetableWeekGrid tbody th span { font-size: 7px !important; }
 }
 </style>
+<script src="./teacher-attendance-compliance.js"></script>
 <script src="./reserve-workflow.js"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 </body>
