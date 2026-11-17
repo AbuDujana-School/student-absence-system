@@ -28,6 +28,9 @@ function muscatDateAndWeekday(now = new Date()) {
     weekday: weekdayMap[weekdayName] || "",
   };
 }
+function isSameMuscatSchoolDay(value: unknown, now = new Date()): boolean {
+  return typeof value === "string" && value === muscatDateAndWeekday(now).date;
+}
 // Maximum accepted import: 500 teachers × 5 weekdays × 8 periods = 20,000 cells.
 // PostgREST may cap each response at 1,000 rows, so full-week reads are paginated.
 const TIMETABLE_CELL_PAGE_SIZE = 1000;
@@ -272,7 +275,7 @@ async function handle(req: Request) {
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
         createdAt:row.reserve_created_at||row.created_at||null,
-        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&Date.parse(row.reserve_created_at||row.created_at||"")>Date.now()-20*60*60*1000),
+        canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&isSameMuscatSchoolDay(row.assignment_date)&&["assigned","confirmed"].includes(String(row.status||""))),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
         reason:String(row.reserve_reason||"-"),
@@ -1242,10 +1245,20 @@ async function handle(req: Request) {
       }
       if (body.action==="timetable_substitution_cancel") {
         if (!validUuid(body.assignmentId)) return reply(400,{error:"رقم تكليف الاحتياط غير صالح."});
-        const {data:assignment,error}=await db.from("timetable_assignments").select("id,version_id,absent_teacher_name,weekday,assignment_date").eq("id",body.assignmentId).eq("version_id",activeVersion.id).eq("assignment_type","substitution").maybeSingle();
-        if(error)throw error;
+        const today=muscatDateAndWeekday();
         const cancellationDate=String(body.assignmentDate||"");
-        if(!assignment||assignment.weekday!==weekday||(assignment.assignment_date&&assignment.assignment_date!==cancellationDate))return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
+        if(cancellationDate!==today.date||weekday!==today.weekday) {
+          return reply(403,{error:"التعديل والحذف متاحان لسجلات اليوم الحالي فقط، حتى نهاية اليوم بتوقيت عُمان."});
+        }
+        const {data:assignment,error}=await db.from("timetable_assignments")
+          .select("id,version_id,absent_teacher_name,weekday,assignment_date,status")
+          .eq("id",body.assignmentId).eq("version_id",activeVersion.id)
+          .eq("assignment_type","substitution").maybeSingle();
+        if(error)throw error;
+        if(!assignment||assignment.weekday!==today.weekday||assignment.assignment_date!==today.date||
+          !["assigned","confirmed"].includes(String(assignment.status||""))) {
+          return reply(404,{error:"سجل الاحتياط غير موجود ضمن سجلات اليوم النشطة."});
+        }
         const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type}});
         if(cancelError)throw cancelError;
         return reply(200,{ok:true,assignment:data});
@@ -1258,14 +1271,18 @@ async function handle(req: Request) {
           !absentName||!isValidSubstitutionDate(assignmentDate)) {
           return reply(400,{error:"حدد سجلات توزيع المعلم الغائب وتاريخها بصورة صحيحة."});
         }
+        const today=muscatDateAndWeekday();
+        if(assignmentDate!==today.date||weekday!==today.weekday) {
+          return reply(403,{error:"يمكن حذف توزيع اليوم الحالي فقط، حتى نهاية اليوم بتوقيت عُمان."});
+        }
         const {data:batchRows,error:batchRowsError}=await db.from("timetable_assignments")
           .select("id,version_id,absent_teacher_name,weekday,assignment_date,status")
           .in("id",rawIds).eq("version_id",activeVersion.id).eq("assignment_type","substitution");
         if(batchRowsError)throw batchRowsError;
         if(!batchRows||batchRows.length!==rawIds.length)return reply(404,{error:"تعذر العثور على جميع حصص التوزيع المطلوب حذفه."});
-        if(batchRows.some((row:any)=>row.absent_teacher_name!==absentName||row.assignment_date!==assignmentDate||
-          row.weekday!==weekday||!["assigned","confirmed"].includes(String(row.status||"")))) {
-          return reply(409,{error:"تحتوي القائمة على حصص لا تنتمي إلى توزيع المعلم والتاريخ المحددين أو لم تعد نشطة."});
+        if(batchRows.some((row:any)=>row.absent_teacher_name!==absentName||row.assignment_date!==today.date||
+          row.weekday!==today.weekday||!["assigned","confirmed"].includes(String(row.status||"")))) {
+          return reply(409,{error:"تحتوي القائمة على حصص لا تنتمي إلى توزيع اليوم الحالي المحدد أو لم تعد نشطة."});
         }
         const {data,error:batchCancelError}=await db.rpc("cancel_timetable_substitution_batch",{p_payload:{
           assignment_ids:rawIds,actor_name:principal.name,actor_type:principal.type
@@ -1314,7 +1331,7 @@ async function handle(req: Request) {
           .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
             Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
           .map((row:any)=>({
-            id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),canEdit:String(row.version_id)===String(activeVersion.id),
+            id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),canEdit:String(row.version_id)===String(activeVersion.id)&&isSameMuscatSchoolDay(row.assignment_date)&&["assigned","confirmed"].includes(String(row.status||"")),
             absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
             period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
             reason:String(row.reserve_reason||"-"),
@@ -1324,14 +1341,37 @@ async function handle(req: Request) {
       }
       if(body.action==="timetable_substitution_update_batch"){
         const proposed=Array.isArray(body.assignments)?body.assignments:[];
-        if(!proposed.length||proposed.length>500)return reply(400,{error:"حدد تعديلات الأرشيف قبل الحفظ."});
+        if(!proposed.length||proposed.length>500)return reply(400,{error:"حدد تعديلات اليوم قبل الحفظ."});
         const normalized=proposed.map((item:any)=>({
           assignmentId:String(item?.assignmentId||""),
           substituteTeacherName:String(item?.substituteTeacherName||"").trim(),
           reserveReason:String(item?.reserveReason||"").trim().slice(0,500)||"-",
+          ...(item?.absentTeacherName?{absentTeacherName:String(item.absentTeacherName).trim()}:{}),
+          ...(item?.period!==undefined&&item?.period!==null&&item?.period!==""?{period:Number(item.period)}:{}),
         }));
-        if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName)){
-          return reply(400,{error:"توجد بيانات غير مكتملة في تعديلات الأرشيف."});
+        if(normalized.some((item:any)=>!validUuid(item.assignmentId)||!item.substituteTeacherName||
+          (item.period!==undefined&&(!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||8))))){
+          return reply(400,{error:"توجد بيانات غير مكتملة أو حصة غير صالحة في تعديلات اليوم."});
+        }
+        const today=muscatDateAndWeekday();
+        const {data:existingRows,error:existingError}=await db.from("timetable_assignments")
+          .select("id,version_id,absent_teacher_name,assignment_date,weekday,status")
+          .in("id",normalized.map((item:any)=>item.assignmentId)).eq("assignment_type","substitution");
+        if(existingError)throw existingError;
+        if(!existingRows||existingRows.length!==normalized.length)return reply(404,{error:"تعذر العثور على جميع سجلات التعديل."});
+        if(existingRows.some((row:any)=>String(row.version_id)!==String(activeVersion.id)||row.assignment_date!==today.date||
+          row.weekday!==today.weekday||!["assigned","confirmed"].includes(String(row.status||"")))){
+          return reply(403,{error:"يمكن تعديل سجلات اليوم الحالي النشطة فقط، حتى نهاية اليوم بتوقيت عُمان."});
+        }
+        if(principal.type!=="admin"){
+          const actorDepartmentId=directory.find((teacher:any)=>teacher.name===principal.name)?.departmentId||"";
+          for(const item of normalized){
+            const existing=existingRows.find((row:any)=>row.id===item.assignmentId);
+            const targetAbsent=directory.find((teacher:any)=>teacher.name===(item.absentTeacherName||existing?.absent_teacher_name)&&teacher.role==="teacher");
+            if(!targetAbsent||(!hasReservePermission&&targetAbsent.departmentId!==actorDepartmentId)){
+              return reply(403,{error:"لا تملك صلاحية تعديل سجل خارج نطاق قسمك."});
+            }
+          }
         }
         const {data,error}=await db.rpc("replace_timetable_substitution_batch_with_reason",{p_payload:{
           assignments:normalized,actor_name:principal.name,actor_type:principal.type,
@@ -1345,12 +1385,35 @@ async function handle(req: Request) {
         const substituteTeacherName=String(body.substituteTeacherName||"").trim();
         const absentTeacherName=String(body.absentTeacherName||"").trim();
         const reserveReason=String(body.reserveReason||"").trim().slice(0,500)||"-";
-        if(!validUuid(assignmentId)||!substituteTeacherName)return reply(400,{error:"حدد سجل الاحتياط والبديل الجديد."});
-        const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
-        const {data,error}=await db.rpc(rpcName,{p_payload:{
-          assignment_id:assignmentId,absent_teacher_name:absentTeacherName,
+        const period=Number(body.period);
+        if(!validUuid(assignmentId)||!substituteTeacherName||!absentTeacherName||
+          !Number.isInteger(period)||period<1||period>Number(activeVersion.period_count||8)){
+          return reply(400,{error:"حدد سجل الاحتياط والمعلم والحصة والبديل الجديد بصورة صحيحة."});
+        }
+        const today=muscatDateAndWeekday();
+        const {data:existing,error:existingError}=await db.from("timetable_assignments")
+          .select("id,version_id,absent_teacher_name,assignment_date,weekday,status")
+          .eq("id",assignmentId).eq("assignment_type","substitution").maybeSingle();
+        if(existingError)throw existingError;
+        if(!existing||String(existing.version_id)!==String(activeVersion.id)||existing.assignment_date!==today.date||
+          existing.weekday!==today.weekday||!["assigned","confirmed"].includes(String(existing.status||""))){
+          return reply(403,{error:"يمكن تعديل سجلات اليوم الحالي النشطة فقط، حتى نهاية اليوم بتوقيت عُمان."});
+        }
+        const targetAbsent=directory.find((teacher:any)=>teacher.name===absentTeacherName&&teacher.role==="teacher");
+        const substitute=directory.find((teacher:any)=>teacher.name===substituteTeacherName&&teacher.role==="teacher");
+        if(!targetAbsent||!substitute||!activeTeachingTeacherNames.has(substituteTeacherName)){
+          return reply(404,{error:"تعذر العثور على المعلم الغائب أو البديل ضمن الجدول النشط."});
+        }
+        if(principal.type!=="admin"&&!hasReservePermission&&targetAbsent.departmentId!==actorDepartmentId){
+          return reply(403,{error:"لا تملك صلاحية تعديل سجل خارج نطاق قسمك."});
+        }
+        if(principal.type!=="admin"&&substitute.departmentId!==targetAbsent.departmentId&&!includeOtherDepartments){
+          return reply(403,{error:"اختر البديل من قسم المعلم الغائب أو فعّل خيار القسم المساند."});
+        }
+        const {data,error}=await db.rpc("reassign_timetable_substitution_absent_with_reason",{p_payload:{
+          assignment_id:assignmentId,absent_teacher_name:absentTeacherName,period,
           substitute_teacher_name:substituteTeacherName,reserve_reason:reserveReason,
-          actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments,
+          actor_name:principal.name,actor_type:principal.type,include_other_departments:includeOtherDepartments||principal.type==="admin",
         }});
         if(error)throw error;
         return reply(200,{ok:true,result:data});
