@@ -31,6 +31,7 @@ export interface TimetableAuthStore {
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasSubstitutionAccess?(name: string): Promise<boolean>;
   hasDutyReportAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
+  canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
   hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
   hasSchoolwideReserveStatsAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;

@@ -3555,7 +3555,7 @@ async function appAuthRequest(body, token) { if(IS_UI_REVIEW_PREVIEW) throw new 
   try { response = await fetch(requestUrl, { method: "POST", headers, body: JSON.stringify(body), cache: "no-store" }); }
   catch (networkError) { const error = new Error("تعذر الاتصال بخدمة تسجيل الدخول الآمن."); error.status = 0; throw error; }
   let data = {}; try { data = await response.json(); } catch (error) {}
-  if (!response.ok) { const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن."); error.status = response.status; throw error; }
+  if (!response.ok) { const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن."); error.status = response.status; if (response.status === 401 && action !== "app_login") clearAppAuthSession(); throw error; }
   return data;
 }
 function isLegacyAuthEndpointUnavailable(error) { return error?.status === 404 || (error?.status === 400 && /unknown action/i.test(String(error?.message || ""))); }
@@ -4876,7 +4876,7 @@ function dutyDayForDate(dateStr) {
 function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 /* ============ DB ============ */
-const IS_UI_REVIEW_PREVIEW = location.hostname.includes("abu-dujana-school-preview");
+const IS_UI_REVIEW_PREVIEW = location.hostname.includes("abu-dujana-school-preview") || location.hostname === "fix-timetable-fallback-null.student-absence-system.pages.dev";
 let db = { version: 27, adminPin: null, customUsers: [], customCategories: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
 const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false, custom_categories: false };
 let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
@@ -8776,7 +8776,7 @@ async function buildDutyWhatsAppMessage(classes, period) {
   if (sortedClasses.length) {
     try {
       const token = appAuthSession?.token || readAppAuthToken();
-      if (!token) throw new Error("انتهت جلسة الدخول الآمنة.");
+      if (!token) { const authError = new Error("انتهت جلسة الدخول الآمنة."); authError.status = 401; throw authError; }
       const result = await appAuthRequest({
         action: "timetable_duty_report_context",
         date: date,
@@ -8790,7 +8790,21 @@ async function buildDutyWhatsAppMessage(classes, period) {
       detailsByClass = new Map(result.classes.map(item => [String(item.className), item]));
     } catch (error) {
       contextLoaded = false;
-      console.warn("Duty WhatsApp timetable context unavailable:", error?.message || error);
+      const status = Number(error?.status || 0);
+      if (status === 401) {
+        contextUnavailableMessage = "انتهت جلسة الدخول الآمنة أو لم تعد صالحة. سجّل الدخول مجدداً ثم أعد إرسال تقرير المناوبة.";
+      } else if (status === 403) {
+        contextUnavailableMessage = "حسابك لا يملك صلاحية قراءة بيانات جدول المناوبة. راجع مدير النظام لمنح صلاحية المناوبة.";
+      } else if (status === 400) {
+        contextUnavailableMessage = String(error?.message || "بيانات اليوم أو الحصة لا تطابق إعدادات الجدول.");
+      } else if (status === 500) {
+        contextUnavailableMessage = "تعذر على خدمة الجدول قراءة البيانات حالياً. أعد المحاولة، وإذا تكرر الخطأ يلزم فحص سجل الخدمة.";
+      } else if (status === 0) {
+        contextUnavailableMessage = "تعذر الاتصال بخدمة الجدول. تحقق من الإنترنت ثم أعد إرسال التقرير.";
+      } else {
+        contextUnavailableMessage = String(error?.message || "تعذر تحميل بيانات الجدول.");
+      }
+      console.warn("Duty WhatsApp timetable context unavailable:", { status, message: error?.message || "unknown" });
     }
   }
 
@@ -8832,7 +8846,7 @@ async function buildDutyWhatsAppMessage(classes, period) {
     msg += "\n";
   }
   msg += "🏫 مدرسة أبو دجانة الأنصاري";
-  return { message: msg, contextLoaded: contextLoaded };
+  return { message: msg, contextLoaded: contextLoaded, contextError: contextLoaded ? null : contextUnavailableMessage };
 }
 async function submitDutyReport() {
   if (!selectedDutyPeriod || !activeUser) return;
@@ -8846,10 +8860,10 @@ async function submitDutyReport() {
     const pC = d.periods[selectedDutyPeriod - 1];
     const nowMin = omanNowParts().minutes;
     const ps = toMinutes(pC?.start), pe = toMinutes(pC?.end);
-    const cat = getTeacherCategory(activeUser.name);
-    const tDay = cat ? d.subjectDays[cat] : '';
-    if (dutyDayForDate(date) !== tDay || ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) {
-      showToast('انتهت النافذة الزمنية.', 'error'); return;
+    const tDay = getTeacherDutyDay(activeUser.name);
+    if (activeUser?.permissions?.dutyToday === false || dutyDayForDate(date) !== tDay ||
+        ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) {
+      showToast('انتهت نافذة المناوبة أو لم يعد هذا المعلم مكلفاً بها اليوم.', 'error'); return;
     }
   }
 
@@ -8897,7 +8911,7 @@ async function submitDutyReport() {
   renderDutyTodayRecords();
   const builtMessage = await buildDutyWhatsAppMessage(selectedClasses, selectedDutyPeriod);
   lastDutyMessage = builtMessage.message;
-  showToast(builtMessage.contextLoaded ? `تم حفظ ${selectedClasses.length} صف.` : 'تم حفظ البلاغ، لكن تعذر تحميل بيانات الجدول؛ تحقق من الاتصال والجدول المعتمد.', builtMessage.contextLoaded ? 'success' : 'info');
+  showToast(builtMessage.contextLoaded ? `تم حفظ ${selectedClasses.length} صف.` : (builtMessage.contextError || 'تم حفظ البلاغ، لكن تعذر تحميل بيانات الجدول.'), builtMessage.contextLoaded ? 'success' : 'error');
   openWhatsAppSafely(lastDutyMessage);
   setTimeout(() => { backToDutyPeriods(); }, 900);
 }
