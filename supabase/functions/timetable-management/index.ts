@@ -87,6 +87,8 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  // Cache successful CORS preflights to reduce repeated OPTIONS invocations.
+  "Access-Control-Max-Age": "600",
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
 };
