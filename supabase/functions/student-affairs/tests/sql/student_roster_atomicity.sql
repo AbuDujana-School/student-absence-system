@@ -13,7 +13,9 @@ BEGIN
 END
 $test$;
 
-INSERT INTO public.classes(name) VALUES ('roster-test-class') ON CONFLICT (name) DO NOTHING;\n\nSET ROLE service_role;
+INSERT INTO public.classes(name) VALUES ('roster-test-class') ON CONFLICT (name) DO NOTHING;
+
+SET ROLE service_role;
 
 INSERT INTO public.students(class_name,student_name)
 VALUES ('roster-test-class','student-roster-remove-test'),('roster-test-class','student-roster-keep-test')
