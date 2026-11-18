@@ -6563,7 +6563,7 @@ function canUseMorningAssemblyLateness() {
   if (activeUser.type !== 'teacher' || activeUser.permissions?.dutyToday === false) return false;
   const now = omanNowParts();
   return ['Sunday','Monday','Tuesday','Wednesday','Thursday'].includes(now.weekday)
-    && now.minutes >= 420 && now.minutes < 510
+    && now.minutes >= 420 && now.minutes <= 510
     && isTeacherOnDutyToday(activeUser.name);
 }
 function refreshMorningAssemblyLatenessCard() {
@@ -8909,7 +8909,21 @@ function renderCustomUsersList() {
   const c = document.getElementById('customUsersList'); if (!c) return;
   c.innerHTML = '';
   if (!db.customUsers || db.customUsers.length === 0) { c.innerHTML = `<div class="text-center py-4 text-slate-400 text-xs font-bold">لا مستخدمون.</div>`; return; }
-  db.customUsers.forEach((u, i) => { const d = document.createElement('div'); d.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100'; d.innerHTML = `<div class="font-extrabold text-xs sm:text-sm">${escapeHtml(u.name)}</div><button onclick="deleteCustomUser(${i})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 rounded-xl">حذف</button>`; c.appendChild(d); });
+  db.customUsers.forEach((u, i) => { const d = document.createElement('div'); d.className = 'p-3.5 flex justify-between items-center gap-2 border-b border-slate-100'; d.innerHTML = `<div class="font-extrabold text-xs sm:text-sm">${escapeHtml(u.name)}<small class="block mt-1 text-[10px] ${u.permissions?.morningAssemblyLateness === true ? 'text-fuchsia-700' : 'text-slate-400'}">${u.permissions?.morningAssemblyLateness === true ? 'صلاحية التأخر مفعلة' : 'صلاحية التأخر غير مفعلة'}</small></div><div class="flex gap-2"><button onclick="toggleCustomMorningAssemblyPermission(${i})" class="text-fuchsia-700 text-[10px] font-bold px-3 py-1.5 bg-fuchsia-50 rounded-xl border border-fuchsia-100">الصلاحية</button><button onclick="deleteCustomUser(${i})" class="text-red-600 text-xs font-bold px-3 py-1.5 bg-red-50 rounded-xl">حذف</button></div>`; c.appendChild(d); });
+}
+async function toggleCustomMorningAssemblyPermission(idx) {
+  const user = db.customUsers[idx]; if (!user) return;
+  if (!user.permissions) user.permissions = {};
+  const enable = user.permissions.morningAssemblyLateness !== true;
+  const approved = await showConfirm(enable
+    ? 'منح هذا المستخدم صلاحية استثنائية لدخول قسم التأخر عن الطابور وتسجيل الطلاب خارج وقت المناوبة؟'
+    : 'إلغاء صلاحية تسجيل التأخر لهذا المستخدم؟');
+  if (!approved) return;
+  user.permissions.morningAssemblyLateness = enable;
+  dirtySets.teachers.add(user.name);
+  const saved = await saveSystemDataToCloud();
+  renderCustomUsersList();
+  showToast(saved ? (enable ? 'تم منح الصلاحية الاستثنائية.' : 'تم إلغاء الصلاحية.') : 'حُفظ التغيير محلياً بانتظار المزامنة.', saved ? 'success' : 'info');
 }
 async function deleteCustomUser(idx) {
   const u = db.customUsers[idx]; if (!u) return;
