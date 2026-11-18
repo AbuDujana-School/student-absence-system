@@ -27,7 +27,14 @@ test("Cloudflare branch preview serves the school application", async ({ page, r
   expect(ready, `Preview did not become ready. Last result: ${lastStatus}`).toBe(true);
 
   const uncaughtErrors = [];
+  const productionSupabaseRequests = [];
   page.on("pageerror", (error) => uncaughtErrors.push(error.message));
+  page.on("request", (request) => {
+    const url = request.url();
+    if (/^https:\/\/ylsocrvwqibptuwfzbke\.supabase\.co(?:\/|$)/i.test(url)) {
+      productionSupabaseRequests.push({ method: request.method(), host: new URL(url).host });
+    }
+  });
 
   const response = await page.goto(previewUrl, {
     waitUntil: "domcontentloaded",
@@ -39,6 +46,9 @@ test("Cloudflare branch preview serves the school application", async ({ page, r
 
   await expect(page.locator("body")).toBeVisible();
   await page.waitForTimeout(5_000);
+
+  await expect(page.getByText("معاينة واجهات شؤون الطلبة", { exact: true })).toBeVisible();
+  await expect(page.getByText("نسخة عرض منفصلة. لا تتصل ببيانات المدرسة ولا تحفظ أي تعديل.", { exact: true })).toBeVisible();
 
   const bodyText = (await page.locator("body").innerText()).trim();
   expect(bodyText.length, "Application must not render a blank page").toBeGreaterThan(30);
@@ -52,6 +62,11 @@ test("Cloudflare branch preview serves the school application", async ({ page, r
   console.log(`Preview URL: ${previewUrl}`);
   console.log(`Rendered body characters: ${bodyText.length}`);
   console.log(`Uncaught page errors: ${JSON.stringify(uncaughtErrors)}`);
+
+  expect(
+    productionSupabaseRequests,
+    "The UI-only branch preview must not contact the production Supabase project",
+  ).toEqual([]);
 
   expect(
     uncaughtErrors,
