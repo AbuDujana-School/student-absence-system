@@ -2,6 +2,7 @@ const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
 const edge = await Deno.readTextFile(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url));
 const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261116120000_atomic_student_transfer.sql", import.meta.url));
 const recoveryMigration = await Deno.readTextFile(new URL("../supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql", import.meta.url));
+const rosterMigration = await Deno.readTextFile(new URL("../supabase/migrations/20261118103000_student_roster_direct_save.sql", import.meta.url));
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -27,7 +28,7 @@ Deno.test("student transfer UI requires admin authorization and uses the server 
   assert(transfer.includes("hasPendingOfflineRecordChanges()"), "Transfer must stop when local changes are pending");
   assert(transfer.includes("action: 'admin_transfer_student'"), "Transfer must use the dedicated server action");
   assert(transfer.includes("loadSystemDataFromCloud()"), "Transfer must reload the committed server state");
-  assert(transfer.includes("item?.filters?.class_name === fromClass"), "Only the matching old student-delete request may be cleared");
+  assert(transfer.includes("clearStudentDeleteIntents(fromClass, [studentName])"), "Only the transferred student's obsolete local deletion intent may be cleared");
 });
 
 Deno.test("Edge Function accepts transfers only from the active general admin session", () => {
@@ -58,4 +59,39 @@ Deno.test("database transfer is atomic and scoped to one student's records", () 
   assert(migration.includes("student_affairs_notice_issues"), "Official student notices must move with the student");
   assert(migration.includes("student_transfer_audit"), "Every transfer must be auditable");
   assert(!/UPDATE public\.(teachers|school_settings|duty_reports|timetable_[a-z_]+)/i.test(migration), "Transfer must not rewrite teacher, school, duty, or timetable data");
+});
+
+Deno.test("single and bulk student deletion use direct server roster save, never the generic pending-delete queue", () => {
+  const handlers = section(html, "async function saveStudentRoster(", "async function addNewClassPrompt()");
+  assert(handlers.includes("action: 'admin_save_student_roster'"), "Student list changes must use the dedicated server save action");
+  assert(handlers.includes("appAuthRequest"), "Roster changes must be sent to the authenticated server");
+  assert(handlers.includes("clearStudentDeleteIntents(className)"), "Legacy student delete intents for the saved class must be cleared after commit");
+  assert(!handlers.includes("queueCloudDelete("), "Student deletion must not create a local-only deletion intent");
+  assert(handlers.includes("async function saveBulkStudents()"), "Bulk roster editing must use the unified save workflow");
+  assert(handlers.includes("async function removeStudent(className, idx)"), "Single student removal must use the unified save workflow");
+  assert(handlers.includes("await saveStudentRoster(className, nextNames)"), "Single student removal must commit the new class roster directly");
+});
+
+Deno.test("old student deletion intents are pruned only after a successful cloud read confirms the membership is gone", () => {
+  const helper = section(html, "async function clearCompletedStudentDeleteIntentsFromCloud(", "function pendingDeleteTableLabel(");
+  assert(helper.includes("serverMemberships.has(className + '\\u001f' + studentName)"), "Cleanup must compare both class and exact student name");
+  assert(helper.includes("item?.table !== 'students'"), "Other queued table deletions must remain untouched");
+  const load = section(html, "async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(load.includes("await clearCompletedStudentDeleteIntentsFromCloud(studentsData)"), "Completed student deletions must be reconciled after an authoritative cloud read");
+});
+
+Deno.test("Edge Function roster save requires the active general-admin session and uses its database transaction", () => {
+  const action = section(edge, 'if (body?.action === "admin_save_student_roster")', 'if (body?.action === "admin_transfer_student")');
+  assert(action.includes("readAppSession"), "Roster save must validate the active app session");
+  assert(action.includes('principal.type !== "admin"'), "Roster save must reject non-admin principals");
+  assert(action.includes('db.rpc("admin_save_student_roster"'), "Roster save must use the atomic database function");
+});
+
+Deno.test("atomic roster save is restricted to service_role and never mutates student history", () => {
+  assert(rosterMigration.includes("SECURITY DEFINER"), "Roster save must run in a controlled server transaction");
+  assert(rosterMigration.includes("REVOKE ALL ON FUNCTION public.admin_save_student_roster"), "Browser roles must not execute the roster RPC");
+  assert(rosterMigration.includes("GRANT EXECUTE ON FUNCTION public.admin_save_student_roster"), "Only service_role may execute the roster RPC");
+  assert(rosterMigration.includes("DELETE FROM public.students"), "The transaction must remove stale class memberships");
+  assert(!/DELETE FROM public\\.(attendance|behaviors|student_affairs_notice_issues)/i.test(rosterMigration), "Roster removal must preserve all student history");
+  assert(rosterMigration.includes("student_roster_audit"), "Roster edits must be auditable");
 });

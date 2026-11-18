@@ -120,6 +120,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116120000_atomic_student_transfer.sql
       - name: Apply existing-destination student transfer recovery migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql
+      - name: Apply direct student roster save migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118103000_student_roster_direct_save.sql
+      - name: Verify direct student roster save and history preservation
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/student_roster_atomicity.sql
       - name: Verify atomic student transfer and access boundaries
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/student_transfer_atomicity.sql
       - name: Apply isolated timetable import migration
@@ -750,7 +754,7 @@ jobs:
           print(f"Checked {len(scripts)} inline script blocks")
           PY
       - name: Run school data sync and student transfer safety regression tests
-        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts,supabase/migrations/20261116120000_atomic_student_transfer.sql,supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql tests/school_data_sync_safety_test.ts tests/student_transfer_safety_test.ts
+        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts,supabase/migrations/20261116120000_atomic_student_transfer.sql,supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql,supabase/migrations/20261118103000_student_roster_direct_save.sql tests/school_data_sync_safety_test.ts tests/student_transfer_safety_test.ts
       - name: Verify general app session migration safety contract
         run: |
           python - <<'PY'

@@ -33,8 +33,10 @@ BEGIN
      OR length(p_class_name) > 120
      OR length(btrim(coalesce(p_actor_name, ''))) = 0
      OR length(p_actor_name) > 160
-     OR jsonb_typeof(p_student_names) IS DISTINCT FROM 'array'
-     OR jsonb_array_length(p_student_names) > 500 THEN
+     OR jsonb_typeof(p_student_names) IS DISTINCT FROM 'array' THEN
+    RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'STUDENT_ROSTER_INVALID_INPUT';
+  END IF;
+  IF jsonb_array_length(p_student_names) > 500 THEN
     RAISE EXCEPTION USING ERRCODE = '22023', MESSAGE = 'STUDENT_ROSTER_INVALID_INPUT';
   END IF;
 
