@@ -17,5 +17,7 @@ create index if not exists morning_assembly_lateness_year_student_date_idx
 create index if not exists morning_assembly_lateness_date_idx
   on public.morning_assembly_lateness (late_date desc);
 alter table public.morning_assembly_lateness enable row level security;
+revoke all privileges on table public.morning_assembly_lateness from anon, authenticated;
+grant select, insert on table public.morning_assembly_lateness to service_role;
 comment on table public.morning_assembly_lateness is
   'Independent morning assembly lateness ledger. Does not write to attendance or behavior records.';
