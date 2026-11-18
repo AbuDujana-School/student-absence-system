@@ -3064,7 +3064,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
       <div id="sec-reports" class="hidden space-y-6">
         <section id="morningAssemblyLatenessReportPanel" class="rounded-3xl border border-fuchsia-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-4 sm:p-6 shadow-sm space-y-4" dir="rtl">
-          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-person-circle-exclamation ml-1 text-fuchsia-600"></i> تقرير التأخر عن الطابور الصباحي</h3><p class="mt-1 text-xs text-slate-500">تقرير تراكمي للعام الدراسي من سبتمبر إلى يونيو · كل 4 تأخيرات = يوم غياب محسوب مستقلاً</p></div><button onclick="loadMorningAssemblyLatenessReport()" class="rounded-xl bg-fuchsia-700 hover:bg-fuchsia-800 text-white px-4 py-2.5 text-xs font-black shadow"><i class="fa-solid fa-rotate ml-1"></i> تحديث التقرير</button></div>
+          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-person-circle-exclamation ml-1 text-fuchsia-600"></i> تقرير التأخر عن الطابور الصباحي</h3><p class="mt-1 text-xs text-slate-500">تقرير تراكمي للعام الدراسي من سبتمبر إلى يونيو · كل 4 تأخيرات = يوم غياب محسوب مستقلاً</p></div><div class="flex flex-wrap items-center gap-2"><select id="morningAssemblyReportYear" onchange="loadMorningAssemblyLatenessReport()" class="rounded-xl border border-fuchsia-200 bg-fuchsia-50 dark:bg-slate-800 dark:border-slate-700 px-3 py-2.5 text-xs font-black text-fuchsia-800 dark:text-fuchsia-200"><option value="">العام الدراسي</option></select><button onclick="loadMorningAssemblyLatenessReport()" class="rounded-xl bg-fuchsia-700 hover:bg-fuchsia-800 text-white px-4 py-2.5 text-xs font-black shadow"><i class="fa-solid fa-rotate ml-1"></i> تحديث التقرير</button></div></div>
           <div id="morningAssemblyReportAccess" class="hidden rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 p-3 text-xs font-bold"></div>
           <div id="morningAssemblyReportMeta" class="text-xs font-bold text-slate-500"></div>
           <div id="morningAssemblyReportContainer" class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700"><div class="p-8 text-center text-xs text-slate-400">اضغط تحديث التقرير لعرض البيانات</div></div>
@@ -6695,7 +6695,14 @@ async function loadMorningAssemblyLatenessReport() {
   }
   try {
     container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ تحميل التقرير...</div>';
-    const data = await callMorningAssemblyLatenessApi({action:'report'});
+    const requestedYear = document.getElementById('morningAssemblyReportYear')?.value || '';
+    const data = await callMorningAssemblyLatenessApi({action:'report',academic_year:requestedYear || undefined});
+    const yearSelect = document.getElementById('morningAssemblyReportYear');
+    if (yearSelect) {
+      const years = Array.isArray(data.available_years) ? data.available_years : [data.academic_year];
+      yearSelect.innerHTML = years.map(year => '<option value="' + escapeHtml(year) + '">' + escapeHtml(year) + '</option>').join('');
+      yearSelect.value = data.academic_year;
+    }
     morningAssemblyReportRows = buildMorningAssemblyReportRows(data.rows || []);
     document.getElementById('morningAssemblyReportMeta').textContent = 'العام الدراسي ' + data.academic_year + ' · عدد الطلاب المتأخرين: ' + morningAssemblyReportRows.length;
     if (!morningAssemblyReportRows.length) { container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">لا توجد سجلات تأخر لهذا العام الدراسي.</div>'; return; }
@@ -6705,7 +6712,7 @@ async function loadMorningAssemblyLatenessReport() {
       const events = item.events.map(event => {
         const date = escapeHtml(event.late_date);
         const time = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
-        return date + ' · ' + time;
+        return date + ' · ' + time + ' · سجل بواسطة: ' + escapeHtml(event.recorder_name || '—');
       }).join('<br>');
       html += '<tr class="border-t ' + (warning ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-200' : 'border-slate-100 dark:border-slate-700') + '"><td class="p-3">' + (index+1) + '</td><td class="p-3 font-black">' + escapeHtml(item.name) + (warning ? '<div class="text-[10px] font-black mt-1">تجاوز حد 4 تأخيرات</div>' : '') + '</td><td class="p-3">' + escapeHtml(item.className) + '</td><td class="p-3 font-black">' + item.count + '</td><td class="p-3 font-black">' + item.absenceDays + '</td><td class="p-3 leading-6">' + events + '</td></tr>';
     });
@@ -6716,7 +6723,7 @@ async function loadMorningAssemblyLatenessReport() {
 }
 function printMorningAssemblyLatenessReport() {
   if (!morningAssemblyReportRows.length) { showToast('حمّل التقرير أولاً قبل الطباعة.', 'info'); return; }
-  const rows = morningAssemblyReportRows.map((item,index) => '<tr class="' + (item.count>=4?'warning':'') + '"><td>'+(index+1)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+escapeHtml(item.className)+'</td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(e=>escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))).join('<br>')+'</td></tr>').join('');
+  const rows = morningAssemblyReportRows.map((item,index) => '<tr class="' + (item.count>=4?'warning':'') + '"><td>'+(index+1)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+escapeHtml(item.className)+'</td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(e=>escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))+' · '+escapeHtml(e.recorder_name||'—')).join('<br>')+'</td></tr>').join('');
   const w = window.open('','_blank'); if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error'); return; }
   w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير التأخر عن الطابور الصباحي</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#172033}h1{text-align:center;font-size:20px}p{text-align:center;color:#555}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;vertical-align:top}th{background:#f3e8ff}.warning{background:#fff1f2;color:#9f1239;font-weight:bold}@media print{body{padding:0}@page{size:A4 landscape;margin:10mm}}</style></head><body><h1>تقرير التأخر عن الطابور الصباحي</h1><p>مدرسة أبو دجانة الأنصاري · كل أربعة تأخيرات تحتسب يوماً واحداً من الغياب الناتج عن التأخر</p><table><thead><tr><th>#</th><th>اسم الطالب</th><th>الصف</th><th>مرات التأخر</th><th>أيام الغياب الناتجة</th><th>التواريخ والأوقات</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>');
   w.document.close();
