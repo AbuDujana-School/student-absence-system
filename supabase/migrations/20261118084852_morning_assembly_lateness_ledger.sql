@@ -14,9 +14,6 @@ create unique index if not exists morning_assembly_lateness_student_day_uidx
   on public.morning_assembly_lateness (student_id, late_date);
 create index if not exists morning_assembly_lateness_year_student_date_idx
   on public.morning_assembly_lateness (academic_year, student_id, late_date desc);
-
-create index if not exists morning_assembly_lateness_year_date_idx
-  on public.morning_assembly_lateness (academic_year, late_date desc, recorded_at desc);
 create index if not exists morning_assembly_lateness_date_idx
   on public.morning_assembly_lateness (late_date desc);
 alter table public.morning_assembly_lateness enable row level security;
