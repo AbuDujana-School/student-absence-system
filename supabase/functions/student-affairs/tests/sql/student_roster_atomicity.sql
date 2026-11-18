@@ -13,28 +13,28 @@ BEGIN
 END
 $test$;
 
-SET ROLE service_role;
+INSERT INTO public.classes(name) VALUES ('roster-test-class') ON CONFLICT (name) DO NOTHING;\n\nSET ROLE service_role;
 
 INSERT INTO public.students(class_name,student_name)
-VALUES ('10/1','student-roster-remove-test'),('10/1','student-roster-keep-test')
+VALUES ('roster-test-class','student-roster-remove-test'),('roster-test-class','student-roster-keep-test')
 ON CONFLICT (class_name,student_name) DO NOTHING;
 
 INSERT INTO public.attendance(record_key,date_str,class_name,period,teacher_name,records)
 VALUES (
-  '2026-11-03_10/1_p3','2026-11-03','10/1',3,'synthetic-teacher',
+  '2026-11-03_10/1_p3','2026-11-03','roster-test-class',3,'synthetic-teacher',
   '{"student-roster-remove-test":"absent","student-roster-keep-test":"late","roster-peer":"present"}'::jsonb
 )
 ON CONFLICT (record_key) DO UPDATE SET records=EXCLUDED.records;
 
 INSERT INTO public.behaviors(record_key,date_str,class_name,period,teacher_name,records)
 VALUES (
-  '2026-11-03_10/1_p3','2026-11-03','10/1',3,'synthetic-teacher',
+  '2026-11-03_10/1_p3','2026-11-03','roster-test-class',3,'synthetic-teacher',
   '{"student-roster-remove-test":{"type":"positive","note":"synthetic preserved note"},"student-roster-keep-test":{"type":"late","note":"keep this"},"roster-peer":{"type":"normal","note":""}}'::jsonb
 )
 ON CONFLICT (record_key) DO UPDATE SET records=EXCLUDED.records;
 
 SELECT public.admin_save_student_roster(
-  '10/1',
+  'roster-test-class',
   '["student-roster-keep-test","student-roster-added-test"]'::jsonb,
   'synthetic-admin'
 );
@@ -51,15 +51,15 @@ DECLARE
   v_audit_removed integer;
 BEGIN
   SELECT count(*) INTO v_count FROM public.students
-  WHERE class_name='10/1' AND student_name='student-roster-remove-test';
+  WHERE class_name='roster-test-class' AND student_name='student-roster-remove-test';
   IF v_count <> 0 THEN RAISE EXCEPTION 'removed student is still in the roster'; END IF;
 
   SELECT count(*) INTO v_count FROM public.students
-  WHERE class_name='10/1' AND student_name='student-roster-keep-test';
+  WHERE class_name='roster-test-class' AND student_name='student-roster-keep-test';
   IF v_count <> 1 THEN RAISE EXCEPTION 'retained student membership changed'; END IF;
 
   SELECT count(*) INTO v_count FROM public.students
-  WHERE class_name='10/1' AND student_name='student-roster-added-test';
+  WHERE class_name='roster-test-class' AND student_name='student-roster-added-test';
   IF v_count <> 1 THEN RAISE EXCEPTION 'new student membership was not saved'; END IF;
 
   SELECT records INTO v_records FROM public.attendance
@@ -75,17 +75,17 @@ BEGIN
   END IF;
 
   SELECT count(*) INTO v_audit_added FROM public.student_roster_audit
-  WHERE class_name='10/1' AND student_name='student-roster-added-test'
+  WHERE class_name='roster-test-class' AND student_name='student-roster-added-test'
     AND action='added' AND actor_name='synthetic-admin';
   SELECT count(*) INTO v_audit_removed FROM public.student_roster_audit
-  WHERE class_name='10/1' AND student_name='student-roster-remove-test'
+  WHERE class_name='roster-test-class' AND student_name='student-roster-remove-test'
     AND action='removed' AND actor_name='synthetic-admin';
   IF v_audit_added <> 1 OR v_audit_removed <> 1 THEN
     RAISE EXCEPTION 'student roster audit entries are incomplete';
   END IF;
 
   v_result := public.admin_save_student_roster(
-    '10/1',
+    'roster-test-class',
     '["student-roster-keep-test","student-roster-added-test"]'::jsonb,
     'synthetic-admin'
   );
