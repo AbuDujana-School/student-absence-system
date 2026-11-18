@@ -3,6 +3,7 @@ on:
   pull_request:
     paths:
       - "supabase/functions/student-affairs/**"
+      - "supabase/functions/morning-assembly-lateness/**"
       - "supabase/migrations/**"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
@@ -12,8 +13,10 @@ on:
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
       - "feature/smart-substitution-system"
+      - "feature/morning-assembly-lateness"
     paths:
       - "supabase/functions/student-affairs/**"
+      - "supabase/functions/morning-assembly-lateness/**"
       - "supabase/migrations/**"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
@@ -122,6 +125,19 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql
       - name: Apply direct student roster save migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118103000_student_roster_direct_save.sql
+      - name: Apply morning assembly lateness ledger migrations in isolated PostgreSQL
+        run: |
+          for migration in \
+            supabase/migrations/20261118084852_morning_assembly_lateness_ledger.sql \
+            supabase/migrations/20261118085133_morning_assembly_lateness_class_snapshot_name.sql \
+            supabase/migrations/20261118090058_morning_assembly_lateness_service_role_only.sql \
+            supabase/migrations/20261118090409_morning_assembly_lateness_year_date_index.sql \
+            supabase/migrations/20261118090521_morning_assembly_lateness_append_only.sql \
+            supabase/migrations/20261118090549_morning_assembly_lateness_academic_period_integrity.sql; do
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Verify morning assembly lateness ledger integrity in isolated PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/morning-assembly-lateness/tests/sql/ledger_integrity.sql
       - name: Verify direct student roster save and history preservation
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/student_roster_atomicity.sql
       - name: Verify atomic student transfer and access boundaries
@@ -807,6 +823,10 @@ jobs:
         run: deno test supabase/functions/student-affairs/timetable_grid_test.ts
       - name: Run substitution eligibility tests
         run: deno test supabase/functions/student-affairs/substitution_policy_test.ts
+      - name: Run morning assembly lateness policy tests
+        run: deno test supabase/functions/morning-assembly-lateness/policy.test.ts
+      - name: Type-check morning assembly lateness Edge Function
+        run: deno check supabase/functions/morning-assembly-lateness/index.ts
       - name: Type-check timetable and substitution policy modules
         run: deno check supabase/functions/student-affairs/timetable_import.ts supabase/functions/student-affairs/timetable_grid.ts supabase/functions/student-affairs/substitution_policy.ts
       - name: Type-check Edge Function
