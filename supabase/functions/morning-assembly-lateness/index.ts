@@ -144,7 +144,7 @@ async function handle(req:Request) {
     if (error.code === "23505") {
       const {data:existing}=await db.from("morning_assembly_lateness")
         .select("recorded_at").eq("student_id",student.id).eq("late_date",ctx.date).maybeSingle();
-      return reply(409,{duplicate:true,message:"هذا الطالب تم تسجيل تأخره مسبقاً اليوم.",recorded_at:existing?.recorded_at||null});
+      return reply(409,{duplicate:true,error:"هذا الطالب تم تسجيل تأخره مسبقاً اليوم.",message:"هذا الطالب تم تسجيل تأخره مسبقاً اليوم.",recorded_at:existing?.recorded_at||null});
     }
     console.error("morning assembly lateness insert failed",error);
     return reply(500,{error:"تعذر حفظ التسجيل. لم يتم تغيير أي سجل آخر."});
