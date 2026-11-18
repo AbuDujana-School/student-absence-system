@@ -1,4 +1,4 @@
-import { academicYearKey, isWithinTeacherRegistrationWindow, isTeacherEligibleForMorningLateness, latenessAbsenceDays } from "./policy.ts";
+import { academicYearKey, isWithinTeacherRegistrationWindow, isTeacherEligibleForMorningLateness, latenessAbsenceDays, canUseMorningLateness } from "./policy.ts";
 
 Deno.test("Oman academic year starts on September 1", () => {
   if (academicYearKey("2026-08-31") !== "2025/2026") throw new Error("August must remain in the ending academic year");
@@ -27,4 +27,13 @@ Deno.test("four lateness events equal one separate absence day", () => {
   for (const [count,expected] of cases) {
     if (latenessAbsenceDays(count) !== expected) throw new Error("Unexpected absence conversion for " + count);
   }
+});
+
+Deno.test("admin and explicitly authorized custom users have independent access", () => {
+  const common = { permission:false, dutyToday:false, weekday:"الجمعة", assignedDutyDay:"الأحد", minutes:100 };
+  if (!canUseMorningLateness({ principalType:"admin", ...common })) throw new Error("Admin must bypass duty and time gates");
+  if (canUseMorningLateness({ principalType:"custom", ...common, permission:true })) {
+    // custom access does not depend on weekday, duty day, or registration time.
+  } else throw new Error("Authorized custom user must bypass duty and time gates");
+  if (canUseMorningLateness({ principalType:"custom", ...common, permission:false })) throw new Error("Custom permission must remain explicit");
 });
