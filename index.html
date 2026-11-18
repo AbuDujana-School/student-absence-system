@@ -6557,7 +6557,7 @@ let morningAssemblyReportRows = [];
 let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
   if (!activeUser) return false;
-  if (activeUser.type === 'admin' || isAdminAuthorized()) return true;
+  if (activeUser.type === 'admin') return true;
   if (activeUser.permissions?.morningAssemblyLateness !== true) return false;
   if (activeUser.type === 'custom') return true;
   if (activeUser.type !== 'teacher' || activeUser.permissions?.dutyToday === false) return false;
@@ -6573,7 +6573,7 @@ function refreshMorningAssemblyLatenessCard() {
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
   if (status && show) {
-    if (activeUser?.type === 'admin' || isAdminAuthorized()) status.textContent = 'صلاحية المدير — متاح في أي وقت';
+    if (activeUser?.type === 'admin') status.textContent = 'صلاحية المدير — متاح في أي وقت';
     else if (activeUser?.type === 'custom') status.textContent = 'صلاحية استثنائية مفعلة';
     else status.textContent = 'مناوب اليوم · التسجيل متاح حتى 8:30 صباحاً';
   }
@@ -6671,9 +6671,17 @@ async function recordMorningAssemblyLateness(className,studentName,button) {
     showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success');
     if (button) { button.innerHTML = '<span class="font-extrabold text-xs text-emerald-700">تم التسجيل اليوم<small class="block text-[10px] mt-1">حُفظ مباشرة</small></span><span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-check"></i></span>'; }
   } catch (error) {
-    if (error.status === 409) showToast('هذا الطالب تم تسجيل تأخره مسبقاً اليوم.', 'info');
-    else showToast(error.message || 'تعذر حفظ التسجيل.', 'error');
-    if (button) { button.disabled = false; button.classList.remove('opacity-60'); }
+    if (error.status === 409) {
+      showToast('هذا الطالب تم تسجيل تأخره مسبقاً اليوم.', 'info');
+      if (button) {
+        button.disabled = true;
+        button.classList.remove('opacity-60');
+        button.innerHTML = '<span class="font-extrabold text-xs text-emerald-700">مسجل مسبقاً اليوم<small class="block text-[10px] mt-1">لم يُكرر السجل</small></span><span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-check"></i></span>';
+      }
+    } else {
+      showToast(error.message || 'تعذر حفظ التسجيل.', 'error');
+      if (button) { button.disabled = false; button.classList.remove('opacity-60'); }
+    }
   }
 }
 function buildMorningAssemblyReportRows(rows) {
