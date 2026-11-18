@@ -4,6 +4,7 @@ import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
 import { aggregateClassTimetables } from "./timetable_class_grid.ts";
 import { buildDutyReportContext } from "./duty_report_context.ts";
+import { canReadDutyReportPeriod, isDutyReportEligibleOnDay } from "./duty_report_access.ts";
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -125,7 +126,36 @@ const timetableAuthStore: TimetableAuthStore = {
   async hasDutyReportAccess(type, name) {
     const { data, error } = await db.from("teachers")
       .select("permissions").eq("name", name).eq("role", type).maybeSingle();
-    return !error && (data?.permissions?.duty === true || data?.permissions?.admin === true);
+    if (error || !data) return false;
+    const permissions = data.permissions && typeof data.permissions === "object" ? data.permissions : {};
+    if (permissions.duty === true || permissions.admin === true) return true;
+    if (type !== "teacher" || permissions.dutyToday === false) return false;
+    const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
+      .select("value").eq("key", "duty_module").maybeSingle();
+    if (dutySettingError) return false;
+    const { weekday } = muscatDateAndWeekday();
+    return isDutyReportEligibleOnDay(type, permissions, dutySetting?.value?.subjectDays, weekday);
+  },
+  async canReadDutyReportContext(type, name, date, weekday, period) {
+    const { data, error } = await db.from("teachers")
+      .select("permissions").eq("name", name).eq("role", type).maybeSingle();
+    if (error || !data) return false;
+    const permissions = data.permissions && typeof data.permissions === "object" ? data.permissions : {};
+    if (permissions.duty === true || permissions.admin === true) return true;
+    if (type !== "teacher" || permissions.dutyToday === false) return false;
+    const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
+      .select("value").eq("key", "duty_module").maybeSingle();
+    if (dutySettingError || !dutySetting?.value) return false;
+    return canReadDutyReportPeriod({
+      principalType: type,
+      permissions,
+      subjectDays: dutySetting.value.subjectDays,
+      date,
+      weekday,
+      period,
+      periods: dutySetting.value.periods,
+      graceMinutes: dutySetting.value.graceMinutes,
+    });
   },
   async hasLinkedTeacherPortalAccess(name) {
     const { data: setting, error: settingError } = await db.from("teacher_timetable_portal_settings")
@@ -300,6 +330,10 @@ async function handle(req: Request) {
           classNames.some((name: string) => name.length > 100) ||
           new Set(classNames).size !== classNames.length) {
         return reply(400, { error: "بيانات تقرير المناوبة غير صالحة أو لا تخص اليوم الحالي." });
+      }
+      if (principal.type !== "admin" &&
+          await timetableAuthStore.canReadDutyReportContext?.(principal.type, principal.name, date, weekday, period) !== true) {
+        return reply(403, { error: "يمكن للمعلم المناوب قراءة بيانات الجدول خلال وقت الحصة المخصصة لمناوبته فقط." });
       }
       const [classDirectory, versionResult] = await Promise.all([
         schoolClassDirectory(),

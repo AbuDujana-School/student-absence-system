@@ -8860,10 +8860,10 @@ async function submitDutyReport() {
     const pC = d.periods[selectedDutyPeriod - 1];
     const nowMin = omanNowParts().minutes;
     const ps = toMinutes(pC?.start), pe = toMinutes(pC?.end);
-    const cat = getTeacherCategory(activeUser.name);
-    const tDay = cat ? d.subjectDays[cat] : '';
-    if (dutyDayForDate(date) !== tDay || ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) {
-      showToast('انتهت النافذة الزمنية.', 'error'); return;
+    const tDay = getTeacherDutyDay(activeUser.name);
+    if (activeUser?.permissions?.dutyToday === false || dutyDayForDate(date) !== tDay ||
+        ps === null || pe === null || nowMin < ps + d.graceMinutes || nowMin > pe) {
+      showToast('انتهت نافذة المناوبة أو لم يعد هذا المعلم مكلفاً بها اليوم.', 'error'); return;
     }
   }
 
