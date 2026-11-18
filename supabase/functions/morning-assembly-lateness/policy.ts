@@ -11,7 +11,7 @@ export function isTeacherEligibleForMorningLateness(input:{
   permission:boolean; dutyToday:boolean; weekday:string; assignedDutyDay:string; minutes:number;
 }):boolean {
   return input.permission===true
-    && input.dutyToday!==false
+    && input.dutyToday===true
     && SCHOOL_DAYS.includes(input.weekday as typeof SCHOOL_DAYS[number])
     && input.assignedDutyDay===input.weekday
     && isWithinTeacherRegistrationWindow(input.minutes);
