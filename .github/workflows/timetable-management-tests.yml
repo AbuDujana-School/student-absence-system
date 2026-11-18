@@ -11,10 +11,12 @@ on:
       - feature/reserve-same-day-corrections-20261117
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
+      - fix/system-audit-safe-optimizations-20261118
     paths:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
+      - "tests/**"
       - "reserve-workflow.js"
       - "timetable-text.worker.js"
       - "timetable_pdf_import.js"
@@ -24,6 +26,7 @@ on:
     paths:
       - "supabase/functions/timetable-management/**"
       - "index.html"
+      - "tests/**"
       - "reserve-workflow.js"
       - "timetable-text.worker.js"
       - "timetable_pdf_import.js"
@@ -51,6 +54,26 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+      - name: Validate unique Supabase migration versions
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          seen = {}
+          duplicates = []
+          for path in sorted(Path("supabase/migrations").glob("*.sql")):
+              version = path.name.split("_", 1)[0]
+              if not version.isdigit():
+                  raise SystemExit(f"Invalid migration filename: {path}")
+              if version in seen:
+                  duplicates.append((version, str(seen[version]), str(path)))
+              else:
+                  seen[version] = path
+          if duplicates:
+              for version, first, second in duplicates:
+                  print(f"Duplicate migration version {version}: {first} and {second}")
+              raise SystemExit("Migration versions must be unique.")
+          print(f"Validated {len(seen)} unique migration versions.")
+          PY
       - name: Run timetable import SQL integration test in isolated PostgreSQL
         run: |
           if ! command -v psql >/dev/null 2>&1; then
@@ -64,8 +87,6 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114100000_timetable_substitution_duty_guard.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116100000_allow_substitution_on_duty_day.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_duty_day.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114194500_timetable_dynamic_periods.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115110000_weighted_batch_substitution.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115140639_timetable_substitution_reason_archive_edit.sql
@@ -75,7 +96,9 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115170000_timetable_reserve_stats_access.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115180000_timetable_substitution_admin_reset.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115190000_timetable_substitution_reassign_absent.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116100000_timetable_reserve_twenty_hour_lifecycle.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115195356_timetable_reserve_twenty_hour_lifecycle.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116014544_allow_substitution_on_duty_day.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_duty_day.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116195258_reserve_distribution_batch_cancel.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261117120000_timetable_substitution_same_day_corrections.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261117150052_timetable_substitution_point_rules_14h_emergency_bonus.sql

@@ -3383,7 +3383,7 @@ async function legacySha256Pin(pin, salt) { return await sha256Hex(LEGACY_APP_PE
 function genSalt() { const arr = new Uint8Array(16); crypto.getRandomValues(arr); return Array.from(arr).map(b => b.toString(16).padStart(2,'0')).join(''); }
 async function createPinRecord(pin) { const salt = genSalt(); const hash = await hashPin(pin, salt); return { hash, salt }; }
 async function verifyPinAgainstRecord(pin, record) { if (!record || !record.hash || !record.salt) return false; try { if (await hashPin(pin, record.salt) === record.hash) return true; } catch(e) {} try { if (await legacySha256Pin(pin, record.salt) === record.hash) return true; } catch(e) {} return false; }
-async function isLegacyHash(pin, record) { if (!record?.hash || !record?.salt) return false; try { if (await hashPin(pin, record.salt) === record.hash) return false; } catch(e) { return false; } try { return await legacySha256Pin(pin, record.salt) === record.hash; } catch(e) { return false; } }
+
 async function hmacSha256Hex(key, message) { const enc = new TextEncoder(); const cryptoKey = await crypto.subtle.importKey('raw', enc.encode(key), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']); const sig = await crypto.subtle.sign('HMAC', cryptoKey, enc.encode(message)); return Array.from(new Uint8Array(sig)).map(b => b.toString(16).padStart(2,'0')).join(''); }
 async function deriveSessionSecret(pin, salt) { return await pbkdf2Hex(APP_PEPPER + ':session:' + pin, salt + ':session', 100000); }
 
@@ -3698,7 +3698,7 @@ function saSetReportDateInputs(prefix,fromValue,toValue,preset){const from=docum
 function saInitReportDateInputs(prefix){const today=getOmanLocalDate(),from=document.getElementById(prefix+"From"),to=document.getElementById(prefix+"To"),select=document.getElementById(prefix+"DatePreset");if(!from||!to||!select)return;if(!from.value&&!to.value){saSetReportDateInputs(prefix,today,today,"today");return;}const preset=from.value===today&&to.value===today?"today":select.value==="week"?"week":"custom";select.value=preset;from.disabled=to.disabled=preset!=="custom";syncReportPeriodControls(prefix);}
 function syncReportPeriodControls(prefix){const preset=document.getElementById(prefix+"DatePreset")?.value||"today",range=document.getElementById(prefix+"ReportDateRange"),todayBtn=document.getElementById(prefix+"ReportPeriodTodayBtn"),customBtn=document.getElementById(prefix+"ReportPeriodCustomBtn"),isCustom=preset==="custom";if(range)range.style.display=isCustom?"grid":"none";["From","To"].forEach(suffix=>{const input=document.getElementById(prefix+suffix),label=input?.closest("label");if(label)label.style.display=isCustom?"block":"none";});todayBtn?.classList.toggle("is-active",preset==="today");customBtn?.classList.toggle("is-active",isCustom);}
 function saSetReportPeriodMode(prefix,mode){if(prefix!=="sa"&&prefix!=="rep")return;if(mode!=="today"&&mode!=="custom")return;const today=getOmanLocalDate(),from=document.getElementById(prefix+"From"),to=document.getElementById(prefix+"To"),select=document.getElementById(prefix+"DatePreset");if(!from||!to||!select)return;if(mode==="today"){saSetReportDateInputs(prefix,today,today,"today");if(prefix==="sa")saLoadReport();else repLoadReport();return;}if(!from.value)from.value=today;if(!to.value)to.value=from.value;select.value="custom";from.disabled=to.disabled=false;syncReportPeriodControls(prefix);try{if(typeof from.showPicker==="function")from.showPicker();else from.focus();}catch(_){from.focus();}}
-function saApplyReportDatePreset(preset){const today=getOmanLocalDate();if(preset==="custom"){document.getElementById("saFrom").disabled=false;document.getElementById("saTo").disabled=false;return;}if(preset!=="today"&&preset!=="week")return;saSetReportDateInputs("sa",preset==="week"?saDateShift(today,-7):today,today,preset);saLoadReport();}
+
 const reportDateCommitTimers={sa:null,rep:null};
 function saCommitReportDateChange(prefix){const select=document.getElementById(prefix+"DatePreset"),from=document.getElementById(prefix+"From"),to=document.getElementById(prefix+"To");if(!select||!from||!to)return;select.value="custom";from.disabled=false;to.disabled=false;syncReportPeriodControls(prefix);if(reportDateCommitTimers[prefix])clearTimeout(reportDateCommitTimers[prefix]);reportDateCommitTimers[prefix]=setTimeout(()=>{reportDateCommitTimers[prefix]=null;const latestFrom=document.getElementById(prefix+"From")?.value||"",latestTo=document.getElementById(prefix+"To")?.value||"";if(!latestFrom||!latestTo||latestFrom>latestTo)return;if(prefix==="sa")saLoadReport();else repLoadReport();},180);}
 function saOnReportDateChanged(){saCommitReportDateChange("sa");}
@@ -3802,11 +3802,7 @@ async function saSetupCompetitionPanel(){
     if(status){status.textContent=error?.message||"تعذر تحميل إعدادات البطولة.";status.classList.remove("hidden");}
   }
 }
-function saCompetitionDayLabel(date){
-  const weekday=new Date(date+"T12:00:00.000Z").getUTCDay();
-  const days=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
-  return (days[weekday]||"")+" "+date.slice(5);
-}
+
 async function saLoadCompetition(){
   const requestId=++saCompetitionLoadSequence;
   if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة الانضباط.","error");return;}
@@ -3847,10 +3843,7 @@ async function saLoadCompetition(){
     if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
   }
 }
-function saSetCompetitionCompareScope(scope){
-  window.saCompetitionCompareScope=scope==="own"?"own":"all";
-  if(saCompetitionData)saRenderCompetition(saCompetitionData);
-}
+
 function saRenderCompetition(data){
   const status=document.getElementById("saCompetitionStatus");
   const teams=Array.isArray(data?.teams)?data.teams:[];
@@ -4448,7 +4441,7 @@ function saNoticeBackToConfig(){
   document.getElementById("saNoticePrintRoot").innerHTML="";
   saNoticeLastGenerated=[];saNoticeOfficialCommitted=false;
 }
-function saNoticeStartYear(){return 2000;}
+
 function saNoticePeriodKey(session){
   let value=session?.period;
   if(value==null||value===""){const match=String(session?.record_key||"").match(/_p(\d+)$/);if(match)value=match[1];}
@@ -4844,7 +4837,6 @@ async function saPrintAutomaticNotices(){
   }catch(error){saNoticeSetStatus(error?.message||"تعذر تجهيز معاينة الطباعة.",true);}
 }
 document.getElementById("saNoticeIssueMode")?.addEventListener("change",saNoticeRefreshPrintAction);
-async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}
 
 /* ============ Constants ============ */
 const DEFAULT_CLASSES = ["1/9","2/9","3/9","4/9","5/9","6/9","7/9","8/9","1/10","2/10","3/10","4/10","5/10","6/10","7/10","8/10","1/11","2/11","3/11","4/11","5/11","6/11","7/11","8/11","1/12","2/12","3/12","4/12","5/12","6/12","7/12","8/12"];
@@ -5579,7 +5571,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   window.addEventListener('pageshow', resumeCloudSync);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) resumeCloudSync();
+    if (document.hidden) return;
+    resumeCloudSync();
+    if (activeUser?.type === "teacher") {
+      void teacherShowDailySubstitutionWelcome();
+      const timetableView = document.getElementById("teacherTimetableView");
+      if (timetableView && !timetableView.classList.contains("hidden") && Date.now() - teacherTimetableLastFetchAt >= 60000) {
+        void teacherTimetableLoad(false);
+      }
+    }
   });
   // Poll the cloud safely while the app is active. Local pending edits are never
   // overwritten; uploads require explicit approval and queued deletions stay inert.
@@ -5604,21 +5604,6 @@ function setCurrentDate() {
   const abdl = document.getElementById('activeBehaviorDateLabel'); if (abdl) abdl.textContent = today;
   const ssd = document.getElementById('statsStartDate'); if (ssd) ssd.value = today;
   const sed = document.getElementById('statsEndDate'); if (sed) sed.value = today;
-}
-
-async function migrateCredentialsIfNeeded() {
-  let needsSave = false;
-  if (typeof db.adminPin === 'string' && db.adminPin) { try { const plain = isBase64(db.adminPin) ? safeAtob(db.adminPin) : db.adminPin; db.adminPin = await createPinRecord(plain); dirtySets.admin_pin = true; needsSave = true; } catch(e) { db.adminPin = null; } }
-  else if (!db.adminPin) { db.adminPin = await createPinRecord('1234'); dirtySets.admin_pin = true; needsSave = true; }
-  for (const t of (db.teachers || [])) {
-    if (t.pin && !t.pin_hash) { const rec = await createPinRecord(t.pin); t.pin_hash = rec.hash; t.pin_salt = rec.salt; delete t.pin; dirtySets.teachers.add(t.name); needsSave = true; }
-    if (!t.permissions) t.permissions = {};
-    if (t.permissions.attendance === undefined) t.permissions.attendance = true;
-    if (t.permissions.behavior === undefined) t.permissions.behavior = true;
-  }
-  for (const u of (db.customUsers || [])) { if (u.pin && !u.pin_hash) { const rec = await createPinRecord(u.pin); u.pin_hash = rec.hash; u.pin_salt = rec.salt; delete u.pin; dirtySets.teachers.add(u.name); needsSave = true; } }
-  if (!db.dutyModule.subjectDays || Object.keys(db.dutyModule.subjectDays).length === 0) { db.dutyModule.subjectDays = { ...DEFAULT_SUBJECT_DAYS }; dirtySets.duty_module = true; needsSave = true; }
-  if (needsSave) await saveSystemDataToCloud();
 }
 
 let cloudDataLoadState = 'not-started';
@@ -6169,7 +6154,7 @@ function getSingleAdminPanelPermission(user = activeUser) {
   const keys = ADMIN_TAB_PERMISSIONS.filter(key => user.permissions?.[key] === true);
   return keys.length === 1 ? keys[0] : null;
 }
-function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k] === true) || user.permissions.studentAffairs === true) : false; }
+
 function getAssignedAdminPermissionKeys(user = activeUser) {
   const permissions = user?.permissions || {};
   return [...ADMIN_TAB_PERMISSIONS, 'studentAffairs'].filter(key => permissions[key] === true);
@@ -6185,38 +6170,7 @@ function isSinglePermissionMode(user = activeUser) {
   return !!user && user.type !== 'admin' && user.permissions?.admin !== true && !isAdminAuthorized()
     && (!!getSingleAdminPanelPermission(user) || getSingleAdminPermission(user) === 'studentAffairs');
 }
-function renderSinglePermissionLauncher(permissionKey) {
-  const view = document.getElementById('dashboardSelectionView');
-  if (!view || !permissionKey) return;
-  let launcher = document.getElementById('singlePermissionLauncher');
-  if (!launcher) {
-    launcher = document.createElement('div');
-    launcher.id = 'singlePermissionLauncher';
-    launcher.className = 'mx-auto flex w-full max-w-xl justify-center px-2 py-8';
-    view.appendChild(launcher);
-  }
-  const sourceTab = document.getElementById('tab-' + permissionKey);
-  const sourceIcon = sourceTab?.querySelector('i');
-  const sourceLabel = sourceTab?.querySelector('span')?.textContent?.trim() || 'فتح القسم المخصص';
-  launcher.replaceChildren();
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = 'group flex min-h-44 w-full max-w-md flex-col items-center justify-center gap-5 rounded-3xl border border-slate-200 bg-white p-8 text-center shadow-xl transition hover:-translate-y-1 hover:border-teal-400 hover:shadow-2xl focus:outline-none focus:ring-4 focus:ring-teal-200 dark:border-slate-700 dark:bg-slate-900 dark:focus:ring-teal-900';
-  const iconWrap = document.createElement('span');
-  iconWrap.className = 'flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-teal-600 to-blue-900 text-3xl text-white shadow-lg transition group-hover:scale-105';
-  const icon = document.createElement('i');
-  icon.className = sourceIcon?.className || 'fa-solid fa-folder-open';
-  iconWrap.appendChild(icon);
-  const label = document.createElement('span');
-  label.className = 'text-xl font-black text-slate-800 dark:text-white';
-  label.textContent = sourceLabel;
-  const hint = document.createElement('span');
-  hint.className = 'text-xs font-bold text-slate-500 dark:text-slate-400';
-  hint.textContent = 'اضغط للدخول إلى القسم المخصص لك';
-  button.append(iconWrap, label, hint);
-  button.addEventListener('click', () => openSinglePermissionModule(permissionKey));
-  launcher.appendChild(button);
-}
+
 function openSinglePermissionModule(permissionKey) {
   const validPermission = permissionKey === 'studentAffairs'
     ? getSingleAdminPermission(activeUser) === 'studentAffairs'
@@ -7706,7 +7660,6 @@ function repOnStatusFilterChange(changedId){
   }
 }
 
-function repApplyReportDatePreset(preset){const today=getOmanLocalDate();if(preset==="custom"){document.getElementById("repFrom").disabled=false;document.getElementById("repTo").disabled=false;return;}if(preset!=="today"&&preset!=="week")return;saSetReportDateInputs("rep",preset==="week"?saDateShift(today,-7):today,today,preset);repLoadReport();}
 function repOnReportDateChanged(){saCommitReportDateChange("rep");}
 function repUpdateSelectedClassCount(){const count=repGetSelectedReportClasses().length;const el=document.getElementById("repSelectedClassesCount");if(el)el.textContent=count+" صفوف";}
 
@@ -8553,56 +8506,7 @@ async function showTeacherPin(idx) {
     showToast(success ? 'تم إنشاء رمز جديد!' : 'حُفظ محلياً.', success ? 'success' : 'info');
   } catch(e) { showToast('تعذر التوليد.', 'error'); }
 }
-async function editTeacherName(idx) {
-  const t = db.teachers[idx]; if (!t) return;
-  const oldName = t.name;
-  const nn = await showPrompt(`الاسم الجديد لـ (${oldName}):`, { title: 'تعديل الاسم', defaultValue: oldName });
-  if (!nn || !nn.trim()) return;
-  const trimmed = nn.trim();
-  if (trimmed === oldName) return;
-  if (db.teachers.some((x, i) => i !== idx && x.name === trimmed) || (db.customUsers || []).some(u => u.name === trimmed)) {
-    showToast('الاسم مستخدم.', 'error'); return;
-  }
-  Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === oldName) { s.teacher = trimmed; dirtySets.attendance.add(k); } });
-  Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === oldName) { s.teacher = trimmed; dirtySets.behaviors.add(k); } });
-  db.dutyModule.records.forEach(r => { let changed = false; if (r.reportedBy === oldName) { r.reportedBy = trimmed; changed = true; } if (r.reviewedBy === oldName) { r.reviewedBy = trimmed; changed = true; } if (changed) dirtySets.duty_reports.add(String(r.id)); });
-  t.name = trimmed;
-  dirtySets.teachers.add(trimmed);
-  const success = await saveSystemDataToCloud();
-  if (!success) {
-    await queueCloudDelete('teachers', { name: trimmed, role: 'teacher' });
-    t.name = oldName; dirtySets.teachers.delete(trimmed); dirtySets.teachers.add(oldName);
-    Object.entries(db.attendance).forEach(([k, s]) => { if (s.teacher === trimmed) { s.teacher = oldName; dirtySets.attendance.delete(k); } });
-    Object.entries(db.behaviors).forEach(([k, s]) => { if (s.teacher === trimmed) { s.teacher = oldName; dirtySets.behaviors.delete(k); } });
-    renderTeachersList(); showToast('فشل التحديث. لم يتم تغيير الاسم.', 'error'); return;
-  }
-  await queueCloudDelete('teachers', { name: oldName, role: 'teacher' });
-  renderTeachersList(); showToast('تم تحديث الاسم؛ إزالة السجل القديم من الخادم بانتظار المراجعة.', 'info');
-  if (activeUser?.name === oldName) {
-    activeUser.name = trimmed;
-    document.getElementById('activeUserName').textContent = trimmed;
-    const cp = await showPrompt('أدخل رمزك الحالي لتجديد الجلسة (تغيير الاسم يتطلب ذلك):', { title: 'تجديد الجلسة', inputMode: 'numeric' });
-    if (cp && await verifyPinAgainstRecord(cp, { hash: t.pin_hash, salt: t.pin_salt })) {
-      const ss = await deriveSessionSecret(cp, t.pin_salt);
-      await createSignedSession(trimmed, activeUser.type, ss);
-      showToast('تم تجديد الجلسة.', 'success');
-    } else { showToast('لم تُجدَّد الجلسة. سيُطلب منك الدخول مجدداً.', 'info'); }
-  }
-}
-async function editTeacherPin(idx) {
-  const t = db.teachers[idx]; if (!t) return;
-  const np = await showPrompt(`الرمز الجديد لـ (${t.name}):`, { title: 'تعديل يدوي', inputMode: 'numeric' });
-  if (!np || !np.trim()) return;
-  const tr = np.trim();
-  if (tr.length < 4) { showToast('4 أرقام على الأقل.', 'error'); return; }
-  if (await isPinTaken(tr, t.name)) { showToast('مستخدم.', 'error'); return; }
-  const rec = await createPinRecord(tr);
-  t.pin_hash = rec.hash; t.pin_salt = rec.salt; t.mustChangePin = false;
-  dirtySets.teachers.add(t.name);
-  const s = await saveSystemDataToCloud();
-  renderTeachersList();
-  showToast(s ? 'تم.' : 'حُفظ محلياً.', s ? 'success' : 'info');
-}
+
 async function deleteTeacher(idx) {
   const t = db.teachers[idx]; if (!t) return;
   const ok = await showConfirm(`حذف (${t.name}) نهائياً؟`, { danger: true }); if (!ok) return;
@@ -10011,7 +9915,7 @@ function teacherStartDailySubstitutionWatcher() {
   }
   if (activeUser?.type !== "teacher") return;
   teacherReserveNoticeRefreshTimer = setInterval(() => {
-    if (activeUser?.type === "teacher" && document.visibilityState !== "prerender") {
+    if (activeUser?.type === "teacher" && !document.hidden && document.visibilityState !== "prerender") {
       void teacherShowDailySubstitutionWelcome();
     }
   }, 45000);
@@ -10027,7 +9931,7 @@ async function openTeacherTimetableView() {
   await teacherTimetableLoad(true);
   if (teacherTimetableRefreshTimer) clearInterval(teacherTimetableRefreshTimer);
   teacherTimetableRefreshTimer = setInterval(() => {
-    if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
+    if (document.hidden || document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
     teacherTimetableRender();
     if (Date.now() - teacherTimetableLastFetchAt >= 60000) void teacherTimetableLoad(false);
   }, 15000);
@@ -10355,24 +10259,7 @@ function timetableNormalizeNameKey(value) {
   return String(value || "").normalize("NFKC").replace(/[\u064b-\u065f\u0670\u0640]/g,"")
     .replace(/[أإآٱ]/g,"ا").replace(/ى/g,"ي").replace(/ة/g,"ه").replace(/\s+/g," ").trim();
 }
-function timetableValidateWeeklyTeacherSets(days) {
-  const weekdays=["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
-  if (!Array.isArray(days) || days.length !== 5) throw new Error("استيراد الأسبوع الكامل يتطلب الأيام الخمسة.");
-  const ordered=[...days].sort((a,b)=>weekdays.indexOf(a.weekday)-weekdays.indexOf(b.weekday));
-  if (ordered.some((day,index)=>day.weekday!==weekdays[index])) throw new Error("يجب أن تتضمن النسخة الأيام الدراسية الخمسة دون تكرار.");
-  const reference=ordered[0], referenceTeachers=reference.teachers||[];
-  if (!referenceTeachers.length || referenceTeachers.length>500) throw new Error("عدد المعلمين في الملف غير صالح.");
-  const periodCount=referenceTeachers[0]?.cells?.length;
-  if (![7,8].includes(periodCount)) throw new Error("يجب أن يحتوي جدول كل معلم على 7 أو 8 حصص.");
-  const names=referenceTeachers.map(teacher=>timetableNormalizeNameKey(teacher.matchStatus==="matched"&&teacher.matchedTeacherName?teacher.matchedTeacherName:teacher.sourceName)).sort();
-  if(names.some(name=>!name)||new Set(names).size!==names.length) throw new Error("توجد أسماء معلمين فارغة أو مكررة بعد المطابقة في يوم "+reference.weekday+".");
-  for(const day of ordered){
-    const teachers=day.teachers||[];
-    const dayNames=teachers.map(teacher=>timetableNormalizeNameKey(teacher.matchStatus==="matched"&&teacher.matchedTeacherName?teacher.matchedTeacherName:teacher.sourceName)).sort();
-    if(dayNames.length!==names.length||dayNames.some((name,index)=>name!==names[index])) throw new Error("قائمة المعلمين في يوم "+day.weekday+" لا تطابق قائمة يوم "+reference.weekday+".");
-    for(const teacher of teachers) if(!Array.isArray(teacher.cells)||teacher.cells.length!==periodCount) throw new Error("عدد حصص المعلم "+teacher.sourceName+" لا يطابق عدد الحصص في النسخة.");
-  }
-}
+
 function timetablePreflightTextWorker(sourceText) {
   return new Promise((resolve,reject) => {
     if(typeof Worker==="undefined") { resolve({issues:[],issueCount:0,lineCount:String(sourceText).split(/\\r?\n/).length,worker:false}); return; }
