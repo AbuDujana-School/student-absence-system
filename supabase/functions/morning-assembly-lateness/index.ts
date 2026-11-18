@@ -1,6 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { academicYearKey, isTeacherEligibleForMorningLateness } from "./policy.ts";
+import { academicYearKey, canUseMorningLateness } from "./policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -65,15 +65,12 @@ async function authenticate(req:Request):Promise<Principal|null> {
   };
 }
 function canUse(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
-  if (principal.type === "admin") return true;
-  if (principal.permissions.morningAssemblyLateness !== true) return false;
-  // Named custom users are explicit exception accounts (e.g. social worker / assistant principal).
-  if (principal.type === "custom") return true;
   const personal = principal.permissions.dutyDay;
   const category = String(principal.permissions.category || "");
   const assignedDay = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].includes(personal)
     ? personal : String(duty?.subjectDays?.[category] || "");
-  return principal.type === "teacher" && isTeacherEligibleForMorningLateness({
+  return canUseMorningLateness({
+    principalType: principal.type,
     permission: principal.permissions.morningAssemblyLateness === true,
     dutyToday: principal.permissions.dutyToday !== false,
     weekday: ctx.weekday,
@@ -120,7 +117,9 @@ async function handle(req:Request) {
   const localMonth = Number(ctx.date.slice(5,7));
   if (localMonth === 7 || localMonth === 8) return reply(403,{error:"التسجيل متاح خلال العام الدراسي فقط (من 1 سبتمبر إلى 30 يونيو)."});
   let duty:any={};
-  try { duty=await dutySettings(); } catch { return reply(503,{error:"تعذر التحقق من جدول المناوبة حالياً."}); }
+  if (principal.type === "teacher") {
+    try { duty=await dutySettings(); } catch { return reply(503,{error:"تعذر التحقق من جدول المناوبة حالياً."}); }
+  }
   if (!canUse(principal,ctx,duty)) {
     return reply(403,{error:"لا تملك صلاحية التسجيل الآن، أو أنك لست مناوباً اليوم، أو انتهت فترة التسجيل (7:00–8:30 صباحاً)."});
   }
