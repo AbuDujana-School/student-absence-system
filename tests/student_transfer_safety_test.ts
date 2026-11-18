@@ -96,3 +96,21 @@ Deno.test("atomic roster save is restricted to service_role and never mutates st
   assert(!/DELETE FROM public\.(attendance|behaviors|student_affairs_notice_issues)/i.test(rosterMigration), "Roster removal must preserve all student history");
   assert(rosterMigration.includes("student_roster_audit"), "Roster edits must be auditable");
 });
+
+
+Deno.test("legacy pending student removals can be explicitly committed from the review panel", () => {
+  const executor = section(html, "async function executePendingStudentDeleteIntents()", "async function saveBulkStudents()");
+  const review = section(html, "function openPendingDeleteReview()", "async function queueCloudDelete(");
+  assert(executor.includes("isAdminAuthorized()"), "Only an authorized admin can commit old student deletion requests");
+  assert(executor.includes("showConfirm("), "Legacy requests must require confirmation before server mutation");
+  assert(executor.includes("saveStudentRoster("), "Legacy requests must use the direct server roster transaction");
+  assert(executor.includes("silentSuccess: true"), "Batch execution must not show a success toast for each class");
+  assert(review.includes("execute-student-deletes"), "The review dialog must expose the direct legacy cleanup action");
+});
+
+Deno.test("direct roster save keeps its persisted success status separate from local refresh failures", () => {
+  const save = section(html, "async function saveStudentRoster(", "async function executePendingStudentDeleteIntents()");
+  assert(save.includes("action: 'admin_save_student_roster'"), "Roster changes must commit through the admin Edge Function");
+  assert(save.includes("clearStudentDeleteIntents(className)"), "Old local deletion intents must be cleared after successful server commit");
+  assert(save.includes("if (!loaded)"), "A local reload failure must not misreport a committed server save as a failed transaction");
+});
