@@ -136,7 +136,9 @@ async function handle(req:Request) {
   }
   const className=String(body?.class_name || "").trim();
   const studentName=String(body?.student_name || "").trim();
-  if (!className || !studentName) return reply(400,{error:"اختر الصف والطالب أولاً."});
+  if (!className || !studentName || className.length > 120 || studentName.length > 180) {
+    return reply(400,{error:"بيانات الصف أو الطالب غير مكتملة أو أطول من الحد المسموح."});
+  }
   const {data:students,error:studentError}=await db.from("students").select("id,class_name,student_name")
     .eq("class_name",className).eq("student_name",studentName).limit(2);
   if (studentError || !students?.length) return reply(404,{error:"لم يتم العثور على الطالب في الصف المحدد. حدّث الصفحة وحاول مجدداً."});
