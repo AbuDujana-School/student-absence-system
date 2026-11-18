@@ -5078,6 +5078,7 @@ function openPendingDeleteReview() {
       </div>
       <footer class="flex flex-wrap justify-between gap-2 border-t border-white/10 p-4">
         <p class="w-full text-xs leading-5 text-slate-300">إلغاء الطلب يزيل نية الحذف من الجهاز فقط، ولا يحذف أو يعدّل أي بيانات في قاعدة المدرسة.</p>
+        ${queue.some(item => item?.table === 'students' && typeof item?.filters?.class_name === 'string' && typeof item?.filters?.student_name === 'string') ? '<button type="button" data-pending-delete-action="execute-student-deletes" class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold">تنفيذ طلبات حذف الطلاب القديمة</button>' : ''}
         <button type="button" data-pending-delete-action="cancel-all" class="rounded-xl bg-rose-700/80 px-4 py-2 text-sm font-bold">إلغاء جميع الطلبات</button>
         <button type="button" data-pending-delete-action="close" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold">إغلاق</button>
       </footer>
@@ -5101,6 +5102,11 @@ function openPendingDeleteReview() {
     if (action === 'cancel-one') {
       button.disabled = true;
       await cancelPendingDeleteAt(Number(button.dataset.pendingDeleteIndex));
+    }
+    if (action === 'execute-student-deletes') {
+      button.disabled = true;
+      await executePendingStudentDeleteIntents();
+      return;
     }
     if (action === 'cancel-all') {
       button.disabled = true;
@@ -8009,13 +8015,15 @@ async function saveStudentRoster(className, studentNames, options = {}) {
     loadAdminStudentsList();
     renderClassesGrid();
     const counts = response?.roster || {};
-    showToast(
-      'تم الحفظ المباشر بنجاح. أضيف: ' + Number(counts.added_count || 0) +
-      '، أزيل من القائمة: ' + Number(counts.removed_count || 0) +
-      '، إجمالي الصف: ' + Number(counts.total_count ?? nextNames.length) +
-      '. السجلات التاريخية لم تتغير.',
-      'success'
-    );
+    if (!options.silentSuccess) {
+      showToast(
+        'تم الحفظ المباشر بنجاح. أضيف: ' + Number(counts.added_count || 0) +
+        '، أزيل من القائمة: ' + Number(counts.removed_count || 0) +
+        '، إجمالي الصف: ' + Number(counts.total_count ?? nextNames.length) +
+        '. السجلات التاريخية لم تتغير.',
+        'success'
+      );
+    }
     return true;
   } catch (error) {
     console.error('Student roster save failed:', error);
@@ -8023,6 +8031,53 @@ async function saveStudentRoster(className, studentNames, options = {}) {
     return false;
   }
 }
+async function executePendingStudentDeleteIntents() {
+  if (!isAdminAuthorized()) {
+    showToast('تنفيذ طلبات حذف الطلاب القديمة متاح لمدير النظام العام فقط.', 'error');
+    return false;
+  }
+  if (!navigator.onLine || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges()) {
+    showToast('احفظ التعديلات المعلّقة وتأكد من الاتصال قبل تنفيذ طلبات الحذف القديمة.', 'error');
+    return false;
+  }
+  const pending = getPendingDeletes().filter(item =>
+    item?.table === 'students' &&
+    typeof item?.filters?.class_name === 'string' &&
+    typeof item?.filters?.student_name === 'string'
+  );
+  if (!pending.length) {
+    showToast('لا توجد طلبات حذف طلاب قديمة.', 'info');
+    return false;
+  }
+  const groups = [...new Set(pending.map(item => item.filters.class_name))];
+  const studentCount = pending.length;
+  const confirmed = await showConfirm(
+    'يوجد ' + studentCount + ' طلب حذف طالب قديم موزع على ' + groups.length +
+    ' صفوف. سيتم تنفيذ الحذف مباشرة على الخادم، مع الاحتفاظ بسجلات الغياب والسلوك والملاحظات التاريخية. إذا أردت نقل طالب بدلاً من حذفه، ألغِ طلبه واستخدم خيار النقل. هل تريد التنفيذ؟',
+    { title: 'تنفيذ طلبات حذف الطلاب القديمة', danger: true, okText: 'تنفيذ الحذف' }
+  );
+  if (!confirmed) return false;
+
+  let completed = 0;
+  for (const className of groups) {
+    const saved = await saveStudentRoster(
+      className,
+      db.students?.[className] || [],
+      { confirmRemovals: false, silentSuccess: true }
+    );
+    if (!saved) {
+      showToast('تم تنفيذ طلبات الحذف في ' + completed + ' من ' + groups.length +
+        ' صفوف. بقيت الطلبات الأخرى دون تغيير وتحتاج إلى مراجعة.', 'error');
+      return false;
+    }
+    completed++;
+  }
+  closePendingDeleteReview();
+  updateSyncStatus(!hasPendingOfflineRecordChanges() && !getPendingDeletes().length, 'متزامن');
+  showToast('تم تنفيذ طلبات حذف الطلاب القديمة مباشرة وحُفظت سجلاتهم التاريخية.', 'success');
+  return true;
+}
+
 async function saveBulkStudents() {
   const className = document.getElementById('adminClassSelect')?.value;
   if (!className) return;
