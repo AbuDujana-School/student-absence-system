@@ -114,3 +114,13 @@ Deno.test("direct roster save keeps its persisted success status separate from l
   assert(save.includes("clearStudentDeleteIntents(className)"), "Old local deletion intents must be cleared after successful server commit");
   assert(save.includes("if (!loaded)"), "A local reload failure must not misreport a committed server save as a failed transaction");
 });
+
+
+Deno.test("student roster commits cannot overlap with another roster save or transfer", () => {
+  const save = section(html, "async function saveStudentRoster(", "async function executePendingStudentDeleteIntents()");
+  const transfer = section(html, "async function transferStudentToClass(", "async function saveStudentRoster(");
+  assert(save.includes("studentRosterSaveInProgress"), "Roster save must set and check an in-flight guard");
+  assert(save.includes("cloudSaveInProgress") && save.includes("manualOfflineSyncInProgress"), "Roster save must not overlap the generic cloud uploader");
+  assert(save.includes("finally") && save.includes("studentRosterSaveInProgress = false"), "The in-flight guard must always be released");
+  assert(transfer.includes("studentRosterSaveInProgress"), "Student transfer must not overlap a roster save");
+});
