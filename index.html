@@ -7951,7 +7951,12 @@ async function saveStudentRoster(className, studentNames, options = {}) {
     showToast('قائمة الطلاب تتجاوز الحد المسموح أو تحتوي اسماً طويلاً.', 'error');
     return false;
   }
-  const previousNames = [...(db.students?.[className] || [])];
+  const queuedNames = getPendingDeletes()
+    .filter(item => item?.table === 'students' && item?.filters?.class_name === className)
+    .map(item => String(item?.filters?.student_name || '').trim()).filter(Boolean);
+  // Legacy pending intents are hidden from the local list. Include them in the
+  // confirmation count so a new direct save never commits them silently.
+  const previousNames = [...new Set([...(db.students?.[className] || []), ...queuedNames])];
   const removedNames = previousNames.filter(name => !nextNames.includes(name));
   const addedNames = nextNames.filter(name => !previousNames.includes(name));
   const hasQueuedStudentDeletes = getPendingDeletes().some(item =>

@@ -66,6 +66,7 @@ Deno.test("single and bulk student deletion use direct server roster save, never
   assert(handlers.includes("action: 'admin_save_student_roster'"), "Student list changes must use the dedicated server save action");
   assert(handlers.includes("appAuthRequest"), "Roster changes must be sent to the authenticated server");
   assert(handlers.includes("clearStudentDeleteIntents(className)"), "Legacy student delete intents for the saved class must be cleared after commit");
+  assert(handlers.includes("...queuedNames"), "Legacy queued student removals must be counted and confirmed before reconciliation");
   assert(!handlers.includes("queueCloudDelete("), "Student deletion must not create a local-only deletion intent");
   assert(handlers.includes("async function saveBulkStudents()"), "Bulk roster editing must use the unified save workflow");
   assert(handlers.includes("async function removeStudent(className, idx)"), "Single student removal must use the unified save workflow");
@@ -92,6 +93,6 @@ Deno.test("atomic roster save is restricted to service_role and never mutates st
   assert(rosterMigration.includes("REVOKE ALL ON FUNCTION public.admin_save_student_roster"), "Browser roles must not execute the roster RPC");
   assert(rosterMigration.includes("GRANT EXECUTE ON FUNCTION public.admin_save_student_roster"), "Only service_role may execute the roster RPC");
   assert(rosterMigration.includes("DELETE FROM public.students"), "The transaction must remove stale class memberships");
-  assert(!/DELETE FROM public\\.(attendance|behaviors|student_affairs_notice_issues)/i.test(rosterMigration), "Roster removal must preserve all student history");
+  assert(!/DELETE FROM public\.(attendance|behaviors|student_affairs_notice_issues)/i.test(rosterMigration), "Roster removal must preserve all student history");
   assert(rosterMigration.includes("student_roster_audit"), "Roster edits must be auditable");
 });
