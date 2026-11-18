@@ -7910,7 +7910,7 @@ async function transferStudentFromBtn(btn) {
 }
 async function transferStudentToClass(studentName, fromClass, toClass) {
   if (!isAdminAuthorized()) { showToast('هذه العملية متاحة لمدير النظام العام فقط.', 'error'); return false; }
-  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges()) {
+  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges() || studentRosterSaveInProgress) {
     showToast('احفظ التعديلات المحلية المعلّقة أولاً ثم أعد عملية النقل؛ لم يتم تغيير أي بيانات.', 'error');
     return false;
   }
@@ -7941,11 +7941,13 @@ async function transferStudentToClass(studentName, fromClass, toClass) {
     return false;
   }
 }
+let studentRosterSaveInProgress = false;
 async function saveStudentRoster(className, studentNames, options = {}) {
   if (!isAdminAuthorized()) { showToast('حفظ قوائم الطلاب متاح لمدير النظام العام فقط.', 'error'); return false; }
+  if (studentRosterSaveInProgress) { showToast('توجد عملية حفظ لقائمة الطلاب جارية؛ انتظر اكتمالها.', 'info'); return false; }
   if (!navigator.onLine) { showToast('لا يوجد اتصال بالإنترنت؛ لم تتغير بيانات الطلاب على الخادم.', 'error'); return false; }
   if (cloudDataLoadState !== 'ready') { showToast('انتظر اكتمال تحميل بيانات المدرسة قبل حفظ قائمة الطلاب.', 'error'); return false; }
-  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges()) {
+  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges() || cloudSaveInProgress || manualOfflineSyncInProgress) {
     showToast('احفظ التعديلات المحلية المعلّقة أولاً ثم أعد حفظ قائمة الطلاب؛ لم تتغير بيانات الطلاب.', 'error');
     return false;
   }
@@ -7983,6 +7985,7 @@ async function saveStudentRoster(className, studentNames, options = {}) {
   }
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token) { showToast('انتهت جلسة مدير النظام. سجّل الدخول مجدداً.', 'error'); return false; }
+  studentRosterSaveInProgress = true;
   try {
     const response = await appAuthRequest({
       action: 'admin_save_student_roster',
@@ -7990,16 +7993,19 @@ async function saveStudentRoster(className, studentNames, options = {}) {
       student_names: nextNames
     }, token);
     const queueCleared = await clearStudentDeleteIntents(className);
-    if (!queueCleared) {
+    const loaded = await loadSystemDataFromCloud();
+    const oldStudentIntentRemains = getPendingDeletes().some(item =>
+      item?.table === 'students' && item?.filters?.class_name === className
+    );
+    if (!queueCleared && oldStudentIntentRemains) {
       db.students[className] = nextNames;
       dirtySets.students.delete(className);
       saveToLocalStorageSafe();
       await persistOfflineState();
       loadAdminStudentsList();
-      showToast('تم حفظ قائمة الطلاب في الخادم، لكن تعذر تنظيف طلب حذف قديم من التخزين المحلي لهذا الجهاز.', 'error');
+      showToast('حُفظت قائمة الطلاب في الخادم، لكن تعذر تنظيف طلب حذف محلي قديم بعد إعادة المحاولة. سيبقى التنبيه حتى ينجح التخزين المحلي.', 'error');
       return true;
     }
-    const loaded = await loadSystemDataFromCloud();
     if (!loaded) {
       db.students[className] = nextNames;
       dirtySets.students.delete(className);
@@ -8029,6 +8035,8 @@ async function saveStudentRoster(className, studentNames, options = {}) {
     console.error('Student roster save failed:', error);
     showToast(error?.message || 'تعذر حفظ قائمة الطلاب؛ لم تُعتمد العملية.', 'error');
     return false;
+  } finally {
+    studentRosterSaveInProgress = false;
   }
 }
 async function executePendingStudentDeleteIntents() {
