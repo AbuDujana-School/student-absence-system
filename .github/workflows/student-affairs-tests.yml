@@ -139,7 +139,7 @@ jobs:
       - name: Apply substitution duty-day database guard
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261114100000_timetable_substitution_duty_guard.sql
       - name: Remove obsolete duty-day substitution restriction
-        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116100000_allow_substitution_on_duty_day.sql
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116014544_allow_substitution_on_duty_day.sql
       - name: Verify duty-day assignments are not blocked
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_duty_day.sql
       - name: Verify official notice ledger isolation and atomic numbering
