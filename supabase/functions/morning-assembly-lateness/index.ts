@@ -99,19 +99,30 @@ async function handle(req:Request) {
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);
     if (!/^[0-9]{4}\/[0-9]{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
-    const allRows:any[] = [];
+    const yearRows:any[] = [];
+    for (let from=0; ; from+=1000) {
+      const {data,error}=await db.from("morning_assembly_lateness")
+        .select("academic_year")
+        .order("academic_year",{ascending:false})
+        .range(from,from+999);
+      if (error) throw error;
+      yearRows.push(...(data||[]));
+      if (!data || data.length<1000) break;
+    }
+    const years = [...new Set(yearRows.map(row=>String(row.academic_year)))].sort((a,b)=>b.localeCompare(a));
+    const selectedYear = years.includes(requestedYear) || requestedYear===ctx.academicYear ? requestedYear : (years[0] || ctx.academicYear);
+    const reportRows:any[] = [];
     for (let from=0; ; from+=1000) {
       const {data,error}=await db.from("morning_assembly_lateness")
         .select("id,student_id,student_name_snapshot,class_name_snapshot,late_date,recorded_at,recorder_name,academic_year")
+        .eq("academic_year",selectedYear)
         .order("late_date",{ascending:false}).order("recorded_at",{ascending:false})
         .range(from,from+999);
       if (error) throw error;
-      allRows.push(...(data||[]));
+      reportRows.push(...(data||[]));
       if (!data || data.length<1000) break;
     }
-    const years = [...new Set(allRows.map(row=>String(row.academic_year)))].sort((a,b)=>b.localeCompare(a));
-    const selectedYear = years.includes(requestedYear) || requestedYear===ctx.academicYear ? requestedYear : (years[0] || ctx.academicYear);
-    return reply(200,{academic_year:selectedYear,available_years:[...new Set([ctx.academicYear,...years])].sort((a,b)=>b.localeCompare(a)),rows:allRows.filter(row=>row.academic_year===selectedYear)});
+    return reply(200,{academic_year:selectedYear,available_years:[...new Set([ctx.academicYear,...years])].sort((a,b)=>b.localeCompare(a)),rows:reportRows});
   }
   if (action !== "record") return reply(400,{error:"طلب غير معروف."});
   const localMonth = Number(ctx.date.slice(5,7));
