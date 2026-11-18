@@ -8037,7 +8037,7 @@ function handleStudentFileImport(e) {
   reader.onload = async function(event) {
     try {
       const lines = String(event.target?.result || '').replace(/^\uFEFF/, '')
-        .split(/\r?\n/.map(value => value.trim()).filter(Boolean);
+        .split(/\r?\n/).map(value => value.trim()).filter(Boolean);
       const className = document.getElementById('adminClassSelect')?.value;
       if (!className || !lines.length) return;
       const merged = [...new Set([...(db.students[className] || []), ...lines])];
