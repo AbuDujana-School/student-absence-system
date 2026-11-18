@@ -127,9 +127,11 @@ async function handle(req:Request) {
   const className=String(body?.class_name || "").trim();
   const studentName=String(body?.student_name || "").trim();
   if (!className || !studentName) return reply(400,{error:"اختر الصف والطالب أولاً."});
-  const {data:student,error:studentError}=await db.from("students").select("id,class_name,student_name")
-    .eq("class_name",className).eq("student_name",studentName).maybeSingle();
-  if (studentError || !student) return reply(404,{error:"لم يتم العثور على الطالب في الصف المحدد. حدّث الصفحة وحاول مجدداً."});
+  const {data:students,error:studentError}=await db.from("students").select("id,class_name,student_name")
+    .eq("class_name",className).eq("student_name",studentName).limit(2);
+  if (studentError || !students?.length) return reply(404,{error:"لم يتم العثور على الطالب في الصف المحدد. حدّث الصفحة وحاول مجدداً."});
+  if (students.length > 1) return reply(409,{error:"توجد سجلات متطابقة للطالب في الصف. يرجى مراجعة بيانات الطلاب قبل التسجيل."});
+  const student=students[0];
   const {data,error}=await db.from("morning_assembly_lateness").insert({
     student_id:student.id,
     student_name_snapshot:student.student_name,
