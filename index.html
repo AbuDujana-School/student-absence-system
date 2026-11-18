@@ -1949,6 +1949,15 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
         </div>
       </div>
+      <div id="morningAssemblyLatenessDashboardCard" onclick="openMorningAssemblyLateness()" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-fuchsia-700 via-violet-800 to-slate-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-fuchsia-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
+        <div class="absolute -left-8 -top-10 w-36 h-36 rounded-full bg-pink-300/20 blur-3xl pointer-events-none"></div>
+        <div class="relative z-10 flex justify-between items-start">
+          <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-fuchsia-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner"><i class="fa-solid fa-person-circle-exclamation"></i></div>
+          <span class="rounded-xl border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] font-black text-fuchsia-100">07:00 – 08:30</span>
+        </div>
+        <div class="relative z-10 mt-6"><h4 class="text-3xl font-black text-white mb-2">التأخر عن الطابور الصباحي</h4><p id="morningAssemblyLatenessCardStatus" class="text-xs text-fuchsia-100 font-bold">تسجيل فوري للطلاب المتأخرين</p></div>
+        <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-fuchsia-100"><span>انقر لبدء التسجيل</span><div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div></div>
+      </div>
       <div id="substitutionDashboardCard" onclick="openSubstitutionView()" role="button" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openSubstitutionView();}" class="hidden hero-card relative overflow-hidden bg-gradient-to-br from-slate-950 via-indigo-950 to-cyan-900 rounded-[2.5rem] p-8 text-white shadow-2xl border border-cyan-300/30 cursor-pointer group flex flex-col justify-between min-h-[240px] lg:col-start-3">
         <div class="absolute -left-10 -top-12 w-40 h-40 rounded-full bg-cyan-300/15 blur-3xl pointer-events-none"></div>
         <div class="relative z-10 flex justify-between items-start">
@@ -2383,6 +2392,24 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
   </div>
 
+  <div id="morningAssemblyLatenessView" class="hidden space-y-6" dir="rtl">
+    <div class="glass-card p-4 rounded-3xl shadow-lg border border-fuchsia-200/70 dark:border-fuchsia-900/50 flex flex-wrap justify-between items-center gap-3">
+      <button onclick="closeMorningAssemblyLateness()" class="bg-fuchsia-50 dark:bg-fuchsia-950/50 hover:bg-fuchsia-100 text-fuchsia-800 dark:text-fuchsia-200 px-4 py-2.5 rounded-2xl text-xs font-extrabold flex items-center gap-2 border border-fuchsia-200"><i class="fa-solid fa-arrow-right"></i> العودة</button>
+      <div class="text-right"><div class="text-xs font-black text-fuchsia-800 dark:text-fuchsia-200">التأخر عن الطابور الصباحي</div><div id="morningAssemblyTodayStatus" class="text-[10px] text-slate-500 mt-1">يتم الحفظ فور اختيار الطالب</div></div>
+      <span class="rounded-xl bg-fuchsia-50 dark:bg-fuchsia-950/40 text-fuchsia-800 dark:text-fuchsia-200 border border-fuchsia-200 px-3 py-2 text-[10px] font-black">الأحد – الخميس · 7:00 – 8:30</span>
+    </div>
+    <section class="rounded-3xl border border-fuchsia-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
+      <div class="flex items-center gap-3"><div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-fuchsia-500 to-violet-700 text-white flex items-center justify-center text-xl shadow-lg"><i class="fa-solid fa-users"></i></div><div><h3 class="font-black text-slate-800 dark:text-white">اختر الصف</h3><p class="text-[11px] text-slate-500">تظهر الصفوف والطلاب من سجلات المدرسة الحالية</p></div></div>
+      <div id="morningAssemblyClassesGrid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3"></div>
+    </section>
+    <section class="rounded-3xl border border-violet-100 dark:border-slate-700 bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-sm space-y-4">
+      <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 id="morningAssemblySelectedClassTitle" class="font-black text-slate-800 dark:text-white">تسجيل طالب</h3><p class="text-[11px] text-slate-500">اضغط على اسم الطالب لتسجيل التأخر مباشرة</p></div><span id="morningAssemblyStudentCount" class="text-[10px] rounded-xl bg-violet-50 text-violet-700 border border-violet-100 px-3 py-2 font-black">اختر صفاً</span></div>
+      <label class="block relative"><i class="fa-solid fa-magnifying-glass absolute right-4 top-1/2 -translate-y-1/2 text-violet-400"></i><input id="morningAssemblySearch" oninput="renderMorningAssemblySearch()" type="search" autocomplete="off" placeholder="بحث ذكي باسم الطالب من جميع الصفوف..." class="w-full rounded-2xl border border-violet-100 dark:border-slate-700 bg-violet-50/50 dark:bg-slate-950 py-3.5 pr-11 pl-4 text-sm font-bold text-slate-800 dark:text-white outline-none focus:ring-2 focus:ring-violet-300"></label>
+      <div id="morningAssemblyStudentsList" class="grid grid-cols-1 sm:grid-cols-2 gap-2"></div>
+      <div id="morningAssemblySearchResults" class="space-y-2"></div>
+    </section>
+  </div>
+
   <div id="behaviorSessionView" class="hidden space-y-6">
     <div class="glass-card p-5 rounded-3xl shadow-lg border border-slate-200/60 dark:border-slate-700/60 flex flex-wrap justify-between items-center gap-4">
       <div class="flex items-center gap-3">
@@ -2512,6 +2539,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div class="grid grid-cols-2 gap-2">
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800"><input type="checkbox" id="perm_p_attendance" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📋 رصد الغياب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-200 dark:border-orange-800"><input type="checkbox" id="perm_p_dutyToday" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة في يوم التكليف</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl border border-fuchsia-200 dark:border-fuchsia-800"><input type="checkbox" id="perm_p_morningAssemblyLateness" class="accent-fuchsia-600 w-4 h-4"><span class="text-xs font-bold">⏰ تسجيل التأخر عن الطابور (للمناوب فقط)</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-2xl border border-cyan-200 dark:border-cyan-800"><input type="checkbox" id="perm_p_reserve" class="accent-cyan-600 w-4 h-4"><span class="text-xs font-bold">📚 توزيع حصص الاحتياط</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-teal-50 dark:bg-teal-950/30 rounded-2xl border border-teal-200 dark:border-teal-800"><input type="checkbox" id="perm_p_behavior" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ رصد السلوكيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800"><input type="checkbox" id="perm_p_dashboard" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🏠 الرئيسية</span></label>
@@ -2911,6 +2939,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_students" class="accent-emerald-600"> طلاب</label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_teachers" class="accent-emerald-600"> معلمين</label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_duty" class="accent-orange-600"> مناوبة</label>
+            <label class="flex items-center gap-2 cursor-pointer rounded-xl bg-fuchsia-50 p-2 text-fuchsia-800"><input type="checkbox" id="perm_morningAssemblyLateness" class="accent-fuchsia-600"> تسجيل التأخر (صلاحية استثنائية)</label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_alerts" class="accent-emerald-600"> تنبيهات</label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_reports" class="accent-emerald-600" checked> تقارير</label>
             <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="perm_sync" class="accent-emerald-600"> مزامنة</label>
@@ -3034,6 +3063,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </div>
 
       <div id="sec-reports" class="hidden space-y-6">
+        <section id="morningAssemblyLatenessReportPanel" class="rounded-3xl border border-fuchsia-200 bg-white dark:bg-slate-900 dark:border-slate-700 p-4 sm:p-6 shadow-sm space-y-4" dir="rtl">
+          <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-person-circle-exclamation ml-1 text-fuchsia-600"></i> تقرير التأخر عن الطابور الصباحي</h3><p class="mt-1 text-xs text-slate-500">تقرير تراكمي للعام الدراسي من سبتمبر إلى يونيو · كل 4 تأخيرات = يوم غياب محسوب مستقلاً</p></div><button onclick="loadMorningAssemblyLatenessReport()" class="rounded-xl bg-fuchsia-700 hover:bg-fuchsia-800 text-white px-4 py-2.5 text-xs font-black shadow"><i class="fa-solid fa-rotate ml-1"></i> تحديث التقرير</button></div>
+          <div id="morningAssemblyReportAccess" class="hidden rounded-2xl bg-amber-50 text-amber-800 border border-amber-200 p-3 text-xs font-bold"></div>
+          <div id="morningAssemblyReportMeta" class="text-xs font-bold text-slate-500"></div>
+          <div id="morningAssemblyReportContainer" class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700"><div class="p-8 text-center text-xs text-slate-400">اضغط تحديث التقرير لعرض البيانات</div></div>
+          <div class="flex justify-end"><button onclick="printMorningAssemblyLatenessReport()" class="rounded-xl bg-slate-800 hover:bg-slate-900 text-white px-5 py-3 text-xs font-black shadow"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة PDF</button></div>
+        </section>
         <section id="repStudentAffairsPanel" class="space-y-5 rounded-3xl border border-blue-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900 sm:p-6" dir="rtl">
           <div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-file-circle-check ml-1 text-blue-600"></i> لوحة تقارير شؤون الطلبة</h3><p class="mt-1 text-xs text-slate-500">نسخة مستقلة من لوحة الفلترة والعرض والتحليلات والطباعة، باستخدام سجلات شؤون الطلبة الفعلية.</p></div><span id="repAccessBadge" class="rounded-xl bg-slate-100 px-3 py-2 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">جارٍ التحقق</span></div>
           <div id="repAccessMessage" class="hidden rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" role="status"></div>
@@ -6357,7 +6393,7 @@ async function backToDashboardSelection() {
   if (attendanceDirty) { const ok = await showConfirm('تغييرات في الحضور. مغادرة؟', { danger: true }); if (!ok) return; }
   if (behaviorDirty) { const ok = await showConfirm('تغييرات في السلوكيات. مغادرة؟', { danger: true }); if (!ok) return; }
   attendanceDirty = false; behaviorDirty = false; attendanceUndoStack = []; behaviorUndoStack = [];
-  ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  ['classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView','morningAssemblyLatenessView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   refreshDutyDashboardCard();
 }
@@ -6513,6 +6549,177 @@ async function saveAttendanceSession() {
     else document.getElementById('unsavedStatusIndicator').textContent = "فشل الحفظ السحابي، حُفظ محلياً";
   } catch(e) { console.error(e); showToast('حدث خطأ.', 'error'); }
   finally { b.disabled = false; b.innerHTML = `<i class="fa-solid fa-floppy-disk"></i> <span>حفظ الرصد</span>`; }
+}
+
+/* ============ Morning Assembly Lateness ============ */
+let morningAssemblySelectedClass = null;
+let morningAssemblyReportRows = [];
+let morningAssemblyRefreshTimer = null;
+function canUseMorningAssemblyLateness() {
+  if (!activeUser) return false;
+  if (activeUser.type === 'admin' || isAdminAuthorized()) return true;
+  if (activeUser.permissions?.morningAssemblyLateness !== true) return false;
+  if (activeUser.type === 'custom') return true;
+  if (activeUser.type !== 'teacher' || activeUser.permissions?.dutyToday === false) return false;
+  const now = omanNowParts();
+  return ['Sunday','Monday','Tuesday','Wednesday','Thursday'].includes(now.weekday)
+    && now.minutes >= 420 && now.minutes < 510
+    && isTeacherOnDutyToday(activeUser.name);
+}
+function refreshMorningAssemblyLatenessCard() {
+  const card = document.getElementById('morningAssemblyLatenessDashboardCard');
+  if (!card) return;
+  const show = canUseMorningAssemblyLateness();
+  card.classList.toggle('hidden', !show);
+  const status = document.getElementById('morningAssemblyLatenessCardStatus');
+  if (status && show) {
+    if (activeUser?.type === 'admin' || isAdminAuthorized()) status.textContent = 'صلاحية المدير — متاح في أي وقت';
+    else if (activeUser?.type === 'custom') status.textContent = 'صلاحية استثنائية مفعلة';
+    else status.textContent = 'مناوب اليوم · التسجيل متاح حتى 8:30 صباحاً';
+  }
+  if (!morningAssemblyRefreshTimer) morningAssemblyRefreshTimer = setInterval(refreshMorningAssemblyLatenessCard, 30000);
+}
+function openMorningAssemblyLateness() {
+  if (!canUseMorningAssemblyLateness()) { showToast('لا تملك صلاحية التسجيل الآن أو لست مناوباً اليوم.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
+  document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
+  document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · الحفظ فوري عند اختيار الطالب';
+  renderMorningAssemblyClasses();
+  renderMorningAssemblySearch();
+}
+function closeMorningAssemblyLateness() {
+  morningAssemblySelectedClass = null;
+  document.getElementById('morningAssemblyLatenessView')?.classList.add('hidden');
+  document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+  refreshDutyDashboardCard();
+}
+function renderMorningAssemblyClasses() {
+  const grid = document.getElementById('morningAssemblyClassesGrid'); if (!grid) return;
+  grid.innerHTML = '';
+  sortClassesList(db.classes).forEach(className => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'rounded-2xl border p-3 text-center font-black text-sm transition-all ' +
+      (morningAssemblySelectedClass === className ? 'bg-fuchsia-700 text-white border-fuchsia-700 shadow-lg' : 'bg-fuchsia-50 dark:bg-slate-800 text-slate-800 dark:text-white border-fuchsia-100 dark:border-slate-700 hover:border-fuchsia-400');
+    btn.innerHTML = '<span class="block text-[10px] opacity-70 mb-1">الصف</span><span dir="ltr">' + escapeHtml(formatClassName(className)) + '</span>';
+    btn.onclick = () => { morningAssemblySelectedClass = className; renderMorningAssemblyClasses(); renderMorningAssemblyStudents(); };
+    grid.appendChild(btn);
+  });
+  const title = document.getElementById('morningAssemblySelectedClassTitle');
+  if (title) title.textContent = morningAssemblySelectedClass ? 'طلاب صف ' + formatClassName(morningAssemblySelectedClass) : 'تسجيل طالب';
+}
+function renderMorningAssemblyStudents() {
+  const list = document.getElementById('morningAssemblyStudentsList'); if (!list) return;
+  list.innerHTML = '';
+  if (!morningAssemblySelectedClass) { list.innerHTML = '<div class="col-span-full text-center py-5 text-xs text-slate-400">اختر الصف لعرض الطلاب</div>'; return; }
+  const students = arabicSort(db.students?.[morningAssemblySelectedClass] || []);
+  document.getElementById('morningAssemblyStudentCount').textContent = students.length + ' طالب';
+  students.forEach(name => list.appendChild(createMorningAssemblyStudentButton(name,morningAssemblySelectedClass)));
+}
+function normalizeMorningAssemblyName(value) {
+  return String(value || '').normalize('NFKC').replace(/[\u064b-\u065f\u0670\u0640]/g,'')
+    .replace(/[أإآٱ]/g,'ا').replace(/ى/g,'ي').replace(/ؤ/g,'و').replace(/ئ/g,'ي')
+    .toLowerCase().split(/\s+/).filter(Boolean).filter(token => token !== 'بن');
+}
+function morningAssemblyMatchScore(name, query) {
+  const q = normalizeMorningAssemblyName(query), n = normalizeMorningAssemblyName(name);
+  if (!q.length) return 0;
+  const missing = q.filter(token => !n.some(part => part.includes(token)));
+  if (missing.length) return 0;
+  const exactTokens = q.filter(token => n.includes(token)).length;
+  const full = n.join(' '), queryText = q.join(' ');
+  return (exactTokens * 10) + (full.includes(queryText) ? 30 : 0) - Math.max(0,n.length-q.length);
+}
+function createMorningAssemblyStudentButton(name,className) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:border-fuchsia-300 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/30 p-3 text-right transition-all active:scale-[.99]';
+  btn.innerHTML = '<span class="font-extrabold text-xs text-slate-800 dark:text-white">' + escapeHtml(name) + '<small class="block text-[10px] text-slate-400 mt-1">صف ' + escapeHtml(formatClassName(className)) + '</small></span><span class="w-9 h-9 shrink-0 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-200 flex items-center justify-center"><i class="fa-solid fa-plus"></i></span>';
+  btn.onclick = () => recordMorningAssemblyLateness(className,name,btn);
+  return btn;
+}
+function renderMorningAssemblySearch() {
+  const target = document.getElementById('morningAssemblySearchResults'); if (!target) return;
+  const query = document.getElementById('morningAssemblySearch')?.value || '';
+  if (query.trim().length < 2) { target.innerHTML = ''; renderMorningAssemblyStudents(); return; }
+  const matches = [];
+  Object.entries(db.students || {}).forEach(([className,names]) => (names || []).forEach(name => {
+    const score = morningAssemblyMatchScore(name,query);
+    if (score > 0) matches.push({name,className,score});
+  }));
+  matches.sort((a,b) => b.score-a.score || String(a.name).localeCompare(String(b.name),'ar'));
+  target.innerHTML = '<div class="text-[10px] font-black text-violet-700 dark:text-violet-300 px-1">نتائج البحث (' + matches.length + ')</div>';
+  if (!matches.length) { target.innerHTML += '<div class="text-center text-xs text-slate-400 py-4">لا توجد نتائج مطابقة</div>'; return; }
+  matches.slice(0,30).forEach(item => target.appendChild(createMorningAssemblyStudentButton(item.name,item.className)));
+}
+async function callMorningAssemblyLatenessApi(body) {
+  const token = readAppAuthToken();
+  if (!token) throw new Error('جلسة الدخول الآمنة غير متاحة. سجل الخروج ثم الدخول مجدداً.');
+  const response = await fetch(SUPABASE_URL + '/functions/v1/morning-assembly-lateness', {
+    method:'POST', headers:{'Content-Type':'application/json',apikey:SA_API_KEY,Authorization:'Bearer '+token},
+    body:JSON.stringify(body),cache:'no-store'
+  });
+  let data = {}; try { data = await response.json(); } catch (e) {}
+  if (!response.ok) { const error = new Error(data.error || 'تعذر تنفيذ العملية.'); error.status = response.status; error.data = data; throw error; }
+  return data;
+}
+async function recordMorningAssemblyLateness(className,studentName,button) {
+  if (!canUseMorningAssemblyLateness()) { showToast('انتهت فترة التسجيل أو لم تعد المناوبة مفعلة.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  if (button) { button.disabled = true; button.classList.add('opacity-60'); }
+  try {
+    const result = await callMorningAssemblyLatenessApi({action:'record',class_name:className,student_name:studentName});
+    showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success');
+    if (button) { button.innerHTML = '<span class="font-extrabold text-xs text-emerald-700">تم التسجيل اليوم<small class="block text-[10px] mt-1">حُفظ مباشرة</small></span><span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-check"></i></span>'; }
+  } catch (error) {
+    if (error.status === 409) showToast('هذا الطالب تم تسجيل تأخره مسبقاً اليوم.', 'info');
+    else showToast(error.message || 'تعذر حفظ التسجيل.', 'error');
+    if (button) { button.disabled = false; button.classList.remove('opacity-60'); }
+  }
+}
+function buildMorningAssemblyReportRows(rows) {
+  const byStudent = new Map();
+  (rows || []).forEach(row => {
+    const key = String(row.student_id || row.student_name_snapshot + '|' + row.class_name_snapshot);
+    if (!byStudent.has(key)) byStudent.set(key,{name:row.student_name_snapshot,className:row.class_name_snapshot,count:0,events:[]});
+    const item = byStudent.get(key); item.count++; item.events.push(row);
+  });
+  return [...byStudent.values()].map(item => ({...item,absenceDays:Math.floor(item.count/4),remaining:item.count%4}))
+    .sort((a,b)=>b.count-a.count || a.name.localeCompare(b.name,'ar'));
+}
+async function loadMorningAssemblyLatenessReport() {
+  const container = document.getElementById('morningAssemblyReportContainer'); if (!container) return;
+  if (!(activeUser?.type === 'admin' || activeUser?.permissions?.reports === true)) {
+    document.getElementById('morningAssemblyReportAccess')?.classList.remove('hidden');
+    document.getElementById('morningAssemblyReportAccess').textContent = 'عرض التقرير متاح لمدير النظام أو لمن لديه صلاحية التقارير.';
+    return;
+  }
+  try {
+    container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ تحميل التقرير...</div>';
+    const data = await callMorningAssemblyLatenessApi({action:'report'});
+    morningAssemblyReportRows = buildMorningAssemblyReportRows(data.rows || []);
+    document.getElementById('morningAssemblyReportMeta').textContent = 'العام الدراسي ' + data.academic_year + ' · عدد الطلاب المتأخرين: ' + morningAssemblyReportRows.length;
+    if (!morningAssemblyReportRows.length) { container.innerHTML = '<div class="p-8 text-center text-xs text-slate-400">لا توجد سجلات تأخر لهذا العام الدراسي.</div>'; return; }
+    let html = '<table class="w-full min-w-[760px] text-xs text-right"><thead class="bg-fuchsia-50 dark:bg-slate-800 text-slate-700 dark:text-slate-200"><tr><th class="p-3">#</th><th class="p-3">اسم الطالب</th><th class="p-3">الصف</th><th class="p-3">مرات التأخر</th><th class="p-3">أيام الغياب الناتجة</th><th class="p-3">تفاصيل التواريخ والأوقات</th></tr></thead><tbody>';
+    morningAssemblyReportRows.forEach((item,index) => {
+      const warning = item.count >= 4;
+      const events = item.events.map(event => {
+        const date = escapeHtml(event.late_date);
+        const time = new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(event.recorded_at));
+        return date + ' · ' + time;
+      }).join('<br>');
+      html += '<tr class="border-t ' + (warning ? 'bg-rose-50 dark:bg-rose-950/30 text-rose-800 dark:text-rose-200' : 'border-slate-100 dark:border-slate-700') + '"><td class="p-3">' + (index+1) + '</td><td class="p-3 font-black">' + escapeHtml(item.name) + (warning ? '<div class="text-[10px] font-black mt-1">تجاوز حد 4 تأخيرات</div>' : '') + '</td><td class="p-3">' + escapeHtml(item.className) + '</td><td class="p-3 font-black">' + item.count + '</td><td class="p-3 font-black">' + item.absenceDays + '</td><td class="p-3 leading-6">' + events + '</td></tr>';
+    });
+    container.innerHTML = html + '</tbody></table>';
+  } catch (error) {
+    container.innerHTML = '<div class="p-6 text-center text-xs font-bold text-rose-600">' + escapeHtml(error.message || 'تعذر تحميل التقرير.') + '</div>';
+  }
+}
+function printMorningAssemblyLatenessReport() {
+  if (!morningAssemblyReportRows.length) { showToast('حمّل التقرير أولاً قبل الطباعة.', 'info'); return; }
+  const rows = morningAssemblyReportRows.map((item,index) => '<tr class="' + (item.count>=4?'warning':'') + '"><td>'+(index+1)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+escapeHtml(item.className)+'</td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(e=>escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))).join('<br>')+'</td></tr>').join('');
+  const w = window.open('','_blank'); if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error'); return; }
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير التأخر عن الطابور الصباحي</title><style>body{font-family:Arial,sans-serif;padding:20px;color:#172033}h1{text-align:center;font-size:20px}p{text-align:center;color:#555}table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #cbd5e1;padding:8px;text-align:right;vertical-align:top}th{background:#f3e8ff}.warning{background:#fff1f2;color:#9f1239;font-weight:bold}@media print{body{padding:0}@page{size:A4 landscape;margin:10mm}}</style></head><body><h1>تقرير التأخر عن الطابور الصباحي</h1><p>مدرسة أبو دجانة الأنصاري · كل أربعة تأخيرات تحتسب يوماً واحداً من الغياب الناتج عن التأخر</p><table><thead><tr><th>#</th><th>اسم الطالب</th><th>الصف</th><th>مرات التأخر</th><th>أيام الغياب الناتجة</th><th>التواريخ والأوقات</th></tr></thead><tbody>'+rows+'</tbody></table><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>');
+  w.document.close();
 }
 
 /* ============ Behavior ============ */
@@ -8621,6 +8828,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_attendance').checked = p.attendance !== false;
   document.getElementById('perm_p_behavior').checked = p.behavior !== false;
   document.getElementById('perm_p_dutyToday').checked = p.dutyToday !== false;
+  document.getElementById('perm_p_morningAssemblyLateness').checked = p.morningAssemblyLateness === true;
   document.getElementById('perm_p_reserve').checked = p.reserve === true;
   document.getElementById('perm_p_dashboard').checked = Object.prototype.hasOwnProperty.call(p, 'dashboard') ? p.dashboard === true : !!(p.studstats || p.teachers);
   document.getElementById('perm_p_studstats').checked = !!p.studstats;
@@ -8645,6 +8853,7 @@ async function saveTeacherPermissions() {
   t.permissions.attendance = document.getElementById('perm_p_attendance').checked;
   t.permissions.behavior = document.getElementById('perm_p_behavior').checked;
   t.permissions.dutyToday = document.getElementById('perm_p_dutyToday').checked;
+  t.permissions.morningAssemblyLateness = document.getElementById('perm_p_morningAssemblyLateness').checked;
   t.permissions.reserve = document.getElementById('perm_p_reserve').checked;
   t.permissions.dashboard = document.getElementById('perm_p_dashboard').checked;
   t.permissions.studstats = document.getElementById('perm_p_studstats').checked;
@@ -8681,6 +8890,7 @@ async function addCustomUser() {
       students: document.getElementById('perm_students').checked,
       teachers: document.getElementById('perm_teachers').checked,
       duty: document.getElementById('perm_duty').checked,
+      morningAssemblyLateness: document.getElementById('perm_morningAssemblyLateness').checked,
       alerts: document.getElementById('perm_alerts').checked,
       reports: document.getElementById('perm_reports').checked,
       sync: document.getElementById('perm_sync').checked,
@@ -8781,6 +8991,7 @@ function printDailyReportPDF() {
 }
 /* ============ Duty Module ============ */
 function refreshDutyDashboardCard() {
+  refreshMorningAssemblyLatenessCard();
   const card = document.getElementById('dutyDashboardCard'); if (!card) return;
   
   const isA = activeUser?.type === 'admin' || isAdminAuthorized();
