@@ -64,7 +64,6 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113150000_timetable_weekly_grid.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261113170000_timetable_substitution_workflow.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114100000_timetable_substitution_duty_guard.sql
-          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116014544_allow_substitution_on_duty_day.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_duty_day.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261114194500_timetable_dynamic_periods.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115110000_weighted_batch_substitution.sql
@@ -76,6 +75,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115180000_timetable_substitution_admin_reset.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115190000_timetable_substitution_reassign_absent.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261115195356_timetable_reserve_twenty_hour_lifecycle.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116014544_allow_substitution_on_duty_day.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261116195258_reserve_distribution_batch_cancel.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261117120000_timetable_substitution_same_day_corrections.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261117150052_timetable_substitution_point_rules_14h_emergency_bonus.sql
