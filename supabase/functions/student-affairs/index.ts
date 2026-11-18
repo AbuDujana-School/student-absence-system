@@ -85,7 +85,7 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     });
   }
   const secureMap = new Map((upgraded || []).map((item: any) => [item.principal_type + "|" + item.principal_name, item]));
-  const legacy = await getLegacyPeppers();
+  let legacy: { pbkdf2: string; sha256: string } | null = null;
   return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
@@ -93,7 +93,7 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     if (secure && secure.source_hash === hash && secure.source_salt === salt) {
       return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
     }
-    return await verifyExistingPin(candidatePin, salt, hash, legacy);
+    return await verifyExistingPin(candidatePin, salt, hash, legacy || (legacy = await getLegacyPeppers()));
   });
 }
 
@@ -144,12 +144,12 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   for (const u of (users || []).filter((x: any) => x.role !== "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   const { data: upgraded } = await db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt");
   const secureMap = new Map((upgraded || []).map((x: any) => [x.principal_type + "|" + x.principal_name, x]));
-  const legacy = await getLegacyPeppers();
+  let legacy: { pbkdf2: string; sha256: string } | null = null;
   for (const p of candidates) {
     const stored = secureMap.get(p.type + "|" + p.name) as any;
     if (stored && stored.source_hash === p.hash && stored.source_salt === p.salt) {
       if (await verifyNewPin(pin, stored.pin_salt, stored.pin_hash, pepper)) return p;
-    } else if (await verifyExistingPin(pin, p.salt, p.hash, legacy)) {
+    } else if (await verifyExistingPin(pin, p.salt, p.hash, legacy || (legacy = await getLegacyPeppers()))) {
       const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
       const hash = await pbkdf2(pepper + ":" + salt + ":" + pin, salt, 310000);
       const { error: saveError } = await db.from("student_affairs_credentials").upsert({ principal_type: p.type, principal_name: p.name, pin_salt: salt, pin_hash: hash, source_hash: p.hash, source_salt: p.salt, updated_at: new Date().toISOString() }, { onConflict: "principal_type,principal_name" });
