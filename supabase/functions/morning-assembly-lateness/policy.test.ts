@@ -13,13 +13,14 @@ Deno.test("teacher registration window includes 07:00 and 08:30 only", () => {
   }
 });
 
-Deno.test("teacher needs permission and the actual assigned weekday", () => {
+Deno.test("teacher needs explicit permission and confirmed duty today", () => {
   const base = { permission:true, dutyToday:true, weekday:"الأربعاء", assignedDutyDay:"الأربعاء", minutes:480 };
   if (!isTeacherEligibleForMorningLateness(base)) throw new Error("Assigned teacher should be eligible");
   if (isTeacherEligibleForMorningLateness({...base,permission:false})) throw new Error("Permission is mandatory");
   if (isTeacherEligibleForMorningLateness({...base,assignedDutyDay:"الخميس"})) throw new Error("Non-duty day must be denied");
   if (isTeacherEligibleForMorningLateness({...base,weekday:"الجمعة"})) throw new Error("Friday must be denied");
-  if (isTeacherEligibleForMorningLateness({...base,dutyToday:false})) throw new Error("Disabled daily duty permission must be denied");
+  if (isTeacherEligibleForMorningLateness({...base,dutyToday:false})) throw new Error("Disabled daily duty must be denied");
+  if (isTeacherEligibleForMorningLateness({...base,dutyToday:undefined as unknown as boolean})) throw new Error("Missing daily duty confirmation must be denied");
 });
 
 Deno.test("four lateness events equal one separate absence day", () => {
