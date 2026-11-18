@@ -34,29 +34,26 @@ END
 $checks$;
 
 BEGIN;
-SET LOCAL ROLE service_role;
+INSERT INTO public.students(id, class_name, student_name)
+VALUES (987654321, 'TEST/1', 'Synthetic Lateness Student');
 
+SET LOCAL ROLE service_role;
 DO $ledger$
 DECLARE
-  v_student_id bigint;
   v_duplicate_blocked boolean := false;
   v_wrong_period_blocked boolean := false;
   v_wrong_year_blocked boolean := false;
 BEGIN
-  INSERT INTO public.students(class_name, student_name)
-  VALUES ('TEST/1', 'Synthetic Lateness Student')
-  RETURNING id INTO v_student_id;
-
   INSERT INTO public.morning_assembly_lateness
     (student_id, student_name_snapshot, class_name_snapshot, late_date, recorder_type, recorder_name, academic_year)
   VALUES
-    (v_student_id, 'Synthetic Lateness Student', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2027');
+    (987654321, 'Synthetic Lateness Student', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2027');
 
   BEGIN
     INSERT INTO public.morning_assembly_lateness
       (student_id, student_name_snapshot, class_name_snapshot, late_date, recorder_type, recorder_name, academic_year)
     VALUES
-      (v_student_id, 'Synthetic Lateness Student', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2027');
+      (987654321, 'Synthetic Lateness Student', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2027');
   EXCEPTION WHEN unique_violation THEN
     v_duplicate_blocked := true;
   END;
@@ -68,7 +65,7 @@ BEGIN
     INSERT INTO public.morning_assembly_lateness
       (student_id, student_name_snapshot, class_name_snapshot, late_date, recorder_type, recorder_name, academic_year)
     VALUES
-      (v_student_id + 1, 'Synthetic Lateness Student 2', 'TEST/1', DATE '2026-08-31', 'admin', 'Synthetic Test', '2026/2027');
+      (987654322, 'Synthetic Lateness Student 2', 'TEST/1', DATE '2026-08-31', 'admin', 'Synthetic Test', '2026/2027');
   EXCEPTION WHEN check_violation THEN
     v_wrong_period_blocked := true;
   END;
@@ -80,34 +77,42 @@ BEGIN
     INSERT INTO public.morning_assembly_lateness
       (student_id, student_name_snapshot, class_name_snapshot, late_date, recorder_type, recorder_name, academic_year)
     VALUES
-      (v_student_id + 2, 'Synthetic Lateness Student 3', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2028');
+      (987654323, 'Synthetic Lateness Student 3', 'TEST/1', DATE '2026-11-18', 'admin', 'Synthetic Test', '2026/2028');
   EXCEPTION WHEN check_violation THEN
     v_wrong_year_blocked := true;
   END;
   IF NOT v_wrong_year_blocked THEN
     RAISE EXCEPTION 'invalid academic year sequence was not blocked';
   END IF;
+END
+$ledger$;
+RESET ROLE;
 
-  -- A roster move or removal must not rewrite or cascade-delete the immutable snapshot.
-  UPDATE public.students SET class_name = 'TEST/2' WHERE id = v_student_id;
+-- Student roster changes must not rewrite or cascade-delete immutable snapshots.
+UPDATE public.students SET class_name = 'TEST/2' WHERE id = 987654321;
+DO $snapshot$
+BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM public.morning_assembly_lateness
-    WHERE student_id = v_student_id
+    WHERE student_id = 987654321
       AND class_name_snapshot = 'TEST/1'
       AND student_name_snapshot = 'Synthetic Lateness Student'
   ) THEN
     RAISE EXCEPTION 'student transfer changed the historical lateness snapshot';
   END IF;
-
-  DELETE FROM public.students WHERE id = v_student_id;
+END
+$snapshot$;
+DELETE FROM public.students WHERE id = 987654321;
+DO $preservation$
+BEGIN
   IF NOT EXISTS (
     SELECT 1 FROM public.morning_assembly_lateness
-    WHERE student_id = v_student_id AND late_date = DATE '2026-11-18'
+    WHERE student_id = 987654321 AND late_date = DATE '2026-11-18'
   ) THEN
     RAISE EXCEPTION 'roster deletion removed the historical lateness record';
   END IF;
 END
-$ledger$;
+$preservation$;
 
 ROLLBACK;
 SELECT 'isolated morning assembly lateness ledger integration checks passed' AS result;
