@@ -300,3 +300,13 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });
+
+Deno.test("teacher-only polling pauses in background and refreshes when the app becomes visible", () => {
+  const reserveWatcher = section("function teacherStartDailySubstitutionWatcher()", "async function openTeacherTimetableView()");
+  const timetableWatcher = section("async function openTeacherTimetableView()", "function closeTeacherTimetableView()");
+  const visibility = section("document.addEventListener('visibilitychange'", "// Poll the cloud safely while the app is active.");
+  assert(reserveWatcher.includes("!document.hidden"), "Daily substitution notices must not poll while the tab is hidden");
+  assert(timetableWatcher.includes("document.hidden"), "The personal timetable must not fetch while the tab is hidden");
+  assert(visibility.includes("teacherShowDailySubstitutionWelcome()"), "Teacher notices must refresh when the app becomes visible");
+  assert(visibility.includes("teacherTimetableLoad(false)"), "An open personal timetable must refresh when stale after returning");
+});
