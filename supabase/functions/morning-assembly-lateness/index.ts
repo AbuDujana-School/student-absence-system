@@ -1,5 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
+import { academicYearKey, isTeacherEligibleForMorningLateness } from "./policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -31,7 +32,7 @@ function omanNow() {
     date, weekday:DAY_NAMES[weekday] || "",
     minutes:Number(v.hour)*60+Number(v.minute),
     time:String(v.hour).padStart(2,"0")+":"+String(v.minute).padStart(2,"0")+":"+String(v.second).padStart(2,"0"),
-    academicYear: month >= 9 ? year+"/"+(year+1) : (year-1)+"/"+year,
+    academicYear: academicYearKey(date),
   };
 }
 async function sha256(value:string) {
@@ -76,11 +77,17 @@ function canUse(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
   if (principal.permissions.morningAssemblyLateness !== true) return false;
   // Named custom users are explicit exception accounts (e.g. social worker / assistant principal).
   if (principal.type === "custom") return true;
-  return principal.type === "teacher"
-    && principal.permissions.dutyToday !== false
-    && ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].includes(ctx.weekday)
-    && ctx.minutes >= 7*60 && ctx.minutes < 8*60+30
-    && teacherDutyToday(principal,ctx,duty);
+  const personal = principal.permissions.dutyDay;
+  const category = String(principal.permissions.category || "");
+  const assignedDay = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].includes(personal)
+    ? personal : String(duty?.subjectDays?.[category] || "");
+  return principal.type === "teacher" && isTeacherEligibleForMorningLateness({
+    permission: principal.permissions.morningAssemblyLateness === true,
+    dutyToday: principal.permissions.dutyToday !== false,
+    weekday: ctx.weekday,
+    assignedDutyDay: assignedDay,
+    minutes: ctx.minutes,
+  });
 }
 async function dutySettings() {
   const {data,error} = await db.from("school_settings").select("value")
