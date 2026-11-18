@@ -10010,11 +10010,13 @@ function teacherStartDailySubstitutionWatcher() {
     teacherReserveNoticeRefreshTimer = null;
   }
   if (activeUser?.type !== "teacher") return;
+  // Check only while this tab is visible; use a calmer interval to avoid
+  // repeated server reads from background tabs. Login still performs the first check.
   teacherReserveNoticeRefreshTimer = setInterval(() => {
-    if (activeUser?.type === "teacher" && document.visibilityState !== "prerender") {
+    if (activeUser?.type === "teacher" && document.visibilityState === "visible") {
       void teacherShowDailySubstitutionWelcome();
     }
-  }, 45000);
+  }, 180000);
 }
 
 async function openTeacherTimetableView() {
@@ -11033,8 +11035,8 @@ function timetableSwitchDashboardTab(tab) {
   document.getElementById("timetableSettingsTabButton")?.setAttribute("aria-selected", String(settings));
   document.getElementById("timetableClassTabButton")?.setAttribute("aria-selected", String(classes));
   if (settings && isAdmin) {
+    // timetableLoadImports already loads access management; avoid a duplicate request.
     timetableLoadImports();
-    timetableLoadAccessManagement();
     timetableLoadPortalStatus();
   }
   if(classes&&isAdmin)timetableLoadClassWeeklyGrid();
