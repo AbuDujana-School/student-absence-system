@@ -27,7 +27,6 @@ function omanNow() {
   const v = Object.fromEntries(parts.map(p => [p.type,p.value]));
   const weekday = new Intl.DateTimeFormat("en-US",{timeZone:"Asia/Muscat",weekday:"long"}).format(now);
   const date = String(v.year)+"-"+String(v.month).padStart(2,"0")+"-"+String(v.day).padStart(2,"0");
-  const month = Number(v.month), year = Number(v.year);
   return {
     date, weekday:DAY_NAMES[weekday] || "",
     minutes:Number(v.hour)*60+Number(v.minute),
@@ -65,13 +64,6 @@ async function authenticate(req:Request):Promise<Principal|null> {
     permissions:user.permissions && typeof user.permissions==="object" ? user.permissions : {},
   };
 }
-function teacherDutyToday(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
-  const personal = principal.permissions.dutyDay;
-  const category = String(principal.permissions.category || "");
-  const assignedDay = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].includes(personal)
-    ? personal : String(duty?.subjectDays?.[category] || "");
-  return !!assignedDay && assignedDay === ctx.weekday;
-}
 function canUse(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
   if (principal.type === "admin") return true;
   if (principal.permissions.morningAssemblyLateness !== true) return false;
@@ -108,14 +100,25 @@ async function handle(req:Request) {
     if (principal.type !== "admin" && principal.permissions.reports !== true) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
-    const {data,error}=await db.from("morning_assembly_lateness")
-      .select("id,student_id,student_name_snapshot,class_name_snapshot,late_date,recorded_at,recorder_name,academic_year")
-      .eq("academic_year",ctx.academicYear)
-      .order("late_date",{ascending:false}).order("recorded_at",{ascending:false});
-    if (error) throw error;
-    return reply(200,{academic_year:ctx.academicYear,rows:data||[]});
+    const requestedYear = String(body?.academic_year || ctx.academicYear);
+    if (!/^\\d{4}\\/\\d{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
+    const allRows:any[] = [];
+    for (let from=0; ; from+=1000) {
+      const {data,error}=await db.from("morning_assembly_lateness")
+        .select("id,student_id,student_name_snapshot,class_name_snapshot,late_date,recorded_at,recorder_name,academic_year")
+        .order("late_date",{ascending:false}).order("recorded_at",{ascending:false})
+        .range(from,from+999);
+      if (error) throw error;
+      allRows.push(...(data||[]));
+      if (!data || data.length<1000) break;
+    }
+    const years = [...new Set(allRows.map(row=>String(row.academic_year)))].sort((a,b)=>b.localeCompare(a));
+    const selectedYear = years.includes(requestedYear) || requestedYear===ctx.academicYear ? requestedYear : (years[0] || ctx.academicYear);
+    return reply(200,{academic_year:selectedYear,available_years:[...new Set([ctx.academicYear,...years])].sort((a,b)=>b.localeCompare(a)),rows:allRows.filter(row=>row.academic_year===selectedYear)});
   }
   if (action !== "record") return reply(400,{error:"طلب غير معروف."});
+  const localMonth = Number(ctx.date.slice(5,7));
+  if (localMonth === 7 || localMonth === 8) return reply(403,{error:"التسجيل متاح خلال العام الدراسي فقط (من 1 سبتمبر إلى 30 يونيو)."});
   let duty:any={};
   try { duty=await dutySettings(); } catch { return reply(503,{error:"تعذر التحقق من جدول المناوبة حالياً."}); }
   if (!canUse(principal,ctx,duty)) {
