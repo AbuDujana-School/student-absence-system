@@ -5291,7 +5291,13 @@ function applyPendingLocalDeletions() {
     }
   }
 }
-
+function markOfflineDatabaseForUpload() {
+  (db.classes||[]).forEach(c=>{dirtySets.classes.add(c);dirtySets.students.add(c);});
+  (db.teachers||[]).forEach(t=>dirtySets.teachers.add(t.name));(db.customUsers||[]).forEach(u=>dirtySets.teachers.add(u.name));
+  Object.keys(db.attendance||{}).forEach(k=>dirtySets.attendance.add(k));Object.keys(db.behaviors||{}).forEach(k=>dirtySets.behaviors.add(k));
+  (db.dutyModule?.records||[]).forEach(r=>dirtySets.duty_reports.add(String(r.id)));
+  dirtySets.admin_pin=!!db.adminPin;dirtySets.custom_categories=!!(db.customCategories||[]).length;dirtySets.duty_module=!!db.dutyModule;
+}
 let offlineAutoSyncInProgress = false;
 let offlineAutoSyncPromptInProgress = false;
 let offlineAutoSyncApprovedFingerprint = null;
@@ -5959,6 +5965,13 @@ function updateSyncStatus(isSynced, text) {
         ? "انقر لمراجعة طلبات الحذف المحلية؛ لن يُحذف أي سجل تلقائياً"
         : "انقر لتحديث بيانات الخادم";
   }
+}
+
+async function initDefaults() {
+  db = { version: 27, adminPin: await createPinRecord('1234'), customUsers: [], customCategories: [], classes: [...DEFAULT_CLASSES], teachers: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
+  sortClassesList(db.classes).forEach(c => { db.students[c] = []; });
+  sortClassesList(db.classes).forEach(c => { dirtySets.classes.add(c); dirtySets.students.add(c); });
+  saveToLocalStorageSafe(); await saveSystemDataToCloud();
 }
 
 /* ============ Auth ============ */
