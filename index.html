@@ -4944,6 +4944,48 @@ function setPendingDeletes(arr) {
   try { localStorage.setItem('abuDujana_pendingDeletes', JSON.stringify(pendingDeleteQueueCache)); return true; }
   catch(e) { return false; }
 }
+async function clearStudentDeleteIntents(className, studentNames = null) {
+  const previous = getPendingDeletes().map(item => ({ ...item }));
+  const selectedNames = studentNames === null ? null : new Set((studentNames || []).map(value => String(value || '').trim()));
+  const next = previous.filter(item => {
+    if (item?.table !== 'students' || item?.filters?.class_name !== className) return true;
+    if (selectedNames === null) return false;
+    return !selectedNames.has(String(item?.filters?.student_name || '').trim());
+  });
+  if (next.length === previous.length) return true;
+  const localSaved = setPendingDeletes(next);
+  const durableSaved = await persistOfflineState();
+  if (!localSaved && !durableSaved) {
+    setPendingDeletes(previous);
+    await persistOfflineState();
+    return false;
+  }
+  return true;
+}
+async function clearCompletedStudentDeleteIntentsFromCloud(serverStudents) {
+  if (!Array.isArray(serverStudents)) return 0;
+  const serverMemberships = new Set(serverStudents.map(row =>
+    String(row?.class_name || '').trim() + '\u001f' + String(row?.student_name || '').trim()
+  ));
+  const previous = getPendingDeletes().map(item => ({ ...item }));
+  const next = previous.filter(item => {
+    if (item?.table !== 'students') return true;
+    const className = String(item?.filters?.class_name || '').trim();
+    const studentName = String(item?.filters?.student_name || '').trim();
+    if (!className || !studentName) return true;
+    return serverMemberships.has(className + '\u001f' + studentName);
+  });
+  const removed = previous.length - next.length;
+  if (!removed) return 0;
+  const localSaved = setPendingDeletes(next);
+  const durableSaved = await persistOfflineState();
+  if (!localSaved && !durableSaved) {
+    setPendingDeletes(previous);
+    await persistOfflineState();
+    return 0;
+  }
+  return removed;
+}
 function pendingDeleteTableLabel(table) {
   return ({
     classes: 'صف دراسي',
@@ -5036,6 +5078,7 @@ function openPendingDeleteReview() {
       </div>
       <footer class="flex flex-wrap justify-between gap-2 border-t border-white/10 p-4">
         <p class="w-full text-xs leading-5 text-slate-300">إلغاء الطلب يزيل نية الحذف من الجهاز فقط، ولا يحذف أو يعدّل أي بيانات في قاعدة المدرسة.</p>
+        ${queue.some(item => item?.table === 'students' && typeof item?.filters?.class_name === 'string' && typeof item?.filters?.student_name === 'string') ? '<button type="button" data-pending-delete-action="execute-student-deletes" class="rounded-xl bg-emerald-700 px-4 py-2 text-sm font-bold">تنفيذ طلبات حذف الطلاب القديمة</button>' : ''}
         <button type="button" data-pending-delete-action="cancel-all" class="rounded-xl bg-rose-700/80 px-4 py-2 text-sm font-bold">إلغاء جميع الطلبات</button>
         <button type="button" data-pending-delete-action="close" class="rounded-xl bg-white/10 px-4 py-2 text-sm font-bold">إغلاق</button>
       </footer>
@@ -5059,6 +5102,11 @@ function openPendingDeleteReview() {
     if (action === 'cancel-one') {
       button.disabled = true;
       await cancelPendingDeleteAt(Number(button.dataset.pendingDeleteIndex));
+    }
+    if (action === 'execute-student-deletes') {
+      button.disabled = true;
+      await executePendingStudentDeleteIntents();
+      return;
     }
     if (action === 'cancel-all') {
       button.disabled = true;
@@ -5589,6 +5637,7 @@ async function loadSystemDataFromCloud() {
     ]);
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
     if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
+    await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
     // Preserve the exact class names returned by the server. No automatic rename,
     // delete, or cascade-like remapping of students and related records.
     db.classes = [...new Set(classesData.map(r => r.name))];
@@ -7861,7 +7910,7 @@ async function transferStudentFromBtn(btn) {
 }
 async function transferStudentToClass(studentName, fromClass, toClass) {
   if (!isAdminAuthorized()) { showToast('هذه العملية متاحة لمدير النظام العام فقط.', 'error'); return false; }
-  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges()) {
+  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges() || studentRosterSaveInProgress) {
     showToast('احفظ التعديلات المحلية المعلّقة أولاً ثم أعد عملية النقل؛ لم يتم تغيير أي بيانات.', 'error');
     return false;
   }
@@ -7872,18 +7921,7 @@ async function transferStudentToClass(studentName, fromClass, toClass) {
   if (!confirmed) return false;
   try {
     const response = await appAuthRequest({ action: 'admin_transfer_student', student_name: studentName, from_class: fromClass, to_class: toClass }, token);
-    const previousQueue = getPendingDeletes().map(item => ({ ...item }));
-    const nextQueue = previousQueue.filter(item => !(item?.table === 'students' && item?.filters?.class_name === fromClass && item?.filters?.student_name === studentName));
-    if (nextQueue.length !== previousQueue.length) {
-      const localSaved = setPendingDeletes(nextQueue);
-      const durableSaved = await persistOfflineState();
-      if (!localSaved && !durableSaved) {
-        setPendingDeletes(previousQueue);
-        await persistOfflineState();
-        showToast('تم النقل في الخادم، لكن تعذر تحديث قائمة طلب الحذف المحلية القديمة. لن يُنفذ طلب الحذف تلقائياً.', 'error');
-        return false;
-      }
-    }
+    const queueCleared = await clearStudentDeleteIntents(fromClass, [studentName]);
     const loaded = await loadSystemDataFromCloud();
     if (!loaded) {
       showToast('اكتمل النقل في الخادم، لكن تعذر تحديث العرض المحلي الآن. أعد تحميل بيانات النظام.', 'error');
@@ -7903,41 +7941,186 @@ async function transferStudentToClass(studentName, fromClass, toClass) {
     return false;
   }
 }
+let studentRosterSaveInProgress = false;
+async function saveStudentRoster(className, studentNames, options = {}) {
+  if (!isAdminAuthorized()) { showToast('حفظ قوائم الطلاب متاح لمدير النظام العام فقط.', 'error'); return false; }
+  if (studentRosterSaveInProgress) { showToast('توجد عملية حفظ لقائمة الطلاب جارية؛ انتظر اكتمالها.', 'info'); return false; }
+  if (!navigator.onLine) { showToast('لا يوجد اتصال بالإنترنت؛ لم تتغير بيانات الطلاب على الخادم.', 'error'); return false; }
+  if (cloudDataLoadState !== 'ready') { showToast('انتظر اكتمال تحميل بيانات المدرسة قبل حفظ قائمة الطلاب.', 'error'); return false; }
+  if (attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges() || cloudSaveInProgress || manualOfflineSyncInProgress) {
+    showToast('احفظ التعديلات المحلية المعلّقة أولاً ثم أعد حفظ قائمة الطلاب؛ لم تتغير بيانات الطلاب.', 'error');
+    return false;
+  }
+  if (!className || !(db.classes || []).includes(className)) {
+    showToast('الصف المحدد غير موجود. حدّث بيانات المدرسة ثم أعد المحاولة.', 'error');
+    return false;
+  }
+  if (!Array.isArray(studentNames)) { showToast('قائمة الطلاب غير صالحة.', 'error'); return false; }
+  const nextNames = arabicSort([...new Set(studentNames.map(value => String(value || '').trim()).filter(Boolean))]);
+  if (nextNames.length > 500 || nextNames.some(name => name.length > 160)) {
+    showToast('قائمة الطلاب تتجاوز الحد المسموح أو تحتوي اسماً طويلاً.', 'error');
+    return false;
+  }
+  const queuedNames = getPendingDeletes()
+    .filter(item => item?.table === 'students' && item?.filters?.class_name === className)
+    .map(item => String(item?.filters?.student_name || '').trim()).filter(Boolean);
+  // Legacy pending intents are hidden from the local list. Include them in the
+  // confirmation count so a new direct save never commits them silently.
+  const previousNames = [...new Set([...(db.students?.[className] || []), ...queuedNames])];
+  const removedNames = previousNames.filter(name => !nextNames.includes(name));
+  const addedNames = nextNames.filter(name => !previousNames.includes(name));
+  const hasQueuedStudentDeletes = getPendingDeletes().some(item =>
+    item?.table === 'students' && item?.filters?.class_name === className
+  );
+  if (!removedNames.length && !addedNames.length && !hasQueuedStudentDeletes) {
+    showToast('قائمة الطلاب محفوظة ولا توجد تغييرات.', 'info');
+    return true;
+  }
+  if (removedNames.length && options.confirmRemovals !== false) {
+    const confirmed = await showConfirm(
+      'سيتم حذف عضوية ' + removedNames.length + ' طالباً من قائمة الصف "' + formatClassName(className) + '" وحفظ القائمة مباشرة على الخادم. ستبقى سجلات الغياب والسلوك والملاحظات التاريخية محفوظة كما هي في الصف الحالي. إذا كان المقصود نقل طالب إلى صف آخر، استخدم زر "نقل" بجانب اسمه حتى تنتقل سجلاته معه. هل تريد المتابعة؟',
+      { title: 'تأكيد حفظ قائمة الطلاب', danger: true, okText: 'حفظ القائمة' }
+    );
+    if (!confirmed) return false;
+  }
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) { showToast('انتهت جلسة مدير النظام. سجّل الدخول مجدداً.', 'error'); return false; }
+  studentRosterSaveInProgress = true;
+  try {
+    const response = await appAuthRequest({
+      action: 'admin_save_student_roster',
+      class_name: className,
+      student_names: nextNames
+    }, token);
+    const queueCleared = await clearStudentDeleteIntents(className);
+    const loaded = await loadSystemDataFromCloud();
+    const oldStudentIntentRemains = getPendingDeletes().some(item =>
+      item?.table === 'students' && item?.filters?.class_name === className
+    );
+    if (!queueCleared && oldStudentIntentRemains) {
+      db.students[className] = nextNames;
+      dirtySets.students.delete(className);
+      saveToLocalStorageSafe();
+      await persistOfflineState();
+      loadAdminStudentsList();
+      showToast('حُفظت قائمة الطلاب في الخادم، لكن تعذر تنظيف طلب حذف محلي قديم بعد إعادة المحاولة. سيبقى التنبيه حتى ينجح التخزين المحلي.', 'error');
+      return true;
+    }
+    if (!loaded) {
+      db.students[className] = nextNames;
+      dirtySets.students.delete(className);
+      saveToLocalStorageSafe();
+      await persistOfflineState();
+      loadAdminStudentsList();
+      showToast('تم حفظ قائمة الطلاب مباشرة في الخادم، لكن تعذر تحديث بقية بيانات العرض الآن. أعد تحميل بيانات المدرسة.', 'info');
+      return true;
+    }
+    populateAdminClassSelect();
+    populateReportClassSelect();
+    populateBehaviorReportClassSelect();
+    loadAdminStudentsList();
+    renderClassesGrid();
+    const counts = response?.roster || {};
+    if (!options.silentSuccess) {
+      showToast(
+        'تم الحفظ المباشر بنجاح. أضيف: ' + Number(counts.added_count || 0) +
+        '، أزيل من القائمة: ' + Number(counts.removed_count || 0) +
+        '، إجمالي الصف: ' + Number(counts.total_count ?? nextNames.length) +
+        '. السجلات التاريخية لم تتغير.',
+        'success'
+      );
+    }
+    return true;
+  } catch (error) {
+    console.error('Student roster save failed:', error);
+    showToast(error?.message || 'تعذر حفظ قائمة الطلاب؛ لم تُعتمد العملية.', 'error');
+    return false;
+  } finally {
+    studentRosterSaveInProgress = false;
+  }
+}
+async function executePendingStudentDeleteIntents() {
+  if (!isAdminAuthorized()) {
+    showToast('تنفيذ طلبات حذف الطلاب القديمة متاح لمدير النظام العام فقط.', 'error');
+    return false;
+  }
+  if (!navigator.onLine || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty || hasPendingOfflineRecordChanges()) {
+    showToast('احفظ التعديلات المعلّقة وتأكد من الاتصال قبل تنفيذ طلبات الحذف القديمة.', 'error');
+    return false;
+  }
+  const pending = getPendingDeletes().filter(item =>
+    item?.table === 'students' &&
+    typeof item?.filters?.class_name === 'string' &&
+    typeof item?.filters?.student_name === 'string'
+  );
+  if (!pending.length) {
+    showToast('لا توجد طلبات حذف طلاب قديمة.', 'info');
+    return false;
+  }
+  const groups = [...new Set(pending.map(item => item.filters.class_name))];
+  const studentCount = pending.length;
+  const confirmed = await showConfirm(
+    'يوجد ' + studentCount + ' طلب حذف طالب قديم موزع على ' + groups.length +
+    ' صفوف. سيتم تنفيذ الحذف مباشرة على الخادم، مع الاحتفاظ بسجلات الغياب والسلوك والملاحظات التاريخية. إذا أردت نقل طالب بدلاً من حذفه، ألغِ طلبه واستخدم خيار النقل. هل تريد التنفيذ؟',
+    { title: 'تنفيذ طلبات حذف الطلاب القديمة', danger: true, okText: 'تنفيذ الحذف' }
+  );
+  if (!confirmed) return false;
+
+  let completed = 0;
+  for (const className of groups) {
+    const saved = await saveStudentRoster(
+      className,
+      db.students?.[className] || [],
+      { confirmRemovals: false, silentSuccess: true }
+    );
+    if (!saved) {
+      showToast('تم تنفيذ طلبات الحذف في ' + completed + ' من ' + groups.length +
+        ' صفوف. بقيت الطلبات الأخرى دون تغيير وتحتاج إلى مراجعة.', 'error');
+      return false;
+    }
+    completed++;
+  }
+  closePendingDeleteReview();
+  updateSyncStatus(!hasPendingOfflineRecordChanges() && !getPendingDeletes().length, 'متزامن');
+  showToast('تم تنفيذ طلبات حذف الطلاب القديمة مباشرة وحُفظت سجلاتهم التاريخية.', 'success');
+  return true;
+}
+
 async function saveBulkStudents() {
-  const s = document.getElementById('adminClassSelect').value; if (!s) return;
-  const ol = db.students[s] || [];
-  const nl = arabicSort([...new Set(document.getElementById('bulkStudentsInput').value.split('\n').map(x => x.trim()).filter(Boolean))]);
-  const rm = ol.filter(x => !nl.includes(x));
-  db.students[s] = nl; dirtySets.students.add(s);
-  // Removing a student from the roster must never erase their attendance or behavior history. Use the dedicated transfer action to move a student.
-  const success = await saveSystemDataToCloud();
-  for (const st of rm) await queueCloudDelete('students', { class_name: s, student_name: st });
-  loadAdminStudentsList();
-  showToast(success ? (rm.length ? `تم تحديث القائمة؛ إزالة ${rm.length} من الخادم بانتظار المراجعة.` : 'تم.') : 'حُفظ محلياً.', success ? 'success' : 'info');
+  const className = document.getElementById('adminClassSelect')?.value;
+  if (!className) return;
+  const nextNames = document.getElementById('bulkStudentsInput').value
+    .split('\n').map(value => value.trim()).filter(Boolean);
+  await saveStudentRoster(className, nextNames);
 }
 function handleStudentFileImport(e) {
-  const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = async function(evt) {
-    const lines = evt.target.result.replace(/^\uFEFF/, '').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
-    const s = document.getElementById('adminClassSelect').value;
-    if (lines.length > 0) {
-      const ol = db.students[s] || []; const nl = arabicSort([...new Set([...ol, ...lines])]); const added = nl.filter(x => !ol.includes(x));
-      db.students[s] = nl; dirtySets.students.add(s);
-      await saveSystemDataToCloud(); loadAdminStudentsList();
-      showToast(`استوردت ${added.length} (إجمالي: ${nl.length}).`, 'success');
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(event) {
+    try {
+      const lines = String(event.target?.result || '').replace(/^\uFEFF/, '')
+        .split(/\r?\n/).map(value => value.trim()).filter(Boolean);
+      const className = document.getElementById('adminClassSelect')?.value;
+      if (!className || !lines.length) return;
+      const merged = [...new Set([...(db.students[className] || []), ...lines])];
+      await saveStudentRoster(className, merged, { confirmRemovals: false });
+    } catch (error) {
+      console.error('Student import failed:', error);
+      showToast('تعذر استيراد قائمة الطلاب.', 'error');
+    } finally {
+      e.target.value = '';
     }
   };
-  r.readAsText(f, 'UTF-8');
+  reader.onerror = () => showToast('تعذر قراءة ملف الطلاب.', 'error');
+  reader.readAsText(file, 'UTF-8');
 }
 async function removeStudent(className, idx) {
-  const l = db.students[className]; if (!l || !l[idx]) return;
-  const n = l[idx];
-  const ok = await showConfirm(`حذف (${n})؟`, { danger: true }); if (!ok) return;
-  l.splice(idx, 1); dirtySets.students.add(className);
-  // Keep the student's historical attendance and behavior entries intact for later review or transfer.
-  await saveSystemDataToCloud(); await queueCloudDelete('students', { class_name: className, student_name: n });
-  loadAdminStudentsList(); showToast('أُزيل الطالب من العرض المحلي؛ بقي تاريخه محفوظاً، وطلب حذف العضوية بانتظار المراجعة.', 'info');
+  const list = db.students?.[className];
+  if (!Array.isArray(list) || !list[idx]) return;
+  const nextNames = [...list];
+  nextNames.splice(idx, 1);
+  await saveStudentRoster(className, nextNames);
 }
 async function addNewClassPrompt() {
   const name = await showPrompt('اسم الصف الجديد:', { title: 'إضافة صف', okText: 'إضافة' });

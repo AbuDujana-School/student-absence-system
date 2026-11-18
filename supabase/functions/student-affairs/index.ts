@@ -779,6 +779,40 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر إتمام تسجيل الدخول حالياً" });
     }
   }
+  if (body?.action === "admin_save_student_roster") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal || principal.type !== "admin") {
+        return reply(403, { error: "حفظ قوائم الطلاب متاح لمدير النظام العام فقط." });
+      }
+      const className = String(body.class_name || "").trim();
+      const studentNames = body.student_names;
+      if (!className || className.length > 120 || !Array.isArray(studentNames) || studentNames.length > 500) {
+        return reply(400, { error: "بيانات قائمة الطلاب غير مكتملة أو غير صحيحة." });
+      }
+      const { data, error } = await db.rpc("admin_save_student_roster", {
+        p_class_name: className,
+        p_student_names: studentNames,
+        p_actor_name: principal.name
+      });
+      if (error) {
+        const code = String(error.message || "");
+        const messages: Record<string, string> = {
+          STUDENT_ROSTER_INVALID_INPUT: "بيانات قائمة الطلاب غير صالحة.",
+          STUDENT_ROSTER_INVALID_STUDENT_NAME: "توجد أسماء طلاب فارغة أو غير صالحة في القائمة.",
+          STUDENT_ROSTER_CLASS_NOT_FOUND: "الصف المحدد غير موجود."
+        };
+        const matched = Object.entries(messages).find(([key]) => code.includes(key));
+        return reply(code.includes("INVALID") ? 400 : 409, { error: matched?.[1] || "تعذر حفظ قائمة الطلاب؛ لم تُعتمد العملية." });
+      }
+      return reply(200, { ok: true, roster: data });
+    } catch (error) {
+      console.error("Direct student roster save failed:", error);
+      return reply(500, { error: "حدث خطأ أثناء حفظ قائمة الطلاب. لم تُعتمد العملية." });
+    }
+  }
   if (body?.action === "admin_transfer_student") {
     try {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
@@ -805,6 +839,11 @@ async function handle(req: Request) {
           STUDENT_TRANSFER_CLASS_NOT_FOUND: "الصف المصدر أو الصف الوجهة غير موجود.",
           STUDENT_TRANSFER_SOURCE_NOT_FOUND: "لم يُعثر على الطالب في الصف المصدر.",
           STUDENT_TRANSFER_ALREADY_IN_DESTINATION: "الطالب موجود بالفعل في الصف الوجهة.",
+          STUDENT_TRANSFER_SOURCE_DUPLICATE: "توجد عضوية مكررة للطالب في الصف المصدر. لم تُغيّر أي بيانات.",
+          STUDENT_TRANSFER_DESTINATION_DUPLICATE: "توجد عضوية مكررة للطالب في الصف الوجهة. لم تُغيّر أي بيانات.",
+          STUDENT_TRANSFER_MEMBERSHIP_CHANGED: "تغير سجل الطالب أثناء النقل؛ لم تُعتمد العملية. حدّث البيانات ثم أعد المحاولة.",
+          STUDENT_TRANSFER_INVALID_ATTENDANCE_RECORD: "يوجد سجل حضور غير صالح للطالب؛ لم تُغيّر أي بيانات.",
+          STUDENT_TRANSFER_INVALID_BEHAVIOR_RECORD: "يوجد سجل سلوك أو ملاحظة غير صالح للطالب؛ لم تُغيّر أي بيانات.",
           STUDENT_TRANSFER_NOTICE_CONFLICT: "تعذر النقل لأن أرقام التنبيهات الرسمية تتعارض مع سجل سابق في الصف الوجهة. لم تُغيّر أي بيانات.",
           STUDENT_TRANSFER_ATTENDANCE_CONFLICT: "تعذر النقل بسبب تعارض في سجل حضور موجود بالصف الوجهة. لم تُغيّر أي بيانات.",
           STUDENT_TRANSFER_BEHAVIOR_CONFLICT: "تعذر النقل بسبب تعارض في سجل سلوك موجود بالصف الوجهة. لم تُغيّر أي بيانات.",
