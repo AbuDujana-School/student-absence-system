@@ -101,7 +101,7 @@ async function handle(req:Request) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);
-    if (!/^\\d{4}\\/\\d{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
+    if (!/^[0-9]{4}\/[0-9]{4}$/.test(requestedYear)) return reply(400,{error:"العام الدراسي المحدد غير صالح."});
     const allRows:any[] = [];
     for (let from=0; ; from+=1000) {
       const {data,error}=await db.from("morning_assembly_lateness")
