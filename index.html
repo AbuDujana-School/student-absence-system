@@ -8790,7 +8790,21 @@ async function buildDutyWhatsAppMessage(classes, period) {
       detailsByClass = new Map(result.classes.map(item => [String(item.className), item]));
     } catch (error) {
       contextLoaded = false;
-      console.warn("Duty WhatsApp timetable context unavailable:", error?.message || error);
+      const status = Number(error?.status || 0);
+      if (status === 401) {
+        contextUnavailableMessage = "انتهت جلسة الدخول الآمنة أو لم تعد صالحة. سجّل الدخول مجدداً ثم أعد إرسال تقرير المناوبة.";
+      } else if (status === 403) {
+        contextUnavailableMessage = "حسابك لا يملك صلاحية قراءة بيانات جدول المناوبة. راجع مدير النظام لمنح صلاحية المناوبة.";
+      } else if (status === 400) {
+        contextUnavailableMessage = String(error?.message || "بيانات اليوم أو الحصة لا تطابق إعدادات الجدول.");
+      } else if (status === 500) {
+        contextUnavailableMessage = "تعذر على خدمة الجدول قراءة البيانات حالياً. أعد المحاولة، وإذا تكرر الخطأ يلزم فحص سجل الخدمة.";
+      } else if (status === 0) {
+        contextUnavailableMessage = "تعذر الاتصال بخدمة الجدول. تحقق من الإنترنت ثم أعد إرسال التقرير.";
+      } else {
+        contextUnavailableMessage = String(error?.message || "تعذر تحميل بيانات الجدول.");
+      }
+      console.warn("Duty WhatsApp timetable context unavailable:", { status, message: error?.message || "unknown" });
     }
   }
 
@@ -8832,7 +8846,7 @@ async function buildDutyWhatsAppMessage(classes, period) {
     msg += "\n";
   }
   msg += "🏫 مدرسة أبو دجانة الأنصاري";
-  return { message: msg, contextLoaded: contextLoaded };
+  return { message: msg, contextLoaded: contextLoaded, contextError: contextLoaded ? null : contextUnavailableMessage };
 }
 async function submitDutyReport() {
   if (!selectedDutyPeriod || !activeUser) return;
@@ -8897,7 +8911,7 @@ async function submitDutyReport() {
   renderDutyTodayRecords();
   const builtMessage = await buildDutyWhatsAppMessage(selectedClasses, selectedDutyPeriod);
   lastDutyMessage = builtMessage.message;
-  showToast(builtMessage.contextLoaded ? `تم حفظ ${selectedClasses.length} صف.` : 'تم حفظ البلاغ، لكن تعذر تحميل بيانات الجدول؛ تحقق من الاتصال والجدول المعتمد.', builtMessage.contextLoaded ? 'success' : 'info');
+  showToast(builtMessage.contextLoaded ? `تم حفظ ${selectedClasses.length} صف.` : (builtMessage.contextError || 'تم حفظ البلاغ، لكن تعذر تحميل بيانات الجدول.'), builtMessage.contextLoaded ? 'success' : 'error');
   openWhatsAppSafely(lastDutyMessage);
   setTimeout(() => { backToDutyPeriods(); }, 900);
 }
