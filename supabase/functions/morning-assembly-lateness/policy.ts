@@ -19,3 +19,23 @@ export function isTeacherEligibleForMorningLateness(input:{
 export function latenessAbsenceDays(count:number):number {
   return Math.floor(Math.max(0,Math.trunc(Number(count)||0))/4);
 }
+
+export function canUseMorningLateness(input: {
+  principalType: "admin" | "teacher" | "custom";
+  permission: boolean;
+  dutyToday: boolean;
+  weekday: string;
+  assignedDutyDay: string;
+  minutes: number;
+}): boolean {
+  if (input.principalType === "admin") return true;
+  if (input.permission !== true) return false;
+  if (input.principalType === "custom") return true;
+  return input.principalType === "teacher" && isTeacherEligibleForMorningLateness({
+    permission: input.permission,
+    dutyToday: input.dutyToday,
+    weekday: input.weekday,
+    assignedDutyDay: input.assignedDutyDay,
+    minutes: input.minutes,
+  });
+}
