@@ -1,5 +1,5 @@
 import { assertEquals } from "jsr:@std/assert";
-import { projectAssignedClassScope } from "./app_data_gateway_scope.ts";
+import { mergeAppDataClassScopes, projectAssignedClassScope } from "./app_data_gateway_scope.ts";
 
 Deno.test("scope includes only exact teacher matched teaching classes", () => {
   assertEquals(projectAssignedClassScope([
