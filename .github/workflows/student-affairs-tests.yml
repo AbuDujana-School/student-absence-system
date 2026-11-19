@@ -9,6 +9,7 @@ on:
       - "tests/school_data_sync_safety_test.ts"
       - "tests/app_sync_revision_manifest_integration.sql"
       - "tests/app_sync_manifest_logic_test.ts"
+      - "tests/app_auth_bootstrap_order_test.mjs"
   push:
     branches:
       - "main"
@@ -35,6 +36,8 @@ jobs:
       PGDATABASE: app_session_test
     steps:
       - uses: actions/checkout@v4
+      - name: Test authenticated cloud bootstrap ordering
+        run: node --test tests/app_auth_bootstrap_order_test.mjs
       - name: Start isolated PostgreSQL 16 on the runner
         run: |
           sudo service postgresql start
