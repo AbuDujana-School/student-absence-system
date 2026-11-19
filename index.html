@@ -9964,6 +9964,9 @@ async function teacherShowDailySubstitutionWelcome() {
   if (activeUser?.type !== "teacher" || teacherReserveNoticeCheckBusy) return;
   teacherReserveNoticeCheckBusy = true;
   try {
+    const modal = document.getElementById("teacherReserveWelcomeModal");
+    const list = document.getElementById("teacherReserveWelcomeAssignments");
+    if (!modal || !list || !modal.classList.contains("hidden")) return;
     const token = appAuthSession?.token || readAppAuthToken();
     if (!token) return;
     const todayResult = await appAuthRequest({action:"teacher_substitution_get_today"},token);
@@ -9977,9 +9980,6 @@ async function teacherShowDailySubstitutionWelcome() {
     if (!assignments.length) return;
     const signature = teacherReserveWelcomeFingerprint(assignments);
     const storageKey = teacherReserveWelcomeStorageKey(activeUser.name,today,signature);
-    const modal = document.getElementById("teacherReserveWelcomeModal");
-    const list = document.getElementById("teacherReserveWelcomeAssignments");
-    if (!modal || !list || !modal.classList.contains("hidden")) return;
     try {
       if (localStorage.getItem(storageKey) === "1" || sessionStorage.getItem(storageKey) === "1") return;
     } catch (error) {
