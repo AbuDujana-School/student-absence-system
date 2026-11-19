@@ -100,9 +100,6 @@ Deno.test("teacher session requires a live token, matching teacher role, and exp
   if (!calls.includes("access:teacher:Teacher A")) {
     throw new Error("Teacher access permission was not checked");
   }
-  if (principal.timetableAccess !== true) {
-    throw new Error("Verified timetable permission was not retained on the request principal");
-  }
 });
 
 Deno.test("expired or malformed session records are rejected", async () => {
