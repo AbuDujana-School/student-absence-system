@@ -8,9 +8,11 @@ Deno.test("reserve archive refresh is centralized after mutations only", () => {
   const legacyStart = source.indexOf("function installLegacyOtherDepartmentTeacherPicker()");
   const autoStart = source.indexOf("function installReserveArchiveAutoRefresh()");
   assert(legacyStart >= 0 && autoStart > legacyStart, "Both request wrappers must exist");
-  const legacy = source.slice(legacyStart, autoStart);
+  const homeArchiveStart = source.indexOf("function installHomeReserveArchive()", legacyStart);
+  assert(homeArchiveStart > legacyStart, "The home archive installer must exist");
+  const legacy = source.slice(legacyStart, homeArchiveStart);
   const auto = source.slice(autoStart);
-  assert(!legacy.includes("substitutionLoadCumulativeArchive()"), "The legacy wrapper must not issue a second archive read");
+  assert(!legacy.includes("substitutionLoadCumulativeArchive()"), "The legacy request wrapper must not issue a second archive read");
   assert(auto.includes("const reserveMutationActions=new Set(["), "A single explicit mutation allowlist must control archive refresh");
   for (const action of [
     "timetable_substitution_batch_save", "timetable_substitution_save",
