@@ -100,8 +100,15 @@ Deno.test("queued deletions remain local and are reapplied after cloud data is m
   }
   assert(helper.includes("dirtySets.classes.delete(name)"), "A locally deleted class must not be re-upserted by the dirty class set");
   assert(helper.includes("dirtySets.attendance.delete(key)"), "A locally deleted attendance record must not be re-upserted");
-  assert(load.indexOf("mergeDirtyLocalState(pendingLocalState)") < load.indexOf("applyPendingLocalDeletions()"), "Queued deletions must be applied after dirty edits are merged");
-  assert(load.indexOf("applyPendingLocalDeletions()") < load.indexOf("cloudDataLoadState = 'ready'"), "Deletion overlay must be in place before cloud saves become available");
+  const noChangeStart = load.indexOf("if (nextManifest && changedTables.length === 0)");
+  const noChangeEnd = load.indexOf("const shouldLoad =", noChangeStart);
+  assert(noChangeStart >= 0 && noChangeEnd > noChangeStart, "Manifest no-change path must be explicit");
+  const noChangePath = load.slice(noChangeStart, noChangeEnd);
+  assert(noChangePath.indexOf("applyPendingLocalDeletions()") >= 0, "No-change refresh must reapply queued local deletion overlays");
+  assert(noChangePath.indexOf("applyPendingLocalDeletions()") < noChangePath.indexOf("saveToLocalStorageSafe()"), "No-change deletion overlays must be persisted before returning");
+  const changedPath = load.slice(noChangeEnd);
+  assert(changedPath.indexOf("mergeDirtyLocalState(pendingLocalState)") < changedPath.indexOf("applyPendingLocalDeletions()"), "Changed-table refresh must merge dirty edits before applying queued deletion overlays");
+  assert(changedPath.indexOf("applyPendingLocalDeletions()") < changedPath.indexOf("cloudDataLoadState = 'ready'"), "Changed-table deletion overlay must be in place before cloud saves become available");
   assert(!helper.includes("sb.from(") && !helper.includes("flushPendingDeletes("), "Applying local deletion intent must not contact Supabase");
 });
 
@@ -173,7 +180,7 @@ Deno.test("cloud loading never references removed legacy class-rename globals", 
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   assert(!load.includes("classesFixed"), "Cloud loading must not read an undeclared legacy classesFixed flag");
   assert(!load.includes("oldClassesMap"), "Cloud loading must not remap student class names through a removed legacy map");
-  assert(load.includes("let cn = r.class_name;"), "Student class names must be preserved as stored on the server");
+  assert(/(?:const|let) cn = r\\.class_name;/.test(load), "Student class names must be copied verbatim from the server without renaming");
 });
 
 Deno.test("deleting a class locally never marks the deleted class for cloud upsert", () => {
