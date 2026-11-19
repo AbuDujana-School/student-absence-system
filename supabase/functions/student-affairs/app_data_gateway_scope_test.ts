@@ -38,7 +38,9 @@ Deno.test("explicit school-affairs scopes remain separate from general student r
     allowed_classes: ["6/1"],
     allowed_attendance_classes: ["7/1"],
     allowed_behavior_classes: ["8/1"],
-  }), {
+    can_read_attendance: true,
+    can_read_behavior: true,
+  }, true), {
     allowedClasses: ["5/1", "6/1"],
     allowedAttendanceClasses: ["5/1", "7/1"],
     allowedBehaviorClasses: ["5/1", "8/1"],
@@ -50,7 +52,9 @@ Deno.test("explicit grants remain usable when no active timetable assignment exi
     allowed_classes: ["6/1"],
     allowed_attendance_classes: ["7/1"],
     allowed_behavior_classes: ["8/1"],
-  }), {
+    can_read_attendance: true,
+    can_read_behavior: true,
+  }, true), {
     allowedClasses: ["6/1"],
     allowedAttendanceClasses: ["7/1"],
     allowedBehaviorClasses: ["8/1"],
@@ -62,7 +66,9 @@ Deno.test("legacy general class grants are fallback only when specialized arrays
     allowed_classes: ["6/1", "6/1"],
     allowed_attendance_classes: null,
     allowed_behavior_classes: [],
-  }), {
+    can_read_attendance: true,
+    can_read_behavior: true,
+  }, true), {
     allowedClasses: ["6/1"],
     allowedAttendanceClasses: ["6/1"],
     allowedBehaviorClasses: [],
@@ -77,7 +83,7 @@ Deno.test("dedicated Student Affairs flags gate extra class scopes but not timet
     allowed_behavior_classes: ["8/1"],
     can_read_attendance: false,
     can_read_behavior: true,
-  }), {
+  }, true), {
     allowedClasses: ["5/1", "6/1"],
     allowedAttendanceClasses: ["5/1"],
     allowedBehaviorClasses: ["5/1", "8/1"],
