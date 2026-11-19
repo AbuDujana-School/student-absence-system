@@ -11,7 +11,7 @@ import {
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
-import { mergeAppDataClassScopes, projectAssignedClassScope } from "./app_data_gateway_scope.ts";
+import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -753,48 +753,8 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
 }
 
 
-async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScope> {
-  // Admin access is decided by the server policy; no class-list query is needed.
-  if (principal.type !== "teacher" && principal.type !== "custom") return { allowedClasses: [] };
-
-  const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
-    .select("id").eq("status", "active").limit(2);
-  if (versionError) throw new Error("Unable to resolve active timetable version");
-  // Ambiguous or missing active versions never grant timetable-derived access.
-  let timetableClasses: string[] = [];
-  if (versions?.length === 1 && versions[0]?.id) {
-    const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
-      .select("matched_teacher_name,match_status,cell_status,class_sections")
-      .eq("version_id", versions[0].id)
-      .eq("matched_teacher_name", principal.name)
-      .eq("match_status", "matched")
-      .eq("cell_status", "teaching")
-      .limit(500);
-    if (cellsError) throw new Error("Unable to resolve teacher timetable assignments");
-    // A result at the cap may be truncated; discard this source rather than assume completeness.
-    if ((cells || []).length < 500) timetableClasses = projectAssignedClassScope(cells || [], principal.name);
-  }
-  let explicitGeneral: unknown = [], explicitAttendance: unknown = null, explicitBehavior: unknown = null;
-  const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
-    .select("allowed_classes,allowed_attendance_classes,allowed_behavior_classes,can_read_attendance,can_read_behavior")
-    .eq("principal_type", principal.type)
-    .eq("principal_name", principal.name)
-    .maybeSingle();
-  if (grantError) throw new Error("Unable to resolve explicit school-affairs class grants");
-  if (principal.permissions?.studentAffairs === true) explicitGeneral = grants?.allowed_classes;
-  // Explicit Student Affairs scopes may expand beyond timetable classes only when
-  // the dedicated server-side grant is enabled for that data category.
-  explicitAttendance = grants?.can_read_attendance === true ? grants.allowed_attendance_classes : [];
-  explicitBehavior = grants?.can_read_behavior === true ? grants.allowed_behavior_classes : [];
-  const hasStudentAffairsAccess = principal.permissions?.studentAffairs === true ||
-    principal.permissions?.admin === true;
-  return mergeAppDataClassScopes(timetableClasses, {
-    allowed_classes: explicitGeneral,
-    allowed_attendance_classes: explicitAttendance,
-    allowed_behavior_classes: explicitBehavior,
-    can_read_attendance: grants?.can_read_attendance,
-    can_read_behavior: grants?.can_read_behavior,
-  }, hasStudentAffairsAccess);
+async function resolveAppDataScopeForPrincipal(principal: AppPrincipal): Promise<AppDataScope> {
+  return await resolveAppDataScope(principal, db);
 }
 
 async function readAppDataGateway(req: Request, body: any): Promise<Response> {
@@ -803,7 +763,7 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     headers: cors,
     readSession: (authorization) => readAppSession(appSessionStore, authorization),
     currentPrincipal: (type, name) => currentAppPrincipal(type, name),
-    resolveScope: (principal) => resolveAppDataScope(principal as AppPrincipal),
+    resolveScope: (principal) => resolveAppDataScopeForPrincipal(principal as AppPrincipal),
   });
 }
 
