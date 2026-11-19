@@ -56,7 +56,7 @@ Deno.test("cloud refresh polling is read-only whenever local edits or live captu
   assert(refresh.includes("attendanceDirty || behaviorDirty"), "Refresh must not replace an active unsaved capture session");
   assert(refresh.includes("await loadSystemDataFromCloud()"), "Safe refresh must fetch the latest cloud state");
   const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
-  assert(events.includes("}, 60000);"), "Active sessions must poll cloud data periodically");
+  assert(events.includes("}, 5 * 60 * 1000);"), "Active sessions must reconcile the full cloud dataset every five minutes");
 });
 
 Deno.test("default PIN initialization and credential migration are not invoked automatically", () => {
