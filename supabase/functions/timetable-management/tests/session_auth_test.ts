@@ -614,3 +614,30 @@ Deno.test("ordinary timetable actions load teacher identity without the permissi
     throw new Error("An unrelated timetable read loaded the teacher permission JSON");
   }
 });
+
+
+Deno.test("teacher activity report permission reuses the authenticated teacher permission snapshot", async () => {
+  const session = { principal_type: "teacher", principal_name: "Activity Teacher", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: {
+      name: "Activity Teacher",
+      role: "teacher",
+      permissions: { teachers: true },
+    },
+    access: false,
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_activity_report_data",
+  );
+  if (principal?.permissions?.teachers !== true) {
+    throw new Error("Teacher activity permission was not included in the fresh teacher lookup");
+  }
+  if (!calls.includes("teacher-permissions:Activity Teacher")) {
+    throw new Error("Activity report did not request the live teacher permission snapshot");
+  }
+  if (calls.filter((call) => call === "teacher:Activity Teacher").length !== 1) {
+    throw new Error("Teacher identity was not loaded exactly once");
+  }
+});
