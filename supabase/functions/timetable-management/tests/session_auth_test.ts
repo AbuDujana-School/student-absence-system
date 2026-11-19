@@ -17,7 +17,7 @@ function storeWith(
   session: TimetableSessionLookup | null,
   options: {
     admin?: boolean;
-    teacher?: { name: string; role: string; reserveAccess?: boolean } | null;
+    teacher?: { name: string; role: string; reserveAccess?: boolean; permissions?: Record<string, unknown> } | null;
     access?: boolean;
     reserve?: boolean;
     schoolwideReserveStats?: boolean;
@@ -361,7 +361,7 @@ Deno.test("schoolwide reserve statistics grants do not grant reserve management"
 Deno.test("duty-only teachers receive read-only access to duty report timetable context", async () => {
   const session = { principal_type: "teacher", principal_name: "Duty Teacher", expires_at: EXPIRY };
   const store = storeWith(session, {
-    teacher: { name: "Duty Teacher", role: "teacher" },
+    teacher: { name: "Duty Teacher", role: "teacher", permissions: { duty: true } },
     duty: true,
   });
   const principal = await resolveTimetablePrincipal(
@@ -574,7 +574,7 @@ Deno.test("duty-only permission is checked only for duty report and its narrow b
 
   const dutyCalls: string[] = [];
   const dutyStore = storeWith(session, {
-    teacher: { name: "Duty Teacher", role: "teacher" },
+    teacher: { name: "Duty Teacher", role: "teacher", permissions: { duty: true } },
     access: true,
     duty: true,
     calls: dutyCalls,
@@ -582,8 +582,8 @@ Deno.test("duty-only permission is checked only for duty report and its narrow b
   const dutyPrincipal = await resolveTimetablePrincipal(
     "Bearer " + TOKEN, dutyStore, NOW, "timetable_duty_report_context",
   );
-  if (dutyPrincipal?.dutyReportAccess !== true) {
-    throw new Error("Explicit duty permission was not retained for duty report action");
+  if (dutyPrincipal?.dutyReportAccess !== true || dutyPrincipal.permissions?.duty !== true) {
+    throw new Error("Explicit duty permission and its fresh teacher snapshot were not retained for duty report action");
   }
   if (dutyCalls.filter((call) => call === "duty:teacher:Duty Teacher").length !== 1) {
     throw new Error("Duty permission was not checked exactly once for duty report action");
