@@ -5671,7 +5671,7 @@ async function loadSystemDataFromCloud() {
   const offlineSnapshotAvailable = await restoreOfflineState();
   loadDirtySetsFromLocal();
   const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
-  const pendingLocalState = captureDirtyLocalState();
+  let pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
 
   try {
@@ -5732,6 +5732,10 @@ async function loadSystemDataFromCloud() {
     if (shouldLoad('students')) {
       await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
     }
+
+    // Re-capture after network awaits so edits made while tables were loading
+    // are merged back instead of being overwritten by the incoming cloud snapshot.
+    pendingLocalState = captureDirtyLocalState();
 
     // Replace only the datasets whose revision changed. Unchanged datasets remain
     // intact in the local snapshot; deletes are reflected by the changed table's
