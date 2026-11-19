@@ -124,11 +124,6 @@ const timetableAuthStore: TimetableAuthStore = {
       .eq("principal_name", name).maybeSingle();
     return !error && data?.can_access === true;
   },
-  async hasSubstitutionAccess(name) {
-    const { data, error } = await db.from("teachers")
-      .select("permissions").eq("name", name).eq("role", "teacher").maybeSingle();
-    return !error && data?.permissions?.reserve === true;
-  },
   async hasDutyReportAccess(type, name) {
     const { data, error } = await db.from("teachers")
       .select("permissions").eq("name", name).eq("role", type).maybeSingle();
