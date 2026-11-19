@@ -65,7 +65,10 @@ export function authorizeAppDataOperation(
   row: unknown = null,
   scope?: AppDataScope,
 ): boolean {
-  if (!principal || !principal.name?.trim() || !ALLOWED_TABLES.has(String(tableValue))) return false;
+  if (!principal || !principal.name?.trim() ||
+    (principal.type !== "admin" && principal.type !== "teacher" && principal.type !== "custom") ||
+    (operation !== "read" && operation !== "write" && operation !== "delete") ||
+    !ALLOWED_TABLES.has(String(tableValue))) return false;
   const table = tableValue as AppDataTable;
 
   // Deletes are deliberately held back for the existing tombstone/transfer workflows.
@@ -99,9 +102,8 @@ export function authorizeAppDataOperation(
 
   if (table === "attendance" || table === "behaviors") {
     const permissionKey = table === "attendance" ? "attendance" : "behavior";
-    const enabled = principal.type === "teacher"
-      ? permissions[permissionKey] !== false
-      : permissions[permissionKey] === true;
+    // Permissions must be explicitly granted by the current server-loaded teacher profile.
+    const enabled = permissions[permissionKey] === true;
     if (!enabled || !isRecord(row) || !classes.has(className)) return false;
     if (operation === "read") return true;
     return operation === "write" && String(row.teacher_name || "") === principal.name;
