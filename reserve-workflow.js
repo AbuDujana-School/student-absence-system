@@ -1179,10 +1179,9 @@
             body={...body,otherTeacherNames:names};
           }
         }
+        // Archive refresh is centralized in installReserveArchiveAutoRefresh().
+        // Keeping it here as well caused two identical archive reads after each save.
         const result=await originalRequest.call(this,body,token);
-        if(["timetable_substitution_batch_save","timetable_substitution_save"].includes(action)&&!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function"){
-          try{await window.substitutionLoadCumulativeArchive();}catch{}
-        }
         return result;
       };
     }
@@ -1375,8 +1374,12 @@
       const action=String(body?.action||"");
       const result=await originalRequest.call(this,body,token);
       const accessGranted=action==="timetable_substitution_archive_access"&&result?.canView===true;
-      const reserveAction=action.startsWith("timetable_substitution_")&&
-        !["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action);
+      const reserveMutationActions=new Set([
+        "timetable_substitution_batch_save","timetable_substitution_save",
+        "timetable_substitution_update","timetable_substitution_update_batch",
+        "timetable_substitution_cancel","timetable_substitution_cancel_batch"
+      ]);
+      const reserveAction=reserveMutationActions.has(action);
       if((accessGranted||reserveAction)&&$("timetableDailyActivePanel")&&
         typeof window.timetableDailyLoadArchive==="function"){
         const actor=String(appAuthSession?.principal?.name||"");
