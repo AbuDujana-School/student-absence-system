@@ -11,6 +11,7 @@ import {
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { APP_DATA_TABLES, allowedAppDataFields, authorizeAppDataOperation, projectAppDataRow, type AppDataTable, type AppDataScope } from "./app_data_gateway_policy.ts";
 import { mergeAppDataClassScopes, projectAssignedClassScope } from "./app_data_gateway_scope.ts";
+import { isAppDataGatewayDate } from "./app_data_gateway_validation.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -792,12 +793,6 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
   });
 }
 
-function isGatewayDate(value: unknown): value is string {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
-  const parsed = new Date(value + "T00:00:00.000Z");
-  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
-}
-
 async function readAppDataGateway(req: Request, body: any): Promise<Response> {
   const session = await readAppSession(appSessionStore, req.headers.get("authorization"));
   if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
@@ -819,8 +814,8 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
   const limit = body?.limit ?? 200;
   const fromDate = body?.from_date;
   const toDate = body?.to_date;
-  if ((fromDate !== undefined && !isGatewayDate(fromDate)) ||
-      (toDate !== undefined && !isGatewayDate(toDate)) ||
+  if ((fromDate !== undefined && !isAppDataGatewayDate(fromDate)) ||
+      (toDate !== undefined && !isAppDataGatewayDate(toDate)) ||
       ((fromDate !== undefined || toDate !== undefined) && table !== "attendance" && table !== "behaviors") ||
       (fromDate && toDate && fromDate > toDate)) {
     return reply(400, { error: "نطاق التاريخ غير صالح." });
