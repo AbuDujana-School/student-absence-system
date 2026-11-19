@@ -221,7 +221,12 @@ Deno.test("manual offline sync is explicit, scoped to dirty records, and never e
   assert(manual.includes("saveSystemDataToCloud({ manual: true })"), "Manual sync must reuse the existing dirty-record uploader");
   assert(manual.includes("getPendingDeletes().length"), "Manual sync must keep queued deletions visible");
   assert(!manual.includes("flushPendingDeletes("), "Manual sync must never execute queued deletions");
-  assert(!manual.includes("loadSystemDataFromCloud("), "Manual upload must not reload and replace the current local view");
+  const recovery = manual.indexOf("await loadSystemDataFromCloud()");
+  const captureGuard = manual.indexOf("if (attendanceDirty || behaviorDirty)");
+  assert(recovery >= 0 && captureGuard >= 0 && captureGuard < recovery, "Manual sync may recover cloud readiness only after protecting live capture");
+  assert(recovery < manual.indexOf("await showConfirm("), "Manual sync must recover the cloud snapshot before asking permission to upload");
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(load.includes("mergeDirtyLocalState(pendingLocalState)"), "Recovery must merge pending local edits instead of replacing them");
 });
 
 Deno.test("sync indicator distinguishes upload, review-only deletion requests, and cloud refresh", () => {
