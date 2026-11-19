@@ -38,10 +38,16 @@ function storeWith(
       calls.push("admin");
       return options.admin === true;
     },
-    async findTeacher(name) {
+    async findTeacher(name, includePermissions = false) {
       calls.push("teacher:" + name);
+      if (includePermissions) calls.push("teacher-permissions:" + name);
       return options.teacher
-        ? { ...options.teacher, reserveAccess: options.reserve ?? options.teacher.reserveAccess }
+        ? {
+          name: options.teacher.name,
+          role: options.teacher.role,
+          reserveAccess: includePermissions ? options.reserve ?? options.teacher.reserveAccess : false,
+          permissions: includePermissions ? options.teacher.permissions ?? {} : {},
+        }
         : null;
     },
     async hasTimetableAccess(type, name) {
@@ -547,7 +553,8 @@ Deno.test("reserve-only teacher authorization reuses the live teacher permission
   if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, principal.reserveAccess)) {
     throw new Error("Reserve-only teacher was denied substitution preview");
   }
-  if (calls.filter((call) => call === "teacher:Reserve Teacher").length !== 1) {
+  if (calls.filter((call) => call === "teacher:Reserve Teacher").length !== 1 ||
+      !calls.includes("teacher-permissions:Reserve Teacher")) {
     throw new Error("Teacher identity and reserve permission were not loaded in one lookup");
   }
   if (calls.some((call) => call.startsWith("reserve:"))) {
@@ -587,5 +594,23 @@ Deno.test("duty-only permission is checked only for duty report and its narrow b
   }
   if (dutyCalls.filter((call) => call === "duty:teacher:Duty Teacher").length !== 1) {
     throw new Error("Duty permission was not checked exactly once for duty report action");
+  }
+});
+
+
+Deno.test("ordinary timetable actions load teacher identity without the permission JSON", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher", permissions: { reserve: true, duty: true } },
+    access: true,
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_class_weekly_get",
+  );
+  if (principal?.type !== "teacher") throw new Error("Teacher with timetable access was not authenticated");
+  if (calls.includes("teacher-permissions:Teacher A")) {
+    throw new Error("An unrelated timetable read loaded the teacher permission JSON");
   }
 });
