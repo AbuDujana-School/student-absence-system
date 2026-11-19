@@ -35,7 +35,7 @@ export interface TimetableTeacherLookup {
 export interface TimetableAuthStore {
   findSession(tokenHash: string, nowIso: string): Promise<TimetableSessionLookup | null>;
   hasAdminCredential(): Promise<boolean>;
-  findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
+  findTeacher(name: string, includePermissions?: boolean): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>): Promise<boolean>;
   canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number, permissions?: Record<string, unknown>): Promise<boolean>;
@@ -86,7 +86,14 @@ export async function resolveTimetablePrincipal(
 
   const type = session.principal_type;
   const name = session.principal_name;
-  const teacher = await store.findTeacher(name);
+  const needsTeacherPermissions = requestedAction.startsWith("timetable_substitution_") ||
+    new Set([
+      "health",
+      "timetable_check_access",
+      "timetable_duty_report_context",
+      "teacher_substitution_get_today",
+    ]).has(requestedAction);
+  const teacher = await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
