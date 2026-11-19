@@ -117,15 +117,16 @@ export async function resolveTimetablePrincipal(
       && await store.hasOwnDailySubstitutionAssignment(name)) {
       return { type, name };
     }
-  } else {
-    if (type === "teacher" && store.hasLinkedTeacherPortalAccess
+  } else if (type === "teacher" && new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_timetable_get_own",
+  ]).has(requestedAction)) {
+    // Full linked-schedule verification is needed only for portal-capable reads.
+    // Do not load weekly cells while resolving unrelated timetable actions.
+    if (store.hasLinkedTeacherPortalAccess
       && await store.hasLinkedTeacherPortalAccess(name)) {
       return { type, name, portalOnly: true };
-    }
-    // A teacher assigned reserve today may read only their own daily notice.
-    if (type === "teacher" && store.hasOwnDailySubstitutionAssignment
-      && await store.hasOwnDailySubstitutionAssignment(name)) {
-      return { type, name };
     }
   }
   if (store.hasDutyReportAccess && await store.hasDutyReportAccess(type, name)) {
