@@ -3340,8 +3340,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
 <script>
 /* ============ Supabase & Crypto config ============ */
-const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
+const SUPABASE_URL = "https://wawplttrpiinoukpjqqx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
@@ -3447,8 +3447,8 @@ function showPrompt(message, options = {}) {
 }
 
 
-const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
-const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/timetable-management";
+const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://wawplttrpiinoukpjqqx.supabase.co/functions/v1/student-affairs";
+const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://wawplttrpiinoukpjqqx.supabase.co/functions/v1/timetable-management";
 const SA_API_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
@@ -5587,7 +5587,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     if (!navigator.onLine || !activeUser || document.hidden) return;
     if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
     else refreshCloudDataSilently();
-  }, 60000);
+  }, 180000);
   if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
     setTimeout(() => retryOfflineSyncSilently(), 1800);
   }
@@ -5633,7 +5633,7 @@ async function loadSystemDataFromCloud() {
   try {
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
       fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
-      fetchAllPaginated('teachers', '*'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
+      fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin'), fetchAllPaginated('attendance', 'record_key,date_str,class_name,period,teacher_name,records,updated_at'), fetchAllPaginated('behaviors', 'record_key,date_str,class_name,period,teacher_name,records,updated_at'), fetchAllPaginated('school_settings', 'key,value')
     ]);
     const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
     if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
@@ -5668,7 +5668,7 @@ async function loadSystemDataFromCloud() {
     if (catRow?.value && Array.isArray(catRow.value)) db.customCategories = catRow.value; else db.customCategories = [];
     
     try {
-      const drData = await fetchAllPaginated('duty_reports', '*');
+      const drData = await fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at');
       db.dutyModule.records = drData.filter(r => r.class_name !== '__CLEAN__').map(r => {
         const cn = r.class_name;
         return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
@@ -10014,7 +10014,7 @@ function teacherStartDailySubstitutionWatcher() {
     if (activeUser?.type === "teacher" && document.visibilityState !== "prerender") {
       void teacherShowDailySubstitutionWelcome();
     }
-  }, 45000);
+  }, 120000);
 }
 
 async function openTeacherTimetableView() {
@@ -10029,7 +10029,7 @@ async function openTeacherTimetableView() {
   teacherTimetableRefreshTimer = setInterval(() => {
     if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
     teacherTimetableRender();
-    if (Date.now() - teacherTimetableLastFetchAt >= 60000) void teacherTimetableLoad(false);
+    if (Date.now() - teacherTimetableLastFetchAt >= 120000) void teacherTimetableLoad(false);
   }, 15000);
 }
 function closeTeacherTimetableView() {
