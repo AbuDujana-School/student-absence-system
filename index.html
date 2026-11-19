@@ -3342,8 +3342,10 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 /* ============ Supabase & Crypto config ============ */
 // Cloudflare branch previews must never point at the live school database.
 const IS_CLOUDFLARE_BRANCH_PREVIEW =
-  location.hostname !== "student-absence-system.pages.dev" &&
-  location.hostname.endsWith(".student-absence-system.pages.dev");
+  (location.hostname !== "student-absence-system.pages.dev" &&
+    location.hostname.endsWith(".student-absence-system.pages.dev")) ||
+  location.hostname === "abu-dujana-school-preview.pages.dev" ||
+  location.hostname.endsWith(".abu-dujana-school-preview.pages.dev");
 const SUPABASE_URL = IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co" : "https://ylsocrvwqibptuwfzbke.supabase.co";
 const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
   ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA"
