@@ -1,0 +1,60 @@
+name: Application session RLS bridge tests
+
+on:
+  push:
+    branches:
+      - fix/app-session-rls-bridge-20261119
+    paths:
+      - "supabase/migrations/20261119002000_app_session_rls_bridge.sql"
+      - "supabase/tests/app_session_rls_bridge_integration.sql"
+      - ".github/workflows/app-session-rls-bridge-tests.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "supabase/migrations/20261119002000_app_session_rls_bridge.sql"
+      - "supabase/tests/app_session_rls_bridge_integration.sql"
+      - ".github/workflows/app-session-rls-bridge-tests.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  app-session-rls-bridge:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: app_session_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d app_session_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/app_session_test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - name: Prepare isolated database roles and extension
+        run: |
+          set -euo pipefail
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 <<'SQL'
+          create role anon nologin;
+          create role authenticated nologin;
+          create role service_role nologin bypassrls;
+          create schema private;
+          create schema extensions;
+          create extension if not exists pgcrypto with schema extensions;
+          SQL
+      - name: Apply existing app-session table migration
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
+      - name: Apply app-session RLS bridge migration
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261119002000_app_session_rls_bridge.sql
+      - name: Verify active, missing, malformed, expired and revoked sessions
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/app_session_rls_bridge_integration.sql
