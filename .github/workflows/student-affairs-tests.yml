@@ -811,7 +811,7 @@ jobs:
       - name: Run isolated app data gateway HTTP integration tests
         run: deno test supabase/functions/student-affairs/app_data_gateway_handler_test.ts
       - name: Verify deployed preview gateway rejects missing and unknown app sessions
-        if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || (github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119')
+        if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || github.ref == 'refs/heads/test/app-data-gateway-isolated-session-20261119' || (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119' || github.event.pull_request.head.ref == 'test/app-data-gateway-isolated-session-20261119'))
         env:
           PREVIEW_URL: "https://wawplttrpiinoukpjqqx.supabase.co"
           PREVIEW_PUBLISHABLE_KEY: "sb_publishable_7BEkF9yQ9A5eOiK1jIWQww_Uv424Y0i"
