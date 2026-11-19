@@ -307,3 +307,21 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });
+
+
+Deno.test("reconnect restores cloud readiness before retrying or manually uploading offline edits", () => {
+  const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
+  const recoveryLoad = events.indexOf("await loadSystemDataFromCloud()");
+  const retryUpload = events.indexOf("await retryOfflineSyncSilently()");
+  assert(recoveryLoad >= 0, "Reconnect must reload the read-only cloud snapshot when readiness was lost");
+  assert(retryUpload > recoveryLoad, "Pending local edits may only enter the approved retry after cloud recovery");
+  assert(events.includes("cloudDataLoadState !== 'ready'"), "Reconnect must detect failed or not-yet-started cloud state");
+  assert(events.includes("cloudDataLoadState === 'loading'"), "Reconnect must not overlap an active cloud load");
+  assert(events.includes("resumeCloudSync();"), "Online, visibility, and periodic refresh must share the recovery path");
+
+  const manual = section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */");
+  const manualRecovery = manual.indexOf("await loadSystemDataFromCloud()");
+  const approval = manual.indexOf("await showConfirm(");
+  assert(manualRecovery >= 0 && approval > manualRecovery, "Manual upload must recover the cloud snapshot before asking for upload approval");
+  assert(manual.includes("لم يتم رفعها"), "A failed recovery must explicitly confirm that local edits were not uploaded");
+});
