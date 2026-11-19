@@ -1,5 +1,6 @@
 import { assertEquals, assert } from "jsr:@std/assert";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
+import type { AppDataPrincipal } from "./app_data_gateway_policy.ts";
 
 const headers = { "Content-Type": "application/json", "Cache-Control": "no-store" };
 const teacher = { type: "teacher" as const, name: "Teacher A", permissions: { attendance: true, behavior: false } };
@@ -7,7 +8,7 @@ const session = { principal: { type: "teacher", name: "Teacher A" } };
 
 function fixture(options: {
   session?: typeof session | null;
-  principal?: typeof teacher | null;
+  principal?: AppDataPrincipal | null;
   scope?: { allowedClasses: string[]; allowedAttendanceClasses?: string[]; allowedBehaviorClasses?: string[] };
   rows?: Record<string, unknown>[];
 } = {}) {
