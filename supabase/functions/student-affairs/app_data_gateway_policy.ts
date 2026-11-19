@@ -30,7 +30,7 @@ const TABLE_FIELDS: Record<AppDataTable, readonly string[]> = {
   duty_reports: ["id", "date_str", "day_num", "period", "class_name", "subject", "teacher_name", "reported_by", "status", "reviewed_by", "reviewed_at", "created_at"],
 };
 
-const SECRET_KEY = /(pin|hash|salt|token|secret|password|credential|api.?key|private.?key)/i;
+const SECRET_KEY = /(pin|hash|salt|token|secret|password|credential|api.?key|private.?key)/i;\nfunction isSecretField(key: string): boolean {\n  return !/^must_?change_?pin$/i.test(key) && !/^mustChangePin$/i.test(key) && SECRET_KEY.test(key);\n}
 const ALLOWED_TABLES = new Set<string>(APP_DATA_TABLES);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -42,7 +42,7 @@ function cleanSecrets(value: unknown): unknown {
   if (!isRecord(value)) return value;
   const output: Record<string, unknown> = {};
   for (const [key, nested] of Object.entries(value)) {
-    if (!SECRET_KEY.test(key)) output[key] = cleanSecrets(nested);
+    if (!isSecretField(key)) output[key] = cleanSecrets(nested);
   }
   return output;
 }
@@ -118,7 +118,7 @@ export function projectAppDataRow(table: AppDataTable, row: unknown): Record<str
   const allowed = new Set(TABLE_FIELDS[table]);
   const projected: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(row)) {
-    if (allowed.has(key) && !SECRET_KEY.test(key)) projected[key] = cleanSecrets(value);
+    if (allowed.has(key) && !isSecretField(key)) projected[key] = cleanSecrets(value);
   }
   if (table === "school_settings" && projected.key === "admin_pin") return null;
   return projected;
@@ -134,7 +134,7 @@ export function validateAppDataWriteRows(
   for (const value of rows) {
     if (!isRecord(value)) return null;
     const keys = Object.keys(value);
-    if (!keys.length || keys.some((key) => !allowed.has(key) || SECRET_KEY.test(key))) return null;
+    if (!keys.length || keys.some((key) => !allowed.has(key) || isSecretField(key))) return null;
     const projected = projectAppDataRow(table, value);
     if (!projected) return null;
     output.push(projected);
