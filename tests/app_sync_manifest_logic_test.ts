@@ -129,7 +129,7 @@ Deno.test("local edits made during cloud requests are recaptured before replacin
   const load = html.slice(start, end);
   const initialCapture = load.indexOf("let pendingLocalState = captureDirtyLocalState()");
   const postFetchAwait = load.indexOf("await clearCompletedStudentDeleteIntentsFromCloud(studentsData)");
-  const refreshedCapture = load.indexOf("pendingLocalState = captureDirtyLocalState()", initialCapture + 1);
+  const refreshedCapture = load.indexOf("pendingLocalState = captureDirtyLocalState()", initialCapture + "let ".length + 1);
   const firstCloudReplace = load.indexOf("db.classes = [...new Set(classesData.map(r => r.name))]");
   const merge = load.indexOf("mergeDirtyLocalState(pendingLocalState)");
   assert(initialCapture >= 0, "The initial dirty local snapshot must be captured");
