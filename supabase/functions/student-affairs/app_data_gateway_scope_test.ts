@@ -68,3 +68,18 @@ Deno.test("legacy general class grants are fallback only when specialized arrays
     allowedBehaviorClasses: [],
   });
 });
+
+
+Deno.test("dedicated Student Affairs flags gate extra class scopes but not timetable classes", () => {
+  assertEquals(mergeAppDataClassScopes(["5/1"], {
+    allowed_classes: ["6/1"],
+    allowed_attendance_classes: ["7/1"],
+    allowed_behavior_classes: ["8/1"],
+    can_read_attendance: false,
+    can_read_behavior: true,
+  }), {
+    allowedClasses: ["5/1", "6/1"],
+    allowedAttendanceClasses: ["5/1"],
+    allowedBehaviorClasses: ["5/1", "8/1"],
+  });
+});
