@@ -5710,14 +5710,14 @@ async function loadSystemDataFromCloud(options = {}) {
 
     mergeDirtyLocalState(pendingLocalState);
     applyPendingLocalDeletions();
-    if (includeTeachers) lastTeacherDirectoryRefreshAt = Date.now();
-    if (includeDutyReports) lastDutyReportsRefreshAt = Date.now();
     cloudDataLoadState = 'ready';
     // Loading is read-only: preserve local pending changes without pushing them.
     saveToLocalStorageSafe();
     await persistOfflineState();
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length;
     updateSyncStatus(!pendingSync, pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+    if (includeTeachers) lastTeacherDirectoryRefreshAt = Date.now();
+    if (includeDutyReports) lastDutyReportsRefreshAt = Date.now();
     return true;
   } catch(e) {
     cloudDataLoadState = 'failed';
