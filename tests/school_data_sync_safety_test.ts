@@ -315,8 +315,8 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
   const retryUpload = events.indexOf("await retryOfflineSyncSilently()");
   assert(recoveryLoad >= 0, "Reconnect must reload the read-only cloud snapshot when readiness was lost");
   assert(retryUpload > recoveryLoad, "Pending local edits may only enter the approved retry after cloud recovery");
-  assert(events.includes("cloudDataLoadState !== 'ready'"), "Reconnect must detect failed or not-yet-started cloud state");
-  assert(events.includes("cloudDataLoadState === 'loading'"), "Reconnect must not overlap an active cloud load");
+  assert(resume.includes("cloudDataLoadState !== 'ready'"), "Reconnect must detect failed or not-yet-started cloud state");
+  assert(resume.includes("cloudDataLoadState === 'loading'"), "Reconnect must not overlap an active cloud load");
   assert(events.includes("resumeCloudSync();"), "Online, visibility, and periodic refresh must share the recovery path");
 
   const manual = section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */");
