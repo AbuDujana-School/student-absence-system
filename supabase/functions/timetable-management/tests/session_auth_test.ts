@@ -448,8 +448,8 @@ Deno.test("schoolwide reserve statistics permission is checked only for statisti
   const ordinaryPrincipal = await resolveTimetablePrincipal(
     "Bearer " + TOKEN, ordinaryStore, NOW, "timetable_class_weekly_get",
   );
-  if (ordinaryPrincipal !== null) {
-    throw new Error("An unrelated timetable action unexpectedly received statistics-only access");
+  if (ordinaryPrincipal?.schoolwideReserveStats === true || ordinaryPrincipal === null) {
+    throw new Error("An unrelated timetable action changed the existing general timetable identity or gained statistics access");
   }
   if (ordinaryCalls.some((call) => call.startsWith("schoolwide-stats:"))) {
     throw new Error("Schoolwide statistics permission was queried for an unrelated timetable action");
