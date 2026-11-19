@@ -77,3 +77,22 @@ if (!productionManifestResponse.ok) {
 } else {
   console.log("Production publishable key accepted; metadata-only manifest RPC is reachable.");
 }
+
+
+const productionTableProbe = await fetch(productionBaseUrl + "/rest/v1/classes?select=id&limit=0", {
+  headers: {
+    apikey: productionPublishableKey,
+    Authorization: "Bearer " + productionPublishableKey,
+  },
+  cache: "no-store",
+});
+console.log("Production table permission probe (zero rows): HTTP " + productionTableProbe.status);
+if (productionTableProbe.status !== 200) {
+  let probeBody = {};
+  try { probeBody = await productionTableProbe.clone().json(); } catch {}
+  console.error("Production table permission probe failed" +
+    (probeBody.code ? " (API code: " + String(probeBody.code).slice(0, 100) + ")" : ""));
+  process.exitCode = 1;
+} else {
+  console.log("Production table read permission confirmed without retrieving school records.");
+}
