@@ -864,6 +864,10 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     }
     query = table === "classes" ? query.eq("name", className) : query.eq("class_name", className);
   }
+  if (table === "school_settings" && principal.type === "admin") {
+    // Do not fetch the administrator PIN record into the generic gateway at all.
+    query = query.neq("key", "admin_pin");
+  }
   if (table === "attendance" || table === "behaviors") {
     if (fromDate) query = query.gte("date_str", fromDate);
     if (toDate) query = query.lte("date_str", toDate);
