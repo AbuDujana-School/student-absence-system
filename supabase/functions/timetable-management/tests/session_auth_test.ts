@@ -17,7 +17,7 @@ function storeWith(
   session: TimetableSessionLookup | null,
   options: {
     admin?: boolean;
-    teacher?: { name: string; role: string } | null;
+    teacher?: { name: string; role: string; reserveAccess?: boolean } | null;
     access?: boolean;
     reserve?: boolean;
     schoolwideReserveStats?: boolean;
@@ -40,15 +40,13 @@ function storeWith(
     },
     async findTeacher(name) {
       calls.push("teacher:" + name);
-      return options.teacher ?? null;
+      return options.teacher
+        ? { ...options.teacher, reserveAccess: options.reserve ?? options.teacher.reserveAccess }
+        : null;
     },
     async hasTimetableAccess(type, name) {
       calls.push("access:" + type + ":" + name);
       return options.access === true;
-    },
-    async hasSubstitutionAccess(name) {
-      calls.push("reserve:" + name);
-      return options.reserve === true;
     },
     async hasSchoolwideReserveStatsAccess(type, name) {
       calls.push("schoolwide-stats:" + type + ":" + name);
@@ -258,12 +256,15 @@ Deno.test("explicit timetable permissions keep their existing scoped substitutio
     access: true,
     reserve: true,
   });
-  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_substitution_preview",
+  );
   if (principal?.portalOnly === true) throw new Error("Explicit timetable permission was downgraded");
+  if (principal?.reserveAccess !== true) throw new Error("Live reserve permission was not carried from the teacher lookup");
   if (canUseTimetableAction("teacher", "timetable_substitution_preview")) {
     throw new Error("General timetable access must not bypass the reserve permission");
   }
-  if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, true)) {
+  if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, principal.reserveAccess === true)) {
     throw new Error("Reserve-enabled teacher lost substitution capability");
   }
 });
@@ -363,8 +364,10 @@ Deno.test("duty-only teachers receive read-only access to duty report timetable 
     teacher: { name: "Duty Teacher", role: "teacher" },
     duty: true,
   });
-  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW);
-  if (principal?.type !== "teacher" || principal.name !== "Duty Teacher" || principal.dutyReportOnly !== true) {
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_duty_report_context",
+  );
+  if (principal?.type !== "teacher" || principal.name !== "Duty Teacher" || principal.dutyReportOnly !== true || principal.dutyReportAccess !== true) {
     throw new Error("Existing duty permission did not resolve a duty-only principal");
   }
   if (!canUseTimetableAction("teacher", "timetable_duty_report_context", false, false, false, false, true)) {
@@ -524,5 +527,65 @@ Deno.test("unrelated timetable actions do not load linked portal weekly cells or
   }
   if (calls.some((call) => call.startsWith("linked-portal:") || call.startsWith("own-assignment:"))) {
     throw new Error("An unrelated action performed portal weekly-cell or daily-assignment lookups");
+  }
+});
+
+
+Deno.test("reserve-only teacher authorization reuses the live teacher permission lookup", async () => {
+  const session = { principal_type: "teacher", principal_name: "Reserve Teacher", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: { name: "Reserve Teacher", role: "teacher" },
+    reserve: true,
+    access: false,
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_substitution_preview",
+  );
+  if (principal?.reserveAccess !== true) throw new Error("Reserve-only teacher lost the existing reserve grant");
+  if (!canUseTimetableAction("teacher", "timetable_substitution_preview", false, principal.reserveAccess)) {
+    throw new Error("Reserve-only teacher was denied substitution preview");
+  }
+  if (calls.filter((call) => call === "teacher:Reserve Teacher").length !== 1) {
+    throw new Error("Teacher identity and reserve permission were not loaded in one lookup");
+  }
+  if (calls.some((call) => call.startsWith("reserve:"))) {
+    throw new Error("A duplicate reserve permission lookup was performed");
+  }
+});
+
+Deno.test("duty-only permission is checked only for duty report and its narrow bootstrap actions", async () => {
+  const session = { principal_type: "teacher", principal_name: "Duty Teacher", expires_at: EXPIRY };
+  const ordinaryCalls: string[] = [];
+  const ordinaryStore = storeWith(session, {
+    teacher: { name: "Duty Teacher", role: "teacher" },
+    duty: true,
+    calls: ordinaryCalls,
+  });
+  if (await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, ordinaryStore, NOW, "timetable_substitution_preview",
+  ) !== null) {
+    throw new Error("Duty-only teacher gained substitution management access");
+  }
+  if (ordinaryCalls.some((call) => call.startsWith("duty:"))) {
+    throw new Error("Unrelated action performed a duty permission lookup");
+  }
+
+  const dutyCalls: string[] = [];
+  const dutyStore = storeWith(session, {
+    teacher: { name: "Duty Teacher", role: "teacher" },
+    access: true,
+    duty: true,
+    calls: dutyCalls,
+  });
+  const dutyPrincipal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, dutyStore, NOW, "timetable_duty_report_context",
+  );
+  if (dutyPrincipal?.dutyReportAccess !== true) {
+    throw new Error("Explicit duty permission was not retained for duty report action");
+  }
+  if (dutyCalls.filter((call) => call === "duty:teacher:Duty Teacher").length !== 1) {
+    throw new Error("Duty permission was not checked exactly once for duty report action");
   }
 });
