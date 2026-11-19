@@ -416,15 +416,15 @@ Deno.test("reserve permission grants substitution actions only", async () => {
   const principal=await resolveTimetablePrincipal("Bearer "+token,{
     async findSession(){return {principal_type:"teacher",principal_name:"معلم مخوّل",expires_at:"2026-11-16T00:00:00.000Z"};},
     async hasAdminCredential(){return false;},
-    async findTeacher(name){return {name,role:"teacher"};},
+    async findTeacher(name){return {name,role:"teacher",reserveAccess:true};},
     async hasTimetableAccess(){return false;},
-    async hasSubstitutionAccess(){return true;},
   },Date.parse("2026-11-15T12:00:00.000Z"));
   equal(principal?.name,"معلم مخوّل","Reserve-enabled teacher should authenticate for substitution");
+  equal(principal?.reserveAccess,true,"Live reserve permission should be carried with the teacher identity");
   equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),false,"General teacher access alone must not grant reserve actions");
   equal(canUseTimetableAction("teacher","timetable_substitution_batch_save"),false,"General teacher access alone must not grant batch save");
-  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview",false,true),true,"Reserve permission grants batch preview");
-  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save",false,true),true,"Reserve permission grants batch save");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview",false,principal?.reserveAccess),true,"Reserve permission grants batch preview");
+  equal(canUseTimetableAction("teacher","timetable_substitution_batch_save",false,principal?.reserveAccess),true,"Reserve permission grants batch save");
   equal(canUseTimetableAction("teacher","timetable_save_day"),false,"Reserve must not grant timetable editing");
 });
 
