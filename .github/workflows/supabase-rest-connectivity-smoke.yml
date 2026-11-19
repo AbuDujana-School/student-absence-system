@@ -8,6 +8,13 @@ on:
       - "index.html"
       - "tests/supabase-rest-connectivity-smoke.mjs"
       - ".github/workflows/supabase-rest-connectivity-smoke.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "tests/supabase-rest-connectivity-smoke.mjs"
+      - ".github/workflows/supabase-rest-connectivity-smoke.yml"
   workflow_dispatch:
 
 permissions:
