@@ -84,3 +84,20 @@ Deno.test("a missing cached manifest safely forces a full refresh", () => {
   const changed = logic.changed({ ...baseline, attendance: 8 }, true);
   assert(changed.length === 7, "A snapshot without a trusted manifest must force full synchronization");
 });
+
+Deno.test("Cloudflare branch previews select the isolated Supabase project only", () => {
+  const start = html.indexOf("// Cloudflare branch previews must never point at the live school database.");
+  const end = html.indexOf("const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);", start);
+  assert(start >= 0 && end > start, "Supabase preview routing configuration must exist");
+  const source = html.slice(start, end);
+  const select = new Function("location", `${source} return { url: SUPABASE_URL, key: SUPABASE_ANON_KEY };`);
+  const branchPreview = select({ hostname: "fix-revision-sync-optimizati.student-absence-system.pages.dev" });
+  const hashedPreview = select({ hostname: "7f978965.student-absence-system.pages.dev" });
+  const pagesRoot = select({ hostname: "student-absence-system.pages.dev" });
+  const githubProduction = select({ hostname: "abudujana-school.github.io" });
+  assert(branchPreview.url === "https://wawplttrpiinoukpjqqx.supabase.co", "Branch preview must use isolated Supabase");
+  assert(hashedPreview.url === "https://wawplttrpiinoukpjqqx.supabase.co", "Hashed preview must use isolated Supabase");
+  assert(pagesRoot.url === "https://ylsocrvwqibptuwfzbke.supabase.co", "Cloudflare production root must keep production backend");
+  assert(githubProduction.url === "https://ylsocrvwqibptuwfzbke.supabase.co", "GitHub Pages production must keep production backend");
+  assert(branchPreview.key !== pagesRoot.key, "Preview and production public keys must be distinct");
+});
