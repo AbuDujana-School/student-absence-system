@@ -46,3 +46,25 @@ Deno.test("general teacher sync preserves server-managed permissions before full
   assert(sync.includes("saMergeServerManagedTeacherPermissions"), "Teacher sync must merge canonical Student Affairs flags");
   assert(sync.includes("await robustUpsert('teachers', rows, 'name', 100)"), "Teacher sync must keep the existing upsert path");
 });
+
+
+const edgeIndex = await Deno.readTextFile(new URL("./index.ts", import.meta.url));
+
+Deno.test("verified app principals reuse Student Affairs permissions without a duplicate teachers lookup", () => {
+  const accessStart = edgeIndex.indexOf("async function hasStudentAffairsAccess");
+  const accessEnd = edgeIndex.indexOf("async function getSession", accessStart);
+  assert(accessStart >= 0 && accessEnd > accessStart, "Could not locate Student Affairs access helper");
+  const access = edgeIndex.slice(accessStart, accessEnd);
+  const principalCheck = access.indexOf("if (p.permissions && typeof p.permissions === \"object\")");
+  const teacherLookup = access.indexOf('db.from("teachers")');
+  assert(principalCheck >= 0 && teacherLookup > principalCheck, "Verified principal permissions must be checked before the legacy teachers lookup");
+  assert(access.includes("p.permissions.studentAffairs === true || p.permissions.admin === true"), "Verified principal permissions must remain authoritative");
+
+  const permissionsStart = edgeIndex.indexOf("async function permissionsFor");
+  const legacyStart = edgeIndex.indexOf("const legacy = Array.isArray(data?.allowed_classes)", permissionsStart);
+  assert(permissionsStart >= 0 && legacyStart > permissionsStart, "Could not locate permissionsFor lookup");
+  const permissions = edgeIndex.slice(permissionsStart, legacyStart);
+  assert(permissions.includes("const principalPermissions = p.permissions"), "permissionsFor must recognize permissions from a verified app principal");
+  assert(permissions.includes("Promise.resolve({ data: { name: p.name"), "Verified principals must avoid a second teachers request");
+  assert(permissions.includes('db.from("teachers").select("name,role,permissions")'), "Legacy Student Affairs sessions must retain the database fallback");
+});
