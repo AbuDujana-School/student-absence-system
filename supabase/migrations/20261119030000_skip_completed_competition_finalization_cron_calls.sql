@@ -37,8 +37,8 @@ select cron.schedule(
           case when jsonb_typeof(s.value) = 'array' then s.value else '[]'::jsonb end
         ) item
         where s.key = 'competition_term_calendar'
-          and item->>'start' ~ '^\\d{4}-\\d{2}-\\d{2}$'
-          and item->>'end' ~ '^\\d{4}-\\d{2}-\\d{2}$'
+          and item->>'start' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
+          and item->>'end' ~ '^[0-9]{4}-[0-9]{2}-[0-9]{2}$'
       ),
       current_term as (
         select t.start_date, t.end_date, p.today, p.local_time
