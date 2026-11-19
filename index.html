@@ -10033,7 +10033,7 @@ async function openTeacherTimetableView() {
   teacherTimetableRefreshTimer = setInterval(() => {
     if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
     teacherTimetableRender();
-    if (Date.now() - teacherTimetableLastFetchAt >= 60000) void teacherTimetableLoad(false);
+    if (Date.now() - teacherTimetableLastFetchAt >= 120000) void teacherTimetableLoad(false);
   }, 15000);
 }
 function closeTeacherTimetableView() {
