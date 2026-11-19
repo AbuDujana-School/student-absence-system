@@ -103,7 +103,34 @@ test("isolated preview reduces full background reads and preserves manual refres
     }
 
     if (url.pathname.startsWith("/functions/v1/")) {
-      functionRequests.push({ method, path: url.pathname, body: request.postData() || "" });
+      if (method === "OPTIONS") {
+        await route.fulfill({
+          status: 204,
+          headers: {
+            "access-control-allow-origin": "*",
+            "access-control-allow-methods": "POST,OPTIONS",
+            "access-control-allow-headers": "*",
+            "access-control-max-age": "600",
+          },
+        });
+        return;
+      }
+
+      const body = request.postData() || "";
+      let action = "";
+      try { action = JSON.parse(body).action || ""; } catch (error) {}
+      functionRequests.push({ method, path: url.pathname, body, action });
+
+      let responseBody = {};
+      if (action === "teacher_timetable_get_own") {
+        responseBody = {
+          teacherName: "QA Teacher",
+          version: { id: "qa-preview-version", version: 1, period_count: 7 },
+          cells: [],
+          assignments: [],
+        };
+      }
+
       await route.fulfill({
         status: 200,
         headers: {
@@ -111,7 +138,7 @@ test("isolated preview reduces full background reads and preserves manual refres
           "access-control-allow-headers": "*",
           "content-type": "application/json",
         },
-        body: "{}",
+        body: JSON.stringify(responseBody),
       });
       return;
     }
@@ -172,10 +199,31 @@ test("isolated preview reduces full background reads and preserves manual refres
     await expect.poll(() => reads.get(table) || 0, { timeout: 15_000 }).toBe(2);
   }
 
+  const archiveRequests = functionRequests.filter((item) => item.action === "timetable_substitution_archive");
+  expect(archiveRequests, "The date-filtered substitution archive should load once").toHaveLength(1);
+
+  await page.evaluate(async () => {
+    activeUser = { type: "teacher", name: "QA Teacher", permissions: {} };
+    appAuthSession = { token: "a".repeat(64) };
+    sessionStorage.setItem(APP_AUTH_SESSION_KEY, "a".repeat(64));
+    teacherPortalCanAccess = true;
+    await openTeacherTimetableView();
+  });
+
+  const ownTimetableRequests = () => functionRequests.filter((item) => item.action === "teacher_timetable_get_own");
+  expect(ownTimetableRequests(), "Opening the personal timetable should perform one immediate server read").toHaveLength(1);
+
+  // The personal timetable still renders locally every 15 seconds, but it
+  // must not fetch again during this 65-second window.
+  await page.waitForTimeout(65_000);
+  expect(ownTimetableRequests(), "The personal timetable server read must not repeat within 65 seconds").toHaveLength(1);
+  for (const table of TABLES) {
+    expect(reads.get(table) || 0, `No extra full-data reads while the teacher timetable is open: ${table}`).toBe(2);
+  }
+
   expect(productionRequests, "Preview must never contact production Supabase").toEqual([]);
   expect(writeRequests, "Preview test must not write to any database").toEqual([]);
-  expect(functionRequests, "Only the one-time timetable access check may run; it must not repeat during refresh").toHaveLength(1);
-  expect(functionRequests[0].path).toBe("/functions/v1/timetable-management");
-  expect(functionRequests[0].body).toContain("timetable_substitution_archive");
+  expect(functionRequests.every((item) => item.path === "/functions/v1/timetable-management"), "Only read-only timetable actions may be invoked").toBe(true);
+  expect(functionRequests.some((item) => item.action === "teacher_substitution_get_today"), "The separate substitution watcher must not be started by opening the timetable view").toBe(false);
   expect(pageErrors, "The page must not throw uncaught JavaScript errors").toEqual([]);
 });
