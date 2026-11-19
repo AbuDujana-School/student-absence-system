@@ -138,3 +138,23 @@ Deno.test("full page returns a continuation offset while a short page ends pagin
   const shortResponse = await request({ table: "students", offset: 20, limit: 1 }, short.deps);
   assertEquals((await body(shortResponse)).next_offset, null);
 });
+
+
+Deno.test("duty-authorized teacher reads only the fixed duty_module setting", async () => {
+  const dutyTeacher = { ...teacher, permissions: { attendance: true, behavior: false, duty: true } };
+  const { deps, calls } = fixture({
+    principal: dutyTeacher,
+    rows: [{ key: "duty_module", value: { graceMinutes: 5, periods: [] } }, { key: "custom_categories", value: ["secret-to-this-role"] }],
+  });
+  const response = await request({ table: "school_settings" }, deps);
+  assertEquals(response.status, 200);
+  assert(calls.some(([name, column, value]) => name === "eq" && column === "key" && value === "duty_module"));
+  assertEquals((await body(response)).rows, [{ key: "duty_module", value: { graceMinutes: 5, periods: [] } }, { key: "custom_categories", value: ["secret-to-this-role"] }]);
+});
+
+Deno.test("teacher without duty permission cannot read settings or create a database query", async () => {
+  const { deps, calls } = fixture({ principal: teacher });
+  const response = await request({ table: "school_settings" }, deps);
+  assertEquals(response.status, 403);
+  assertEquals(calls.some(([name]) => name === "from"), false);
+});
