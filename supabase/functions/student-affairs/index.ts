@@ -10,7 +10,7 @@ import {
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { APP_DATA_TABLES, allowedAppDataFields, authorizeAppDataOperation, projectAppDataRow, type AppDataTable, type AppDataScope } from "./app_data_gateway_policy.ts";
-import { projectAssignedClassScope } from "./app_data_gateway_scope.ts";
+import { mergeAppDataClassScopes, projectAssignedClassScope } from "./app_data_gateway_scope.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -791,14 +791,11 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
     explicitBehavior = Array.isArray(grants?.allowed_behavior_classes)
       ? grants.allowed_behavior_classes : explicitGeneral;
   }
-  const unique = (values: unknown[]) => [...new Set(values.filter((value): value is string =>
-    typeof value === "string" && value.trim().length > 0 && value.trim().length <= 120
-  ).map(value => value.trim()))].sort((a, b) => a.localeCompare(b, "en"));
-  return {
-    allowedClasses: unique([...timetableClasses, ...explicitGeneral]),
-    allowedAttendanceClasses: unique([...timetableClasses, ...explicitAttendance]),
-    allowedBehaviorClasses: unique([...timetableClasses, ...explicitBehavior]),
-  };
+  return mergeAppDataClassScopes(timetableClasses, {
+    allowed_classes: explicitGeneral,
+    allowed_attendance_classes: explicitAttendance,
+    allowed_behavior_classes: explicitBehavior,
+  });
 }
 
 function isGatewayDate(value: unknown): value is string {
