@@ -2,7 +2,7 @@ const { test, expect } = require("@playwright/test");
 
 const previewUrl =
   process.env.PREVIEW_URL ||
-  "https://query-load-optimization-preview.abu-dujana-query-preview.pages.dev/";
+  "https://fix-timetable-fallback-null.student-absence-system.pages.dev/?live-preview=1";
 
 const DEV_HOST = "wawplttrpiinoukpjqqx.supabase.co";
 const PROD_HOST = "ylsocrvwqibptuwfzbke.supabase.co";
@@ -16,8 +16,25 @@ const TABLES = [
   "duty_reports",
 ];
 
-test("isolated preview reduces full background reads and preserves manual refresh", async ({ page }) => {
-  test.setTimeout(150_000);
+test("isolated preview reduces full background reads and preserves manual refresh", async ({ page, request }) => {
+  test.setTimeout(240_000);
+
+  let previewReady = false;
+  let lastPreviewStatus = "no response";
+  for (let attempt = 0; attempt < 24; attempt += 1) {
+    try {
+      const response = await request.get(previewUrl, { timeout: 10_000 });
+      lastPreviewStatus = String(response.status());
+      if (response.status() === 200) {
+        previewReady = true;
+        break;
+      }
+    } catch (error) {
+      lastPreviewStatus = error instanceof Error ? error.message : String(error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 5_000));
+  }
+  expect(previewReady, `Preview did not become ready. Last result: ${lastPreviewStatus}`).toBe(true);
 
   const reads = new Map();
   const productionRequests = [];
