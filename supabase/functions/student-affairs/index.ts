@@ -1620,7 +1620,7 @@ async function handle(req: Request) {
       while (true) {
         const { data, error } = await db.from(table).select("date_str,class_name,records")
           .in("class_name", classes).gte("date_str", from).lte("date_str", to)
-          .order("date_str").order("class_name").range(offset, offset + 999);
+          .order("class_name").order("date_str").range(offset, offset + 999);
         if (error) throw error;
         const page = data || [];
         rows.push(...page);
