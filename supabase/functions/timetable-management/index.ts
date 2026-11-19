@@ -322,12 +322,9 @@ async function handle(req: Request) {
     principal.type === "admin" || principal.dutyReportAccess === true || principal.dutyReportOnly === true
   );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
-    principal.type === "admin" || await (async () => {
-      const { data, error } = await db.from("teachers").select("permissions")
-        .eq("name", principal.name).eq("role", principal.type).maybeSingle();
-      if (error) throw error;
-      return data?.permissions?.teachers === true || data?.permissions?.admin === true;
-    })()
+    principal.type === "admin" ||
+    principal.permissions?.teachers === true ||
+    principal.permissions?.admin === true
   );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
     && !hasDutyReportPermission
