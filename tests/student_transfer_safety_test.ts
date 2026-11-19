@@ -77,7 +77,7 @@ Deno.test("old student deletion intents are pruned only after a successful cloud
   const helper = section(html, "async function clearCompletedStudentDeleteIntentsFromCloud(", "function pendingDeleteTableLabel(");
   assert(helper.includes("serverMemberships.has(className + '\\u001f' + studentName)"), "Cleanup must compare both class and exact student name");
   assert(helper.includes("item?.table !== 'students'"), "Other queued table deletions must remain untouched");
-  const load = section(html, "async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section(html, "async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(load.includes("await clearCompletedStudentDeleteIntentsFromCloud(studentsData)"), "Completed student deletions must be reconciled after an authoritative cloud read");
 });
 
