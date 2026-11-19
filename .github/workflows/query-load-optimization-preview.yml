@@ -3,7 +3,6 @@ name: Query-load optimization isolated preview
 on:
   push:
     branches:
-      - query-load-optimization-preview
       - fix/timetable-fallback-null-safe-2026-11-17
     paths:
       - "index.html"
@@ -28,7 +27,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: query-load-optimization-preview
+  group: query-load-optimization-preview-${{ github.event_name }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
