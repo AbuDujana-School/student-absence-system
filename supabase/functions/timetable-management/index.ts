@@ -172,6 +172,12 @@ const timetableAuthStore: TimetableAuthStore = {
     );
     return cells.length > 0;
   },
+  async hasLinkedTeacherPortalNoticeAccess(name) {
+    const { data: setting, error } = await db.from("teacher_timetable_portal_settings")
+      .select("enabled,selected_teacher_names").eq("id", true).maybeSingle();
+    if (error) return false;
+    return canAccessTeacherTimetablePortal(setting?.enabled, setting?.selected_teacher_names, name);
+  },
   async hasOwnDailySubstitutionAssignment(name) {
     const { date: today, weekday } = muscatDateAndWeekday();
     if (!DAYS.includes(weekday)) return false;
@@ -192,8 +198,10 @@ const timetableAuthStore: TimetableAuthStore = {
   },
 };
 
-async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
-  return resolveTimetablePrincipal(req.headers.get("authorization"), timetableAuthStore);
+async function requirePrincipal(req: Request, requestedAction = ""): Promise<TimetablePrincipal | null> {
+  return resolveTimetablePrincipal(
+    req.headers.get("authorization"), timetableAuthStore, Date.now(), requestedAction,
+  );
 }
 
 function validUuid(value: unknown): value is string {
@@ -287,16 +295,14 @@ async function handle(req: Request) {
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any;
   try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
-  const principal = await requirePrincipal(req);
-  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-
   const action = String(body.action || "");
+  const principal = await requirePrincipal(req, action);
+  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
   const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
     ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
     : false;
-  const hasTimetableGrant = (principal.type === "teacher" || principal.type === "custom")
-    ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
-    : false;
+  // Reuse the explicit grant already checked by resolveTimetablePrincipal.
+  const hasTimetableGrant = principal.timetableAccess === true;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
   const hasDutyReportPermission = action === "timetable_duty_report_context" && (
     principal.type === "admin" || await timetableAuthStore.hasDutyReportAccess?.(principal.type, principal.name) === true
