@@ -98,34 +98,27 @@ export async function resolveTimetablePrincipal(
     store.hasSchoolwideReserveStatsAccess
       ? await store.hasSchoolwideReserveStatsAccess(type, name)
       : false;
-  // Duty access is checked only on the duty report and the limited bootstrap
-  // actions that historically allow a duty-only account to resolve.
-  const needsDutyReportAccess = new Set([
-    "health",
-    "timetable_check_access",
-    "timetable_duty_report_context",
-    "teacher_substitution_get_today",
-  ]).has(requestedAction);
-  const hasDutyReportAccess = async () => needsDutyReportAccess &&
-    store.hasDutyReportAccess
-      ? await store.hasDutyReportAccess(type, name)
-      : false;
+  const dutyReportAction = requestedAction === "timetable_duty_report_context";
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
-    const dutyReportAccess = await hasDutyReportAccess();
+    const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
+      ? await store.hasDutyReportAccess(type, name)
+      : false;
     return {
       type, name, reserveAccess, schoolwideReserveStats,
-      ...(needsDutyReportAccess ? { dutyReportAccess } : {}),
+      ...(dutyReportAction ? { dutyReportAccess } : {}),
     };
   }
   // Reserve permission is loaded with the teacher identity, avoiding a second
   // teachers-table read during authorization and again in the request handler.
   if (reserveAccess) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
-    const dutyReportAccess = await hasDutyReportAccess();
+    const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
+      ? await store.hasDutyReportAccess(type, name)
+      : false;
     return {
       type, name, reserveAccess: true, schoolwideReserveStats,
-      ...(needsDutyReportAccess ? { dutyReportAccess } : {}),
+      ...(dutyReportAction ? { dutyReportAccess } : {}),
     };
   }
   const schoolwideReserveStats = await hasSchoolwideReserveStats();
@@ -155,7 +148,13 @@ export async function resolveTimetablePrincipal(
       return { type, name, portalOnly: true };
     }
   }
-  if (await hasDutyReportAccess()) {
+  const mayUseDutyBootstrap = new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_substitution_get_today",
+  ]).has(requestedAction);
+  if ((dutyReportAction || mayUseDutyBootstrap) && store.hasDutyReportAccess
+    && await store.hasDutyReportAccess(type, name)) {
     return { type, name, dutyReportOnly: true, dutyReportAccess: true };
   }
   return null;
