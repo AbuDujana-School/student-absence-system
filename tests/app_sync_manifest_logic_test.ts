@@ -113,7 +113,13 @@ Deno.test("cloud refresh uses a manifest gate and guards every full-table reques
   const load = html.slice(start, end);
   assert(load.includes("nextManifest = await fetchAppSyncManifest()"), "Each refresh must check the small manifest first");
   assert(load.includes("const changedTables = nextManifest") && load.includes("getChangedAppSyncTables(nextManifest, offlineSnapshotAvailable)"), "A valid manifest must select changed tables");
-  assert(load.includes(": [...APP_SYNC_TABLES]"), "Manifest failure must retain the safe full-sync fallback");
+  assert(load.includes(": [...APP_SYNC_TABLES]"), "A missing manifest RPC or first load must retain the compatibility full-sync fallback");
+  assert(load.includes("manifestCode === 'PGRST202'") && load.includes("manifestCode === '42883'"), "Only a known missing RPC may trigger legacy full sync after a manifest error");
+  assert(load.includes("offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing"), "A transient manifest failure with a trusted snapshot must avoid all full-table downloads");
+  assert(load.includes("تعذر التحقق من تحديثات الخادم؛ البيانات المحلية محفوظة وسيُعاد المحاولة"), "A retained snapshot must be marked locally available while retrying the manifest");
+  const manifestErrorGuard = load.indexOf("if (offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing)");
+  const tableFetchSetup = load.indexOf("const shouldLoad =");
+  assert(manifestErrorGuard >= 0 && manifestErrorGuard < tableFetchSetup, "Transient manifest failures must return before full-table request setup");
   const noChangeStart = load.indexOf("if (nextManifest && changedTables.length === 0)");
   const noChangeEnd = load.indexOf("const shouldLoad =", noChangeStart);
   assert(noChangeStart >= 0 && noChangeEnd > noChangeStart, "No-change branch must return before table fetch setup");
