@@ -803,7 +803,7 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     headers: cors,
     readSession: (authorization) => readAppSession(appSessionStore, authorization),
     currentPrincipal: (type, name) => currentAppPrincipal(type, name),
-    resolveScope: (principal) => resolveAppDataScope(principal),
+    resolveScope: (principal) => resolveAppDataScope(principal as AppPrincipal),
   });
 }
 
