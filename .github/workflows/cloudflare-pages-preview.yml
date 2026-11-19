@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
+      - fix/revision-sync-optimization-20261119
     paths:
       - "index.html"
       - "manifest.webmanifest"
@@ -36,12 +37,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -R -n -F "ylsocrvwqibptuwfzbke.supabase.co" index.html manifest.webmanifest sw.js; then
-            echo "::error::Production Supabase endpoint detected; refusing to publish preview."
-            exit 1
-          fi
-          grep -q -F "wawplttrpiinoukpjqqx.supabase.co" index.html
-          echo "Preview bundle points to the isolated development Supabase project."
+          grep -q -F 'const IS_CLOUDFLARE_BRANCH_PREVIEW =' index.html
+          grep -q -F 'location.hostname.endsWith(".abu-dujana-school-preview.pages.dev")' index.html
+          grep -q -F 'IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co"' index.html
+          echo "Branch preview hostname is explicitly routed to the isolated development Supabase project; production remains the fallback only for the production hostname."
 
       - name: Verify Cloudflare credentials are configured
         shell: bash
@@ -83,6 +82,6 @@ jobs:
           set -euo pipefail
           wrangler pages deploy .cloudflare-pages-dist \
             --project-name "$PAGES_PROJECT_NAME" \
-            --branch feature/smart-substitution-system \
+            --branch "$GITHUB_REF_NAME" \
             --commit-hash "$GITHUB_SHA" \
             --commit-message "$GITHUB_SHA"

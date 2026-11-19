@@ -3340,8 +3340,16 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
 <script>
 /* ============ Supabase & Crypto config ============ */
-const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
+// Cloudflare branch previews must never point at the live school database.
+const IS_CLOUDFLARE_BRANCH_PREVIEW =
+  (location.hostname !== "student-absence-system.pages.dev" &&
+    location.hostname.endsWith(".student-absence-system.pages.dev")) ||
+  location.hostname === "abu-dujana-school-preview.pages.dev" ||
+  location.hostname.endsWith(".abu-dujana-school-preview.pages.dev");
+const SUPABASE_URL = IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co" : "https://ylsocrvwqibptuwfzbke.supabase.co";
+const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
+  ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA"
+  : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJ5bHNvY3J2d3FpYnB0dXdmemJrZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzkzODE3NDE2LCJleHAiOjIxMDkzOTM0MTZ9.JlAa_cKpSwOnrlkTl2Zl6_Fb1DXjTNw7Z3vdTXDi-U";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
@@ -5218,13 +5226,14 @@ function restoreDirtySetsObject(obj) {
 async function persistOfflineState() {
   try {
     const database=await openOfflineDatabase();
-    const payload={key:'snapshot',savedAt:new Date().toISOString(),db:JSON.parse(JSON.stringify(db)),dirtySets:serializeDirtySets(),pendingDeletes:getPendingDeletes()};
+    const payload={key:'snapshot',savedAt:new Date().toISOString(),db:JSON.parse(JSON.stringify(db)),dirtySets:serializeDirtySets(),pendingDeletes:getPendingDeletes(),cloudSyncManifest:lastLoadedCloudManifest};
     await new Promise((resolve,reject)=>{const tx=database.transaction('state','readwrite');tx.objectStore('state').put(payload);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('فشل الحفظ المحلي'));tx.onabort=()=>reject(tx.error||new Error('ألغي الحفظ المحلي'));});
     try { if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{}); } catch(e) {}
     return true;
   } catch(error) { console.error('IndexedDB save failed:',error); return false; }
 }
 async function restoreOfflineState() {
+  lastLoadedCloudManifest = null;
   try {
     const database=await openOfflineDatabase();
     const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
@@ -5245,6 +5254,7 @@ async function restoreOfflineState() {
       if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
       return true;
     }
+    lastLoadedCloudManifest = normalizeAppSyncManifest(snapshot.cloudSyncManifest);
     db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
     db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
     restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
@@ -5622,85 +5632,235 @@ async function migrateCredentialsIfNeeded() {
 }
 
 let cloudDataLoadState = 'not-started';
+const APP_SYNC_TABLES = ['classes','students','teachers','attendance','behaviors','school_settings','duty_reports'];
+let lastLoadedCloudManifest = null;
+
+function normalizeAppSyncManifest(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const normalized = {};
+  for (const table of APP_SYNC_TABLES) {
+    const revision = Number(value[table]);
+    if (!Number.isSafeInteger(revision) || revision < 1) return null;
+    normalized[table] = revision;
+  }
+  return normalized;
+}
+
+async function fetchAppSyncManifest() {
+  const { data, error } = await sb.rpc('get_app_sync_manifest');
+  if (error) throw error;
+  const manifest = normalizeAppSyncManifest(data);
+  if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
+  return manifest;
+}
+
+function getChangedAppSyncTables(nextManifest, hasSnapshot) {
+  if (!hasSnapshot || !lastLoadedCloudManifest) return [...APP_SYNC_TABLES];
+  const changed = APP_SYNC_TABLES.filter(table =>
+    Number(nextManifest[table]) !== Number(lastLoadedCloudManifest[table])
+  );
+  // Class and student rosters are a coupled view: a class change can affect
+  // the visible roster mapping even when the student table itself is unchanged.
+  if (changed.includes('classes') && !changed.includes('students')) changed.push('students');
+  return changed;
+}
+
 async function loadSystemDataFromCloud() {
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
   loadDirtySetsFromLocal();
   const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
-  const pendingLocalState = captureDirtyLocalState();
-  updateSyncStatus(false, "جارِ التحميل...");
+  let pendingLocalState = captureDirtyLocalState();
+  updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
+
   try {
-    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
-      fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
-      fetchAllPaginated('teachers', '*'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
-    ]);
-    const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
-    if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
-    await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
-    // Preserve the exact class names returned by the server. No automatic rename,
-    // delete, or cascade-like remapping of students and related records.
-    db.classes = [...new Set(classesData.map(r => r.name))];
-
-    db.students = {};
-    studentsData.forEach(r => {
-      let cn = r.class_name;
-      // Keep the server's class_name exactly as stored; no legacy rename mapping.
-      if (!db.students[cn]) db.students[cn] = [];
-      if (!db.students[cn].includes(r.student_name)) { db.students[cn].push(r.student_name); }
-    });
-    sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
-    Object.keys(db.students).forEach(k => db.students[k] = arabicSort(db.students[k]));
-
-    db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
-      const p = t.permissions || {};
-      const mustChange = p.mustChangePin === true || t.must_change_pin === true;
-      const cleanPerms = { ...p, mustChangePin: mustChange };
-      return { name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, mustChangePin: mustChange, permissions: cleanPerms };
-    });
-    db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({ name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, permissions: t.permissions || {} }));
-    
-    const adminRow = (settingsData || []).find(r => r.key === 'admin_pin');
-    if (adminRow?.value) { if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt }; else if (adminRow.value.pin) db.adminPin = adminRow.value.pin; }
-    const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
-    if (dutyRow?.value && typeof dutyRow.value === 'object') db.dutyModule = normalizeDutyModule(dutyRow.value);
-    const catRow = (settingsData || []).find(r => r.key === 'custom_categories');
-    if (catRow?.value && Array.isArray(catRow.value)) db.customCategories = catRow.value; else db.customCategories = [];
-    
+    // The manifest is metadata-only. It avoids downloading the seven school tables
+    // when no server-side change has occurred since this device's last snapshot.
+    let nextManifest = null;
     try {
-      const drData = await fetchAllPaginated('duty_reports', '*');
-      db.dutyModule.records = drData.filter(r => r.class_name !== '__CLEAN__').map(r => {
-        const cn = r.class_name;
-        return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
-      });
-    } catch(e) { throw new Error('تعذر تحميل سجلات تقارير المناوبة؛ أُوقف التحميل الآمن.', { cause: e }); }
+      nextManifest = await fetchAppSyncManifest();
+    } catch (manifestError) {
+      // Compatibility fallback: until the manifest migration is installed on a
+      // backend, retain the original full-sync behavior rather than risk stale data.
+      console.warn('Cloud revision manifest unavailable; using safe full sync.', manifestError);
+    }
 
-    db.attendance = {};
-    for (const r of attendanceData) {
-      const cn = r.class_name;
-      const newKey = r.record_key;
-      if (!db.attendance[newKey] || new Date(r.updated_at) > new Date(db.attendance[newKey].timestamp)) {
-        db.attendance[newKey] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
+    const changedTables = nextManifest
+      ? getChangedAppSyncTables(nextManifest, offlineSnapshotAvailable)
+      : [...APP_SYNC_TABLES];
+    const fullSync = changedTables.length === APP_SYNC_TABLES.length;
+
+    if (nextManifest && changedTables.length === 0) {
+      cloudDataLoadState = 'ready';
+      // Keep queued local deletions visible even when the cloud revision is unchanged.
+      applyPendingLocalDeletions();
+      saveToLocalStorageSafe();
+      await persistOfflineState();
+      const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
+        dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
+        dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
+        dirtySets.custom_categories || getPendingDeletes().length;
+      updateSyncStatus(!pendingSync, pendingSync
+        ? "محفوظ محلياً - بانتظار المزامنة"
+        : "متزامن");
+      return true;
+    }
+
+    const shouldLoad = table => changedTables.includes(table);
+    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await Promise.all([
+      shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
+      shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
+      shouldLoad('teachers') ? fetchAllPaginated('teachers', '*') : Promise.resolve(null),
+      shouldLoad('attendance') ? fetchAllPaginated('attendance', '*') : Promise.resolve(null),
+      shouldLoad('behaviors') ? fetchAllPaginated('behaviors', '*') : Promise.resolve(null),
+      shouldLoad('school_settings') ? fetchAllPaginated('school_settings', '*') : Promise.resolve(null),
+      shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', '*') : Promise.resolve(null)
+    ]);
+
+    if (fullSync) {
+      const empty = classesData.length === 0 && studentsData.length === 0 &&
+        teachersData.length === 0 && attendanceData.length === 0 &&
+        behaviorsData.length === 0 && settingsData.length === 0 && drData.length === 0;
+      if (empty || classesData.length === 0) {
+        throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
+      }
+    } else if (shouldLoad('classes') && classesData.length === 0) {
+      throw new Error('The server returned no classes after a class-table revision; local data was preserved.');
+    }
+
+    if (shouldLoad('students')) {
+      await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
+    }
+
+    // Re-capture after network awaits so edits made while tables were loading
+    // are merged back instead of being overwritten by the incoming cloud snapshot.
+    pendingLocalState = captureDirtyLocalState();
+
+    // Replace only the datasets whose revision changed. Unchanged datasets remain
+    // intact in the local snapshot; deletes are reflected by the changed table's
+    // complete refresh, not inferred from updated_at timestamps.
+    if (shouldLoad('classes')) {
+      db.classes = [...new Set(classesData.map(r => r.name))];
+    }
+
+    if (shouldLoad('students')) {
+      db.students = {};
+      studentsData.forEach(r => {
+        const cn = r.class_name;
+        if (!db.students[cn]) db.students[cn] = [];
+        if (!db.students[cn].includes(r.student_name)) db.students[cn].push(r.student_name);
+      });
+      sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
+      Object.keys(db.students).forEach(k => db.students[k] = arabicSort(db.students[k]));
+    } else if (shouldLoad('classes')) {
+      sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
+    }
+
+    if (shouldLoad('teachers')) {
+      db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
+        const p = t.permissions || {};
+        const mustChange = p.mustChangePin === true || t.must_change_pin === true;
+        return {
+          name: t.name,
+          pin_hash: t.pin_hash || null,
+          pin_salt: t.pin_salt || null,
+          mustChangePin: mustChange,
+          permissions: { ...p, mustChangePin: mustChange }
+        };
+      });
+      db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({
+        name: t.name,
+        pin_hash: t.pin_hash || null,
+        pin_salt: t.pin_salt || null,
+        permissions: t.permissions || {}
+      }));
+    }
+
+    if (shouldLoad('school_settings')) {
+      const adminRow = (settingsData || []).find(r => r.key === 'admin_pin');
+      if (adminRow?.value) {
+        if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt };
+        else if (adminRow.value.pin) db.adminPin = adminRow.value.pin;
+      }
+      const dutyRow = (settingsData || []).find(r => r.key === 'duty_module');
+      if (dutyRow?.value && typeof dutyRow.value === 'object') {
+        const existingDutyRecords = db.dutyModule?.records || [];
+        db.dutyModule = normalizeDutyModule(dutyRow.value);
+        db.dutyModule.records = existingDutyRecords;
+      }
+      const catRow = (settingsData || []).find(r => r.key === 'custom_categories');
+      db.customCategories = catRow?.value && Array.isArray(catRow.value) ? catRow.value : [];
+    }
+
+    if (shouldLoad('duty_reports')) {
+      db.dutyModule.records = drData
+        .filter(r => r.class_name !== '__CLEAN__')
+        .map(r => ({
+          id: r.id,
+          date: r.date_str,
+          day: r.day_num,
+          period: r.period,
+          className: r.class_name,
+          subject: r.subject || '',
+          teacherName: r.teacher_name || '',
+          reportedBy: r.reported_by,
+          status: r.status,
+          reviewedBy: r.reviewed_by,
+          reviewedAt: r.reviewed_at,
+          createdAt: r.created_at
+        }));
+    }
+
+    if (shouldLoad('attendance')) {
+      db.attendance = {};
+      for (const r of attendanceData) {
+        const newKey = r.record_key;
+        if (!db.attendance[newKey] || new Date(r.updated_at) > new Date(db.attendance[newKey].timestamp)) {
+          db.attendance[newKey] = {
+            teacher: r.teacher_name,
+            className: r.class_name,
+            period: r.period,
+            records: r.records || {},
+            timestamp: r.updated_at
+          };
+        }
       }
     }
 
-    db.behaviors = {};
-    for (const r of behaviorsData) {
-      const cn = r.class_name;
-      const newKey = r.record_key;
-      if (!db.behaviors[newKey] || new Date(r.updated_at) > new Date(db.behaviors[newKey].timestamp)) {
-        db.behaviors[newKey] = { teacher: r.teacher_name, className: cn, period: r.period, records: r.records || {}, timestamp: r.updated_at };
+    if (shouldLoad('behaviors')) {
+      db.behaviors = {};
+      for (const r of behaviorsData) {
+        const newKey = r.record_key;
+        if (!db.behaviors[newKey] || new Date(r.updated_at) > new Date(db.behaviors[newKey].timestamp)) {
+          db.behaviors[newKey] = {
+            teacher: r.teacher_name,
+            className: r.class_name,
+            period: r.period,
+            records: r.records || {},
+            timestamp: r.updated_at
+          };
+        }
       }
     }
 
     mergeDirtyLocalState(pendingLocalState);
     applyPendingLocalDeletions();
     cloudDataLoadState = 'ready';
-    // Loading is read-only: preserve local pending changes without pushing them.
+
+    // Persist the manifest in the same IndexedDB snapshot as its data. This avoids
+    // cross-tab races where one tab could mark a newer manifest against an older cache.
+    if (nextManifest) lastLoadedCloudManifest = nextManifest;
     saveToLocalStorageSafe();
     await persistOfflineState();
-    const pendingSync = dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories || getPendingDeletes().length;
-    updateSyncStatus(!pendingSync, pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+
+    const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
+      dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
+      dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
+      dirtySets.custom_categories || getPendingDeletes().length;
+    updateSyncStatus(!pendingSync, pendingSync
+      ? "محفوظ محلياً - بانتظار المزامنة"
+      : "متزامن");
     return true;
   } catch(e) {
     cloudDataLoadState = 'failed';
@@ -5720,7 +5880,8 @@ async function loadSystemDataFromCloud() {
         return false;
       } catch(pe) { console.warn('Local fallback restore failed', pe); }
     }
-    updateSyncStatus(false, "تعذر التحميل؛ أُوقف الحفظ السحابي لحماية البيانات"); return false;
+    updateSyncStatus(false, "تعذر التحميل؛ أُوقف الحفظ السحابي لحماية البيانات");
+    return false;
   }
 }
 
