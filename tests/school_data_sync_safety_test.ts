@@ -311,8 +311,11 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
 
 Deno.test("reconnect restores cloud readiness before retrying or manually uploading offline edits", () => {
   const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
-  const recoveryLoad = events.indexOf("await loadSystemDataFromCloud()");
-  const retryUpload = events.indexOf("await retryOfflineSyncSilently()");
+  const resumeStart = events.indexOf("const resumeCloudSync =");
+  const resumeEnd = events.indexOf("window.addEventListener('online'", resumeStart);
+  const resume = events.slice(resumeStart, resumeEnd);
+  const recoveryLoad = resume.indexOf("await loadSystemDataFromCloud()");
+  const retryUpload = resume.indexOf("await retryOfflineSyncSilently()");
   assert(recoveryLoad >= 0, "Reconnect must reload the read-only cloud snapshot when readiness was lost");
   assert(retryUpload > recoveryLoad, "Pending local edits may only enter the approved retry after cloud recovery");
   const captureGuard = resume.indexOf("attendanceDirty || behaviorDirty");
