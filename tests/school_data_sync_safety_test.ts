@@ -307,3 +307,16 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });
+
+
+Deno.test("an empty successful permission-gateway response never falls back to direct teacher REST", () => {
+  const refresh = section("async function refreshActiveUserPermissions()", "async function finalizeLoginState()");
+  assert(refresh.includes("let allowLegacyFallback = !token"), "Legacy fallback must be disabled whenever an app session token exists");
+  assert(refresh.includes("allowLegacyFallback = false"), "A successful gateway response must permanently disable legacy fallback for this request");
+  assert(refresh.includes("allowLegacyFallback = true"), "Only an explicitly unsupported legacy deployment may re-enable fallback");
+  assert(refresh.includes("if (!data && allowLegacyFallback)"), "A missing teacher row after a successful gateway response must not trigger direct REST");
+  assert(refresh.includes("if (!isLegacyAuthEndpointUnavailable(gatewayError)) throw gatewayError"), "Expired or denied gateway sessions must fail closed without direct REST fallback");
+  const gatewaySuccess = refresh.indexOf("allowLegacyFallback = false");
+  const directRead = refresh.indexOf("sb.from('teachers')");
+  assert(gatewaySuccess >= 0 && directRead > gatewaySuccess, "Direct teacher REST must be gated behind explicit legacy compatibility only");
+});
