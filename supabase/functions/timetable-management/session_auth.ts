@@ -11,6 +11,10 @@ export interface TimetablePrincipal {
   reserveStatsOnly?: boolean;
   /** Can only read the timetable context needed to compose an authorized duty report. */
   dutyReportOnly?: boolean;
+  /** Current teacher reserve grant, read together with the teacher identity. */
+  reserveAccess?: boolean;
+  /** Current duty-report grant, checked only on the duty/report bootstrap actions. */
+  dutyReportAccess?: boolean;
 }
 
 export interface TimetableSessionLookup {
@@ -22,6 +26,7 @@ export interface TimetableSessionLookup {
 export interface TimetableTeacherLookup {
   name: string;
   role: string;
+  reserveAccess?: boolean;
 }
 
 export interface TimetableAuthStore {
@@ -29,7 +34,6 @@ export interface TimetableAuthStore {
   hasAdminCredential(): Promise<boolean>;
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
-  hasSubstitutionAccess?(name: string): Promise<boolean>;
   hasDutyReportAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
   canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
@@ -81,6 +85,7 @@ export async function resolveTimetablePrincipal(
   const name = session.principal_name;
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
+  const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
   // The schoolwide statistics grant is relevant only to the statistics action.
   // Avoid one permission-table read on every unrelated timetable request.
   const needsSchoolwideReserveStats = new Set([
@@ -93,14 +98,35 @@ export async function resolveTimetablePrincipal(
     store.hasSchoolwideReserveStatsAccess
       ? await store.hasSchoolwideReserveStatsAccess(type, name)
       : false;
+  // Duty access is checked only on the duty report and the limited bootstrap
+  // actions that historically allow a duty-only account to resolve.
+  const needsDutyReportAccess = new Set([
+    "health",
+    "timetable_check_access",
+    "timetable_duty_report_context",
+    "teacher_substitution_get_today",
+  ]).has(requestedAction);
+  const hasDutyReportAccess = async () => needsDutyReportAccess &&
+    store.hasDutyReportAccess
+      ? await store.hasDutyReportAccess(type, name)
+      : false;
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
-    return { type, name, schoolwideReserveStats };
+    const dutyReportAccess = await hasDutyReportAccess();
+    return {
+      type, name, reserveAccess, schoolwideReserveStats,
+      ...(needsDutyReportAccess ? { dutyReportAccess } : {}),
+    };
   }
-  // Existing reserve permission is narrower than general timetable access.
-  if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
+  // Reserve permission is loaded with the teacher identity, avoiding a second
+  // teachers-table read during authorization and again in the request handler.
+  if (reserveAccess) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
-    return { type, name, schoolwideReserveStats };
+    const dutyReportAccess = await hasDutyReportAccess();
+    return {
+      type, name, reserveAccess: true, schoolwideReserveStats,
+      ...(needsDutyReportAccess ? { dutyReportAccess } : {}),
+    };
   }
   const schoolwideReserveStats = await hasSchoolwideReserveStats();
   if (schoolwideReserveStats) {
@@ -129,8 +155,8 @@ export async function resolveTimetablePrincipal(
       return { type, name, portalOnly: true };
     }
   }
-  if (store.hasDutyReportAccess && await store.hasDutyReportAccess(type, name)) {
-    return { type, name, dutyReportOnly: true };
+  if (await hasDutyReportAccess()) {
+    return { type, name, dutyReportOnly: true, dutyReportAccess: true };
   }
   return null;
 }
