@@ -5667,6 +5667,11 @@ function getChangedAppSyncTables(nextManifest, hasSnapshot) {
 }
 
 async function loadSystemDataFromCloud() {
+  if (!activeUser) {
+    cloudDataLoadState = 'failed';
+    updateSyncStatus(false, 'سجّل الدخول أولاً قبل تحميل بيانات المدرسة');
+    return false;
+  }
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
