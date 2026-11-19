@@ -85,3 +85,18 @@ Deno.test("invalid principal and operation values fail closed at runtime", () =>
   assertEquals(authorizeAppDataOperation(invalidPrincipal, "classes", "read"), false);
   assertEquals(authorizeAppDataOperation(admin, "classes", "update" as never), false);
 });
+
+
+Deno.test("student affairs grants use separate attendance and behavior scopes", () => {
+  const principal = { type: "teacher" as const, name: "Affairs Teacher", permissions: { attendance: true, behavior: true } };
+  const scope = {
+    allowedClasses: ["5/1"],
+    allowedAttendanceClasses: ["5/1", "6/1"],
+    allowedBehaviorClasses: ["5/1", "7/1"],
+  };
+  assertEquals(authorizeAppDataOperation(principal, "students", "read", { class_name: "6/1" }, scope), false);
+  assertEquals(authorizeAppDataOperation(principal, "attendance", "read", { class_name: "6/1" }, scope), true);
+  assertEquals(authorizeAppDataOperation(principal, "attendance", "read", { class_name: "7/1" }, scope), false);
+  assertEquals(authorizeAppDataOperation(principal, "behaviors", "read", { class_name: "7/1" }, scope), true);
+  assertEquals(authorizeAppDataOperation(principal, "behaviors", "read", { class_name: "6/1" }, scope), false);
+});
