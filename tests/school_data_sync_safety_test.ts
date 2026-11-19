@@ -308,3 +308,11 @@ Deno.test("teacher timetable keeps its local 15-second render but limits server 
   assert(view.includes(">= 120000"), "The teacher timetable must not fetch from the server more than once every two minutes");
   assert(view.includes("}, 15000);"), "The local timetable display must keep its 15-second render cycle");
 });
+
+
+Deno.test("teacher reserve notice skips its network request while the notice modal is already open", () => {
+  const notice = section("async function teacherShowDailySubstitutionWelcome()", "function teacherStartDailySubstitutionWatcher()");
+  const modalGuard = notice.indexOf('if (!modal || !list || !modal.classList.contains("hidden")) return;');
+  const tokenRead = notice.indexOf("const token = appAuthSession?.token || readAppAuthToken();");
+  assert(modalGuard >= 0 && tokenRead > modalGuard, "An already-open notice must be detected before any server request");
+});
