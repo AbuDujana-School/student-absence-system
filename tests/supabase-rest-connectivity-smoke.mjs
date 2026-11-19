@@ -79,7 +79,7 @@ if (!productionManifestResponse.ok) {
 }
 
 
-const productionTableProbe = await fetch(productionBaseUrl + "/rest/v1/classes?select=id&limit=0", {
+const productionTableProbe = await fetch(productionBaseUrl + "/rest/v1/classes?select=name&limit=0", {
   headers: {
     apikey: productionPublishableKey,
     Authorization: "Bearer " + productionPublishableKey,
