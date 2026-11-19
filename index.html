@@ -3340,8 +3340,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
 <script>
 /* ============ Supabase & Crypto config ============ */
-const SUPABASE_URL = "https://ylsocrvwqibptuwfzbke.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
+const SUPABASE_URL = "https://wawplttrpiinoukpjqqx.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
@@ -3447,9 +3447,9 @@ function showPrompt(message, options = {}) {
 }
 
 
-const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
-const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/timetable-management";
-const SA_API_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
+const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://wawplttrpiinoukpjqqx.supabase.co/functions/v1/student-affairs";
+const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://wawplttrpiinoukpjqqx.supabase.co/functions/v1/timetable-management";
+const SA_API_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA";
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
@@ -5581,13 +5581,14 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) resumeCloudSync();
   });
-  // Poll the cloud safely while the app is active. Local pending edits are never
-  // overwritten; uploads require explicit approval and queued deletions stay inert.
+  // Reconcile the full school dataset every five minutes instead of every minute.
+  // Returning to the tab or restoring connectivity still triggers an immediate refresh.
+  // Local pending edits remain protected and queued deletions stay inert.
   setInterval(() => {
     if (!navigator.onLine || !activeUser || document.hidden) return;
     if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
     else refreshCloudDataSilently();
-  }, 60000);
+  }, 5 * 60 * 1000);
   if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
     setTimeout(() => retryOfflineSyncSilently(), 1800);
   }
