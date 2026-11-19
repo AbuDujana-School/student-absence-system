@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
+      - fix/query-load-optimization-preview-20261119
     paths:
       - "index.html"
       - "manifest.webmanifest"
@@ -16,7 +17,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: cloudflare-pages-development-preview
+  group: cloudflare-pages-development-preview-${{ github.ref_name }}
   cancel-in-progress: true
 
 jobs:
@@ -83,6 +84,6 @@ jobs:
           set -euo pipefail
           wrangler pages deploy .cloudflare-pages-dist \
             --project-name "$PAGES_PROJECT_NAME" \
-            --branch feature/smart-substitution-system \
+            --branch "$GITHUB_REF_NAME" \
             --commit-hash "$GITHUB_SHA" \
             --commit-message "$GITHUB_SHA"

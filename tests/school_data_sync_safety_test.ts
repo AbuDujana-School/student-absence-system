@@ -1,4 +1,5 @@
 const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
+const studentAffairs = await Deno.readTextFile(new URL("../supabase/functions/student-affairs/index.ts", import.meta.url));
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -56,7 +57,8 @@ Deno.test("cloud refresh polling is read-only whenever local edits or live captu
   assert(refresh.includes("attendanceDirty || behaviorDirty"), "Refresh must not replace an active unsaved capture session");
   assert(refresh.includes("await loadSystemDataFromCloud()"), "Safe refresh must fetch the latest cloud state");
   const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
-  assert(events.includes("}, 60000);"), "Active sessions must poll cloud data periodically");
+  assert(events.includes("}, 300000);"), "Active sessions must use a five-minute full refresh interval");
+  assert(refresh.includes("lastCloudDataRefreshAt > 0") && refresh.includes("< 180000"), "Focus and visibility events must not duplicate a recent full refresh");
 });
 
 Deno.test("default PIN initialization and credential migration are not invoked automatically", () => {
@@ -299,4 +301,23 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("pendingRecords && pendingDeletes"), "The status must detect simultaneous edits and queued deletions");
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
+});
+
+
+Deno.test("initial cloud load selects only fields used by the local model", () => {
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(load.includes("fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin')"), "Teacher load must use an explicit projection");
+  assert(load.includes("fetchAllPaginated('attendance', 'record_key,class_name,teacher_name,period,records,updated_at')"), "Attendance load must use an explicit projection");
+  assert(load.includes("fetchAllPaginated('behaviors', 'record_key,class_name,teacher_name,period,records,updated_at')"), "Behavior load must use an explicit projection");
+  assert(load.includes("fetchAllPaginated('duty_reports', 'id,class_name,date_str,day_num,period,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at')"), "Duty report load must use an explicit projection");
+});
+
+Deno.test("supervision trend batches authorized classes into one paginated read per table", () => {
+  const start = studentAffairs.indexOf('const fetchAll = async (table: "attendance" | "behaviors", classes: string[]) => {');
+  const end = studentAffairs.indexOf("let attendanceRows", start);
+  assert(start >= 0 && end > start, "Supervision trend fetch helper must exist");
+  const fetchAll = studentAffairs.slice(start, end);
+  assert(fetchAll.includes('.in("class_name", classes)'), "Supervision trend must query all authorized classes in one filter");
+  assert(fetchAll.includes(".range(offset, offset + 999)"), "Supervision trend must retain pagination");
+  assert(!fetchAll.includes('.eq("class_name", className)'), "Supervision trend must not issue one query per class");
 });

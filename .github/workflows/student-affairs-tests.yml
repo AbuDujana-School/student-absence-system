@@ -12,6 +12,7 @@ on:
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
       - "feature/smart-substitution-system"
+      - "fix/query-load-optimization-preview-20261119"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"

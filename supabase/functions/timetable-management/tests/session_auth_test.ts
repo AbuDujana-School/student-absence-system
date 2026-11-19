@@ -372,3 +372,34 @@ Deno.test("teacher without duty permission cannot obtain duty-only timetable acc
     throw new Error("Teacher without any timetable, reserve, portal, or duty permission was accepted");
   }
 });
+
+
+Deno.test("daily substitution notice validates only the teacher session and matching teacher record", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher" },
+    access: false,
+    reserve: false,
+    linkedPortalAccess: false,
+    ownDailyAssignment: false,
+    duty: false,
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN,
+    store,
+    NOW,
+    "teacher_substitution_get_today",
+  );
+  if (principal?.type !== "teacher" || principal.name !== "Teacher A") {
+    throw new Error("A valid teacher session must be allowed to read only its own daily notice");
+  }
+  if (calls.filter((call) => call.startsWith("session:")).length !== 1 ||
+      calls.filter((call) => call.startsWith("teacher:")).length !== 1) {
+    throw new Error("Daily notice authorization must validate the session and teacher exactly once");
+  }
+  if (calls.some((call) => /^(access:|reserve:|linked-portal:|own-assignment:|duty:)/.test(call))) {
+    throw new Error("Daily notice authorization must skip unrelated permission discovery queries");
+  }
+});

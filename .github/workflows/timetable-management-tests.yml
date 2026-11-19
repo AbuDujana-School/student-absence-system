@@ -11,6 +11,7 @@ on:
       - feature/reserve-same-day-corrections-20261117
       - fix/timetable-pdf-rotated-import-mainline-20261115
       - main
+      - fix/query-load-optimization-preview-20261119
     paths:
       - "supabase/functions/timetable-management/**"
       - ".github/workflows/timetable-management-tests.yml"
