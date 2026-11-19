@@ -65,7 +65,8 @@ export async function handleAppDataGatewayRead(
     table === "classes" ? { name: firstClass } :
     table === "students" || table === "attendance" || table === "behaviors" || table === "duty_reports"
       ? { class_name: firstClass, teacher_name: principal.name } :
-    table === "teachers" ? { name: principal.name } : null;
+    table === "teachers" ? { name: principal.name } :
+    table === "school_settings" && principal.type !== "admin" ? { key: "duty_module" } : null;
   if (!authorizeAppDataOperation(principal, table, "read", probe, scope)) {
     return gatewayReply(403, { error: "ليست لديك صلاحية قراءة هذا النوع من البيانات." }, deps.headers);
   }
@@ -87,7 +88,11 @@ export async function handleAppDataGatewayRead(
   if (principal.type !== "admin") {
     if (table === "teachers") query = query.eq("name", principal.name);
     else if (table === "school_settings") {
-      return gatewayReply(403, { error: "قراءة إعدادات النظام للمدير فقط." }, deps.headers);
+      if (principal.permissions?.duty !== true) {
+        return gatewayReply(403, { error: "قراءة إعدادات المناوبة غير مصرح بها لهذا الحساب." }, deps.headers);
+      }
+      // Never accept a client-selected settings key for non-admin principals.
+      query = query.eq("key", "duty_module");
     } else if (table === "classes") {
       if (!scope.allowedClasses.length) return gatewayReply(200, { rows: [], next_offset: null }, deps.headers);
       query = query.in("name", scope.allowedClasses);
