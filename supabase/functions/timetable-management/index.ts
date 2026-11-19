@@ -111,8 +111,12 @@ const timetableAuthStore: TimetableAuthStore = {
   },
   async findTeacher(name) {
     const { data, error } = await db.from("teachers")
-      .select("name,role").eq("name", name).maybeSingle();
-    return error || !data ? null : { name: String(data.name), role: String(data.role) };
+      .select("name,role,permissions").eq("name", name).maybeSingle();
+    return error || !data ? null : {
+      name: String(data.name),
+      role: String(data.role),
+      reserveAccess: data.role === "teacher" && data.permissions?.reserve === true,
+    };
   },
   async hasTimetableAccess(type, name) {
     const { data, error } = await db.from("timetable_access_permissions")
@@ -298,9 +302,9 @@ async function handle(req: Request) {
   const action = String(body.action || "");
   const principal = await requirePrincipal(req, action);
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-  const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
-    ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
-    : false;
+  // The live reserve grant is already included in the teacher identity lookup.
+  const hasReservePermission = principal.type === "teacher" &&
+    action.startsWith("timetable_substitution_") && principal.reserveAccess === true;
   // Only archive actions need the separate timetable grant; avoid this
   // permission query for every ordinary read while preserving the archive recheck.
   const needsArchiveGrant = ["timetable_substitution_archive", "timetable_substitution_archive_access"].includes(action);
@@ -310,7 +314,7 @@ async function handle(req: Request) {
       : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
   const hasDutyReportPermission = action === "timetable_duty_report_context" && (
-    principal.type === "admin" || await timetableAuthStore.hasDutyReportAccess?.(principal.type, principal.name) === true
+    principal.type === "admin" || principal.dutyReportAccess === true || principal.dutyReportOnly === true
   );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
     principal.type === "admin" || await (async () => {
