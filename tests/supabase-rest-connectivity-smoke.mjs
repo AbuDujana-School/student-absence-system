@@ -28,6 +28,19 @@ async function request(path, options = {}) {
   return { status: response.status, code: body.code || body.error || "" };
 }
 
+const corsProbe = await fetch(baseUrl + "/rest/v1/classes?select=name", {
+  method: "OPTIONS",
+  headers: {
+    Origin: "https://fix-app-session-rls-bridge-20261119.abu-dujana-school-preview.pages.dev",
+    "Access-Control-Request-Method": "GET",
+    "Access-Control-Request-Headers": "apikey,authorization,x-app-session",
+  },
+});
+const allowedHeaders = corsProbe.headers.get("access-control-allow-headers") || "";
+console.log("Preview REST CORS preflight: HTTP " + corsProbe.status +
+  "; x-app-session allowed: " + /(^|[,\\s])x-app-session([,\\s]|$)/i.test(allowedHeaders));
+console.log("CORS allowed header names: " + allowedHeaders.slice(0, 300));
+
 const table = await request("classes?select=*&limit=1");
 console.log("REST table read without a user session: HTTP " + table.status +
   (table.code ? " (API code: " + String(table.code).slice(0, 100) + ")" : ""));
