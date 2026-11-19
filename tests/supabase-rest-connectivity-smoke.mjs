@@ -15,11 +15,11 @@ if (!baseUrl.includes("wawplttrpiinoukpjqqx.supabase.co")) {
 }
 
 async function check(label, path, options = {}) {
-  const response = await fetch(\`\${baseUrl}/rest/v1/\${path}\`, {
+  const response = await fetch(baseUrl + "/rest/v1/" + path, {
     ...options,
     headers: {
       apikey: apiKey,
-      Authorization: \`Bearer \${apiKey}\`,
+      Authorization: "Bearer " + apiKey,
       ...(options.headers || {}),
     },
   });
@@ -28,7 +28,7 @@ async function check(label, path, options = {}) {
     const body = await response.clone().json();
     code = body.code || body.error || body.message || "";
   } catch {}
-  console.log(\`\${label}: HTTP \${response.status}\${code ? \` (API code: \${String(code).slice(0, 100)})\` : ""}\`);
+  console.log(label + ": HTTP " + response.status + (code ? " (API code: " + String(code).slice(0, 100) + ")" : ""));
   if (!response.ok) process.exitCode = 1;
 }
 await check("REST table read (classes, limit 1)", "classes?select=*&limit=1");
