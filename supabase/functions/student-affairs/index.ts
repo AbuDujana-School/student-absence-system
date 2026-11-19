@@ -753,11 +753,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
 
 
 async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScope> {
-  if (principal.type === "admin") {
-    const { data, error } = await db.from("classes").select("name").order("name").limit(500);
-    if (error) throw new Error("Unable to resolve administrator class scope");
-    return { allowedClasses: (data || []).map((row: any) => String(row.name || "").trim()).filter(Boolean) };
-  }
+  // Admin access is decided by the server policy; no class-list query is needed.
   if (principal.type !== "teacher") return { allowedClasses: [] };
 
   const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
@@ -830,7 +826,9 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     return reply(400, { error: "نطاق التاريخ غير صالح." });
   }
 
-  const scope = await resolveAppDataScope(principal);
+  const scope: AppDataScope = principal.type === "admin" || table === "teachers" || table === "school_settings"
+    ? { allowedClasses: [] }
+    : await resolveAppDataScope(principal);
   const tableClasses = table === "attendance" ? (scope.allowedAttendanceClasses || scope.allowedClasses) :
     table === "behaviors" ? (scope.allowedBehaviorClasses || scope.allowedClasses) : scope.allowedClasses;
   const firstClass = tableClasses[0] || "";
