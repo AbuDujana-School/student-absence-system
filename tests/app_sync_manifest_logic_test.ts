@@ -101,3 +101,20 @@ Deno.test("Cloudflare branch previews select the isolated Supabase project only"
   assert(githubProduction.url === "https://ylsocrvwqibptuwfzbke.supabase.co", "GitHub Pages production must keep production backend");
   assert(branchPreview.key !== pagesRoot.key, "Preview and production public keys must be distinct");
 });
+
+Deno.test("cloud refresh uses a manifest gate and guards every full-table request", () => {
+  const start = html.indexOf("async function loadSystemDataFromCloud()");
+  const end = html.indexOf("async function saveSystemDataToCloud(", start);
+  assert(start >= 0 && end > start, "Cloud refresh implementation must exist");
+  const load = html.slice(start, end);
+  assert(load.includes("nextManifest = await fetchAppSyncManifest()"), "Each refresh must check the small manifest first");
+  assert(load.includes("nextManifest ? getChangedAppSyncTables(nextManifest, offlineSnapshotAvailable)"), "A valid manifest must select changed tables");
+  assert(load.includes(": [...APP_SYNC_TABLES]"), "Manifest failure must retain the safe full-sync fallback");
+  const noChangeStart = load.indexOf("if (nextManifest && changedTables.length === 0)");
+  const noChangeEnd = load.indexOf("const shouldLoad =", noChangeStart);
+  assert(noChangeStart >= 0 && noChangeEnd > noChangeStart, "No-change branch must return before table fetch setup");
+  assert(!load.slice(noChangeStart, noChangeEnd).includes("fetchAllPaginated("), "No-change refresh must not download any school table");
+  for (const table of logic.tables) {
+    assert(load.includes(`shouldLoad('${table}') ? fetchAllPaginated('${table}'`), `${table} download must be guarded by its revision`);
+  }
+});
