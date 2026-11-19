@@ -70,6 +70,19 @@ export async function handleAppDataGatewayRead(
     return gatewayReply(403, { error: "ليست لديك صلاحية قراءة هذا النوع من البيانات." }, deps.headers);
   }
 
+  let requestedClassName: string | undefined;
+  if (body?.class_name !== undefined) {
+    if (typeof body.class_name !== "string" ||
+        !["classes", "students", "attendance", "behaviors", "duty_reports"].includes(table)) {
+      return gatewayReply(400, { error: "مرشح الصف غير صالح لهذا النوع من البيانات." }, deps.headers);
+    }
+    requestedClassName = body.class_name.trim();
+    if (!requestedClassName || requestedClassName.length > 120 ||
+      (principal.type !== "admin" && !tableClasses.includes(requestedClassName))) {
+      return gatewayReply(403, { error: "الصف المطلوب خارج نطاق صلاحيات الحساب." }, deps.headers);
+    }
+  }
+
   let query: any = deps.db.from(table).select(allowedAppDataFields(table).join(","));
   if (principal.type !== "admin") {
     if (table === "teachers") query = query.eq("name", principal.name);
@@ -83,17 +96,8 @@ export async function handleAppDataGatewayRead(
       query = query.in("class_name", tableClasses);
     }
   }
-  if (body?.class_name !== undefined) {
-    if (typeof body.class_name !== "string" ||
-        !["classes", "students", "attendance", "behaviors", "duty_reports"].includes(table)) {
-      return gatewayReply(400, { error: "مرشح الصف غير صالح لهذا النوع من البيانات." }, deps.headers);
-    }
-    const className = body.class_name.trim();
-    if (!className || className.length > 120 ||
-      (principal.type !== "admin" && !tableClasses.includes(className))) {
-      return gatewayReply(403, { error: "الصف المطلوب خارج نطاق صلاحيات الحساب." }, deps.headers);
-    }
-    query = table === "classes" ? query.eq("name", className) : query.eq("class_name", className);
+  if (requestedClassName !== undefined) {
+    query = table === "classes" ? query.eq("name", requestedClassName) : query.eq("class_name", requestedClassName);
   }
   if (table === "school_settings" && principal.type === "admin") {
     query = query.neq("key", "admin_pin");
