@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
+      - perf/reduce-supabase-polling-20261119
     paths:
       - "index.html"
       - "manifest.webmanifest"
@@ -83,6 +84,6 @@ jobs:
           set -euo pipefail
           wrangler pages deploy .cloudflare-pages-dist \
             --project-name "$PAGES_PROJECT_NAME" \
-            --branch feature/smart-substitution-system \
+            --branch "$GITHUB_REF_NAME" \
             --commit-hash "$GITHUB_SHA" \
             --commit-message "$GITHUB_SHA"
