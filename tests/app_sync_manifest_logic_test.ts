@@ -122,3 +122,19 @@ Deno.test("cloud refresh uses a manifest gate and guards every full-table reques
     assert(load.includes(`shouldLoad('${table}') ? fetchAllPaginated('${table}'`), `${table} download must be guarded by its revision`);
   }
 });
+
+Deno.test("local edits made during cloud requests are recaptured before replacing datasets", () => {
+  const start = html.indexOf("async function loadSystemDataFromCloud()");
+  const end = html.indexOf("async function saveSystemDataToCloud(", start);
+  const load = html.slice(start, end);
+  const initialCapture = load.indexOf("let pendingLocalState = captureDirtyLocalState()");
+  const postFetchAwait = load.indexOf("await clearCompletedStudentDeleteIntentsFromCloud(studentsData)");
+  const refreshedCapture = load.indexOf("pendingLocalState = captureDirtyLocalState()", initialCapture + 1);
+  const firstCloudReplace = load.indexOf("db.classes = [...new Set(classesData.map(r => r.name))]");
+  const merge = load.indexOf("mergeDirtyLocalState(pendingLocalState)");
+  assert(initialCapture >= 0, "The initial dirty local snapshot must be captured");
+  assert(postFetchAwait >= 0, "The asynchronous student-delete reconciliation must remain explicit");
+  assert(refreshedCapture > postFetchAwait, "Dirty state must be recaptured after asynchronous cloud requests");
+  assert(refreshedCapture < firstCloudReplace, "The latest local edits must be captured before cloud data replaces local datasets");
+  assert(merge > refreshedCapture, "The refreshed dirty snapshot must be merged after cloud data is loaded");
+});
