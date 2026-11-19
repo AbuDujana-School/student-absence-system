@@ -11,6 +11,16 @@ on:
       - "icons/**"
       - ".github/workflows/query-load-optimization-preview.yml"
       - "tests/query-load-preview.spec.cjs"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "icons/**"
+      - ".github/workflows/query-load-optimization-preview.yml"
+      - "tests/query-load-preview.spec.cjs"
   workflow_dispatch:
 
 permissions:
