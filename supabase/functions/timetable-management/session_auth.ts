@@ -81,19 +81,23 @@ export async function resolveTimetablePrincipal(
   const name = session.principal_name;
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
+  // The schoolwide statistics grant is relevant only to the statistics action.
+  // Avoid one permission-table read on every unrelated timetable request.
+  const needsSchoolwideReserveStats = requestedAction === "timetable_substitution_stats";
+  const hasSchoolwideReserveStats = async () => needsSchoolwideReserveStats &&
+    store.hasSchoolwideReserveStatsAccess
+      ? await store.hasSchoolwideReserveStatsAccess(type, name)
+      : false;
   if (await store.hasTimetableAccess(type, name)) {
-    const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
-      ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+    const schoolwideReserveStats = await hasSchoolwideReserveStats();
     return { type, name, schoolwideReserveStats };
   }
   // Existing reserve permission is narrower than general timetable access.
   if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
-    const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
-      ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+    const schoolwideReserveStats = await hasSchoolwideReserveStats();
     return { type, name, schoolwideReserveStats };
   }
-  const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
-    ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+  const schoolwideReserveStats = await hasSchoolwideReserveStats();
   if (schoolwideReserveStats) {
     return { type, name, schoolwideReserveStats: true, reserveStatsOnly: true };
   }
