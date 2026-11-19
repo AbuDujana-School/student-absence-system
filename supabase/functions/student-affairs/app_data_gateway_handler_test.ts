@@ -103,3 +103,38 @@ Deno.test("date and pagination validation reject malformed requests before datab
   assertEquals(badLimit.status, 400);
   assertEquals(calls.some(([name]) => name === "from"), false);
 });
+
+
+Deno.test("teacher attendance permission is checked independently from class assignment", async () => {
+  const restricted = { ...teacher, permissions: { attendance: false, behavior: true } };
+  const { deps, calls } = fixture({ principal: restricted });
+  const response = await request({ table: "attendance" }, deps);
+  assertEquals(response.status, 403);
+  assertEquals(calls.some(([name]) => name === "from"), false);
+});
+
+Deno.test("valid date bounds are applied server-side before the result page is read", async () => {
+  const { deps, calls } = fixture({ rows: [{ record_key: "r1", date_str: "2026-10-05", class_name: "5/1" }] });
+  const response = await request({ table: "attendance", from_date: "2026-10-01", to_date: "2026-10-31" }, deps);
+  assertEquals(response.status, 200);
+  assert(calls.some(([name, column, value]) => name === "gte" && column === "date_str" && value === "2026-10-01"));
+  assert(calls.some(([name, column, value]) => name === "lte" && column === "date_str" && value === "2026-10-31"));
+});
+
+Deno.test("requested in-scope class is combined with the server-derived scope filter", async () => {
+  const { deps, calls } = fixture();
+  const response = await request({ table: "students", class_name: "5/1" }, deps);
+  assertEquals(response.status, 200);
+  assert(calls.some(([name, column, value]) => name === "eq" && column === "class_name" && value === "5/1"));
+  assert(calls.some(([name, column, values]) => name === "in" && column === "class_name" && Array.isArray(values) && values.includes("5/1")));
+});
+
+Deno.test("full page returns a continuation offset while a short page ends pagination", async () => {
+  const full = fixture({ rows: [{ student_name: "A" }] });
+  const fullResponse = await request({ table: "students", offset: 20, limit: 1 }, full.deps);
+  assertEquals((await body(fullResponse)).next_offset, 21);
+
+  const short = fixture({ rows: [] });
+  const shortResponse = await request({ table: "students", offset: 20, limit: 1 }, short.deps);
+  assertEquals((await body(shortResponse)).next_offset, null);
+});
