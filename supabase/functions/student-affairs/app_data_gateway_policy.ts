@@ -31,7 +31,9 @@ const TABLE_FIELDS: Record<AppDataTable, readonly string[]> = {
 };
 
 const SECRET_KEY = /(pin|hash|salt|token|secret|password|credential|api.?key|private.?key)/i;
-function isSecretField(key: string): boolean {\n  return !/^must_?change_?pin$/i.test(key) && !/^mustChangePin$/i.test(key) && SECRET_KEY.test(key);\n}
+function isSecretField(key: string): boolean {
+  return !/^must_?change_?pin$/i.test(key) && !/^mustChangePin$/i.test(key) && SECRET_KEY.test(key);
+}
 const ALLOWED_TABLES = new Set<string>(APP_DATA_TABLES);
 
 function isRecord(value: unknown): value is Record<string, unknown> {
