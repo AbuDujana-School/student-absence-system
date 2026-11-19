@@ -6248,6 +6248,11 @@ async function refreshActiveUserPermissions() {
     // the current account's role and permissions, never PIN hashes or salts.
     const token = appAuthSession?.token || readAppAuthToken();
     let data = null;
+    // Legacy access is allowed only when no app session token exists, or when
+    // the server explicitly reports that this deployment does not know the
+    // gateway action. A successful gateway response with zero rows is a
+    // definitive empty/denied result and must never be bypassed with direct REST.
+    let allowLegacyFallback = !token;
     if (token) {
       try {
         const result = await appAuthRequest({
@@ -6255,15 +6260,17 @@ async function refreshActiveUserPermissions() {
           table: 'teachers',
           limit: 1
         }, token);
+        allowLegacyFallback = false;
         data = Array.isArray(result?.rows) ? result.rows[0] || null : null;
       } catch (gatewayError) {
         // Older deployments do not expose the gateway yet. Keep the existing
-        // permissions-only read as a compatibility bridge until that endpoint
-        // is deployed; never fall back for denied or expired sessions.
+        // permissions-only read as a compatibility bridge only for an explicit
+        // unknown-action/endpoint response, never for denied or expired sessions.
         if (!isLegacyAuthEndpointUnavailable(gatewayError)) throw gatewayError;
+        allowLegacyFallback = true;
       }
     }
-    if (!data) {
+    if (!data && allowLegacyFallback) {
       const { data: legacyData, error } = await sb.from('teachers')
         .select('role,permissions')
         .eq('name', user.name)
