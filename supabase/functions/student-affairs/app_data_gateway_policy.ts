@@ -16,8 +16,12 @@ export type AppDataPrincipal = {
   permissions?: Record<string, unknown>;
 };
 export type AppDataScope = {
-  /** Must be resolved by the server from current database assignments, never from request JSON. */
+  /** General class/roster scope: active timetable plus explicit school-affairs grants. */
   allowedClasses: readonly string[];
+  /** Separate, explicitly granted attendance scope; never accepted from request JSON. */
+  allowedAttendanceClasses?: readonly string[];
+  /** Separate, explicitly granted behavior scope; never accepted from request JSON. */
+  allowedBehaviorClasses?: readonly string[];
 };
 
 const TABLE_FIELDS: Record<AppDataTable, readonly string[]> = {
@@ -50,8 +54,8 @@ function cleanSecrets(value: unknown): unknown {
   return output;
 }
 
-function normalizeClasses(scope?: AppDataScope): Set<string> {
-  return new Set((scope?.allowedClasses || []).map((value) => String(value).trim()).filter(Boolean));
+function normalizeClasses(values?: readonly string[]): Set<string> {
+  return new Set((values || []).map((value) => String(value).trim()).filter(Boolean));
 }
 
 export function allowedAppDataFields(table: AppDataTable): readonly string[] {
@@ -86,7 +90,9 @@ export function authorizeAppDataOperation(
   if (principal.type === "admin") return true;
 
   const permissions = principal.permissions || {};
-  const classes = normalizeClasses(scope);
+  const classes = normalizeClasses(scope?.allowedClasses);
+  const attendanceClasses = normalizeClasses(scope?.allowedAttendanceClasses ?? scope?.allowedClasses);
+  const behaviorClasses = normalizeClasses(scope?.allowedBehaviorClasses ?? scope?.allowedClasses);
   const className = isRecord(row) ? String(row.class_name || "") : "";
 
   if (table === "classes" || table === "students") {
@@ -104,7 +110,8 @@ export function authorizeAppDataOperation(
     const permissionKey = table === "attendance" ? "attendance" : "behavior";
     // Permissions must be explicitly granted by the current server-loaded teacher profile.
     const enabled = permissions[permissionKey] === true;
-    if (!enabled || !isRecord(row) || !classes.has(className)) return false;
+    const tableClasses = table === "attendance" ? attendanceClasses : behaviorClasses;
+    if (!enabled || !isRecord(row) || !tableClasses.has(className)) return false;
     if (operation === "read") return true;
     return operation === "write" && String(row.teacher_name || "") === principal.name;
   }
