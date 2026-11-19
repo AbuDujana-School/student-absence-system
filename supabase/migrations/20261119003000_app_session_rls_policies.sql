@@ -16,7 +16,7 @@ as $function$
          select 1 from public.teachers as t
          where t.name = p.principal_name
            and t.role = p.principal_type
-           and pg_catalog.coalesce(t.permissions ->> 'admin', 'false') = 'true'
+           and coalesce(t.permissions ->> 'admin', 'false') = 'true'
        )
   );
 $function$;
