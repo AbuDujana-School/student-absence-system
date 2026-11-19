@@ -5681,9 +5681,21 @@ async function loadSystemDataFromCloud() {
     try {
       nextManifest = await fetchAppSyncManifest();
     } catch (manifestError) {
-      // Compatibility fallback: until the manifest migration is installed on a
-      // backend, retain the original full-sync behavior rather than risk stale data.
-      console.warn('Cloud revision manifest unavailable; using safe full sync.', manifestError);
+      // A transient manifest/network failure must not fan out into seven full-table
+      // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
+      // the lightweight manifest on the next refresh. Only a missing RPC keeps the
+      // compatibility full-sync path for backends that have not installed the migration.
+      const manifestCode = String(manifestError?.code || '');
+      const manifestStatus = Number(manifestError?.status || 0);
+      const manifestMessage = String(manifestError?.message || '');
+      const manifestRpcMissing = manifestCode === 'PGRST202' || manifestCode === '42883' ||
+        manifestStatus === 404 || /function .*get_app_sync_manifest.*(not found|does not exist)/i.test(manifestMessage);
+      console.warn('Cloud revision manifest unavailable.', manifestError);
+      if (offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing) {
+        cloudDataLoadState = 'ready';
+        updateSyncStatus(false, 'تعذر التحقق من تحديثات الخادم؛ البيانات المحلية محفوظة وسيُعاد المحاولة.');
+        return false;
+      }
     }
 
     const changedTables = nextManifest
