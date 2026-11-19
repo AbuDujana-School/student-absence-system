@@ -1,0 +1,28 @@
+name: Preview Supabase REST connectivity smoke test
+
+on:
+  push:
+    branches:
+      - fix/rest-api-connectivity-smoke-20261119
+    paths:
+      - "index.html"
+      - "tests/supabase-rest-connectivity-smoke.mjs"
+      - ".github/workflows/supabase-rest-connectivity-smoke.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  preview-rest-connectivity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Test real REST connectivity against isolated preview project
+        run: node tests/supabase-rest-connectivity-smoke.mjs
