@@ -300,3 +300,11 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });
+
+
+Deno.test("teacher timetable keeps its local 15-second render but limits server refreshes to two minutes", () => {
+  const view = section("async function openTeacherTimetableView()", "function closeTeacherTimetableView()");
+  assert(view.includes("teacherTimetableRender()"), "The open timetable view must continue rendering local data");
+  assert(view.includes(">= 120000"), "The teacher timetable must not fetch from the server more than once every two minutes");
+  assert(view.includes("}, 15000);"), "The local timetable display must keep its 15-second render cycle");
+});
