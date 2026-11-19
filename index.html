@@ -6244,13 +6244,33 @@ async function refreshActiveUserPermissions() {
   const user = activeUser;
   if (!user || user.type === 'admin') return;
   try {
-    // Permissions may have changed on another device since this page loaded.
-    // Refresh only the permissions field; never fetch or replace PIN credentials.
-    const { data, error } = await sb.from('teachers')
-      .select('role,permissions')
-      .eq('name', user.name)
-      .maybeSingle();
-    if (error) throw error;
+    // Prefer the session-protected gateway. Its teacher projection contains only
+    // the current account's role and permissions, never PIN hashes or salts.
+    const token = appAuthSession?.token || readAppAuthToken();
+    let data = null;
+    if (token) {
+      try {
+        const result = await appAuthRequest({
+          action: 'app_data_gateway_read',
+          table: 'teachers',
+          limit: 1
+        }, token);
+        data = Array.isArray(result?.rows) ? result.rows[0] || null : null;
+      } catch (gatewayError) {
+        // Older deployments do not expose the gateway yet. Keep the existing
+        // permissions-only read as a compatibility bridge until that endpoint
+        // is deployed; never fall back for denied or expired sessions.
+        if (!isLegacyAuthEndpointUnavailable(gatewayError)) throw gatewayError;
+      }
+    }
+    if (!data) {
+      const { data: legacyData, error } = await sb.from('teachers')
+        .select('role,permissions')
+        .eq('name', user.name)
+        .maybeSingle();
+      if (error) throw error;
+      data = legacyData;
+    }
     if (!data) return;
     if (user.type === 'custom' ? data.role !== 'custom' : data.role === 'custom') return;
     const freshPermissions = data.permissions && typeof data.permissions === 'object'
@@ -6261,8 +6281,8 @@ async function refreshActiveUserPermissions() {
       : (db.teachers || []).find(x => x.name === user.name);
     if (localRecord) localRecord.permissions = freshPermissions;
   } catch (error) {
-    // Keep the cached permissions for offline sign-in; server-side Student Affairs
-    // authorization still independently validates access before opening its session.
+    // Keep cached permissions for offline continuity; the server still validates
+    // protected gateway and Student Affairs actions independently.
     console.warn('Unable to refresh login permissions:', error);
   }
 }
