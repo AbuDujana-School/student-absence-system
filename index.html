@@ -5444,6 +5444,10 @@ async function syncPendingLocalChanges() {
     showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
     return false;
   }
+  if (attendanceDirty || behaviorDirty) {
+    showToast('احفظ تغييرات الرصد الحالية أولاً، ثم أعد المزامنة.', 'error');
+    return false;
+  }
   if (cloudDataLoadState === 'loading') {
     showToast('جارٍ تحميل بيانات المدرسة؛ انتظر اكتماله ثم أعد المزامنة.', 'info');
     return false;
@@ -5455,10 +5459,6 @@ async function syncPendingLocalChanges() {
       showToast('تعذر استعادة الاتصال بالخادم. بقيت التعديلات محفوظة محلياً ولم يتم رفعها.', 'error');
       return false;
     }
-  }
-  if (attendanceDirty || behaviorDirty) {
-    showToast('احفظ تغييرات الرصد الحالية أولاً، ثم أعد المزامنة.', 'error');
-    return false;
   }
 
   const pendingDeletes = getPendingDeletes().length;
@@ -5586,11 +5586,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   let cloudResumeInProgress = false;
   const resumeCloudSync = () => {
-    if (!navigator.onLine || !activeUser || document.hidden || cloudResumeInProgress) return;
+    if (!navigator.onLine || !activeUser || document.hidden || cloudResumeInProgress ||
+        cloudSaveInProgress || cloudRefreshInProgress || manualOfflineSyncInProgress ||
+        attendanceDirty || behaviorDirty) return;
     cloudResumeInProgress = true;
     setTimeout(async () => {
       try {
-        if (!navigator.onLine || !activeUser || document.hidden || cloudDataLoadState === 'loading') return;
+        if (!navigator.onLine || !activeUser || document.hidden || cloudDataLoadState === 'loading' ||
+            cloudSaveInProgress || cloudRefreshInProgress || manualOfflineSyncInProgress ||
+            attendanceDirty || behaviorDirty) return;
         // Recover the read-only cloud snapshot first after an offline/failed load.
         // The loader merges dirty local edits before any upload is attempted.
         if (cloudDataLoadState !== 'ready') {
