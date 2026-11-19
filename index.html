@@ -5685,6 +5685,10 @@ async function loadSystemDataFromCloud() {
 
     if (nextManifest && changedTables.length === 0) {
       cloudDataLoadState = 'ready';
+      // Keep queued local deletions visible even when the cloud revision is unchanged.
+      applyPendingLocalDeletions();
+      saveToLocalStorageSafe();
+      await persistOfflineState();
       const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
