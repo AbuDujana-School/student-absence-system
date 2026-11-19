@@ -6243,9 +6243,22 @@ async function findUserByPinWithRecord(pin) {
 async function refreshActiveUserPermissions() {
   const user = activeUser;
   if (!user || user.type === 'admin') return;
+  const securePrincipal = appAuthSession?.principal;
+  if (securePrincipal?.name === user.name && securePrincipal?.type === user.type) {
+    // app_login and app_session already reload the current permissions server-side.
+    // Reuse that verified principal instead of issuing a duplicate teachers query.
+    const freshPermissions = securePrincipal.permissions && typeof securePrincipal.permissions === 'object'
+      ? securePrincipal.permissions : {};
+    user.permissions = freshPermissions;
+    const localRecord = user.type === 'custom'
+      ? (db.customUsers || []).find(x => x.name === user.name)
+      : (db.teachers || []).find(x => x.name === user.name);
+    if (localRecord) localRecord.permissions = freshPermissions;
+    return;
+  }
   try {
-    // Permissions may have changed on another device since this page loaded.
-    // Refresh only the permissions field; never fetch or replace PIN credentials.
+    // Legacy/offline sessions still refresh permissions when the server is reachable.
+    // Never fetch or replace PIN credentials.
     const { data, error } = await sb.from('teachers')
       .select('role,permissions')
       .eq('name', user.name)
