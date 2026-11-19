@@ -5667,6 +5667,12 @@ function getChangedAppSyncTables(nextManifest, hasSnapshot) {
 }
 
 async function loadSystemDataFromCloud() {
+  // Defense in depth: callers outside the normal login flow must not trigger
+  // school-table reads while the application has no authenticated principal.
+  if (!activeUser) {
+    updateSyncStatus(false, 'سجّل الدخول أولاً لتحميل بيانات المدرسة');
+    return false;
+  }
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
