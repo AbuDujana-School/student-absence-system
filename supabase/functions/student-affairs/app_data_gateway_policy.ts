@@ -81,7 +81,13 @@ export function authorizeAppDataOperation(
   if (table === "school_settings") {
     // PIN records are handled only by dedicated authentication actions.
     if (isRecord(row) && row.key === "admin_pin") return false;
-    if (operation === "read" && row === null) return principal.type === "admin";
+    if (operation === "read") {
+      if (principal.type === "admin" && row === null) return true;
+      // Teachers/custom users may read only the non-secret duty schedule configuration,
+      // and only when their current server-loaded profile grants duty access.
+      return principal.type !== "admin" && isRecord(row) &&
+        row.key === "duty_module" && principal.permissions?.duty === true;
+    }
     if (operation === "write") return principal.type === "admin" &&
       isRecord(row) && (row.key === "duty_module" || row.key === "custom_categories");
     return principal.type === "admin";
