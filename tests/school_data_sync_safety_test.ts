@@ -307,3 +307,18 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });
+
+
+Deno.test("verified secure sessions reuse server-loaded permissions without a duplicate teachers read", () => {
+  const refresh = section("async function refreshActiveUserPermissions()", "async function finalizeLoginState()");
+  const securePrincipal = refresh.indexOf("const securePrincipal = appAuthSession?.principal");
+  const directTeacherRead = refresh.indexOf("sb.from('teachers')");
+  assert(securePrincipal >= 0 && directTeacherRead > securePrincipal, "Secure session permissions must be checked before the legacy direct-read fallback");
+  assert(refresh.includes("securePrincipal?.name === user.name && securePrincipal?.type === user.type"), "Only the matching verified principal may bypass the duplicate read");
+  assert(refresh.includes("Legacy/offline sessions still refresh permissions"), "Legacy and offline sessions must retain the compatibility refresh path");
+
+  const restore = section("async function checkExistingSession()", "async function handleUserLogin(");
+  assert(restore.indexOf("appAuthSession = { token: appToken") < restore.indexOf("await finalizeLoginState()"), "A restored secure session must be verified before permissions are reused");
+  const login = section("async function handleUserLogin(", "async function findUserByPinWithRecord(");
+  assert(login.indexOf("saveAppAuthSession(serverLogin)") < login.indexOf("await finalizeLoginState()"), "A new secure login must save its verified principal before permissions are reused");
+});
