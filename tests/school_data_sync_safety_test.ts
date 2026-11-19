@@ -180,7 +180,7 @@ Deno.test("cloud loading never references removed legacy class-rename globals", 
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   assert(!load.includes("classesFixed"), "Cloud loading must not read an undeclared legacy classesFixed flag");
   assert(!load.includes("oldClassesMap"), "Cloud loading must not remap student class names through a removed legacy map");
-  assert(/(?:const|let) cn = r\\.class_name;/.test(load), "Student class names must be copied verbatim from the server without renaming");
+  assert(load.includes("const cn = r.class_name;") || load.includes("let cn = r.class_name;"), "Student class names must be copied verbatim from the server without renaming");
 });
 
 Deno.test("deleting a class locally never marks the deleted class for cloud upsert", () => {
