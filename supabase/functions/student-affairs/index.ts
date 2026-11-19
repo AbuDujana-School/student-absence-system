@@ -9,6 +9,8 @@ import {
   type AppLoginCandidate, type AppPrincipal,
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
+import { APP_DATA_TABLES, allowedAppDataFields, authorizeAppDataOperation, projectAppDataRow, type AppDataTable, type AppDataScope } from "./app_data_gateway_policy.ts";
+import { projectAssignedClassScope } from "./app_data_gateway_scope.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -749,6 +751,107 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
+
+async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScope> {
+  if (principal.type === "admin") {
+    const { data, error } = await db.from("classes").select("name").order("name").limit(500);
+    if (error) throw new Error("Unable to resolve administrator class scope");
+    return { allowedClasses: (data || []).map((row: any) => String(row.name || "").trim()).filter(Boolean) };
+  }
+  if (principal.type !== "teacher") return { allowedClasses: [] };
+
+  const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
+    .select("id").eq("status", "active").limit(2);
+  if (versionError) throw new Error("Unable to resolve active timetable version");
+  // Ambiguous or missing active versions must never broaden teacher access.
+  if (!versions || versions.length !== 1 || !versions[0]?.id) return { allowedClasses: [] };
+
+  const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+    .select("matched_teacher_name,match_status,cell_status,class_sections")
+    .eq("version_id", versions[0].id)
+    .eq("matched_teacher_name", principal.name)
+    .eq("match_status", "matched")
+    .eq("cell_status", "teaching")
+    .limit(500);
+  if (cellsError) throw new Error("Unable to resolve teacher timetable assignments");
+  // A result at the cap may be truncated; fail closed rather than assume completeness.
+  if ((cells || []).length >= 500) return { allowedClasses: [] };
+  return { allowedClasses: projectAssignedClassScope(cells || [], principal.name) };
+}
+
+function isGatewayDate(value: unknown): value is string {
+  return typeof value === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
+    Number.isFinite(Date.parse(value + "T00:00:00.000Z"));
+}
+
+async function readAppDataGateway(req: Request, body: any): Promise<Response> {
+  const session = await readAppSession(appSessionStore, req.headers.get("authorization"));
+  if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+  const principal = await currentAppPrincipal(session.principal.type, session.principal.name);
+  if (!principal) return reply(401, { error: "تعذر التحقق من صلاحية الحساب الحالية." });
+
+  const tableValue = body?.table;
+  if (typeof tableValue !== "string" || !(APP_DATA_TABLES as readonly string[]).includes(tableValue)) {
+    return reply(400, { error: "نوع البيانات المطلوب غير مدعوم." });
+  }
+  const table = tableValue as AppDataTable;
+  const offset = Number.isInteger(body?.offset) && body.offset >= 0 && body.offset <= 100000 ? body.offset : 0;
+  const limit = Number.isInteger(body?.limit) && body.limit >= 1 && body.limit <= 500 ? body.limit : 200;
+  const fromDate = body?.from_date;
+  const toDate = body?.to_date;
+  if ((fromDate !== undefined && !isGatewayDate(fromDate)) ||
+      (toDate !== undefined && !isGatewayDate(toDate)) ||
+      (fromDate && toDate && fromDate > toDate)) {
+    return reply(400, { error: "نطاق التاريخ غير صالح." });
+  }
+
+  const scope = await resolveAppDataScope(principal);
+  const firstClass = scope.allowedClasses[0] || "";
+  const probe: Record<string, unknown> | null =
+    table === "classes" ? { name: firstClass } :
+    table === "students" || table === "attendance" || table === "behaviors" || table === "duty_reports"
+      ? { class_name: firstClass, teacher_name: principal.name } :
+    table === "teachers" ? { name: principal.name } : null;
+  if (!authorizeAppDataOperation(principal, table, "read", probe, scope)) {
+    return reply(403, { error: "ليست لديك صلاحية قراءة هذا النوع من البيانات." });
+  }
+
+  let query: any = db.from(table).select(allowedAppDataFields(table).join(","));
+  if (principal.type !== "admin") {
+    if (table === "teachers") query = query.eq("name", principal.name);
+    else if (table === "school_settings") return reply(403, { error: "قراءة إعدادات النظام للمدير فقط." });
+    else if (table === "classes") {
+      if (!scope.allowedClasses.length) return reply(200, { rows: [], next_offset: null });
+      query = query.in("name", scope.allowedClasses);
+    } else if (["students", "attendance", "behaviors", "duty_reports"].includes(table)) {
+      if (!scope.allowedClasses.length) return reply(200, { rows: [], next_offset: null });
+      query = query.in("class_name", scope.allowedClasses);
+    }
+  }
+  if (body?.class_name !== undefined) {
+    const className = String(body.class_name).trim();
+    if (!className || className.length > 120 ||
+      (principal.type !== "admin" && !scope.allowedClasses.includes(className))) {
+      return reply(403, { error: "الصف المطلوب خارج نطاق صلاحيات الحساب." });
+    }
+    query = table === "classes" ? query.eq("name", className) : query.eq("class_name", className);
+  }
+  if (table === "attendance" || table === "behaviors") {
+    if (fromDate) query = query.gte("date_str", fromDate);
+    if (toDate) query = query.lte("date_str", toDate);
+    query = query.order("record_key", { ascending: true });
+  } else if (table === "classes") query = query.order("name", { ascending: true });
+  else if (table === "students") query = query.order("class_name", { ascending: true }).order("student_name", { ascending: true });
+  else if (table === "teachers") query = query.order("name", { ascending: true });
+  else if (table === "duty_reports") query = query.order("created_at", { ascending: true }).order("id", { ascending: true });
+  else query = query.order("key", { ascending: true });
+
+  const { data, error } = await query.range(offset, offset + limit - 1);
+  if (error) throw new Error("App data gateway read failed");
+  const rows = (data || []).map((row: unknown) => projectAppDataRow(table, row)).filter(Boolean);
+  return reply(200, { rows, next_offset: rows.length === limit ? offset + rows.length : null });
+}
+
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
   if (principal.type === "admin") return true;
   const { data, error } = await db.from("timetable_access_permissions")
@@ -777,6 +880,13 @@ async function handle(req: Request) {
     } catch (error) {
       console.error("General application login failed:", error);
       return reply(500, { error: "تعذر إتمام تسجيل الدخول حالياً" });
+    }
+  }
+  if (body?.action === "app_data_gateway_read") {
+    try { return await readAppDataGateway(req, body); }
+    catch (error) {
+      console.error("App data gateway read failed:", error);
+      return reply(500, { error: "تعذر تحميل البيانات المطلوبة حالياً." });
     }
   }
   if (body?.action === "admin_save_student_roster") {
