@@ -100,3 +100,16 @@ Deno.test("student affairs grants use separate attendance and behavior scopes", 
   assertEquals(authorizeAppDataOperation(principal, "behaviors", "read", { class_name: "7/1" }, scope), true);
   assertEquals(authorizeAppDataOperation(principal, "behaviors", "read", { class_name: "6/1" }, scope), false);
 });
+
+
+Deno.test("duty-authorized non-admin principals can read only the duty module setting", () => {
+  const teacher = { type: "teacher" as const, name: "Teacher A", permissions: { duty: true } };
+  const custom = { type: "custom" as const, name: "Custom A", permissions: { duty: true } };
+  const denied = { type: "teacher" as const, name: "Teacher B", permissions: { duty: false } };
+  assertEquals(authorizeAppDataOperation(teacher, "school_settings", "read", { key: "duty_module" }), true);
+  assertEquals(authorizeAppDataOperation(custom, "school_settings", "read", { key: "duty_module" }), true);
+  assertEquals(authorizeAppDataOperation(teacher, "school_settings", "read", { key: "custom_categories" }), false);
+  assertEquals(authorizeAppDataOperation(teacher, "school_settings", "read", { key: "admin_pin" }), false);
+  assertEquals(authorizeAppDataOperation(teacher, "school_settings", "read"), false);
+  assertEquals(authorizeAppDataOperation(denied, "school_settings", "read", { key: "duty_module" }), false);
+});
