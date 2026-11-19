@@ -5564,9 +5564,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
-  await restoreOfflineState();
+  offlineSnapshotRestoredAtBoot = await restoreOfflineState();
   syncServerTime();
-  await loadSystemDataFromCloud();
+  // Authentication/session restoration now precedes every protected cloud-table read.
   await checkExistingSession();
   document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -5632,6 +5632,7 @@ async function migrateCredentialsIfNeeded() {
 }
 
 let cloudDataLoadState = 'not-started';
+let offlineSnapshotRestoredAtBoot = false;
 const APP_SYNC_TABLES = ['classes','students','teachers','attendance','behaviors','school_settings','duty_reports'];
 let lastLoadedCloudManifest = null;
 
@@ -6268,6 +6269,22 @@ async function refreshActiveUserPermissions() {
 }
 
 async function finalizeLoginState() {
+  // Do not download protected school tables until a user has an authenticated
+  // or locally restored offline session. Online users load after app_login or
+  // app_session succeeds; offline users continue with the restored device cache.
+  if (navigator.onLine && cloudDataLoadState !== 'ready') {
+    const loaded = await loadSystemDataFromCloud();
+    if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
+  } else if (!navigator.onLine && cloudDataLoadState === 'not-started') {
+    if (offlineSnapshotRestoredAtBoot) {
+      cloudDataLoadState = 'ready';
+      updateSyncStatus(false, hasPendingOfflineChanges()
+        ? 'غير متصل - التعديلات محفوظة محلياً'
+        : 'غير متصل - البيانات المحلية متاحة');
+    } else {
+      cloudDataLoadState = 'failed';
+    }
+  }
   await refreshActiveUserPermissions();
   await timetableRefreshAccess();
   document.getElementById('loginView').classList.add('hidden');
