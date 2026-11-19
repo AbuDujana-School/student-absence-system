@@ -315,6 +315,8 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
   const retryUpload = events.indexOf("await retryOfflineSyncSilently()");
   assert(recoveryLoad >= 0, "Reconnect must reload the read-only cloud snapshot when readiness was lost");
   assert(retryUpload > recoveryLoad, "Pending local edits may only enter the approved retry after cloud recovery");
+  const captureGuard = resume.indexOf("attendanceDirty || behaviorDirty");
+  assert(captureGuard >= 0 && captureGuard < recoveryLoad, "Reconnect must not reload over an active unsaved attendance or behavior capture");
   assert(resume.includes("cloudDataLoadState !== 'ready'"), "Reconnect must detect failed or not-yet-started cloud state");
   assert(resume.includes("cloudDataLoadState === 'loading'"), "Reconnect must not overlap an active cloud load");
   assert(events.includes("resumeCloudSync();"), "Online, visibility, and periodic refresh must share the recovery path");
@@ -323,5 +325,7 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
   const manualRecovery = manual.indexOf("await loadSystemDataFromCloud()");
   const approval = manual.indexOf("await showConfirm(");
   assert(manualRecovery >= 0 && approval > manualRecovery, "Manual upload must recover the cloud snapshot before asking for upload approval");
+  const manualCaptureGuard = manual.indexOf("if (attendanceDirty || behaviorDirty)");
+  assert(manualCaptureGuard >= 0 && manualCaptureGuard < manualRecovery, "Manual recovery must not reload over an active unsaved capture");
   assert(manual.includes("لم يتم رفعها"), "A failed recovery must explicitly confirm that local edits were not uploaded");
 });
