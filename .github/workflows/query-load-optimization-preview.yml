@@ -1,0 +1,123 @@
+name: Query-load optimization isolated preview
+
+on:
+  push:
+    branches:
+      - query-load-optimization-preview
+    paths:
+      - "index.html"
+      - "manifest.webmanifest"
+      - "sw.js"
+      - "icons/**"
+      - ".github/workflows/query-load-optimization-preview.yml"
+      - "tests/query-load-preview.spec.cjs"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: query-load-optimization-preview
+  cancel-in-progress: true
+
+jobs:
+  deploy-and-test:
+    name: Deploy isolated preview and verify read frequency
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    environment: cloudflare-preview
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      PAGES_PROJECT_NAME: abu-dujana-query-preview
+      PREVIEW_URL: https://query-load-optimization-preview.abu-dujana-query-preview.pages.dev/
+
+    steps:
+      - name: Check out the isolated preview branch
+        uses: actions/checkout@v4
+
+      - name: Block production backend references
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -R -n -F "ylsocrvwqibptuwfzbke.supabase.co" index.html manifest.webmanifest sw.js; then
+            echo "::error::Production Supabase endpoint detected; refusing to publish preview."
+            exit 1
+          fi
+          grep -q -F "wawplttrpiinoukpjqqx.supabase.co" index.html
+          echo "Preview bundle points only to the isolated development Supabase project."
+
+      - name: Verify Cloudflare credentials
+        shell: bash
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN" || { echo "::error::Missing CLOUDFLARE_API_TOKEN"; exit 1; }
+          test -n "$CLOUDFLARE_ACCOUNT_ID" || { echo "::error::Missing CLOUDFLARE_ACCOUNT_ID"; exit 1; }
+
+      - name: Prepare a strict public-only site directory
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf .cloudflare-pages-dist
+          mkdir -p .cloudflare-pages-dist/icons
+          cp index.html manifest.webmanifest sw.js .cloudflare-pages-dist/
+          cp icons/icon-192.png icons/icon-512.png icons/icon-512-maskable.png .cloudflare-pages-dist/icons/
+          test -s .cloudflare-pages-dist/index.html
+          test -s .cloudflare-pages-dist/manifest.webmanifest
+          test -s .cloudflare-pages-dist/sw.js
+          test -s .cloudflare-pages-dist/icons/icon-192.png
+          test -s .cloudflare-pages-dist/icons/icon-512.png
+          test -s .cloudflare-pages-dist/icons/icon-512-maskable.png
+
+      - name: Install Wrangler
+        run: npm install --global wrangler@4
+
+      - name: Ensure the isolated Pages project exists
+        shell: bash
+        run: |
+          set -euo pipefail
+          if ! wrangler pages project list | grep -Fq "$PAGES_PROJECT_NAME"; then
+            wrangler pages project create "$PAGES_PROJECT_NAME" --production-branch main
+          fi
+
+      - name: Deploy preview only
+        shell: bash
+        run: |
+          set -euo pipefail
+          wrangler pages deploy .cloudflare-pages-dist \
+            --project-name "$PAGES_PROJECT_NAME" \
+            --branch query-load-optimization-preview \
+            --commit-hash "$GITHUB_SHA" \
+            --commit-message "$GITHUB_SHA"
+
+      - name: Install Playwright and Chromium
+        run: |
+          npm install --no-save @playwright/test
+          npx playwright install --with-deps chromium
+
+      - name: Wait for the branch preview
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for attempt in $(seq 1 24); do
+            if curl --fail --silent --show-error "$PREVIEW_URL" -o /dev/null; then
+              ready=1
+              break
+            fi
+            sleep 5
+          done
+          test "$ready" -eq 1 || { echo "::error::Cloudflare preview did not become ready"; exit 1; }
+
+      - name: Test background reads and manual refresh with mocked data
+        run: npx playwright test tests/query-load-preview.spec.cjs --reporter=line
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: query-load-optimization-preview-evidence
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 7
