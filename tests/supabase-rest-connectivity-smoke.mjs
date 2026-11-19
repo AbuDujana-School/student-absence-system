@@ -14,7 +14,7 @@ if (!baseUrl.includes("wawplttrpiinoukpjqqx.supabase.co")) {
   process.exit(3);
 }
 
-async function check(label, path, options = {}) {
+async function request(path, options = {}) {
   const response = await fetch(baseUrl + "/rest/v1/" + path, {
     ...options,
     headers: {
@@ -23,17 +23,30 @@ async function check(label, path, options = {}) {
       ...(options.headers || {}),
     },
   });
-  let code = "";
-  try {
-    const body = await response.clone().json();
-    code = body.code || body.error || body.message || "";
-  } catch {}
-  console.log(label + ": HTTP " + response.status + (code ? " (API code: " + String(code).slice(0, 100) + ")" : ""));
-  if (!response.ok) process.exitCode = 1;
+  let body = {};
+  try { body = await response.clone().json(); } catch {}
+  return { status: response.status, code: body.code || body.error || "" };
 }
-await check("REST table read (classes, limit 1)", "classes?select=*&limit=1");
-await check("REST manifest RPC", "rpc/get_app_sync_manifest", {
+
+const table = await request("classes?select=*&limit=1");
+console.log("REST table read without a user session: HTTP " + table.status +
+  (table.code ? " (API code: " + String(table.code).slice(0, 100) + ")" : ""));
+if (!(table.status === 401 && table.code === "42501")) {
+  console.error("Unexpected table-read result; review API authorization before proceeding.");
+  process.exitCode = 1;
+} else {
+  console.log("Table authorization gate confirmed: anon cannot read protected school data.");
+}
+
+const manifest = await request("rpc/get_app_sync_manifest", {
   method: "POST",
   headers: { "Content-Type": "application/json" },
   body: "{}",
 });
+console.log("REST manifest RPC: HTTP " + manifest.status);
+if (manifest.status !== 200) {
+  console.error("Manifest REST request failed; the preview API key/gateway path is not healthy.");
+  process.exitCode = 1;
+} else {
+  console.log("Preview API key accepted by REST gateway; manifest RPC is reachable.");
+}
