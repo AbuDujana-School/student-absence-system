@@ -35,7 +35,7 @@ BEGIN
     RAISE EXCEPTION 'Expected exactly seven enabled revision triggers';
   END IF;
   SELECT public.get_app_sync_manifest() INTO manifest;
-  IF jsonb_object_length(manifest) <> 7
+  IF (SELECT count(*) FROM jsonb_object_keys(manifest)) <> 7
     OR NOT (manifest ?& ARRAY['classes','students','teachers','attendance','behaviors','school_settings','duty_reports']) THEN
     RAISE EXCEPTION 'Manifest must expose exactly the seven synchronized tables';
   END IF;
@@ -48,7 +48,7 @@ DO $anon_test$
 DECLARE manifest jsonb;
 BEGIN
   manifest := public.get_app_sync_manifest();
-  IF jsonb_object_length(manifest) <> 7 THEN
+  IF (SELECT count(*) FROM jsonb_object_keys(manifest)) <> 7 THEN
     RAISE EXCEPTION 'anon cannot read the complete manifest';
   END IF;
   IF (SELECT count(*) FROM private.app_sync_revisions) <> 7 THEN
