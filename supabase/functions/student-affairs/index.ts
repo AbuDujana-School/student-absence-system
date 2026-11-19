@@ -780,8 +780,9 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
 }
 
 function isGatewayDate(value: unknown): value is string {
-  return typeof value === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) &&
-    Number.isFinite(Date.parse(value + "T00:00:00.000Z"));
+  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  const parsed = new Date(value + "T00:00:00.000Z");
+  return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 async function readAppDataGateway(req: Request, body: any): Promise<Response> {
@@ -795,12 +796,19 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     return reply(400, { error: "نوع البيانات المطلوب غير مدعوم." });
   }
   const table = tableValue as AppDataTable;
-  const offset = Number.isInteger(body?.offset) && body.offset >= 0 && body.offset <= 100000 ? body.offset : 0;
-  const limit = Number.isInteger(body?.limit) && body.limit >= 1 && body.limit <= 500 ? body.limit : 200;
+  if (body?.offset !== undefined && (!Number.isInteger(body.offset) || body.offset < 0 || body.offset > 100000)) {
+    return reply(400, { error: "موضع الصفحة غير صالح." });
+  }
+  if (body?.limit !== undefined && (!Number.isInteger(body.limit) || body.limit < 1 || body.limit > 500)) {
+    return reply(400, { error: "حجم الصفحة غير صالح." });
+  }
+  const offset = body?.offset ?? 0;
+  const limit = body?.limit ?? 200;
   const fromDate = body?.from_date;
   const toDate = body?.to_date;
   if ((fromDate !== undefined && !isGatewayDate(fromDate)) ||
       (toDate !== undefined && !isGatewayDate(toDate)) ||
+      ((fromDate !== undefined || toDate !== undefined) && table !== "attendance" && table !== "behaviors") ||
       (fromDate && toDate && fromDate > toDate)) {
     return reply(400, { error: "نطاق التاريخ غير صالح." });
   }
@@ -829,7 +837,11 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     }
   }
   if (body?.class_name !== undefined) {
-    const className = String(body.class_name).trim();
+    if (typeof body.class_name !== "string" ||
+        !["classes", "students", "attendance", "behaviors", "duty_reports"].includes(table)) {
+      return reply(400, { error: "مرشح الصف غير صالح لهذا النوع من البيانات." });
+    }
+    const className = body.class_name.trim();
     if (!className || className.length > 120 ||
       (principal.type !== "admin" && !scope.allowedClasses.includes(className))) {
       return reply(403, { error: "الصف المطلوب خارج نطاق صلاحيات الحساب." });
