@@ -5444,9 +5444,17 @@ async function syncPendingLocalChanges() {
     showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
     return false;
   }
-  if (cloudDataLoadState !== 'ready') {
-    showToast('انتظر اكتمال تحميل بيانات المدرسة قبل المزامنة.', 'error');
+  if (cloudDataLoadState === 'loading') {
+    showToast('جارٍ تحميل بيانات المدرسة؛ انتظر اكتماله ثم أعد المزامنة.', 'info');
     return false;
+  }
+  if (cloudDataLoadState !== 'ready') {
+    const recovered = await loadSystemDataFromCloud();
+    if (!recovered) {
+      updateSyncStatus(false, 'تعذر تحديث بيانات الخادم - التعديلات المحلية محفوظة');
+      showToast('تعذر استعادة الاتصال بالخادم. بقيت التعديلات محفوظة محلياً ولم يتم رفعها.', 'error');
+      return false;
+    }
   }
   if (attendanceDirty || behaviorDirty) {
     showToast('احفظ تغييرات الرصد الحالية أولاً، ثم أعد المزامنة.', 'error');
@@ -5576,11 +5584,26 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('offline', () => {
     updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
   });
+  let cloudResumeInProgress = false;
   const resumeCloudSync = () => {
-    if (!navigator.onLine || !activeUser) return;
-    setTimeout(() => {
-      if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
-      else refreshCloudDataSilently();
+    if (!navigator.onLine || !activeUser || document.hidden || cloudResumeInProgress) return;
+    cloudResumeInProgress = true;
+    setTimeout(async () => {
+      try {
+        if (!navigator.onLine || !activeUser || document.hidden || cloudDataLoadState === 'loading') return;
+        // Recover the read-only cloud snapshot first after an offline/failed load.
+        // The loader merges dirty local edits before any upload is attempted.
+        if (cloudDataLoadState !== 'ready') {
+          const recovered = await loadSystemDataFromCloud();
+          if (!recovered) return;
+        }
+        if (hasPendingOfflineRecordChanges()) await retryOfflineSyncSilently();
+        else await refreshCloudDataSilently();
+      } catch (error) {
+        console.warn('Cloud reconnect recovery failed; local changes remain محفوظة.', error);
+      } finally {
+        cloudResumeInProgress = false;
+      }
     }, 1200);
   };
   window.addEventListener('online', () => {
@@ -5595,11 +5618,10 @@ window.addEventListener('DOMContentLoaded', async () => {
   // overwritten; uploads require explicit approval and queued deletions stay inert.
   setInterval(() => {
     if (!navigator.onLine || !activeUser || document.hidden) return;
-    if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
-    else refreshCloudDataSilently();
+    resumeCloudSync();
   }, 60000);
-  if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
-    setTimeout(() => retryOfflineSyncSilently(), 1800);
+  if (navigator.onLine && activeUser) {
+    setTimeout(() => resumeCloudSync(), 1800);
   }
 });
 
