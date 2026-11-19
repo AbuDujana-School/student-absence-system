@@ -625,7 +625,7 @@ Deno.test("teacher activity report permission reuses the authenticated teacher p
       role: "teacher",
       permissions: { teachers: true },
     },
-    access: false,
+    access: true,
     calls,
   });
   const principal = await resolveTimetablePrincipal(
