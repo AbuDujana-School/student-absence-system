@@ -5395,10 +5395,15 @@ async function refreshCloudDataSilently() {
       hasPendingOfflineRecordChanges()) return false;
   cloudRefreshInProgress = true;
   try {
-    const success = await loadSystemDataFromCloud();
+    const now = Date.now();
+    // Keep attendance/class data on the existing 60-second refresh, but avoid
+    // reloading the full teacher directory and duty history on every poll.
+    const includeTeachers = now - lastTeacherDirectoryRefreshAt >= 5 * 60 * 1000;
+    const includeDutyReports = now - lastDutyReportsRefreshAt >= 3 * 60 * 1000;
+    const success = await loadSystemDataFromCloud({ includeTeachers, includeDutyReports });
     if (success && activeUser) {
       try {
-        if (isAdminAuthorized()) {
+        if (includeTeachers && isAdminAuthorized()) {
           if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
           if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
         }
@@ -5622,7 +5627,11 @@ async function migrateCredentialsIfNeeded() {
 }
 
 let cloudDataLoadState = 'not-started';
-async function loadSystemDataFromCloud() {
+let lastTeacherDirectoryRefreshAt = 0;
+let lastDutyReportsRefreshAt = 0;
+async function loadSystemDataFromCloud(options = {}) {
+  const includeTeachers = options.includeTeachers !== false;
+  const includeDutyReports = options.includeDutyReports !== false;
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
@@ -5633,9 +5642,11 @@ async function loadSystemDataFromCloud() {
   try {
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData] = await Promise.all([
       fetchAllPaginated('classes', 'name'), fetchAllPaginated('students', 'class_name, student_name'),
-      fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin'), fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
+      includeTeachers ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
+      fetchAllPaginated('attendance', '*'), fetchAllPaginated('behaviors', '*'), fetchAllPaginated('school_settings', '*')
     ]);
-    const empty = classesData.length === 0 && studentsData.length === 0 && teachersData.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
+    const teacherRows = Array.isArray(teachersData) ? teachersData : [];
+    const empty = classesData.length === 0 && studentsData.length === 0 && teacherRows.length === 0 && attendanceData.length === 0 && behaviorsData.length === 0 && settingsData.length === 0;
     if (empty || classesData.length === 0) throw new Error('Cloud data is empty or incomplete; automatic initialization is blocked for data safety.');
     await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
     // Preserve the exact class names returned by the server. No automatic rename,
@@ -5652,13 +5663,15 @@ async function loadSystemDataFromCloud() {
     sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
     Object.keys(db.students).forEach(k => db.students[k] = arabicSort(db.students[k]));
 
-    db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
-      const p = t.permissions || {};
-      const mustChange = p.mustChangePin === true || t.must_change_pin === true;
-      const cleanPerms = { ...p, mustChangePin: mustChange };
-      return { name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, mustChangePin: mustChange, permissions: cleanPerms };
-    });
-    db.customUsers = teachersData.filter(t => t.role === 'custom').map(t => ({ name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, permissions: t.permissions || {} }));
+    if (includeTeachers) {
+      db.teachers = teacherRows.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
+        const p = t.permissions || {};
+        const mustChange = p.mustChangePin === true || t.must_change_pin === true;
+        const cleanPerms = { ...p, mustChangePin: mustChange };
+        return { name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, mustChangePin: mustChange, permissions: cleanPerms };
+      });
+      db.customUsers = teacherRows.filter(t => t.role === 'custom').map(t => ({ name: t.name, pin_hash: t.pin_hash || null, pin_salt: t.pin_salt || null, permissions: t.permissions || {} }));
+    }
     
     const adminRow = (settingsData || []).find(r => r.key === 'admin_pin');
     if (adminRow?.value) { if (adminRow.value.hash && adminRow.value.salt) db.adminPin = { hash: adminRow.value.hash, salt: adminRow.value.salt }; else if (adminRow.value.pin) db.adminPin = adminRow.value.pin; }
@@ -5667,13 +5680,15 @@ async function loadSystemDataFromCloud() {
     const catRow = (settingsData || []).find(r => r.key === 'custom_categories');
     if (catRow?.value && Array.isArray(catRow.value)) db.customCategories = catRow.value; else db.customCategories = [];
     
-    try {
-      const drData = await fetchAllPaginated('duty_reports', '*');
-      db.dutyModule.records = drData.filter(r => r.class_name !== '__CLEAN__').map(r => {
-        const cn = r.class_name;
-        return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
-      });
-    } catch(e) { throw new Error('تعذر تحميل سجلات تقارير المناوبة؛ أُوقف التحميل الآمن.', { cause: e }); }
+    if (includeDutyReports) {
+      try {
+        const drData = await fetchAllPaginated('duty_reports', '*');
+        db.dutyModule.records = drData.filter(r => r.class_name !== '__CLEAN__').map(r => {
+          const cn = r.class_name;
+          return { id: r.id, date: r.date_str, day: r.day_num, period: r.period, className: cn, subject: r.subject || '', teacherName: r.teacher_name || '', reportedBy: r.reported_by, status: r.status, reviewedBy: r.reviewed_by, reviewedAt: r.reviewed_at, createdAt: r.created_at };
+        });
+      } catch(e) { throw new Error('تعذر تحميل سجلات تقارير المناوبة؛ أُوقف التحميل الآمن.', { cause: e }); }
+    }
 
     db.attendance = {};
     for (const r of attendanceData) {
@@ -5695,6 +5710,8 @@ async function loadSystemDataFromCloud() {
 
     mergeDirtyLocalState(pendingLocalState);
     applyPendingLocalDeletions();
+    if (includeTeachers) lastTeacherDirectoryRefreshAt = Date.now();
+    if (includeDutyReports) lastDutyReportsRefreshAt = Date.now();
     cloudDataLoadState = 'ready';
     // Loading is read-only: preserve local pending changes without pushing them.
     saveToLocalStorageSafe();
