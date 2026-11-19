@@ -777,7 +777,7 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
     // A result at the cap may be truncated; discard this source rather than assume completeness.
     if ((cells || []).length < 500) timetableClasses = projectAssignedClassScope(cells || [], principal.name);
   }
-  let explicitGeneral: string[] = [], explicitAttendance: string[] = [], explicitBehavior: string[] = [];
+  let explicitGeneral: unknown = [], explicitAttendance: unknown = null, explicitBehavior: unknown = null;
   if (principal.permissions?.studentAffairs === true) {
     const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
       .select("allowed_classes,allowed_attendance_classes,allowed_behavior_classes")
@@ -785,11 +785,9 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
       .eq("principal_name", principal.name)
       .maybeSingle();
     if (grantError) throw new Error("Unable to resolve explicit school-affairs class grants");
-    explicitGeneral = Array.isArray(grants?.allowed_classes) ? grants.allowed_classes : [];
-    explicitAttendance = Array.isArray(grants?.allowed_attendance_classes)
-      ? grants.allowed_attendance_classes : explicitGeneral;
-    explicitBehavior = Array.isArray(grants?.allowed_behavior_classes)
-      ? grants.allowed_behavior_classes : explicitGeneral;
+    explicitGeneral = grants?.allowed_classes;
+    explicitAttendance = grants?.allowed_attendance_classes;
+    explicitBehavior = grants?.allowed_behavior_classes;
   }
   return mergeAppDataClassScopes(timetableClasses, {
     allowed_classes: explicitGeneral,
