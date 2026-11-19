@@ -30,3 +30,33 @@ export function projectAssignedClassScope(
   }
   return [...classes].sort((a, b) => a.localeCompare(b, "en"));
 }
+
+export type ExplicitAppDataClassGrants = {
+  allowed_classes?: unknown;
+  allowed_attendance_classes?: unknown;
+  allowed_behavior_classes?: unknown;
+};
+
+function cleanClassNames(values: unknown): string[] {
+  if (!Array.isArray(values)) return [];
+  return [...new Set(values.filter((value): value is string =>
+    typeof value === "string" && value.trim().length > 0 && value.trim().length <= 120
+  ).map(value => value.trim()))].sort((a, b) => a.localeCompare(b, "en"));
+}
+
+/** Combine trusted timetable assignments with separately granted Student Affairs scopes. */
+export function mergeAppDataClassScopes(
+  timetableClasses: readonly string[],
+  grants: ExplicitAppDataClassGrants | null,
+): { allowedClasses: string[]; allowedAttendanceClasses: string[]; allowedBehaviorClasses: string[] } {
+  const general = cleanClassNames(grants?.allowed_classes);
+  const attendance = Array.isArray(grants?.allowed_attendance_classes)
+    ? cleanClassNames(grants?.allowed_attendance_classes) : general;
+  const behavior = Array.isArray(grants?.allowed_behavior_classes)
+    ? cleanClassNames(grants?.allowed_behavior_classes) : general;
+  return {
+    allowedClasses: cleanClassNames([...timetableClasses, ...general]),
+    allowedAttendanceClasses: cleanClassNames([...timetableClasses, ...attendance]),
+    allowedBehaviorClasses: cleanClassNames([...timetableClasses, ...behavior]),
+  };
+}
