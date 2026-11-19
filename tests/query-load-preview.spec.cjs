@@ -176,6 +176,6 @@ test("isolated preview reduces full background reads and preserves manual refres
   expect(writeRequests, "Preview test must not write to any database").toEqual([]);
   expect(functionRequests, "Only the one-time timetable access check may run; it must not repeat during refresh").toHaveLength(1);
   expect(functionRequests[0].path).toBe("/functions/v1/timetable-management");
-  expect(functionRequests[0].body).toContain("timetable_check_access");
+  expect(functionRequests[0].body).toContain("timetable_substitution_archive");
   expect(pageErrors, "The page must not throw uncaught JavaScript errors").toEqual([]);
 });
