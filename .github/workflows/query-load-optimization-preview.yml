@@ -32,14 +32,14 @@ concurrency:
 
 jobs:
   preview-read-test:
-    name: Verify read frequency on isolated Cloudflare preview
+    name: Verify read frequency in isolated browser preview
     runs-on: ubuntu-latest
     timeout-minutes: 8
     steps:
       - name: Check out tested commit
         uses: actions/checkout@v4
 
-      - name: Verify the preview is isolated from production
+      - name: Verify the preview bundle is isolated from production
         shell: bash
         run: |
           set -euo pipefail
@@ -49,7 +49,7 @@ jobs:
           fi
           grep -q -F "wawplttrpiinoukpjqqx.supabase.co" index.html
           grep -q -F 'get("live-preview") !== "1"' index.html
-          echo "Preview uses only the isolated development Supabase project."
+          echo "The test bundle targets only the isolated development Supabase project."
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -62,9 +62,23 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
-      - name: Run read-frequency regression test
+      - name: Start local preview server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory . >/tmp/query-preview-server.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:4173/ -o /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/query-preview-server.log
+          exit 1
+
+      - name: Test full refresh cadence and manual sync with mocked data
         env:
-          PREVIEW_URL: https://fix-timetable-fallback-null.student-absence-system.pages.dev/?live-preview=1
+          PREVIEW_URL: http://127.0.0.1:4173/?live-preview=1
         run: npx playwright test tests/query-load-preview.spec.cjs --reporter=line
 
       - name: Upload browser evidence
