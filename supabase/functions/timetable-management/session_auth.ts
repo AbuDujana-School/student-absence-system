@@ -15,6 +15,8 @@ export interface TimetablePrincipal {
   reserveAccess?: boolean;
   /** Current duty-report grant, checked only on the duty/report bootstrap actions. */
   dutyReportAccess?: boolean;
+  /** Fresh permission snapshot loaded with the authenticated teacher record. */
+  permissions?: Record<string, unknown>;
 }
 
 export interface TimetableSessionLookup {
@@ -27,6 +29,7 @@ export interface TimetableTeacherLookup {
   name: string;
   role: string;
   reserveAccess?: boolean;
+  permissions?: Record<string, unknown>;
 }
 
 export interface TimetableAuthStore {
@@ -34,8 +37,8 @@ export interface TimetableAuthStore {
   hasAdminCredential(): Promise<boolean>;
   findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
-  hasDutyReportAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
-  canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number): Promise<boolean>;
+  hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>): Promise<boolean>;
+  canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number, permissions?: Record<string, unknown>): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
   /** Lightweight portal-setting check used only for the teacher's own daily notice. */
   hasLinkedTeacherPortalNoticeAccess?(name: string): Promise<boolean>;
@@ -85,6 +88,8 @@ export async function resolveTimetablePrincipal(
   const name = session.principal_name;
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
+  const permissions = teacher.permissions && typeof teacher.permissions === "object"
+    ? teacher.permissions : {};
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
   // The schoolwide statistics grant is relevant only to the statistics action.
   // Avoid one permission-table read on every unrelated timetable request.
@@ -102,10 +107,10 @@ export async function resolveTimetablePrincipal(
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
     const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
-      ? await store.hasDutyReportAccess(type, name)
+      ? await store.hasDutyReportAccess(type, name, permissions)
       : false;
     return {
-      type, name, reserveAccess, schoolwideReserveStats,
+      type, name, permissions, reserveAccess, schoolwideReserveStats,
       ...(dutyReportAction ? { dutyReportAccess } : {}),
     };
   }
@@ -117,7 +122,7 @@ export async function resolveTimetablePrincipal(
       ? await store.hasDutyReportAccess(type, name)
       : false;
     return {
-      type, name, reserveAccess: true, schoolwideReserveStats,
+      type, name, permissions, reserveAccess: true, schoolwideReserveStats,
       ...(dutyReportAction ? { dutyReportAccess } : {}),
     };
   }
@@ -154,8 +159,8 @@ export async function resolveTimetablePrincipal(
     "teacher_substitution_get_today",
   ]).has(requestedAction);
   if ((dutyReportAction || mayUseDutyBootstrap) && store.hasDutyReportAccess
-    && await store.hasDutyReportAccess(type, name)) {
-    return { type, name, dutyReportOnly: true, dutyReportAccess: true };
+    && await store.hasDutyReportAccess(type, name, permissions)) {
+    return { type, name, permissions, dutyReportOnly: true, dutyReportAccess: true };
   }
   return null;
 }
