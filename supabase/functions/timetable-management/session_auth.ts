@@ -91,6 +91,7 @@ export async function resolveTimetablePrincipal(
       "health",
       "timetable_check_access",
       "timetable_duty_report_context",
+      "timetable_activity_report_data",
       "teacher_substitution_get_today",
     ]).has(requestedAction);
   const teacher = await store.findTeacher(name, needsTeacherPermissions);
