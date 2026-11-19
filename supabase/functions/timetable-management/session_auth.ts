@@ -119,7 +119,7 @@ export async function resolveTimetablePrincipal(
   if (reserveAccess) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
     const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
-      ? await store.hasDutyReportAccess(type, name)
+      ? await store.hasDutyReportAccess(type, name, permissions)
       : false;
     return {
       type, name, permissions, reserveAccess: true, schoolwideReserveStats,
