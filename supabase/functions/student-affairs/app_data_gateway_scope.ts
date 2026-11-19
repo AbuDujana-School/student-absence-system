@@ -50,12 +50,15 @@ function cleanClassNames(values: unknown): string[] {
 export function mergeAppDataClassScopes(
   timetableClasses: readonly string[],
   grants: ExplicitAppDataClassGrants | null,
+  hasStudentAffairsAccess: boolean,
 ): { allowedClasses: string[]; allowedAttendanceClasses: string[]; allowedBehaviorClasses: string[] } {
-  const general = cleanClassNames(grants?.allowed_classes);
-  const attendance = grants?.can_read_attendance === false ? [] :
+  // The same master gate used by the existing Student Affairs session actions
+  // must apply before any dedicated class grant can expand access.
+  const general = hasStudentAffairsAccess ? cleanClassNames(grants?.allowed_classes) : [];
+  const attendance = !hasStudentAffairsAccess || grants?.can_read_attendance !== true ? [] :
     Array.isArray(grants?.allowed_attendance_classes)
       ? cleanClassNames(grants?.allowed_attendance_classes) : general;
-  const behavior = grants?.can_read_behavior === false ? [] :
+  const behavior = !hasStudentAffairsAccess || grants?.can_read_behavior !== true ? [] :
     Array.isArray(grants?.allowed_behavior_classes)
       ? cleanClassNames(grants?.allowed_behavior_classes) : general;
   return {
