@@ -4876,7 +4876,10 @@ function dutyDayForDate(dateStr) {
 function toMinutes(t) { if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(String(t||''))) return null; const [h,m] = t.split(':').map(Number); return h*60+m; }
 
 /* ============ DB ============ */
-const IS_UI_REVIEW_PREVIEW = location.hostname.includes("abu-dujana-school-preview") || location.hostname === "fix-timetable-fallback-null.student-absence-system.pages.dev";
+// Keep the default branch preview read-only. The explicit live-preview=1 switch
+// enables isolated development-backend tests without ever pointing at production.
+const IS_UI_REVIEW_PREVIEW = new URLSearchParams(location.search).get("live-preview") !== "1" &&
+  (location.hostname.includes("abu-dujana-school-preview") || location.hostname === "fix-timetable-fallback-null.student-absence-system.pages.dev");
 let db = { version: 27, adminPin: null, customUsers: [], customCategories: [], teachers: [], classes: [], students: {}, attendance: {}, behaviors: {}, dutyModule: { subjectDays: { ...DEFAULT_SUBJECT_DAYS }, graceMinutes: 5, periods: Array.from({length:8}, () => ({start:"",end:""})), records: [] } };
 const dirtySets = { classes: new Set(), teachers: new Set(), students: new Set(), attendance: new Set(), behaviors: new Set(), duty_reports: new Set(), admin_pin: false, duty_module: false, custom_categories: false };
 let activeUser = null, selectedClass = null, currentAttendanceRecord = {};
