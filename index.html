@@ -5648,9 +5648,13 @@ async function fetchAppSyncManifest() {
 
 function getChangedAppSyncTables(nextManifest, hasSnapshot) {
   if (!hasSnapshot || !lastLoadedCloudManifest) return [...APP_SYNC_TABLES];
-  return APP_SYNC_TABLES.filter(table =>
+  const changed = APP_SYNC_TABLES.filter(table =>
     Number(nextManifest[table]) !== Number(lastLoadedCloudManifest[table])
   );
+  // Class and student rosters are a coupled view: a class change can affect
+  // the visible roster mapping even when the student table itself is unchanged.
+  if (changed.includes('classes') && !changed.includes('students')) changed.push('students');
+  return changed;
 }
 
 async function loadSystemDataFromCloud() {
