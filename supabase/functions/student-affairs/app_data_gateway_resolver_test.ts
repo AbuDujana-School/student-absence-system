@@ -1,4 +1,4 @@
-import { assertEquals, assertRejects } from "jsr:@std/assert";
+import { assert, assertEquals, assertRejects } from "jsr:@std/assert";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 
 type FixtureOptions = {
