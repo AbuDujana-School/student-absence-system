@@ -5140,38 +5140,17 @@ async function queueCloudDelete(table, filters) {
 async function flushPendingDeletes() { return false; }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
-  const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
-  const failures = [];
+  // Every caller uses a verified UNIQUE/PRIMARY KEY conflict target. A failed
+  // bulk upsert must fail closed: per-row SELECT/UPDATE/INSERT retries amplify
+  // gateway, permission, and transient network errors into hundreds of requests.
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
     const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
-    if (!error) continue;
-    for (const row of chunk) {
-      try {
-        let matchObj = {};
-        cols.forEach(c => { matchObj[c] = row[c]; });
-        let query = sb.from(table).select('*');
-        for (const [k,v] of Object.entries(matchObj)) query = query.eq(k, v);
-        const { data: existing, error: fetchErr } = await query;
-        if (fetchErr) throw fetchErr;
-        if (existing && existing.length > 0) {
-          let uq = sb.from(table).update(row);
-          for (const [k,v] of Object.entries(matchObj)) uq = uq.eq(k, v);
-          const { error: ue } = await uq; if (ue) throw ue;
-        } else {
-          const { error: ie } = await sb.from(table).insert(row); if (ie) throw ie;
-        }
-      } catch(rowErr) { 
-          const msg = String(rowErr?.message || rowErr);
-          console.error(`robustUpsert failed ${table}:`, rowErr, row); 
-          if (/does not exist|invalid input syntax|violates foreign key|violates check constraint|no unique or exclusion constraint/i.test(msg)) {
-            throw new Error(`خطأ في جدول "${table}": ${msg}`);
-          }
-          failures.push({ table, row, error: msg }); 
-      }
+    if (error) {
+      console.error(`Cloud upsert failed for ${table}; the local dirty state is retained.`, error);
+      throw new Error(`تعذر حفظ البيانات في جدول "${table}": ${error.message || 'خطأ اتصال أو صلاحيات'}`);
     }
   }
-  if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
 }
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
   const all = []; let from = 0;
