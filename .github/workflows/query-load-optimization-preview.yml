@@ -1,4 +1,5 @@
 name: Query-load optimization isolated preview
+# This preview-only workflow validates the existing branch deployment; it never deploys or writes data.
 
 on:
   push:
