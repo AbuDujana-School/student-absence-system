@@ -1616,18 +1616,16 @@ async function handle(req: Request) {
     }
     const fetchAll = async (table: "attendance" | "behaviors", classes: string[]) => {
       const rows: any[] = [];
-      for (const className of classes) {
-        let offset = 0;
-        while (true) {
-          const { data, error } = await db.from(table).select("date_str,class_name,records")
-            .eq("class_name", className).gte("date_str", from).lte("date_str", to)
-            .order("date_str").range(offset, offset + 999);
-          if (error) throw error;
-          const page = data || [];
-          rows.push(...page);
-          if (page.length < 1000) break;
-          offset += page.length;
-        }
+      let offset = 0;
+      while (true) {
+        const { data, error } = await db.from(table).select("date_str,class_name,records")
+          .in("class_name", classes).gte("date_str", from).lte("date_str", to)
+          .order("date_str").order("class_name").range(offset, offset + 999);
+        if (error) throw error;
+        const page = data || [];
+        rows.push(...page);
+        if (page.length < 1000) break;
+        offset += page.length;
       }
       return rows;
     };

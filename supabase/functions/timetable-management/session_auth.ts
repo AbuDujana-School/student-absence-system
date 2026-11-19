@@ -53,6 +53,7 @@ export async function resolveTimetablePrincipal(
   authorization: unknown,
   store: TimetableAuthStore,
   now = Date.now(),
+  action = "",
 ): Promise<TimetablePrincipal | null> {
   if (typeof authorization !== "string" || !Number.isFinite(now)) return null;
   const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization.trim());
@@ -78,6 +79,11 @@ export async function resolveTimetablePrincipal(
   const name = session.principal_name;
   const teacher = await store.findTeacher(name);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
+  // This endpoint returns only the authenticated teacher's own daily assignments.
+  // A matching active teacher session is sufficient; broad permission discovery is unnecessary.
+  if (action === "teacher_substitution_get_today") {
+    return type === "teacher" ? { type, name } : null;
+  }
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
       ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;

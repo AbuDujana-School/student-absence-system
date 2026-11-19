@@ -190,8 +190,8 @@ const timetableAuthStore: TimetableAuthStore = {
   },
 };
 
-async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
-  return resolveTimetablePrincipal(req.headers.get("authorization"), timetableAuthStore);
+async function requirePrincipal(req: Request, action = ""): Promise<TimetablePrincipal | null> {
+  return resolveTimetablePrincipal(req.headers.get("authorization"), timetableAuthStore, Date.now(), action);
 }
 
 function validUuid(value: unknown): value is string {
@@ -285,14 +285,14 @@ async function handle(req: Request) {
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any;
   try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
-  const principal = await requirePrincipal(req);
-  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-
   const action = String(body.action || "");
+  const principal = await requirePrincipal(req, action);
+  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
   const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
     ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
     : false;
-  const hasTimetableGrant = (principal.type === "teacher" || principal.type === "custom")
+  const needsArchivePermission = ["timetable_substitution_archive", "timetable_substitution_archive_access"].includes(action);
+  const hasTimetableGrant = needsArchivePermission && (principal.type === "teacher" || principal.type === "custom")
     ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
     : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
