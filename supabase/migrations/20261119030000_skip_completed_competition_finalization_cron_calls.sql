@@ -13,7 +13,7 @@ begin
     perform cron.unschedule(existing_job.jobid);
   end loop;
 end;
-$;
+$$;
 
 select cron.schedule(
   'student-affairs-competition-finalize-retry',
