@@ -430,7 +430,7 @@ Deno.test("daily notice without portal allow-list or own assignment remains deni
 });
 
 
-Deno.test("schoolwide reserve statistics permission is checked only for the statistics action", async () => {
+Deno.test("schoolwide reserve statistics permission is checked only for statistics and its narrow bootstrap actions", async () => {
   const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
   const ordinaryCalls: string[] = [];
   const ordinaryStore = storeWith(session, {
@@ -440,13 +440,13 @@ Deno.test("schoolwide reserve statistics permission is checked only for the stat
     calls: ordinaryCalls,
   });
   const ordinaryPrincipal = await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, ordinaryStore, NOW, "timetable_check_access",
+    "Bearer " + TOKEN, ordinaryStore, NOW, "timetable_class_weekly_get",
   );
-  if (ordinaryPrincipal?.schoolwideReserveStats !== false) {
-    throw new Error("An unrelated timetable action unexpectedly loaded the schoolwide statistics grant");
+  if (ordinaryPrincipal !== null) {
+    throw new Error("An unrelated timetable action unexpectedly received statistics-only access");
   }
   if (ordinaryCalls.some((call) => call.startsWith("schoolwide-stats:"))) {
-    throw new Error("Schoolwide statistics permission was queried for an unrelated action");
+    throw new Error("Schoolwide statistics permission was queried for an unrelated timetable action");
   }
 
   const statsCalls: string[] = [];
@@ -487,6 +487,13 @@ Deno.test("statistics-only account retains statistics access without widening ot
   }
   if (!canUseTimetableAction("teacher", "timetable_substitution_stats", false, false, true)) {
     throw new Error("Statistics-only account lost statistics access");
+  }
+  const bootstrapPrincipal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_check_access",
+  );
+  if (bootstrapPrincipal?.reserveStatsOnly !== true ||
+      !canUseTimetableAction("teacher", "timetable_check_access", false, false, true)) {
+    throw new Error("Statistics-only account lost its existing narrow access-check capability");
   }
   if (canUseTimetableAction("teacher", "timetable_substitution_preview", false, false, true)) {
     throw new Error("Statistics-only account gained reserve-management access");
