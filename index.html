@@ -5232,34 +5232,49 @@ async function persistOfflineState() {
     return true;
   } catch(error) { console.error('IndexedDB save failed:',error); return false; }
 }
+function restoreLocalStorageOfflineSnapshot() {
+  try {
+    const saved = localStorage.getItem('abuDujana_db_v30');
+    if (!saved) return false;
+    const localDb = JSON.parse(saved);
+    if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
+    const localDirtySets = localDb.__offlineDirtySets;
+    const localPendingDeletes = localDb.__offlinePendingDeletes;
+    lastLoadedCloudManifest = normalizeAppSyncManifest(localDb.__offlineCloudSyncManifest);
+    delete localDb.__offlineDirtySets;
+    delete localDb.__offlinePendingDeletes;
+    delete localDb.__offlineCloudSyncManifest;
+    db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
+    db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
+    if (localDirtySets) restoreDirtySetsObject(localDirtySets); else loadDirtySetsFromLocal();
+    if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
+    localStorageFallbackSnapshot = true;
+    return true;
+  } catch(error) {
+    console.warn('LocalStorage fallback restore failed:', error);
+    return false;
+  }
+}
 async function restoreOfflineState() {
   lastLoadedCloudManifest = null;
+  localStorageFallbackSnapshot = false;
   try {
     const database=await openOfflineDatabase();
     const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
     if(!snapshot?.db||typeof snapshot.db!=='object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
-      const saved = localStorage.getItem('abuDujana_db_v30');
-      if (!saved) return false;
-      const localDb = JSON.parse(saved);
-      if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
-      const localDirtySets = localDb.__offlineDirtySets;
-      const localPendingDeletes = localDb.__offlinePendingDeletes;
-      delete localDb.__offlineDirtySets;
-      delete localDb.__offlinePendingDeletes;
-      db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
-      db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
-      if (localDirtySets) restoreDirtySetsObject(localDirtySets); else loadDirtySetsFromLocal();
-      if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
-      return true;
+      return restoreLocalStorageOfflineSnapshot();
     }
     lastLoadedCloudManifest = normalizeAppSyncManifest(snapshot.cloudSyncManifest);
     db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
     db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
     restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
     return true;
-  } catch(error) { console.warn('IndexedDB restore unavailable:',error);return false; }
+  } catch(error) {
+    console.warn('IndexedDB restore unavailable; attempting the localStorage fallback.', error);
+    return restoreLocalStorageOfflineSnapshot();
+  }
 }
 function cloneOfflineValue(value){return JSON.parse(JSON.stringify(value??null));}
 function captureDirtyLocalState(){return {db:cloneOfflineValue(db),dirty:serializeDirtySets()};}
@@ -5505,7 +5520,7 @@ function saveToLocalStorageSafe() {
     const cutoffStr = formatDateOman(cutoff);
     const dirtyObj = serializeDirtySets();
     const pendingDeletes = getPendingDeletes();
-    const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, attendance: {}, behaviors: {} };
+    const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, __offlineCloudSyncManifest: lastLoadedCloudManifest, attendance: {}, behaviors: {} };
     Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.attendance.has(k)) safeDb.attendance[k] = db.attendance[k]; });
     Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.behaviors.has(k)) safeDb.behaviors[k] = db.behaviors[k]; });
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) { throw e; }
@@ -5634,6 +5649,7 @@ async function migrateCredentialsIfNeeded() {
 let cloudDataLoadState = 'not-started';
 const APP_SYNC_TABLES = ['classes','students','teachers','attendance','behaviors','school_settings','duty_reports'];
 let lastLoadedCloudManifest = null;
+let localStorageFallbackSnapshot = false;
 
 function normalizeAppSyncManifest(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -5654,11 +5670,19 @@ async function fetchAppSyncManifest() {
   return manifest;
 }
 
-function getChangedAppSyncTables(nextManifest, hasSnapshot) {
+function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback = localStorageFallbackSnapshot) {
   if (!hasSnapshot || !lastLoadedCloudManifest) return [...APP_SYNC_TABLES];
   const changed = APP_SYNC_TABLES.filter(table =>
     Number(nextManifest[table]) !== Number(lastLoadedCloudManifest[table])
   );
+  // localStorage intentionally keeps only the latest 14 days of attendance and
+  // behavior data. Re-fetch those two complete datasets when it is the active
+  // fallback snapshot, while still using revisions for the other five tables.
+  if (localStorageFallback) {
+    for (const table of ['attendance', 'behaviors']) {
+      if (!changed.includes(table)) changed.push(table);
+    }
+  }
   // Class and student rosters are a coupled view: a class change can affect
   // the visible roster mapping even when the student table itself is unchanged.
   if (changed.includes('classes') && !changed.includes('students')) changed.push('students');
