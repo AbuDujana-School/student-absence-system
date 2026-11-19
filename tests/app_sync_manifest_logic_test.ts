@@ -94,10 +94,14 @@ Deno.test("Cloudflare branch previews select the isolated Supabase project only"
   const branchPreview = select({ hostname: "fix-revision-sync-optimizati.student-absence-system.pages.dev" });
   const hashedPreview = select({ hostname: "7f978965.student-absence-system.pages.dev" });
   const pagesRoot = select({ hostname: "student-absence-system.pages.dev" });
+  const legacyPreviewRoot = select({ hostname: "abu-dujana-school-preview.pages.dev" });
+  const legacyPreviewBranch = select({ hostname: "fix-revision-sync-optimizati.abu-dujana-school-preview.pages.dev" });
   const githubProduction = select({ hostname: "abudujana-school.github.io" });
   assert(branchPreview.url === "https://wawplttrpiinoukpjqqx.supabase.co", "Branch preview must use isolated Supabase");
   assert(hashedPreview.url === "https://wawplttrpiinoukpjqqx.supabase.co", "Hashed preview must use isolated Supabase");
   assert(pagesRoot.url === "https://ylsocrvwqibptuwfzbke.supabase.co", "Cloudflare production root must keep production backend");
+  assert(legacyPreviewRoot.url === "https://wawplttrpiinoukpjqqx.supabase.co", "Dedicated preview root must use isolated Supabase");
+  assert(legacyPreviewBranch.url === "https://wawplttrpiinoukpjqqx.supabase.co", "Dedicated preview branch must use isolated Supabase");
   assert(githubProduction.url === "https://ylsocrvwqibptuwfzbke.supabase.co", "GitHub Pages production must keep production backend");
   assert(branchPreview.key !== pagesRoot.key, "Preview and production public keys must be distinct");
 });
