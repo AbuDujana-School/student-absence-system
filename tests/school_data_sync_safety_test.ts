@@ -60,6 +60,8 @@ Deno.test("cloud refresh polling is read-only whenever local edits or live captu
   assert(load.includes("includeDutyReports ?") || load.includes("if (includeDutyReports)"), "Duty history must be refreshed only when its refresh window is due");
   assert(load.includes("if (includeTeachers) lastTeacherDirectoryRefreshAt = Date.now()"), "The teacher refresh timestamp must advance only after a successful cloud load");
   assert(load.includes("if (includeDutyReports) lastDutyReportsRefreshAt = Date.now()"), "The duty refresh timestamp must advance only after a successful cloud load");
+  assert(load.indexOf("await persistOfflineState()") < load.indexOf("if (includeTeachers) lastTeacherDirectoryRefreshAt = Date.now()"), "Teacher refresh window must not advance before local state persistence succeeds");
+  assert(load.indexOf("await persistOfflineState()") < load.indexOf("if (includeDutyReports) lastDutyReportsRefreshAt = Date.now()"), "Duty refresh window must not advance before local state persistence succeeds");
   assert(refresh.includes("5 * 60 * 1000"), "Teacher directory refresh should be throttled to five minutes");
   assert(refresh.includes("3 * 60 * 1000"), "Duty report refresh should be throttled to three minutes");
   const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
