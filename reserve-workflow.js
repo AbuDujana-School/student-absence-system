@@ -664,8 +664,6 @@
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
-      if(typeof window.substitutionLoadHomeTodayAssignments==="function")await window.substitutionLoadHomeTodayAssignments();
-      if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
   };
 
@@ -681,8 +679,6 @@
       status("تم حذف التوزيع بالكامل من السجل النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
-      if(typeof window.substitutionLoadHomeTodayAssignments==="function")await window.substitutionLoadHomeTodayAssignments();
-      if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
     }catch(error){status(error?.message||"تعذر حذف التوزيع بالكامل؛ لم يتم اعتماد حذف جزئي.","error");}
   };
 
@@ -1180,9 +1176,6 @@
           }
         }
         const result=await originalRequest.call(this,body,token);
-        if(["timetable_substitution_batch_save","timetable_substitution_save"].includes(action)&&!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function"){
-          try{await window.substitutionLoadCumulativeArchive();}catch{}
-        }
         return result;
       };
     }
