@@ -53,3 +53,10 @@ test("successful server login loads cloud data after receiving a session and bef
   assert.ok(session >= 0 && load > session && finalize > load);
   assert.match(login, /if \(useLegacyLogin\)/);
 });
+
+test("the cloud loader itself refuses calls without an active user", async () => {
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(loader, /if \(!activeUser\) \{/);
+  assert.match(loader, /return false;/);
+  assert.ok(loader.indexOf("if (!activeUser)") < loader.indexOf("fetchAppSyncManifest"));
+});
