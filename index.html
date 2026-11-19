@@ -3349,8 +3349,8 @@ const IS_CLOUDFLARE_BRANCH_PREVIEW =
 const SUPABASE_URL = IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co" : "https://ylsocrvwqibptuwfzbke.supabase.co";
 const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
   ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA"
-  : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
-const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  : "sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
+let sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
 const SESSION_TTL_MS = 8*60*60*1000;
@@ -3455,9 +3455,9 @@ function showPrompt(message, options = {}) {
 }
 
 
-const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
-const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/timetable-management";
-const SA_API_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
+const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||`${SUPABASE_URL}/functions/v1/student-affairs`;
+const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||`${SUPABASE_URL}/functions/v1/timetable-management`;
+const SA_API_KEY=SUPABASE_ANON_KEY;
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
@@ -3573,7 +3573,17 @@ function saveAppAuthSession(session) {
   appAuthSession = session;
 }
 function readAppAuthToken() { try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; } }
-function clearAppAuthSession() { appAuthSession = null; try { sessionStorage.removeItem(APP_AUTH_SESSION_KEY); } catch (error) {} }
+function configureAppSessionDatabaseClient(token = readAppAuthToken()) {
+  const safeToken = /^[a-f0-9]{64}$/i.test(String(token || "")) ? String(token).toLowerCase() : "";
+  const headers = safeToken ? { "x-app-session": safeToken } : {};
+  // Recreate the anon client so the session header is applied to every PostgREST
+  // request while Authorization continues to carry only the public API key.
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+    global: { headers },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+function clearAppAuthSession() { appAuthSession = null; try { sessionStorage.removeItem(APP_AUTH_SESSION_KEY); } catch (error) {} configureAppSessionDatabaseClient(""); }
 async function revokeAppAuthSession() { const token = appAuthSession?.token || readAppAuthToken(); if (!token) return; try { await appAuthRequest({ action: "app_logout" }, token); } catch (error) { console.warn("Unable to revoke application session immediately."); } }
 function saPopulateStatusFilter(){
   const container=document.getElementById("saStatusCheckboxesContainer");
