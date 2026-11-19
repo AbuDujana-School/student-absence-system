@@ -17,6 +17,7 @@ on:
       - "feature/smart-substitution-system"
       - "feat/session-protected-data-gateway-20261119"
       - "test/app-data-gateway-handler-20261119"
+      - "test/app-data-gateway-isolated-session-20261119"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
