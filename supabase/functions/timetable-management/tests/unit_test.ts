@@ -418,7 +418,7 @@ Deno.test("reserve permission grants substitution actions only", async () => {
     async hasAdminCredential(){return false;},
     async findTeacher(name){return {name,role:"teacher",reserveAccess:true};},
     async hasTimetableAccess(){return false;},
-  },Date.parse("2026-11-15T12:00:00.000Z"));
+  },Date.parse("2026-11-15T12:00:00.000Z"),"timetable_substitution_batch_preview");
   equal(principal?.name,"معلم مخوّل","Reserve-enabled teacher should authenticate for substitution");
   equal(principal?.reserveAccess,true,"Live reserve permission should be carried with the teacher identity");
   equal(canUseTimetableAction("teacher","timetable_substitution_batch_preview"),false,"General teacher access alone must not grant reserve actions");
