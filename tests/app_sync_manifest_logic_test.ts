@@ -138,3 +138,11 @@ Deno.test("local edits made during cloud requests are recaptured before replacin
   assert(refreshedCapture < firstCloudReplace, "The latest local edits must be captured before cloud data replaces local datasets");
   assert(merge > refreshedCapture, "The refreshed dirty snapshot must be merged after cloud data is loaded");
 });
+
+Deno.test("localStorage fallback refreshes truncated attendance and behavior datasets", () => {
+  logic.setPrevious({ ...baseline });
+  const changed = logic.changed({ ...baseline }, true, true);
+  assert(changed.length === 2, "Fallback cache must refresh only the two intentionally truncated datasets");
+  assert(changed.includes("attendance") && changed.includes("behaviors"), "Attendance and behavior history must be fully refreshed");
+  assert(!changed.includes("teachers") && !changed.includes("school_settings"), "Unchanged complete datasets must not be downloaded");
+});
