@@ -754,7 +754,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
 
 async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScope> {
   // Admin access is decided by the server policy; no class-list query is needed.
-  if (principal.type !== "teacher") return { allowedClasses: [] };
+  if (principal.type !== "teacher" && principal.type !== "custom") return { allowedClasses: [] };
 
   const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
     .select("id").eq("status", "active").limit(2);
@@ -774,17 +774,17 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
     if ((cells || []).length < 500) timetableClasses = projectAssignedClassScope(cells || [], principal.name);
   }
   let explicitGeneral: unknown = [], explicitAttendance: unknown = null, explicitBehavior: unknown = null;
-  if (principal.permissions?.studentAffairs === true) {
-    const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
-      .select("allowed_classes,allowed_attendance_classes,allowed_behavior_classes")
-      .eq("principal_type", "teacher")
-      .eq("principal_name", principal.name)
-      .maybeSingle();
-    if (grantError) throw new Error("Unable to resolve explicit school-affairs class grants");
-    explicitGeneral = grants?.allowed_classes;
-    explicitAttendance = grants?.allowed_attendance_classes;
-    explicitBehavior = grants?.allowed_behavior_classes;
-  }
+  const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
+    .select("allowed_classes,allowed_attendance_classes,allowed_behavior_classes,can_read_attendance,can_read_behavior")
+    .eq("principal_type", principal.type)
+    .eq("principal_name", principal.name)
+    .maybeSingle();
+  if (grantError) throw new Error("Unable to resolve explicit school-affairs class grants");
+  if (principal.permissions?.studentAffairs === true) explicitGeneral = grants?.allowed_classes;
+  // Explicit Student Affairs scopes may expand beyond timetable classes only when
+  // the dedicated server-side grant is enabled for that data category.
+  explicitAttendance = grants?.can_read_attendance === true ? grants.allowed_attendance_classes : [];
+  explicitBehavior = grants?.can_read_behavior === true ? grants.allowed_behavior_classes : [];
   return mergeAppDataClassScopes(timetableClasses, {
     allowed_classes: explicitGeneral,
     allowed_attendance_classes: explicitAttendance,
