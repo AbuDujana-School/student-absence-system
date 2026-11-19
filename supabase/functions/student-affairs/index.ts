@@ -763,21 +763,20 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
   const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
     .select("id").eq("status", "active").limit(2);
   if (versionError) throw new Error("Unable to resolve active timetable version");
-  // Ambiguous or missing active versions must never broaden teacher access.
-  if (!versions || versions.length !== 1 || !versions[0]?.id) return { allowedClasses: [] };
-
-  const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
-    .select("matched_teacher_name,match_status,cell_status,class_sections")
-    .eq("version_id", versions[0].id)
-    .eq("matched_teacher_name", principal.name)
-    .eq("match_status", "matched")
-    .eq("cell_status", "teaching")
-    .limit(500);
-  if (cellsError) throw new Error("Unable to resolve teacher timetable assignments");
-  // A result at the cap may be truncated; fail closed rather than assume completeness.
-  if ((cells || []).length >= 500) return { allowedClasses: [], allowedAttendanceClasses: [], allowedBehaviorClasses: [] };
-
-  const timetableClasses = projectAssignedClassScope(cells || [], principal.name);
+  // Ambiguous or missing active versions never grant timetable-derived access.
+  let timetableClasses: string[] = [];
+  if (versions?.length === 1 && versions[0]?.id) {
+    const { data: cells, error: cellsError } = await db.from("timetable_weekly_cells")
+      .select("matched_teacher_name,match_status,cell_status,class_sections")
+      .eq("version_id", versions[0].id)
+      .eq("matched_teacher_name", principal.name)
+      .eq("match_status", "matched")
+      .eq("cell_status", "teaching")
+      .limit(500);
+    if (cellsError) throw new Error("Unable to resolve teacher timetable assignments");
+    // A result at the cap may be truncated; discard this source rather than assume completeness.
+    if ((cells || []).length < 500) timetableClasses = projectAssignedClassScope(cells || [], principal.name);
+  }
   let explicitGeneral: string[] = [], explicitAttendance: string[] = [], explicitBehavior: string[] = [];
   if (principal.permissions?.studentAffairs === true) {
     const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
