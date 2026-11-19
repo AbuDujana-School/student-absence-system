@@ -123,6 +123,7 @@ test("isolated preview reduces full background reads and preserves manual refres
       typeof loadSystemDataFromCloud === "function" &&
       typeof refreshCloudDataSilently === "function" &&
       cloudDataLoadState === "ready",
+    undefined,
     { timeout: 30_000 },
   );
 
