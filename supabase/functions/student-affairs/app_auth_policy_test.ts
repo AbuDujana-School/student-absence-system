@@ -12,6 +12,7 @@ import {
   revokeAppSession,
   projectAppPrincipal,
   resolveAppPrincipal,
+  verifyAndUpgradeAppCredential,
 } from "./app_auth_policy.ts";
 
 Deno.test("general app PIN accepts only 4–10 numeric digits", () => {
@@ -145,4 +146,52 @@ Deno.test("general app session refuses invalid identities and invalid TTLs", asy
   rejected = false;
   try { await issueAppSession(store, { type: "admin", name: "Admin", permissions: {}, mustChangePin: false }, Date.now(), 48); } catch { rejected = true; }
   if (!rejected) throw new Error("Excessive TTL accepted");
+});
+
+Deno.test("legacy app credential upgrades only after successful verification and preserves source", async () => {
+  let upgrades = 0;
+  let secureCalls = 0;
+  const valid = await verifyAndUpgradeAppCredential(
+    "1234", "legacy-salt", "legacy-hash", undefined,
+    async () => { secureCalls++; return false; },
+    async (_pin, salt, hash) => salt === "legacy-salt" && hash === "legacy-hash",
+    async () => { upgrades++; },
+  );
+  if (!valid || upgrades !== 1 || secureCalls !== 0) throw new Error("Successful legacy login was not upgraded exactly once");
+});
+
+Deno.test("invalid legacy app credential never creates a secure credential", async () => {
+  let upgrades = 0;
+  const valid = await verifyAndUpgradeAppCredential(
+    "9999", "legacy-salt", "legacy-hash", undefined,
+    async () => false,
+    async () => false,
+    async () => { upgrades++; },
+  );
+  if (valid || upgrades !== 0) throw new Error("Invalid PIN triggered a credential upgrade");
+});
+
+Deno.test("matching secure app credential skips legacy verifier and upgrade", async () => {
+  let legacyCalls = 0;
+  let upgrades = 0;
+  const valid = await verifyAndUpgradeAppCredential(
+    "1234", "legacy-salt", "legacy-hash",
+    { pin_salt: "new-salt", pin_hash: "new-hash", source_hash: "legacy-hash", source_salt: "legacy-salt" },
+    async (_pin, salt, hash) => salt === "new-salt" && hash === "new-hash",
+    async () => { legacyCalls++; return false; },
+    async () => { upgrades++; },
+  );
+  if (!valid || legacyCalls !== 0 || upgrades !== 0) throw new Error("Secure credential unexpectedly used legacy migration path");
+});
+
+Deno.test("secure credential bound to a different source falls back to legacy verification", async () => {
+  let upgrades = 0;
+  const valid = await verifyAndUpgradeAppCredential(
+    "1234", "rotated-salt", "rotated-hash",
+    { pin_salt: "old-new-salt", pin_hash: "old-new-hash", source_hash: "legacy-hash", source_salt: "legacy-salt" },
+    async () => false,
+    async (_pin, salt, hash) => salt === "rotated-salt" && hash === "rotated-hash",
+    async () => { upgrades++; },
+  );
+  if (!valid || upgrades !== 1) throw new Error("Changed source credential was not safely reverified and upgraded");
 });
