@@ -52,6 +52,49 @@ jobs:
           CREATE ROLE service_role NOLOGIN BYPASSRLS;
           CREATE TABLE public.school_settings (key text PRIMARY KEY, value jsonb);
           SQL
+      - name: Apply isolated Student Affairs permission schema
+        run: |
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109073100_student_affairs_permission_store.sql
+          psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261109104630_student_affairs_scoped_permissions.sql
+      - name: Verify isolated Student Affairs permission columns and access
+        run: |
+          psql -v ON_ERROR_STOP=1 <<'SQL'
+          DO $do$
+          DECLARE
+            v_missing text[];
+          BEGIN
+            SELECT array_agg(required.column_name)
+              INTO v_missing
+              FROM (VALUES
+                ('allowed_classes'),
+                ('allowed_attendance_classes'),
+                ('allowed_behavior_classes'),
+                ('can_read_attendance'),
+                ('can_read_behavior'),
+                ('attendance_statuses')
+              ) AS required(column_name)
+             WHERE NOT EXISTS (
+               SELECT 1 FROM information_schema.columns
+                WHERE table_schema='public'
+                  AND table_name='student_affairs_permissions'
+                  AND column_name=required.column_name
+             );
+            IF v_missing IS NOT NULL THEN
+              RAISE EXCEPTION 'student_affairs_permissions is missing required columns: %', v_missing;
+            END IF;
+            IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.student_affairs_permissions'::regclass) THEN
+              RAISE EXCEPTION 'student_affairs_permissions RLS is not enabled';
+            END IF;
+            IF has_table_privilege('anon','public.student_affairs_permissions','SELECT')
+              OR has_table_privilege('authenticated','public.student_affairs_permissions','SELECT') THEN
+              RAISE EXCEPTION 'browser roles can read student_affairs_permissions';
+            END IF;
+            IF NOT has_table_privilege('service_role','public.student_affairs_permissions','SELECT') THEN
+              RAISE EXCEPTION 'service_role cannot read student_affairs_permissions';
+            END IF;
+          END $do$;
+          SELECT 'isolated Student Affairs permission schema checks passed' AS result;
+          SQL
       - name: Apply app sessions migration to isolated PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
       - name: Verify isolated app session schema, privileges, lifecycle, and cleanup
