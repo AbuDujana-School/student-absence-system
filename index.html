@@ -5566,7 +5566,8 @@ window.addEventListener('DOMContentLoaded', async () => {
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
   await restoreOfflineState();
   syncServerTime();
-  await loadSystemDataFromCloud();
+  // Never download school data before a server-validated app session exists.
+  // Existing offline snapshots remain available for the explicit offline path.
   await checkExistingSession();
   document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -6160,6 +6161,7 @@ async function checkExistingSession() {
         appAuthSession = { token: appToken, expires_at: result.expires_at, principal: result.principal };
         activeUser = result.principal;
         try { saSession = saReadStoredSession(); } catch (error) { saSession = null; }
+        await loadSystemDataFromCloud();
         await finalizeLoginState();
         return;
       }
@@ -6179,6 +6181,7 @@ async function checkExistingSession() {
     if (!user) { clearSession(); return; }
     activeUser = user;
     try { saSession = saReadStoredSession(); } catch(e) { saSession = null; }
+    if (navigator.onLine) await loadSystemDataFromCloud();
     await finalizeLoginState();
   } catch(error) { console.warn("Compatible session restore failed."); }
 }
@@ -6197,12 +6200,20 @@ async function handleUserLogin(e) {
     let useLegacyLogin = !navigator.onLine;
     if (!useLegacyLogin) {
       try { serverLogin = await appAuthRequest({ action: "app_login", pin }); }
-      catch (serverError) { if (isLegacyAuthEndpointUnavailable(serverError)) useLegacyLogin = true; else throw serverError; }
+      catch (serverError) {
+        // Online authentication must fail closed. Legacy PIN verification is
+        // retained only for offline continuity from an existing local snapshot.
+        if (isLegacyAuthEndpointUnavailable(serverError)) {
+          throw new Error("خدمة تسجيل الدخول الآمن غير متاحة حالياً. لم يتم تحميل بيانات المدرسة؛ حاول لاحقاً.");
+        }
+        throw serverError;
+      }
     }
     if (serverLogin?.token && serverLogin?.principal) {
       saveAppAuthSession(serverLogin);
       activeUser = serverLogin.principal;
       loginAttempts = 0; loginLockedUntil = 0;
+      await loadSystemDataFromCloud();
       await finalizeLoginState();
     } else if (useLegacyLogin) {
       await new Promise(resolve => setTimeout(resolve, 200));
