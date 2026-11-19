@@ -798,6 +798,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_data_gateway_scope.ts
       - name: Test timetable-derived gateway scope
         run: deno test supabase/functions/student-affairs/app_data_gateway_scope_test.ts
+      - name: Type-check server-derived gateway scope resolver
+        run: deno check supabase/functions/student-affairs/app_data_gateway_resolver.ts
+      - name: Test server-derived gateway scope resolver
+        run: deno test supabase/functions/student-affairs/app_data_gateway_resolver_test.ts
       - name: Type-check gateway date validation
         run: deno check supabase/functions/student-affairs/app_data_gateway_validation.ts
       - name: Test gateway date validation
