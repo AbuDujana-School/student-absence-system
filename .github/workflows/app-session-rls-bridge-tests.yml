@@ -6,6 +6,8 @@ on:
       - fix/app-session-rls-bridge-20261119
     paths:
       - "supabase/migrations/20261119002000_app_session_rls_bridge.sql"
+      - "supabase/migrations/20261119003000_app_session_rls_policies.sql"
+      - "supabase/tests/app_session_rls_bridge_setup.sql"
       - "supabase/tests/app_session_rls_bridge_integration.sql"
       - ".github/workflows/app-session-rls-bridge-tests.yml"
   pull_request:
@@ -13,6 +15,8 @@ on:
       - main
     paths:
       - "supabase/migrations/20261119002000_app_session_rls_bridge.sql"
+      - "supabase/migrations/20261119003000_app_session_rls_policies.sql"
+      - "supabase/tests/app_session_rls_bridge_setup.sql"
       - "supabase/tests/app_session_rls_bridge_integration.sql"
       - ".github/workflows/app-session-rls-bridge-tests.yml"
 
@@ -52,9 +56,13 @@ jobs:
           create schema extensions;
           create extension if not exists pgcrypto with schema extensions;
           SQL
+      - name: Create minimal synthetic school tables
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/app_session_rls_bridge_setup.sql
       - name: Apply existing app-session table migration
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
-      - name: Apply app-session RLS bridge migration
+      - name: Apply app-session RLS resolver migration
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261119002000_app_session_rls_bridge.sql
-      - name: Verify active, missing, malformed, expired and revoked sessions
+      - name: Apply app-session RLS policies
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261119003000_app_session_rls_policies.sql
+      - name: Verify app session resolution and data permission boundaries
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/app_session_rls_bridge_integration.sql
