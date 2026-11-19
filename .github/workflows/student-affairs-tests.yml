@@ -786,6 +786,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts supabase/functions/student-affairs/notice_policy.ts
       - name: Run general app auth policy tests
         run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
+      - name: Type-check app data gateway authorization policy
+        run: deno check supabase/functions/student-affairs/app_data_gateway_policy.ts
+      - name: Run app data gateway authorization and privacy tests
+        run: deno test supabase/functions/student-affairs/app_data_gateway_policy_test.ts
       - name: Run general app Supabase session store tests
         run: deno test supabase/functions/student-affairs/app_session_store_test.ts
       - name: Run report authorization tests
