@@ -775,8 +775,31 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
     .limit(500);
   if (cellsError) throw new Error("Unable to resolve teacher timetable assignments");
   // A result at the cap may be truncated; fail closed rather than assume completeness.
-  if ((cells || []).length >= 500) return { allowedClasses: [] };
-  return { allowedClasses: projectAssignedClassScope(cells || [], principal.name) };
+  if ((cells || []).length >= 500) return { allowedClasses: [], allowedAttendanceClasses: [], allowedBehaviorClasses: [] };
+
+  const timetableClasses = projectAssignedClassScope(cells || [], principal.name);
+  let explicitGeneral: string[] = [], explicitAttendance: string[] = [], explicitBehavior: string[] = [];
+  if (principal.permissions?.studentAffairs === true) {
+    const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
+      .select("allowed_classes,allowed_attendance_classes,allowed_behavior_classes")
+      .eq("principal_type", "teacher")
+      .eq("principal_name", principal.name)
+      .maybeSingle();
+    if (grantError) throw new Error("Unable to resolve explicit school-affairs class grants");
+    explicitGeneral = Array.isArray(grants?.allowed_classes) ? grants.allowed_classes : [];
+    explicitAttendance = Array.isArray(grants?.allowed_attendance_classes)
+      ? grants.allowed_attendance_classes : explicitGeneral;
+    explicitBehavior = Array.isArray(grants?.allowed_behavior_classes)
+      ? grants.allowed_behavior_classes : explicitGeneral;
+  }
+  const unique = (values: unknown[]) => [...new Set(values.filter((value): value is string =>
+    typeof value === "string" && value.trim().length > 0 && value.trim().length <= 120
+  ).map(value => value.trim()))].sort((a, b) => a.localeCompare(b, "en"));
+  return {
+    allowedClasses: unique([...timetableClasses, ...explicitGeneral]),
+    allowedAttendanceClasses: unique([...timetableClasses, ...explicitAttendance]),
+    allowedBehaviorClasses: unique([...timetableClasses, ...explicitBehavior]),
+  };
 }
 
 function isGatewayDate(value: unknown): value is string {
@@ -814,7 +837,9 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
   }
 
   const scope = await resolveAppDataScope(principal);
-  const firstClass = scope.allowedClasses[0] || "";
+  const tableClasses = table === "attendance" ? (scope.allowedAttendanceClasses || scope.allowedClasses) :
+    table === "behaviors" ? (scope.allowedBehaviorClasses || scope.allowedClasses) : scope.allowedClasses;
+  const firstClass = tableClasses[0] || "";
   const probe: Record<string, unknown> | null =
     table === "classes" ? { name: firstClass } :
     table === "students" || table === "attendance" || table === "behaviors" || table === "duty_reports"
@@ -832,8 +857,8 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
       if (!scope.allowedClasses.length) return reply(200, { rows: [], next_offset: null });
       query = query.in("name", scope.allowedClasses);
     } else if (["students", "attendance", "behaviors", "duty_reports"].includes(table)) {
-      if (!scope.allowedClasses.length) return reply(200, { rows: [], next_offset: null });
-      query = query.in("class_name", scope.allowedClasses);
+      if (!tableClasses.length) return reply(200, { rows: [], next_offset: null });
+      query = query.in("class_name", tableClasses);
     }
   }
   if (body?.class_name !== undefined) {
@@ -843,7 +868,7 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
     }
     const className = body.class_name.trim();
     if (!className || className.length > 120 ||
-      (principal.type !== "admin" && !scope.allowedClasses.includes(className))) {
+      (principal.type !== "admin" && !tableClasses.includes(className))) {
       return reply(403, { error: "الصف المطلوب خارج نطاق صلاحيات الحساب." });
     }
     query = table === "classes" ? query.eq("name", className) : query.eq("class_name", className);
