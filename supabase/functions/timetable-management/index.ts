@@ -301,8 +301,13 @@ async function handle(req: Request) {
   const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
     ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
     : false;
-  // Reuse the explicit grant already checked by resolveTimetablePrincipal.
-  const hasTimetableGrant = principal.timetableAccess === true;
+  // Only archive actions need the separate timetable grant; avoid this
+  // permission query for every ordinary read while preserving the archive recheck.
+  const needsArchiveGrant = ["timetable_substitution_archive", "timetable_substitution_archive_access"].includes(action);
+  const hasTimetableGrant = needsArchiveGrant &&
+    (principal.type === "teacher" || principal.type === "custom")
+      ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
+      : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
   const hasDutyReportPermission = action === "timetable_duty_report_context" && (
     principal.type === "admin" || await timetableAuthStore.hasDutyReportAccess?.(principal.type, principal.name) === true
