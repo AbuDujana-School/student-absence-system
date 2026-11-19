@@ -11,8 +11,6 @@ export interface TimetablePrincipal {
   reserveStatsOnly?: boolean;
   /** Can only read the timetable context needed to compose an authorized duty report. */
   dutyReportOnly?: boolean;
-  /** The request-scoped explicit timetable grant already verified by the resolver. */
-  timetableAccess?: boolean;
 }
 
 export interface TimetableSessionLookup {
@@ -86,7 +84,7 @@ export async function resolveTimetablePrincipal(
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
       ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
-    return { type, name, schoolwideReserveStats, timetableAccess: true };
+    return { type, name, schoolwideReserveStats };
   }
   // Existing reserve permission is narrower than general timetable access.
   if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
