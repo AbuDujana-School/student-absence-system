@@ -11,6 +11,8 @@ export interface TimetablePrincipal {
   reserveStatsOnly?: boolean;
   /** Can only read the timetable context needed to compose an authorized duty report. */
   dutyReportOnly?: boolean;
+  /** The request-scoped explicit timetable grant already verified by the resolver. */
+  timetableAccess?: boolean;
 }
 
 export interface TimetableSessionLookup {
@@ -33,6 +35,8 @@ export interface TimetableAuthStore {
   hasDutyReportAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
   canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
+  /** Lightweight portal-setting check used only for the teacher's own daily notice. */
+  hasLinkedTeacherPortalNoticeAccess?(name: string): Promise<boolean>;
   hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
   hasSchoolwideReserveStatsAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
 }
@@ -53,6 +57,7 @@ export async function resolveTimetablePrincipal(
   authorization: unknown,
   store: TimetableAuthStore,
   now = Date.now(),
+  requestedAction = "",
 ): Promise<TimetablePrincipal | null> {
   if (typeof authorization !== "string" || !Number.isFinite(now)) return null;
   const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization.trim());
@@ -81,7 +86,7 @@ export async function resolveTimetablePrincipal(
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
       ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
-    return { type, name, schoolwideReserveStats };
+    return { type, name, schoolwideReserveStats, timetableAccess: true };
   }
   // Existing reserve permission is narrower than general timetable access.
   if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
@@ -94,14 +99,27 @@ export async function resolveTimetablePrincipal(
   if (schoolwideReserveStats) {
     return { type, name, schoolwideReserveStats: true, reserveStatsOnly: true };
   }
-  if (type === "teacher" && store.hasLinkedTeacherPortalAccess
-    && await store.hasLinkedTeacherPortalAccess(name)) {
-    return { type, name, portalOnly: true };
-  }
-  // A teacher assigned reserve today may read only their own daily notice.
-  if (type === "teacher" && store.hasOwnDailySubstitutionAssignment
-    && await store.hasOwnDailySubstitutionAssignment(name)) {
-    return { type, name };
+  // The daily notice exposes only this teacher's own assignments. For this
+  // action, verify the configured portal allow-list without loading weekly cells.
+  if (type === "teacher" && requestedAction === "teacher_substitution_get_today") {
+    if (store.hasLinkedTeacherPortalNoticeAccess
+      && await store.hasLinkedTeacherPortalNoticeAccess(name)) {
+      return { type, name, portalOnly: true };
+    }
+    if (store.hasOwnDailySubstitutionAssignment
+      && await store.hasOwnDailySubstitutionAssignment(name)) {
+      return { type, name };
+    }
+  } else {
+    if (type === "teacher" && store.hasLinkedTeacherPortalAccess
+      && await store.hasLinkedTeacherPortalAccess(name)) {
+      return { type, name, portalOnly: true };
+    }
+    // A teacher assigned reserve today may read only their own daily notice.
+    if (type === "teacher" && store.hasOwnDailySubstitutionAssignment
+      && await store.hasOwnDailySubstitutionAssignment(name)) {
+      return { type, name };
+    }
   }
   if (store.hasDutyReportAccess && await store.hasDutyReportAccess(type, name)) {
     return { type, name, dutyReportOnly: true };
