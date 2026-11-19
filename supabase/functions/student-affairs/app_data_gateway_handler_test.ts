@@ -138,3 +138,62 @@ Deno.test("full page returns a continuation offset while a short page ends pagin
   const shortResponse = await request({ table: "students", offset: 20, limit: 1 }, short.deps);
   assertEquals((await body(shortResponse)).next_offset, null);
 });
+
+
+Deno.test("teacher profile reads are limited to the current principal and exclude credential fields", async () => {
+  const { deps, calls } = fixture({
+    rows: [{
+      name: "Teacher A", role: "teacher", pin_hash: "never-return", pin_salt: "never-return",
+      must_change_pin: true, permissions: { attendance: true, api_token: "never-return" },
+    }],
+  });
+  const response = await request({ table: "teachers" }, deps);
+  assertEquals(response.status, 200);
+  assert(calls.some(([name, column, value]) => name === "eq" && column === "name" && value === "Teacher A"));
+  const selected = calls.find(([name]) => name === "select")?.[1];
+  assertEquals(typeof selected, "string");
+  assertEquals(String(selected).includes("pin_hash"), false);
+  assertEquals(String(selected).includes("pin_salt"), false);
+  assertEquals((await body(response)).rows, [{
+    name: "Teacher A", role: "teacher", permissions: { attendance: true }, must_change_pin: true,
+  }]);
+});
+
+Deno.test("admin teacher directory reads use the safe projection without PIN hashes or salts", async () => {
+  const admin = { type: "admin" as const, name: "مدير النظام العام", permissions: {} };
+  const { deps, calls } = fixture({
+    principal: admin,
+    session: { principal: { type: "admin", name: admin.name } },
+    rows: [{
+      name: "Teacher A", role: "teacher", pin_hash: "never-return", pin_salt: "never-return",
+      permissions: { attendance: true, secret_token: "never-return" },
+    }],
+  });
+  const response = await request({ table: "teachers" }, deps);
+  assertEquals(response.status, 200);
+  const selected = calls.find(([name]) => name === "select")?.[1];
+  assertEquals(typeof selected, "string");
+  assertEquals(String(selected).includes("pin_hash"), false);
+  assertEquals(String(selected).includes("pin_salt"), false);
+  assertEquals((await body(response)).rows, [{
+    name: "Teacher A", role: "teacher", permissions: { attendance: true },
+  }]);
+});
+
+Deno.test("non-admin school settings reads are denied before a database query", async () => {
+  const { deps, calls } = fixture();
+  const response = await request({ table: "school_settings" }, deps);
+  assertEquals(response.status, 403);
+  assertEquals(calls.some(([name]) => name === "from"), false);
+});
+
+Deno.test("generic gateway never exposes the app session store, even to administrators", async () => {
+  const admin = { type: "admin" as const, name: "مدير النظام العام", permissions: {} };
+  const { deps, calls } = fixture({
+    principal: admin,
+    session: { principal: { type: "admin", name: admin.name } },
+  });
+  const response = await request({ table: "app_sessions" }, deps);
+  assertEquals(response.status, 400);
+  assertEquals(calls.some(([name]) => name === "from"), false);
+});
