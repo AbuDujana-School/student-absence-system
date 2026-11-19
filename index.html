@@ -5399,6 +5399,19 @@ async function retryOfflineSyncSilently() {
     offlineAutoSyncInProgress = false;
   }
 }
+function refreshCloudDependentViews() {
+  if (!activeUser) return;
+  try {
+    if (isAdminAuthorized()) {
+      if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+      if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+    }
+    if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
+    if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
+    refreshDutyDashboardCard();
+  } catch (error) { console.error('Cloud refresh view update failed:', error); }
+}
+
 async function refreshCloudDataSilently() {
   if (cloudRefreshInProgress || cloudSaveInProgress || !navigator.onLine || !activeUser ||
       document.hidden || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty ||
@@ -5406,17 +5419,7 @@ async function refreshCloudDataSilently() {
   cloudRefreshInProgress = true;
   try {
     const success = await loadSystemDataFromCloud();
-    if (success && activeUser) {
-      try {
-        if (isAdminAuthorized()) {
-          if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
-          if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
-        }
-        if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
-        if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
-        refreshDutyDashboardCard();
-      } catch (error) { console.error('Cloud refresh view update failed:', error); }
-    }
+    if (success && activeUser) refreshCloudDependentViews();
     return success;
   } finally {
     cloudRefreshInProgress = false;
@@ -5597,11 +5600,14 @@ window.addEventListener('DOMContentLoaded', async () => {
             attendanceDirty || behaviorDirty) return;
         // Recover the read-only cloud snapshot first after an offline/failed load.
         // The loader merges dirty local edits before any upload is attempted.
+        let recoveredCloud = false;
         if (cloudDataLoadState !== 'ready') {
           const recovered = await loadSystemDataFromCloud();
           if (!recovered) return;
+          recoveredCloud = true;
         }
         if (hasPendingOfflineRecordChanges()) await retryOfflineSyncSilently();
+        else if (recoveredCloud) refreshCloudDependentViews();
         else await refreshCloudDataSilently();
       } catch (error) {
         console.warn('Cloud reconnect recovery failed; local changes remain محفوظة.', error);
