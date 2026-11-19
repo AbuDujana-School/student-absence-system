@@ -319,6 +319,8 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
   assert(captureGuard >= 0 && captureGuard < recoveryLoad, "Reconnect must not reload over an active unsaved attendance or behavior capture");
   assert(resume.includes("cloudDataLoadState !== 'ready'"), "Reconnect must detect failed or not-yet-started cloud state");
   assert(resume.includes("cloudDataLoadState === 'loading'"), "Reconnect must not overlap an active cloud load");
+  assert(resume.includes("let recoveredCloud = false"), "Reconnect must track when the cloud snapshot was already recovered");
+  assert(resume.includes("else if (recoveredCloud) refreshCloudDependentViews()"), "Recovered data must refresh visible views without issuing a second cloud load");
   assert(events.includes("resumeCloudSync();"), "Online, visibility, and periodic refresh must share the recovery path");
 
   const manual = section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */");
