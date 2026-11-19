@@ -786,11 +786,15 @@ async function resolveAppDataScope(principal: AppPrincipal): Promise<AppDataScop
   // the dedicated server-side grant is enabled for that data category.
   explicitAttendance = grants?.can_read_attendance === true ? grants.allowed_attendance_classes : [];
   explicitBehavior = grants?.can_read_behavior === true ? grants.allowed_behavior_classes : [];
+  const hasStudentAffairsAccess = principal.permissions?.studentAffairs === true ||
+    principal.permissions?.admin === true;
   return mergeAppDataClassScopes(timetableClasses, {
     allowed_classes: explicitGeneral,
     allowed_attendance_classes: explicitAttendance,
     allowed_behavior_classes: explicitBehavior,
-  });
+    can_read_attendance: grants?.can_read_attendance,
+    can_read_behavior: grants?.can_read_behavior,
+  }, hasStudentAffairsAccess);
 }
 
 async function readAppDataGateway(req: Request, body: any): Promise<Response> {
