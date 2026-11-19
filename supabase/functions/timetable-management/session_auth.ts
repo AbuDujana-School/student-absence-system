@@ -83,7 +83,12 @@ export async function resolveTimetablePrincipal(
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   // The schoolwide statistics grant is relevant only to the statistics action.
   // Avoid one permission-table read on every unrelated timetable request.
-  const needsSchoolwideReserveStats = requestedAction === "timetable_substitution_stats";
+  const needsSchoolwideReserveStats = new Set([
+    "timetable_substitution_stats",
+    // Statistics-only accounts historically retain these narrow bootstrap/read actions.
+    "health",
+    "timetable_check_access",
+  ]).has(requestedAction);
   const hasSchoolwideReserveStats = async () => needsSchoolwideReserveStats &&
     store.hasSchoolwideReserveStatsAccess
       ? await store.hasSchoolwideReserveStatsAccess(type, name)
