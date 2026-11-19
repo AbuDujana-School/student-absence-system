@@ -35,6 +35,8 @@ export type ExplicitAppDataClassGrants = {
   allowed_classes?: unknown;
   allowed_attendance_classes?: unknown;
   allowed_behavior_classes?: unknown;
+  can_read_attendance?: unknown;
+  can_read_behavior?: unknown;
 };
 
 function cleanClassNames(values: unknown): string[] {
@@ -50,10 +52,12 @@ export function mergeAppDataClassScopes(
   grants: ExplicitAppDataClassGrants | null,
 ): { allowedClasses: string[]; allowedAttendanceClasses: string[]; allowedBehaviorClasses: string[] } {
   const general = cleanClassNames(grants?.allowed_classes);
-  const attendance = Array.isArray(grants?.allowed_attendance_classes)
-    ? cleanClassNames(grants?.allowed_attendance_classes) : general;
-  const behavior = Array.isArray(grants?.allowed_behavior_classes)
-    ? cleanClassNames(grants?.allowed_behavior_classes) : general;
+  const attendance = grants?.can_read_attendance === false ? [] :
+    Array.isArray(grants?.allowed_attendance_classes)
+      ? cleanClassNames(grants?.allowed_attendance_classes) : general;
+  const behavior = grants?.can_read_behavior === false ? [] :
+    Array.isArray(grants?.allowed_behavior_classes)
+      ? cleanClassNames(grants?.allowed_behavior_classes) : general;
   return {
     allowedClasses: cleanClassNames([...timetableClasses, ...general]),
     allowedAttendanceClasses: cleanClassNames([...timetableClasses, ...attendance]),
