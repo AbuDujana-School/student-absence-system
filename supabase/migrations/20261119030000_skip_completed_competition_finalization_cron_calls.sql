@@ -12,8 +12,8 @@ begin
   loop
     perform cron.unschedule(existing_job.jobid);
   end loop;
-end
-$$;
+end;
+$;
 
 select cron.schedule(
   'student-affairs-competition-finalize-retry',
@@ -118,7 +118,7 @@ select cron.schedule(
           timeout_milliseconds := 300000
         );
       end if;
-    end
+    end;
     $competition_finalize$;
   $cron$
 );
