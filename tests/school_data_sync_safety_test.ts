@@ -69,11 +69,15 @@ Deno.test("default PIN initialization and credential migration are not invoked a
 });
 
 
-Deno.test("localStorage fallback restores pending edits before a successful cloud load", () => {
+Deno.test("localStorage fallback restores the database, manifest, and pending edits", () => {
+  const fallback = section("function restoreLocalStorageOfflineSnapshot()", "async function restoreOfflineState()");
   const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
-  assert(restore.includes("localStorage.getItem('abuDujana_db_v30')"), "A missing IndexedDB snapshot must fall back to the localStorage database");
-  assert(restore.includes("loadDirtySetsFromLocal()"), "Fallback must restore dirty markers with the local database");
-  assert(restore.indexOf("db={...db,...localDb}") < restore.indexOf("return true"), "Fallback data must be restored before reporting success");
+  assert(fallback.includes("localStorage.getItem('abuDujana_db_v30')"), "A missing or unavailable IndexedDB snapshot must fall back to the localStorage database");
+  assert(fallback.includes("normalizeAppSyncManifest(localDb.__offlineCloudSyncManifest)"), "Fallback must restore the revision manifest saved with the same database snapshot");
+  assert(fallback.includes("delete localDb.__offlineCloudSyncManifest"), "Manifest metadata must not leak into the application database object");
+  assert(fallback.includes("restoreDirtySetsObject(localDirtySets)"), "Fallback must restore dirty markers with the local database");
+  assert(restore.includes("return restoreLocalStorageOfflineSnapshot()"), "Missing and failed IndexedDB reads must both attempt the safe localStorage fallback");
+  assert(fallback.indexOf("db={...db,...localDb}") < fallback.indexOf("return true"), "Fallback data must be restored before reporting success");
 });
 
 Deno.test("older pending attendance and behavior edits survive the local cache age filter", () => {
@@ -118,8 +122,10 @@ Deno.test("local fallback snapshot carries its own dirty markers and pending del
   const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
   assert(localSave.includes("__offlineDirtySets: dirtyObj"), "The fallback database snapshot must carry its dirty markers atomically");
   assert(localSave.includes("__offlinePendingDeletes: pendingDeletes"), "The fallback database snapshot must carry queued deletions");
-  assert(restore.includes("const localDirtySets = localDb.__offlineDirtySets"), "Fallback restore must recover embedded dirty markers");
-  assert(restore.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
+  assert(localSave.includes("__offlineCloudSyncManifest: lastLoadedCloudManifest"), "The fallback database snapshot must carry its matching cloud revision manifest");
+  const fallback = section("function restoreLocalStorageOfflineSnapshot()", "async function restoreOfflineState()");
+  assert(fallback.includes("const localDirtySets = localDb.__offlineDirtySets"), "Fallback restore must recover embedded dirty markers");
+  assert(fallback.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
   assert(restore.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
 });
 
