@@ -20,6 +20,7 @@ function storeWith(
     teacher?: { name: string; role: string } | null;
     access?: boolean;
     reserve?: boolean;
+    schoolwideReserveStats?: boolean;
     linkedPortalAccess?: boolean;
     linkedPortalNoticeAccess?: boolean;
     ownDailyAssignment?: boolean;
@@ -48,6 +49,10 @@ function storeWith(
     async hasSubstitutionAccess(name) {
       calls.push("reserve:" + name);
       return options.reserve === true;
+    },
+    async hasSchoolwideReserveStatsAccess(type, name) {
+      calls.push("schoolwide-stats:" + type + ":" + name);
+      return options.schoolwideReserveStats === true;
     },
     async hasLinkedTeacherPortalAccess(name) {
       calls.push("linked-portal:" + name);
@@ -421,5 +426,69 @@ Deno.test("daily notice without portal allow-list or own assignment remains deni
   if (principal !== null) throw new Error("Unauthorized daily notice access was accepted");
   if (calls.some((call) => call.startsWith("linked-portal:"))) {
     throw new Error("Daily notice fallback performed the expensive weekly-cell lookup");
+  }
+});
+
+
+Deno.test("schoolwide reserve statistics permission is checked only for the statistics action", async () => {
+  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
+  const ordinaryCalls: string[] = [];
+  const ordinaryStore = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher" },
+    access: true,
+    schoolwideReserveStats: true,
+    calls: ordinaryCalls,
+  });
+  const ordinaryPrincipal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, ordinaryStore, NOW, "timetable_check_access",
+  );
+  if (ordinaryPrincipal?.schoolwideReserveStats !== false) {
+    throw new Error("An unrelated timetable action unexpectedly loaded the schoolwide statistics grant");
+  }
+  if (ordinaryCalls.some((call) => call.startsWith("schoolwide-stats:"))) {
+    throw new Error("Schoolwide statistics permission was queried for an unrelated action");
+  }
+
+  const statsCalls: string[] = [];
+  const statsStore = storeWith(session, {
+    teacher: { name: "Teacher A", role: "teacher" },
+    access: true,
+    schoolwideReserveStats: true,
+    calls: statsCalls,
+  });
+  const statsPrincipal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, statsStore, NOW, "timetable_substitution_stats",
+  );
+  if (statsPrincipal?.schoolwideReserveStats !== true) {
+    throw new Error("Explicit schoolwide statistics permission was not retained for statistics");
+  }
+  if (!statsCalls.includes("schoolwide-stats:teacher:Teacher A")) {
+    throw new Error("Statistics action did not re-check the explicit statistics grant");
+  }
+  if (!canUseTimetableAction("teacher", "timetable_substitution_stats", false, false,
+    statsPrincipal.reserveStatsOnly === true, statsPrincipal.schoolwideReserveStats === true)) {
+    throw new Error("Authorized schoolwide statistics access was denied");
+  }
+});
+
+Deno.test("statistics-only account retains statistics access without widening other actions", async () => {
+  const session = { principal_type: "teacher", principal_name: "Stats Teacher", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: { name: "Stats Teacher", role: "teacher" },
+    schoolwideReserveStats: true,
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_substitution_stats",
+  );
+  if (principal?.reserveStatsOnly !== true) {
+    throw new Error("Statistics-only account did not retain its narrow principal scope");
+  }
+  if (!canUseTimetableAction("teacher", "timetable_substitution_stats", false, false, true)) {
+    throw new Error("Statistics-only account lost statistics access");
+  }
+  if (canUseTimetableAction("teacher", "timetable_substitution_preview", false, false, true)) {
+    throw new Error("Statistics-only account gained reserve-management access");
   }
 });
