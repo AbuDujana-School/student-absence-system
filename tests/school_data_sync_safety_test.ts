@@ -119,14 +119,13 @@ Deno.test("queued deletions remain local and are reapplied after cloud data is m
 
 Deno.test("local fallback snapshot carries its own dirty markers and pending deletions", () => {
   const localSave = section("function saveToLocalStorageSafe()", "function loadDirtySetsFromLocal()");
-  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
   assert(localSave.includes("__offlineDirtySets: dirtyObj"), "The fallback database snapshot must carry its dirty markers atomically");
   assert(localSave.includes("__offlinePendingDeletes: pendingDeletes"), "The fallback database snapshot must carry queued deletions");
   assert(localSave.includes("__offlineCloudSyncManifest: lastLoadedCloudManifest"), "The fallback database snapshot must carry its matching cloud revision manifest");
   const fallback = section("function restoreLocalStorageOfflineSnapshot()", "async function restoreOfflineState()");
   assert(fallback.includes("const localDirtySets = localDb.__offlineDirtySets"), "Fallback restore must recover embedded dirty markers");
   assert(fallback.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
-  assert(restore.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
+  assert(fallback.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
 });
 
 
