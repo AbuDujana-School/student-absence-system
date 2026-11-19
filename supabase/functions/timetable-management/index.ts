@@ -110,9 +110,19 @@ const timetableAuthStore: TimetableAuthStore = {
     return !error && !!data?.value?.hash && !!data?.value?.salt;
   },
   async findTeacher(name, includePermissions = false) {
-    const { data, error } = await db.from("teachers")
-      .select(includePermissions ? "name,role,permissions" : "name,role")
-      .eq("name", name).maybeSingle();
+    let data: any = null;
+    let error: any = null;
+    if (includePermissions) {
+      const result = await db.from("teachers")
+        .select("name,role,permissions").eq("name", name).maybeSingle();
+      data = result.data;
+      error = result.error;
+    } else {
+      const result = await db.from("teachers")
+        .select("name,role").eq("name", name).maybeSingle();
+      data = result.data;
+      error = result.error;
+    }
     const permissions = includePermissions && data?.permissions && typeof data.permissions === "object"
       ? data.permissions : {};
     return error || !data ? null : {
