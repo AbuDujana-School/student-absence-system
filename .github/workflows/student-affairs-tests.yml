@@ -53,6 +53,8 @@ jobs:
           SQL
       - name: Apply app sessions migration to isolated PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
+      - name: Verify isolated app session schema, privileges, lifecycle, and cleanup
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/app_sessions_isolation.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
       - name: Prepare isolated school data tables for student transfer integration
