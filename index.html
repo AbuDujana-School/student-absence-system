@@ -4806,86 +4806,90 @@ function saNoticeFitCards(scope){
 let saNoticePreviewFitRun=0;
 let saNoticePreviewReady=Promise.resolve(true);
 function saNoticeRenderPreview(students,perPage=3){
-  const capacity=Math.max(1,Math.min(3,Number(perPage)||3));
+  const maxCards=Math.max(1,Math.min(3,Number(perPage)||3));
   const root=document.getElementById("saNoticePrintRoot");
-  // The generation flow hides the preview while scanning. Reveal it before
-  // measuring cards: hidden ancestors report zero layout dimensions and make
-  // every 3/2/1-card candidate look as if it overflows, yielding one student/page.
+  if(!root)return 0;
   const previewPanel=document.getElementById("saNoticePreviewPanel");
   if(previewPanel)previewPanel.classList.remove("hidden");
-  const initialPages=saNoticeBuildPages(students,capacity);
+  const ordered=saNoticeBuildPages(students,1).flatMap(page=>page.items);
   const run=++saNoticePreviewFitRun;
-  root.innerHTML=initialPages.map((page,pageIndex)=>{
-    const cards=page.items.map(student=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
-    return '<section class="sa-notice-page notice-page-'+page.level+'" data-page="'+(pageIndex+1)+'" data-capacity="'+capacity+'">'+cards+'</section>';
-  }).join("");
-  const ready=Promise.resolve(document.fonts?.ready||Promise.resolve()).then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)))).then(()=>{
-    if(run!==saNoticePreviewFitRun)return false;
-    // Re-pack one page at a time: keep three students wherever they fit,
-    // reduce only the page containing unusually long notices, and preserve every event.
-    const ordered=initialPages.flatMap(page=>page.items);
-    root.innerHTML="";
-    let cursor=0,pageNumber=0,usedTwo=0,usedOne=0,failed=false;
-    while(cursor<ordered.length){
-      let accepted=false;
-      for(let pageCapacity=3;pageCapacity>=1;pageCapacity--){
-        const items=ordered.slice(cursor,cursor+pageCapacity);
-        const section=document.createElement("section");
-        section.className="sa-notice-page notice-page-"+(pageCapacity===3?"three":pageCapacity===2?"two":"one");
-        section.dataset.page=String(pageNumber+1);
-        section.dataset.capacity=String(pageCapacity);
-        section.innerHTML=items.map(student=>saNoticeBuildCard(student,students.indexOf(student))).join('<div class="sa-notice-cutline"><span>✂</span></div>');
-        root.appendChild(section);
-        void section.offsetHeight;
-        if(saNoticeFitCards(section)){
-          pageNumber++;
-          cursor+=items.length;
-          if(pageCapacity===2)usedTwo++;
-          if(pageCapacity===1)usedOne++;
-          accepted=true;
-          break;
-        }
-        root.removeChild(section);
-      }
-      if(!accepted){
-        // A single notice that still cannot fit is never clipped or silently omitted.
-        const student=ordered[cursor];
-        const section=document.createElement("section");
-        section.className="sa-notice-page notice-page-one";
-        section.dataset.page=String(pageNumber+1);
-        section.dataset.capacity="1";
-        section.innerHTML=saNoticeBuildCard(student,students.indexOf(student));
-        root.appendChild(section);
-        saNoticeFitCards(section);
-        section.querySelector(".sa-notice-card")?.setAttribute("data-fit-failed","true");
-        failed=true;
-        pageNumber++;
-        cursor++;
-      }
-    }
-    const summary=document.getElementById("saNoticePreviewSummary");
-    if(summary){
-      summary.textContent=summary.textContent
-        .replace(/صفحات A4 \([^)]*\):\s*[\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pageNumber);
-    }
-    if(failed){
-      saNoticeSetStatus("يوجد إشعار طويل جداً لا يتسع حتى في صفحة مستقلة. أوقفنا الطباعة حفاظاً على جميع التفاصيل؛ لم تُحذف أي مخالفة.",true);
-      return false;
-    }
-    if(usedTwo||usedOne){
-      const details=[];
-      if(usedTwo)details.push(usedTwo+" صفحة لطالبين");
-      if(usedOne)details.push(usedOne+" صفحة لطالب واحد");
-      saNoticeSetStatus("تم استغلال الصفحات: 3 طلاب في الصفحة متى أمكن، مع تخصيص "+details.join(" و")+" للتنبيهات الأطول حتى تبقى كاملة وواضحة.",false);
-    }
-    return true;
-  }).catch(error=>{
-    console.error("Notice page fitting failed:",error);
-    saNoticeSetStatus("تعذر ضبط توزيع صفحات التنبيهات. لم تتم الطباعة.",true);
-    return false;
+  root.innerHTML="";
+  const PAGE_MM=287,GAP_MM=3,mmToPx=mm=>mm*96/25.4;
+  const pages=[];
+  let current=null,used=0,cardsOnPage=0,failed=false;
+  const newPage=()=>{
+    const section=document.createElement("section");
+    section.className="sa-notice-page fit-natural";
+    section.dataset.page=String(pages.length+1);
+    section.dataset.capacity=String(maxCards);
+    root.appendChild(section);
+    pages.push(section);
+    current=section;used=0;cardsOnPage=0;
+  };
+  // Keep the probe inside the print root so every production notice rule applies,
+  // while positioning it outside the visible page flow.
+  const probe=document.createElement("div");
+  probe.className="sa-notice-page fit-natural notice-probe";
+  probe.style.cssText="position:absolute!important;visibility:hidden!important;left:-10000px!important;top:0!important;width:200mm!important;height:auto!important;min-height:0!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important;display:block!important";
+  root.appendChild(probe);
+  const cards=ordered.map(student=>{
+    const wrap=document.createElement("section");
+    wrap.className="sa-notice-page fit-natural notice-probe-card";
+    wrap.style.cssText="position:relative!important;width:200mm!important;height:auto!important;min-height:0!important;max-height:none!important;display:block!important;overflow:visible!important;margin:0!important;padding:0!important";
+    wrap.innerHTML=saNoticeBuildCard(student,students.indexOf(student));
+    probe.appendChild(wrap);
+    return {student,card:wrap.querySelector(".sa-notice-card")};
   });
+  const ready=Promise.resolve(document.fonts?.ready||Promise.resolve())
+    .then(()=>new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve))))
+    .then(()=>{
+      if(run!==saNoticePreviewFitRun){probe.remove();return false;}
+      newPage();
+      cards.forEach(item=>{
+        const card=item.card;
+        if(!card){failed=true;return;}
+        // The card is measured in natural block flow, never in a flex-stretched page.
+        const heightPx=Math.max(card.getBoundingClientRect().height,card.scrollHeight);
+        const heightMm=heightPx*25.4/96;
+        if(!Number.isFinite(heightMm)||heightMm<=0){failed=true;return;}
+        const tooTall=heightMm>PAGE_MM;
+        if((cardsOnPage>=maxCards||used+heightMm+(cardsOnPage?GAP_MM:0)>PAGE_MM)&&cardsOnPage){
+          newPage();
+        }
+        if(cardsOnPage){
+          const cut=document.createElement("div");
+          cut.className="sa-notice-cutline";
+          cut.innerHTML="<span>✂</span>";
+          current.appendChild(cut);
+          used+=GAP_MM;
+        }
+        current.appendChild(card);
+        card.style.removeProperty("position");
+        used+=heightMm;
+        cardsOnPage++;
+        if(tooTall){
+          card.setAttribute("data-fit-failed","true");
+          failed=true;
+        }
+      });
+      probe.remove();
+      pages.forEach(page=>page.classList.add("fit-natural"));
+      const summary=document.getElementById("saNoticePreviewSummary");
+      if(summary)summary.textContent=summary.textContent.replace(/صفحات A4 ([^)]*):\s*[\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pages.length);
+      if(failed){
+        saNoticeSetStatus("يوجد تنبيه لا يتسع في صفحة واحدة بالحجم المقروء. أوقفنا الطباعة حفاظاً على اكتمال جميع التفاصيل.",true);
+        return false;
+      }
+      return true;
+    })
+    .catch(error=>{
+      console.error("Natural notice layout failed:",error);
+      probe.remove();
+      saNoticeSetStatus("تعذر قياس ارتفاع التنبيهات. لم تتم الطباعة.",true);
+      return false;
+    });
   saNoticePreviewReady=ready;
-  return initialPages.length;
+  return Math.max(1,Math.ceil(ordered.length/maxCards));
 }
 async function saGenerateAutomaticNotices(){
   if(saNoticeGenerationBusy)return;
@@ -5010,7 +5014,7 @@ async function saPrintAutomaticNotices(){
   try{
     await saNoticeWaitForLayout();
     const fitted=await saNoticePreviewReady;
-    if(fitted===false||!saNoticeFitCards()){
+    if(fitted===false){
       saNoticeSetStatus("تعذر احتواء أحد التنبيهات دون قصّ المحتوى. لم نطبع الملف ولم نحذف أي مخالفة؛ راجع الإشعار الطويل.",true);
       showToast("أوقفنا الطباعة حفاظاً على اكتمال التنبيهات.","error");
       return;
@@ -10289,6 +10293,38 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 
 
+
+<style id="sa-notice-natural-height-packing">
+/* Natural-height packing: never stretch a notice to fill the page. */
+#saNoticePrintRoot .sa-notice-page.fit-natural{
+  display:block!important;width:200mm!important;height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;margin:0 auto 6mm!important;padding:0!important;gap:0!important;
+  break-inside:avoid!important;page-break-inside:avoid!important;
+}
+#saNoticePrintRoot .sa-notice-card{
+  display:block!important;flex:none!important;height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;margin:0!important;padding:2.2mm 3mm!important;
+  font-size:11pt!important;line-height:1.38!important;box-sizing:border-box!important;
+  break-inside:avoid!important;page-break-inside:avoid!important;
+}
+#saNoticePrintRoot .sa-notice-card>div:first-child{display:block!important;flex:none!important;height:auto!important;min-height:0!important}
+#saNoticePrintRoot .sa-notice-card .notice-items{display:block!important;flex:none!important;height:auto!important;min-height:0!important;justify-content:flex-start!important;margin:.5mm 0!important;overflow:visible!important}
+#saNoticePrintRoot .sa-notice-card .notice-items li{margin:.6mm 0!important}
+#saNoticePrintRoot .sa-notice-card .notice-signatures{margin-top:2mm!important;padding-top:1mm!important}
+#saNoticePrintRoot .sa-notice-cutline{display:block!important;height:0!important;flex:none!important;margin:1.5mm 0!important;break-inside:avoid!important;page-break-inside:avoid!important}
+#saNoticePrintRoot .notice-probe{pointer-events:none!important}
+@media print{
+  @page{size:A4 portrait;margin:5mm}
+  #saNoticePrintRoot{overflow:visible!important;width:100%!important;margin:0!important;padding:0!important}
+  #saNoticePrintRoot .sa-notice-page.fit-natural{
+    width:100%!important;height:auto!important;min-height:0!important;max-height:none!important;
+    margin:0!important;padding:0!important;overflow:visible!important;
+    break-after:page!important;page-break-after:always!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;
+  }
+  #saNoticePrintRoot .sa-notice-page.fit-natural:last-child{break-after:auto!important;page-break-after:auto!important}
+}
+</style>
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
   async function print(prefix){
