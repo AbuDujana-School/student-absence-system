@@ -338,7 +338,12 @@ Deno.test("secure session validation completes before cloud loading begins", () 
 
 Deno.test("offline cached login remains available without opening cloud reads", () => {
   const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
-  const finalize = section("async function finalizeLoginState()", "function initDarkMode()");
+  const finalizeStart = html.indexOf("async function finalizeLoginState()");
+  assert(finalizeStart >= 0, "Missing finalizeLoginState implementation");
+  const nextAsyncFunction = html.indexOf("\\nasync function ", finalizeStart + 1);
+  const nextFunction = html.indexOf("\\nfunction ", finalizeStart + 1);
+  const finalizeEnd = [nextAsyncFunction, nextFunction].filter((index) => index > finalizeStart).reduce((minimum, index) => Math.min(minimum, index), html.length);
+  const finalize = html.slice(finalizeStart, finalizeEnd);
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Offline login must have a locally restored snapshot available");
   assert(finalize.includes("else if (!navigator.onLine && cloudDataLoadState === 'not-started')"), "Offline sign-in must use the local-only readiness path");
