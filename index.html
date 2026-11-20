@@ -7078,6 +7078,7 @@ async function loadMorningAssemblyLatenessReport() {
   }
 }
 function printMorningAssemblyLatenessReport() {
+  if (!canAccessReport('reportMorningAssemblyLateness')) { showToast('لا تملك صلاحية طباعة تقرير التأخر عن الطابور الصباحي.','error'); return; }
   if (!morningAssemblyReportRows.length) { showToast('حمّل التقرير أولاً قبل الطباعة.', 'info'); return; }
   const rows = morningAssemblyReportRows.map((item,index) => '<tr class="' + (item.count>=4?'warning':'') + '"><td>'+(index+1)+'</td><td>'+escapeHtml(item.name)+'</td><td>'+escapeHtml(item.className)+'</td><td>'+item.count+'</td><td>'+item.absenceDays+'</td><td>'+item.events.map(e=>escapeHtml(e.late_date)+' · '+new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Muscat',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'}).format(new Date(e.recorded_at))+' · '+escapeHtml(e.recorder_name||'—')).join('<br>')+'</td></tr>').join('');
   const w = window.open('','_blank'); if (!w) { showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error'); return; }
@@ -7706,6 +7707,7 @@ async function verifyAdminPinAndOpen() {
   finally { b.disabled = false; b.textContent = old; }
 }
 function setupRolePermissions() {
+  refreshReportPanelsVisibility();
   const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
   if (activeUser?.type === 'admin') {
     timetableCanAccess = true;
@@ -8443,6 +8445,7 @@ function refreshReportPanelsVisibility() {
   document.getElementById('tab-reports')?.classList.toggle('hidden', !canAccessAnyReport());
 }
 function switchAdminTab(tab) {
+  refreshReportPanelsVisibility();
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
   const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : k === 'reports' ? (isA || canAccessAnyReport()) : (isA || !!(activeUser?.permissions?.[k]));
   const canDashboard = isA || hasMultipleAdminPermissions(activeUser);
