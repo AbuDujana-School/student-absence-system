@@ -6340,6 +6340,19 @@ async function findUserByPinWithRecord(pin) {
 async function refreshActiveUserPermissions() {
   const user = activeUser;
   if (!user || user.type === 'admin') return;
+  const securePrincipal = appAuthSession?.principal;
+  if (securePrincipal?.name === user.name && securePrincipal?.type === user.type) {
+    // app_login and app_session already reload the account permissions server-side.
+    // Reuse that verified principal instead of issuing a duplicate gateway request.
+    const freshPermissions = securePrincipal.permissions && typeof securePrincipal.permissions === 'object'
+      ? securePrincipal.permissions : {};
+    user.permissions = freshPermissions;
+    const localRecord = user.type === 'custom'
+      ? (db.customUsers || []).find(x => x.name === user.name)
+      : (db.teachers || []).find(x => x.name === user.name);
+    if (localRecord) localRecord.permissions = freshPermissions;
+    return;
+  }
   try {
     // Prefer the session-protected gateway. Its teacher projection contains only
     // the current account's role and permissions, never PIN hashes or salts.
