@@ -100,7 +100,7 @@ Deno.test("writes reject credential fields, admin PIN settings, duplicate confli
   const duplicate = await request({ table: "classes", rows: [{ name: "5/1" }, { name: "5/1" }] }, deps);
   const deletion = await request({ table: "teachers", operation: "delete", rows: [{ name: "Teacher A" }] }, deps);
   assertEquals(credential.status, 400);
-  assertEquals(adminPin.status, 400);
+  assertEquals(adminPin.status, 403);
   assertEquals(duplicate.status, 400);
   assertEquals(deletion.status, 400);
 });
@@ -144,7 +144,7 @@ Deno.test("admin may update allowlisted school settings but never the admin PIN 
     key: "duty_module", value: { graceMinutes: 5, periods: [] },
   }] }, deps);
   assertEquals(response.status, 200);
-  assert(calls.some(([name, config]) => name === "upsert" && (config as any).onConflict === "key"));
+  assert(calls.some(([name, rpcName, args]) => name === "rpc" && rpcName === "app_data_gateway_write_records" && (args as any).p_table === "school_settings"));
 });
 
 Deno.test("admin duty reports use the verified id primary key", async () => {
@@ -155,7 +155,7 @@ Deno.test("admin duty reports use the verified id primary key", async () => {
     class_name: "5/1", teacher_name: "Teacher A", reported_by: admin.name,
   }] }, deps);
   assertEquals(response.status, 200);
-  assert(calls.some(([name, config]) => name === "upsert" && (config as any).onConflict === "id"));
+  assert(calls.some(([name, rpcName, args]) => name === "rpc" && rpcName === "app_data_gateway_write_records" && (args as any).p_table === "duty_reports"));
 });
 
 
