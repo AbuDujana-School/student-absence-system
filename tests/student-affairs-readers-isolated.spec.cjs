@@ -1,4 +1,6 @@
 const { test, expect } = require("@playwright/test");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const SUPABASE_HOST = "ylsocrvwqibptuwfzbke.supabase.co";
 const BASE_URL = process.env.APP_PREVIEW_URL || "http://127.0.0.1:4173/index.html";
@@ -57,7 +59,13 @@ async function openIsolatedApp(page) {
       if (body.action === "supervision_trend") {
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           class_count: 1,
-          series: [{ date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 }],
+          series: [
+            { date: "2026-11-18", absent: 1, late: 0, escape: 0, outside: 0, eating: 0, talking: 1, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 1, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-20", absent: 9, late: 9, escape: 0, outside: 0, eating: 0, talking: 9, tools: 0, chaos: 9, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-21", absent: 8, late: 8, escape: 0, outside: 0, eating: 0, talking: 8, tools: 0, chaos: 8, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-22", absent: 3, late: 1, escape: 0, outside: 0, eating: 0, talking: 2, tools: 0, chaos: 1, sleeping: 0, homework: 0, other: 0 },
+          ],
         }) });
         return;
       }
@@ -168,14 +176,23 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
     saPopulateReportClasses();
     document.getElementById("saSupervisionPanel").classList.remove("hidden");
     document.getElementById("saSupervisionFrom").value = "2026-11-18";
-    document.getElementById("saSupervisionTo").value = "2026-11-20";
+    document.getElementById("saSupervisionTo").value = "2026-11-22";
+    window.Chart = class { constructor(_ctx, config) { this.data = config.data; this.options = config.options; } destroy() {} };
     await saLoadSupervisionTrend("team");
   });
   const call = traffic.functionCalls.find((item) => item.action === "supervision_trend");
   expect(call).toBeTruthy();
   expect(call.scope).toBe("team");
   expect(call.from).toBe("2026-11-18");
-  expect(call.to).toBe("2026-11-20");
+  expect(call.to).toBe("2026-11-22");
+  const chart = await page.evaluate(() => ({
+    dates: saSupervisionTrendChart?.data?.labels || [],
+    talking: saSupervisionBehaviorChart?.data?.datasets?.find(item => item.label === "الكلام")?.borderColor,
+    chaos: saSupervisionBehaviorChart?.data?.datasets?.find(item => item.label === "الفوضى")?.borderColor,
+  }));
+  expect(chart.dates).toEqual(["2026-11-18", "2026-11-19", "2026-11-22"]);
+  expect(chart.talking).toBe("#2563eb");
+  expect(chart.chaos).toBe("#7c3aed");
   await expect(page.locator("#saSupervisionStatus")).toContainText("عدد الصفوف المشمولة: 1");
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
@@ -226,7 +243,7 @@ test("notice class checklist supports multi-select and retains team target selec
   expect(traffic.pageErrors).toEqual([]);
 });
 
-test("notice preview scans synthetic rows without issuing official notices", async ({ page }) => {
+test("notice PDF generation scans synthetic rows without showing an on-screen preview", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
   const dates = await page.evaluate(() => {
     const today = getOmanLocalDate();
@@ -263,9 +280,10 @@ test("notice preview scans synthetic rows without issuing official notices", asy
   expect(scans[0].behavior_classes).toEqual([]);
   expect(history).toHaveLength(1);
   expect(history[0].notice_classes).toEqual(["QA_ONLY_CLASS"]);
-  await expect(page.locator("#saNoticePreviewPanel")).not.toHaveClass(/hidden/);
-  await expect(page.locator("#saNoticePreviewSummary")).toContainText("عدد الطلاب المستحقين: 1");
-  await expect(page.locator("#saNoticePreviewSummary")).toContainText("المخالفات الجديدة المحتسبة: 2");
+  await expect(page.locator("#saNoticePreviewPanel")).toHaveClass(/hidden/);
+  await expect(page.locator("#saNoticePrintAction")).toBeVisible();
+  await expect(page.locator("#saNoticePrintAction")).toBeEnabled();
+  await expect(page.locator("#saNoticeStatus")).toContainText("اكتمل الفحص");
   const generated = await page.evaluate(() => ({
     count: saNoticeLastGenerated.length,
     student: saNoticeLastGenerated[0]?.name,
@@ -285,7 +303,7 @@ test("notice preview scans synthetic rows without issuing official notices", asy
 
 
 
-test("notice PDF packs three short notices after a hidden preview is revealed for measurement", async ({ page }) => {
+test("notice PDF packs three short notices while keeping the screen preview hidden", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
     const panel = document.getElementById("saNoticePreviewPanel");
@@ -317,7 +335,7 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
     };
   });
   expect(result.ready).toBe(true);
-  expect(result.previewVisible).toBe(true);
+  expect(result.previewVisible).toBe(false);
   expect(result.pageCount).toBe(1);
   expect(result.cardCounts).toEqual([3]);
   expect(result.cardDisplay).toBe("block");
@@ -447,4 +465,48 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
   expect(result.hasSignatures).toBe(true);
   expect(result.failed).toBe(false);
   expect(result.fontSize).toBeGreaterThanOrEqual(14);
+});
+
+
+test("weekly discipline championship is scheduled once at 13:50 Oman time", () => {
+  const migrationPath = path.join(process.cwd(), "supabase/migrations/20261121135000_student_affairs_competition_single_weekly_run.sql");
+  const migration = fs.readFileSync(migrationPath, "utf8");
+  expect(migration).toContain("'50 9 * * 4'");
+  expect(migration).toContain("student-affairs-competition-finalize-weekly");
+  expect(migration).toContain("student-affairs-competition-finalize-retry");
+  expect(migration).toContain("09:50 UTC is 13:50 in Oman");
+  expect(migration).not.toContain("*/5");
+});
+
+test("student affairs report prepares direct PDF output without rendering report rows", async ({ page }) => {
+  await openIsolatedApp(page);
+  const result = await page.evaluate(async () => {
+    saReportPermissions = {
+      role: "admin", can_read_attendance: true, can_print_attendance: true,
+      attendance_statuses: ["absent", "late", "escape", "outside"],
+      allowed_attendance_classes: ["QA_ONLY_CLASS"],
+    };
+    saDomain = "attendance";
+    document.getElementById("saReportClassesContainer").innerHTML =
+      '<input type="checkbox" class="sa-report-class-chk" value="QA_ONLY_CLASS" checked>';
+    saPopulateStatusFilter();
+    const all = document.querySelector('.sa-status-filter-chk[value="all"]');
+    if (all) all.checked = true;
+    document.getElementById("saFrom").value = "2026-11-18";
+    document.getElementById("saTo").value = "2026-11-20";
+    const ok = await saLoadReport();
+    return {
+      ok,
+      summaryHidden: document.getElementById("saSummary").classList.contains("hidden"),
+      resultsHidden: document.getElementById("saResults").classList.contains("hidden"),
+      status: document.getElementById("saReportPdfStatus").innerText,
+      viewButtonVisible: !document.getElementById("saViewButton").classList.contains("hidden"),
+      reportCalls: window.__unused || 0,
+    };
+  });
+  expect(result.ok).toBe(true);
+  expect(result.summaryHidden).toBe(true);
+  expect(result.resultsHidden).toBe(true);
+  expect(result.status).toContain("دون معاينة");
+  expect(result.viewButtonVisible).toBe(false);
 });
