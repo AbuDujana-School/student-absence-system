@@ -6,6 +6,7 @@ import {
   restoreOfflineCredentialVault,
   saveOfflineCredentialVault,
   sealOfflineCredentialSnapshot,
+  type OfflineCredentialEnvelope,
 } from "./app_offline_credential_vault.ts";
 
 const teacher = { type: "teacher" as const, name: "Teacher A" };
@@ -118,7 +119,7 @@ Deno.test("IndexedDB store contract saves and restores only the same account's e
   let envelope: import("./app_offline_credential_vault.ts").OfflineCredentialEnvelope | null = null;
   const store = {
     async read() { return { key, envelope }; },
-    async write(nextKey: CryptoKey, nextEnvelope: typeof envelope) {
+    async write(nextKey: CryptoKey, nextEnvelope: OfflineCredentialEnvelope) {
       key = nextKey;
       envelope = nextEnvelope;
     },
