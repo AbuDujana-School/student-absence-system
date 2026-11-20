@@ -93,7 +93,6 @@ test("real Chromium IndexedDB persists device-bound vault and isolates principal
       await page.addScriptTag({ url: origin + "/vault.js" });
       const afterReload = await page.evaluate(async () => {
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
-        const same = await VaultApi.restoreOfflineCredentialVaultVault;
         return {
           same: await VaultApi.restoreOfflineCredentialVault(
             { type: "teacher", name: "Browser QA Teacher" },
