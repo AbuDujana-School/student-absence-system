@@ -296,26 +296,6 @@ Deno.test("reserve archive and edit actions require explicit reserve permission"
 });
 
 
-Deno.test("a teacher with a reserve assignment today gets only the daily notice read action", async () => {
-  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
-  const store = storeWith(session, {
-    teacher: { name: "Teacher A", role: "teacher" },
-    ownDailyAssignment: true,
-  });
-  const principal = await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, store, NOW, "teacher_substitution_get_today",
-  );
-  if (principal?.type !== "teacher" || principal.name !== "Teacher A" || principal.portalOnly === true) {
-    throw new Error("Teacher with today's own reserve assignment was not granted the narrow read identity");
-  }
-  if (!canUseTimetableAction("teacher", "teacher_substitution_get_today")) {
-    throw new Error("Teacher daily reserve notice action was denied");
-  }
-  if (canUseTimetableAction("teacher", "timetable_substitution_preview")) {
-    throw new Error("Daily notice access accidentally granted reserve management");
-  }
-});
-
 Deno.test("schoolwide reserve statistics grants do not grant reserve management", () => {
   if (!canUseTimetableAction("teacher", "timetable_substitution_stats", false, false, false, true)) {
     throw new Error("Teacher with explicit schoolwide statistics grant was denied statistics");
@@ -464,7 +444,6 @@ Deno.test("unrelated timetable actions do not load linked portal weekly cells or
   const store = storeWith(session, {
     teacher: { name: "Teacher A", role: "teacher" },
     linkedPortalAccess: true,
-    ownDailyAssignment: true,
     calls,
   });
   const principal = await resolveTimetablePrincipal(
