@@ -41,7 +41,7 @@ Implement one authenticated request adapter around the existing app session:
 
 ## Permission and scope alignment gate
 
-Before frontend cutover, reconcile the permission vocabulary end-to-end. The server scope resolver uses grants such as `can_read_attendance` and `can_read_behavior`; the gateway policy also evaluates permission fields such as `attendance` and `behavior`. Add one canonical server-side normalization layer and tests proving that existing authorized teachers retain access while unauthorized teachers remain denied. Do not guess equivalence from similarly named booleans.
+Before frontend cutover, document and test the distinct permission domains end-to-end. The server scope resolver reads Student Affairs grants such as `can_read_attendance` and `can_read_behavior`; the generic app-data policy also evaluates the teacher-profile permissions `attendance` and `behavior`. These names are not automatically equivalent: one set controls Student Affairs reporting grants/scopes, while the other controls the ordinary attendance/behavior feature permissions. Do not merge or substitute these booleans without a product-level permission matrix and tests proving the intended combinations.
 
 Test at least:
 - administrator;
