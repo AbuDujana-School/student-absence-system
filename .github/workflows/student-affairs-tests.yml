@@ -896,7 +896,7 @@ jobs:
       - name: Run competition response privacy tests
         run: deno test supabase/functions/student-affairs/competition_response_policy_test.ts
       - name: Run teacher permission sync regression tests
-        run: deno test --allow-read=index.html supabase/functions/student-affairs/teacher_permission_sync_test.ts
+        run: deno test --allow-read=index.html,supabase/functions/student-affairs/index.ts supabase/functions/student-affairs/teacher_permission_sync_test.ts
       - name: Run timetable import parser tests
         run: deno test supabase/functions/student-affairs/timetable_import_test.ts
       - name: Run full weekly timetable text parser tests
