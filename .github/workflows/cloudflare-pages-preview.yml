@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - feature/smart-substitution-system
-      - feature/morning-assembly-lateness
       - fix/revision-sync-optimization-20261119
       - fix/integrated-school-sync-hardening-final-20261120
     paths:
