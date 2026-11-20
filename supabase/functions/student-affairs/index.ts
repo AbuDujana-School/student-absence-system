@@ -15,6 +15,7 @@ import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./
 import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
+import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -267,7 +268,7 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
     can_print_attendance: data?.can_print_attendance === true, can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
   };
-  const reportsAccess = tp.reports === true;
+  const reportsAccess = canAccessReportPermission(p.type, tp, "reportStudentAffairs");
   let reportClasses: string[] = [];
   if (reportsAccess) {
     const { data: classes, error: classesError } = await db.from("classes").select("name");
@@ -1573,7 +1574,7 @@ async function handle(req: Request) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
       }
-      if (appPrincipal.type !== "admin" && appPrincipal.permissions?.reports !== true) {
+      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs")) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
       }
       p = appPrincipal;

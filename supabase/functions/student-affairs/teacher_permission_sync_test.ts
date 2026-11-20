@@ -81,3 +81,46 @@ Deno.test("competition term calendar and visibility settings use one database re
   assert(reader.includes('settings.get("competition_visibility_mode")'), "Visibility data must retain its original setting key");
   assert(reader.includes("visibility?.showBothTerms === true"), "The visibility behavior must remain unchanged");
 });
+
+Deno.test("report permissions are independent and legacy broad access is denied", () => {
+  const helperStart = html.indexOf("const REPORT_PERMISSION_KEYS");
+  const helperEnd = html.indexOf("function switchAdminTab", helperStart);
+  assert(helperStart >= 0 && helperEnd > helperStart, "Could not locate report permission helpers");
+  const helperSource = html.slice(helperStart, helperEnd);
+  const create = new Function("activeUser", "isAdminAuthorized", `${helperSource}; return { canAccessReport, canAccessAnyReport };`) as
+    (user: Record<string, unknown>, isAdminAuthorized: () => boolean) => {
+      canAccessReport: (key: string) => boolean;
+      canAccessAnyReport: () => boolean;
+    };
+
+  const legacy = create({ type: "teacher", permissions: { reports: true } }, () => false);
+  assert(!legacy.canAccessAnyReport(), "Legacy broad reports permission must not open the reports section");
+  for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"]) {
+    assert(!legacy.canAccessReport(key), "Each report requires its own explicit permission");
+  }
+
+  const limited = create({ type: "teacher", permissions: {
+    reports: true,
+    reportMorningAssemblyLateness: false,
+    reportStudentAffairs: true,
+    reportComprehensiveAbsence: false,
+    reportClassLatenessFollowup: false
+  } }, () => false);
+  assert(limited.canAccessReport("reportStudentAffairs"), "The selected report must be accessible");
+  assert(!limited.canAccessReport("reportMorningAssemblyLateness"), "Unselected morning report must be hidden");
+  assert(!limited.canAccessReport("reportComprehensiveAbsence"), "Unselected absence report must be hidden");
+  assert(!limited.canAccessReport("reportClassLatenessFollowup"), "Unselected class-lateness report must be hidden");
+});
+
+Deno.test("only administrators can change report permissions in the teacher editor", () => {
+  const openStart = html.indexOf("function openPermissionsModal(idx)");
+  const saveStart = html.indexOf("async function saveTeacherPermissions()", openStart);
+  const saveEnd = html.indexOf("/* ============ Custom Users ============ */", saveStart);
+  assert(openStart >= 0 && saveStart > openStart && saveEnd > saveStart, "Could not locate teacher permission editor");
+  const editor = html.slice(openStart, saveEnd);
+  assert(editor.includes("control.disabled = !canManageReportPermissions()"), "Non-admin report permission controls must be disabled");
+  assert(editor.includes("if (canManageReportPermissions())"), "Save must ignore report permission edits from non-admin accounts");
+  for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"]) {
+    assert(editor.includes("t.permissions." + key), "Teacher permission save must persist " + key);
+  }
+});
