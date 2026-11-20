@@ -72,6 +72,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   const reads = new Map();
   const projections = new Map();
   const functionActions = [];
+  const gatewayReads = [];
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
@@ -104,6 +105,23 @@ test("school sync projections and timetable access reads stay isolated and minim
 
     if (method === "OPTIONS") {
       await route.fulfill({ status: 204, headers });
+      return;
+    }
+
+    if (url.pathname === "/functions/v1/student-affairs" && method === "POST") {
+      let payload = {};
+      try { payload = JSON.parse(request.postData() || "{}"); } catch (_) {}
+      if (payload.action === "app_data_gateway_read") {
+        gatewayReads.push({ table: payload.table, offset: payload.offset, limit: payload.limit,
+          authorization: request.headers()["authorization"] || "" });
+        const rows = (fixtures[payload.table] || []).slice(payload.offset || 0, (payload.offset || 0) + (payload.limit || 200));
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({
+          rows, next_offset: rows.length === (payload.limit || 200) ? (payload.offset || 0) + rows.length : null
+        }) });
+        return;
+      }
+      unexpectedSupabaseTraffic.push({ method, path: url.pathname, action: payload.action || "" });
+      await route.fulfill({ status: 400, headers, body: JSON.stringify({ error: "Unexpected Student Affairs action" }) });
       return;
     }
 
@@ -183,6 +201,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      principal: { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } },
     };
     return await loadSystemDataFromCloud();
   });
@@ -203,21 +222,36 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(mapped.behaviors["qa-behavior"]?.className).toBe("QA_ONLY_CLASS");
   expect(mapped.dutyReports.some((item) => item.id === "qa-duty-report")).toBe(true);
 
-  for (const table of TABLES) {
-    expect(reads.get(table) || 0, "Initial read for " + table).toBe(1);
+  const gatewayTables = ["classes", "students", "attendance", "behaviors", "duty_reports"];
+  for (const table of gatewayTables) {
+    expect(gatewayReads.filter((item) => item.table === table).length,
+      "Administrator read must use the authenticated gateway for " + table).toBe(1);
+    expect(reads.get(table) || 0, "No direct PostgREST read for migrated table " + table).toBe(0);
+  }
+  for (const table of ["teachers", "school_settings"]) {
+    expect(reads.get(table) || 0, "Credential/settings compatibility read for " + table).toBe(1);
   }
   const expectedSelects = {
-    classes: "name",
-    students: "class_name,student_name",
     teachers: "name,role,pin_hash,pin_salt,permissions,must_change_pin",
-    attendance: "record_key,class_name,teacher_name,period,records,updated_at",
-    behaviors: "record_key,class_name,teacher_name,period,records,updated_at",
     school_settings: "key,value",
-    duty_reports: "id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at",
   };
   for (const [table, select] of Object.entries(expectedSelects)) {
-    expect(projections.get(table), "Narrow projection for " + table).toBe(select);
+    expect(projections.get(table), "Expected transitional projection for " + table).toBe(select);
   }
+  expect(gatewayReads.every((item) => item.authorization === "Bearer " + "a".repeat(64))).toBe(true);
+
+  const roleCompatibility = await page.evaluate(async () => {
+    const gatewayBefore = window.__gatewayReadCount || 0;
+    activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: {} };
+    const teacherRows = await fetchAllPaginated("classes", "name", 100);
+    activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: {} };
+    const customRows = await fetchAllPaginated("classes", "name", 100);
+    return { teacherRows, customRows, gatewayBefore };
+  });
+  expect(roleCompatibility.teacherRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
+  expect(roleCompatibility.customRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
+  expect(gatewayReads.filter((item) => item.table === "classes")).toHaveLength(1);
+  expect(reads.get("classes") || 0).toBe(2);
 
   const unchangedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(unchangedRefresh, "Unchanged manifest refresh must complete").toBe(true);
@@ -244,6 +278,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(functionActions.filter((action) => action === "timetable_list_imports")).toHaveLength(2);
 
   expect(manifestCalls).toBe(3);
+  expect(gatewayReads.length).toBe(5);
   expect(blockedWrites, "No REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
