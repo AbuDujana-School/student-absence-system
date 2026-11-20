@@ -246,6 +246,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     const teacherRows = await fetchAllPaginated("classes", "name", 100);
     activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: {} };
     const customRows = await fetchAllPaginated("classes", "name", 100);
+    activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     return { teacherRows, customRows, gatewayBefore };
   });
   expect(roleCompatibility.teacherRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
