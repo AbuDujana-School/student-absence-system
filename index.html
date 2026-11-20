@@ -10287,6 +10287,12 @@ function teacherDismissReserveWelcome() {
 }
 async function teacherShowDailySubstitutionWelcome() {
   if (activeUser?.type !== "teacher" || teacherReserveNoticeCheckBusy) return;
+  // The server has no substitution assignments on Friday or Saturday; skip the
+  // polling request entirely on those non-school days using the same Muscat timezone.
+  const weekday = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Muscat", weekday: "long",
+  }).format(new Date());
+  if (!["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"].includes(weekday)) return;
   teacherReserveNoticeCheckBusy = true;
   try {
     const token = appAuthSession?.token || readAppAuthToken();
