@@ -1,6 +1,5 @@
 const { test, expect } = require("@playwright/test");
 const esbuild = require("esbuild");
-const fs = require("node:fs");
 const http = require("node:http");
 const path = require("node:path");
 
@@ -8,7 +7,7 @@ const sourcePath = path.resolve(
   "supabase/functions/student-affairs/app_offline_credential_vault.ts",
 );
 
-test("real Chromium IndexedDB persists a non-extractable key and enforces vault boundaries", async () => {
+test("real Chromium IndexedDB persists device-bound vault and isolates principal/profile lifecycle", async () => {
   test.setTimeout(90_000);
   const bundled = esbuild.buildSync({
     entryPoints: [sourcePath],
@@ -42,13 +41,15 @@ test("real Chromium IndexedDB persists a non-extractable key and enforces vault 
       await page.addScriptTag({ url: origin + "/vault.js" });
 
       const saved = await page.evaluate(async () => {
-        const teacher = { type: "teacher", name: "Browser QA Teacher" };
+        const principal = { type: "teacher", name: "Browser QA Teacher" };
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
+        // Synthetic continuation metadata only: never place PIN verifiers or bearer tokens in this vault.
         const snapshot = {
-          accounts: [{ name: teacher.name, pin_hash: "a".repeat(64), pin_salt: "b".repeat(32) }],
-          admin_pin: null,
+          displayName: principal.name,
+          role: "teacher",
+          continuationContext: "synthetic-non-secret-fixture",
         };
-        const envelope = await VaultApi.saveOfflineCredentialVault(snapshot, teacher, store, {
+        const envelope = await VaultApi.saveOfflineCredentialVault(snapshot, principal, store, {
           now: 1_795_180_000_000,
           ttlMs: 60 * 60 * 1000,
         });
@@ -61,8 +62,7 @@ test("real Chromium IndexedDB persists a non-extractable key and enforces vault 
           keyUsages: entries.key?.usages,
           keyStored: Boolean(entries.key),
           envelopeStored: Boolean(entries.envelope),
-          noPlaintextVerifier: !JSON.stringify(envelope).includes("pin_hash") &&
-            !JSON.stringify(envelope).includes("a".repeat(64)),
+          noPlaintextFixture: !JSON.stringify(envelope).includes(snapshot.continuationContext),
         };
       });
 
@@ -71,29 +71,46 @@ test("real Chromium IndexedDB persists a non-extractable key and enforces vault 
       expect(saved.keyUsages).toContain("decrypt");
       expect(saved.keyStored).toBe(true);
       expect(saved.envelopeStored).toBe(true);
-      expect(saved.noPlaintextVerifier).toBe(true);
+      expect(saved.noPlaintextFixture).toBe(true);
 
-      // Reload proves the browser can structured-clone and recover CryptoKey from IndexedDB.
+      // A separate browser context has a separate origin storage partition.
+      const isolatedContext = await browser.newContext();
+      const isolatedPage = await isolatedContext.newPage();
+      await isolatedPage.goto(origin);
+      await isolatedPage.addScriptTag({ url: origin + "/vault.js" });
+      const isolatedRestore = await isolatedPage.evaluate(async () => {
+        const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
+        return await VaultApi.restoreOfflineCredentialVault(
+          { type: "teacher", name: "Browser QA Teacher" },
+          store,
+        );
+      });
+      expect(isolatedRestore).toBeNull();
+      await isolatedContext.close();
+
+      // Reload proves Chromium structured-clones the non-extractable CryptoKey into IndexedDB.
       await page.reload();
       await page.addScriptTag({ url: origin + "/vault.js" });
       const afterReload = await page.evaluate(async () => {
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
-        const same = await VaultApi.restoreOfflineCredentialVault(
-          { type: "teacher", name: "Browser QA Teacher" },
-          store,
-          { now: 1_795_180_000_001 },
-        );
-        const other = await VaultApi.restoreOfflineCredentialVault(
-          { type: "teacher", name: "Different Teacher" },
-          store,
-          { now: 1_795_180_000_001 },
-        );
-        const expired = await VaultApi.restoreOfflineCredentialVault(
-          { type: "teacher", name: "Browser QA Teacher" },
-          store,
-          { now: 1_795_183_600_000 },
-        );
-        return { same, other, expired };
+        const same = await VaultApi.restoreOfflineCredentialVaultVault;
+        return {
+          same: await VaultApi.restoreOfflineCredentialVault(
+            { type: "teacher", name: "Browser QA Teacher" },
+            store,
+            { now: 1_795_180_000_001 },
+          ),
+          other: await VaultApi.restoreOfflineCredentialVault(
+            { type: "teacher", name: "Different Teacher" },
+            store,
+            { now: 1_795_180_000_001 },
+          ),
+          expired: await VaultApi.restoreOfflineCredentialVault(
+            { type: "teacher", name: "Browser QA Teacher" },
+            store,
+            { now: 1_795_183_600_000 },
+          ),
+        };
       });
       expect(afterReload.same).toEqual(saved.snapshot);
       expect(afterReload.other).toBeNull();
@@ -102,7 +119,10 @@ test("real Chromium IndexedDB persists a non-extractable key and enforces vault 
       const tamperRejected = await page.evaluate(async () => {
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
         const entries = await store.read();
-        const changed = { ...entries.envelope, ciphertext: entries.envelope.ciphertext.slice(0, -4) + "AAAA" };
+        const changed = {
+          ...entries.envelope,
+          ciphertext: entries.envelope.ciphertext.slice(0, -4) + "AAAA",
+        };
         const result = await VaultApi.openOfflineCredentialSnapshot(
           changed,
           { type: "teacher", name: "Browser QA Teacher" },
@@ -113,12 +133,37 @@ test("real Chromium IndexedDB persists a non-extractable key and enforces vault 
       });
       expect(tamperRejected).toBe(true);
 
+      // The current store intentionally has one slot: switching principal replaces it.
+      const switched = await page.evaluate(async () => {
+        const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
+        const nextPrincipal = { type: "custom", name: "Browser QA Custom" };
+        const nextSnapshot = { displayName: nextPrincipal.name, role: "custom" };
+        await VaultApi.saveOfflineCredentialVault(nextSnapshot, nextPrincipal, store, {
+          now: 1_795_180_000_010,
+          ttlMs: 60 * 60 * 1000,
+        });
+        return {
+          previous: await VaultApi.restoreOfflineCredentialVault(
+            { type: "teacher", name: "Browser QA Teacher" },
+            store,
+            { now: 1_795_180_000_011 },
+          ),
+          current: await VaultApi.restoreOfflineCredentialVault(
+            nextPrincipal,
+            store,
+            { now: 1_795_180_000_011 },
+          ),
+        };
+      });
+      expect(switched.previous).toBeNull();
+      expect(switched.current).toEqual({ displayName: "Browser QA Custom", role: "custom" });
+
       const cleared = await page.evaluate(async () => {
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
         await VaultApi.clearOfflineCredentialVault(store);
         const entries = await store.read();
         const restored = await VaultApi.restoreOfflineCredentialVault(
-          { type: "teacher", name: "Browser QA Teacher" },
+          { type: "custom", name: "Browser QA Custom" },
           store,
         );
         return { key: entries.key, envelope: entries.envelope, restored };
