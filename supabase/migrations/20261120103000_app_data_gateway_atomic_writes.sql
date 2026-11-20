@@ -12,7 +12,7 @@ declare
   v_count integer;
   v_expected integer;
 begin
-  if jsonb_typeof(p_rows) <> 'array' or jsonb_array_length(p_rows) < 1 or jsonb_array_length(p_rows) > 500 then
+  if p_rows is null or jsonb_typeof(p_rows) is distinct from 'array' or jsonb_array_length(p_rows) < 1 or jsonb_array_length(p_rows) > 500 then
     raise exception 'invalid rows' using errcode = '22023';
   end if;
   v_expected := jsonb_array_length(p_rows);
@@ -28,7 +28,7 @@ begin
       teacher_name = excluded.teacher_name,
       records = excluded.records,
       updated_at = excluded.updated_at
-    where p_allow_owner_overwrite or public.attendance.teacher_name is not distinct from excluded.teacher_name;
+    where p_allow_owner_overwrite or attendance.teacher_name is not distinct from excluded.teacher_name;
 
   elsif p_table = 'behaviors' then
     insert into public.behaviors (record_key, date_str, class_name, period, teacher_name, records, updated_at)
@@ -41,7 +41,7 @@ begin
       teacher_name = excluded.teacher_name,
       records = excluded.records,
       updated_at = excluded.updated_at
-    where p_allow_owner_overwrite or public.behaviors.teacher_name is not distinct from excluded.teacher_name;
+    where p_allow_owner_overwrite or behaviors.teacher_name is not distinct from excluded.teacher_name;
 
   elsif p_table = 'students' then
     if not p_allow_owner_overwrite then raise exception 'admin only' using errcode = '42501'; end if;
