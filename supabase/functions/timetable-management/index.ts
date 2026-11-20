@@ -87,6 +87,7 @@ const cors = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Max-Age": "600",
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
 };
@@ -107,10 +108,28 @@ const timetableAuthStore: TimetableAuthStore = {
       .select("value").eq("key", "admin_pin").maybeSingle();
     return !error && !!data?.value?.hash && !!data?.value?.salt;
   },
-  async findTeacher(name) {
-    const { data, error } = await db.from("teachers")
-      .select("name,role").eq("name", name).maybeSingle();
-    return error || !data ? null : { name: String(data.name), role: String(data.role) };
+  async findTeacher(name, includePermissions = false) {
+    let data: any = null;
+    let error: any = null;
+    if (includePermissions) {
+      const result = await db.from("teachers")
+        .select("name,role,permissions").eq("name", name).maybeSingle();
+      data = result.data;
+      error = result.error;
+    } else {
+      const result = await db.from("teachers")
+        .select("name,role").eq("name", name).maybeSingle();
+      data = result.data;
+      error = result.error;
+    }
+    const permissions = includePermissions && data?.permissions && typeof data.permissions === "object"
+      ? data.permissions : {};
+    return error || !data ? null : {
+      name: String(data.name),
+      role: String(data.role),
+      reserveAccess: includePermissions && data.role === "teacher" && permissions.reserve === true,
+      permissions,
+    };
   },
   async hasTimetableAccess(type, name) {
     const { data, error } = await db.from("timetable_access_permissions")
@@ -118,16 +137,9 @@ const timetableAuthStore: TimetableAuthStore = {
       .eq("principal_name", name).maybeSingle();
     return !error && data?.can_access === true;
   },
-  async hasSubstitutionAccess(name) {
-    const { data, error } = await db.from("teachers")
-      .select("permissions").eq("name", name).eq("role", "teacher").maybeSingle();
-    return !error && data?.permissions?.reserve === true;
-  },
-  async hasDutyReportAccess(type, name) {
-    const { data, error } = await db.from("teachers")
-      .select("permissions").eq("name", name).eq("role", type).maybeSingle();
-    if (error || !data) return false;
-    const permissions = data.permissions && typeof data.permissions === "object" ? data.permissions : {};
+  async hasDutyReportAccess(type, _name, teacherPermissions) {
+    const permissions = teacherPermissions && typeof teacherPermissions === "object"
+      ? teacherPermissions : {};
     if (permissions.duty === true || permissions.admin === true) return true;
     if (type !== "teacher" || permissions.dutyToday === false) return false;
     const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
@@ -136,11 +148,9 @@ const timetableAuthStore: TimetableAuthStore = {
     const { weekday } = muscatDateAndWeekday();
     return isDutyReportEligibleOnDay(type, permissions, dutySetting?.value?.subjectDays, weekday);
   },
-  async canReadDutyReportContext(type, name, date, weekday, period) {
-    const { data, error } = await db.from("teachers")
-      .select("permissions").eq("name", name).eq("role", type).maybeSingle();
-    if (error || !data) return false;
-    const permissions = data.permissions && typeof data.permissions === "object" ? data.permissions : {};
+  async canReadDutyReportContext(type, _name, date, weekday, period, teacherPermissions) {
+    const permissions = teacherPermissions && typeof teacherPermissions === "object"
+      ? teacherPermissions : {};
     if (permissions.duty === true || permissions.admin === true) return true;
     if (type !== "teacher" || permissions.dutyToday === false) return false;
     const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
@@ -170,6 +180,12 @@ const timetableAuthStore: TimetableAuthStore = {
     );
     return cells.length > 0;
   },
+  async hasLinkedTeacherPortalNoticeAccess(name) {
+    const { data: setting, error } = await db.from("teacher_timetable_portal_settings")
+      .select("enabled,selected_teacher_names").eq("id", true).maybeSingle();
+    if (error) return false;
+    return canAccessTeacherTimetablePortal(setting?.enabled, setting?.selected_teacher_names, name);
+  },
   async hasOwnDailySubstitutionAssignment(name) {
     const { date: today, weekday } = muscatDateAndWeekday();
     if (!DAYS.includes(weekday)) return false;
@@ -190,8 +206,10 @@ const timetableAuthStore: TimetableAuthStore = {
   },
 };
 
-async function requirePrincipal(req: Request): Promise<TimetablePrincipal | null> {
-  return resolveTimetablePrincipal(req.headers.get("authorization"), timetableAuthStore);
+async function requirePrincipal(req: Request, requestedAction = ""): Promise<TimetablePrincipal | null> {
+  return resolveTimetablePrincipal(
+    req.headers.get("authorization"), timetableAuthStore, Date.now(), requestedAction,
+  );
 }
 
 function validUuid(value: unknown): value is string {
@@ -285,27 +303,27 @@ async function handle(req: Request) {
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any;
   try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
-  const principal = await requirePrincipal(req);
-  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-
   const action = String(body.action || "");
-  const hasReservePermission = principal.type === "teacher" && action.startsWith("timetable_substitution_")
-    ? await timetableAuthStore.hasSubstitutionAccess?.(principal.name) === true
-    : false;
-  const hasTimetableGrant = (principal.type === "teacher" || principal.type === "custom")
-    ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
-    : false;
+  const principal = await requirePrincipal(req, action);
+  if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
+  // The live reserve grant is already included in the teacher identity lookup.
+  const hasReservePermission = principal.type === "teacher" &&
+    action.startsWith("timetable_substitution_") && principal.reserveAccess === true;
+  // Only archive actions need the separate timetable grant; avoid this
+  // permission query for every ordinary read while preserving the archive recheck.
+  const needsArchiveGrant = ["timetable_substitution_archive", "timetable_substitution_archive_access"].includes(action);
+  const hasTimetableGrant = needsArchiveGrant &&
+    (principal.type === "teacher" || principal.type === "custom")
+      ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
+      : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
   const hasDutyReportPermission = action === "timetable_duty_report_context" && (
-    principal.type === "admin" || await timetableAuthStore.hasDutyReportAccess?.(principal.type, principal.name) === true
+    principal.type === "admin" || principal.dutyReportAccess === true || principal.dutyReportOnly === true
   );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
-    principal.type === "admin" || await (async () => {
-      const { data, error } = await db.from("teachers").select("permissions")
-        .eq("name", principal.name).eq("role", principal.type).maybeSingle();
-      if (error) throw error;
-      return data?.permissions?.teachers === true || data?.permissions?.admin === true;
-    })()
+    principal.type === "admin" ||
+    principal.permissions?.teachers === true ||
+    principal.permissions?.admin === true
   );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
     && !hasDutyReportPermission
@@ -332,7 +350,7 @@ async function handle(req: Request) {
         return reply(400, { error: "بيانات تقرير المناوبة غير صالحة أو لا تخص اليوم الحالي." });
       }
       if (principal.type !== "admin" &&
-          await timetableAuthStore.canReadDutyReportContext?.(principal.type, principal.name, date, weekday, period) !== true) {
+          await timetableAuthStore.canReadDutyReportContext?.(principal.type, principal.name, date, weekday, period, principal.permissions) !== true) {
         return reply(403, { error: "يمكن للمعلم المناوب قراءة بيانات الجدول خلال وقت الحصة المخصصة لمناوبته فقط." });
       }
       const [classDirectory, versionResult] = await Promise.all([
