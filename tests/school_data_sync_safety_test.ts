@@ -479,3 +479,11 @@ Deno.test("teacher timetable polling pauses in the background and refreshes once
   assert(visibility.includes("void teacherTimetableLoad(false)"), "Returning to a stale open timetable must refresh it");
   assert(visibility.includes("!timetableView.classList.contains(\"hidden\")"), "Returning to the app must not fetch a timetable the teacher is not viewing");
 });
+
+Deno.test("production Supabase client uses the active publishable key and keeps preview isolated", () => {
+  const config = section("const SUPABASE_URL =", "const sb = window.supabase.createClient");
+  assert(config.includes("https://wawplttrpiinoukpjqqx.supabase.co"), "Cloudflare preview must keep its isolated Supabase project");
+  assert(config.includes("  ? \"eyJhbGciOiJIUzI1NiIs"), "Preview must retain its project-scoped preview key");
+  assert(config.includes("  : \"sb_publishable_"), "Production must use a publishable API key rather than the legacy JWT key");
+  assert(!config.includes("  : \"eyJhbGciOiJIUzI1NiIs"), "Production must not fall back to the legacy JWT API key");
+});
