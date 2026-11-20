@@ -458,6 +458,46 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(retriedSync, "The retained dirty row must be retryable").toBe(true);
   expect(await page.evaluate((key) => dirtySets.attendance.has(key), failedAckKey)).toBe(false);
 
+  // Offline PIN verification remains local and does not call the school API.
+  await page.context().setOffline(true);
+  const offlinePinChecks = await page.evaluate(async () => {
+    activeUser = null;
+    appAuthSession = null;
+    db.adminPin = null;
+    const teacherRecord = await createPinRecord("2468");
+    const customRecord = await createPinRecord("1357");
+    db.teachers = [{
+      name: "QA_ONLY_OFFLINE_TEACHER",
+      pin_hash: teacherRecord.hash,
+      pin_salt: teacherRecord.salt,
+      permissions: { attendance: true }
+    }];
+    db.customUsers = [{
+      name: "QA_ONLY_OFFLINE_CUSTOM",
+      pin_hash: customRecord.hash,
+      pin_salt: customRecord.salt,
+      permissions: { behavior: true }
+    }];
+    const teacher = await findUserByPinWithRecord("2468");
+    const custom = await findUserByPinWithRecord("1357");
+    const wrong = await findUserByPinWithRecord("9999");
+    return {
+      online: navigator.onLine,
+      teacher: teacher?.user?.name,
+      teacherType: teacher?.user?.type,
+      custom: custom?.user?.name,
+      customType: custom?.user?.type,
+      wrongRejected: wrong === null
+    };
+  });
+  expect(offlinePinChecks.online).toBe(false);
+  expect(offlinePinChecks.teacher).toBe("QA_ONLY_OFFLINE_TEACHER");
+  expect(offlinePinChecks.teacherType).toBe("teacher");
+  expect(offlinePinChecks.custom).toBe("QA_ONLY_OFFLINE_CUSTOM");
+  expect(offlinePinChecks.customType).toBe("custom");
+  expect(offlinePinChecks.wrongRejected).toBe(true);
+  await page.context().setOffline(false);
+
   expect(manifestCalls).toBe(3);
   expect(gatewayReads.length).toBe(7);
   expect(blockedWrites, "No unexpected REST writes may occur in isolated browser tests").toEqual([]);
