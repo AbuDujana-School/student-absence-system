@@ -24,16 +24,25 @@ function fixture(options: {
   const db = {
     from(table: string) {
       calls.push(["from", table]);
+      const defaultAccounts = options.accounts ?? [
+        { name: "Teacher A", role: "teacher", pin_hash: hash, pin_salt: salt,
+          permissions: { attendance: true, nested: { api_token: "never" } }, must_change_pin: true },
+        { name: "Teacher B", role: "teacher", pin_hash: "c".repeat(64), pin_salt: "d".repeat(32),
+          permissions: { behavior: true }, must_change_pin: false },
+      ];
       const query: any = {
         select(value: string) { calls.push(["select", value]); return this; },
-        eq(column: string, value: string) { calls.push(["eq", column, value]); return this; },
+        eq(column: string, value: string) {
+          calls.push(["eq", column, value]);
+          if (table === "teachers" && column === "name") {
+            return Promise.resolve({ data: defaultAccounts.filter(account => account.name === value), error: null });
+          }
+          return this;
+        },
         maybeSingle() { return Promise.resolve({ data: options.adminSetting ?? { value: { hash, salt } }, error: null }); },
         order(column: string, config: unknown) {
           calls.push(["order", column, config]);
-          return Promise.resolve({ data: options.accounts ?? [{
-            name: "Teacher A", role: "teacher", pin_hash: hash, pin_salt: salt,
-            permissions: { attendance: true, nested: { api_token: "never" } }, must_change_pin: true,
-          }], error: null });
+          return Promise.resolve({ data: defaultAccounts, error: null });
         },
       };
       return query;
@@ -64,15 +73,28 @@ Deno.test("credential snapshot requires a server-issued app session before readi
   assertEquals(calls.some(([name]) => name === "from"), false);
 });
 
-Deno.test("credential snapshot preserves offline PIN data but strips nested secret-like permission fields", async () => {
-  const { deps } = fixture();
+Deno.test("teacher credential snapshot exposes only the current teacher verifier and never the administrator verifier", async () => {
+  const { deps, calls } = fixture();
+  const response = await handleAppCredentialSnapshot(new Request("https://unit.test", { headers: { authorization: "Bearer " + "a".repeat(64) } }), deps);
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body.admin_pin, null);
+  assertEquals(body.accounts.length, 1);
+  assertEquals(body.accounts[0].name, "Teacher A");
+  assertEquals(body.accounts[0].pin_hash, hash);
+  assertEquals(body.accounts[0].pin_salt, salt);
+  assertEquals(body.accounts[0].permissions, { attendance: true, nested: {} });
+  assert(calls.some(([name, column, value]) => name === "eq" && column === "name" && value === "Teacher A"));
+  assertEquals(calls.some(([name, table]) => name === "from" && table === "school_settings"), false);
+});
+
+Deno.test("administrator credential snapshot may read the full account roster and administrator verifier", async () => {
+  const { deps } = fixture({ principal: admin, session: { principal: { type: "admin", name: admin.name } } });
   const response = await handleAppCredentialSnapshot(new Request("https://unit.test", { headers: { authorization: "Bearer " + "a".repeat(64) } }), deps);
   assertEquals(response.status, 200);
   const body = await response.json();
   assertEquals(body.admin_pin, { hash, salt });
-  assertEquals(body.accounts[0].pin_hash, hash);
-  assertEquals(body.accounts[0].pin_salt, salt);
-  assertEquals(body.accounts[0].permissions, { attendance: true, nested: {} });
+  assertEquals(body.accounts.length, 2);
 });
 
 Deno.test("teacher can rotate only their own PIN through the dedicated RPC", async () => {
