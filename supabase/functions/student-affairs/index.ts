@@ -563,8 +563,10 @@ async function finalizeCompetitionWeek() {
     return { ok: true, alreadyFinalized: true, weekStart: range.start, status: "complete" };
   }
   const principal = { type: "admin" as const, name: "مدير النظام العام" };
-  const permissions = await permissionsFor(principal, true);
-  const snapshot = await buildCompetitionSnapshot(principal, permissions, range.start, range.end, "weekly");
+  // The finalizer is always an admin. buildCompetitionSnapshot loads its own
+  // classes, teachers, and permission inputs, so permissionsFor(admin) here
+  // only repeats those same reads without changing the admin result.
+  const snapshot = await buildCompetitionSnapshot(principal, {}, range.start, range.end, "weekly");
   if (snapshot.status === "configuration_incomplete") return { ok: true, status: "configuration_incomplete", weekStart: range.start };
   const finalizedAt = new Date().toISOString();
   const { error: saveError } = await db.from("competition_weekly_results").upsert({
