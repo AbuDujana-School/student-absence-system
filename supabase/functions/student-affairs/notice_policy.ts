@@ -175,7 +175,7 @@ export function validateNoticeIssueItem(value: unknown): string | null {
   if (typeof item.delivered !== "boolean") return "حالة تسليم التنبيه غير صالحة.";
   if (!Number.isInteger(item.threshold) || Number(item.threshold) < 1 || Number(item.threshold) > 10) return "حد المخالفات غير صالح.";
   if (!isValidNoticeDate(item.issued_on)) return "تاريخ إصدار التنبيه غير صالح.";
-  if (!isValidNoticeDate(item.period_end) || item.period_end < item.issued_on) return "نهاية فترة المخالفات تسبق تاريخ الإصدار أو غير صالحة.";
+  if (!isValidNoticeDate(item.period_end) || item.period_end > item.issued_on) return "نهاية فترة المخالفات تتجاوز تاريخ الإصدار أو غير صالحة.";
   if (item.period_start !== null && item.period_start !== undefined) {
     if (!isValidNoticeDate(item.period_start) || item.period_start > item.period_end) return "بداية فترة المخالفات غير صالحة.";
   }
