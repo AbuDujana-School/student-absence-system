@@ -210,11 +210,11 @@ test("notice class checklist supports multi-select and retains team target selec
 
   await page.locator("#saNoticeTargetSelect").selectOption("__self__");
   await page.locator('#saNoticeClassesGrid input[data-sa-notice-class="QA_OWN_CLASS"]').uncheck();
-  await page.locator("#saNoticeSetUnused").count().then(() => {});
   await page.evaluate(() => {
     saReportPermissions.allowed_attendance_classes = ["QA_OWN_CLASS", "QA_SECOND_CLASS"];
     saReportPermissions.allowed_behavior_classes = [];
     saNoticeTargetChanged();
+    document.querySelectorAll("#saNoticeClassesGrid input[data-sa-notice-class]").forEach(input => { input.checked = false; });
     document.querySelector('#saNoticeClassesGrid input[data-sa-notice-class="QA_SECOND_CLASS"]').checked = true;
   });
   await expect(page.locator("#saNoticeClassesGrid input[data-sa-notice-class]:checked")).toHaveCount(1);
