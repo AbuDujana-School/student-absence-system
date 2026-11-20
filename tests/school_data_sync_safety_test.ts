@@ -474,7 +474,7 @@ Deno.test("teacher timetable polling pauses in the background and refreshes once
   const portal = section("async function openTeacherTimetableView()", "function closeTeacherTimetableView()");
   assert(portal.includes("if (document.hidden || document.getElementById(\"teacherTimetableView\")?.classList.contains(\"hidden\")) return;"), "The periodic timetable poll must stop while the app is backgrounded or the view is closed");
   assert(portal.includes("Date.now() - teacherTimetableLastFetchAt >= 60000"), "The visible view must keep the existing 60-second freshness limit");
-  const visibility = section("const resumeCloudSync =", "});\\n\\nfunction initDarkMode()");
+  const visibility = section("window.addEventListener('pageshow', resumeCloudSync);", "  // Periodic polling");
   assert(visibility.includes("if (document.hidden) return;"), "Visibility recovery must run only when the app becomes visible");
   assert(visibility.includes("void teacherTimetableLoad(false)"), "Returning to a stale open timetable must refresh it");
   assert(visibility.includes("!timetableView.classList.contains(\"hidden\")"), "Returning to the app must not fetch a timetable the teacher is not viewing");
