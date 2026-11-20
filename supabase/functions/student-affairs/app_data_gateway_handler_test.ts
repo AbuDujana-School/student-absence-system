@@ -82,7 +82,8 @@ Deno.test("attendance and behavior use separate server-side class grants", async
     scope: { allowedClasses: ["5/1"], allowedAttendanceClasses: ["7/1"], allowedBehaviorClasses: [] },
   });
   const behaviorResponse = await request({ table: "behaviors" }, behaviorDeps);
-  assertEquals(behaviorResponse.status, 403);
+  assertEquals(behaviorResponse.status, 200);
+  assertEquals(await body(behaviorResponse), { rows: [], next_offset: null });
   assertEquals(behaviorCalls.some(([name]) => name === "from"), false);
 });
 
