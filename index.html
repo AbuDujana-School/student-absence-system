@@ -5808,11 +5808,11 @@ async function loadSystemDataFromCloud() {
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await Promise.all([
       shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
       shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
-      shouldLoad('teachers') ? fetchAllPaginated('teachers', '*') : Promise.resolve(null),
-      shouldLoad('attendance') ? fetchAllPaginated('attendance', '*') : Promise.resolve(null),
-      shouldLoad('behaviors') ? fetchAllPaginated('behaviors', '*') : Promise.resolve(null),
-      shouldLoad('school_settings') ? fetchAllPaginated('school_settings', '*') : Promise.resolve(null),
-      shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', '*') : Promise.resolve(null)
+      shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
+      shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
+      shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
+      shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null),
+      shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)
     ]);
 
     if (fullSync) {
@@ -11377,7 +11377,6 @@ function timetableSwitchDashboardTab(tab) {
   document.getElementById("timetableClassTabButton")?.setAttribute("aria-selected", String(classes));
   if (settings && isAdmin) {
     timetableLoadImports();
-    timetableLoadAccessManagement();
     timetableLoadPortalStatus();
   }
   if(classes&&isAdmin)timetableLoadClassWeeklyGrid();
@@ -12010,7 +12009,7 @@ async function timetableSaveImport() {
       sheets:timetablePendingWorkbook.sheets,idempotencyKey:timetablePendingWorkbook.idempotencyKey
     },token);
     if(!result?.saved?.import_id)throw new Error("لم يصل تأكيد صالح من الخادم. أعد المحاولة دون إعادة تحليل الملف.");
-    await timetableLoadImports();
+    await timetableLoadImports({ refreshAccess: false });
     const loaded=await timetableLoadSavedImport(result.saved.import_id);
     if(loaded!==true)throw new Error("تم تأكيد الحفظ من الخادم، لكن تعذر تحديث تفاصيل النسخة في الواجهة. أعد المحاولة لاستعادة نفس عملية الحفظ دون إنشاء نسخة مكررة.");
     timetableSavedImport=result.saved;
@@ -12104,10 +12103,10 @@ function timetableRenderTeacherList() {
     return '<button type="button" onclick="timetableSelectTeacher('+index+')" class="w-full text-right p-4 transition-colors '+(selected?'bg-cyan-50 dark:bg-cyan-950/40':'hover:bg-slate-50 dark:hover:bg-slate-900/60')+'"><div class="flex items-start justify-between gap-2"><span class="text-xs font-black text-slate-800 dark:text-white">'+timetableEsc(teacher.sourceName)+'</span><span class="shrink-0 text-[9px] font-bold rounded-lg px-2 py-1 '+color+'">'+label+'</span></div>'+owner+'<div class="flex items-center justify-between mt-2 text-[10px] text-slate-500"><span>'+teacher.records.length+' سجل</span><span>عرض التفاصيل <i class="fa-solid fa-chevron-left mr-1"></i></span></div></button>';
   }).join("");
 }
-async function timetableLoadImports() {
+async function timetableLoadImports(options = {}) {
   if (!timetableCanAccess || activeUser?.type !== 'admin') return;
   document.getElementById("timetableTeacherWeeklyLookup")?.classList.remove("hidden");
-  if (activeUser?.type === "admin") await timetableLoadAccessManagement();
+  if (activeUser?.type === "admin" && options.refreshAccess !== false) await timetableLoadAccessManagement();
   const host = document.getElementById("timetableSavedImportList");
   const panel = document.getElementById("timetableSavedImports");
   if (!host || !panel) return;
