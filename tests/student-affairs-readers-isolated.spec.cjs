@@ -282,3 +282,47 @@ test("notice preview scans synthetic rows without issuing official notices", asy
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
 });
+
+
+test("notice PDF keeps each complete notice on one page with readable minimum font", async ({ page }) => {
+  await openIsolatedApp(page);
+  const result = await page.evaluate(async () => {
+    const student = {
+      className: "QA_ONLY_CLASS",
+      name: "QA_NOTICE_STUDENT",
+      issue_number: 1,
+      events: [{ type: "absent", date: "2026/11/20", period: "1", note: "" }],
+      groups: new Map([["absent", {
+        type: "absent", note: "",
+        events: Array.from({ length: 8 }, (_, i) => ({ date: "2026/11/" + String(20 - i).padStart(2, "0"), period: String(i + 1) })),
+      }]]),
+    };
+    saNoticeRenderPreview([student], 3);
+    const ready = await saNoticePreviewReady;
+    const root = document.getElementById("saNoticePrintRoot");
+    const page = root.querySelector(".sa-notice-page");
+    const card = root.querySelector(".sa-notice-card");
+    return {
+      ready,
+      pageCount: root.querySelectorAll(":scope > .sa-notice-page").length,
+      cardCount: page?.querySelectorAll(".sa-notice-card").length || 0,
+      hasHeading: !!card?.querySelector(".notice-title"),
+      hasIntro: !!card?.querySelector(".notice-intro"),
+      hasAllEvents: card?.querySelectorAll(".notice-items li").length === 1,
+      hasConclusion: !!card?.querySelector(".notice-conclusion"),
+      hasSignatures: !!card?.querySelector(".notice-signatures"),
+      failed: card?.dataset.fitFailed === "true",
+      fontSize: Number.parseFloat(card?.style.fontSize || "0"),
+    };
+  });
+  expect(result.ready).toBe(true);
+  expect(result.pageCount).toBe(1);
+  expect(result.cardCount).toBe(1);
+  expect(result.hasHeading).toBe(true);
+  expect(result.hasIntro).toBe(true);
+  expect(result.hasAllEvents).toBe(true);
+  expect(result.hasConclusion).toBe(true);
+  expect(result.hasSignatures).toBe(true);
+  expect(result.failed).toBe(false);
+  expect(result.fontSize).toBeGreaterThanOrEqual(10.5);
+});
