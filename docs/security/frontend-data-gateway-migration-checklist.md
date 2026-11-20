@@ -125,3 +125,12 @@ These are intentional security/compatibility gates, not unfinished automatic fal
 - Cloudflare Pages now deploys both preview projects for this branch. The `abu-dujana-school-preview` host is explicitly marked as UI-review mode and disables login.
 - The `student-absence-system` branch preview uses the normal browser bundle, whose Supabase host is the live school project. Do not sign in or exercise data workflows on that URL unless it is first reconfigured to an isolated preview database.
 - Therefore, role/permission and sync acceptance testing continues in GitHub Actions' local Chromium preview, where every Supabase request is intercepted and only synthetic fixtures are returned. Cloudflare deployment success is not treated as live role-flow validation.
+
+### Stage 4 — protected administrator PIN writes and reconnect regression
+
+- The browser no longer writes the `admin_pin` record directly to `school_settings`. It now calls the dedicated `app_data_gateway_credentials_write` action with the authenticated administrator principal and the existing locally derived hash/salt.
+- The server validates the current session, administrator role, matching account name, and hash/salt format before invoking the restricted PIN RPC. The client clears the local PIN dirty flag only after `updated: true`.
+- No PIN is generated, rotated, or changed by this migration commit. The browser regression uses synthetic `QA_ONLY_*` hash/salt values and intercepts the request locally.
+- The Chromium regression now simulates an offline attendance edit, confirms it remains locally queued while offline, reconnects, uploads the queued row through the gateway, and verifies the dirty key clears only after the gateway acknowledgement. The same reconnect pass verifies the dedicated administrator PIN write action.
+- Verified CI on commit `91053ae8`: isolated Chromium school-sync regression **passed**, Student Affairs backend workflow **passed** (all 3 jobs), and timetable management tests **passed**.
+- Remaining direct PostgREST calls are now limited to the compatibility generic read/write helpers and the narrow legacy teacher-permission fallback. Those paths still cover teacher roster/credential snapshots, class/student/duty workflows, and are not declared migrated.
