@@ -3491,8 +3491,14 @@ function showPrompt(message, options = {}) {
 }
 
 
-const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
-const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/timetable-management";
+// Branch previews must route every Edge Function through the isolated preview project.
+// Never let a preview override or fall back to the production school backend.
+const SA_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW
+  ? SUPABASE_URL + "/functions/v1/student-affairs"
+  : (window.STUDENT_AFFAIRS_API_URL || "https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs");
+const TIMETABLE_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW
+  ? SUPABASE_URL + "/functions/v1/timetable-management"
+  : (window.TIMETABLE_MANAGEMENT_API_URL || "https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/timetable-management");
 // Keep Edge Function requests on the same project-specific key as the Supabase client.
 const SA_API_KEY=SUPABASE_ANON_KEY;
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";

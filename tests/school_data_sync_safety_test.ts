@@ -507,3 +507,11 @@ Deno.test("production Supabase client uses the active publishable key and keeps 
   assert(config.includes("  : \"sb_publishable_"), "Production must use a publishable API key rather than the legacy JWT key");
   assert(!config.includes("  : \"eyJhbGciOiJIUzI1NiIs"), "Production must not fall back to the legacy JWT API key");
 });
+
+Deno.test("Cloudflare branch previews route every Edge Function to the isolated Supabase project", () => {
+  const apiRoutes = section("const SA_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW", "const SA_API_KEY=SUPABASE_ANON_KEY;");
+  assert(apiRoutes.includes('? SUPABASE_URL + "/functions/v1/student-affairs"'), "Preview Student Affairs requests must use the isolated project URL");
+  assert(apiRoutes.includes('? SUPABASE_URL + "/functions/v1/timetable-management"'), "Preview timetable requests must use the isolated project URL");
+  assert(apiRoutes.includes("window.STUDENT_AFFAIRS_API_URL") && apiRoutes.includes("window.TIMETABLE_MANAGEMENT_API_URL"), "Existing production overrides must remain supported outside preview mode");
+  assert(html.includes("const IS_CLOUDFLARE_BRANCH_PREVIEW ="), "Preview routing must use the hostname-based isolation guard");
+});
