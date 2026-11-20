@@ -57,7 +57,11 @@ async function openIsolatedApp(page) {
       if (body.action === "supervision_trend") {
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           class_count: 1,
-          series: [{ date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 }],
+          series: [
+            { date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-20", absent: 9, late: 0, escape: 0, outside: 0, eating: 0, talking: 4, tools: 0, chaos: 5, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-21", absent: 8, late: 0, escape: 0, outside: 0, eating: 0, talking: 3, tools: 0, chaos: 2, sleeping: 0, homework: 0, other: 0 },
+          ],
         }) });
         return;
       }
@@ -177,9 +181,26 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
   expect(call.from).toBe("2026-11-18");
   expect(call.to).toBe("2026-11-20");
   await expect(page.locator("#saSupervisionStatus")).toContainText("عدد الصفوف المشمولة: 1");
+  const trend = await page.evaluate(() => ({
+    labels: saSupervisionTrendChart?.data?.labels,
+    colors: Object.fromEntries((saSupervisionBehaviorChart?.data?.datasets || []).map((dataset) => [dataset.label, dataset.borderColor])),
+  }));
+  expect(trend.labels).toEqual(["2026-11-19"]);
+  expect(trend.colors["الكلام"]).toBe("#d97706");
+  expect(trend.colors["الفوضى"]).toBe("#0891b2");
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
+});
+
+test("student affairs reports and notices do not render inline print previews", async ({ page }) => {
+  await openIsolatedApp(page);
+  await expect(page.locator("#saSummary")).toBeHidden();
+  await expect(page.locator("#saResults")).toBeHidden();
+  await expect(page.locator("#saViewButton")).toBeHidden();
+  await expect(page.locator('button[onclick="saLoadCompetition()"]')).toHaveCount(0);
+  await expect(page.locator("#saNoticePreviewPanel")).toBeHidden();
+  await expect(page.locator("#saNoticePrintAction")).toBeHidden();
 });
 
 test("notice class checklist supports multi-select and retains team target selector", async ({ page }) => {
