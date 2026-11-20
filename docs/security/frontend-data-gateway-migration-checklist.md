@@ -29,7 +29,7 @@ The frontend still has direct PostgREST access in these locations:
 |---|---|---|
 | classes | Full paginated read | Return only permitted class metadata; preserve stable sorting and class scope |
 | students | Full paginated read | Enforce server-derived class scope; preserve class/name identity and transfer behavior |
-| teachers | Reads roster plus PIN verifier fields | Return roster/profile/permissions only; no hash/salt fields; keep teacher-only scope and manager functions intact |
+| teachers | Reads roster plus PIN verifier fields | Return no hash/salt fields. The current policy's self-only teacher projection is insufficient for existing authorized screens: the UI uses the full teacher directory for session-registration/teacher-activity statistics, category deletion checks, duty-day/category helpers, and teacher management. Add a narrowly projected directory action gated by server-verified `permissions.teachers` (or admin); ordinary teachers must receive only their own profile. Do not widen the generic teachers-table policy to all teachers. |
 | attendance | Full paginated records | Enforce class/date scope; preserve record keys, period, teacher attribution, and update revision |
 | behaviors | Full paginated records | Enforce behavior permission and class/date scope independently of attendance permission |
 | school_settings | Reads all key/value rows | Explicit allowlist by role and key; never return admin PIN verifier; preserve duty/custom-category behavior where authorized |
