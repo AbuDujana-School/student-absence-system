@@ -5144,18 +5144,23 @@ async function queueCloudDelete(table, filters) {
 }
 // Fail-closed protection: queued deletions are retained for review and are never auto-executed.
 async function flushPendingDeletes() { return false; }
-// Stage 1 write cutover is administrator-only. Teacher/custom writes remain
-// on the established path until their per-table ownership and permission parity
-// has passed isolated browser tests. Credential and settings writes are excluded.
+// Stage 1 admin writes plus stage 3 teacher/custom own attendance/behavior writes.
+// Credential, roster, settings, class/student and duty writes remain excluded for
+// non-admins until dedicated server actions and their UI parity are proven.
 const ADMIN_GATEWAY_WRITE_TABLES = new Set(['classes', 'students', 'attendance', 'behaviors', 'duty_reports']);
+const ROLE_SCOPED_GATEWAY_WRITE_TABLES = new Set(['attendance', 'behaviors']);
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
-  if (activeUser?.type === 'admin' && ADMIN_GATEWAY_WRITE_TABLES.has(table)) {
+  const isAdminGatewayWrite = activeUser?.type === 'admin' && ADMIN_GATEWAY_WRITE_TABLES.has(table);
+  const isRoleScopedGatewayWrite = (activeUser?.type === 'teacher' || activeUser?.type === 'custom') &&
+    ROLE_SCOPED_GATEWAY_WRITE_TABLES.has(table);
+  if (isAdminGatewayWrite || isRoleScopedGatewayWrite) {
     const token = appAuthSession?.token || readAppAuthToken();
+    const expectedType = activeUser.type;
     if (!token || !hasUnexpiredAppAuthSession() ||
-        appAuthSession?.principal?.type !== 'admin' ||
+        appAuthSession?.principal?.type !== expectedType ||
         appAuthSession?.principal?.name !== activeUser.name) {
-      throw new Error('تحتاج مزامنة بيانات المدير إلى جلسة موثقة وسارية؛ بقيت التغييرات محفوظة محلياً.');
+      throw new Error('تحتاج مزامنة البيانات إلى جلسة موثقة للحساب الحالي؛ بقيت التغييرات محفوظة محلياً.');
     }
     for (let i = 0; i < rows.length; i += chunkSize) {
       const chunk = rows.slice(i, i + chunkSize);
@@ -5170,7 +5175,8 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
     }
     return;
   }
-  // Compatibility path retained for teacher/custom roles and excluded sensitive tables.
+  // Compatibility path retained for non-admin writes outside the narrow
+  // attendance/behavior contract and for any credential/settings operations.
   // Dirty keys are cleared by the caller only after every batch succeeds.
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
