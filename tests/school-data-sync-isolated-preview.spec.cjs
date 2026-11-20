@@ -76,7 +76,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
 
-  page.on("pageerror", (error) => pageErrors.push(error.message));
+  page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
 
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
