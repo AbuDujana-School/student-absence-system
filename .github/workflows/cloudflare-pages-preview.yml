@@ -41,7 +41,11 @@ jobs:
           grep -q -F 'const IS_CLOUDFLARE_BRANCH_PREVIEW =' index.html
           grep -q -F 'location.hostname.endsWith(".abu-dujana-school-preview.pages.dev")' index.html
           grep -q -F 'IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co"' index.html
-          echo "Branch preview hostname is explicitly routed to the isolated development Supabase project; production remains the fallback only for the production hostname."
+          grep -q -F 'const SA_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW' index.html
+          grep -q -F 'const TIMETABLE_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW' index.html
+          grep -q -F 'SUPABASE_URL + "/functions/v1/student-affairs"' index.html
+          grep -q -F 'SUPABASE_URL + "/functions/v1/timetable-management"' index.html
+          echo "Branch preview routes Supabase client, Student Affairs, and Timetable APIs only to the isolated development project."
 
       - name: Verify Cloudflare credentials are configured
         shell: bash

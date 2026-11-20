@@ -3,8 +3,10 @@ on:
   pull_request:
     paths:
       - "supabase/functions/student-affairs/**"
+      - "supabase/functions/morning-assembly-lateness/**"
       - "supabase/functions/timetable-management/**"
       - "supabase/migrations/**"
+      - "supabase/config.toml"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
       - "tests/school_data_sync_safety_test.ts"
@@ -18,12 +20,14 @@ on:
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
       - "feature/smart-substitution-system"
+      - "feature/morning-assembly-lateness"
       - "feat/session-protected-data-gateway-20261119"
       - "test/app-data-gateway-handler-20261119"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/functions/timetable-management/**"
       - "supabase/migrations/**"
+      - "supabase/config.toml"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
       - "tests/student-affairs-readers-isolated.spec.cjs"
@@ -138,6 +142,19 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261116133000_student_transfer_existing_destination_recovery.sql
       - name: Apply direct student roster save migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261118103000_student_roster_direct_save.sql
+      - name: Apply morning assembly lateness ledger migrations in isolated PostgreSQL
+        run: |
+          for migration in \
+            supabase/migrations/20261118084852_morning_assembly_lateness_ledger.sql \
+            supabase/migrations/20261118085133_morning_assembly_lateness_class_snapshot_name.sql \
+            supabase/migrations/20261118090058_morning_assembly_lateness_service_role_only.sql \
+            supabase/migrations/20261118090409_morning_assembly_lateness_year_date_index.sql \
+            supabase/migrations/20261118090521_morning_assembly_lateness_append_only.sql \
+            supabase/migrations/20261118090549_morning_assembly_lateness_academic_period_integrity.sql; do
+            psql -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Verify morning assembly lateness ledger integrity in isolated PostgreSQL
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/morning-assembly-lateness/tests/sql/ledger_integrity.sql
       - name: Verify direct student roster save and history preservation
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/student_roster_atomicity.sql
       - name: Verify atomic student transfer and access boundaries
@@ -881,6 +898,13 @@ jobs:
         run: deno test supabase/functions/student-affairs/timetable_grid_test.ts
       - name: Run substitution eligibility tests
         run: deno test supabase/functions/student-affairs/substitution_policy_test.ts
+      - name: Run morning assembly lateness policy tests
+        run: deno test supabase/functions/morning-assembly-lateness/policy.test.ts
+      - name: Type-check morning assembly lateness Edge Function
+        run: deno check supabase/functions/morning-assembly-lateness/index.ts
+      - name: Verify morning lateness custom app-session gateway configuration
+        run: |
+          grep -A1 -F '[functions.morning-assembly-lateness]' supabase/config.toml | grep -Fx 'verify_jwt = false'
       - name: Run timetable authentication session tests
         run: deno test supabase/functions/timetable-management/tests/session_auth_test.ts
       - name: Run timetable authorization unit tests
