@@ -92,3 +92,20 @@ Deno.test("duty context performs one authoritative duty-module check", () => {
     throw new Error("The resolver must skip the preliminary duty-module read for the context action");
   }
 });
+
+Deno.test("linked timetable authorization avoids repeating the cell read performed by the handler", () => {
+  const portal = section("async hasLinkedTeacherPortalAccess(", "async hasLinkedTeacherPortalNoticeAccess(");
+  if (!portal.includes('action === "timetable_check_access" || action === "teacher_timetable_get_own"')) {
+    throw new Error("The access resolver must defer authoritative cell reads to these handlers");
+  }
+  const resolverStart = authSource.indexOf("export async function resolveTimetablePrincipal(");
+  const resolverEnd = authSource.indexOf("export function canUseTimetableAction(", resolverStart);
+  const resolver = authSource.slice(resolverStart, resolverEnd);
+  if (!resolver.includes("store.hasLinkedTeacherPortalAccess(name, requestedAction)")) {
+    throw new Error("The requested action must be passed to linked portal authorization");
+  }
+  const ownTimetable = section('if (body.action === "teacher_timetable_get_own")', 'if (body.action === "teacher_substitution_get_today")');
+  if (!ownTimetable.includes("fetchTeacherTimetableCells")) {
+    throw new Error("The personal timetable handler must retain its authoritative cell read");
+  }
+});
