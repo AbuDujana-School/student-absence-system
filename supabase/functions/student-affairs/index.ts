@@ -2085,7 +2085,8 @@ async function handle(req: Request) {
         issued_by_type: p.type, issued_by_name: p.name, delivered, threshold,
         period_start: rangeFrom, period_end: rangeTo, selected_types: selectedTypes, events: candidate.events
       }));
-      if (!payload.length || payload.length > 1000) return reply(413, { error: "عدد التنبيهات في الدفعة يتجاوز الحد الآمن. لم يتم اعتماد أي تنبيه." });
+      if (payload.length > 1000) return reply(413, { error: "عدد التنبيهات في الدفعة يتجاوز الحد الآمن. لم يتم اعتماد أي تنبيه." });
+      if (!payload.length) return reply(200, { issued: [], candidates: [], message: "لم يتبقَّ تنبيه جديد بعد إعادة التحقق الذرية. ربما اعتمد مستخدم آخر التنبيه نفسه، أو لم تعد المخالفات الجديدة تبلغ الحد." });
       for (let index = 0; index < payload.length; index++) {
         const validationError = validateNoticeIssueItem(payload[index]);
         if (validationError) return reply(400, { error: "تعذر اعتماد التنبيه رقم " + (index + 1) + ": " + validationError });
