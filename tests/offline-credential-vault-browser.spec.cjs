@@ -207,10 +207,10 @@ test("real Chromium IndexedDB persists device-bound vault and isolates principal
       });
       const winners = [concurrentWrites.restoredA, concurrentWrites.restoredB].filter(Boolean);
       expect(winners).toHaveLength(1);
-      expect(winners[0]).toSatisfy((value) =>
-        value.owner === "Concurrent Teacher A" && value.marker === "atomic-write-a" ||
-        value.owner === "Concurrent Custom B" && value.marker === "atomic-write-b"
-      );
+      expect(
+        (winners[0].owner === "Concurrent Teacher A" && winners[0].marker === "atomic-write-a") ||
+        (winners[0].owner === "Concurrent Custom B" && winners[0].marker === "atomic-write-b"),
+      ).toBe(true);
 
       const cleared = await page.evaluate(async () => {
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
