@@ -99,6 +99,23 @@ Deno.test("notice reader refuses a class that reaches the old per-class cap afte
   assertEquals(db.calls.length, 2);
 });
 
+Deno.test("notice reader does not trust a 5,000-row batch when exact count metadata is absent", async () => {
+  const firstClass = [{ class_name: "9/1", record_key: "a-1" }];
+  const secondClass = [{ class_name: "9/2", record_key: "b-1" }];
+  const db = mockDb([
+    { data: Array.from({ length: 5000 }, () => ({ class_name: "9/1" })), error: null, count: null },
+    { data: firstClass, error: null },
+    { data: secondClass, error: null },
+  ]);
+
+  const result = await fetchNoticeRowsForClasses(db, "attendance", ["9/1", "9/2"], "2026-01-01", "2026-12-31", 2026);
+
+  assertEquals(result.length, 2);
+  assertEquals(db.calls.length, 3);
+  assertEquals(db.calls[1].eq, { column: "class_name", value: "9/1" });
+  assertEquals(db.calls[2].eq, { column: "class_name", value: "9/2" });
+});
+
 Deno.test("notice reader propagates database errors without returning partial rows", async () => {
   const expected = new Error("synthetic database failure");
   const db = mockDb([{ data: null, error: expected }]);
