@@ -164,6 +164,7 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
     saBaseReportPermissions = permissions;
     saReportPermissions = { ...permissions };
     saDomain = "attendance";
+    saSetDomain("attendance");
     saPopulateReportClasses();
     document.getElementById("saSupervisionPanel").classList.remove("hidden");
     document.getElementById("saSupervisionFrom").value = "2026-11-18";
