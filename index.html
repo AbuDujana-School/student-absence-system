@@ -830,6 +830,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="student-affairs-pdf-only-output">#studentAffairsView #saViewButton{display:none!important}#studentAffairsView #saSummary,#studentAffairsView #saResults{display:none!important}</style>
 <style id="student-affairs-glass-controls">
 #studentAffairsView .sa-glass-panel{position:relative;overflow:hidden;padding:clamp(16px,3vw,24px);border:1px solid rgba(22,140,133,.2);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,248,249,.94));box-shadow:0 16px 42px -24px rgba(24,54,83,.28),inset 0 1px 0 rgba(255,255,255,.9)}
 #studentAffairsView .sa-glass-panel:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#d5a64a,#168c85,#183653)}
@@ -2231,9 +2232,9 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <div class="relative h-72 w-full"><canvas id="saSupervisionBehaviorChart" aria-label="الاتجاه الزمني لأنواع السلوكيات المسجلة"></canvas></div>
         <div class="mt-2 flex flex-nowrap items-center justify-between gap-x-0.5 overflow-hidden whitespace-nowrap border-t border-slate-100 pt-2 text-[8px] font-bold dark:border-slate-700" aria-label="مفتاح ألوان مخطط السلوكيات">
           <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-teal-800 dark:text-teal-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#0f766e"></i>الأكل</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-rose-800 dark:text-rose-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#be123c"></i>الكلام</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-amber-800 dark:text-amber-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#d97706"></i>الكلام</span>
           <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-violet-800 dark:text-violet-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#6d28d9"></i>الأدوات</span>
-          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-orange-800 dark:text-orange-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#c2410c"></i>الفوضى</span>
+          <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-cyan-800 dark:text-cyan-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#0891b2"></i>الفوضى</span>
           <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-blue-800 dark:text-blue-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#1d4ed8"></i>النوم</span>
           <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-green-800 dark:text-green-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#15803d"></i>الواجب</span>
           <span class="inline-flex min-w-0 flex-1 items-center justify-center gap-0.5 text-slate-700 dark:text-slate-300"><i class="h-1 w-2 shrink-0 rounded-full" style="background:#475569"></i>أخرى</span>
@@ -2256,8 +2257,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
         <div class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-3 dark:border-slate-700 dark:bg-slate-950/40">
           <label id="saCompetitionTermSelectWrap" class="hidden min-w-[190px] flex-1 text-xs font-bold text-slate-600 dark:text-slate-300">الفصل الدراسي<select id="saCompetitionTermSelect" onchange="saSetCompetitionTerm(this.value)" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-600 dark:bg-slate-900"></select></label>
-          <p class="flex-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تعتمد النتائج الأسبوعية بعد إقفال الخميس الساعة 1:51 ظهراً بتوقيت عُمان، ولا توجد تواريخ يدوية للاختيار.</p>
-          <button type="button" onclick="saLoadCompetition()" class="rounded-xl bg-teal-700 px-4 py-3 text-xs font-black text-white shadow-sm transition hover:bg-teal-800"><i class="fa-solid fa-rotate ml-1"></i> تحديث النتائج</button>
+          <p class="flex-1 text-[11px] leading-5 text-slate-500 dark:text-slate-400">تُحدّث النتيجة تلقائياً كل خميس الساعة 1:50 ظهراً بتوقيت عُمان، وتبقى النتيجة المعتمدة موحّدة لجميع الأجهزة حتى موعد التحديث التالي.</p>
         </div>
         <div id="saCompetitionStatus" class="hidden rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200" aria-live="polite"></div>
 
@@ -2302,7 +2302,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   <div id="saStatusCheckboxesContainer" class="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1"></div>
 </div>
       <div class="flex flex-wrap gap-2 border-t border-slate-100 pt-4 dark:border-slate-800"><button id="saViewButton" onclick="saLoadReport()" class="flex-1 rounded-xl bg-blue-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-blue-800 sm:flex-none"><i class="fa-solid fa-magnifying-glass ml-1"></i> عرض السجلات</button><button id="saAnalyticsButton" onclick="saLoadAnalytics()" class="hidden flex-1 rounded-xl bg-teal-700 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-teal-800 sm:flex-none"><i class="fa-solid fa-chart-column ml-1"></i> التحليلات</button><button id="saPrintButton" onclick="saPrint()" class="hidden flex-1 rounded-xl bg-slate-800 px-6 py-3 text-xs font-extrabold text-white shadow-sm transition hover:bg-slate-900 sm:flex-none"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة / حفظ PDF</button></div>
-      <div id="saSummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div><div id="saResults" class="space-y-4"></div>
+      <div id="saReportOutputStatus" class="rounded-2xl border border-slate-200 bg-slate-50 p-4 text-xs font-bold leading-6 text-slate-600 dark:border-slate-700 dark:bg-slate-950/50 dark:text-slate-300">تُجهّز التقارير كملف PDF مباشرة. اختر الصفوف والفترة ثم اضغط «طباعة / حفظ PDF»؛ لا توجد معاينة داخل الصفحة.</div><div id="saSummary" class="hidden"></div><div id="saResults" class="hidden"></div>
     </div>
 
     <section id="saAutomaticNotices" class="rounded-3xl border border-amber-200 bg-gradient-to-br from-white via-amber-50/50 to-slate-50 p-4 shadow-sm dark:border-amber-900/60 dark:from-slate-900 dark:via-slate-900 dark:to-slate-950 sm:p-5" dir="rtl">
@@ -2342,7 +2342,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <div class="sa-notice-dialog mx-auto w-full max-w-4xl rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-700 dark:bg-slate-900">
       <div class="sa-notice-config border-b border-slate-200 p-4 dark:border-slate-700 sm:p-6">
         <div class="flex items-center justify-between gap-3">
-          <div><h3 id="saNoticeModalTitle" class="text-lg font-black text-slate-900 dark:text-white"><i class="fa-solid fa-file-circle-exclamation ml-2 text-amber-600"></i>إصدار إشعارات التنبيه التلقائية</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">حدد الصف والحد الأدنى للمخالفات، ثم أنشئ المعاينة.</p></div>
+          <div><h3 id="saNoticeModalTitle" class="text-lg font-black text-slate-900 dark:text-white"><i class="fa-solid fa-file-circle-exclamation ml-2 text-amber-600"></i>إصدار إشعارات التنبيه التلقائية</h3><p class="mt-1 text-xs text-slate-500 dark:text-slate-400">حدد الصف والحد الأدنى للمخالفات، ثم جهّز ملف PDF مباشرة.</p></div>
           <button type="button" onclick="saCloseNoticeModal()" class="rounded-xl bg-slate-100 px-3 py-2 text-sm font-black text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200" aria-label="إغلاق">✕</button>
         </div>
         <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -2392,16 +2392,11 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         </div>
         <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
           <p class="max-w-2xl text-[11px] leading-6 text-slate-500 dark:text-slate-400">يشمل الفحص السجلات التاريخية المتاحة في النظام، ويطبق صلاحيات شؤون الطلبة على الخادم لكل صف ولكل نوع سجل.</p>
-          <button id="saNoticeGenerateBtn" type="button" onclick="saGenerateAutomaticNotices()" class="rounded-xl bg-amber-600 px-6 py-3 text-xs font-black text-white shadow transition hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"><i class="fa-solid fa-wand-magic-sparkles ml-2"></i> توليد ومعاينة للطباعة</button>
+          <div class="flex flex-wrap items-center gap-2"><button id="saNoticeGenerateBtn" type="button" onclick="saGenerateAutomaticNotices()" class="rounded-xl bg-amber-600 px-6 py-3 text-xs font-black text-white shadow transition hover:bg-amber-700 disabled:cursor-wait disabled:opacity-60"><i class="fa-solid fa-wand-magic-sparkles ml-2"></i> تجهيز التنبيهات للطباعة</button><button id="saNoticePrintAction" type="button" onclick="saNoticeHandlePrint()" class="hidden rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-teal-800"><i class="fa-solid fa-print ml-2"></i> اعتماد / طباعة / حفظ PDF</button></div>
         </div>
         <div id="saNoticeStatus" class="hidden mt-4 rounded-xl border border-blue-200 bg-blue-50 p-3 text-xs font-bold leading-6 text-blue-900 dark:border-blue-900 dark:bg-blue-950/30 dark:text-blue-200" role="status" aria-live="polite"></div>
       </div>
-      <div id="saNoticePreviewPanel" class="hidden p-3 sm:p-5">
-        <div class="sa-notice-toolbar mb-4 flex flex-wrap items-center justify-between gap-2">
-          <button type="button" onclick="saNoticeBackToConfig()" class="rounded-xl bg-slate-100 px-4 py-2.5 text-xs font-black text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-200"><i class="fa-solid fa-arrow-right ml-1"></i> تعديل الاختيارات</button>
-          <button id="saNoticePrintAction" type="button" onclick="saNoticeHandlePrint()" class="rounded-xl bg-teal-700 px-5 py-3 text-xs font-black text-white shadow-md hover:bg-teal-800"><i class="fa-solid fa-print ml-2"></i> اعتماد / طباعة / حفظ PDF</button>
-        </div>
-        <div id="saNoticePreviewSummary" class="sa-notice-screen-summary mb-4 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs font-bold text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"></div>
+      <div id="saNoticePreviewPanel" class="hidden">
         <div id="saNoticePrintRoot" class="space-y-4"></div>
       </div>
     </div>
@@ -3818,7 +3813,7 @@ function saGetSelectedReportClasses(domain=saDomain){
   return legacy==="all"?allowed:allowed.filter(c=>c===legacy);
 }
 function saPopulateReportClasses(){const allowed=saGetAllowedReportClasses();const container=document.getElementById("saReportClassesContainer");if(container){if(!allowed.length){container.innerHTML='<div class="col-span-full rounded-xl border border-dashed border-slate-300 p-5 text-center text-xs font-bold text-slate-500 dark:border-slate-700">لا توجد صفوف مخصصة لك في هذا القسم.</div>';}else{container.innerHTML=sortClassesList(allowed).map(c=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700 transition hover:border-blue-300 hover:bg-blue-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"><input type="checkbox" class="sa-report-class-chk h-4 w-4 accent-blue-600" value="'+escapeHtml(c)+'" checked onchange="saUpdateSelectedClassCount()"><span dir="ltr">'+escapeHtml(formatClassName(c))+'</span></label>').join("");}}const legacy=document.getElementById("saReportClass");if(legacy){legacy.innerHTML='<option value="all">جميع الصفوف المصرح بها</option>'+sortClassesList(allowed).map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");legacy.value="all";}saUpdateSelectedClassCount();}
-function saSetDomain(domain){saInitReportDateInputs("sa");const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();saLoadStudentProfileDirectory();if(canRead)saLoadReport();else{document.getElementById("saSummary").innerHTML='<div class="col-span-full rounded-2xl border border-slate-200 bg-white p-4 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">عرض السجلات التفصيلية غير ممنوح. يمكنك استخدام التحليلات المصرح بها فقط.</div>';document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">اختر التحليلات لعرض إحصاءات الصفوف المخصصة لك.</div>';}} 
+function saSetDomain(domain){saInitReportDateInputs("sa");const p=saReportPermissions||{};const att=saGetAllowedReportClasses("attendance"),beh=saGetAllowedReportClasses("behavior");const canAnalytics=!!p.can_view_analytics;const showAttendance=att.length>0&&(!!p.can_read_attendance||canAnalytics);const showBehavior=beh.length>0&&(!!p.can_read_behavior||canAnalytics);const ids=["saAttendanceTab","saBehaviorTab","saViewButton","saPrintButton","saAnalyticsButton","saStatusFilterWrap"];if(!showAttendance&&!showBehavior){ids.forEach(id=>document.getElementById(id)?.classList.add("hidden"));document.getElementById("saSummary").innerHTML="";document.getElementById("saResults").innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لم تخصص لك صفوف أو صلاحيات متابعة أو تحليلات بعد.</div>';saLastReport=null;return;}if(domain==="attendance"&&!showAttendance)domain="behavior";if(domain==="behavior"&&!showBehavior)domain="attendance";saDomain=domain;document.getElementById("saAttendanceTab").classList.toggle("hidden",!showAttendance);document.getElementById("saBehaviorTab").classList.toggle("hidden",!showBehavior);document.getElementById("saAttendanceTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="attendance"?"bg-blue-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");document.getElementById("saBehaviorTab").className="rounded-xl px-5 py-2.5 text-xs font-black transition "+(domain==="behavior"?"bg-teal-600 text-white shadow":"text-slate-600 hover:bg-white dark:text-slate-300 dark:hover:bg-slate-700");const canRead=domain==="attendance"?!!p.can_read_attendance:!!p.can_read_behavior;const canPrint=domain==="attendance"?!!p.can_print_attendance:!!p.can_print_behavior;document.getElementById("saStatusFilterWrap").classList.toggle("hidden",domain!=="attendance"||!canRead);document.getElementById("saViewButton").classList.toggle("hidden",!canRead);document.getElementById("saPrintButton").classList.toggle("hidden",!canRead||!canPrint);document.getElementById("saAnalyticsButton").classList.toggle("hidden",!canAnalytics);saLastReport=null;saPopulateReportClasses();saPopulateStatusFilter();saLoadStudentProfileDirectory();const output=document.getElementById("saReportOutputStatus");if(output)output.textContent=canRead?"حدد الصفوف والفترة ثم اضغط «طباعة / حفظ PDF» لإعداد التقرير مباشرة.":"لا تتوفر صلاحية قراءة التقرير المحدد؛ يمكنك استخدام التحليلات المصرح بها فقط.";} 
 async function saSetupSupervisionPanel(){
   const panel=document.getElementById("saSupervisionPanel"),p=saReportPermissions||{};if(!panel)return;
   saBaseReportPermissions={...p};
@@ -3874,7 +3869,7 @@ async function saLoadSupervisionTrend(scope="own"){
   saSupervisionScope=scope;const subtitle=document.getElementById("saSupervisionSubtitle");if(subtitle)subtitle.textContent=scope==="team"?"أداء صفوفك وصفوف المعلمين المشرف عليهم في فريقك فقط.":scope==="teacher"?"أداء المعلم المحدد وفصوله المسندة فقط.":"أداء صفوفك المسندة إليك فقط.";
   if(status){status.textContent="جارٍ تحميل اتجاه حالات الغياب والانضباط...";status.classList.remove("hidden");}
   try{
-    const d=await saRequest({action:"supervision_trend",scope,teacher_name:scope==="teacher"?saSupervisionTeacherName:"",from,to}),rows=Array.isArray(d.series)?d.series:[],labels=rows.map(x=>x.date);
+    const d=await saRequest({action:"supervision_trend",scope,teacher_name:scope==="teacher"?saSupervisionTeacherName:"",from,to}),rows=(Array.isArray(d.series)?d.series:[]).filter(x=>{const day=new Date(String(x.date||"")+"T12:00:00.000Z").getUTCDay();return day!==5&&day!==6;}),labels=rows.map(x=>x.date);
     const canvas=document.getElementById("saSupervisionTrendChart");if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}
     if(canvas&&typeof Chart!=="undefined"){
       const ctx=canvas.getContext("2d");
@@ -3893,7 +3888,7 @@ async function saLoadSupervisionTrend(scope="own"){
         }
       };
       saSupervisionTrendChart=new Chart(ctx,{type:"line",data:{labels,datasets},options:commonOptions});
-      const behaviorSpecs=[["الأكل","eating","#0f766e"],["الكلام","talking","#be123c"],["الأدوات","tools","#6d28d9"],["الفوضى","chaos","#c2410c"],["النوم","sleeping","#1d4ed8"],["الواجب","homework","#15803d"],["أخرى","other","#475569"]];
+      const behaviorSpecs=[["الأكل","eating","#0f766e"],["الكلام","talking","#d97706"],["الأدوات","tools","#6d28d9"],["الفوضى","chaos","#0891b2"],["النوم","sleeping","#1d4ed8"],["الواجب","homework","#15803d"],["أخرى","other","#475569"]];
       const behaviorDatasets=behaviorSpecs.map(([label,key,color])=>({label,data:rows.map(r=>Number(r[key]||0)),borderColor:color,backgroundColor:color,borderWidth:2.25,tension:.3,pointRadius:4,pointHoverRadius:6,pointBackgroundColor:"#ffffff",pointBorderColor:color,pointBorderWidth:2,fill:false}));
       const behaviorCanvas=document.getElementById("saSupervisionBehaviorChart");
       if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}
@@ -4665,6 +4660,7 @@ function saOpenNoticeModal(){
   document.getElementById("saNoticeDelivered").checked=false;
   saNoticeRenderTypeFilters(saNoticeGetTargetContext().permissions);saNoticeRefreshPrintAction();
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
+  document.getElementById("saNoticePrintAction")?.classList.add("hidden");
   document.getElementById("saNoticeStatus").classList.add("hidden");
   const noticeModal=document.getElementById("saNoticeModal");
   // Move the modal out of nested app panels/stacking contexts so the fixed
@@ -4875,8 +4871,6 @@ function saNoticeRenderPreview(students,perPage=3){
   const capacity=Math.max(1,Math.min(3,Number(perPage)||3));
   const ordered=saNoticeBuildPages(students,1).flatMap(page=>page.items);
   const run=++saNoticePreviewFitRun;
-  const previewPanel=document.getElementById("saNoticePreviewPanel");
-  if(previewPanel)previewPanel.classList.remove("hidden");
   root.innerHTML="";
   const PAGE_MM=287,GAP_MM=3;
   const probe=document.createElement("div");
@@ -4987,6 +4981,7 @@ async function saGenerateAutomaticNotices(){
   saNoticeLastGenerated=[];saNoticeLastSettings=null;saNoticeOfficialCommitted=false;
   document.getElementById("saNoticePrintRoot").innerHTML="";
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
+  document.getElementById("saNoticePrintAction")?.classList.add("hidden");
   saNoticeGenerationBusy=true;
   const button=document.getElementById("saNoticeGenerateBtn");if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ فحص السجلات...';}
   saNoticeSetStatus("جارٍ فحص المخالفات من "+rangeFrom+" إلى "+rangeTo+"، ومقارنتها بسجل آخر تنبيه رسمي لكل طالب...",false);
@@ -5014,15 +5009,14 @@ async function saGenerateAutomaticNotices(){
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
     saNoticeLastGenerated=qualifying;saNoticeLastHistory=historyRows;saNoticeCurrentIssueDate=issueDate;
     saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate,rangeFrom,rangeTo,supervisionTeacherName};
-    const preview=document.getElementById("saNoticePreviewPanel");
     if(!qualifying.length){
       document.getElementById("saNoticePrintRoot").innerHTML="";
-      document.getElementById("saNoticePreviewSummary").textContent="حتى تاريخ "+issueDate+" لم يتجاوز أي طالب الحد المحدد ("+threshold+") في المخالفات الجديدة غير المحتسبة في تنبيه سابق.";
-      preview.classList.remove("hidden");saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين لتنبيه جديد.",false);
+      saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين لتنبيه جديد حتى تاريخ "+issueDate+".",false);
+      document.getElementById("saNoticePrintAction")?.classList.add("hidden");
     }else{
-      const pages=saNoticeRenderPreview(qualifying),eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
-      document.getElementById("saNoticePreviewSummary").textContent="عدد الطلاب المستحقين: "+qualifying.length+" | المخالفات الجديدة المحتسبة: "+eventTotal+" | صفحات A4 (3 طلاب): "+pages+" | الحد: "+threshold+" | فترة المخالفات: "+rangeFrom+" إلى "+rangeTo+" | تاريخ الإصدار: "+issueDate;
-      preview.classList.remove("hidden");saNoticeSetStatus("اكتمل الفحص. استُبعدت المخالفات التي سبق إدراجها في تنبيهات رسمية، وحُدد رقم التنبيه التالي لكل طالب.",false);
+      const pages=saNoticeRenderPreview(qualifying);
+      document.getElementById("saNoticePrintAction")?.classList.remove("hidden");
+      saNoticeSetStatus("اكتمل تجهيز "+qualifying.length+" تنبيهاً في "+pages+" صفحة PDF. استُبعدت المخالفات التي سبق إدراجها في تنبيهات رسمية، وحُدد رقم التنبيه التالي لكل طالب.",false);
     }
     saNoticeRefreshPrintAction();
   }catch(error){
@@ -5030,7 +5024,7 @@ async function saGenerateAutomaticNotices(){
     showToast(error?.message||"تعذر إصدار الإشعارات.","error");
   }finally{
     saNoticeGenerationBusy=false;
-    if(button){button.disabled=false;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i> توليد ومعاينة للطباعة';}
+    if(button){button.disabled=false;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i> تجهيز التنبيهات للطباعة';}
   }
 }
 function saNoticeBuildAuthoritativeStudent(row){
@@ -5047,7 +5041,7 @@ async function saNoticeHandlePrint(){
   const official=document.getElementById("saNoticeIssueMode")?.value==="official";
   if(!official){saNoticeOfficialCommitted=false;saPrintAutomaticNotices();return;}
   if(saNoticeOfficialCommitted){saPrintAutomaticNotices();return;}
-  if(!saNoticeLastSettings){showToast("أعد توليد المعاينة قبل الاعتماد الرسمي.","error");return;}
+  if(!saNoticeLastSettings){showToast("أعد تجهيز التنبيهات قبل الاعتماد الرسمي.","error");return;}
   const delivered=document.getElementById("saNoticeDelivered")?.checked===true;
   const confirmText="سيتم اعتماد "+saNoticeLastGenerated.length+" تنبيهاً رسمياً وحفظ رقم كل تنبيه وتاريخه"+(delivered?" مع تسجيل أنه تم التسليم للطلاب.":" دون تأكيد التسليم.")+" لا يمكن اعتبار هذه العملية تجربة. هل تريد المتابعة؟";
   if(!confirm(confirmText))return;
@@ -5060,7 +5054,7 @@ async function saNoticeHandlePrint(){
     saNoticeLastGenerated=issued.map(saNoticeBuildAuthoritativeStudent);
     saNoticeOfficialCommitted=true;
     const pages=saNoticeRenderPreview(saNoticeLastGenerated);
-    document.getElementById("saNoticePreviewSummary").textContent="تم الاعتماد الرسمي بنجاح | عدد التنبيهات: "+issued.length+" | صفحات A4 (3 طلاب): "+pages+" | حالة التسليم: "+(delivered?"تم التسليم":"لم يؤكد التسليم")+" | تاريخ الإصدار: "+settings.issuedOn;
+    saNoticeSetStatus("تم اعتماد "+issued.length+" تنبيهاً رسمياً وتجهيز "+pages+" صفحة PDF. حالة التسليم: "+(delivered?"تم التسليم":"لم يؤكد التسليم")+".",false);
     saNoticeSetStatus("تم حفظ التنبيهات رسمياً في سجل الطالب. أصبح لكل طالب رقم تنبيه وتاريخ إصدار محفوظان.",false);
     saPrintAutomaticNotices();
   }catch(error){saNoticeSetStatus(error?.message||"تعذر اعتماد التنبيهات رسمياً. لم تتم الطباعة على أنها معتمدة.",true);showToast(error?.message||"تعذر اعتماد التنبيهات.","error");}
@@ -5082,7 +5076,7 @@ async function saPrintAutomaticNotices(){
     document.body.classList.add("sa-notice-print-mode");
     try{window.focus();window.print();}
     catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}
-  }catch(error){saNoticeSetStatus(error?.message||"تعذر تجهيز معاينة الطباعة.",true);}
+  }catch(error){saNoticeSetStatus(error?.message||"تعذر تجهيز ملف PDF للطباعة.",true);}
 }
 document.getElementById("saNoticeIssueMode")?.addEventListener("change",saNoticeRefreshPrintAction);
 async function saLogout(){saCompetitionLoadSequence++;try{await saRequest({action:"logout"});}catch(e){}saSession=null;saAdminData=null;saLastReport=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saBadge").textContent="لم يتم التحقق";document.getElementById("saLoginError").textContent="انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول إلى التطبيق لإنشاء جلسة جديدة.";}

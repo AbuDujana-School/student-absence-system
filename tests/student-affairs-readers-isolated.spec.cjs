@@ -57,7 +57,11 @@ async function openIsolatedApp(page) {
       if (body.action === "supervision_trend") {
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           class_count: 1,
-          series: [{ date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 }],
+          series: [
+            { date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-20", absent: 9, late: 0, escape: 0, outside: 0, eating: 0, talking: 4, tools: 0, chaos: 5, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-21", absent: 8, late: 0, escape: 0, outside: 0, eating: 0, talking: 3, tools: 0, chaos: 2, sleeping: 0, homework: 0, other: 0 },
+          ],
         }) });
         return;
       }
@@ -177,9 +181,32 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
   expect(call.from).toBe("2026-11-18");
   expect(call.to).toBe("2026-11-20");
   await expect(page.locator("#saSupervisionStatus")).toContainText("عدد الصفوف المشمولة: 1");
+  const trend = await page.evaluate(() => ({
+    labels: saSupervisionTrendChart?.data?.labels,
+    colors: Object.fromEntries((saSupervisionBehaviorChart?.data?.datasets || []).map((dataset) => [dataset.label, dataset.borderColor])),
+  }));
+  expect(trend.labels).toEqual(["2026-11-19"]);
+  expect(trend.colors["الكلام"]).toBe("#d97706");
+  expect(trend.colors["الفوضى"]).toBe("#0891b2");
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
+});
+
+test("student affairs reports and notices do not render inline print previews", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  await page.evaluate(() => {
+    saReportPermissions = { role: "visitor", can_read_attendance: true, can_print_attendance: true, allowed_attendance_classes: ["QA_ONLY_CLASS"], attendance_statuses: ["absent", "late", "escape", "outside"] };
+    saPopulateReportClasses();
+    saSetDomain("attendance");
+  });
+  expect(traffic.functionCalls.filter((item) => item.action === "reports" && item.report_mode === "view")).toHaveLength(0);
+  await expect(page.locator("#saSummary")).toBeHidden();
+  await expect(page.locator("#saResults")).toBeHidden();
+  await expect(page.locator("#saViewButton")).toBeHidden();
+  await expect(page.locator('button[onclick="saLoadCompetition()"]')).toHaveCount(0);
+  await expect(page.locator("#saNoticePreviewPanel")).toBeHidden();
+  await expect(page.locator("#saNoticePrintAction")).toBeHidden();
 });
 
 test("notice class checklist supports multi-select and retains team target selector", async ({ page }) => {
@@ -263,9 +290,9 @@ test("notice preview scans synthetic rows without issuing official notices", asy
   expect(scans[0].behavior_classes).toEqual([]);
   expect(history).toHaveLength(1);
   expect(history[0].notice_classes).toEqual(["QA_ONLY_CLASS"]);
-  await expect(page.locator("#saNoticePreviewPanel")).not.toHaveClass(/hidden/);
-  await expect(page.locator("#saNoticePreviewSummary")).toContainText("عدد الطلاب المستحقين: 1");
-  await expect(page.locator("#saNoticePreviewSummary")).toContainText("المخالفات الجديدة المحتسبة: 2");
+  await expect(page.locator("#saNoticePreviewPanel")).toHaveClass(/hidden/);
+  await expect(page.locator("#saNoticePrintAction")).toBeVisible();
+  await expect(page.locator("#saNoticeStatus")).toContainText("اكتمل تجهيز 1 تنبيهاً");
   const generated = await page.evaluate(() => ({
     count: saNoticeLastGenerated.length,
     student: saNoticeLastGenerated[0]?.name,
@@ -285,7 +312,7 @@ test("notice preview scans synthetic rows without issuing official notices", asy
 
 
 
-test("notice PDF packs three short notices after a hidden preview is revealed for measurement", async ({ page }) => {
+test("notice PDF keeps the on-screen preview hidden while packing three short notices", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
     const panel = document.getElementById("saNoticePreviewPanel");
@@ -317,7 +344,7 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
     };
   });
   expect(result.ready).toBe(true);
-  expect(result.previewVisible).toBe(true);
+  expect(result.previewVisible).toBe(false);
   expect(result.pageCount).toBe(1);
   expect(result.cardCounts).toEqual([3]);
   expect(result.cardDisplay).toBe("block");
@@ -325,6 +352,9 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
   expect(result.pageHeight).not.toBe("287mm");
   expect(result.capacities).toEqual([3]);
   expect(result.failedCards).toBe(0);
+  await page.evaluate(() => document.body.classList.add("sa-notice-print-mode"));
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#saNoticePreviewPanel")).toHaveCSS("display", "block");
 });
 
 
