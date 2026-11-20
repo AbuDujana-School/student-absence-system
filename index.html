@@ -5168,11 +5168,11 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
         }
       } catch(rowErr) { 
           const msg = String(rowErr?.message || rowErr);
-          console.error(`robustUpsert failed ${table}:`, rowErr, row); 
+          console.error(`robustUpsert failed for ${table} (row omitted):`, msg); 
           if (/does not exist|invalid input syntax|violates foreign key|violates check constraint|no unique or exclusion constraint/i.test(msg)) {
             throw new Error(`خطأ في جدول "${table}": ${msg}`);
           }
-          failures.push({ table, row, error: msg }); 
+          failures.push({ table, error: msg }); 
       }
     }
   }
