@@ -5159,7 +5159,44 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
     }
   }
 }
+// Stage 1 of the data-gateway cutover: administrators use the authenticated
+// server-side read gateway for non-credential school tables. Teacher/custom
+// reads remain on the established path until their individual scope/permission
+// parity and offline behavior are covered by role-specific preview tests.
+// Credential-bearing teachers and school_settings snapshots are deliberately
+// excluded until the dedicated credential lifecycle is integrated.
+const ADMIN_GATEWAY_READ_TABLES = new Set(['classes', 'students', 'attendance', 'behaviors', 'duty_reports']);
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
+  if (activeUser?.type === 'admin' && ADMIN_GATEWAY_READ_TABLES.has(tableName)) {
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token || !hasUnexpiredAppAuthSession() ||
+        appAuthSession?.principal?.type !== 'admin' ||
+        appAuthSession?.principal?.name !== activeUser.name) {
+      throw new Error('تحتاج قراءة بيانات المدرسة إلى جلسة مدير موثقة وسارية.');
+    }
+    const all = [];
+    let offset = 0;
+    const limit = Math.min(500, Math.max(1, Number(pageSize) || 200));
+    while (true) {
+      const result = await appAuthRequest({
+        action: 'app_data_gateway_read',
+        table: tableName,
+        offset,
+        limit
+      }, token);
+      const rows = Array.isArray(result?.rows) ? result.rows : null;
+      if (!rows) throw new Error('استجابة بوابة البيانات غير صالحة؛ بقيت البيانات المحلية دون تغيير.');
+      all.push(...rows);
+      if (result.next_offset === null || result.next_offset === undefined || rows.length === 0) break;
+      if (!Number.isInteger(result.next_offset) || result.next_offset <= offset) {
+        throw new Error('تعذر متابعة صفحات بيانات المدرسة بأمان.');
+      }
+      offset = result.next_offset;
+    }
+    return all;
+  }
+  // Compatibility path retained for teacher/custom roles and credential-bearing
+  // snapshots until their role-specific gateway contracts are proven equivalent.
   const all = []; let from = 0;
   while (true) { const { data, error } = await sb.from(tableName).select(selectCols).range(from, from + pageSize - 1); if (error) throw error; if (!data || data.length === 0) break; all.push(...data); if (data.length < pageSize) break; from += pageSize; }
   return all;
