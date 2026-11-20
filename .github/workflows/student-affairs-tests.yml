@@ -817,7 +817,7 @@ jobs:
       - name: Run timetable authorization unit tests
         run: deno test supabase/functions/timetable-management/tests/unit_test.ts
       - name: Run timetable authorization query reuse regression tests
-        run: deno test --allow-read=supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/auth_query_reuse_test.ts
+        run: deno test --allow-read=supabase/functions/timetable-management/index.ts --allow-read=supabase/functions/timetable-management/session_auth.ts supabase/functions/timetable-management/tests/auth_query_reuse_test.ts
       - name: Type-check timetable-management Edge Function
         run: deno check supabase/functions/timetable-management/index.ts
       - name: Type-check timetable and substitution policy modules
