@@ -5,6 +5,7 @@ on:
     branches:
       - feature/smart-substitution-system
       - fix/revision-sync-optimization-20261119
+      - fix/integrated-school-sync-hardening-final-20261120
     paths:
       - "index.html"
       - "manifest.webmanifest"
