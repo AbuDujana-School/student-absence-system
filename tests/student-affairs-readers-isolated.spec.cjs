@@ -344,7 +344,7 @@ test("notice PDF uses natural-height A4 packing without flex expansion", async (
       avoidPageBreak: /break-inside:avoid!important;page-break-inside:avoid!important/.test(css),
       naturalCard: /flex:none!important;flex-grow:0!important;flex-shrink:0!important/.test(css),
       readableFont: /font-size:11pt!important;line-height:1\.38!important/.test(css),
-      naturalMeasurement: /getBoundingClientRect\(\)\.height/.test(source),
+      naturalMeasurement: /getBoundingClientRect\(\)/.test(source)&&/Math\.max\(rect\.height,item\.card\.scrollHeight\)/.test(source),
       cappedAtThree: /Math\.min\(3,Number\(perPage\)\|\|3\)/.test(source),
     };
   });
@@ -402,7 +402,7 @@ test("notice PDF keeps short violation lines grouped without vertical space dist
   expect(result.cardJustify).toBe("flow-start");
   expect(result.innerDisplay).toBe("block");
   expect(result.listDisplay).toBe("block");
-  expect(result.listJustify).toBe("normal");
+  expect(result.listJustify).toBe("flow-start");
   expect(result.failedCards).toBe(0);
 });
 
