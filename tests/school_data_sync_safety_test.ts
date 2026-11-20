@@ -489,6 +489,15 @@ Deno.test("teacher substitution notice skips Friday and Saturday before making a
   assert(notice.includes('if (!['), "Friday and Saturday must return before the network request");
 });
 
+Deno.test("Edge Function requests use the API key belonging to the selected Supabase project", () => {
+  const config = section("const SUPABASE_URL =", "const sb = window.supabase.createClient");
+  assert(html.includes("const SA_API_KEY=SUPABASE_ANON_KEY;"), "Edge Functions must reuse the environment-specific Supabase API key");
+  assert(!html.includes('const SA_API_KEY="sb_publishable_'), "Production publishable keys must not be hardcoded for preview requests");
+  assert(html.includes('apikey:SA_API_KEY'), "Student Affairs requests must use the selected project key");
+  assert(html.includes('apikey: SA_API_KEY'), "General app session requests must use the selected project key");
+  assert(config.includes("https://wawplttrpiinoukpjqqx.supabase.co"), "Preview must remain isolated to its own Supabase project");
+});
+
 Deno.test("production Supabase client uses the active publishable key and keeps preview isolated", () => {
   const config = section("const SUPABASE_URL =", "const sb = window.supabase.createClient");
   assert(config.includes("https://wawplttrpiinoukpjqqx.supabase.co"), "Cloudflare preview must keep its isolated Supabase project");
