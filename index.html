@@ -5176,7 +5176,7 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       }
     }
   }
-  if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
+  if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}" (رمز ${failures[0].code}).`);
 }
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
   const all = []; let from = 0;
