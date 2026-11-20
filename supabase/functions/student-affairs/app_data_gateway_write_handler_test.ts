@@ -10,7 +10,8 @@ function fixture(options: {
   session?: { principal: { type: string; name: string } } | null;
   principal?: AppDataPrincipal | null;
   scope?: { allowedClasses: string[]; allowedAttendanceClasses?: string[]; allowedBehaviorClasses?: string[] };
-  existing?: Record<string, unknown>[];\n  writeError?: unknown;
+  existing?: Record<string, unknown>[];
+  writeError?: unknown;
 } = {}) {
   const calls: Array<[string, ...unknown[]]> = [];
   let saved: Record<string, unknown>[] | null = null;
