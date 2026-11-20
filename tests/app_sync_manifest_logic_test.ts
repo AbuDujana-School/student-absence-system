@@ -117,7 +117,7 @@ Deno.test("cloud refresh uses a manifest gate and guards every full-table reques
   assert(load.includes(": [...APP_SYNC_TABLES]"), "A missing manifest RPC or first load must retain the compatibility full-sync fallback");
   assert(load.includes("manifestCode === 'PGRST202'") && load.includes("manifestCode === '42883'"), "Only a known missing RPC may trigger legacy full sync after a manifest error");
   assert(load.includes("offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing"), "A transient manifest failure with a trusted snapshot must avoid all full-table downloads");
-  assert(load.includes("تعذر التحقق من تحديثات الخادم؛ البيانات المحلية محفوظة وسيُعاد المحاولة"), "A retained snapshot must be marked locally available while retrying the manifest");
+  assert(load.includes("تعذر التحقق من تحديثات الخادم؛ التعديلات محفوظة محلياً ولن تُرفع حتى نجاح التحقق. سيُعاد المحاولة."), "A retained snapshot must be marked locally available while retrying the manifest");
   const manifestErrorGuard = load.indexOf("if (offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing)");
   const tableFetchSetup = load.indexOf("const shouldLoad =");
   assert(manifestErrorGuard >= 0 && manifestErrorGuard < tableFetchSetup, "Transient manifest failures must return before full-table request setup");
@@ -149,7 +149,9 @@ Deno.test("local edits made during cloud requests are recaptured before replacin
 
 Deno.test("localStorage fallback refreshes truncated attendance and behavior datasets", () => {
   logic.setPrevious({ ...baseline });
-  const changed = logic.changed({ ...baseline }, true, true);
+  logic.setLocalStorageFallback(true);
+  const changed = logic.changed({ ...baseline }, true);
+  logic.setLocalStorageFallback(false);
   assert(changed.length === 2, "Fallback cache must refresh only the two intentionally truncated datasets");
   assert(changed.includes("attendance") && changed.includes("behaviors"), "Attendance and behavior history must be fully refreshed");
   assert(!changed.includes("teachers") && !changed.includes("school_settings"), "Unchanged complete datasets must not be downloaded");
