@@ -5182,20 +5182,23 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
     }
   }
 }
-// Stage 1 of the data-gateway cutover: administrators use the authenticated
-// server-side read gateway for non-credential school tables. Teacher/custom
-// reads remain on the established path until their individual scope/permission
-// parity and offline behavior are covered by role-specific preview tests.
-// Credential-bearing teachers and school_settings snapshots are deliberately
-// excluded until the dedicated credential lifecycle is integrated.
+// Stage 1 and 2 of the data-gateway cutover.
+// Admins use the gateway for non-credential school tables. Teachers/custom
+// accounts use it for attendance/behavior only; class/roster/duty and credential
+// snapshots remain on compatibility paths until their dedicated contracts pass.
 const ADMIN_GATEWAY_READ_TABLES = new Set(['classes', 'students', 'attendance', 'behaviors', 'duty_reports']);
+const ROLE_SCOPED_GATEWAY_READ_TABLES = new Set(['attendance', 'behaviors']);
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
-  if (activeUser?.type === 'admin' && ADMIN_GATEWAY_READ_TABLES.has(tableName)) {
+  const isAdminGatewayRead = activeUser?.type === 'admin' && ADMIN_GATEWAY_READ_TABLES.has(tableName);
+  const isRoleScopedGatewayRead = (activeUser?.type === 'teacher' || activeUser?.type === 'custom') &&
+    ROLE_SCOPED_GATEWAY_READ_TABLES.has(tableName);
+  if (isAdminGatewayRead || isRoleScopedGatewayRead) {
     const token = appAuthSession?.token || readAppAuthToken();
+    const expectedType = activeUser.type;
     if (!token || !hasUnexpiredAppAuthSession() ||
-        appAuthSession?.principal?.type !== 'admin' ||
+        appAuthSession?.principal?.type !== expectedType ||
         appAuthSession?.principal?.name !== activeUser.name) {
-      throw new Error('تحتاج قراءة بيانات المدرسة إلى جلسة مدير موثقة وسارية.');
+      throw new Error('تحتاج قراءة بيانات المدرسة إلى جلسة موثقة وسارية؛ بقيت البيانات المحلية دون تغيير.');
     }
     const all = [];
     let offset = 0;
@@ -5218,8 +5221,8 @@ async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
     }
     return all;
   }
-  // Compatibility path retained for teacher/custom roles and credential-bearing
-  // snapshots until their role-specific gateway contracts are proven equivalent.
+  // Compatibility path retained for teacher/custom class/roster/duty reads,
+  // credential-bearing snapshots, and all offline local-restore behavior.
   const all = []; let from = 0;
   while (true) { const { data, error } = await sb.from(tableName).select(selectCols).range(from, from + pageSize - 1); if (error) throw error; if (!data || data.length === 0) break; all.push(...data); if (data.length < pageSize) break; from += pageSize; }
   return all;
