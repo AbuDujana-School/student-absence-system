@@ -13,7 +13,7 @@ const hash = "a".repeat(64);
 const salt = "b".repeat(32);
 
 function fixture(options: {
-  session?: typeof session | null;
+  session?: { principal: { type: string; name: string } } | null;
   principal?: AppDataPrincipal | null;
   adminSetting?: unknown;
   accounts?: Record<string, unknown>[];
@@ -86,6 +86,25 @@ Deno.test("teacher credential snapshot exposes only the current teacher verifier
   assertEquals(body.accounts[0].permissions, { attendance: true, nested: {} });
   assert(calls.some(([name, column, value]) => name === "eq" && column === "name" && value === "Teacher A"));
   assertEquals(calls.some(([name, table]) => name === "from" && table === "school_settings"), false);
+});
+
+Deno.test("custom account credential snapshot is scoped to the matching custom account", async () => {
+  const custom = { type: "custom" as const, name: "Custom A", permissions: { attendance: true } };
+  const { deps } = fixture({
+    principal: custom,
+    session: { principal: { type: "custom", name: "Custom A" } },
+    accounts: [
+      { name: "Custom A", role: "custom", pin_hash: hash, pin_salt: salt, permissions: { attendance: true } },
+      { name: "Teacher B", role: "teacher", pin_hash: "c".repeat(64), pin_salt: "d".repeat(32), permissions: {} },
+    ],
+  });
+  const response = await handleAppCredentialSnapshot(new Request("https://unit.test", { headers: { authorization: "Bearer " + "a".repeat(64) } }), deps);
+  assertEquals(response.status, 200);
+  const body = await response.json();
+  assertEquals(body.admin_pin, null);
+  assertEquals(body.accounts.length, 1);
+  assertEquals(body.accounts[0].name, "Custom A");
+  assertEquals(body.accounts[0].role, "custom");
 });
 
 Deno.test("administrator credential snapshot may read the full account roster and administrator verifier", async () => {
