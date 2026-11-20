@@ -5630,7 +5630,15 @@ window.addEventListener('DOMContentLoaded', async () => {
   });
   window.addEventListener('pageshow', resumeCloudSync);
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) resumeCloudSync();
+    if (document.hidden) return;
+    resumeCloudSync();
+    if (activeUser?.type === "teacher") {
+      const timetableView = document.getElementById("teacherTimetableView");
+      if (timetableView && !timetableView.classList.contains("hidden") &&
+          Date.now() - teacherTimetableLastFetchAt >= 60000) {
+        void teacherTimetableLoad(false);
+      }
+    }
   });
   // Periodic polling uses the same guarded recovery path as reconnect/return events.
   setInterval(() => {
@@ -10348,7 +10356,7 @@ async function openTeacherTimetableView() {
   await teacherTimetableLoad(true);
   if (teacherTimetableRefreshTimer) clearInterval(teacherTimetableRefreshTimer);
   teacherTimetableRefreshTimer = setInterval(() => {
-    if (document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
+    if (document.hidden || document.getElementById("teacherTimetableView")?.classList.contains("hidden")) return;
     teacherTimetableRender();
     if (Date.now() - teacherTimetableLastFetchAt >= 60000) void teacherTimetableLoad(false);
   }, 15000);
