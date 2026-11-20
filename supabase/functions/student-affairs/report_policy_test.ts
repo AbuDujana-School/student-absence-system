@@ -99,3 +99,41 @@ Deno.test("notice scan allows only a source with both read and print permission"
   if (authorizeReportMode({ can_read_attendance: true }, "notice_scan")?.status !== 403) throw new Error("notice scan allowed without print permission");
   if (authorizeReportMode({ can_read_attendance: true, can_print_attendance: true }, "notice_scan") !== null) throw new Error("attendance-only notice scan denied");
 });
+
+Deno.test("supervisor Reports entry keeps attendance and behavior within personal assignments", () => {
+  const granted = applyReportsEntryPermissions({
+    role: "supervisor",
+    own_allowed_attendance_classes: ["9/1"],
+    own_allowed_behavior_classes: ["9/2"],
+    team_allowed_attendance_classes: ["9/3"],
+    team_allowed_behavior_classes: ["9/4"],
+  }, ["9/1", "9/2", "9/3", "9/4", "10/1"], true);
+  if (granted.allowed_attendance_classes?.join(",") !== "9/1") throw new Error("supervisor attendance scope expanded beyond own classes");
+  if (granted.allowed_behavior_classes?.join(",") !== "9/2") throw new Error("supervisor behavior scope expanded beyond own classes");
+  if (granted.allowed_classes?.join(",") !== "9/1,9/2") throw new Error("supervisor combined scope is incorrect");
+  if (authorizeReportMode(granted, "print_combined") !== null) throw new Error("supervisor combined print was not enabled within personal scope");
+});
+
+Deno.test("team leader Reports entry includes own and directly assigned team classes only", () => {
+  const granted = applyReportsEntryPermissions({
+    role: "team_leader",
+    own_allowed_attendance_classes: ["9/1"],
+    own_allowed_behavior_classes: ["9/2"],
+    team_allowed_attendance_classes: ["9/3", "9/3"],
+    team_allowed_behavior_classes: ["9/4"],
+  }, ["9/1", "9/2", "9/3", "9/4", "10/1"], true);
+  if (granted.allowed_attendance_classes?.join(",") !== "9/1,9/3") throw new Error("team leader attendance scope is incorrect");
+  if (granted.allowed_behavior_classes?.join(",") !== "9/2,9/4") throw new Error("team leader behavior scope is incorrect");
+  if (granted.allowed_classes?.join(",") !== "9/1,9/3,9/2,9/4") throw new Error("team leader combined scope is incorrect");
+  if (areClassesAllowed(["10/1"], granted.allowed_classes || [])) throw new Error("team leader gained access to an unrelated class");
+});
+
+Deno.test("visitor Reports entry retains school-wide scope", () => {
+  const granted = applyReportsEntryPermissions({ role: "visitor" }, ["9/1", "9/2", "9/2"], true);
+  if (granted.allowed_classes?.join(",") !== "9/1,9/2") throw new Error("visitor did not receive all school classes");
+});
+
+Deno.test("unassigned legacy report grants retain their existing school-wide behavior", () => {
+  const granted = applyReportsEntryPermissions({}, ["9/1", "9/2"], true);
+  if (granted.allowed_classes?.join(",") !== "9/1,9/2") throw new Error("legacy report access behavior changed");
+});
