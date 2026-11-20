@@ -119,3 +119,9 @@ Use synthetic preview data only. Run each case for admin, teacher, and custom ac
 6. **Deletes/transfers/renames:** existing tombstones and queued delete intents remain blocked by the gateway. A dedicated transaction and rollback plan is required before migration.
 
 These are intentional security/compatibility gates, not unfinished automatic fallbacks. No production cutover is permitted while any gate remains open.
+
+### Preview environment safety
+
+- Cloudflare Pages now deploys both preview projects for this branch. The `abu-dujana-school-preview` host is explicitly marked as UI-review mode and disables login.
+- The `student-absence-system` branch preview uses the normal browser bundle, whose Supabase host is the live school project. Do not sign in or exercise data workflows on that URL unless it is first reconfigured to an isolated preview database.
+- Therefore, role/permission and sync acceptance testing continues in GitHub Actions' local Chromium preview, where every Supabase request is intercepted and only synthetic fixtures are returned. Cloudflare deployment success is not treated as live role-flow validation.
