@@ -310,9 +310,9 @@ test("notice PDF packs short notices three per page and keeps long notices reada
     }));
 
     const longStudents = [
-      makeStudent("QA_LONG_1", 12, 4),
-      makeStudent("QA_LONG_2", 12, 5),
-      makeStudent("QA_LONG_3", 12, 6),
+      makeStudent("QA_LONG_1", 22, 4),
+      makeStudent("QA_LONG_2", 22, 5),
+      makeStudent("QA_LONG_3", 22, 6),
     ];
     saNoticeRenderPreview(longStudents, 3);
     const longReady = await saNoticePreviewReady;
