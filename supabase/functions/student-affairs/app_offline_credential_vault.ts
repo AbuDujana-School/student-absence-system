@@ -51,8 +51,11 @@ function base64ToBytes(value: string): Uint8Array {
   return bytes;
 }
 
-function additionalData(principal: OfflineCredentialPrincipal, expiresAt: number): Uint8Array {
-  return encoder.encode(JSON.stringify([1, principal.type, principal.name, expiresAt]));
+function additionalData(principal: OfflineCredentialPrincipal, expiresAt: number): Uint8Array<ArrayBuffer> {
+  const encoded = encoder.encode(JSON.stringify([1, principal.type, principal.name, expiresAt]));
+  const copy = new Uint8Array(new ArrayBuffer(encoded.byteLength));
+  copy.set(encoded);
+  return copy;
 }
 
 /** Generate a key suitable for structured-clone persistence in IndexedDB. */
@@ -96,7 +99,7 @@ export async function sealOfflineCredentialSnapshot(
     throw new TypeError("Credential snapshot exceeds the allowed size.");
   }
 
-  const iv = cryptoProvider.getRandomValues(new Uint8Array(12));
+  const iv = cryptoProvider.getRandomValues(new Uint8Array(new ArrayBuffer(12)));
   const expiresAt = now + ttlMs;
   const encrypted = await cryptoProvider.subtle.encrypt(
     { name: "AES-GCM", iv, additionalData: additionalData(principal, expiresAt), tagLength: 128 },
