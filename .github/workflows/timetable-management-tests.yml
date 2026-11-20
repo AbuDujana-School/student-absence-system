@@ -100,6 +100,30 @@ jobs:
           deno-version: v2.x
       - name: Type-check timetable management
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
+      - name: Verify deployed development timetable endpoint rejects missing and unknown app sessions
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.ref == 'perf/timetable-self-read-no-preflight-20261120'
+        env:
+          PREVIEW_URL: "https://wawplttrpiinoukpjqqx.supabase.co"
+          PREVIEW_PUBLISHABLE_KEY: "sb_publishable_7BEkF9yQ9A5eOiK1jIWQww_Uv424Y0i"
+        run: |
+          set -euo pipefail
+          endpoint="$PREVIEW_URL/functions/v1/timetable-management"
+          payload='{"action":"teacher_substitution_get_today"}'
+          missing_body="$(mktemp)"
+          missing_status="$(curl --silent --show-error --output "$missing_body" --write-out '%{http_code}' --request POST "$endpoint" --header "apikey: $PREVIEW_PUBLISHABLE_KEY" --header 'Content-Type: application/json' --data "$payload")"
+          if [ "$missing_status" != "401" ] || ! grep -q 'انتهت جلسة الدخول' "$missing_body"; then
+            echo "Missing-session request was not rejected by the app-session layer (HTTP $missing_status)."
+            cat "$missing_body"
+            exit 1
+          fi
+          invalid_body="$(mktemp)"
+          invalid_status="$(curl --silent --show-error --output "$invalid_body" --write-out '%{http_code}' --request POST "$endpoint" --header "apikey: $PREVIEW_PUBLISHABLE_KEY" --header 'Authorization: Bearer 0000000000000000000000000000000000000000000000000000000000000000' --header 'Content-Type: application/json' --data "$payload")"
+          if [ "$invalid_status" != "401" ] || ! grep -q 'انتهت جلسة الدخول' "$invalid_body"; then
+            echo "Unknown-session request was not rejected by the app-session layer (HTTP $invalid_status)."
+            cat "$invalid_body"
+            exit 1
+          fi
+          echo "Deployed development timetable endpoint rejected both missing and unknown app sessions (HTTP 401)."
       - name: Run timetable unit tests
         run: deno test --allow-read=supabase/migrations --allow-read=supabase/functions/timetable-management/index.ts --allow-read=supabase/functions/timetable-management/session_auth.ts supabase/functions/timetable-management/tests
       - name: Check timetable worker JavaScript syntax

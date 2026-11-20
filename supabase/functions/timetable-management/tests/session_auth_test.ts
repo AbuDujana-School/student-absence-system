@@ -22,8 +22,6 @@ function storeWith(
     reserve?: boolean;
     schoolwideReserveStats?: boolean;
     linkedPortalAccess?: boolean;
-    linkedPortalNoticeAccess?: boolean;
-    ownDailyAssignment?: boolean;
     duty?: boolean;
     calls?: string[];
   } = {},
@@ -61,14 +59,6 @@ function storeWith(
     async hasLinkedTeacherPortalAccess(name) {
       calls.push("linked-portal:" + name);
       return options.linkedPortalAccess === true;
-    },
-    async hasLinkedTeacherPortalNoticeAccess(name) {
-      calls.push("linked-portal-notice:" + name);
-      return options.linkedPortalNoticeAccess === true;
-    },
-    async hasOwnDailySubstitutionAssignment(name) {
-      calls.push("own-assignment:" + name);
-      return options.ownDailyAssignment === true;
     },
     async hasDutyReportAccess(type, name) {
       calls.push("duty:" + type + ":" + name);
@@ -220,38 +210,36 @@ Deno.test("non-admin substitution access requires the correct explicit authoriza
 });
 
 
-Deno.test("linked teachers receive portal-only access only when the school portal is enabled", async () => {
+Deno.test("self-scoped teacher timetable and daily notice actions defer checks to their handlers", async () => {
   const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
-  const allowedStore = storeWith(session, {
-    teacher: { name: "Teacher A", role: "teacher" },
-    linkedPortalAccess: true,
-  });
-  const portalPrincipal = await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, allowedStore, NOW, "teacher_timetable_get_own",
-  );
-  if (portalPrincipal?.portalOnly !== true || portalPrincipal.name !== "Teacher A") {
-    throw new Error("Linked teacher did not receive portal-only access");
-  }
-  for (const action of ["health", "timetable_check_access", "teacher_timetable_get_own","teacher_substitution_get_today"]) {
-    if (!canUseTimetableAction("teacher", action, true)) throw new Error("Portal action was denied: " + action);
-  }
-  for (const action of [
-    "timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel",
-    "timetable_list_access", "timetable_portal_get_status", "timetable_portal_set_enabled",
-  ]) {
-    if (canUseTimetableAction("teacher", action, true)) throw new Error("Portal-only teacher gained management access: " + action);
-  }
-  for (const action of ["timetable_portal_get_status", "timetable_portal_set_enabled"]) {
-    if (canUseTimetableAction("custom", action)) throw new Error("Non-admin account gained school-wide portal control: " + action);
-  }
-  const disabledStore = storeWith(session, {
-    teacher: { name: "Teacher A", role: "teacher" },
-    linkedPortalAccess: false,
-  });
-  if (await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, disabledStore, NOW, "teacher_timetable_get_own",
-  ) !== null) {
-    throw new Error("Teacher portal access was granted while disabled or unlinked");
+  for (const action of ["teacher_timetable_get_own", "teacher_substitution_get_today"]) {
+    const calls: string[] = [];
+    const store = storeWith(session, {
+      teacher: { name: "Teacher A", role: "teacher" },
+      access: false,
+      linkedPortalAccess: false,
+      calls,
+    });
+    const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, action);
+    if (principal?.type !== "teacher" || principal.name !== "Teacher A" || principal.portalOnly !== true) {
+      throw new Error("Self-scoped teacher action did not receive a narrow portal-only identity: " + action);
+    }
+    if (calls.filter((call) => call === "teacher:Teacher A").length !== 1) {
+      throw new Error("Teacher identity must be verified exactly once: " + action);
+    }
+    if (calls.some((call) =>
+      call.startsWith("teacher-permissions:") || call.startsWith("access:") ||
+      call.startsWith("linked-portal:") || call.startsWith("schoolwide-stats:") ||
+      call.startsWith("duty:")
+    )) {
+      throw new Error("Self-scoped handler action performed a redundant authorization preflight: " + action);
+    }
+    if (!canUseTimetableAction("teacher", action, principal.portalOnly)) {
+      throw new Error("The self-scoped teacher action was denied: " + action);
+    }
+    if (canUseTimetableAction("teacher", "timetable_substitution_preview", principal.portalOnly)) {
+      throw new Error("The self-scoped identity gained reserve-management access");
+    }
   }
 });
 
@@ -307,26 +295,6 @@ Deno.test("reserve archive and edit actions require explicit reserve permission"
   }
 });
 
-
-Deno.test("a teacher with a reserve assignment today gets only the daily notice read action", async () => {
-  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
-  const store = storeWith(session, {
-    teacher: { name: "Teacher A", role: "teacher" },
-    ownDailyAssignment: true,
-  });
-  const principal = await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, store, NOW, "teacher_substitution_get_today",
-  );
-  if (principal?.type !== "teacher" || principal.name !== "Teacher A" || principal.portalOnly === true) {
-    throw new Error("Teacher with today's own reserve assignment was not granted the narrow read identity");
-  }
-  if (!canUseTimetableAction("teacher", "teacher_substitution_get_today")) {
-    throw new Error("Teacher daily reserve notice action was denied");
-  }
-  if (canUseTimetableAction("teacher", "timetable_substitution_preview")) {
-    throw new Error("Daily notice access accidentally granted reserve management");
-  }
-});
 
 Deno.test("schoolwide reserve statistics grants do not grant reserve management", () => {
   if (!canUseTimetableAction("teacher", "timetable_substitution_stats", false, false, false, true)) {
@@ -395,52 +363,6 @@ Deno.test("teacher without duty permission cannot obtain duty-only timetable acc
   });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW) !== null) {
     throw new Error("Teacher without any timetable, reserve, portal, or duty permission was accepted");
-  }
-});
-
-
-Deno.test("daily notice uses lightweight portal allow-list authorization without loading weekly cells", async () => {
-  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
-  const calls: string[] = [];
-  const store = storeWith(session, {
-    teacher: { name: "Teacher A", role: "teacher" },
-    linkedPortalNoticeAccess: true,
-    linkedPortalAccess: false,
-    calls,
-  });
-  const principal = await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, store, NOW, "teacher_substitution_get_today",
-  );
-  if (principal?.portalOnly !== true || principal.name !== "Teacher A") {
-    throw new Error("Teacher with enabled notice portal was not granted narrow portal-only notice access");
-  }
-  if (!calls.includes("linked-portal-notice:Teacher A")) {
-    throw new Error("Lightweight portal setting was not checked");
-  }
-  if (calls.some((call) => call.startsWith("linked-portal:"))) {
-    throw new Error("Daily notice authorization loaded linked timetable cells");
-  }
-  if (canUseTimetableAction("teacher", "timetable_substitution_preview", principal.portalOnly)) {
-    throw new Error("Daily notice portal identity gained substitution management access");
-  }
-});
-
-Deno.test("daily notice without portal allow-list or own assignment remains denied without full timetable lookup", async () => {
-  const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
-  const calls: string[] = [];
-  const store = storeWith(session, {
-    teacher: { name: "Teacher A", role: "teacher" },
-    linkedPortalNoticeAccess: false,
-    linkedPortalAccess: true,
-    ownDailyAssignment: false,
-    calls,
-  });
-  const principal = await resolveTimetablePrincipal(
-    "Bearer " + TOKEN, store, NOW, "teacher_substitution_get_today",
-  );
-  if (principal !== null) throw new Error("Unauthorized daily notice access was accepted");
-  if (calls.some((call) => call.startsWith("linked-portal:"))) {
-    throw new Error("Daily notice fallback performed the expensive weekly-cell lookup");
   }
 });
 
@@ -522,7 +444,6 @@ Deno.test("unrelated timetable actions do not load linked portal weekly cells or
   const store = storeWith(session, {
     teacher: { name: "Teacher A", role: "teacher" },
     linkedPortalAccess: true,
-    ownDailyAssignment: true,
     calls,
   });
   const principal = await resolveTimetablePrincipal(
@@ -531,7 +452,7 @@ Deno.test("unrelated timetable actions do not load linked portal weekly cells or
   if (principal !== null) {
     throw new Error("A portal-linked teacher without reserve permission gained substitution access");
   }
-  if (calls.some((call) => call.startsWith("linked-portal:") || call.startsWith("own-assignment:"))) {
+  if (calls.some((call) => call.startsWith("linked-portal:"))) {
     throw new Error("An unrelated action performed portal weekly-cell or daily-assignment lookups");
   }
 });

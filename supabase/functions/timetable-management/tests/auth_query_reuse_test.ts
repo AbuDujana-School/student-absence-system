@@ -36,17 +36,29 @@ Deno.test("reserve and duty permissions are reused from the authenticated teache
   if (!context.includes("teacherPermissions")) throw new Error("Duty context must use the supplied teacher snapshot");
 });
 
-Deno.test("daily notice authorization checks the portal allow-list without scanning weekly cells", () => {
+Deno.test("self-scoped timetable and daily notice actions defer authorization to their handlers", () => {
+  const resolverStart = authSource.indexOf("export async function resolveTimetablePrincipal(");
+  const resolverEnd = authSource.indexOf("export function canUseTimetableAction(", resolverStart);
+  const resolver = authSource.slice(resolverStart, resolverEnd);
+  for (const action of ["teacher_timetable_get_own", "teacher_substitution_get_today"]) {
+    if (!resolver.includes('"'+action+'"')) {
+      throw new Error("Self-scoped action must be explicitly recognized by the resolver: " + action);
+    }
+  }
+  if (!resolver.includes('return { type, name, portalOnly: true }')) {
+    throw new Error("Self-scoped reads must receive a narrow portal-only principal");
+  }
   const store = section("const timetableAuthStore: TimetableAuthStore = {", "async function requirePrincipal");
-  const notice = section("async hasLinkedTeacherPortalNoticeAccess(", "async hasOwnDailySubstitutionAssignment");
-  if (!notice.includes('db.from("teacher_timetable_portal_settings")')) {
-    throw new Error("Daily notice must check the portal allow-list");
+  if (store.includes("hasLinkedTeacherPortalNoticeAccess") || store.includes("hasOwnDailySubstitutionAssignment")) {
+    throw new Error("Redundant portal and assignment preflight queries must be removed");
   }
-  if (notice.includes("fetchTeacherTimetableCells") || notice.includes("timetable_weekly_cells")) {
-    throw new Error("Daily notice authorization must not load weekly timetable cells");
+  const notice = section('if (body.action === "teacher_substitution_get_today")', 'if (body.action === "teacher_timetable_get_own")');
+  if (!notice.includes('principal.type !== "teacher"') || !notice.includes('.eq("teacher_name", principal.name)')) {
+    throw new Error("Daily notice handler must remain restricted to the authenticated teacher's own assignments");
   }
-  if (!store.includes("hasLinkedTeacherPortalNoticeAccess")) {
-    throw new Error("Lightweight daily notice authorization must be wired into the auth store");
+  const own = section('if (body.action === "teacher_timetable_get_own")', 'if (action === "timetable_substitution_departments")');
+  if (!own.includes("canAccessTeacherTimetablePortal") || !own.includes("fetchTeacherTimetableCells")) {
+    throw new Error("Personal timetable handler must retain its live portal allow-list and own-cell checks");
   }
 });
 
@@ -94,7 +106,7 @@ Deno.test("duty context performs one authoritative duty-module check", () => {
 });
 
 Deno.test("linked timetable authorization avoids repeating the cell read performed by the handler", () => {
-  const portal = section("async hasLinkedTeacherPortalAccess(", "async hasLinkedTeacherPortalNoticeAccess(");
+  const portal = section("async hasLinkedTeacherPortalAccess(", "async hasSchoolwideReserveStatsAccess(");
   if (!portal.includes('action === "timetable_check_access" || action === "teacher_timetable_get_own"')) {
     throw new Error("The access resolver must defer authoritative cell reads to these handlers");
   }
