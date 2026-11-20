@@ -447,12 +447,13 @@ Deno.test("cloud sync fetches only the columns consumed by the local school snap
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   const projections = [
     "shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null)",
-    "shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
-    "shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
+    "shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
+    "shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
     "shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null)",
     "shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)",
   ];
   for (const projection of projections) assert(load.includes(projection), "Missing narrow cloud projection: " + projection);
+  assert((load.match(/date: r\\.date_str/g) || []).length === 2, "Attendance and behavior snapshots must both retain their date_str value");
   for (const table of ["teachers", "attendance", "behaviors", "school_settings", "duty_reports"]) {
     assert(!load.includes("fetchAllPaginated('" + table + "', '*')"), "Cloud sync must not fetch unused columns from " + table);
   }

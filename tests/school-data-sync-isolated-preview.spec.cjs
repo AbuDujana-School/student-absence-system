@@ -28,6 +28,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     }],
     attendance: [{
       record_key: "qa-attendance",
+      date_str: "2026-11-20",
       class_name: "QA_ONLY_CLASS",
       teacher_name: "QA_ONLY_TEACHER",
       period: 1,
@@ -36,6 +37,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     }],
     behaviors: [{
       record_key: "qa-behavior",
+      date_str: "2026-11-19",
       class_name: "QA_ONLY_CLASS",
       teacher_name: "QA_ONLY_TEACHER",
       period: 1,
@@ -200,7 +202,9 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(mapped.students.QA_ONLY_CLASS).toContain("QA_ONLY_STUDENT");
   expect(mapped.teachers.some((item) => item.name === "QA_ONLY_TEACHER")).toBe(true);
   expect(mapped.attendance["qa-attendance"]?.className).toBe("QA_ONLY_CLASS");
+  expect(mapped.attendance["qa-attendance"]?.date).toBe("2026-11-20");
   expect(mapped.behaviors["qa-behavior"]?.className).toBe("QA_ONLY_CLASS");
+  expect(mapped.behaviors["qa-behavior"]?.date).toBe("2026-11-19");
   expect(mapped.dutyReports.some((item) => item.id === "qa-duty-report")).toBe(true);
 
   for (const table of TABLES) {
@@ -210,8 +214,8 @@ test("school sync projections and timetable access reads stay isolated and minim
     classes: "name",
     students: "class_name,student_name",
     teachers: "name,role,pin_hash,pin_salt,permissions,must_change_pin",
-    attendance: "record_key,class_name,teacher_name,period,records,updated_at",
-    behaviors: "record_key,class_name,teacher_name,period,records,updated_at",
+    attendance: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
+    behaviors: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
     school_settings: "key,value",
     duty_reports: "id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at",
   };
