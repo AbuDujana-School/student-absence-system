@@ -5147,7 +5147,7 @@ async function flushPendingDeletes() { return false; }
 // Stage 1 admin writes plus stage 3 teacher/custom own attendance/behavior writes.
 // Credential, roster, settings, class/student and duty writes remain excluded for
 // non-admins until dedicated server actions and their UI parity are proven.
-const ADMIN_GATEWAY_WRITE_TABLES = new Set(['classes', 'students', 'attendance', 'behaviors', 'duty_reports']);
+const ADMIN_GATEWAY_WRITE_TABLES = new Set(['classes', 'students', 'attendance', 'behaviors', 'duty_reports', 'school_settings']);
 const ROLE_SCOPED_GATEWAY_WRITE_TABLES = new Set(['attendance', 'behaviors']);
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
@@ -6187,10 +6187,9 @@ async function saveSystemDataToCloud(options = {}) {
       clearSyncedDirtyFlag('admin_pin', syncSnapshotDb);
     }
     if (syncDirty.custom_categories) {
-      const { error } = await sb.from('school_settings').upsert({
+      await robustUpsert('school_settings', [{
         key: 'custom_categories', value: syncSnapshotDb.customCategories || []
-      }, { onConflict: 'key' });
-      if (error) throw new Error('custom_categories: ' + error.message);
+      }], 'key', 100);
       clearSyncedDirtyFlag('custom_categories', syncSnapshotDb);
     }
 
@@ -6215,8 +6214,7 @@ async function saveSystemDataToCloud(options = {}) {
 
     if (syncDirty.duty_module) {
       const { records: _drop, ...dutySmall } = syncSnapshotDb.dutyModule || {};
-      const { error } = await sb.from('school_settings').upsert({ key: 'duty_module', value: dutySmall }, { onConflict: 'key' });
-      if (error) throw new Error('duty_module: ' + error.message);
+      await robustUpsert('school_settings', [{ key: 'duty_module', value: dutySmall }], 'key', 100);
       clearSyncedDirtyFlag('duty_module', syncSnapshotDb);
     }
 
