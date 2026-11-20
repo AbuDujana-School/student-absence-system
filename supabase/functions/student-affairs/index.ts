@@ -4,6 +4,7 @@ import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, 
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
+import { fetchSupervisionTrendRows } from "./supervision_trend_fetch.ts";
 import {
   resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
   type AppLoginCandidate, type AppPrincipal,
@@ -1653,23 +1654,8 @@ async function handle(req: Request) {
         }
       }
     }
-    const fetchAll = async (table: "attendance" | "behaviors", classes: string[]) => {
-      const rows: any[] = [];
-      for (const className of classes) {
-        let offset = 0;
-        while (true) {
-          const { data, error } = await db.from(table).select("date_str,class_name,records")
-            .eq("class_name", className).gte("date_str", from).lte("date_str", to)
-            .order("date_str").range(offset, offset + 999);
-          if (error) throw error;
-          const page = data || [];
-          rows.push(...page);
-          if (page.length < 1000) break;
-          offset += page.length;
-        }
-      }
-      return rows;
-    };
+    const fetchAll = (table: "attendance" | "behaviors", classes: string[]) =>
+      fetchSupervisionTrendRows(db, table, classes, from, to);
     let attendanceRows: any[] = [], behaviorRows: any[] = [];
     try {
       [attendanceRows, behaviorRows] = await Promise.all([
