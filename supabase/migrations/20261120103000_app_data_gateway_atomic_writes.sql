@@ -19,7 +19,7 @@ begin
 
   if p_table = 'attendance' then
     insert into public.attendance (record_key, date_str, class_name, period, teacher_name, records, updated_at)
-    select x.record_key, x.date_str, x.class_name, x.period, x.teacher_name, x.records, x.updated_at
+    select x.record_key, x.date_str, x.class_name, x.period, x.teacher_name, x.records, coalesce(x.updated_at, now())
     from jsonb_populate_recordset(null::public.attendance, p_rows) as x
     on conflict (record_key) do update set
       date_str = excluded.date_str,
@@ -32,7 +32,7 @@ begin
 
   elsif p_table = 'behaviors' then
     insert into public.behaviors (record_key, date_str, class_name, period, teacher_name, records, updated_at)
-    select x.record_key, x.date_str, x.class_name, x.period, x.teacher_name, x.records, x.updated_at
+    select x.record_key, x.date_str, x.class_name, x.period, x.teacher_name, x.records, coalesce(x.updated_at, now())
     from jsonb_populate_recordset(null::public.behaviors, p_rows) as x
     on conflict (record_key) do update set
       date_str = excluded.date_str,
