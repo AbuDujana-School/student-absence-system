@@ -80,11 +80,11 @@ SELECT public.app_data_gateway_set_pin_record(
 RESET ROLE;
 
 DO $do$
-DECLARE v_owner text; v_records jsonb; v_hash text; v_salt text; v_must_change boolean;
+DECLARE v_owner text; v_records jsonb; v_hash text; v_salt text; v_must_change boolean; v_updated_at timestamptz;
 BEGIN
-  SELECT teacher_name, records INTO v_owner, v_records
+  SELECT teacher_name, records, updated_at INTO v_owner, v_records, v_updated_at
   FROM public.attendance WHERE record_key='gateway-owner-check';
-  IF v_owner <> 'Synthetic Teacher' OR v_records <> '{"student":"late"}'::jsonb THEN
+  IF v_owner <> 'Synthetic Teacher' OR v_records <> '{"student":"late"}'::jsonb OR v_updated_at IS NULL THEN
     RAISE EXCEPTION 'atomic ownership guard did not preserve the original record';
   END IF;
   SELECT pin_hash,pin_salt,must_change_pin INTO v_hash,v_salt,v_must_change
