@@ -1,5 +1,22 @@
 # Frontend data-gateway migration and production-safety checklist
 
+## Current staged migration status
+
+### Stage 1 implemented in the PR branch
+
+- Administrator reads for `classes`, `students`, `attendance`, `behaviors`, and `duty_reports` use `app_data_gateway_read` with bounded 500-row pages and a verified session/principal match.
+- Administrator writes for the same five non-credential tables use `app_data_gateway_write`. The client requires the gateway's confirmed saved-row count to equal the chunk size before the caller can clear dirty keys.
+- Browser validation runs locally in GitHub Actions with Playwright Chromium. All Supabase traffic is intercepted; fixtures are synthetic `QA_ONLY_*` data. No real backend is contacted.
+- Admin gateway reads/writes, teacher/custom compatibility paths, pagination/manifest behavior, and timetable access are covered in the isolated browser regression.
+
+### Why teacher/custom table migration is still gated
+
+- The existing UI normalizes missing teacher `permissions.attendance` and `permissions.behavior` to `true`, while the gateway policy currently requires strict `=== true`. Migrating before matching this default would deny some existing teachers.
+- The UI's generic teacher/custom attendance permission does not itself encode class scope. The gateway derives scope from the active timetable and explicit school-affairs grants. A custom account with an attendance/behavior permission but no timetable or applicable class grant could lose access if moved now.
+- Therefore teacher/custom attendance and behavior reads/writes remain on the established path until a server-side compatibility resolver is proven against synthetic legacy/new permission fixtures and exact class-scope cases. Do not broaden access to all classes as a shortcut.
+- Teacher roster and `school_settings` remain excluded because the former still supplies the existing offline PIN-login contract and the latter contains the administrator PIN verifier. Their replacement needs a dedicated credential lifecycle and explicit key-level settings actions.
+
+
 ## Current source audit
 
 Audited the PR #329 frontend source at the current branch head. This document is a migration plan only; it does not change runtime behavior.
