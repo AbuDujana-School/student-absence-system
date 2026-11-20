@@ -124,6 +124,9 @@ test("analytics screen renders only the selected synthetic class", async ({ page
     // intentionally auto-loads the ordinary report as part of real navigation.
     document.getElementById("saReportClassesContainer").innerHTML =
       '<input type="checkbox" class="sa-report-class-chk" value="QA_ONLY_CLASS" checked>';
+    saPopulateStatusFilter();
+    const allStatuses = document.querySelector('.sa-status-filter-chk[value="all"]');
+    if (allStatuses) allStatuses.checked = true;
     document.getElementById("saFrom").value = "2026-11-18";
     document.getElementById("saTo").value = "2026-11-20";
     await saLoadAnalytics();
