@@ -322,6 +322,36 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
 });
 
 
+
+test("notice PDF uses exact A4 printable dimensions and updated fit font", async ({ page }) => {
+  await openIsolatedApp(page);
+  const result = await page.evaluate(() => {
+    const style = document.getElementById("sa-notice-a4-exact-layout");
+    const fitSource = saNoticeFitCards.toString();
+    const css = style?.textContent || "";
+    return {
+      stylePresent: Boolean(style),
+      previewWidth: /width:200mm!important/.test(css),
+      previewHeight: /height:287mm!important/.test(css),
+      printMargins: /@page\\s*\\{size:A4 portrait;margin:5mm\\}/.test(css),
+      printWidth: /width:100%!important;min-width:0!important/.test(css),
+      avoidPageBreak: /break-inside:avoid!important;page-break-inside:avoid!important/.test(css),
+      baseFont: /const baseFont=11\\.5/.test(fitSource),
+      minFont: /Math\\.max\\(8\\.6,baseFont-level\\.shrink\\)/.test(fitSource),
+    };
+  });
+  expect(result).toEqual({
+    stylePresent: true,
+    previewWidth: true,
+    previewHeight: true,
+    printMargins: true,
+    printWidth: true,
+    avoidPageBreak: true,
+    baseFont: true,
+    minFont: true,
+  });
+});
+
 test("notice PDF keeps short violation lines grouped without vertical space distribution", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
