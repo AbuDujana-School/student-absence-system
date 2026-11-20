@@ -1,0 +1,67 @@
+name: Isolated school-data sync browser regression
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "tests/school-data-sync-isolated-preview.spec.cjs"
+      - ".github/workflows/school-data-sync-isolated-preview.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: isolated-school-data-sync-preview-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-browser-regression:
+    name: Verify sync projections with synthetic data only
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: npm install --no-save @playwright/test
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Start local preview server
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 -m http.server 4173 --directory . >/tmp/isolated-school-preview.log 2>&1 &
+          for attempt in $(seq 1 20); do
+            if curl --fail --silent http://127.0.0.1:4173/ -o /dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/isolated-school-preview.log
+          exit 1
+
+      - name: Run isolated browser regression
+        env:
+          PREVIEW_URL: http://127.0.0.1:4173/
+        run: npx playwright test tests/school-data-sync-isolated-preview.spec.cjs --reporter=line
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-school-data-sync-browser-evidence
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 7
