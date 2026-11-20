@@ -327,23 +327,37 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(gatewayWrites.every((item) => item.authorization === "Bearer " + "a".repeat(64))).toBe(true);
   expect(legacyWrites).toEqual([]);
 
-  const compatibilityWriteChecks = await page.evaluate(async () => {
+  const roleScopedWriteChecks = await page.evaluate(async () => {
     activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
+    appAuthSession.principal = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
     await robustUpsert("attendance", [{
-      record_key: "qa-teacher-legacy-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      record_key: "qa-teacher-gateway-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
       period: 1, teacher_name: "QA_ONLY_TEACHER", records: {}, updated_at: new Date().toISOString()
     }], "record_key", 100);
     activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    appAuthSession.principal = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
     await robustUpsert("behaviors", [{
-      record_key: "qa-custom-legacy-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      record_key: "qa-custom-gateway-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
       period: 1, teacher_name: "QA_ONLY_CUSTOM", records: {}, updated_at: new Date().toISOString()
     }], "record_key", 100);
+    activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
+    appAuthSession.principal = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { attendance: true } };
+    let mismatchedSessionDenied = false;
+    try {
+      await robustUpsert("attendance", [{
+        record_key: "qa-mismatched-session", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+        period: 1, teacher_name: "QA_ONLY_TEACHER", records: {}, updated_at: new Date().toISOString()
+      }], "record_key", 100);
+    } catch (_) { mismatchedSessionDenied = true; }
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
-    return true;
+    appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    return { mismatchedSessionDenied };
   });
-  expect(compatibilityWriteChecks).toBe(true);
-  expect(gatewayWrites).toHaveLength(5);
-  expect(legacyWrites.map((item) => item.table).sort()).toEqual(["attendance", "behaviors"]);
+  expect(roleScopedWriteChecks.mismatchedSessionDenied).toBe(true);
+  expect(gatewayWrites).toHaveLength(7);
+  expect(gatewayWrites.filter((item) => item.table === "attendance")).toHaveLength(3);
+  expect(gatewayWrites.filter((item) => item.table === "behaviors")).toHaveLength(3);
+  expect(legacyWrites).toEqual([]);
 
   await page.evaluate(async () => {
     timetableCanAccess = true;
