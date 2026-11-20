@@ -383,3 +383,11 @@ Deno.test("online cloud saves without a secure session stay local and never uplo
   assert(guard >= 0 && localSave > guard && durableSave > localSave, "Unauthenticated cloud saves must persist local changes first");
   assert(noUpload > durableSave && upload > noUpload, "Unauthenticated saves must return before any cloud upload snapshot is created");
 });
+Deno.test("daily reserve notice polling is visible-only and resumes promptly", () => {
+  const watcher = section("function teacherStartDailySubstitutionWatcher()", "async function openTeacherTimetableView()");
+  assert(watcher.includes("navigator.onLine"), "Daily notice polling must pause while offline");
+  assert(watcher.includes('document.visibilityState === "visible"'), "Daily notice polling must pause for hidden pages");
+  assert(watcher.includes("}, 120000);"), "Daily notice polling must use the two-minute interval");
+  const events = section("const resumeCloudSync =", "});\\n\\nfunction initDarkMode()");
+  assert(events.includes("teacherShowDailySubstitutionWelcome()"), "Returning online or to a visible page must refresh the daily notice promptly");
+});
