@@ -311,44 +311,54 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
       cardCounts: pages.map(item => item.querySelectorAll(".sa-notice-card").length),
       capacities: pages.map(item => Number(item.dataset.capacity)),
       failedCards: root.querySelectorAll('.sa-notice-card[data-fit-failed="true"]').length,
+      cardDisplay: getComputedStyle(pages[0]?.querySelector(".sa-notice-card")).display,
+      cardFlexGrow: getComputedStyle(pages[0]?.querySelector(".sa-notice-card")).flexGrow,
+      pageHeight: getComputedStyle(pages[0]).height,
     };
   });
   expect(result.ready).toBe(true);
   expect(result.previewVisible).toBe(true);
   expect(result.pageCount).toBe(1);
   expect(result.cardCounts).toEqual([3]);
+  expect(result.cardDisplay).toBe("block");
+  expect(result.cardFlexGrow).toBe("0");
+  expect(result.pageHeight).not.toBe("287mm");
   expect(result.capacities).toEqual([3]);
   expect(result.failedCards).toBe(0);
 });
 
 
 
-test("notice PDF uses exact A4 printable dimensions and updated fit font", async ({ page }) => {
+test("notice PDF uses natural-height A4 packing without flex expansion", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(() => {
-    const style = document.getElementById("sa-notice-a4-exact-layout");
-    const fitSource = saNoticeFitCards.toString();
+    const style = document.getElementById("sa-notice-natural-height-layout");
     const css = style?.textContent || "";
+    const source = saNoticeRenderPreview.toString();
     return {
       stylePresent: Boolean(style),
       previewWidth: /width:200mm!important/.test(css),
-      previewHeight: /height:287mm!important/.test(css),
+      naturalPageHeight: /height:auto!important;min-height:0!important;max-height:none!important/.test(css),
       printMargins: /@page\s*\{size:A4 portrait;margin:5mm\}/.test(css),
-      printWidth: /width:100%!important;min-width:0!important/.test(css),
+      printWidth: /width:100%!important;min-width:0!important;max-width:none!important/.test(css),
       avoidPageBreak: /break-inside:avoid!important;page-break-inside:avoid!important/.test(css),
-      baseFont: /const baseFont=11\.5/.test(fitSource),
-      minFont: /Math\.max\(8\.6,baseFont-level\.shrink\)/.test(fitSource),
+      naturalCard: /flex:none!important;flex-grow:0!important;flex-shrink:0!important/.test(css),
+      readableFont: /font-size:11pt!important;line-height:1\.38!important/.test(css),
+      naturalMeasurement: /getBoundingClientRect\(\)/.test(source)&&/Math\.max\(rect\.height,item\.card\.scrollHeight\)/.test(source),
+      cappedAtThree: /Math\.min\(3,Number\(perPage\)\|\|3\)/.test(source),
     };
   });
   expect(result).toEqual({
     stylePresent: true,
     previewWidth: true,
-    previewHeight: true,
+    naturalPageHeight: true,
     printMargins: true,
     printWidth: true,
     avoidPageBreak: true,
-    baseFont: true,
-    minFont: true,
+    naturalCard: true,
+    readableFont: true,
+    naturalMeasurement: true,
+    cappedAtThree: true,
   });
 });
 
@@ -389,10 +399,10 @@ test("notice PDF keeps short violation lines grouped without vertical space dist
   expect(result.ready).toBe(true);
   expect(result.pageCount).toBe(1);
   expect(result.cardCount).toBe(3);
-  expect(result.cardJustify).toBe("flex-start");
+  expect(result.cardJustify).toBe("flow-start");
   expect(result.innerDisplay).toBe("block");
   expect(result.listDisplay).toBe("block");
-  expect(result.listJustify).toBe("normal");
+  expect(result.listJustify).toBe("flow-start");
   expect(result.failedCards).toBe(0);
 });
 
@@ -424,7 +434,7 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
       hasConclusion: !!card?.querySelector(".notice-conclusion"),
       hasSignatures: !!card?.querySelector(".notice-signatures"),
       failed: card?.dataset.fitFailed === "true",
-      fontSize: Number.parseFloat(card?.style.fontSize || "0"),
+      fontSize: Number.parseFloat(getComputedStyle(card).fontSize),
     };
   });
   expect(result.ready).toBe(true);
@@ -436,5 +446,5 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
   expect(result.hasConclusion).toBe(true);
   expect(result.hasSignatures).toBe(true);
   expect(result.failed).toBe(false);
-  expect(result.fontSize).toBeGreaterThanOrEqual(10.5);
+  expect(result.fontSize).toBeGreaterThanOrEqual(14);
 });
