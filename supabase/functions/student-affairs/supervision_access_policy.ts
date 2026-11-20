@@ -90,9 +90,9 @@ export function resolveTeamLeader(selectedName: string, targetName: string, lead
 }
 
 /**
- * Team leaders may print notices for a directly resolved team member.
- * This grant is deliberately limited to notice workflows; ordinary reports
- * continue to honor the member's own print permissions.
+ * Team leaders inherit report and notice-print capabilities for a directly
+ * resolved team member. The caller must resolve the target from team_members,
+ * so this never grants access to teachers outside the leader's own team.
  */
 export function applyTeamLeaderNoticePrintAccess<T extends Record<string, any>>(
   permissions: T,
@@ -100,7 +100,7 @@ export function applyTeamLeaderNoticePrintAccess<T extends Record<string, any>>(
   target: SupervisionTeacher | null,
   mode: string,
 ): T {
-  if (viewerRole !== "team_leader" || !target || !["notice_scan", "notice_history", "notice_issue_commit"].includes(mode)) {
+  if (viewerRole !== "team_leader" || !target || !["print_attendance", "print_behavior", "print_combined", "notice_scan", "notice_history", "notice_issue_commit"].includes(mode)) {
     return permissions;
   }
   return {
