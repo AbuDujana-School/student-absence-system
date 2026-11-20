@@ -184,24 +184,6 @@ const timetableAuthStore: TimetableAuthStore = {
     );
     return cells.length > 0;
   },
-  async hasLinkedTeacherPortalNoticeAccess(name) {
-    const { data: setting, error } = await db.from("teacher_timetable_portal_settings")
-      .select("enabled,selected_teacher_names").eq("id", true).maybeSingle();
-    if (error) return false;
-    return canAccessTeacherTimetablePortal(setting?.enabled, setting?.selected_teacher_names, name);
-  },
-  async hasOwnDailySubstitutionAssignment(name) {
-    const { date: today, weekday } = muscatDateAndWeekday();
-    if (!DAYS.includes(weekday)) return false;
-    const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
-      .select("id").eq("status", "active").maybeSingle();
-    if (versionError || !version) return false;
-    const { data, error } = await db.from("timetable_assignments").select("id")
-      .eq("version_id", version.id).eq("teacher_name", name)
-      .eq("assignment_type", "substitution").eq("assignment_date", today)
-      .eq("weekday", weekday).neq("status", "cancelled").limit(1).maybeSingle();
-    return !error && !!data;
-  },
   async hasSchoolwideReserveStatsAccess(type, name) {
     const { data, error } = await db.from("timetable_reserve_stats_access")
       .select("principal_name").eq("principal_type", type)
