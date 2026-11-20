@@ -4278,6 +4278,8 @@ async function saLoadReport(){
   const p=saReportPermissions||{},domain=saDomain;
   const canRead=domain==="attendance"?p.can_read_attendance:p.can_read_behavior;
   if(!canRead){showToast("ليس لديك صلاحية طباعة هذا التقرير.","error");return false;}
+  const canPrint=domain==="attendance"?p.can_print_attendance:p.can_print_behavior;
+  if(!canPrint){const status=document.getElementById("saReportPdfStatus");if(status){status.textContent="لا تتوفر لك صلاحية طباعة PDF لهذا التقرير.";status.classList.remove("hidden");}return false;}
   const allowed=saGetAllowedReportClasses(domain);
   const classes=saGetSelectedReportClasses().filter(c=>allowed.includes(c));
   if(!classes.length){saLastReport=null;showToast("يرجى اختيار صف واحد على الأقل للطباعة.","error");return false;}
