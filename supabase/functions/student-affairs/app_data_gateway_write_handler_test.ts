@@ -7,7 +7,7 @@ const teacher = { type: "teacher" as const, name: "Teacher A", permissions: { at
 const session = { principal: { type: "teacher", name: "Teacher A" } };
 
 function fixture(options: {
-  session?: typeof session | null;
+  session?: { principal: { type: string; name: string } } | null;
   principal?: AppDataPrincipal | null;
   scope?: { allowedClasses: string[]; allowedAttendanceClasses?: string[]; allowedBehaviorClasses?: string[] };
   existing?: Record<string, unknown>[];
@@ -98,4 +98,57 @@ Deno.test("writes reject credential fields, admin PIN settings, duplicate confli
   assertEquals(adminPin.status, 400);
   assertEquals(duplicate.status, 400);
   assertEquals(deletion.status, 400);
+});
+
+
+Deno.test("write handler rejects a session whose principal was removed or changed", async () => {
+  const { deps, calls } = fixture({ principal: null });
+  const response = await request({ table: "students", rows: [{ class_name: "5/1", student_name: "Student A" }] }, deps);
+  assertEquals(response.status, 401);
+  assertEquals(calls.some(([name]) => name === "from"), false);
+});
+
+Deno.test("custom users need explicit category permissions and matching server scope", async () => {
+  const custom = { type: "custom" as const, name: "Attendance Clerk", permissions: { attendance: true, behavior: false } };
+  const customSession = { principal: { type: "custom", name: custom.name } };
+  const { deps: allowedDeps } = fixture({
+    principal: custom,
+    session: customSession,
+    scope: { allowedClasses: [], allowedAttendanceClasses: ["5/1"], allowedBehaviorClasses: [] },
+  });
+  const allowed = await request({ table: "attendance", rows: [{
+    record_key: "custom-r1", class_name: "5/1", teacher_name: custom.name, period: 1, records: {},
+  }] }, allowedDeps);
+  assertEquals(allowed.status, 200);
+
+  const { deps: deniedDeps } = fixture({
+    principal: custom,
+    session: customSession,
+    scope: { allowedClasses: [], allowedAttendanceClasses: ["5/1"], allowedBehaviorClasses: [] },
+  });
+  const denied = await request({ table: "behaviors", rows: [{
+    record_key: "custom-r2", class_name: "5/1", teacher_name: custom.name, period: 1, records: {},
+  }] }, deniedDeps);
+  assertEquals(denied.status, 403);
+});
+
+Deno.test("admin may update allowlisted school settings but never the admin PIN record", async () => {
+  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const { deps, calls } = fixture({ principal: admin, session: { principal: { type: "admin", name: admin.name } } });
+  const response = await request({ table: "school_settings", rows: [{
+    key: "duty_module", value: { graceMinutes: 5, periods: [] },
+  }] }, deps);
+  assertEquals(response.status, 200);
+  assert(calls.some(([name, config]) => name === "upsert" && (config as any).onConflict === "key"));
+});
+
+Deno.test("admin duty reports use the verified id primary key", async () => {
+  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const { deps, calls } = fixture({ principal: admin, session: { principal: { type: "admin", name: admin.name } } });
+  const response = await request({ table: "duty_reports", rows: [{
+    id: "duty-1", date_str: "2026-11-20", day_num: "الخميس", period: 1,
+    class_name: "5/1", teacher_name: "Teacher A", reported_by: admin.name,
+  }] }, deps);
+  assertEquals(response.status, 200);
+  assert(calls.some(([name, config]) => name === "upsert" && (config as any).onConflict === "id"));
 });
