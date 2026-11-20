@@ -12,6 +12,7 @@ import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./
 import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { handleAppDataGatewayWrite } from "./app_data_gateway_write_handler.ts";
+import { handleAppCredentialSnapshot, handleAppCredentialWrite } from "./app_data_gateway_credentials_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
@@ -792,6 +793,24 @@ async function writeAppDataGateway(req: Request, body: any): Promise<Response> {
   });
 }
 
+async function appCredentialSnapshot(req: Request): Promise<Response> {
+  return await handleAppCredentialSnapshot(req, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+  });
+}
+
+async function appCredentialWrite(req: Request, body: any): Promise<Response> {
+  return await handleAppCredentialWrite(req, body, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+  });
+}
+
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
   if (principal.type === "admin") return true;
   const { data, error } = await db.from("timetable_access_permissions")
@@ -835,6 +854,20 @@ async function handle(req: Request) {
       const code = String((error as { code?: unknown })?.code || "unknown").slice(0, 40);
       console.error("App data gateway write failed (code):", code);
       return reply(500, { error: "تعذر حفظ البيانات المطلوبة حالياً." });
+    }
+  }
+  if (body?.action === "app_data_gateway_credentials_read") {
+    try { return await appCredentialSnapshot(req); }
+    catch (error) {
+      console.error("App credential snapshot failed.");
+      return reply(500, { error: "تعذر تحميل بيانات التحقق الآمن حالياً." });
+    }
+  }
+  if (body?.action === "app_data_gateway_credentials_write") {
+    try { return await appCredentialWrite(req, body); }
+    catch (error) {
+      console.error("App credential update failed.");
+      return reply(500, { error: "تعذر تحديث بيانات الرمز حالياً." });
     }
   }
   if (body?.action === "admin_save_student_roster") {
