@@ -82,7 +82,7 @@ Deno.test("competition term calendar and visibility settings use one database re
   assert(reader.includes("visibility?.showBothTerms === true"), "The visibility behavior must remain unchanged");
 });
 
-Deno.test("report permissions are independent and legacy accounts remain compatible", () => {
+Deno.test("report permissions are independent and legacy broad access is denied", () => {
   const helperStart = html.indexOf("const REPORT_PERMISSION_KEYS");
   const helperEnd = html.indexOf("function switchAdminTab", helperStart);
   assert(helperStart >= 0 && helperEnd > helperStart, "Could not locate report permission helpers");
@@ -94,9 +94,9 @@ Deno.test("report permissions are independent and legacy accounts remain compati
     };
 
   const legacy = create({ type: "teacher", permissions: { reports: true } }, () => false);
-  assert(legacy.canAccessAnyReport(), "Legacy reports permission must keep the reports section available");
+  assert(!legacy.canAccessAnyReport(), "Legacy broad reports permission must not open the reports section");
   for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"]) {
-    assert(legacy.canAccessReport(key), "Legacy reports permission should remain compatible");
+    assert(!legacy.canAccessReport(key), "Each report requires its own explicit permission");
   }
 
   const limited = create({ type: "teacher", permissions: {
