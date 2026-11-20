@@ -180,6 +180,38 @@ test("real Chromium IndexedDB persists device-bound vault and isolates principal
       expect(switched.previous).toBeNull();
       expect(switched.current).toEqual({ displayName: "Browser QA Custom", role: "custom" });
 
+      // Concurrent principal switches must leave one internally consistent key/envelope pair.
+      const concurrentWrites = await page.evaluate(async () => {
+        const storeA = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
+        const storeB = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
+        const principalA = { type: "teacher", name: "Concurrent Teacher A" };
+        const principalB = { type: "custom", name: "Concurrent Custom B" };
+        const snapshotA = { owner: principalA.name, marker: "atomic-write-a" };
+        const snapshotB = { owner: principalB.name, marker: "atomic-write-b" };
+        await Promise.all([
+          VaultApi.saveOfflineCredentialVault(snapshotA, principalA, storeA, {
+            now: 1_795_180_000_020,
+            ttlMs: 60 * 60 * 1000,
+          }),
+          VaultApi.saveOfflineCredentialVault(snapshotB, principalB, storeB, {
+            now: 1_795_180_000_021,
+            ttlMs: 60 * 60 * 1000,
+          }),
+        ]);
+        const finalStore = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
+        const [restoredA, restoredB] = await Promise.all([
+          VaultApi.restoreOfflineCredentialVault(principalA, finalStore, { now: 1_795_180_000_030 }),
+          VaultApi.restoreOfflineCredentialVault(principalB, finalStore, { now: 1_795_180_000_030 }),
+        ]);
+        return { restoredA, restoredB };
+      });
+      const winners = [concurrentWrites.restoredA, concurrentWrites.restoredB].filter(Boolean);
+      expect(winners).toHaveLength(1);
+      expect(winners[0]).toSatisfy((value) =>
+        value.owner === "Concurrent Teacher A" && value.marker === "atomic-write-a" ||
+        value.owner === "Concurrent Custom B" && value.marker === "atomic-write-b"
+      );
+
       const cleared = await page.evaluate(async () => {
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
         await VaultApi.clearOfflineCredentialVault(store);
