@@ -816,6 +816,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_data_gateway_handler.ts
       - name: Run isolated app data gateway HTTP integration tests
         run: deno test supabase/functions/student-affairs/app_data_gateway_handler_test.ts
+      - name: Type-check authenticated app data gateway write handler
+        run: deno check supabase/functions/student-affairs/app_data_gateway_write_handler.ts
+      - name: Run authenticated app data gateway write tests
+        run: deno test supabase/functions/student-affairs/app_data_gateway_write_handler_test.ts
       - name: Verify deployed preview gateway rejects missing and unknown app sessions
         if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || github.ref == 'refs/heads/fix/integrated-school-sync-hardening-final-20261120' || (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119' || github.event.pull_request.head.ref == 'fix/integrated-school-sync-hardening-final-20261120'))
         env:
