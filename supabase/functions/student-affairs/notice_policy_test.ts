@@ -70,7 +70,6 @@ Deno.test("absence already recorded in a prior notice stays daily-deduplicated a
   if (result.length !== 1 || result[0].events.length !== 1) throw new Error("daily absence count was not preserved");
 });
 
-import { validateNoticeIssueItem } from "./notice_policy.ts";
 
 const validNoticeItem = () => ({
   class_name: "9/1", student_name: "طالب تجريبي", issued_on: "2026-11-20",
