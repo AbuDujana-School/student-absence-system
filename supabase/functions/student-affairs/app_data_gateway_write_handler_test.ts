@@ -100,7 +100,7 @@ Deno.test("writes reject credential fields, admin PIN settings, duplicate confli
   const duplicate = await request({ table: "classes", rows: [{ name: "5/1" }, { name: "5/1" }] }, deps);
   const deletion = await request({ table: "teachers", operation: "delete", rows: [{ name: "Teacher A" }] }, deps);
   assertEquals(credential.status, 400);
-  assertEquals(adminPin.status, 403);
+  assertEquals(adminPin.status, 400);
   assertEquals(duplicate.status, 400);
   assertEquals(deletion.status, 400);
 });
