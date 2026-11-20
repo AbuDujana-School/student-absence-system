@@ -39,7 +39,7 @@ export interface TimetableAuthStore {
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>, checkCurrentDay?: boolean): Promise<boolean>;
   canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number, permissions?: Record<string, unknown>): Promise<boolean>;
-  hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
+  hasLinkedTeacherPortalAccess?(name: string, action?: string): Promise<boolean>;
   /** Lightweight portal-setting check used only for the teacher's own daily notice. */
   hasLinkedTeacherPortalNoticeAccess?(name: string): Promise<boolean>;
   hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
@@ -157,7 +157,7 @@ export async function resolveTimetablePrincipal(
     // Full linked-schedule verification is needed only for portal-capable reads.
     // Do not load weekly cells while resolving unrelated timetable actions.
     if (store.hasLinkedTeacherPortalAccess
-      && await store.hasLinkedTeacherPortalAccess(name)) {
+      && await store.hasLinkedTeacherPortalAccess(name, requestedAction)) {
       return { type, name, portalOnly: true };
     }
   }
