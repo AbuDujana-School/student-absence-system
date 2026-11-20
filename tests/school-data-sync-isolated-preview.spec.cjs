@@ -257,16 +257,27 @@ test("school sync projections and timetable access reads stay isolated and minim
   const roleCompatibility = await page.evaluate(async () => {
     const gatewayBefore = window.__gatewayReadCount || 0;
     activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: {} };
+    appAuthSession.principal = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: {} };
     const teacherRows = await fetchAllPaginated("classes", "name", 100);
-    activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: {} };
+    const teacherAttendance = await fetchAllPaginated("attendance", "*", 100);
+    activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    appAuthSession.principal = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
     const customRows = await fetchAllPaginated("classes", "name", 100);
+    const customBehaviors = await fetchAllPaginated("behaviors", "*", 100);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
-    return { teacherRows, customRows, gatewayBefore };
+    appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    return { teacherRows, customRows, teacherAttendance, customBehaviors, gatewayBefore };
   });
   expect(roleCompatibility.teacherRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
   expect(roleCompatibility.customRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
+  expect(roleCompatibility.teacherAttendance).toEqual(fixtures.attendance);
+  expect(roleCompatibility.customBehaviors).toEqual(fixtures.behaviors);
   expect(gatewayReads.filter((item) => item.table === "classes")).toHaveLength(1);
+  expect(gatewayReads.filter((item) => item.table === "attendance")).toHaveLength(2);
+  expect(gatewayReads.filter((item) => item.table === "behaviors")).toHaveLength(2);
   expect(reads.get("classes") || 0).toBe(2);
+  expect(reads.get("attendance") || 0).toBe(0);
+  expect(reads.get("behaviors") || 0).toBe(0);
 
   const readsBeforeUnchangedRefresh = new Map(reads);
   const gatewayReadsBeforeUnchangedRefresh = gatewayReads.length;
