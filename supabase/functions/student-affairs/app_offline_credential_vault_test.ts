@@ -104,4 +104,7 @@ Deno.test("vault rejects invalid principals, excessive lifetime, and extractable
     await sealOfflineCredentialSnapshot({ accounts: [] }, teacher, extractableKey, { now: fixedNow });
   } catch { extractableKeyRejected = true; }
   assert(extractableKeyRejected);
+
+  const validEnvelope = await sealOfflineCredentialSnapshot({ accounts: [] }, teacher, key, { now: fixedNow });
+  assertEquals(await openOfflineCredentialSnapshot(validEnvelope, teacher, extractableKey, { now: fixedNow + 1 }), null);
 });
