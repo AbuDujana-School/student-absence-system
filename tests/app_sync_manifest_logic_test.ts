@@ -12,7 +12,8 @@ function loadManifestLogic() {
       tables: APP_SYNC_TABLES,
       normalize: normalizeAppSyncManifest,
       changed: getChangedAppSyncTables,
-      setPrevious(value) { lastLoadedCloudManifest = value; }
+      setPrevious(value) { lastLoadedCloudManifest = value; },
+      setLocalStorageFallback(value) { localStorageFallbackSnapshot = value; }
     };
   `);
   return factory();
@@ -143,4 +144,42 @@ Deno.test("local edits made during cloud requests are recaptured before replacin
   assert(refreshedCapture > postFetchAwait, "Dirty state must be recaptured after asynchronous cloud requests");
   assert(refreshedCapture < firstCloudReplace, "The latest local edits must be captured before cloud data replaces local datasets");
   assert(merge > refreshedCapture, "The refreshed dirty snapshot must be merged after cloud data is loaded");
+});
+
+
+Deno.test("localStorage fallback refreshes truncated attendance and behavior datasets", () => {
+  logic.setPrevious({ ...baseline });
+  const changed = logic.changed({ ...baseline }, true, true);
+  assert(changed.length === 2, "Fallback cache must refresh only the two intentionally truncated datasets");
+  assert(changed.includes("attendance") && changed.includes("behaviors"), "Attendance and behavior history must be fully refreshed");
+  assert(!changed.includes("teachers") && !changed.includes("school_settings"), "Unchanged complete datasets must not be downloaded");
+});
+
+Deno.test("localStorage fallback stores and restores its matching revision manifest", () => {
+  const saveStart = html.indexOf("function saveToLocalStorageSafe()");
+  const saveEnd = html.indexOf("function loadDirtySetsFromLocal()", saveStart);
+  const restoreStart = html.indexOf("function restoreLocalStorageOfflineSnapshot()");
+  const restoreEnd = html.indexOf("async function restoreOfflineState()", restoreStart);
+  assert(saveStart >= 0 && saveEnd > saveStart, "Local cache save function must exist");
+  assert(restoreStart >= 0 && restoreEnd > restoreStart, "Local cache restore helper must exist");
+  const save = html.slice(saveStart, saveEnd);
+  const restore = html.slice(restoreStart, restoreEnd);
+  assert(save.includes("__offlineCloudSyncManifest: lastLoadedCloudManifest"), "The local cache must save the matching revision manifest atomically");
+  assert(restore.includes("lastLoadedCloudManifest = normalizeAppSyncManifest(localDb.__offlineCloudSyncManifest)"), "Fallback restore must recover the cached revision manifest");
+  assert(restore.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must preserve queued deletion intent");
+});
+
+Deno.test("transient manifest failure preserves local edits and blocks stale cloud uploads", () => {
+  const loadStart = html.indexOf("async function loadSystemDataFromCloud()");
+  const saveStart = html.indexOf("async function saveSystemDataToCloud(options = {})", loadStart);
+  assert(loadStart >= 0 && saveStart > loadStart, "Cloud load and save functions must exist");
+  const load = html.slice(loadStart, saveStart);
+  const save = html.slice(saveStart);
+  assert(load.includes("cloudWritesBlockedByManifestFailure = true"), "A transient manifest failure with a trusted snapshot must pause cloud writes");
+  assert(load.includes("cloudWritesBlockedByManifestFailure = false"), "A later successful manifest check must release the write pause");
+  assert(save.includes("if (cloudWritesBlockedByManifestFailure)"), "The central cloud-save path must enforce the write pause");
+  assert(save.includes("await persistOfflineState()"), "Blocked uploads must still persist local edits before returning");
+  const guard = load.indexOf("if (offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing)");
+  const fetchSetup = load.indexOf("const shouldLoad =");
+  assert(guard >= 0 && guard < fetchSetup && load.indexOf("return false", guard) < fetchSetup, "Transient manifest failures must return before any full-table fetch");
 });
