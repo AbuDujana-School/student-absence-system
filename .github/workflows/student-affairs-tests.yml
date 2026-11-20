@@ -26,6 +26,7 @@ on:
       - "supabase/migrations/**"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
+      - "tests/student-affairs-readers-isolated.spec.cjs"
 jobs:
 
   # Isolated PostgreSQL 16 integration test; never connects to the school project.
