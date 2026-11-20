@@ -90,6 +90,10 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
 
     const method = request.method();
+    if (url.pathname === "/" && method === "HEAD") {
+      await route.fulfill({ status: 200, headers: { date: new Date().toUTCString() } });
+      return;
+    }
     const headers = {
       "access-control-allow-origin": "*",
       "access-control-allow-headers": "*",
