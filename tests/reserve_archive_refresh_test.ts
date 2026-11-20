@@ -38,3 +38,17 @@ Deno.test("reserve archive refresh is centralized and mutation-only", () => {
   assert(auto.includes("const reserveAction=reserveMutationActions.has(action)"), "Only allowlisted mutations may trigger the reserve archive refresh path");
   assert(auto.includes('action==="timetable_substitution_archive_access"&&result?.canView===true'), "Authorized archive opening must still load the archive");
 });
+
+
+Deno.test("home reserve archive handles non-school days without an uncaught error or server read", () => {
+  const start = source.indexOf("window.substitutionLoadHomeTodayAssignments = async function()");
+  const end = source.indexOf("window.substitutionRenderHomeTodayAssignments", start);
+  assert(start >= 0 && end > start, "Home-today reserve loader must exist");
+  const loader = source.slice(start, end);
+  const weekendGuard = loader.indexOf('validationMessage.includes("الاحتياط متاح لأيام الدراسة من الأحد إلى الخميس فقط.")');
+  const weekendReturn = loader.indexOf("return false;", weekendGuard);
+  const tokenRead = loader.indexOf("const token=", weekendGuard);
+  assert(weekendGuard >= 0 && weekendReturn > weekendGuard, "Weekend validation must be handled as a normal empty-day state");
+  assert(tokenRead > weekendReturn, "Weekend handling must return before reading a session token or calling Supabase");
+  assert(loader.includes("لا توجد تكليفات احتياط في أيام العطلة الأسبوعية."), "The home panel must show a clear weekend message");
+});
