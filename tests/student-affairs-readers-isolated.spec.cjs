@@ -352,6 +352,9 @@ test("notice PDF keeps the on-screen preview hidden while packing three short no
   expect(result.pageHeight).not.toBe("287mm");
   expect(result.capacities).toEqual([3]);
   expect(result.failedCards).toBe(0);
+  await page.evaluate(() => document.body.classList.add("sa-notice-print-mode"));
+  await page.emulateMedia({ media: "print" });
+  await expect(page.locator("#saNoticePreviewPanel")).toHaveCSS("display", "block");
 });
 
 
