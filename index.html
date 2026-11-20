@@ -3574,6 +3574,11 @@ function saveAppAuthSession(session) {
 }
 function readAppAuthToken() { try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; } }
 function clearAppAuthSession() { appAuthSession = null; try { sessionStorage.removeItem(APP_AUTH_SESSION_KEY); } catch (error) {} }
+function hasUnexpiredAppAuthSession() {
+  const session = appAuthSession;
+  return !!(session?.token && typeof session.expires_at === 'string' &&
+    Number.isFinite(Date.parse(session.expires_at)) && Date.parse(session.expires_at) > Date.now());
+}
 async function revokeAppAuthSession() { const token = appAuthSession?.token || readAppAuthToken(); if (!token) return; try { await appAuthRequest({ action: "app_logout" }, token); } catch (error) { console.warn("Unable to revoke application session immediately."); } }
 function saPopulateStatusFilter(){
   const container=document.getElementById("saStatusCheckboxesContainer");
@@ -5360,6 +5365,11 @@ function scheduleOfflineAutoSyncRetry() {
 async function retryOfflineSyncSilently() {
   if (offlineAutoSyncInProgress || offlineAutoSyncPromptInProgress || cloudSaveInProgress || manualOfflineSyncInProgress) return false;
   if (!navigator.onLine || !activeUser || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty || !hasPendingOfflineRecordChanges()) return false;
+  if (!hasUnexpiredAppAuthSession()) {
+    updateSyncStatus(false, 'أعد تسجيل الدخول الآمن قبل مزامنة التعديلات المحفوظة محلياً');
+    return false;
+  }
+
 
   const fingerprint = offlineSyncApprovalFingerprint();
   if (!fingerprint) return false;
@@ -5457,6 +5467,114 @@ async function syncPendingLocalChanges() {
   if (!navigator.onLine) {
     updateSyncStatus(false, 'غير متصل - التغييرات محفوظة محلياً');
     showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
+    return false;
+  }
+  if (!hasUnexpiredAppAuthSession()) {
+    updateSyncStatus(false, 'أعد تسجيل الدخول الآمن قبل مزامنة التعديلات المحفوظة محلياً');
+    return false;
+  }
+
+  const fingerprint = offlineSyncApprovalFingerprint();
+  if (!fingerprint) return false;
+  if (offlineAutoSyncApprovedFingerprint !== fingerprint) {
+    if (offlineAutoSyncDeclinedFingerprint === fingerprint) return false;
+    offlineAutoSyncPromptInProgress = true;
+    let approved = false;
+    try {
+      approved = await showConfirm(
+        'توجد تعديلات مدرسية محفوظة على هذا الجهاز. هل توافق على رفع هذه التعديلات المحددة إلى السحابة تلقائياً عند توفر الاتصال؟ لن تُنفذ طلبات الحذف، وإذا تغيرت البيانات أثناء الرفع فستحتاج إلى موافقة جديدة.',
+        { danger: false, okText: 'الموافقة على المزامنة' }
+      );
+    } finally {
+      offlineAutoSyncPromptInProgress = false;
+    }
+    if (!approved) {
+      offlineAutoSyncDeclinedFingerprint = fingerprint;
+      return false;
+    }
+    offlineAutoSyncApprovedFingerprint = offlineSyncApprovalFingerprint();
+  }
+
+  if (offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint) {
+    offlineAutoSyncApprovedFingerprint = null;
+    return false;
+  }
+
+  offlineAutoSyncInProgress = true;
+  updateSyncStatus(false, 'جارِ مزامنة التعديلات المحلية...');
+  try {
+    const saved = await saveSystemDataToCloud({ silent: true, automatic: true });
+    const remaining = hasPendingOfflineRecordChanges();
+    if (saved && !remaining) {
+      offlineAutoSyncApprovedFingerprint = null;
+      offlineAutoSyncDeclinedFingerprint = null;
+      offlineAutoSyncRetryCount = 0;
+      if (offlineAutoSyncRetryTimer) clearTimeout(offlineAutoSyncRetryTimer);
+      offlineAutoSyncRetryTimer = null;
+      const pendingDeletes = getPendingDeletes().length;
+      updateSyncStatus(!pendingDeletes, pendingDeletes
+        ? `تمت مزامنة التعديلات؛ ${pendingDeletes} طلب حذف بانتظار المراجعة`
+        : 'متزامن');
+      return true;
+    }
+    if (offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint) {
+      offlineAutoSyncApprovedFingerprint = null;
+      return false;
+    }
+    scheduleOfflineAutoSyncRetry();
+    return false;
+  } finally {
+    offlineAutoSyncInProgress = false;
+  }
+}
+async function refreshCloudDataSilently() {
+  if (cloudRefreshInProgress || cloudSaveInProgress || !navigator.onLine || !activeUser ||
+      document.hidden || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty ||
+      hasPendingOfflineRecordChanges()) return false;
+  cloudRefreshInProgress = true;
+  try {
+    const success = await loadSystemDataFromCloud();
+    if (success && activeUser) {
+      try {
+        if (isAdminAuthorized()) {
+          if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+          if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+        }
+        if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
+        if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
+        refreshDutyDashboardCard();
+      } catch (error) { console.error('Cloud refresh view update failed:', error); }
+    }
+    return success;
+  } finally {
+    cloudRefreshInProgress = false;
+  }
+}
+
+let manualOfflineSyncInProgress = false;
+function hasPendingOfflineRecordChanges() {
+  return !!(dirtySets.classes.size || dirtySets.teachers.size || dirtySets.students.size ||
+    dirtySets.attendance.size || dirtySets.behaviors.size || dirtySets.duty_reports.size ||
+    dirtySets.admin_pin || dirtySets.duty_module || dirtySets.custom_categories);
+}
+
+async function syncPendingLocalChanges() {
+  if (cloudSaveInProgress || offlineAutoSyncInProgress) {
+    showToast('توجد عملية مزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
+    return false;
+  }
+  if (manualOfflineSyncInProgress) {
+    showToast('المزامنة جارية بالفعل؛ انتظر اكتمالها.', 'info');
+    return false;
+  }
+  if (!navigator.onLine) {
+    updateSyncStatus(false, 'غير متصل - التغييرات محفوظة محلياً');
+    showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
+    return false;
+  }
+  if (!hasUnexpiredAppAuthSession()) {
+    updateSyncStatus(false, 'أعد تسجيل الدخول الآمن قبل رفع التعديلات المحلية');
+    showToast('انتهت جلسة الدخول الآمنة. أعد تسجيل الدخول قبل المزامنة؛ بقيت التعديلات محفوظة محلياً.', 'error');
     return false;
   }
   if (cloudDataLoadState !== 'ready') {
@@ -5579,9 +5697,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
-  await restoreOfflineState();
+  offlineSnapshotRestoredAtBoot = await restoreOfflineState();
   syncServerTime();
-  await loadSystemDataFromCloud();
+  // Authentication/session restoration now precedes every protected cloud-table read.
   await checkExistingSession();
   document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -5647,6 +5765,7 @@ async function migrateCredentialsIfNeeded() {
 }
 
 let cloudDataLoadState = 'not-started';
+let offlineSnapshotRestoredAtBoot = false;
 const APP_SYNC_TABLES = ['classes','students','teachers','attendance','behaviors','school_settings','duty_reports'];
 let lastLoadedCloudManifest = null;
 let localStorageFallbackSnapshot = false;
@@ -5691,6 +5810,17 @@ function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback
 }
 
 async function loadSystemDataFromCloud() {
+  // Defense in depth: callers outside the normal login flow must not trigger
+  // school-table reads while the application has no authenticated principal.
+  if (!activeUser) {
+    updateSyncStatus(false, 'سجّل الدخول أولاً لتحميل بيانات المدرسة');
+    return false;
+  }
+  if (navigator.onLine && !hasUnexpiredAppAuthSession()) {
+    cloudDataLoadState = 'failed';
+    updateSyncStatus(false, 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
+    return false;
+  }
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
@@ -5962,6 +6092,15 @@ function clearSyncedDirtyFlag(kind, uploadedSnapshot) {
 }
 
 async function saveSystemDataToCloud(options = {}) {
+  if (navigator.onLine && !hasUnexpiredAppAuthSession()) {
+    const localCacheSaved = saveToLocalStorageSafe();
+    const durableSaved = await persistOfflineState();
+    updateSyncStatus(false, localCacheSaved || durableSaved
+      ? 'يلزم تسجيل الدخول الآمن مجدداً قبل رفع التعديلات؛ النسخة المحلية محفوظة'
+      : 'تعذر تأمين نسخة محلية؛ لم تُرسل التعديلات إلى الخادم');
+    if (!options.silent) showToast('أعد تسجيل الدخول عبر الاتصال الآمن قبل رفع التعديلات. لم تُرسل أي بيانات.', 'error');
+    return false;
+  }
   if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
   if (cloudWritesBlockedByManifestFailure) {
     const localCacheSaved = saveToLocalStorageSafe();
@@ -6223,6 +6362,14 @@ async function checkExistingSession() {
   try {
     const token = await verifyStoredSession();
     if (!token) { try { localStorage.removeItem("abuDujana_activeUser"); } catch(e) {} try { localStorage.removeItem("abuDujana_session"); } catch(e) {} return; }
+    if (navigator.onLine) {
+      // A browser-only legacy session is not a server-validated app session.
+      // Keep the offline snapshot, but require a fresh secure login before cloud access.
+      try { localStorage.removeItem("abuDujana_session"); } catch (error) {}
+      try { sessionStorage.removeItem("abuDujana_session_secret"); } catch (error) {}
+      updateSyncStatus(false, "يلزم تسجيل الدخول الآمن للاتصال ببيانات المدرسة");
+      return;
+    }
     let user = null;
     if (token.role === "admin") user = { type: "admin", name: "مدير النظام العام", permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
     else if (token.role === "custom") { const u = (db.customUsers || []).find(x => x.name === token.userName); if (u) user = { type: "custom", name: u.name, permissions: u.permissions || {} }; }
@@ -6346,6 +6493,22 @@ async function refreshActiveUserPermissions() {
 }
 
 async function finalizeLoginState() {
+  // Do not download protected school tables until a user has an authenticated
+  // or locally restored offline session. Online users load after app_login or
+  // app_session succeeds; offline users continue with the restored device cache.
+  if (navigator.onLine && cloudDataLoadState !== 'ready') {
+    const loaded = await loadSystemDataFromCloud();
+    if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
+  } else if (!navigator.onLine && cloudDataLoadState === 'not-started') {
+    if (offlineSnapshotRestoredAtBoot) {
+      cloudDataLoadState = 'ready';
+      updateSyncStatus(false, hasPendingOfflineChanges()
+        ? 'غير متصل - التعديلات محفوظة محلياً'
+        : 'غير متصل - البيانات المحلية متاحة');
+    } else {
+      cloudDataLoadState = 'failed';
+    }
+  }
   await refreshActiveUserPermissions();
   await timetableRefreshAccess();
   document.getElementById('loginView').classList.add('hidden');
