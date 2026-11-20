@@ -480,6 +480,15 @@ Deno.test("teacher timetable polling pauses in the background and refreshes once
   assert(visibility.includes("!timetableView.classList.contains(\"hidden\")"), "Returning to the app must not fetch a timetable the teacher is not viewing");
 });
 
+Deno.test("teacher substitution notice skips Friday and Saturday before making a network request", () => {
+  const notice = section("async function teacherShowDailySubstitutionWelcome()", "function teacherStartDailySubstitutionWatcher()");
+  const weekdayGuard = notice.indexOf('timeZone: "Asia/Muscat", weekday: "long"');
+  const request = notice.indexOf('appAuthRequest({action:"teacher_substitution_get_today"}');
+  assert(weekdayGuard >= 0 && weekdayGuard < request, "The Muscat weekday check must run before the substitution API request");
+  assert(notice.includes('["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday"]'), "Polling must remain enabled for every school day");
+  assert(notice.includes('if (!['), "Friday and Saturday must return before the network request");
+});
+
 Deno.test("production Supabase client uses the active publishable key and keeps preview isolated", () => {
   const config = section("const SUPABASE_URL =", "const sb = window.supabase.createClient");
   assert(config.includes("https://wawplttrpiinoukpjqqx.supabase.co"), "Cloudflare preview must keep its isolated Supabase project");
