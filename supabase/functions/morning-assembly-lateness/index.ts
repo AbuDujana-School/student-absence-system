@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { academicYearKey, canUseMorningLateness } from "./policy.ts";
+import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -39,13 +40,6 @@ async function sha256(value:string) {
   return Array.from(new Uint8Array(digest),b=>b.toString(16).padStart(2,"0")).join("");
 }
 type Principal = { type:"admin"|"teacher"|"custom"; name:string; permissions:Record<string,any> };
-function canViewMorningAssemblyReport(principal:Principal) {
-  if (principal.type === "admin") return true;
-  const permissions = principal.permissions && typeof principal.permissions === "object" ? principal.permissions : {};
-  const reportKeys = ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"];
-  const hasGranularPermissions = reportKeys.some(key => Object.prototype.hasOwnProperty.call(permissions,key));
-  return hasGranularPermissions ? permissions.reportMorningAssemblyLateness === true : permissions.reports === true;
-}
 async function authenticate(req:Request):Promise<Principal|null> {
   const auth = req.headers.get("authorization") || "";
   const token = auth.replace(/^Bearer\s+/i,"").trim();
@@ -101,7 +95,7 @@ async function handle(req:Request) {
   const ctx=omanNow();
   const action=String(body?.action || "");
   if (action === "report") {
-    if (!canViewMorningAssemblyReport(principal)) {
+    if (!canAccessReportPermission(principal.type, principal.permissions, "reportMorningAssemblyLateness")) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);
