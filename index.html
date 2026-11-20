@@ -10250,6 +10250,83 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 
 
+
+<style id="sa-notice-final-print-cascade">
+/* These rules intentionally come after every notice stylesheet.
+   Keep the page as a measured vertical stack and keep each notice's
+   content in normal document flow instead of stretching it vertically. */
+#saNoticePrintRoot .sa-notice-page{
+  display:flex!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  align-items:stretch!important;
+  gap:1.4mm!important;
+}
+#saNoticePrintRoot .sa-notice-card{
+  display:flex!important;
+  flex:1 1 0!important;
+  flex-direction:column!important;
+  justify-content:flex-start!important;
+  align-items:stretch!important;
+  min-height:0!important;
+  max-height:none!important;
+}
+#saNoticePrintRoot .sa-notice-card > div:first-child{
+  display:block!important;
+  flex:0 0 auto!important;
+  min-height:0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-items,
+#saNoticePrintRoot .sa-notice-card.compact .notice-items{
+  display:block!important;
+  flex:0 0 auto!important;
+  min-height:0!important;
+  justify-content:flex-start!important;
+  margin:.8mm 0 1.2mm!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-items li{
+  display:list-item!important;
+  margin:.8mm 0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-intro,
+#saNoticePrintRoot .sa-notice-card .notice-conclusion{
+  margin:1.1mm 0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-signatures{
+  margin-top:2mm!important;
+}
+#saNoticePrintRoot .sa-notice-cutline{
+  flex:0 0 0!important;
+  height:0!important;
+  margin:0!important;
+}
+@media print{
+  @page{size:A4 portrait;margin:5mm}
+  #saNoticePrintRoot .sa-notice-page{
+    box-sizing:border-box!important;
+    width:100%!important;
+    height:287mm!important;
+    min-height:287mm!important;
+    max-height:287mm!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+  #saNoticePrintRoot .sa-notice-page:last-child{
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  #saNoticePrintRoot .sa-notice-card{
+    box-sizing:border-box!important;
+    overflow:visible!important;
+    padding:var(--notice-card-pad,2.6mm) 2.2mm!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+}
+</style>
 </head><body>`+(sheets?(masthead+sheets):noData)+'<script>window.addEventListener("load",()=>setTimeout(()=>{window.focus();window.print()},350));<\/script></body></html>';
   }
   async function print(prefix){
