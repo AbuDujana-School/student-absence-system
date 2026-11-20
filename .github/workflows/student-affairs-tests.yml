@@ -900,6 +900,8 @@ jobs:
         run: deno test supabase/functions/student-affairs/substitution_policy_test.ts
       - name: Run morning assembly lateness policy tests
         run: deno test supabase/functions/morning-assembly-lateness/policy.test.ts
+      - name: Run independent report access policy tests
+        run: deno test supabase/functions/_shared/report_access_policy_test.ts
       - name: Type-check morning assembly lateness Edge Function
         run: deno check supabase/functions/morning-assembly-lateness/index.ts
       - name: Verify morning lateness custom app-session gateway configuration
