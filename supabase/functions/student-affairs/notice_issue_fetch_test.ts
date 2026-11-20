@@ -67,6 +67,29 @@ Deno.test("notice reader preserves the per-class 5,000-row safety ceiling", asyn
   assertEquals(db.calls.length, 1);
 });
 
+Deno.test("notice reader allows 5,000 combined rows when no individual class reaches the cap", async () => {
+  const rows = [
+    ...Array.from({ length: 2500 }, (_, index) => ({ class_name: "9/1", record_key: `a-${index}` })),
+    ...Array.from({ length: 2500 }, (_, index) => ({ class_name: "9/2", record_key: `b-${index}` })),
+  ];
+  const db = mockDb([{ data: rows, error: null, count: 5000 }]);
+
+  const result = await fetchNoticeRowsForClasses(db, "attendance", ["9/1", "9/2"], "2026-01-01", "2026-12-31", 2026);
+
+  assertEquals(result.length, 5000);
+  assertEquals(db.calls.length, 1);
+});
+
+Deno.test("notice reader rejects a row outside the authorized class scope", async () => {
+  const db = mockDb([{ data: [{ class_name: "9/2", record_key: "unexpected" }], error: null, count: 1 }]);
+
+  await assertRejects(
+    () => fetchNoticeRowsForClasses(db, "attendance", ["9/1"], "2026-01-01", "2026-12-31", 2026),
+    Error,
+    "وصل سجل من صف خارج النطاق المصرح به",
+  );
+});
+
 Deno.test("notice reader falls back to per-class reads when the combined result exceeds the batch window", async () => {
   const firstClass = Array.from({ length: 10 }, (_, index) => ({ class_name: "9/1", record_key: `a-${index}` }));
   const secondClass = Array.from({ length: 20 }, (_, index) => ({ class_name: "9/2", record_key: `b-${index}` }));
