@@ -1,5 +1,5 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
-import { buildNoticeCandidates, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
+import { buildNoticeCandidates, validateNoticeIssueItem, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
 import { fetchNoticeRowsForClasses } from "./notice_issue_fetch.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
@@ -2085,6 +2085,11 @@ async function handle(req: Request) {
         issued_by_type: p.type, issued_by_name: p.name, delivered, threshold,
         period_start: rangeFrom, period_end: rangeTo, selected_types: selectedTypes, events: candidate.events
       }));
+      if (!payload.length || payload.length > 1000) return reply(413, { error: "عدد التنبيهات في الدفعة يتجاوز الحد الآمن. لم يتم اعتماد أي تنبيه." });
+      for (let index = 0; index < payload.length; index++) {
+        const validationError = validateNoticeIssueItem(payload[index]);
+        if (validationError) return reply(400, { error: "تعذر اعتماد التنبيه رقم " + (index + 1) + ": " + validationError });
+      }
       const { data: issued, error: issueError } = await db.rpc("issue_student_affairs_notices", { p_items: payload });
       if (issueError) return reply(500, { error: "تعذر حفظ التنبيهات الرسمية. لم نعرضها على أنها معتمدة." });
       const issuedRows = Array.isArray(issued) ? issued : [];
