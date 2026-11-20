@@ -11,6 +11,16 @@ function section(startMarker: string, endMarker: string): string {
   return html.slice(start, end);
 }
 
+Deno.test("robust upsert diagnostics never expose row payloads or credential fields", () => {
+  const upsert = section("async function robustUpsert(", "async function fetchAllPaginated(");
+  assert(upsert.includes("(row and message omitted; code"), "Failure diagnostics must omit both row payloads and raw database messages");
+  assert(!upsert.includes("rowErr, row"), "Console logging must never serialize a complete failed row");
+  assert(!upsert.includes("console.error(`robustUpsert failed for ${table} (row and message omitted; code ${code})`, msg)"), "Raw database messages must never be logged");
+  assert(!upsert.includes("failures.push({ table, row"), "Failure aggregation must not retain row payloads");
+  assert(!upsert.includes("failures.push({ table, error: msg })"), "Failure aggregation must not retain raw database messages");
+  assert(upsert.includes("failures.push({ table, code })"), "Only table and safe error codes may be retained");
+});
+
 Deno.test("cloud writes are blocked until a complete cloud load succeeds", () => {
   assert(html.includes("let cloudDataLoadState = 'not-started'"), "Load state must start closed");
   assert(html.includes("if (cloudDataLoadState !== 'ready')"), "Cloud save must fail closed before readiness");

@@ -5166,17 +5166,19 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
         } else {
           const { error: ie } = await sb.from(table).insert(row); if (ie) throw ie;
         }
-      } catch(rowErr) { 
+      } catch(rowErr) {
           const msg = String(rowErr?.message || rowErr);
-          console.error(`robustUpsert failed ${table}:`, rowErr, row); 
+          const code = String(rowErr?.code || rowErr?.status || 'unknown');
+          // Database error messages can echo submitted values; expose only a safe code.
+          console.error(`robustUpsert failed for ${table} (row and message omitted; code ${code})`);
           if (/does not exist|invalid input syntax|violates foreign key|violates check constraint|no unique or exclusion constraint/i.test(msg)) {
-            throw new Error(`خطأ في جدول "${table}": ${msg}`);
+            throw new Error(`تعذر حفظ السجل في جدول "${table}" بسبب قيد أو بنية بيانات (رمز ${code}).`);
           }
-          failures.push({ table, row, error: msg }); 
+          failures.push({ table, code });
       }
     }
   }
-  if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}": ${failures[0].error}`);
+  if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}" (رمز ${failures[0].code}).`);
 }
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
   const all = []; let from = 0;
