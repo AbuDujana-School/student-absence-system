@@ -516,3 +516,32 @@ test("student affairs report prepares direct PDF output without rendering report
   expect(result.status).toContain("دون معاينة");
   expect(result.viewButtonVisible).toBe(false);
 });
+
+
+test("independent Student Affairs report center exposes PDF without row preview", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  const result = await page.evaluate(() => {
+    repPermissions = {
+      role: "admin", can_read_attendance: true, can_print_attendance: true,
+      attendance_statuses: ["absent", "late", "escape", "outside"],
+      allowed_attendance_classes: ["QA_ONLY_CLASS"],
+    };
+    repSetDomain("attendance");
+    return {
+      recordsButtonHidden: document.getElementById("repRecordsButton").classList.contains("hidden"),
+      summaryHidden: document.getElementById("repSummary").classList.contains("hidden"),
+      resultsHidden: document.getElementById("repResults").classList.contains("hidden"),
+      printVisible: !document.getElementById("repPrintButton").classList.contains("hidden"),
+      status: document.getElementById("repPdfStatus").innerText,
+    };
+  });
+  expect(result.recordsButtonHidden).toBe(true);
+  expect(result.summaryHidden).toBe(true);
+  expect(result.resultsHidden).toBe(true);
+  expect(result.printVisible).toBe(true);
+  expect(result.status).toContain("دون معاينة");
+  expect(traffic.functionCalls.some(item => item.report_mode === "view")).toBe(false);
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+});
