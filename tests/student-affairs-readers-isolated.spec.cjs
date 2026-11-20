@@ -28,15 +28,11 @@ async function openIsolatedApp(page) {
       return;
     }
     // Supabase JS performs a lightweight HEAD health check against the project root.
-    if (url.pathname === "/" && method === "HEAD") {
-      await route.fulfill({ status: 200, headers: { date: new Date().toUTCString() } });
-      return;
-    }
     if (url.pathname === "/" && (method === "HEAD" || method === "GET")) {
       await route.fulfill({ status: 200, headers, body: "" });
       return;
     }
-    if (url.pathname.startsWith("/rest/v1/"))
+    if (url.pathname.startsWith("/rest/v1/")) {
       if (method !== "GET" && method !== "HEAD") {
         traffic.blockedWrites.push({ method, path: url.pathname });
         await route.fulfill({ status: 405, headers, body: JSON.stringify({ error: "Writes disabled in isolated browser tests" }) });
