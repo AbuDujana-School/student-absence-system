@@ -442,3 +442,30 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
   assert(manualCaptureGuard >= 0 && manualCaptureGuard < manualRecovery, "Manual recovery must not reload over an active unsaved capture");
   assert(manual.includes("لم يتم رفعها"), "A failed recovery must explicitly confirm that local edits were not uploaded");
 });
+
+
+Deno.test("cloud sync fetches only the columns consumed by the local school snapshot", () => {
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const projections = [
+    "shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null)",
+    "shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
+    "shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
+    "shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null)",
+    "shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)",
+  ];
+  for (const projection of projections) assert(load.includes(projection), "Missing narrow cloud projection: " + projection);
+  for (const table of ["teachers", "attendance", "behaviors", "school_settings", "duty_reports"]) {
+    assert(!load.includes("fetchAllPaginated('" + table + "', '*')"), "Cloud sync must not fetch unused columns from " + table);
+  }
+});
+
+Deno.test("timetable settings load the access list once and import saves do not reload permissions", () => {
+  const settingsStart = html.indexOf("if (settings && isAdmin)");
+  const settingsEnd = html.indexOf("if(classes&&isAdmin)", settingsStart);
+  assert(settingsStart >= 0 && settingsEnd > settingsStart, "Timetable settings tab loader must exist");
+  const settingsBlock = html.slice(settingsStart, settingsEnd);
+  assert(settingsBlock.includes("timetableLoadImports();"), "Opening timetable settings must load saved imports");
+  assert(!settingsBlock.includes("timetableLoadAccessManagement();"), "Settings tab must not repeat the access read already owned by timetableLoadImports");
+  assert(html.includes("if (activeUser?.type === \"admin\" && options.refreshAccess !== false) await timetableLoadAccessManagement();"), "Import loader must retain its default access refresh for settings entry");
+  assert(html.includes("await timetableLoadImports({ refreshAccess: false });"), "Saving an import must not reload unchanged access permissions");
+});
