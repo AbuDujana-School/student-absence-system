@@ -5796,8 +5796,8 @@ async function loadSystemDataFromCloud() {
       shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
       shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
       shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
-      shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
-      shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
+      shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
+      shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
       shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null),
       shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)
     ]);
@@ -5903,6 +5903,7 @@ async function loadSystemDataFromCloud() {
         if (!db.attendance[newKey] || new Date(r.updated_at) > new Date(db.attendance[newKey].timestamp)) {
           db.attendance[newKey] = {
             teacher: r.teacher_name,
+            date: r.date_str,
             className: r.class_name,
             period: r.period,
             records: r.records || {},
@@ -5919,6 +5920,7 @@ async function loadSystemDataFromCloud() {
         if (!db.behaviors[newKey] || new Date(r.updated_at) > new Date(db.behaviors[newKey].timestamp)) {
           db.behaviors[newKey] = {
             teacher: r.teacher_name,
+            date: r.date_str,
             className: r.class_name,
             period: r.period,
             records: r.records || {},
