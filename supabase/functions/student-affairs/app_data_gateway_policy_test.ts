@@ -43,6 +43,26 @@ Deno.test("custom users require explicit attendance and behavior permissions", (
   assertEquals(authorizeAppDataOperation(custom, "behaviors", "read", { class_name: "5/1" }, scope), false);
 });
 
+Deno.test("generic teacher-table reads never expose another teacher even when directory permission is present", () => {
+  const teacher = {
+    type: "teacher" as const,
+    name: "Teacher A",
+    permissions: { teachers: true },
+  };
+  assertEquals(
+    authorizeAppDataOperation(teacher, "teachers", "read", { name: "Teacher A" }),
+    true,
+  );
+  assertEquals(
+    authorizeAppDataOperation(teacher, "teachers", "read", { name: "Teacher B" }),
+    false,
+  );
+  assertEquals(
+    authorizeAppDataOperation(teacher, "teachers", "read", null),
+    false,
+  );
+});
+
 Deno.test("teacher profile projection never returns PIN or secret fields", () => {
   assertEquals(projectAppDataRow("teachers", {
     name: "Teacher A", role: "teacher", pin_hash: "never", pin_salt: "never",

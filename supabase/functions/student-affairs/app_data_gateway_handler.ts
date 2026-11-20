@@ -60,6 +60,14 @@ export async function handleAppDataGatewayRead(
     : await deps.resolveScope(principal);
   const tableClasses = table === "attendance" ? (scope.allowedAttendanceClasses || scope.allowedClasses) :
     table === "behaviors" ? (scope.allowedBehaviorClasses || scope.allowedClasses) : scope.allowedClasses;
+  // A valid non-admin principal with no server-derived class scope has no rows
+  // to read. Return an empty page rather than failing the entire sync request.
+  // This does not grant access and prevents accidental unscoped queries.
+  if (principal.type !== "admin" &&
+      ["classes", "students", "attendance", "behaviors", "duty_reports"].includes(table) &&
+      tableClasses.length === 0) {
+    return gatewayReply(200, { rows: [], next_offset: null }, deps.headers);
+  }
   const firstClass = tableClasses[0] || "";
   const probe: Record<string, unknown> | null =
     table === "classes" ? { name: firstClass } :

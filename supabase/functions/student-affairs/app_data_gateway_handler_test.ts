@@ -82,7 +82,8 @@ Deno.test("attendance and behavior use separate server-side class grants", async
     scope: { allowedClasses: ["5/1"], allowedAttendanceClasses: ["7/1"], allowedBehaviorClasses: [] },
   });
   const behaviorResponse = await request({ table: "behaviors" }, behaviorDeps);
-  assertEquals(behaviorResponse.status, 403);
+  assertEquals(behaviorResponse.status, 200);
+  assertEquals(await body(behaviorResponse), { rows: [], next_offset: null });
   assertEquals(behaviorCalls.some(([name]) => name === "from"), false);
 });
 
@@ -137,4 +138,17 @@ Deno.test("full page returns a continuation offset while a short page ends pagin
   const short = fixture({ rows: [] });
   const shortResponse = await request({ table: "students", offset: 20, limit: 1 }, short.deps);
   assertEquals((await body(shortResponse)).next_offset, null);
+});
+
+
+Deno.test("valid teacher with no server-derived class scope receives an empty page without querying tables", async () => {
+  for (const table of ["classes", "students", "attendance", "behaviors", "duty_reports"]) {
+    const { deps, calls } = fixture({
+      scope: { allowedClasses: [], allowedAttendanceClasses: [], allowedBehaviorClasses: [] },
+    });
+    const response = await request({ table }, deps);
+    assertEquals(response.status, 200);
+    assertEquals(await body(response), { rows: [], next_offset: null });
+    assertEquals(calls.some(([name]) => name === "from"), false);
+  }
 });

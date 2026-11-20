@@ -69,9 +69,14 @@ test("school sync projections and timetable access reads stay isolated and minim
     duty_reports: 1,
   };
   let manifestCalls = 0;
+  let gatewaySavedCountOverride = null;
   const reads = new Map();
   const projections = new Map();
   const functionActions = [];
+  const gatewayReads = [];
+  const gatewayWrites = [];
+  const credentialWrites = [];
+  const legacyWrites = [];
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
@@ -107,6 +112,42 @@ test("school sync projections and timetable access reads stay isolated and minim
       return;
     }
 
+    if (url.pathname === "/functions/v1/student-affairs" && method === "POST") {
+      let payload = {};
+      try { payload = JSON.parse(request.postData() || "{}"); } catch (_) {}
+      if (payload.action === "app_data_gateway_read") {
+        gatewayReads.push({ table: payload.table, offset: payload.offset, limit: payload.limit,
+          authorization: request.headers()["authorization"] || "" });
+        const rows = (fixtures[payload.table] || []).slice(payload.offset || 0, (payload.offset || 0) + (payload.limit || 200));
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({
+          rows, next_offset: rows.length === (payload.limit || 200) ? (payload.offset || 0) + rows.length : null
+        }) });
+        return;
+      }
+      if (payload.action === "app_data_gateway_write") {
+        gatewayWrites.push({ table: payload.table, rows: payload.rows || [],
+          authorization: request.headers()["authorization"] || "" });
+        const saved = gatewaySavedCountOverride === null
+          ? (payload.rows || []).length : gatewaySavedCountOverride;
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ saved }) });
+        return;
+      }
+      if (payload.action === "app_data_gateway_credentials_write") {
+        credentialWrites.push({
+          target_type: payload.target_type,
+          target_name: payload.target_name,
+          hash: payload.hash,
+          salt: payload.salt,
+          authorization: request.headers()["authorization"] || ""
+        });
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ updated: true }) });
+        return;
+      }
+      unexpectedSupabaseTraffic.push({ method, path: url.pathname, action: payload.action || "" });
+      await route.fulfill({ status: 400, headers, body: JSON.stringify({ error: "Unexpected Student Affairs action" }) });
+      return;
+    }
+
     if (url.pathname === "/rest/v1/rpc/get_app_sync_manifest" && method === "POST") {
       manifestCalls += 1;
       await route.fulfill({ status: 200, headers, body: JSON.stringify(manifest) });
@@ -114,12 +155,18 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
 
     if (url.pathname.startsWith("/rest/v1/")) {
+      const requestedTable = url.pathname.split("/").filter(Boolean).pop();
+      if (method === "POST" && TABLES.includes(requestedTable)) {
+        legacyWrites.push({ method, table: requestedTable });
+        await route.fulfill({ status: 201, headers: { ...headers, "content-range": "*/1" }, body: "[]" });
+        return;
+      }
       if (method !== "GET" && method !== "HEAD") {
         blockedWrites.push({ method, path: url.pathname });
         await route.fulfill({ status: 405, headers, body: "Writes are disabled in isolated preview tests." });
         return;
       }
-      const table = url.pathname.split("/").filter(Boolean).pop();
+      const table = requestedTable;
       if (!TABLES.includes(table)) {
         unexpectedSupabaseTraffic.push({ method, url: request.url() });
         await route.fulfill({ status: 404, headers, body: "{}" });
@@ -183,6 +230,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      principal: { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } },
     };
     return await loadSystemDataFromCloud();
   });
@@ -203,37 +251,131 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(mapped.behaviors["qa-behavior"]?.className).toBe("QA_ONLY_CLASS");
   expect(mapped.dutyReports.some((item) => item.id === "qa-duty-report")).toBe(true);
 
-  for (const table of TABLES) {
-    expect(reads.get(table) || 0, "Initial read for " + table).toBe(1);
+  const gatewayTables = ["classes", "students", "attendance", "behaviors", "duty_reports"];
+  for (const table of gatewayTables) {
+    expect(gatewayReads.filter((item) => item.table === table).length,
+      "Administrator read must use the authenticated gateway for " + table).toBe(1);
+    expect(reads.get(table) || 0, "No direct PostgREST read for migrated table " + table).toBe(0);
+  }
+  for (const table of ["teachers", "school_settings"]) {
+    expect(reads.get(table) || 0, "Credential/settings compatibility read for " + table).toBe(1);
   }
   const expectedSelects = {
-    classes: "name",
-    students: "class_name,student_name",
     teachers: "name,role,pin_hash,pin_salt,permissions,must_change_pin",
-    attendance: "record_key,class_name,teacher_name,period,records,updated_at",
-    behaviors: "record_key,class_name,teacher_name,period,records,updated_at",
     school_settings: "key,value",
-    duty_reports: "id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at",
   };
   for (const [table, select] of Object.entries(expectedSelects)) {
-    expect(projections.get(table), "Narrow projection for " + table).toBe(select);
+    expect(projections.get(table), "Expected transitional projection for " + table).toBe(select);
   }
+  expect(gatewayReads.every((item) => item.authorization === "Bearer " + "a".repeat(64))).toBe(true);
 
+  const roleCompatibility = await page.evaluate(async () => {
+    const gatewayBefore = window.__gatewayReadCount || 0;
+    activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: {} };
+    appAuthSession.principal = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: {} };
+    const teacherRows = await fetchAllPaginated("classes", "name", 100);
+    const teacherAttendance = await fetchAllPaginated("attendance", "*", 100);
+    activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    appAuthSession.principal = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    const customRows = await fetchAllPaginated("classes", "name", 100);
+    const customBehaviors = await fetchAllPaginated("behaviors", "*", 100);
+    activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    return { teacherRows, customRows, teacherAttendance, customBehaviors, gatewayBefore };
+  });
+  expect(roleCompatibility.teacherRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
+  expect(roleCompatibility.customRows).toEqual([{ name: "QA_ONLY_CLASS" }]);
+  expect(roleCompatibility.teacherAttendance).toEqual(fixtures.attendance);
+  expect(roleCompatibility.customBehaviors).toEqual(fixtures.behaviors);
+  expect(gatewayReads.filter((item) => item.table === "classes")).toHaveLength(1);
+  expect(gatewayReads.filter((item) => item.table === "attendance")).toHaveLength(2);
+  expect(gatewayReads.filter((item) => item.table === "behaviors")).toHaveLength(2);
+  expect(reads.get("classes") || 0).toBe(2);
+  expect(reads.get("attendance") || 0).toBe(0);
+  expect(reads.get("behaviors") || 0).toBe(0);
+
+  const readsBeforeUnchangedRefresh = new Map(reads);
+  const gatewayReadsBeforeUnchangedRefresh = gatewayReads.length;
   const unchangedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(unchangedRefresh, "Unchanged manifest refresh must complete").toBe(true);
   for (const table of TABLES) {
-    expect(reads.get(table) || 0, "Unchanged manifest must not reread " + table).toBe(1);
+    expect(reads.get(table) || 0, "Unchanged manifest must not reread " + table)
+      .toBe(readsBeforeUnchangedRefresh.get(table) || 0);
   }
+  expect(gatewayReads.length, "Unchanged manifest must not reread through the gateway")
+    .toBe(gatewayReadsBeforeUnchangedRefresh);
 
+  const readsBeforeChangedRefresh = new Map(reads);
   manifest.teachers = 2;
   manifest.school_settings = 2;
   const changedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(changedRefresh, "Changed manifest refresh must complete").toBe(true);
-  expect(reads.get("teachers") || 0).toBe(2);
-  expect(reads.get("school_settings") || 0).toBe(2);
+  expect(reads.get("teachers") || 0).toBe((readsBeforeChangedRefresh.get("teachers") || 0) + 1);
+  expect(reads.get("school_settings") || 0).toBe((readsBeforeChangedRefresh.get("school_settings") || 0) + 1);
   for (const table of ["classes", "students", "attendance", "behaviors", "duty_reports"]) {
-    expect(reads.get(table) || 0, "Unchanged table must not be fetched again: " + table).toBe(1);
+    expect(reads.get(table) || 0, "Unchanged table must not be fetched again: " + table)
+      .toBe(readsBeforeChangedRefresh.get(table) || 0);
   }
+
+  await page.evaluate(async () => {
+    const now = new Date().toISOString();
+    await robustUpsert("classes", [{ name: "QA_ONLY_WRITE_CLASS" }], "name", 200);
+    await robustUpsert("students", [{ class_name: "QA_ONLY_CLASS", student_name: "QA_ONLY_WRITE_STUDENT" }], "class_name,student_name", 200);
+    await robustUpsert("attendance", [{
+      record_key: "qa-write-attendance", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_ADMIN", records: {}, updated_at: now
+    }], "record_key", 200);
+    await robustUpsert("behaviors", [{
+      record_key: "qa-write-behavior", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_ADMIN", records: {}, updated_at: now
+    }], "record_key", 200);
+    await robustUpsert("duty_reports", [{
+      id: "qa-write-duty", date_str: "2026-11-20", day_num: 5, period: 1,
+      class_name: "QA_ONLY_CLASS", subject: "QA only", teacher_name: "QA_ONLY_ADMIN",
+      reported_by: "QA_ONLY_ADMIN", status: "pending", reviewed_by: null,
+      reviewed_at: null, created_at: now
+    }], "id", 200);
+    await robustUpsert("school_settings", [{ key: "custom_categories", value: ["QA_ONLY_CATEGORY"] }], "key", 100);
+    await robustUpsert("school_settings", [{ key: "duty_module", value: { graceMinutes: 5, periods: [] } }], "key", 100);
+  });
+  expect(gatewayWrites.map((item) => item.table).sort()).toEqual([
+    "attendance", "behaviors", "classes", "duty_reports", "school_settings", "school_settings", "students"
+  ]);
+  expect(gatewayWrites.every((item) => item.authorization === "Bearer " + "a".repeat(64))).toBe(true);
+  expect(legacyWrites).toEqual([]);
+
+  const roleScopedWriteChecks = await page.evaluate(async () => {
+    activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
+    appAuthSession.principal = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
+    await robustUpsert("attendance", [{
+      record_key: "qa-teacher-gateway-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_TEACHER", records: {}, updated_at: new Date().toISOString()
+    }], "record_key", 100);
+    activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    appAuthSession.principal = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    await robustUpsert("behaviors", [{
+      record_key: "qa-custom-gateway-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_CUSTOM", records: {}, updated_at: new Date().toISOString()
+    }], "record_key", 100);
+    activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
+    appAuthSession.principal = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { attendance: true } };
+    let mismatchedSessionDenied = false;
+    try {
+      await robustUpsert("attendance", [{
+        record_key: "qa-mismatched-session", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+        period: 1, teacher_name: "QA_ONLY_TEACHER", records: {}, updated_at: new Date().toISOString()
+      }], "record_key", 100);
+    } catch (_) { mismatchedSessionDenied = true; }
+    activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    return { mismatchedSessionDenied };
+  });
+  expect(roleScopedWriteChecks.mismatchedSessionDenied).toBe(true);
+  expect(gatewayWrites).toHaveLength(9);
+  expect(gatewayWrites.filter((item) => item.table === "attendance")).toHaveLength(2);
+  expect(gatewayWrites.filter((item) => item.table === "behaviors")).toHaveLength(2);
+  expect(gatewayWrites.filter((item) => item.table === "school_settings")).toHaveLength(2);
+  expect(legacyWrites).toEqual([]);
 
   await page.evaluate(async () => {
     timetableCanAccess = true;
@@ -243,8 +385,122 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(functionActions.filter((action) => action === "timetable_list_access")).toHaveLength(1);
   expect(functionActions.filter((action) => action === "timetable_list_imports")).toHaveLength(2);
 
+  const offlineSeed = await page.evaluate(async () => {
+    const key = "QA_ONLY_OFFLINE_ATTENDANCE";
+    db.attendance[key] = {
+      recordKey: key, className: "QA_ONLY_CLASS", teacherName: "QA_ONLY_ADMIN",
+      period: 1, records: { QA_ONLY_STUDENT: "absent" }, updatedAt: new Date().toISOString()
+    };
+    dirtySets.attendance.add(key);
+    return { persisted: await persistOfflineState(), dirty: dirtySets.attendance.has(key) };
+  });
+  expect(offlineSeed.persisted, "Synthetic offline state must persist locally").toBe(true);
+  expect(offlineSeed.dirty).toBe(true);
+  await page.context().setOffline(true);
+  const offlineSync = await page.evaluate(async () => {
+    const result = await syncPendingLocalChanges();
+    return {
+      result,
+      dirty: dirtySets.attendance.has("QA_ONLY_OFFLINE_ATTENDANCE"),
+      record: db.attendance["QA_ONLY_OFFLINE_ATTENDANCE"]?.records?.QA_ONLY_STUDENT
+    };
+  });
+  expect(offlineSync.result, "Offline sync must not attempt a cloud write").toBe(false);
+  expect(offlineSync.dirty, "Offline dirty key must remain queued").toBe(true);
+  expect(offlineSync.record).toBe("absent");
+  await page.context().setOffline(false);
+
+  // Reconnect path: upload only the queued synthetic record through the
+  // authenticated gateway, then clear its dirty key only after acknowledgement.
+  const writesBeforeReconnect = gatewayWrites.length;
+  const reconnectSync = await page.evaluate(async () => {
+    activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    db.adminPin = { hash: "a".repeat(64), salt: "b".repeat(32) };
+    dirtySets.admin_pin = true;
+    const saved = await saveSystemDataToCloud({ manual: true, silent: true });
+    return {
+      saved,
+      dirty: dirtySets.attendance.has("QA_ONLY_OFFLINE_ATTENDANCE"),
+      pinDirty: dirtySets.admin_pin,
+      record: db.attendance["QA_ONLY_OFFLINE_ATTENDANCE"]?.records?.QA_ONLY_STUDENT
+    };
+  });
+  expect(reconnectSync.saved, "Queued offline data must upload after reconnect").toBe(true);
+  expect(reconnectSync.dirty, "Dirty key clears only after gateway acknowledgement").toBe(false);
+  expect(reconnectSync.pinDirty, "Admin PIN dirty flag clears only after credential acknowledgement").toBe(false);
+  expect(reconnectSync.record).toBe("absent");
+  expect(credentialWrites).toHaveLength(1);
+  expect(credentialWrites[0].target_type).toBe("admin");
+  expect(credentialWrites[0].target_name).toBe("QA_ONLY_ADMIN");
+  expect(credentialWrites[0].hash).toBe("a".repeat(64));
+  expect(credentialWrites[0].salt).toBe("b".repeat(32));
+  expect(gatewayWrites.length).toBe(writesBeforeReconnect + 1);
+  expect(gatewayWrites.at(-1).table).toBe("attendance");
+  expect(gatewayWrites.at(-1).rows[0].record_key).toBe("QA_ONLY_OFFLINE_ATTENDANCE");
+
+  // A partial/incorrect acknowledgement must not clear the local dirty key.
+  const failedAckKey = "QA_ONLY_FAILED_ACK";
+  await page.evaluate(async (key) => {
+    db.attendance[key] = {
+      recordKey: key, className: "QA_ONLY_CLASS", teacherName: "QA_ONLY_ADMIN",
+      period: 1, records: { QA_ONLY_STUDENT: "late" }, updatedAt: new Date().toISOString()
+    };
+    dirtySets.attendance.add(key);
+    await persistOfflineState();
+  }, failedAckKey);
+  gatewaySavedCountOverride = 0;
+  const failedAckSync = await page.evaluate(async () => saveSystemDataToCloud({ manual: true, silent: true }));
+  gatewaySavedCountOverride = null;
+  expect(failedAckSync, "Incomplete gateway acknowledgement must fail the sync").toBe(false);
+  expect(await page.evaluate((key) => dirtySets.attendance.has(key), failedAckKey)).toBe(true);
+  const retriedSync = await page.evaluate(async () => saveSystemDataToCloud({ manual: true, silent: true }));
+  expect(retriedSync, "The retained dirty row must be retryable").toBe(true);
+  expect(await page.evaluate((key) => dirtySets.attendance.has(key), failedAckKey)).toBe(false);
+
+  // Offline PIN verification remains local and does not call the school API.
+  await page.context().setOffline(true);
+  const offlinePinChecks = await page.evaluate(async () => {
+    activeUser = null;
+    appAuthSession = null;
+    db.adminPin = null;
+    const teacherRecord = await createPinRecord("2468");
+    const customRecord = await createPinRecord("1357");
+    db.teachers = [{
+      name: "QA_ONLY_OFFLINE_TEACHER",
+      pin_hash: teacherRecord.hash,
+      pin_salt: teacherRecord.salt,
+      permissions: { attendance: true }
+    }];
+    db.customUsers = [{
+      name: "QA_ONLY_OFFLINE_CUSTOM",
+      pin_hash: customRecord.hash,
+      pin_salt: customRecord.salt,
+      permissions: { behavior: true }
+    }];
+    const teacher = await findUserByPinWithRecord("2468");
+    const custom = await findUserByPinWithRecord("1357");
+    const wrong = await findUserByPinWithRecord("9999");
+    return {
+      online: navigator.onLine,
+      teacher: teacher?.user?.name,
+      teacherType: teacher?.user?.type,
+      custom: custom?.user?.name,
+      customType: custom?.user?.type,
+      wrongRejected: wrong === null
+    };
+  });
+  expect(offlinePinChecks.online).toBe(false);
+  expect(offlinePinChecks.teacher).toBe("QA_ONLY_OFFLINE_TEACHER");
+  expect(offlinePinChecks.teacherType).toBe("teacher");
+  expect(offlinePinChecks.custom).toBe("QA_ONLY_OFFLINE_CUSTOM");
+  expect(offlinePinChecks.customType).toBe("custom");
+  expect(offlinePinChecks.wrongRejected).toBe(true);
+  await page.context().setOffline(false);
+
   expect(manifestCalls).toBe(3);
-  expect(blockedWrites, "No REST writes may occur in isolated browser tests").toEqual([]);
+  expect(gatewayReads.length).toBe(7);
+  expect(blockedWrites, "No unexpected REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
 });

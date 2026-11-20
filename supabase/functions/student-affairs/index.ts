@@ -11,7 +11,10 @@ import {
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
+import { handleAppDataGatewayWrite } from "./app_data_gateway_write_handler.ts";
+import { handleAppCredentialSnapshot, handleAppCredentialWrite } from "./app_data_gateway_credentials_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
+import { normalizeAppDataPrincipalPermissions } from "./app_data_gateway_principal.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -22,7 +25,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 const PIN_ITERATIONS = 150000;
 const SESSION_HOURS = 8;
-const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-cron-secret", "Access-Control-Allow-Methods": "POST, OPTIONS", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
+const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-cron-secret", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Max-Age": "600", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
 function reply(status: number, body: Record<string, unknown>) { return new Response(JSON.stringify(body), { status, headers: cors }); }
 const enc = new TextEncoder();
 function hex(bytes: Uint8Array) { return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(""); }
@@ -111,7 +114,10 @@ async function currentAppPrincipal(type: string, name: string): Promise<AppPrinc
   return {
     type: type as "teacher" | "custom",
     name: data.name,
-    permissions: data.permissions && typeof data.permissions === "object" ? data.permissions : {},
+    permissions: normalizeAppDataPrincipalPermissions(
+      type,
+      data.permissions && typeof data.permissions === "object" ? data.permissions : {},
+    ),
     mustChangePin: data.must_change_pin === true || data.permissions?.mustChangePin === true,
   };
 }
@@ -781,6 +787,34 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
   });
 }
 
+async function writeAppDataGateway(req: Request, body: any): Promise<Response> {
+  return await handleAppDataGatewayWrite(req, body, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+    resolveScope: (principal) => resolveAppDataScopeForPrincipal(principal as AppPrincipal),
+  });
+}
+
+async function appCredentialSnapshot(req: Request): Promise<Response> {
+  return await handleAppCredentialSnapshot(req, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+  });
+}
+
+async function appCredentialWrite(req: Request, body: any): Promise<Response> {
+  return await handleAppCredentialWrite(req, body, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+  });
+}
+
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
   if (principal.type === "admin") return true;
   const { data, error } = await db.from("timetable_access_permissions")
@@ -816,6 +850,28 @@ async function handle(req: Request) {
     catch (error) {
       console.error("App data gateway read failed:", error);
       return reply(500, { error: "تعذر تحميل البيانات المطلوبة حالياً." });
+    }
+  }
+  if (body?.action === "app_data_gateway_write") {
+    try { return await writeAppDataGateway(req, body); }
+    catch (error) {
+      const code = String((error as { code?: unknown })?.code || "unknown").slice(0, 40);
+      console.error("App data gateway write failed (code):", code);
+      return reply(500, { error: "تعذر حفظ البيانات المطلوبة حالياً." });
+    }
+  }
+  if (body?.action === "app_data_gateway_credentials_read") {
+    try { return await appCredentialSnapshot(req); }
+    catch (error) {
+      console.error("App credential snapshot failed.");
+      return reply(500, { error: "تعذر تحميل بيانات التحقق الآمن حالياً." });
+    }
+  }
+  if (body?.action === "app_data_gateway_credentials_write") {
+    try { return await appCredentialWrite(req, body); }
+    catch (error) {
+      console.error("App credential update failed.");
+      return reply(500, { error: "تعذر تحديث بيانات الرمز حالياً." });
     }
   }
   if (body?.action === "admin_save_student_roster") {
