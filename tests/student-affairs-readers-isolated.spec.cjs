@@ -72,10 +72,11 @@ async function openIsolatedApp(page) {
         return;
       }
       if (body.action === "reports" && body.report_mode === "notice_scan") {
+        const className = (body.attendance_classes || body.behavior_classes || [])[0] || "QA_ONLY_CLASS";
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           attendance: [
-            { class_name: "QA_ONLY_CLASS", date_str: body.from, period: 1, records: { QA_ONLY_STUDENT: "absent" } },
-            { class_name: "QA_ONLY_CLASS", date_str: body.to, period: 1, records: { QA_ONLY_STUDENT: "absent" } },
+            { class_name: className, date_str: body.from, period: 1, records: { QA_ONLY_STUDENT: "absent" } },
+            { class_name: className, date_str: body.to, period: 1, records: { QA_ONLY_STUDENT: "absent" } },
           ],
           behaviors: [],
         }) });
@@ -176,6 +177,50 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
   expect(call.from).toBe("2026-11-18");
   expect(call.to).toBe("2026-11-20");
   await expect(page.locator("#saSupervisionStatus")).toContainText("عدد الصفوف المشمولة: 1");
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+});
+
+test("notice class checklist supports multi-select and retains team target selector", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  await page.evaluate(() => {
+    saReportPermissions = {
+      role: "team_leader", can_read_attendance: true, can_read_behavior: true,
+      can_print_attendance: true, can_print_behavior: true, can_print_combined: true,
+      allowed_attendance_classes: ["QA_OWN_CLASS"], allowed_behavior_classes: ["QA_OWN_CLASS"],
+      attendance_statuses: ["absent", "late", "escape", "outside"],
+      team_members: [{
+        name: "QA_TEAM_TEACHER",
+        allowed_attendance_classes: ["QA_TEAM_CLASS"],
+        allowed_behavior_classes: ["QA_TEAM_CLASS"],
+        attendance_statuses: ["absent", "late", "escape", "outside"],
+      }],
+    };
+    saSession = { token: "a".repeat(64) };
+    saOpenNoticeModal();
+  });
+
+  await expect(page.locator("#saNoticeTargetSelect")).toBeVisible();
+  await expect(page.locator("#saNoticeTargetSelect option")).toHaveCount(2);
+  await expect(page.locator('#saNoticeClassesGrid input[data-sa-notice-class="QA_OWN_CLASS"]')).toBeChecked();
+  await page.locator("#saNoticeTargetSelect").selectOption("QA_TEAM_TEACHER");
+  await expect(page.locator('#saNoticeClassesGrid input[data-sa-notice-class="QA_TEAM_CLASS"]')).toBeChecked();
+  await expect(page.locator('#saNoticeClassesGrid input[data-sa-notice-class="QA_OWN_CLASS"]')).toHaveCount(0);
+
+  await page.locator("#saNoticeTargetSelect").selectOption("__self__");
+  await page.locator('#saNoticeClassesGrid input[data-sa-notice-class="QA_OWN_CLASS"]').uncheck();
+  await page.evaluate(() => {
+    saReportPermissions.allowed_attendance_classes = ["QA_OWN_CLASS", "QA_SECOND_CLASS"];
+    saReportPermissions.allowed_behavior_classes = [];
+    saNoticeTargetChanged();
+    document.querySelectorAll("#saNoticeClassesGrid input[data-sa-notice-class]").forEach(input => { input.checked = false; });
+    document.querySelector('#saNoticeClassesGrid input[data-sa-notice-class="QA_SECOND_CLASS"]').checked = true;
+  });
+  await expect(page.locator("#saNoticeClassesGrid input[data-sa-notice-class]:checked")).toHaveCount(1);
+  const selected = await page.evaluate(() => saNoticeSelectedClasses());
+  expect(selected).toEqual(["QA_SECOND_CLASS"]);
+  expect(traffic.functionCalls.some((item) => item.report_mode === "notice_issue_commit")).toBe(false);
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
