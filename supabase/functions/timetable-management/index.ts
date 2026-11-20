@@ -919,7 +919,7 @@ async function handle(req: Request) {
       }
       const weekday = String(body.weekday || "");
       if (!DAYS.includes(weekday)) return reply(400, { error: "اختر يوماً دراسياً صحيحاً." });
-      const directory = preloadedDirectory ?? await teacherDirectory();
+      const directory = await teacherDirectory();
       const systemTeachers: SystemTeacher[] = directory.filter((t: any) => t.role === "teacher").map((t: any) => ({
         name: t.name, departmentId: t.departmentId, departmentName: t.departmentName,
       }));
