@@ -29,7 +29,10 @@ test("offline legacy login remains available without granting online cloud acces
   const onlineGuard = auth.indexOf("if (navigator.onLine)");
   const activation = auth.indexOf("activeUser = user;");
   assert.ok(onlineGuard >= 0 && activation > onlineGuard);
-  const finalizer = section("async function finalizeLoginState()", "function renderDashboard");
+  const finalizerStart = html.indexOf("async function finalizeLoginState()");
+  const finalizerEnd = html.indexOf("\\nfunction ", finalizerStart);
+  assert.ok(finalizerStart >= 0 && finalizerEnd > finalizerStart);
+  const finalizer = html.slice(finalizerStart, finalizerEnd);
   assert.match(finalizer, /else if \(!navigator\.onLine && cloudDataLoadState === 'not-started'\)/);
   assert.match(finalizer, /offlineSnapshotRestoredAtBoot/);
 });
