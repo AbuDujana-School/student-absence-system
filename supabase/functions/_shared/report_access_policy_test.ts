@@ -1,10 +1,10 @@
 import { canAccessReportPermission, hasExplicitReportPermissions } from "./report_access_policy.ts";
 
-Deno.test("legacy reports permission remains compatible until granular flags are set", () => {
+Deno.test("legacy broad reports permission does not grant any individual report", () => {
   const legacy = { reports: true };
   assert(!hasExplicitReportPermissions(legacy), "legacy permissions should not be treated as granular");
   for (const report of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"] as const) {
-    assert(canAccessReportPermission("teacher", legacy, report), "legacy reports should retain prior access");
+    assert(!canAccessReportPermission("teacher", legacy, report), "legacy reports must not grant an unselected report");
   }
 });
 
