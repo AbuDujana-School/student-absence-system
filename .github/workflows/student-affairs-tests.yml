@@ -852,6 +852,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/supervision_trend_fetch.ts
       - name: Run batched supervision trend reader tests
         run: deno test supabase/functions/student-affairs/supervision_trend_fetch_test.ts
+      - name: Type-check batched analytics reader
+        run: deno check supabase/functions/student-affairs/analytics_batch_fetch.ts
+      - name: Run batched analytics reader tests
+        run: deno test supabase/functions/student-affairs/analytics_batch_fetch_test.ts
       - name: Run competition policy tests
         run: deno test supabase/functions/student-affairs/competition_policy_test.ts
       - name: Run competition authorization tests
