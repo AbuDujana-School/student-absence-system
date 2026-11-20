@@ -1,4 +1,4 @@
-import { buildNoticeCandidates } from "./notice_policy.ts";
+import { buildNoticeCandidates, validateNoticeIssueItem } from "./notice_policy.ts";
 
 const session = (class_name: string, date_str: string, period: number, records: Record<string, unknown>) =>
   ({ class_name, date_str, period, records });
