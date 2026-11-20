@@ -251,7 +251,12 @@ Deno.test("manual offline sync is explicit, scoped to dirty records, and never e
   assert(manual.includes("saveSystemDataToCloud({ manual: true })"), "Manual sync must reuse the existing dirty-record uploader");
   assert(manual.includes("getPendingDeletes().length"), "Manual sync must keep queued deletions visible");
   assert(!manual.includes("flushPendingDeletes("), "Manual sync must never execute queued deletions");
-  assert(!manual.includes("loadSystemDataFromCloud("), "Manual upload must not reload and replace the current local view");
+  const recovery = manual.indexOf("await loadSystemDataFromCloud()");
+  const captureGuard = manual.indexOf("if (attendanceDirty || behaviorDirty)");
+  assert(recovery >= 0 && captureGuard >= 0 && captureGuard < recovery, "Manual sync may recover cloud readiness only after protecting live capture");
+  assert(recovery < manual.indexOf("await showConfirm("), "Manual sync must recover the cloud snapshot before asking permission to upload");
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(load.includes("mergeDirtyLocalState(pendingLocalState)"), "Recovery must merge pending local edits instead of replacing them");
 });
 
 Deno.test("sync indicator distinguishes upload, review-only deletion requests, and cloud refresh", () => {
@@ -357,7 +362,9 @@ Deno.test("unauthenticated startup does not fetch protected school tables", () =
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
   assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
-  assert(!boot.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
+  const sessionCheck = boot.indexOf("await checkExistingSession()");
+  const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
+  assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
   const noUserGuard = load.indexOf("if (!activeUser)");
   const secureSessionGuard = load.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
   const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
@@ -406,4 +413,32 @@ Deno.test("verified secure sessions reuse server-returned permissions without a 
   assert(restore.indexOf("appAuthSession = { token: appToken") < restore.indexOf("await finalizeLoginState()"), "A restored secure session must be verified before permissions are reused");
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   assert(login.indexOf("saveAppAuthSession(serverLogin)") < login.indexOf("await finalizeLoginState()"), "A new secure login must save its verified principal before permissions are reused");
+});
+
+
+Deno.test("reconnect restores cloud readiness before retrying or manually uploading offline edits", () => {
+  const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
+  const resumeStart = events.indexOf("const resumeCloudSync =");
+  const resumeEnd = events.indexOf("window.addEventListener('online'", resumeStart);
+  const resume = events.slice(resumeStart, resumeEnd);
+  const recoveryLoad = resume.indexOf("await loadSystemDataFromCloud()");
+  const retryUpload = resume.indexOf("await retryOfflineSyncSilently()");
+  assert(recoveryLoad >= 0, "Reconnect must reload the read-only cloud snapshot when readiness was lost");
+  assert(retryUpload > recoveryLoad, "Pending local edits may only enter the approved retry after cloud recovery");
+  const captureGuard = resume.indexOf("attendanceDirty || behaviorDirty");
+  assert(captureGuard >= 0 && captureGuard < recoveryLoad, "Reconnect must not reload over an active unsaved attendance or behavior capture");
+  assert(resume.includes("cloudDataLoadState !== 'ready'"), "Reconnect must detect failed or not-yet-started cloud state");
+  assert(resume.includes("cloudDataLoadState === 'loading'"), "Reconnect must not overlap an active cloud load");
+  assert(resume.includes("let recoveredCloud = false"), "Reconnect must track when the cloud snapshot was already recovered");
+  assert(resume.includes("else if (recoveredCloud) refreshCloudDependentViews()"), "Recovered data must refresh visible views without issuing a second cloud load");
+  assert(events.includes("resumeCloudSync();"), "Online, visibility, and periodic refresh must share the recovery path");
+  assert(resume.includes('teacherShowDailySubstitutionWelcome()'), "Teacher return-to-app welcome behavior must remain intact");
+
+  const manual = section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */");
+  const manualRecovery = manual.indexOf("await loadSystemDataFromCloud()");
+  const approval = manual.indexOf("await showConfirm(");
+  assert(manualRecovery >= 0 && approval > manualRecovery, "Manual upload must recover the cloud snapshot before asking for upload approval");
+  const manualCaptureGuard = manual.indexOf("if (attendanceDirty || behaviorDirty)");
+  assert(manualCaptureGuard >= 0 && manualCaptureGuard < manualRecovery, "Manual recovery must not reload over an active unsaved capture");
+  assert(manual.includes("لم يتم رفعها"), "A failed recovery must explicitly confirm that local edits were not uploaded");
 });
