@@ -99,11 +99,11 @@ Deno.test("notice reader refuses a class that reaches the old per-class cap afte
   assertEquals(db.calls.length, 2);
 });
 
-Deno.test("notice reader does not trust a 5,000-row batch when exact count metadata is absent", async () => {
+Deno.test("notice reader falls back even below 5,000 when exact count metadata is absent", async () => {
   const firstClass = [{ class_name: "9/1", record_key: "a-1" }];
   const secondClass = [{ class_name: "9/2", record_key: "b-1" }];
   const db = mockDb([
-    { data: Array.from({ length: 5000 }, () => ({ class_name: "9/1" })), error: null, count: null },
+    { data: Array.from({ length: 1000 }, () => ({ class_name: "9/1" })), error: null, count: null },
     { data: firstClass, error: null },
     { data: secondClass, error: null },
   ]);
