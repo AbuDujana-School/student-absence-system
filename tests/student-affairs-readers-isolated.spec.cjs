@@ -57,7 +57,11 @@ async function openIsolatedApp(page) {
       if (body.action === "supervision_trend") {
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           class_count: 1,
-          series: [{ date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 }],
+          series: [
+            { date: "2026-11-19", absent: 2, late: 1, escape: 0, outside: 0, eating: 1, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-20", absent: 1, late: 0, escape: 0, outside: 0, eating: 0, talking: 1, tools: 0, chaos: 1, sleeping: 0, homework: 0, other: 0 },
+            { date: "2026-11-21", absent: 0, late: 0, escape: 0, outside: 0, eating: 0, talking: 0, tools: 0, chaos: 0, sleeping: 0, homework: 0, other: 0 },
+          ],
         }) });
         return;
       }
@@ -168,14 +172,21 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
     saPopulateReportClasses();
     document.getElementById("saSupervisionPanel").classList.remove("hidden");
     document.getElementById("saSupervisionFrom").value = "2026-11-18";
-    document.getElementById("saSupervisionTo").value = "2026-11-20";
+    document.getElementById("saSupervisionTo").value = "2026-11-21";
+    window.Chart = class { constructor(_ctx, config) { this.data = config.data; this.options = config.options; } destroy() {} };
     await saLoadSupervisionTrend("team");
   });
   const call = traffic.functionCalls.find((item) => item.action === "supervision_trend");
   expect(call).toBeTruthy();
   expect(call.scope).toBe("team");
   expect(call.from).toBe("2026-11-18");
-  expect(call.to).toBe("2026-11-20");
+  expect(call.to).toBe("2026-11-21");
+  const chartData = await page.evaluate(() => ({
+    dates: saSupervisionTrendChart?.data?.labels || [],
+    talking: saSupervisionBehaviorChart?.data?.datasets?.find(item => item.label === "الكلام")?.borderColor,
+    chaos: saSupervisionBehaviorChart?.data?.datasets?.find(item => item.label === "الفوضى")?.borderColor,
+  }));
+  expect(chartData).toEqual({ dates: ["2026-11-19"], talking: "#0284c7", chaos: "#ea580c" });
   await expect(page.locator("#saSupervisionStatus")).toContainText("عدد الصفوف المشمولة: 1");
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
@@ -226,7 +237,7 @@ test("notice class checklist supports multi-select and retains team target selec
   expect(traffic.pageErrors).toEqual([]);
 });
 
-test("notice preview scans synthetic rows without issuing official notices", async ({ page }) => {
+test("notice scan prints PDF directly without showing an on-screen preview", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
   const dates = await page.evaluate(() => {
     const today = getOmanLocalDate();
@@ -253,6 +264,7 @@ test("notice preview scans synthetic rows without issuing official notices", asy
     const absent = document.querySelector('#saNoticeTypeFilters input[data-sa-notice-type="absent"]');
     if (!absent) throw new Error("Absent filter was not rendered for permitted synthetic scope");
     absent.checked = true;
+    window.print = () => { document.body.dataset.qaNoticePrint = "true"; };
     await saGenerateAutomaticNotices();
   }, dates);
 
@@ -264,6 +276,12 @@ test("notice preview scans synthetic rows without issuing official notices", asy
   expect(history).toHaveLength(1);
   expect(history[0].notice_classes).toEqual(["QA_ONLY_CLASS"]);
   await expect(page.locator("#saNoticePreviewPanel")).not.toHaveClass(/hidden/);
+  const printState = await page.evaluate(() => ({
+    triggered: document.body.dataset.qaNoticePrint === "true",
+    layoutOnly: document.getElementById("saNoticePreviewPanel").classList.contains("sa-notice-layout-only"),
+    visibility: getComputedStyle(document.getElementById("saNoticePreviewPanel")).visibility,
+  }));
+  expect(printState).toEqual({ triggered: true, layoutOnly: true, visibility: "hidden" });
   await expect(page.locator("#saNoticePreviewSummary")).toContainText("عدد الطلاب المستحقين: 1");
   await expect(page.locator("#saNoticePreviewSummary")).toContainText("المخالفات الجديدة المحتسبة: 2");
   const generated = await page.evaluate(() => ({
@@ -307,6 +325,7 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
     return {
       ready,
       previewVisible: !panel.classList.contains("hidden"),
+      screenVisibility: getComputedStyle(panel).visibility,
       pageCount: pages.length,
       cardCounts: pages.map(item => item.querySelectorAll(".sa-notice-card").length),
       capacities: pages.map(item => Number(item.dataset.capacity)),
@@ -318,6 +337,7 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
   });
   expect(result.ready).toBe(true);
   expect(result.previewVisible).toBe(true);
+  expect(result.screenVisibility).toBe("hidden");
   expect(result.pageCount).toBe(1);
   expect(result.cardCounts).toEqual([3]);
   expect(result.cardDisplay).toBe("block");
@@ -447,4 +467,23 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
   expect(result.hasSignatures).toBe(true);
   expect(result.failed).toBe(false);
   expect(result.fontSize).toBeGreaterThanOrEqual(14);
+});
+
+
+test("Student Affairs report view is replaced by PDF export and no competition refresh button", async ({ page }) => {
+  await openIsolatedApp(page);
+  const state = await page.evaluate(() => ({
+    viewButton: document.getElementById("saViewButton"),
+    summaryHidden: document.getElementById("saSummary").classList.contains("hidden"),
+    resultsHidden: document.getElementById("saResults").classList.contains("hidden"),
+    competitionRefresh: [...document.querySelectorAll("#saCompetitionPanel button")].some(button => button.textContent.includes("تحديث النتائج")),
+    autoNote: document.getElementById("saCompetitionPanel").innerText.includes("1:50 ظهراً"),
+    autoLoadsPreview: /saLoadReport\\(\\)/.test(saSetDomain.toString()),
+  }));
+  expect(state.viewButton).toBeNull();
+  expect(state.summaryHidden).toBe(true);
+  expect(state.resultsHidden).toBe(true);
+  expect(state.competitionRefresh).toBe(false);
+  expect(state.autoNote).toBe(true);
+  expect(state.autoLoadsPreview).toBe(false);
 });
