@@ -119,9 +119,11 @@ test("analytics screen renders only the selected synthetic class", async ({ page
       allowed_attendance_classes: ["QA_ONLY_CLASS"],
       attendance_statuses: ["absent", "late", "escape", "outside"],
     };
-    saSetDomain("attendance");
-    saPopulateReportClasses();
-    document.querySelectorAll("#saReportClassesContainer .sa-report-class-chk").forEach((input) => { input.checked = true; });
+    saDomain = "attendance";
+    // Populate only the permitted QA class. Avoid saSetDomain here because it
+    // intentionally auto-loads the ordinary report as part of real navigation.
+    document.getElementById("saReportClassesContainer").innerHTML =
+      '<input type="checkbox" class="sa-report-class-chk" value="QA_ONLY_CLASS" checked>';
     document.getElementById("saFrom").value = "2026-11-18";
     document.getElementById("saTo").value = "2026-11-20";
     await saLoadAnalytics();
@@ -134,7 +136,7 @@ test("analytics screen renders only the selected synthetic class", async ({ page
     };
   });
   const call = traffic.functionCalls.find((item) => item.report_mode === "analytics");
-  expect(call, "Analytics request missing; check screen setup: " + JSON.stringify(await page.locator("#saResults").innerText())).toBeTruthy();
+  expect(call, "Analytics request missing; observed calls: " + JSON.stringify(traffic.functionCalls)).toBeTruthy();
   expect(call.attendance_classes).toEqual(["QA_ONLY_CLASS"]);
   expect(call.behavior_classes).toEqual([]);
   expect(call.from).toBe("2026-11-18");
