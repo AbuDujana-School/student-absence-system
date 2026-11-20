@@ -4934,7 +4934,7 @@ function saNoticeRenderPreview(students,perPage=3){
       });
       const summary=document.getElementById("saNoticePreviewSummary");
       if(summary){
-        summary.textContent=summary.textContent.replace(/صفحات A4 \\([^)]*\\):\\s*[\\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pages.length);
+        summary.textContent=summary.textContent.replace(/صفحات A4 \([^)]*\):\s*[\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pages.length);
       }
       if(failed){
         saNoticeSetStatus("يوجد إشعار أطول من صفحة A4 أو تعذر قياس ارتفاعه الطبيعي. أوقفنا الطباعة حفاظاً على اكتمال جميع التفاصيل؛ لم تُحذف أي مخالفة.",true);
