@@ -9,7 +9,7 @@ Design contract only. The vault is not connected to the school application. This
 1. A vault entry is bound to one principal (type and exact account name), one browser origin/profile, and a bounded expiry.
 2. The stored AES-GCM key is non-extractable and the key plus ciphertext are written in one IndexedDB transaction. The current prototype uses one envelope slot; saving another principal replaces that slot.
 3. The browser must never receive a reusable PIN verifier from the credential gateway as the final architecture. Encrypting a PIN hash in IndexedDB does not make it safe from malicious same-origin JavaScript or XSS.
-4. No fresh offline PIN login for an arbitrary account is permitted by this design. Offline restoration must be a continuation of a previously authenticated, device-bound session, not a way to authenticate a new principal.
+4. This prototype does not implement or alter offline PIN login. Before integration, the school workflow must explicitly decide how the existing teacher login behavior (including any supported offline PIN use) is preserved. No existing login path may be removed, frozen, or changed without an equivalent replacement that has passed preview testing and is explicitly approved.
 5. A failed, missing, corrupt, expired, or mismatched vault must fail closed. It must not silently fall back to a broad credential snapshot or weaker legacy verifier path.
 6. Local attendance, behavior, roster, and pending-change data are separate from this credential vault. Clearing credentials must not delete school records or dirty/pending school data.
 
@@ -25,7 +25,7 @@ Design contract only. The vault is not connected to the school application. This
 ### Offline continuation
 
 - Permit only restoration of the same principal's previously established device session.
-- Do not offer a fresh offline PIN login or allow a cached teacher roster to authenticate a different account.
+- Do not connect this prototype to the login flow. Existing online and offline teacher login behavior remains untouched until a safe, equivalent replacement is implemented and accepted.
 - Enforce the eight-hour maximum lifetime in the current prototype; shorter server-issued expiries take precedence.
 - Explain in product behavior that offline revocation cannot be learned immediately while disconnected. The maximum offline exposure window must be explicitly accepted before rollout.
 
@@ -61,7 +61,7 @@ A non-extractable WebCrypto key stored by IndexedDB is protected from straightfo
 
 ## Acceptance gates before integration
 
-- Decide whether fresh offline PIN login is a required school workflow. If it is, design a reviewed alternative that does not return reusable PIN verifiers to the browser; do not assume encryption alone resolves this.
+- Document the current teacher login contract, including any supported offline PIN behavior, and preserve it. If a replacement is needed, it must provide equivalent behavior without exposing reusable PIN verifiers and must pass preview tests before the existing path can be changed.
 - Implement the server-issued device/session capability and credential epoch.
 - Test online login, existing-session restore, explicit logout, temporary app close, PIN rotation, account disablement, expiry, profile reset, multi-account switching, reconnect, and revoked-session behavior in a real browser.
 - Test admin, teacher, and custom roles without changing their permissions or class scopes.
