@@ -75,7 +75,7 @@ Deno.test("competition term calendar and visibility settings use one database re
   const end = edgeIndex.indexOf("async function buildTermCompetitionSnapshot", start);
   assert(start >= 0 && end > start, "Could not locate competition term settings reader");
   const reader = edgeIndex.slice(start, end);
-  const tableReads = reader.match(/db\\.from\\("school_settings"\\)/g) || [];
+  const tableReads = reader.match(/db\.from\("school_settings"\)/g) || [];
   assert(tableReads.length === 1, "Competition settings must use one school_settings request");
   assert(reader.includes('.select("key,value")'), "The combined request must retrieve only key and value");
   assert(reader.includes('.in("key", ["competition_term_calendar", "competition_visibility_mode"])'), "The combined request must fetch both required settings");
