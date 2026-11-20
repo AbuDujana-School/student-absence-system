@@ -1266,7 +1266,22 @@
   window.substitutionLoadHomeTodayAssignments = async function() {
     const host=$("substitutionTodayAssignmentsResults");if(!host)return false;
     if(reserveHomeTodayLoadPromise)return reserveHomeTodayLoadPromise;
-    const today=timetableSubstitutionGetDate().date;
+    let today = "";
+    try {
+      today = timetableSubstitutionGetDate().date;
+    } catch (error) {
+      const validationMessage = String(error?.message || "");
+      if (validationMessage.includes("الاحتياط متاح لأيام الدراسة من الأحد إلى الخميس فقط.")) {
+        const notice = "لا توجد تكليفات احتياط في أيام العطلة الأسبوعية.";
+        host.innerHTML = '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">'+esc(notice)+'</div>';
+        setHomeTodayStatus(notice,"info");
+        return false;
+      }
+      const notice = validationMessage || "تعذر تحديد تاريخ تكليفات اليوم.";
+      host.innerHTML = '<div class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs text-amber-800">'+esc(notice)+'</div>';
+      setHomeTodayStatus(notice,"error");
+      return false;
+    }
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token){
       const message="تعذر التحقق من جلسة الدخول. أعد تسجيل الدخول ثم حدّث القائمة.";
