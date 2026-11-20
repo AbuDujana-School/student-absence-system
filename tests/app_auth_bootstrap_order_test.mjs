@@ -51,8 +51,9 @@ test("online cloud reads require an unexpired server-issued app session before a
 
 test("online cloud writes require an unexpired server-issued app session", () => {
   const start = html.indexOf("async function saveSystemDataToCloud(options = {})");
-  assert.ok(start >= 0);
-  const save = html.slice(start, start + 1500);
+  const end = html.indexOf("async function checkExistingSession()", start);
+  assert.ok(start >= 0 && end > start);
+  const save = html.slice(start, end);
   const guard = save.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
   const upload = save.indexOf("const syncSnapshotDb");
   assert.ok(guard >= 0 && upload > guard);
