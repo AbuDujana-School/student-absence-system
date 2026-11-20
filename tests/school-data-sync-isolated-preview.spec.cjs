@@ -74,6 +74,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   const functionActions = [];
   const gatewayReads = [];
   const gatewayWrites = [];
+  const credentialWrites = [];
   const legacyWrites = [];
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
@@ -126,6 +127,17 @@ test("school sync projections and timetable access reads stay isolated and minim
         gatewayWrites.push({ table: payload.table, rows: payload.rows || [],
           authorization: request.headers()["authorization"] || "" });
         await route.fulfill({ status: 200, headers, body: JSON.stringify({ saved: (payload.rows || []).length }) });
+        return;
+      }
+      if (payload.action === "app_data_gateway_credentials_write") {
+        credentialWrites.push({
+          target_type: payload.target_type,
+          target_name: payload.target_name,
+          hash: payload.hash,
+          salt: payload.salt,
+          authorization: request.headers()["authorization"] || ""
+        });
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ updated: true }) });
         return;
       }
       unexpectedSupabaseTraffic.push({ method, path: url.pathname, action: payload.action || "" });
@@ -401,16 +413,25 @@ test("school sync projections and timetable access reads stay isolated and minim
   const reconnectSync = await page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    db.adminPin = { hash: "a".repeat(64), salt: "b".repeat(32) };
+    dirtySets.admin_pin = true;
     const saved = await saveSystemDataToCloud({ manual: true, silent: true });
     return {
       saved,
       dirty: dirtySets.attendance.has("QA_ONLY_OFFLINE_ATTENDANCE"),
+      pinDirty: dirtySets.admin_pin,
       record: db.attendance["QA_ONLY_OFFLINE_ATTENDANCE"]?.records?.QA_ONLY_STUDENT
     };
   });
   expect(reconnectSync.saved, "Queued offline data must upload after reconnect").toBe(true);
   expect(reconnectSync.dirty, "Dirty key clears only after gateway acknowledgement").toBe(false);
+  expect(reconnectSync.pinDirty, "Admin PIN dirty flag clears only after credential acknowledgement").toBe(false);
   expect(reconnectSync.record).toBe("absent");
+  expect(credentialWrites).toHaveLength(1);
+  expect(credentialWrites[0].target_type).toBe("admin");
+  expect(credentialWrites[0].target_name).toBe("QA_ONLY_ADMIN");
+  expect(credentialWrites[0].hash).toBe("a".repeat(64));
+  expect(credentialWrites[0].salt).toBe("b".repeat(32));
   expect(gatewayWrites.length).toBe(writesBeforeReconnect + 1);
   expect(gatewayWrites.at(-1).table).toBe("attendance");
   expect(gatewayWrites.at(-1).rows[0].record_key).toBe("QA_ONLY_OFFLINE_ATTENDANCE");
