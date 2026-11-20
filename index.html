@@ -830,6 +830,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="student-affairs-pdf-only-output">#studentAffairsView #saViewButton{display:none!important}#studentAffairsView #saSummary,#studentAffairsView #saResults{display:none!important}</style>
 <style id="student-affairs-glass-controls">
 #studentAffairsView .sa-glass-panel{position:relative;overflow:hidden;padding:clamp(16px,3vw,24px);border:1px solid rgba(22,140,133,.2);border-radius:24px;background:linear-gradient(145deg,rgba(255,255,255,.97),rgba(239,248,249,.94));box-shadow:0 16px 42px -24px rgba(24,54,83,.28),inset 0 1px 0 rgba(255,255,255,.9)}
 #studentAffairsView .sa-glass-panel:before{content:"";position:absolute;inset:0 0 auto;height:4px;background:linear-gradient(90deg,#d5a64a,#168c85,#183653)}
@@ -4659,6 +4660,7 @@ function saOpenNoticeModal(){
   document.getElementById("saNoticeDelivered").checked=false;
   saNoticeRenderTypeFilters(saNoticeGetTargetContext().permissions);saNoticeRefreshPrintAction();
   document.getElementById("saNoticePreviewPanel").classList.add("hidden");
+  document.getElementById("saNoticePrintAction")?.classList.add("hidden");
   document.getElementById("saNoticeStatus").classList.add("hidden");
   const noticeModal=document.getElementById("saNoticeModal");
   // Move the modal out of nested app panels/stacking contexts so the fixed
@@ -5007,13 +5009,12 @@ async function saGenerateAutomaticNotices(){
     const qualifying=built.students.filter(student=>student.events.length>=threshold);
     saNoticeLastGenerated=qualifying;saNoticeLastHistory=historyRows;saNoticeCurrentIssueDate=issueDate;
     saNoticeLastSettings={classes,attendanceClasses,behaviorClasses,selectedTypes,threshold,issuedOn:issueDate,rangeFrom,rangeTo,supervisionTeacherName};
-    const preview=document.getElementById("saNoticePreviewPanel");
     if(!qualifying.length){
       document.getElementById("saNoticePrintRoot").innerHTML="";
       saNoticeSetStatus("اكتمل الفحص دون وجود طلاب مستحقين لتنبيه جديد حتى تاريخ "+issueDate+".",false);
       document.getElementById("saNoticePrintAction")?.classList.add("hidden");
     }else{
-      const pages=saNoticeRenderPreview(qualifying),eventTotal=qualifying.reduce((sum,x)=>sum+x.events.length,0);
+      const pages=saNoticeRenderPreview(qualifying);
       document.getElementById("saNoticePrintAction")?.classList.remove("hidden");
       saNoticeSetStatus("اكتمل تجهيز "+qualifying.length+" تنبيهاً في "+pages+" صفحة PDF. استُبعدت المخالفات التي سبق إدراجها في تنبيهات رسمية، وحُدد رقم التنبيه التالي لكل طالب.",false);
     }
