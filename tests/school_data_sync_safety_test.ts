@@ -415,7 +415,7 @@ Deno.test("verified secure sessions reuse server-returned permissions without a 
 
 
 Deno.test("reconnect restores cloud readiness before retrying or manually uploading offline edits", () => {
-  const events = section("const resumeCloudSync =", "});\\n\\nfunction initDarkMode()");
+  const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
   const resumeStart = events.indexOf("const resumeCloudSync =");
   const resumeEnd = events.indexOf("window.addEventListener('online'", resumeStart);
   const resume = events.slice(resumeStart, resumeEnd);
