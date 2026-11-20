@@ -1,4 +1,5 @@
 const source = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
+const authSource = await Deno.readTextFile(new URL("../session_auth.ts", import.meta.url));
 
 function section(start: string, end: string): string {
   const from = source.indexOf(start);
@@ -71,5 +72,23 @@ Deno.test("request handler reuses the principal snapshot instead of issuing dupl
 Deno.test("timetable edge function caches successful CORS preflight responses", () => {
   if (!source.includes('"Access-Control-Max-Age": "600"')) {
     throw new Error("CORS preflight cache lifetime must be configured");
+  }
+});
+
+
+Deno.test("duty context performs one authoritative duty-module check", () => {
+  const duty = section("async hasDutyReportAccess(", "async canReadDutyReportContext(");
+  if (!duty.includes("checkCurrentDay = true")) {
+    throw new Error("Duty permission lookup must support skipping the preliminary day check");
+  }
+  if (!duty.includes("if (!checkCurrentDay) return true")) {
+    throw new Error("Duty context must defer its only duty-module read to the authoritative period check");
+  }
+  const authStart = authSource.indexOf("export async function resolveTimetablePrincipal(");
+  const authEnd = authSource.indexOf("export function canUseTimetableAction(", authStart);
+  if (authStart < 0 || authEnd <= authStart) throw new Error("Missing timetable principal resolver");
+  const resolver = authSource.slice(authStart, authEnd);
+  if (!resolver.includes('requestedAction !== "timetable_duty_report_context"')) {
+    throw new Error("The resolver must skip the preliminary duty-module read for the context action");
   }
 });
