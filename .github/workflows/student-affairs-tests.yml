@@ -824,6 +824,16 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_data_gateway_credentials_handler.ts
       - name: Run protected offline credential gateway tests
         run: deno test supabase/functions/student-affairs/app_data_gateway_credentials_handler_test.ts
+      - name: Type-check device-scoped offline credential vault
+        run: deno check supabase/functions/student-affairs/app_offline_credential_vault.ts
+      - name: Test device-scoped offline credential vault
+        run: deno test supabase/functions/student-affairs/app_offline_credential_vault_test.ts
+      - name: Install Chromium browser-test dependencies
+        run: |
+          npm install --no-save @playwright/test esbuild
+          npx playwright install --with-deps chromium
+      - name: Test device-scoped vault in real Chromium IndexedDB
+        run: npx playwright test tests/offline-credential-vault-browser.spec.cjs --reporter=line
       - name: Verify deployed preview gateway rejects missing and unknown app sessions
         if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || github.ref == 'refs/heads/fix/integrated-school-sync-hardening-final-20261120' || github.ref == 'refs/heads/fix/issue-325-authenticated-write-gateway-20261120' || (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119' || github.event.pull_request.head.ref == 'fix/integrated-school-sync-hardening-final-20261120' || github.event.pull_request.head.ref == 'fix/issue-325-authenticated-write-gateway-20261120'))
         env:
