@@ -165,3 +165,131 @@ export async function openOfflineCredentialSnapshot(
     return null;
   }
 }
+
+
+export type OfflineCredentialVaultEntries = {
+  key: CryptoKey | null;
+  envelope: OfflineCredentialEnvelope | null;
+};
+
+export interface OfflineCredentialVaultStore {
+  read(): Promise<OfflineCredentialVaultEntries>;
+  write(key: CryptoKey, envelope: OfflineCredentialEnvelope): Promise<void>;
+  clear(): Promise<void>;
+}
+
+function idbRequest<T>(request: IDBRequest<T>): Promise<T> {
+  return new Promise((resolve, reject) => {
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error || new Error("Offline credential vault request failed."));
+  });
+}
+
+function idbTransactionDone(transaction: IDBTransaction): Promise<void> {
+  return new Promise((resolve, reject) => {
+    transaction.oncomplete = () => resolve();
+    transaction.onabort = () => reject(transaction.error || new Error("Offline credential vault transaction aborted."));
+    transaction.onerror = () => reject(transaction.error || new Error("Offline credential vault transaction failed."));
+  });
+}
+
+/**
+ * IndexedDB adapter. The non-extractable CryptoKey and its encrypted envelope
+ * are committed together in one origin/browser-profile database transaction.
+ * Do not copy either entry to localStorage, export the key, or sync this database.
+ */
+export function createIndexedDbOfflineCredentialVaultStore(
+  factory: IDBFactory = indexedDB,
+  databaseName = "abuDujanaCredentialVault",
+): OfflineCredentialVaultStore {
+  let databasePromise: Promise<IDBDatabase> | null = null;
+  const openDatabase = (): Promise<IDBDatabase> => {
+    if (!databasePromise) {
+      databasePromise = new Promise((resolve, reject) => {
+        const request = factory.open(databaseName, 1);
+        request.onupgradeneeded = () => {
+          const database = request.result;
+          if (!database.objectStoreNames.contains("vault")) database.createObjectStore("vault");
+        };
+        request.onsuccess = () => {
+          const database = request.result;
+          database.onversionchange = () => {
+            database.close();
+            databasePromise = null;
+          };
+          resolve(database);
+        };
+        request.onerror = () => {
+          databasePromise = null;
+          reject(request.error || new Error("Unable to open offline credential vault."));
+        };
+        request.onblocked = () => {
+          databasePromise = null;
+          reject(new Error("Offline credential vault is blocked by another browser tab."));
+        };
+      });
+    }
+    return databasePromise;
+  };
+
+  return {
+    async read() {
+      const database = await openDatabase();
+      const transaction = database.transaction("vault", "readonly");
+      const done = idbTransactionDone(transaction);
+      const store = transaction.objectStore("vault");
+      const [key, envelope] = await Promise.all([
+        idbRequest(store.get("device-key") as IDBRequest<CryptoKey | undefined>),
+        idbRequest(store.get("envelope") as IDBRequest<OfflineCredentialEnvelope | undefined>),
+      ]);
+      await done;
+      return { key: key ?? null, envelope: envelope ?? null };
+    },
+    async write(key, envelope) {
+      const database = await openDatabase();
+      const transaction = database.transaction("vault", "readwrite");
+      const done = idbTransactionDone(transaction);
+      const store = transaction.objectStore("vault");
+      store.put(key, "device-key");
+      store.put(envelope, "envelope");
+      await done;
+    },
+    async clear() {
+      const database = await openDatabase();
+      const transaction = database.transaction("vault", "readwrite");
+      const done = idbTransactionDone(transaction);
+      transaction.objectStore("vault").clear();
+      await done;
+    },
+  };
+}
+
+/** Save an encrypted snapshot and non-extractable key into the same device profile. */
+export async function saveOfflineCredentialVault(
+  snapshot: unknown,
+  principal: OfflineCredentialPrincipal,
+  store: OfflineCredentialVaultStore,
+  options: { now?: number; ttlMs?: number; cryptoProvider?: Crypto } = {},
+): Promise<OfflineCredentialEnvelope> {
+  const existing = await store.read();
+  const key = existing.key ?? await createOfflineCredentialVaultKey(options.cryptoProvider ?? crypto);
+  const envelope = await sealOfflineCredentialSnapshot(snapshot, principal, key, options);
+  await store.write(key, envelope);
+  return envelope;
+}
+
+/** Restore only the same principal's unexpired snapshot from this browser profile. */
+export async function restoreOfflineCredentialVault(
+  principal: OfflineCredentialPrincipal,
+  store: OfflineCredentialVaultStore,
+  options: { now?: number; cryptoProvider?: Crypto } = {},
+): Promise<Record<string, unknown> | null> {
+  const entries = await store.read();
+  if (!entries.key || !entries.envelope) return null;
+  return await openOfflineCredentialSnapshot(entries.envelope, principal, entries.key, options);
+}
+
+/** Explicit logout/device revocation should call this to remove the local vault key and envelope. */
+export async function clearOfflineCredentialVault(store: OfflineCredentialVaultStore): Promise<void> {
+  await store.clear();
+}
