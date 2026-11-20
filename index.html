@@ -84,22 +84,24 @@
  body.sa-student-profile-print-mode .sa-student-profile-doc tr{break-inside:avoid;page-break-inside:avoid}
 }
 @media print{
- @page{size:A4 portrait;margin:5mm}
+ @page{size:A4 portrait;margin:0}
  html,body{margin:0!important;padding:0!important;background:#fff!important;width:100%!important;min-height:0!important}
  body.sa-notice-print-mode *{visibility:hidden!important}
  body.sa-notice-print-mode #saNoticeModal,
  body.sa-notice-print-mode #saNoticeModal *{visibility:visible!important}
- body.sa-notice-print-mode #saNoticeModal{display:block!important;position:absolute!important;inset:0!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;background:#fff!important}
+ body.sa-notice-print-mode #saNoticeModal{display:block!important;position:static!important;inset:auto!important;width:100%!important;height:auto!important;max-height:none!important;overflow:visible!important;padding:0!important;margin:0!important;background:#fff!important}
  body.sa-notice-print-mode #saNoticeModal .sa-notice-dialog{display:block!important;width:100%!important;max-width:none!important;max-height:none!important;overflow:visible!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;box-shadow:none!important;background:#fff!important}
  body.sa-notice-print-mode .sa-notice-config,
  body.sa-notice-print-mode .sa-notice-toolbar,
  body.sa-notice-print-mode .sa-notice-screen-summary{display:none!important}
  body.sa-notice-print-mode #saNoticePreviewPanel{display:block!important;margin:0!important;padding:0!important}
  body.sa-notice-print-mode #saNoticePrintRoot{display:block!important;width:100%!important;margin:0!important;padding:0!important}
- .sa-notice-page{box-sizing:border-box!important;width:100%!important;height:287mm!important;min-height:287mm!important;max-height:287mm!important;margin:0!important;padding:0!important;box-shadow:none!important;overflow:hidden!important;gap:1.4mm!important;break-after:page;page-break-after:always}
- .sa-notice-card{box-sizing:border-box!important;min-height:0!important;max-height:none!important;flex:1 1 0!important;overflow:hidden!important;padding-inline:1.8mm!important}
+ .sa-notice-page{box-sizing:border-box!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;margin:0!important;padding:5mm!important;box-shadow:none!important;overflow:hidden!important;gap:1.4mm!important;break-inside:avoid!important;page-break-inside:avoid!important;break-after:page;page-break-after:always}
+ .sa-notice-card{box-sizing:border-box!important;min-height:0!important;max-height:none!important;flex:1 1 0!important;overflow:hidden!important;padding-inline:1.8mm!important;break-inside:avoid!important;page-break-inside:avoid!important;break-before:auto!important;break-after:auto!important}
  .sa-notice-card .notice-items li{white-space:normal!important;overflow-wrap:anywhere!important;word-break:normal!important}
- .sa-notice-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ #saNoticePrintRoot>.sa-notice-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ #saNoticePrintRoot>.sa-notice-page .sa-notice-card,
+ #saNoticePrintRoot>.sa-notice-page .sa-notice-card *{break-inside:avoid!important;page-break-inside:avoid!important}
  .sa-notice-card.fit-tight .notice-items li{margin:.5mm 0!important}
  .sa-notice-card.fit-tight .notice-intro,.sa-notice-card.fit-tight .notice-conclusion{margin:.7mm 0!important}
  .sa-notice-card.fit-tight .notice-signatures{margin-top:1mm!important}
@@ -4695,19 +4697,16 @@ function saNoticeFitCards(scope){
     const baseFont=12;
     const levels=[
       {shrink:0,line:1.42,item:1.25,block:1.15,pad:2.6},
-      {shrink:.25,line:1.36,item:1.0,block:.95,pad:2.2},
-      {shrink:.5,line:1.30,item:.75,block:.75,pad:1.8},
-      {shrink:.8,line:1.24,item:.5,block:.5,pad:1.4},
-      {shrink:1.1,line:1.18,item:.3,block:.35,pad:1.1},
-      {shrink:1.5,line:1.14,item:.2,block:.25,pad:.9},
-      {shrink:2.0,line:1.11,item:.12,block:.18,pad:.7},
-      {shrink:2.6,line:1.08,item:.08,block:.12,pad:.5},
-      {shrink:3.2,line:1.06,item:.04,block:.08,pad:.4}
+      {shrink:.25,line:1.38,item:1.0,block:1.0,pad:2.3},
+      {shrink:.5,line:1.34,item:.8,block:.8,pad:2.0},
+      {shrink:.8,line:1.30,item:.6,block:.65,pad:1.8},
+      {shrink:1.1,line:1.26,item:.45,block:.5,pad:1.6},
+      {shrink:1.5,line:1.22,item:.35,block:.4,pad:1.4}
     ];
     let fitted=false;
     for(let i=0;i<levels.length;i++){
       const level=levels[i];
-      const fontSize=Math.max(8.4,baseFont-level.shrink);
+      const fontSize=Math.max(10.5,baseFont-level.shrink);
       card.style.setProperty("font-size",fontSize+"pt","important");
       card.style.setProperty("--notice-line-height",String(level.line));
       card.style.setProperty("--notice-item-gap",level.item+"mm");
