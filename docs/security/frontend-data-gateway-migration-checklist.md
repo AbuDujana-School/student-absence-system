@@ -107,3 +107,15 @@ Use synthetic preview data only. Run each case for admin, teacher, and custom ac
 - The client requires a full saved-row acknowledgement before the sync caller clears dirty keys. Network/authorization failures throw before dirty-key clearing, preserving the local retry queue.
 - Isolated Playwright Chromium test covers admin writes, teacher attendance writes, custom behavior writes, session/principal mismatch rejection, and offline dirty-state retention.
 - CI on commit `6d6c42f2`: isolated browser regression, Student Affairs backend tests, and timetable management tests all passed.
+
+
+### Remaining migration gates after stage 3
+
+1. **Teacher/custom classes and students reads:** the current resolver derives class scope from the active timetable plus explicit grants. Before switching these reads, prove that this covers the exact classes each existing teacher/custom account needs for attendance screens, including periods with no active timetable and legacy class assignments. Do not replace the current data with an empty scoped roster until that parity is demonstrated.
+2. **Duty reports:** teachers can submit reports during their assigned duty day/period, and the UI currently replaces prior same-period reports through queued deletes. The generic gateway correctly does not permit teacher writes or deletes. Implement a dedicated server-authoritative submit/replace action that rechecks the Oman date, duty-day assignment, period grace window, class list, and reporter identity; do not accept client-supplied reported_by, status, or reviewer fields.
+3. **Duty review:** administrators may review/update status and reviewer fields through the existing admin gateway path, but teacher submission and old-report replacement must remain separate actions.
+4. **Teacher roster and PINs:** the current loader needs verifier material for legacy offline PIN login. Keep the current path until device-scoped offline restore, PIN rotation/revocation, account switching, and reconnect behavior pass real-browser tests. Do not remove or weaken existing teacher login.
+5. **Settings:** split duty_module and custom_categories into narrow key-specific actions. Never expose admin_pin through generic settings reads/writes.
+6. **Deletes/transfers/renames:** existing tombstones and queued delete intents remain blocked by the gateway. A dedicated transaction and rollback plan is required before migration.
+
+These are intentional security/compatibility gates, not unfinished automatic fallbacks. No production cutover is permitted while any gate remains open.
