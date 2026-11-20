@@ -5155,7 +5155,7 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
       try {
         let matchObj = {};
         cols.forEach(c => { matchObj[c] = row[c]; });
-        let query = sb.from(table).select('*');
+        let query = sb.from(table).select(cols.join(',')).limit(1);
         for (const [k,v] of Object.entries(matchObj)) query = query.eq(k, v);
         const { data: existing, error: fetchErr } = await query;
         if (fetchErr) throw fetchErr;
