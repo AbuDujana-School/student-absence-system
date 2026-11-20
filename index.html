@@ -4913,7 +4913,7 @@ function saNoticeRenderPreview(students,perPage=3){
       pages.forEach(page=>page.classList.add("fit-natural"));
       const summary=document.getElementById("saNoticePreviewSummary");
       if(summary){
-        summary.textContent=summary.textContent.replace(/صفحات A4 \\([^)]*\\):\\s*[\\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pages.length);
+        summary.textContent=summary.textContent.replace(/صفحات A4 \([^)]*\):\s*[\d٠-٩]+/u,"صفحات A4 (حتى 3 طلاب): "+pages.length);
       }
       if(failed){
         root.querySelectorAll(".sa-notice-card").forEach(card=>{
