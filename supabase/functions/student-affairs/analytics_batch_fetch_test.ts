@@ -68,7 +68,6 @@ Deno.test("analytics reader falls back to per-class attendance reads when batch 
     { data: Array.from({ length: 5000 }, () => ({ class_name: "9/1" })), error: null, count: 5001 },
     { data: first, error: null, count: 11 },
     { data: second, error: null, count: 22 },
-    { data: [], error: null, count: 0 },
   ]);
 
   const result = await fetchAnalyticsBatch(db, classes, [], "2026-01-01", "2026-12-31");
