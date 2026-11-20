@@ -4858,14 +4858,14 @@ function saNoticeRenderPreview(students,perPage=3){
   root.innerHTML="";
   const PAGE_MM=287,GAP_MM=3,MAX_CARDS=3;
   const mmToPx=mm=>mm*96/25.4;
-  let pages=[],current=null,used=0;
+  let pages=[],current=null,used=0,cardsOnPage=0;
   const newPage=()=>{
     const section=document.createElement("section");
     section.className="sa-notice-page fit-natural";
     section.dataset.page=String(pages.length+1);
     section.dataset.capacity="3";
     root.appendChild(section);
-    pages.push(section);current=section;used=0;
+    pages.push(section);current=section;used=0;cardsOnPage=0;
   };
   const probe=document.createElement("div");
   probe.id="saNoticeProbe";
@@ -4895,7 +4895,7 @@ function saNoticeRenderPreview(students,perPage=3){
       cards.forEach(item=>{
         const heightMM=item.height*25.4/96;
         const gap=current.children.length?GAP_MM:0;
-        if(current.children.length>=MAX_CARDS||used+gap+heightMM>PAGE_MM){
+        if(cardsOnPage>=MAX_CARDS||used+gap+heightMM>PAGE_MM){
           newPage();
         }
         const actualGap=current.children.length?GAP_MM:0;
@@ -4906,6 +4906,7 @@ function saNoticeRenderPreview(students,perPage=3){
           current.appendChild(cut);
         }
         current.appendChild(item.card);
+        cardsOnPage++;
         used+=actualGap+heightMM;
       });
       probe.remove();
