@@ -3457,7 +3457,8 @@ function showPrompt(message, options = {}) {
 
 const SA_API_URL=window.STUDENT_AFFAIRS_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/student-affairs";
 const TIMETABLE_API_URL=window.TIMETABLE_MANAGEMENT_API_URL||"https://ylsocrvwqibptuwfzbke.supabase.co/functions/v1/timetable-management";
-const SA_API_KEY="sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
+// Keep Edge Function requests on the same project-specific key as the Supabase client.
+const SA_API_KEY=SUPABASE_ANON_KEY;
 let saSession=null,saAdminData=null,saLastReport=null,saCompetitionChart=null,saCompetitionData=null,saCompetitionPeriod="weekly",saCompetitionLoadSequence=0,saCompetitionSelectedTermId="",saCompetitionTerms=[],saCompetitionCurrentTermId="",saCompetitionShowBothTerms=false,saCompetitionSettingsLoaded=false,saSupervisionTrendChart=null,saSupervisionBehaviorChart=null,saSupervisionTeamData=null,saSupervisionScope="own";
 try{const saved=localStorage.getItem("abuDujana_studentAffairsSession")||sessionStorage.getItem("abuDujana_studentAffairsSession");if(saved){const parsed=JSON.parse(saved);if(parsed?.token&&parsed?.expires_at&&Date.parse(parsed.expires_at)>Date.now())saSession=parsed;else{saSession=null;localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}}}catch(e){saSession=null;}
 const SA_FLAGS=[["can_read_attendance","عرض تقارير الغياب"],["can_read_behavior","عرض تقارير السلوك"],["can_view_analytics","عرض التحليلات"],["can_view_competition","مشاهدة لوحة سباق التميز"],["can_print_attendance","طباعة الغياب"],["can_print_behavior","طباعة السلوك"],["can_print_combined","طباعة التقرير الموحّد"]];
