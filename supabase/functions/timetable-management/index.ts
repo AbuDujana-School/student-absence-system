@@ -169,11 +169,13 @@ const timetableAuthStore: TimetableAuthStore = {
       graceMinutes: dutySetting.value.graceMinutes,
     });
   },
-  async hasLinkedTeacherPortalAccess(name) {
+  async hasLinkedTeacherPortalAccess(name, action) {
     const { data: setting, error: settingError } = await db.from("teacher_timetable_portal_settings")
       .select("enabled,selected_teacher_names").eq("id", true).maybeSingle();
     if (settingError || setting?.enabled !== true) return false;
     if (!canAccessTeacherTimetablePortal(setting.enabled, setting.selected_teacher_names, name)) return false;
+    // These handlers perform the authoritative active-version/cell read themselves.
+    if (action === "timetable_check_access" || action === "teacher_timetable_get_own") return true;
     const { data: version, error: versionError } = await db.from("timetable_weekly_versions")
       .select("id").eq("status", "active").maybeSingle();
     if (versionError || !version) return false;
