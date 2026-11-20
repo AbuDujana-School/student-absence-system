@@ -395,6 +395,26 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(offlineSync.record).toBe("absent");
   await page.context().setOffline(false);
 
+  // Reconnect path: upload only the queued synthetic record through the
+  // authenticated gateway, then clear its dirty key only after acknowledgement.
+  const writesBeforeReconnect = gatewayWrites.length;
+  const reconnectSync = await page.evaluate(async () => {
+    activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    appAuthSession.principal = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    const saved = await saveSystemDataToCloud({ manual: true, silent: true });
+    return {
+      saved,
+      dirty: dirtySets.attendance.has("QA_ONLY_OFFLINE_ATTENDANCE"),
+      record: db.attendance["QA_ONLY_OFFLINE_ATTENDANCE"]?.records?.QA_ONLY_STUDENT
+    };
+  });
+  expect(reconnectSync.saved, "Queued offline data must upload after reconnect").toBe(true);
+  expect(reconnectSync.dirty, "Dirty key clears only after gateway acknowledgement").toBe(false);
+  expect(reconnectSync.record).toBe("absent");
+  expect(gatewayWrites.length).toBe(writesBeforeReconnect + 1);
+  expect(gatewayWrites.at(-1).table).toBe("attendance");
+  expect(gatewayWrites.at(-1).rows[0].record_key).toBe("QA_ONLY_OFFLINE_ATTENDANCE");
+
   expect(manifestCalls).toBe(3);
   expect(gatewayReads.length).toBe(7);
   expect(blockedWrites, "No unexpected REST writes may occur in isolated browser tests").toEqual([]);
