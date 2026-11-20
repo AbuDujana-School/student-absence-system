@@ -25,16 +25,16 @@ Deno.test("vault key is AES-GCM and non-extractable", async () => {
 Deno.test("credential snapshot is encrypted and restores for the same principal", async () => {
   const key = await createOfflineCredentialVaultKey();
   const snapshot = {
-    accounts: [{ name: teacher.name, pin_hash: "a".repeat(64), pin_salt: "b".repeat(32) }],
-    admin_pin: null,
+    displayName: teacher.name,
+    role: "teacher",
+    continuationContext: "synthetic-non-secret-fixture",
   };
   const envelope = await sealOfflineCredentialSnapshot(snapshot, teacher, key, {
     now: fixedNow,
     ttlMs: 60 * 60 * 1000,
   });
 
-  assertEquals(JSON.stringify(envelope).includes("pin_hash"), false);
-  assertEquals(JSON.stringify(envelope).includes("a".repeat(64)), false);
+  assertEquals(JSON.stringify(envelope).includes("synthetic-non-secret-fixture"), false);
   assertEquals(envelope.principal, teacher);
   assertEquals(envelope.expiresAt, fixedNow + 60 * 60 * 1000);
   assertEquals(
@@ -46,7 +46,7 @@ Deno.test("credential snapshot is encrypted and restores for the same principal"
 Deno.test("credential snapshot cannot be opened for a different account", async () => {
   const key = await createOfflineCredentialVaultKey();
   const envelope = await sealOfflineCredentialSnapshot(
-    { accounts: [{ name: teacher.name, pin_hash: "a".repeat(64) }] },
+    { displayName: teacher.name, role: "teacher" },
     teacher,
     key,
     { now: fixedNow },
@@ -57,7 +57,7 @@ Deno.test("credential snapshot cannot be opened for a different account", async 
 Deno.test("credential snapshot cannot be opened after expiry", async () => {
   const key = await createOfflineCredentialVaultKey();
   const envelope = await sealOfflineCredentialSnapshot(
-    { accounts: [{ name: teacher.name }] },
+    { displayName: teacher.name },
     teacher,
     key,
     { now: fixedNow, ttlMs: 5 * 60 * 1000 },
@@ -71,7 +71,7 @@ Deno.test("credential snapshot rejects tampering and a key from another device p
   const key = await createOfflineCredentialVaultKey();
   const anotherKey = await createOfflineCredentialVaultKey();
   const envelope = await sealOfflineCredentialSnapshot(
-    { accounts: [{ name: teacher.name, pin_hash: "a".repeat(64) }] },
+    { displayName: teacher.name, role: "teacher" },
     teacher,
     key,
     { now: fixedNow },
@@ -85,13 +85,13 @@ Deno.test("vault rejects invalid principals, excessive lifetime, and extractable
   const key = await createOfflineCredentialVaultKey();
   let invalidPrincipalRejected = false;
   try {
-    await sealOfflineCredentialSnapshot({ accounts: [] }, { type: "teacher", name: " " }, key, { now: fixedNow });
+    await sealOfflineCredentialSnapshot({ displayName: "synthetic-empty-fixture" }, { type: "teacher", name: " " }, key, { now: fixedNow });
   } catch { invalidPrincipalRejected = true; }
   assert(invalidPrincipalRejected);
 
   let excessiveTtlRejected = false;
   try {
-    await sealOfflineCredentialSnapshot({ accounts: [] }, teacher, key, {
+    await sealOfflineCredentialSnapshot({ displayName: "synthetic-empty-fixture" }, teacher, key, {
       now: fixedNow,
       ttlMs: 8 * 60 * 60 * 1000 + 1,
     });
@@ -105,11 +105,11 @@ Deno.test("vault rejects invalid principals, excessive lifetime, and extractable
   );
   let extractableKeyRejected = false;
   try {
-    await sealOfflineCredentialSnapshot({ accounts: [] }, teacher, extractableKey, { now: fixedNow });
+    await sealOfflineCredentialSnapshot({ displayName: "synthetic-empty-fixture" }, teacher, extractableKey, { now: fixedNow });
   } catch { extractableKeyRejected = true; }
   assert(extractableKeyRejected);
 
-  const validEnvelope = await sealOfflineCredentialSnapshot({ accounts: [] }, teacher, key, { now: fixedNow });
+  const validEnvelope = await sealOfflineCredentialSnapshot({ displayName: "synthetic-empty-fixture" }, teacher, key, { now: fixedNow });
   assertEquals(await openOfflineCredentialSnapshot(validEnvelope, teacher, extractableKey, { now: fixedNow + 1 }), null);
 });
 
@@ -125,14 +125,14 @@ Deno.test("IndexedDB store contract saves and restores only the same account's e
     },
     async clear() { key = null; envelope = null; },
   };
-  const snapshot = { accounts: [{ name: teacher.name, pin_hash: "a".repeat(64) }] };
+  const snapshot = { displayName: teacher.name, role: "teacher" };
   await saveOfflineCredentialVault(snapshot, teacher, store, {
     now: fixedNow,
     ttlMs: 30 * 60 * 1000,
   });
   assert(key);
   assert(envelope);
-  assertEquals(JSON.stringify(envelope).includes("pin_hash"), false);
+  assertEquals(JSON.stringify(envelope).includes("synthetic-non-secret-fixture"), false);
   assertEquals(
     await restoreOfflineCredentialVault(teacher, store, { now: fixedNow + 1 }),
     snapshot,
