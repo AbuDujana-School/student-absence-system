@@ -70,10 +70,10 @@ Deno.test("default PIN initialization and credential migration are not invoked a
 
 
 Deno.test("localStorage fallback restores pending edits before a successful cloud load", () => {
-  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
-  assert(restore.includes("localStorage.getItem('abuDujana_db_v30')"), "A missing IndexedDB snapshot must fall back to the localStorage database");
-  assert(restore.includes("loadDirtySetsFromLocal()"), "Fallback must restore dirty markers with the local database");
-  assert(restore.indexOf("db={...db,...localDb}") < restore.indexOf("return true"), "Fallback data must be restored before reporting success");
+  const fallback = section("function restoreLocalStorageOfflineSnapshot()", "async function restoreOfflineState()");
+  assert(fallback.includes("localStorage.getItem('abuDujana_db_v30')"), "A missing IndexedDB snapshot must fall back to the localStorage database");
+  assert(fallback.includes("loadDirtySetsFromLocal()"), "Fallback must restore dirty markers with the local database");
+  assert(fallback.indexOf("db={...db,...localDb}") < fallback.indexOf("return true"), "Fallback data must be restored before reporting success");
 });
 
 Deno.test("older pending attendance and behavior edits survive the local cache age filter", () => {
@@ -115,12 +115,13 @@ Deno.test("queued deletions remain local and are reapplied after cloud data is m
 
 Deno.test("local fallback snapshot carries its own dirty markers and pending deletions", () => {
   const localSave = section("function saveToLocalStorageSafe()", "function loadDirtySetsFromLocal()");
-  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue(");
   assert(localSave.includes("__offlineDirtySets: dirtyObj"), "The fallback database snapshot must carry its dirty markers atomically");
   assert(localSave.includes("__offlinePendingDeletes: pendingDeletes"), "The fallback database snapshot must carry queued deletions");
-  assert(restore.includes("const localDirtySets = localDb.__offlineDirtySets"), "Fallback restore must recover embedded dirty markers");
-  assert(restore.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
-  assert(restore.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
+  assert(localSave.includes("__offlineCloudSyncManifest: lastLoadedCloudManifest"), "The fallback database snapshot must carry its matching cloud revision manifest");
+  const fallback = section("function restoreLocalStorageOfflineSnapshot()", "async function restoreOfflineState()");
+  assert(fallback.includes("const localDirtySets = localDb.__offlineDirtySets"), "Fallback restore must recover embedded dirty markers");
+  assert(fallback.includes("restoreDirtySetsObject(localDirtySets)"), "Embedded dirty markers must be restored before cloud merge");
+  assert(fallback.includes("setPendingDeletes(localPendingDeletes)"), "Fallback restore must retain pending deletion intent");
 });
 
 
@@ -306,4 +307,59 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("pendingRecords && pendingDeletes"), "The status must detect simultaneous edits and queued deletions");
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
+});
+
+
+Deno.test("an empty successful permission-gateway response never falls back to direct teacher REST", () => {
+  const refresh = section("async function refreshActiveUserPermissions()", "async function finalizeLoginState()");
+  assert(refresh.includes("let allowLegacyFallback = !token"), "Legacy fallback must be disabled whenever an app session token exists");
+  assert(refresh.includes("allowLegacyFallback = false"), "A successful gateway response must permanently disable legacy fallback for this request");
+  assert(refresh.includes("allowLegacyFallback = true"), "Only an explicitly unsupported legacy deployment may re-enable fallback");
+  assert(refresh.includes("if (!data && allowLegacyFallback)"), "A missing teacher row after a successful gateway response must not trigger direct REST");
+  assert(refresh.includes("if (!isLegacyAuthEndpointUnavailable(gatewayError)) throw gatewayError"), "Expired or denied gateway sessions must fail closed without direct REST fallback");
+  const gatewaySuccess = refresh.indexOf("allowLegacyFallback = false");
+  const directRead = refresh.indexOf("sb.from('teachers')");
+  assert(gatewaySuccess >= 0 && directRead > gatewaySuccess, "Direct teacher REST must be gated behind explicit legacy compatibility only");
+});
+
+
+Deno.test("unauthenticated startup does not fetch protected school tables", () => {
+  const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
+  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
+  assert(!boot.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
+  const noUserGuard = load.indexOf("if (!activeUser)");
+  const secureSessionGuard = load.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
+  const manifestFetch = load.indexOf("fetchAppSyncManifest()");
+  assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
+  assert(secureSessionGuard > noUserGuard && secureSessionGuard < localRestore, "Online reads must require a validated secure application session");
+  assert(localRestore < manifestFetch, "The manifest request may occur only after the authentication guards");
+});
+
+Deno.test("secure session validation completes before cloud loading begins", () => {
+  const check = section("async function checkExistingSession()", "async function handleUserLogin(e)");
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord(");
+  const validate = check.indexOf("appAuthRequest({ action: \"app_session\" }, appToken)");
+  const activate = check.indexOf("activeUser = result.principal");
+  const finalize = check.indexOf("await finalizeLoginState()");
+  assert(validate >= 0 && validate < activate && activate < finalize, "A stored app session must be validated before activating the principal");
+  const saveToken = login.indexOf("saveAppAuthSession(serverLogin)");
+  const loginFinalize = login.indexOf("await finalizeLoginState()");
+  assert(saveToken >= 0 && saveToken < loginFinalize, "A new secure token must be stored before loading protected school data");
+});
+
+
+
+
+Deno.test("online cloud saves without a secure session stay local and never upload", () => {
+  const save = section("async function saveSystemDataToCloud(options = {})", "async function checkExistingSession()");
+  const guard = save.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const localSave = save.indexOf("saveToLocalStorageSafe()", guard);
+  const durableSave = save.indexOf("await persistOfflineState()", localSave);
+  const noUpload = save.indexOf("return false;", durableSave);
+  const upload = save.indexOf("const syncSnapshotDb");
+  assert(guard >= 0 && localSave > guard && durableSave > localSave, "Unauthenticated cloud saves must persist local changes first");
+  assert(noUpload > durableSave && upload > noUpload, "Unauthenticated saves must return before any cloud upload snapshot is created");
 });

@@ -9,6 +9,9 @@ import {
   type AppLoginCandidate, type AppPrincipal,
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
+import { type AppDataScope } from "./app_data_gateway_policy.ts";
+import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
+import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -560,8 +563,10 @@ async function finalizeCompetitionWeek() {
     return { ok: true, alreadyFinalized: true, weekStart: range.start, status: "complete" };
   }
   const principal = { type: "admin" as const, name: "مدير النظام العام" };
-  const permissions = await permissionsFor(principal, true);
-  const snapshot = await buildCompetitionSnapshot(principal, permissions, range.start, range.end, "weekly");
+  // The finalizer is always an admin. buildCompetitionSnapshot loads its own
+  // classes, teachers, and permission inputs, so permissionsFor(admin) here
+  // only repeats those same reads without changing the admin result.
+  const snapshot = await buildCompetitionSnapshot(principal, {}, range.start, range.end, "weekly");
   if (snapshot.status === "configuration_incomplete") return { ok: true, status: "configuration_incomplete", weekStart: range.start };
   const finalizedAt = new Date().toISOString();
   const { error: saveError } = await db.from("competition_weekly_results").upsert({
@@ -749,6 +754,21 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
   return { from, to, period, today, isAdmin: principal.type === "admin", status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
+
+async function resolveAppDataScopeForPrincipal(principal: AppPrincipal): Promise<AppDataScope> {
+  return await resolveAppDataScope(principal, db);
+}
+
+async function readAppDataGateway(req: Request, body: any): Promise<Response> {
+  return await handleAppDataGatewayRead(req, body, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+    resolveScope: (principal) => resolveAppDataScopeForPrincipal(principal as AppPrincipal),
+  });
+}
+
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
   if (principal.type === "admin") return true;
   const { data, error } = await db.from("timetable_access_permissions")
@@ -777,6 +797,13 @@ async function handle(req: Request) {
     } catch (error) {
       console.error("General application login failed:", error);
       return reply(500, { error: "تعذر إتمام تسجيل الدخول حالياً" });
+    }
+  }
+  if (body?.action === "app_data_gateway_read") {
+    try { return await readAppDataGateway(req, body); }
+    catch (error) {
+      console.error("App data gateway read failed:", error);
+      return reply(500, { error: "تعذر تحميل البيانات المطلوبة حالياً." });
     }
   }
   if (body?.action === "admin_save_student_roster") {
@@ -1888,7 +1915,7 @@ async function handle(req: Request) {
     return reply(200, { ok: true, permissions: row });
   }
   if (body?.action === "competition_settings") {
-    const permissions = await permissionsFor(p, true);
+    const permissions = p.type === "admin" ? {} : await permissionsFor(p, true);
     if (p.type !== "admin" && permissions?.can_view_competition !== true) return reply(403, { error: "لا تملك صلاحية مشاهدة إعدادات البطولة." });
     const mode = String(body.mode || "read");
     if (mode === "save") {
@@ -1909,7 +1936,7 @@ async function handle(req: Request) {
     });
   }
   if (body?.action === "competition") {
-    const permissions = await permissionsFor(p, true);
+    const permissions = p.type === "admin" ? {} : await permissionsFor(p, true);
     if (p.type !== "admin" && permissions?.can_view_competition !== true) {
       return reply(403, { error: "لا تملك صلاحية مشاهدة لوحة سباق التميز." });
     }

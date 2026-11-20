@@ -3574,6 +3574,11 @@ function saveAppAuthSession(session) {
 }
 function readAppAuthToken() { try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; } }
 function clearAppAuthSession() { appAuthSession = null; try { sessionStorage.removeItem(APP_AUTH_SESSION_KEY); } catch (error) {} }
+function hasUnexpiredAppAuthSession() {
+  const session = appAuthSession;
+  return !!(session?.token && typeof session.expires_at === 'string' &&
+    Number.isFinite(Date.parse(session.expires_at)) && Date.parse(session.expires_at) > Date.now());
+}
 async function revokeAppAuthSession() { const token = appAuthSession?.token || readAppAuthToken(); if (!token) return; try { await appAuthRequest({ action: "app_logout" }, token); } catch (error) { console.warn("Unable to revoke application session immediately."); } }
 function saPopulateStatusFilter(){
   const container=document.getElementById("saStatusCheckboxesContainer");
@@ -5232,34 +5237,49 @@ async function persistOfflineState() {
     return true;
   } catch(error) { console.error('IndexedDB save failed:',error); return false; }
 }
+function restoreLocalStorageOfflineSnapshot() {
+  try {
+    const saved = localStorage.getItem('abuDujana_db_v30');
+    if (!saved) return false;
+    const localDb = JSON.parse(saved);
+    if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
+    const localDirtySets = localDb.__offlineDirtySets;
+    const localPendingDeletes = localDb.__offlinePendingDeletes;
+    lastLoadedCloudManifest = normalizeAppSyncManifest(localDb.__offlineCloudSyncManifest);
+    delete localDb.__offlineDirtySets;
+    delete localDb.__offlinePendingDeletes;
+    delete localDb.__offlineCloudSyncManifest;
+    db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
+    db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
+    if (localDirtySets) restoreDirtySetsObject(localDirtySets); else loadDirtySetsFromLocal();
+    if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
+    localStorageFallbackSnapshot = true;
+    return true;
+  } catch(error) {
+    console.warn('LocalStorage fallback restore failed:', error);
+    return false;
+  }
+}
 async function restoreOfflineState() {
   lastLoadedCloudManifest = null;
+  localStorageFallbackSnapshot = false;
   try {
     const database=await openOfflineDatabase();
     const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
     if(!snapshot?.db||typeof snapshot.db!=='object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
-      const saved = localStorage.getItem('abuDujana_db_v30');
-      if (!saved) return false;
-      const localDb = JSON.parse(saved);
-      if (!localDb || typeof localDb !== 'object' || !Array.isArray(localDb.classes)) return false;
-      const localDirtySets = localDb.__offlineDirtySets;
-      const localPendingDeletes = localDb.__offlinePendingDeletes;
-      delete localDb.__offlineDirtySets;
-      delete localDb.__offlinePendingDeletes;
-      db={...db,...localDb}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
-      db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
-      if (localDirtySets) restoreDirtySetsObject(localDirtySets); else loadDirtySetsFromLocal();
-      if (Array.isArray(localPendingDeletes)) setPendingDeletes(localPendingDeletes);
-      return true;
+      return restoreLocalStorageOfflineSnapshot();
     }
     lastLoadedCloudManifest = normalizeAppSyncManifest(snapshot.cloudSyncManifest);
     db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
     db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
     restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
     return true;
-  } catch(error) { console.warn('IndexedDB restore unavailable:',error);return false; }
+  } catch(error) {
+    console.warn('IndexedDB restore unavailable; attempting the localStorage fallback.', error);
+    return restoreLocalStorageOfflineSnapshot();
+  }
 }
 function cloneOfflineValue(value){return JSON.parse(JSON.stringify(value??null));}
 function captureDirtyLocalState(){return {db:cloneOfflineValue(db),dirty:serializeDirtySets()};}
@@ -5345,6 +5365,10 @@ function scheduleOfflineAutoSyncRetry() {
 async function retryOfflineSyncSilently() {
   if (offlineAutoSyncInProgress || offlineAutoSyncPromptInProgress || cloudSaveInProgress || manualOfflineSyncInProgress) return false;
   if (!navigator.onLine || !activeUser || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty || !hasPendingOfflineRecordChanges()) return false;
+  if (!hasUnexpiredAppAuthSession()) {
+    updateSyncStatus(false, 'أعد تسجيل الدخول الآمن قبل مزامنة التعديلات المحفوظة محلياً');
+    return false;
+  }
 
   const fingerprint = offlineSyncApprovalFingerprint();
   if (!fingerprint) return false;
@@ -5444,6 +5468,11 @@ async function syncPendingLocalChanges() {
     showToast('لا يوجد اتصال بالإنترنت. بقيت التغييرات محفوظة على هذا الجهاز.', 'error');
     return false;
   }
+  if (!hasUnexpiredAppAuthSession()) {
+    updateSyncStatus(false, 'أعد تسجيل الدخول الآمن قبل رفع التعديلات المحلية');
+    showToast('انتهت جلسة الدخول الآمنة. أعد تسجيل الدخول قبل المزامنة؛ بقيت التعديلات محفوظة محلياً.', 'error');
+    return false;
+  }
   if (cloudDataLoadState !== 'ready') {
     showToast('انتظر اكتمال تحميل بيانات المدرسة قبل المزامنة.', 'error');
     return false;
@@ -5505,7 +5534,7 @@ function saveToLocalStorageSafe() {
     const cutoffStr = formatDateOman(cutoff);
     const dirtyObj = serializeDirtySets();
     const pendingDeletes = getPendingDeletes();
-    const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, attendance: {}, behaviors: {} };
+    const safeDb = { ...db, __offlineDirtySets: dirtyObj, __offlinePendingDeletes: pendingDeletes, __offlineCloudSyncManifest: lastLoadedCloudManifest, attendance: {}, behaviors: {} };
     Object.keys(db.attendance || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.attendance.has(k)) safeDb.attendance[k] = db.attendance[k]; });
     Object.keys(db.behaviors || {}).forEach(k => { const p = parseAttendanceKey(k); if (p.date >= cutoffStr || dirtySets.behaviors.has(k)) safeDb.behaviors[k] = db.behaviors[k]; });
     try { localStorage.setItem('abuDujana_dirtySets', JSON.stringify(dirtyObj)); } catch(e) { throw e; }
@@ -5564,9 +5593,9 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
-  await restoreOfflineState();
+  offlineSnapshotRestoredAtBoot = await restoreOfflineState();
   syncServerTime();
-  await loadSystemDataFromCloud();
+  // Authentication/session restoration now precedes every protected cloud-table read.
   await checkExistingSession();
   document.getElementById('userPinInput')?.addEventListener('input', () => document.getElementById('loginError').classList.add('hidden'));
   window.addEventListener('beforeunload', (e) => { if (attendanceDirty || behaviorDirty) { e.preventDefault(); e.returnValue = ''; } });
@@ -5632,8 +5661,11 @@ async function migrateCredentialsIfNeeded() {
 }
 
 let cloudDataLoadState = 'not-started';
+let offlineSnapshotRestoredAtBoot = false;
 const APP_SYNC_TABLES = ['classes','students','teachers','attendance','behaviors','school_settings','duty_reports'];
 let lastLoadedCloudManifest = null;
+let localStorageFallbackSnapshot = false;
+let cloudWritesBlockedByManifestFailure = false;
 
 function normalizeAppSyncManifest(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
@@ -5654,11 +5686,19 @@ async function fetchAppSyncManifest() {
   return manifest;
 }
 
-function getChangedAppSyncTables(nextManifest, hasSnapshot) {
+function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback = localStorageFallbackSnapshot) {
   if (!hasSnapshot || !lastLoadedCloudManifest) return [...APP_SYNC_TABLES];
   const changed = APP_SYNC_TABLES.filter(table =>
     Number(nextManifest[table]) !== Number(lastLoadedCloudManifest[table])
   );
+  // localStorage intentionally keeps only the latest 14 days of attendance and
+  // behavior data. Re-fetch those two complete datasets when it is the active
+  // fallback snapshot, while still using revisions for the other five tables.
+  if (localStorageFallback) {
+    for (const table of ['attendance', 'behaviors']) {
+      if (!changed.includes(table)) changed.push(table);
+    }
+  }
   // Class and student rosters are a coupled view: a class change can affect
   // the visible roster mapping even when the student table itself is unchanged.
   if (changed.includes('classes') && !changed.includes('students')) changed.push('students');
@@ -5666,6 +5706,17 @@ function getChangedAppSyncTables(nextManifest, hasSnapshot) {
 }
 
 async function loadSystemDataFromCloud() {
+  // Defense in depth: callers outside the normal login flow must not trigger
+  // school-table reads while the application has no authenticated principal.
+  if (!activeUser) {
+    updateSyncStatus(false, 'سجّل الدخول أولاً لتحميل بيانات المدرسة');
+    return false;
+  }
+  if (navigator.onLine && !hasUnexpiredAppAuthSession()) {
+    cloudDataLoadState = 'failed';
+    updateSyncStatus(false, 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
+    return false;
+  }
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
   const offlineSnapshotAvailable = await restoreOfflineState();
@@ -5681,9 +5732,22 @@ async function loadSystemDataFromCloud() {
     try {
       nextManifest = await fetchAppSyncManifest();
     } catch (manifestError) {
-      // Compatibility fallback: until the manifest migration is installed on a
-      // backend, retain the original full-sync behavior rather than risk stale data.
-      console.warn('Cloud revision manifest unavailable; using safe full sync.', manifestError);
+      // A transient manifest/network failure must not fan out into seven full-table
+      // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
+      // the lightweight manifest on the next refresh. Only a missing RPC keeps the
+      // compatibility full-sync path for backends that have not installed the migration.
+      const manifestCode = String(manifestError?.code || '');
+      const manifestStatus = Number(manifestError?.status || 0);
+      const manifestMessage = String(manifestError?.message || '');
+      const manifestRpcMissing = manifestCode === 'PGRST202' || manifestCode === '42883' ||
+        manifestStatus === 404 || /function .*get_app_sync_manifest.*(not found|does not exist)/i.test(manifestMessage);
+      console.warn('Cloud revision manifest unavailable.', manifestError);
+      if (offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing) {
+        cloudWritesBlockedByManifestFailure = true;
+        cloudDataLoadState = 'ready';
+        updateSyncStatus(false, 'تعذر التحقق من تحديثات الخادم؛ التعديلات محفوظة محلياً ولن تُرفع حتى نجاح التحقق. سيُعاد المحاولة.');
+        return false;
+      }
     }
 
     const changedTables = nextManifest
@@ -5692,6 +5756,7 @@ async function loadSystemDataFromCloud() {
     const fullSync = changedTables.length === APP_SYNC_TABLES.length;
 
     if (nextManifest && changedTables.length === 0) {
+      cloudWritesBlockedByManifestFailure = false;
       cloudDataLoadState = 'ready';
       // Keep queued local deletions visible even when the cloud revision is unchanged.
       applyPendingLocalDeletions();
@@ -5846,6 +5911,7 @@ async function loadSystemDataFromCloud() {
 
     mergeDirtyLocalState(pendingLocalState);
     applyPendingLocalDeletions();
+    cloudWritesBlockedByManifestFailure = false;
     cloudDataLoadState = 'ready';
 
     // Persist the manifest in the same IndexedDB snapshot as its data. This avoids
@@ -5922,7 +5988,27 @@ function clearSyncedDirtyFlag(kind, uploadedSnapshot) {
 }
 
 async function saveSystemDataToCloud(options = {}) {
+  if (navigator.onLine && !hasUnexpiredAppAuthSession()) {
+    const localCacheSaved = saveToLocalStorageSafe();
+    const durableSaved = await persistOfflineState();
+    updateSyncStatus(false, localCacheSaved || durableSaved
+      ? 'يلزم تسجيل الدخول الآمن مجدداً قبل رفع التعديلات؛ النسخة المحلية محفوظة'
+      : 'تعذر تأمين نسخة محلية؛ لم تُرسل التعديلات إلى الخادم');
+    if (!options.silent) showToast('أعد تسجيل الدخول عبر الاتصال الآمن قبل رفع التعديلات. لم تُرسل أي بيانات.', 'error');
+    return false;
+  }
   if (cloudDataLoadState !== 'ready') { updateSyncStatus(false, 'الحفظ متوقف لحين اكتمال تحميل بيانات المدرسة'); return false; }
+  if (cloudWritesBlockedByManifestFailure) {
+    const localCacheSaved = saveToLocalStorageSafe();
+    const durableSaved = await persistOfflineState();
+    updateSyncStatus(false, localCacheSaved || durableSaved
+      ? 'محفوظ محلياً - بانتظار التحقق من اتصال المزامنة'
+      : 'تعذر تأمين نسخة محلية؛ لم تُرسل التعديلات إلى الخادم');
+    if (!options.silent) showToast(localCacheSaved || durableSaved
+      ? 'حُفظت التعديلات محلياً. سيُرفعها النظام بعد نجاح التحقق من الخادم.'
+      : 'تعذر حفظ نسخة محلية آمنة؛ لم تُرسل التعديلات إلى الخادم.', localCacheSaved || durableSaved ? 'info' : 'error');
+    return false;
+  }
   if (cloudSaveInProgress) {
     if (!options.silent) showToast('توجد عملية مزامنة جارية؛ ستبقى التعديلات الجديدة معلّمة للمزامنة التالية.', 'info');
     return false;
@@ -6172,6 +6258,14 @@ async function checkExistingSession() {
   try {
     const token = await verifyStoredSession();
     if (!token) { try { localStorage.removeItem("abuDujana_activeUser"); } catch(e) {} try { localStorage.removeItem("abuDujana_session"); } catch(e) {} return; }
+    if (navigator.onLine) {
+      // A browser-only legacy session is not a server-validated app session.
+      // Keep the offline snapshot, but require a fresh secure login before cloud access.
+      try { localStorage.removeItem("abuDujana_session"); } catch (error) {}
+      try { sessionStorage.removeItem("abuDujana_session_secret"); } catch (error) {}
+      updateSyncStatus(false, "يلزم تسجيل الدخول الآمن للاتصال ببيانات المدرسة");
+      return;
+    }
     let user = null;
     if (token.role === "admin") user = { type: "admin", name: "مدير النظام العام", permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
     else if (token.role === "custom") { const u = (db.customUsers || []).find(x => x.name === token.userName); if (u) user = { type: "custom", name: u.name, permissions: u.permissions || {} }; }
@@ -6244,13 +6338,40 @@ async function refreshActiveUserPermissions() {
   const user = activeUser;
   if (!user || user.type === 'admin') return;
   try {
-    // Permissions may have changed on another device since this page loaded.
-    // Refresh only the permissions field; never fetch or replace PIN credentials.
-    const { data, error } = await sb.from('teachers')
-      .select('role,permissions')
-      .eq('name', user.name)
-      .maybeSingle();
-    if (error) throw error;
+    // Prefer the session-protected gateway. Its teacher projection contains only
+    // the current account's role and permissions, never PIN hashes or salts.
+    const token = appAuthSession?.token || readAppAuthToken();
+    let data = null;
+    // Legacy access is allowed only when no app session token exists, or when
+    // the server explicitly reports that this deployment does not know the
+    // gateway action. A successful gateway response with zero rows is a
+    // definitive empty/denied result and must never be bypassed with direct REST.
+    let allowLegacyFallback = !token;
+    if (token) {
+      try {
+        const result = await appAuthRequest({
+          action: 'app_data_gateway_read',
+          table: 'teachers',
+          limit: 1
+        }, token);
+        allowLegacyFallback = false;
+        data = Array.isArray(result?.rows) ? result.rows[0] || null : null;
+      } catch (gatewayError) {
+        // Older deployments do not expose the gateway yet. Keep the existing
+        // permissions-only read as a compatibility bridge only for an explicit
+        // unknown-action/endpoint response, never for denied or expired sessions.
+        if (!isLegacyAuthEndpointUnavailable(gatewayError)) throw gatewayError;
+        allowLegacyFallback = true;
+      }
+    }
+    if (!data && allowLegacyFallback) {
+      const { data: legacyData, error } = await sb.from('teachers')
+        .select('role,permissions')
+        .eq('name', user.name)
+        .maybeSingle();
+      if (error) throw error;
+      data = legacyData;
+    }
     if (!data) return;
     if (user.type === 'custom' ? data.role !== 'custom' : data.role === 'custom') return;
     const freshPermissions = data.permissions && typeof data.permissions === 'object'
@@ -6261,13 +6382,29 @@ async function refreshActiveUserPermissions() {
       : (db.teachers || []).find(x => x.name === user.name);
     if (localRecord) localRecord.permissions = freshPermissions;
   } catch (error) {
-    // Keep the cached permissions for offline sign-in; server-side Student Affairs
-    // authorization still independently validates access before opening its session.
+    // Keep cached permissions for offline continuity; the server still validates
+    // protected gateway and Student Affairs actions independently.
     console.warn('Unable to refresh login permissions:', error);
   }
 }
 
 async function finalizeLoginState() {
+  // Do not download protected school tables until a user has an authenticated
+  // or locally restored offline session. Online users load after app_login or
+  // app_session succeeds; offline users continue with the restored device cache.
+  if (navigator.onLine && cloudDataLoadState !== 'ready') {
+    const loaded = await loadSystemDataFromCloud();
+    if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
+  } else if (!navigator.onLine && cloudDataLoadState === 'not-started') {
+    if (offlineSnapshotRestoredAtBoot) {
+      cloudDataLoadState = 'ready';
+      updateSyncStatus(false, hasPendingOfflineChanges()
+        ? 'غير متصل - التعديلات محفوظة محلياً'
+        : 'غير متصل - البيانات المحلية متاحة');
+    } else {
+      cloudDataLoadState = 'failed';
+    }
+  }
   await refreshActiveUserPermissions();
   await timetableRefreshAccess();
   document.getElementById('loginView').classList.add('hidden');

@@ -9,12 +9,16 @@ on:
       - "tests/school_data_sync_safety_test.ts"
       - "tests/app_sync_revision_manifest_integration.sql"
       - "tests/app_sync_manifest_logic_test.ts"
+      - "tests/app_auth_bootstrap_order_test.mjs"
+      - "tests/app_auth_bootstrap_order_test.mjs"
   push:
     branches:
       - "main"
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
       - "feature/smart-substitution-system"
+      - "feat/session-protected-data-gateway-20261119"
+      - "test/app-data-gateway-handler-20261119"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
@@ -51,6 +55,8 @@ jobs:
           SQL
       - name: Apply app sessions migration to isolated PostgreSQL
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
+      - name: Verify isolated app session schema, privileges, lifecycle, and cleanup
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/app_sessions_isolation.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
       - name: Prepare isolated school data tables for student transfer integration
@@ -737,6 +743,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Test secure cloud bootstrap and session expiry gates
+        run: node --test tests/app_auth_bootstrap_order_test.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
@@ -786,6 +794,50 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts supabase/functions/student-affairs/notice_policy.ts
       - name: Run general app auth policy tests
         run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
+      - name: Type-check app data gateway authorization policy
+        run: deno check supabase/functions/student-affairs/app_data_gateway_policy.ts
+      - name: Run app data gateway authorization and privacy tests
+        run: deno test supabase/functions/student-affairs/app_data_gateway_policy_test.ts
+      - name: Type-check timetable-derived gateway scope
+        run: deno check supabase/functions/student-affairs/app_data_gateway_scope.ts
+      - name: Test timetable-derived gateway scope
+        run: deno test supabase/functions/student-affairs/app_data_gateway_scope_test.ts
+      - name: Type-check server-derived gateway scope resolver
+        run: deno check supabase/functions/student-affairs/app_data_gateway_resolver.ts
+      - name: Test server-derived gateway scope resolver
+        run: deno test supabase/functions/student-affairs/app_data_gateway_resolver_test.ts
+      - name: Type-check gateway date validation
+        run: deno check supabase/functions/student-affairs/app_data_gateway_validation.ts
+      - name: Test gateway date validation
+        run: deno test supabase/functions/student-affairs/app_data_gateway_validation_test.ts
+      - name: Type-check injectable app data gateway HTTP handler
+        run: deno check supabase/functions/student-affairs/app_data_gateway_handler.ts
+      - name: Run isolated app data gateway HTTP integration tests
+        run: deno test supabase/functions/student-affairs/app_data_gateway_handler_test.ts
+      - name: Verify deployed preview gateway rejects missing and unknown app sessions
+        if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || github.ref == 'refs/heads/fix/integrated-school-sync-hardening-final-20261120' || (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119' || github.event.pull_request.head.ref == 'fix/integrated-school-sync-hardening-final-20261120'))
+        env:
+          PREVIEW_URL: "https://wawplttrpiinoukpjqqx.supabase.co"
+          PREVIEW_PUBLISHABLE_KEY: "sb_publishable_7BEkF9yQ9A5eOiK1jIWQww_Uv424Y0i"
+        run: |
+          set -euo pipefail
+          endpoint="$PREVIEW_URL/functions/v1/student-affairs"
+          payload='{"action":"app_data_gateway_read","table":"students","limit":1}'
+          missing_body="$(mktemp)"
+          missing_status="$(curl --silent --show-error --output "$missing_body" --write-out '%{http_code}' --request POST "$endpoint" --header "apikey: $PREVIEW_PUBLISHABLE_KEY" --header 'Content-Type: application/json' --data "$payload")"
+          if [ "$missing_status" != "401" ] || ! grep -q 'انتهت الجلسة' "$missing_body"; then
+            echo "Missing-session request was not rejected by the app-session layer (HTTP $missing_status)."
+            cat "$missing_body"
+            exit 1
+          fi
+          invalid_body="$(mktemp)"
+          invalid_status="$(curl --silent --show-error --output "$invalid_body" --write-out '%{http_code}' --request POST "$endpoint" --header "apikey: $PREVIEW_PUBLISHABLE_KEY" --header 'Authorization: Bearer 0000000000000000000000000000000000000000000000000000000000000000' --header 'Content-Type: application/json' --data "$payload")"
+          if [ "$invalid_status" != "401" ] || ! grep -q 'انتهت الجلسة' "$invalid_body"; then
+            echo "Unknown-session request was not rejected by the app-session layer (HTTP $invalid_status)."
+            cat "$invalid_body"
+            exit 1
+          fi
+          echo "Deployed preview rejected both missing and unknown app sessions (HTTP 401)."
       - name: Run general app Supabase session store tests
         run: deno test supabase/functions/student-affairs/app_session_store_test.ts
       - name: Run report authorization tests
