@@ -2215,9 +2215,19 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <select id="saNoticeTargetSelect" onchange="saNoticeTargetChanged()" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white"></select>
             <span id="saNoticeTargetScopeHint" class="mt-1 block text-[10px] font-medium leading-5 text-slate-500"></span>
           </label>
-          <label class="text-xs font-black text-slate-700 dark:text-slate-200">الصف المصرح به
-            <select id="saNoticeClassSelect" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white"><option value="">جارٍ تحميل الصفوف...</option></select>
-          </label>
+          <section class="text-xs font-black text-slate-700 dark:text-slate-200 sm:col-span-2" aria-labelledby="saNoticeClassesTitle">
+            <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <span id="saNoticeClassesTitle">اختر الصفوف المطلوب فحصها</span>
+              <span class="flex gap-2">
+                <button type="button" onclick="saNoticeSetClassSelection(true)" class="rounded-lg border border-amber-300 px-3 py-1.5 text-[11px] font-bold text-amber-800 hover:bg-amber-50 dark:border-amber-800 dark:text-amber-200">تحديد الكل</button>
+                <button type="button" onclick="saNoticeSetClassSelection(false)" class="rounded-lg border border-slate-300 px-3 py-1.5 text-[11px] font-bold text-slate-600 hover:bg-slate-50 dark:border-slate-600 dark:text-slate-300">إلغاء التحديد</button>
+              </span>
+            </div>
+            <div id="saNoticeClassesGrid" class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-2 lg:grid-cols-3 dark:border-slate-700 dark:bg-slate-800" role="group" aria-labelledby="saNoticeClassesTitle">
+              <p class="col-span-full text-center text-xs font-medium text-slate-500">جارٍ تحميل الصفوف المصرح بها...</p>
+            </div>
+            <p id="saNoticeClassesCount" class="mt-2 text-[10px] font-medium text-slate-500" aria-live="polite"></p>
+          </section>
           <label class="text-xs font-black text-slate-700 dark:text-slate-200">الحد الأدنى للمخالفات
             <input id="saNoticeThreshold" type="number" min="1" max="10" step="1" value="2" inputmode="numeric" class="mt-2 w-full rounded-xl border border-slate-300 bg-white p-3 text-sm font-bold text-slate-800 outline-none focus:border-amber-500 focus:ring-2 focus:ring-amber-100 dark:border-slate-600 dark:bg-slate-950 dark:text-white">
           </label>
@@ -4430,14 +4440,43 @@ function saNoticeAllowedClasses(p=saReportPermissions||{}){
   if(p.can_read_behavior===true)items.push(...(p.allowed_behavior_classes||p.allowed_classes||[]));
   return sortClassesList([...new Set(items.map(x=>String(x).trim()).filter(Boolean))]);
 }
+function saNoticeRenderClassChecklist(classes){
+  const host=document.getElementById("saNoticeClassesGrid");
+  const count=document.getElementById("saNoticeClassesCount");
+  if(!host)return;
+  if(!classes.length){
+    host.innerHTML='<p class="col-span-full text-center text-xs font-bold text-rose-600">لا توجد صفوف مصرح بها لهذا النطاق.</p>';
+    if(count)count.textContent="";
+    return;
+  }
+  host.innerHTML=classes.map(className=>'<label class="flex cursor-pointer items-center gap-2 rounded-lg border border-slate-200 bg-white p-3 text-xs font-bold text-slate-700 transition hover:border-amber-400 has-[:checked]:border-amber-500 has-[:checked]:bg-amber-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:has-[:checked]:bg-amber-950/30"><input type="checkbox" data-sa-notice-class="'+escapeHtml(className)+'" class="h-4 w-4 shrink-0 rounded accent-amber-600" checked><span>'+escapeHtml(formatClassName(className))+'</span></label>').join("");
+  host.querySelectorAll("input[data-sa-notice-class]").forEach(input=>input.addEventListener("change",saNoticeUpdateClassCount));
+  saNoticeUpdateClassCount();
+}
+function saNoticeSelectedClasses(p=saNoticeGetTargetContext().permissions){
+  const allowed=new Set(saNoticeAllowedClasses(p));
+  return [...document.querySelectorAll("#saNoticeClassesGrid input[data-sa-notice-class]:checked")]
+    .map(input=>String(input.dataset.saNoticeClass||"").trim())
+    .filter(className=>allowed.has(className));
+}
+function saNoticeSetClassSelection(checked){
+  document.querySelectorAll("#saNoticeClassesGrid input[data-sa-notice-class]").forEach(input=>{input.checked=checked;});
+  saNoticeUpdateClassCount();
+}
+function saNoticeUpdateClassCount(){
+  const count=document.getElementById("saNoticeClassesCount");
+  if(!count)return;
+  const total=document.querySelectorAll("#saNoticeClassesGrid input[data-sa-notice-class]").length;
+  const selected=document.querySelectorAll("#saNoticeClassesGrid input[data-sa-notice-class]:checked").length;
+  count.textContent="تم اختيار "+selected+" من أصل "+total+" صفوف.";
+}
 function saNoticeTargetChanged(){
   try{
     const context=saNoticeGetTargetContext(),p=context.permissions,classes=saNoticeAllowedClasses(p);
-    const select=document.getElementById("saNoticeClassSelect");
-    if(select)select.innerHTML=classes.length?'<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join(""):'<option value="">لا توجد صفوف مصرح بها لهذا الاختيار</option>';
+    saNoticeRenderClassChecklist(classes);
     saNoticeRenderTypeFilters(p);
     const status=document.getElementById("saNoticeTargetScopeHint");
-    if(status)status.textContent=context.supervisionTeacherName?"ستُعرض وتُطبع تنبيهات عضو الفريق المحدد فقط: "+context.label:"ستُعرض وتُطبع التنبيهات ضمن صلاحيات حسابك الشخصية.";
+    if(status)status.textContent=context.supervisionTeacherName?"النطاق المحدد: "+context.label+" — تظهر الرسوم البيانية والتنبيهات ضمن صفوفه المصرح بها.":"تظهر الرسوم البيانية والتنبيهات ضمن صلاحيات حسابك الشخصية.";
   }catch(error){saNoticeSetStatus(error?.message||"تعذر تحديد نطاق الفريق.",true);}
 }
 function saNoticeRenderTypeFilters(p=saReportPermissions||{}){
@@ -4476,9 +4515,8 @@ function saOpenNoticeModal(){
     targetSelect.value=ownAllowed?"__self__":String(eligibleMembers[0]?.name||"");
   }
   saNoticeTargetChanged();
-  const classes=saNoticeAllowedClasses(saNoticeGetTargetContext().permissions),select=document.getElementById("saNoticeClassSelect");
+  const classes=saNoticeAllowedClasses(saNoticeGetTargetContext().permissions);
   if(!classes.length){showToast("لا توجد صفوف مصرح بها ضمن الاختيار الحالي.","error");return;}
-  select.innerHTML='<option value="__all__">جميع الصفوف المصرح بها</option>'+classes.map(c=>'<option value="'+escapeHtml(c)+'">'+escapeHtml(formatClassName(c))+'</option>').join("");
   document.getElementById("saNoticeThreshold").value="2";
   const today=getOmanLocalDate();
   // Default scan window starts on 08 Nov 2026; issue/end dates follow the Oman-local day of printing.
@@ -4790,9 +4828,9 @@ async function saGenerateAutomaticNotices(){
   if(!/^\d{4}-\d{2}-\d{2}$/.test(issueDate)||issueDate>getOmanLocalDate()){saNoticeSetStatus("حدد تاريخ إصدار صحيحاً لا يتجاوز تاريخ اليوم.",true);return;}
   if(!/^\d{4}-\d{2}-\d{2}$/.test(rangeFrom)||!/^\d{4}-\d{2}-\d{2}$/.test(rangeTo)||rangeFrom>rangeTo||rangeTo>issueDate){saNoticeSetStatus("حدد فترة صحيحة: تاريخ البداية لا يتجاوز تاريخ النهاية، والنهاية لا تتجاوز تاريخ الإصدار.",true);return;}
   if(!selectedTypes.length){saNoticeSetStatus("اختر نوع مخالفة واحداً على الأقل لرصده.",true);return;}
-  const selected=document.getElementById("saNoticeClassSelect")?.value||"";
-  const available=saNoticeAllowedClasses(p),classes=selected==="__all__"?available:available.filter(c=>c===selected);
-  if(!classes.length){saNoticeSetStatus("اختر صفاً من الصفوف المصرح بها لك.",true);return;}
+  const available=saNoticeAllowedClasses(p),classes=saNoticeSelectedClasses(p);
+  if(!classes.length){saNoticeSetStatus("اختر صفاً واحداً على الأقل من قائمة الصفوف.",true);return;}
+  if(classes.some(className=>!available.includes(className))){saNoticeSetStatus("يتضمن التحديد صفاً خارج نطاق صلاحياتك. حدّث الاختيارات وأعد المحاولة.",true);return;}
   const allowedAttendance=new Set(p.allowed_attendance_classes||[]),allowedBehavior=new Set(p.allowed_behavior_classes||[]);
   const selectedAttendance=selectedTypes.filter(type=>["absent","late","escape","outside"].includes(type));
   const selectedBehavior=selectedTypes.filter(type=>!["absent","late","escape","outside"].includes(type));
