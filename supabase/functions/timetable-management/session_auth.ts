@@ -11,6 +11,12 @@ export interface TimetablePrincipal {
   reserveStatsOnly?: boolean;
   /** Can only read the timetable context needed to compose an authorized duty report. */
   dutyReportOnly?: boolean;
+  /** Current teacher reserve grant, read together with the teacher identity. */
+  reserveAccess?: boolean;
+  /** Current duty-report grant, checked only on the duty/report bootstrap actions. */
+  dutyReportAccess?: boolean;
+  /** Fresh permission snapshot loaded with the authenticated teacher record. */
+  permissions?: Record<string, unknown>;
 }
 
 export interface TimetableSessionLookup {
@@ -22,17 +28,20 @@ export interface TimetableSessionLookup {
 export interface TimetableTeacherLookup {
   name: string;
   role: string;
+  reserveAccess?: boolean;
+  permissions?: Record<string, unknown>;
 }
 
 export interface TimetableAuthStore {
   findSession(tokenHash: string, nowIso: string): Promise<TimetableSessionLookup | null>;
   hasAdminCredential(): Promise<boolean>;
-  findTeacher(name: string): Promise<TimetableTeacherLookup | null>;
+  findTeacher(name: string, includePermissions?: boolean): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
-  hasSubstitutionAccess?(name: string): Promise<boolean>;
-  hasDutyReportAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
-  canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number): Promise<boolean>;
+  hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>): Promise<boolean>;
+  canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number, permissions?: Record<string, unknown>): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
+  /** Lightweight portal-setting check used only for the teacher's own daily notice. */
+  hasLinkedTeacherPortalNoticeAccess?(name: string): Promise<boolean>;
   hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
   hasSchoolwideReserveStatsAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
 }
@@ -53,6 +62,7 @@ export async function resolveTimetablePrincipal(
   authorization: unknown,
   store: TimetableAuthStore,
   now = Date.now(),
+  requestedAction = "",
 ): Promise<TimetablePrincipal | null> {
   if (typeof authorization !== "string" || !Number.isFinite(now)) return null;
   const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(authorization.trim());
@@ -76,35 +86,89 @@ export async function resolveTimetablePrincipal(
 
   const type = session.principal_type;
   const name = session.principal_name;
-  const teacher = await store.findTeacher(name);
+  const needsTeacherPermissions = requestedAction.startsWith("timetable_substitution_") ||
+    new Set([
+      "health",
+      "timetable_check_access",
+      "timetable_duty_report_context",
+      "timetable_activity_report_data",
+      "teacher_substitution_get_today",
+    ]).has(requestedAction);
+  const teacher = await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
+  const permissions = teacher.permissions && typeof teacher.permissions === "object"
+    ? teacher.permissions : {};
+  const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
+  // The schoolwide statistics grant is relevant only to the statistics action.
+  // Avoid one permission-table read on every unrelated timetable request.
+  const needsSchoolwideReserveStats = new Set([
+    "timetable_substitution_stats",
+    // Statistics-only accounts historically retain these narrow bootstrap/read actions.
+    "health",
+    "timetable_check_access",
+  ]).has(requestedAction);
+  const hasSchoolwideReserveStats = async () => needsSchoolwideReserveStats &&
+    store.hasSchoolwideReserveStatsAccess
+      ? await store.hasSchoolwideReserveStatsAccess(type, name)
+      : false;
+  const dutyReportAction = requestedAction === "timetable_duty_report_context";
   if (await store.hasTimetableAccess(type, name)) {
-    const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
-      ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
-    return { type, name, schoolwideReserveStats };
+    const schoolwideReserveStats = await hasSchoolwideReserveStats();
+    const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
+      ? await store.hasDutyReportAccess(type, name, permissions)
+      : false;
+    return {
+      type, name, permissions, reserveAccess, schoolwideReserveStats,
+      ...(dutyReportAction ? { dutyReportAccess } : {}),
+    };
   }
-  // Existing reserve permission is narrower than general timetable access.
-  if (type === "teacher" && store.hasSubstitutionAccess && await store.hasSubstitutionAccess(name)) {
-    const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
-      ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
-    return { type, name, schoolwideReserveStats };
+  // Reserve permission is loaded with the teacher identity, avoiding a second
+  // teachers-table read during authorization and again in the request handler.
+  if (reserveAccess) {
+    const schoolwideReserveStats = await hasSchoolwideReserveStats();
+    const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
+      ? await store.hasDutyReportAccess(type, name, permissions)
+      : false;
+    return {
+      type, name, permissions, reserveAccess: true, schoolwideReserveStats,
+      ...(dutyReportAction ? { dutyReportAccess } : {}),
+    };
   }
-  const schoolwideReserveStats = store.hasSchoolwideReserveStatsAccess
-    ? await store.hasSchoolwideReserveStatsAccess(type, name) : false;
+  const schoolwideReserveStats = await hasSchoolwideReserveStats();
   if (schoolwideReserveStats) {
     return { type, name, schoolwideReserveStats: true, reserveStatsOnly: true };
   }
-  if (type === "teacher" && store.hasLinkedTeacherPortalAccess
-    && await store.hasLinkedTeacherPortalAccess(name)) {
-    return { type, name, portalOnly: true };
+  // The daily notice exposes only this teacher's own assignments. For this
+  // action, verify the configured portal allow-list without loading weekly cells.
+  if (type === "teacher" && requestedAction === "teacher_substitution_get_today") {
+    if (store.hasLinkedTeacherPortalNoticeAccess
+      && await store.hasLinkedTeacherPortalNoticeAccess(name)) {
+      return { type, name, portalOnly: true };
+    }
+    if (store.hasOwnDailySubstitutionAssignment
+      && await store.hasOwnDailySubstitutionAssignment(name)) {
+      return { type, name };
+    }
+  } else if (type === "teacher" && new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_timetable_get_own",
+  ]).has(requestedAction)) {
+    // Full linked-schedule verification is needed only for portal-capable reads.
+    // Do not load weekly cells while resolving unrelated timetable actions.
+    if (store.hasLinkedTeacherPortalAccess
+      && await store.hasLinkedTeacherPortalAccess(name)) {
+      return { type, name, portalOnly: true };
+    }
   }
-  // A teacher assigned reserve today may read only their own daily notice.
-  if (type === "teacher" && store.hasOwnDailySubstitutionAssignment
-    && await store.hasOwnDailySubstitutionAssignment(name)) {
-    return { type, name };
-  }
-  if (store.hasDutyReportAccess && await store.hasDutyReportAccess(type, name)) {
-    return { type, name, dutyReportOnly: true };
+  const mayUseDutyBootstrap = new Set([
+    "health",
+    "timetable_check_access",
+    "teacher_substitution_get_today",
+  ]).has(requestedAction);
+  if ((dutyReportAction || mayUseDutyBootstrap) && store.hasDutyReportAccess
+    && await store.hasDutyReportAccess(type, name, permissions)) {
+    return { type, name, permissions, dutyReportOnly: true, dutyReportAccess: true };
   }
   return null;
 }
