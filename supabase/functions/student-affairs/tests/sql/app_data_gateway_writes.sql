@@ -28,13 +28,13 @@ DO $do$
 BEGIN
   IF has_function_privilege('anon','public.app_data_gateway_write_records(text,jsonb,boolean)','EXECUTE')
     OR has_function_privilege('authenticated','public.app_data_gateway_write_records(text,jsonb,boolean)','EXECUTE')
-    OR has_function_privilege('public','public.app_data_gateway_write_records(text,jsonb,boolean)','EXECUTE') THEN
+    OR EXISTS (SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) a WHERE p.oid='public.app_data_gateway_write_records(text,jsonb,boolean)'::regprocedure AND a.grantee=0 AND a.privilege_type='EXECUTE') THEN
     RAISE EXCEPTION 'browser roles can execute the generic data write RPC';
   END IF;
   IF NOT has_function_privilege('service_role','public.app_data_gateway_write_records(text,jsonb,boolean)','EXECUTE')
     OR has_function_privilege('anon','public.app_data_gateway_set_pin_record(text,text,text,text,boolean)','EXECUTE')
     OR has_function_privilege('authenticated','public.app_data_gateway_set_pin_record(text,text,text,text,boolean)','EXECUTE')
-    OR has_function_privilege('public','public.app_data_gateway_set_pin_record(text,text,text,text,boolean)','EXECUTE')
+    OR EXISTS (SELECT 1 FROM pg_proc p CROSS JOIN LATERAL aclexplode(coalesce(p.proacl, acldefault('f',p.proowner))) a WHERE p.oid='public.app_data_gateway_set_pin_record(text,text,text,text,boolean)'::regprocedure AND a.grantee=0 AND a.privilege_type='EXECUTE')
     OR NOT has_function_privilege('service_role','public.app_data_gateway_set_pin_record(text,text,text,text,boolean)','EXECUTE') THEN
     RAISE EXCEPTION 'PIN rotation RPC grants are not service-role-only';
   END IF;
