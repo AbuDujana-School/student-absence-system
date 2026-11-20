@@ -14,6 +14,7 @@ import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { handleAppDataGatewayWrite } from "./app_data_gateway_write_handler.ts";
 import { handleAppCredentialSnapshot, handleAppCredentialWrite } from "./app_data_gateway_credentials_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
+import { normalizeAppDataPrincipalPermissions } from "./app_data_gateway_principal.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -113,7 +114,10 @@ async function currentAppPrincipal(type: string, name: string): Promise<AppPrinc
   return {
     type: type as "teacher" | "custom",
     name: data.name,
-    permissions: data.permissions && typeof data.permissions === "object" ? data.permissions : {},
+    permissions: normalizeAppDataPrincipalPermissions(
+      type,
+      data.permissions && typeof data.permissions === "object" ? data.permissions : {},
+    ),
     mustChangePin: data.must_change_pin === true || data.permissions?.mustChangePin === true,
   };
 }
