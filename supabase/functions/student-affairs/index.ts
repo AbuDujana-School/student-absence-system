@@ -332,14 +332,16 @@ async function getCompetitionCronSecret() {
 // Current teacher class access is projected from live assignment permissions.
 function projectCompetitionResponse(snapshot: any, principal: { type: string; name: string }, permissions: any = {}) {
   const isAdmin = principal.type === "admin";
+  const isVisitor = permissions?.role === "visitor";
+  const canSeeAll = isAdmin || isVisitor;
   const sourceTeams = Array.isArray(snapshot?.teams) ? snapshot.teams : [];
   const rawClasses = Array.isArray(snapshot?.classComparison) ? snapshot.classComparison : [];
   const ownClassNames = new Set<string>((Array.isArray(permissions?.competition_team_classes) ? permissions.competition_team_classes : []).map((name: unknown) => String(name)));
-  const ownTeams = isAdmin ? [] : permissions?.competition_participant === true
+  const ownTeams = canSeeAll ? sourceTeams : permissions?.competition_participant === true
     ? sourceTeams.filter((team: any) => String(team.teamId || "") === principal.name || String(team.leaderName || "") === principal.name)
     : [];
   const ownTeamIds = new Set<string>(ownTeams.map((team: any) => String(team.teamId || "")));
-  const ownClassRows = rawClasses.filter((item: any) => ownTeamIds.has(String(item.teamId || "")) && ownClassNames.has(String(item.className || "")));
+  const ownClassRows = rawClasses.filter((item: any) => ownTeamIds.has(String(item.teamId || "")) && (isVisitor || ownClassNames.has(String(item.className || ""))));
   const average = (rows: any[], key: string) => {
     const values = rows.map((item: any) => Number(item[key])).filter((value: number) => Number.isFinite(value));
     return values.length ? values.reduce((sum: number, value: number) => sum + value, 0) / values.length : null;
@@ -349,13 +351,13 @@ function projectCompetitionResponse(snapshot: any, principal: { type: string; na
     const isOwn = ownTeamIds.has(String(team.teamId || ""));
     const projected: any = {
       teamId: team.teamId, teamName: team.teamName, leaderName: team.leaderName,
-      classNames: isOwn ? Array.from(ownClassNames) : (Array.isArray(team.classNames) ? team.classNames : []),
+      classNames: canSeeAll ? (Array.isArray(team.classNames) ? team.classNames : []) : isOwn ? Array.from(ownClassNames) : (Array.isArray(team.classNames) ? team.classNames : []),
       grade: team.grade, score: team.score, rank: team.rank,
       attendancePoints: team.attendancePoints, behaviorPoints: team.behaviorPoints,
       weeklyAwardPoints: team.weeklyAwardPoints, complete: team.complete,
       resultStatus: team.resultStatus
     };
-    if (isAdmin) {
+    if (canSeeAll) {
       Object.assign(projected, {
         attendanceRate: team.attendanceRate, behaviorRate: team.behaviorRate,
         attendanceIncidents: team.attendanceIncidents, behaviorIncidents: team.behaviorIncidents,
@@ -373,14 +375,14 @@ function projectCompetitionResponse(snapshot: any, principal: { type: string; na
     }
     return projected;
   });
-  const visibleClasses = isAdmin ? rawClasses : ownClassRows;
+  const visibleClasses = canSeeAll ? rawClasses : ownClassRows;
   return {
     ...snapshot,
     isAdmin,
     teams,
     ownGrades: ownTeams.map((team: any) => team.teamName || team.grade),
     ownClasses: visibleClasses,
-    classComparison: projectCompetitionClassComparison(visibleClasses, isAdmin, Array.from(ownTeamIds))
+    classComparison: projectCompetitionClassComparison(visibleClasses, canSeeAll, Array.from(ownTeamIds))
   };
 }
 async function getLatestWeeklyCompetition(principal: { type: string; name: string }, permissions: any) {

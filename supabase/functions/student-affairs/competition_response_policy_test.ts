@@ -99,3 +99,13 @@ Deno.test("incomplete classes do not receive recommendation metrics", () => {
   assertEquals(result[0].repeatAttendanceStudents, null);
   assertEquals(result[0].repeatBehaviorStudents, null);
 });
+
+Deno.test("global competition viewers (administrators and authorized visitors) receive all class comparisons and detailed aggregates", () => {
+  const projectedTeams = projectCompetitionTeams(teams, true, [], true);
+  assertEquals(projectedTeams.map(team => team.attendanceRate), [2.5, 4.5, 6.5, 8.5]);
+  const rows = [
+    { teamId: "A", teamName: "فريق أ", leaderName: "أحمد", className: "1/9", complete: true, attendanceRate: 2, behaviorRate: 1 },
+    { teamId: "B", teamName: "فريق ب", leaderName: "خالد", className: "1/10", complete: true, attendanceRate: 5, behaviorRate: 4 }
+  ];
+  assertEquals(projectCompetitionClassComparison(rows, true, []).map(row => row.className), ["1/9", "1/10"]);
+});

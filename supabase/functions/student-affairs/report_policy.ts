@@ -9,6 +9,11 @@ export type ReportPermissions = {
 export type AuthorizationError = { status: 400 | 403; message: string };
 
 export type ReportsEntryPermissions = {
+  role?: string;
+  own_allowed_attendance_classes?: string[];
+  own_allowed_behavior_classes?: string[];
+  team_allowed_attendance_classes?: string[];
+  team_allowed_behavior_classes?: string[];
   allowed_classes?: string[];
   allowed_attendance_classes?: string[];
   allowed_behavior_classes?: string[];
@@ -21,15 +26,41 @@ export type ReportsEntryPermissions = {
   can_print_combined?: boolean;
 };
 
-/** A granted Reports tab permission includes the full reporting workflow, scoped to configured school classes. */
+function uniqueClasses(values: unknown[]): string[] {
+  return [...new Set(values.map(value => String(value || "").trim()).filter(Boolean))];
+}
+
+/**
+ * A Reports-tab grant enables the reporting workflow without overriding Student
+ * Affairs role boundaries: supervisors keep their own classes, team leaders get
+ * their own plus directly assigned team classes, and visitors get school-wide scope.
+ */
 export function applyReportsEntryPermissions<T extends object>(permissions: T, classes: string[], enabled: boolean): T & ReportsEntryPermissions {
   if (!enabled) return permissions as T & ReportsEntryPermissions;
-  const allowed = [...new Set(classes.map(value => String(value || "").trim()).filter(Boolean))];
+  const p = permissions as T & ReportsEntryPermissions;
+  const schoolClasses = uniqueClasses(classes);
+  const role = String(p.role || "");
+  const ownAttendance = uniqueClasses(p.own_allowed_attendance_classes || p.allowed_attendance_classes || []);
+  const ownBehavior = uniqueClasses(p.own_allowed_behavior_classes || p.allowed_behavior_classes || []);
+  const attendance = role === "visitor"
+    ? schoolClasses
+    : role === "team_leader"
+      ? uniqueClasses([...ownAttendance, ...(p.team_allowed_attendance_classes || [])])
+      : role === "supervisor"
+        ? ownAttendance
+        : schoolClasses;
+  const behavior = role === "visitor"
+    ? schoolClasses
+    : role === "team_leader"
+      ? uniqueClasses([...ownBehavior, ...(p.team_allowed_behavior_classes || [])])
+      : role === "supervisor"
+        ? ownBehavior
+        : schoolClasses;
   return {
-    ...permissions,
-    allowed_classes: allowed,
-    allowed_attendance_classes: allowed,
-    allowed_behavior_classes: allowed,
+    ...p,
+    allowed_classes: uniqueClasses([...attendance, ...behavior]),
+    allowed_attendance_classes: attendance,
+    allowed_behavior_classes: behavior,
     attendance_statuses: ["absent", "late", "escape", "outside"],
     can_read_attendance: true,
     can_read_behavior: true,
