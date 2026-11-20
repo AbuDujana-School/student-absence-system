@@ -1,5 +1,3 @@
-import { readFile } from "https://deno.land/std@0.224.0/assert/mod.ts";
-
 const source = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
 
 function section(start: string, end: string): string {
