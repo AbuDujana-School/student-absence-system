@@ -142,3 +142,11 @@ These are intentional security/compatibility gates, not unfinished automatic fal
 - Verified that the sync attempt fails, the affected attendance dirty key remains queued, and a subsequent successful retry clears that key only after full acknowledgement.
 - All fixtures and credential payloads remain synthetic and intercepted locally.
 - CI on commit `483cbdf0eab1a1f1361c77ba9842257d3931a2c5`: isolated browser regression **44758246172 passed**; Student Affairs backend **44758246085 passed** (3/3 jobs); timetable management **44758246087 passed**.
+
+
+### Stage 6 — offline local PIN verification compatibility
+
+- Added a browser regression with synthetic teacher and custom-account credential records. With the browser explicitly offline, the existing local `findUserByPinWithRecord` path accepts each correct PIN and rejects an incorrect PIN.
+- This test does not change the login implementation, create/rotate any school PIN, or contact the school backend. It verifies the local credential lookup compatibility that the current offline login fallback depends on.
+- CI on commit `9a490c29a82e82cbbfc03d3a61ca2db705a63fb3`: isolated Chromium regression **44758705113 passed**; Student Affairs backend **44758705184 passed** (3/3 jobs); timetable management **44758705112 passed**.
+- This is a focused local PIN-verification regression, not a claim that the entire login lifecycle or device-bound credential replacement has been completed.
