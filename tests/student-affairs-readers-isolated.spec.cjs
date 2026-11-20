@@ -471,7 +471,7 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
 test("weekly discipline championship has no manual refresh button", async ({ page }) => {
   await openIsolatedApp(page);
   await expect(page.locator('#saCompetitionPanel button[onclick="saLoadCompetition()"]')).toHaveCount(0);
-  await expect(page.locator("#saCompetitionPanel")).toContainText("الخميس الساعة 1:50 ظهراً بتوقيت عُمان");
+  await expect(page.locator("#saCompetitionPanel")).toContainText("تُعتمد النتيجة تلقائياً كل يوم خميس الساعة 1:50 ظهراً بتوقيت عُمان");
 });
 
 test("weekly discipline championship is scheduled once at 13:50 Oman time", () => {
