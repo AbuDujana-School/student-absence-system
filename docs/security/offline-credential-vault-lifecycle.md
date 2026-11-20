@@ -19,7 +19,7 @@ Design contract only. The vault is not connected to the school application. This
 
 - Create/update the vault only after a successful online app_login and successful app-session establishment.
 - Bind the entry to the server-confirmed principal and a server-issued credential/session epoch.
-- Do not persist PIN hash, PIN salt, admin PIN verifier, or a reusable bearer credential in the browser vault.
+- The final integrated vault must not persist PIN hash, PIN salt, admin PIN verifier, or a reusable bearer credential. The current generic prototype can encrypt arbitrary snapshot objects and synthetic unit fixtures include verifier-shaped fields; that is not approval to connect real credential snapshots to this vault.
 - Do not enable enrollment until the server can issue and validate a device-scoped offline restoration capability and the UI can use it without changing the existing login path.
 
 ### Offline continuation
