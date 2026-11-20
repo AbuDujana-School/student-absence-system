@@ -10,7 +10,7 @@ function fixture(options: {
   session?: { principal: { type: string; name: string } } | null;
   principal?: AppDataPrincipal | null;
   scope?: { allowedClasses: string[]; allowedAttendanceClasses?: string[]; allowedBehaviorClasses?: string[] };
-  existing?: Record<string, unknown>[];
+  existing?: Record<string, unknown>[];\n  writeError?: unknown;
 } = {}) {
   const calls: Array<[string, ...unknown[]]> = [];
   let saved: Record<string, unknown>[] | null = null;
@@ -20,7 +20,7 @@ function fixture(options: {
     async upsert(rows: Record<string, unknown>[], config: unknown) {
       calls.push(["upsert", config]);
       saved = rows;
-      return { error: null };
+      return { error: options.writeError ?? null };
     },
   };
   const deps = {
@@ -151,4 +151,19 @@ Deno.test("admin duty reports use the verified id primary key", async () => {
   }] }, deps);
   assertEquals(response.status, 200);
   assert(calls.some(([name, config]) => name === "upsert" && (config as any).onConflict === "id"));
+});
+
+
+Deno.test("database write errors return a safe message without row or SQL details", async () => {
+  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const { deps } = fixture({
+    principal: admin,
+    session: { principal: { type: "admin", name: admin.name } },
+    writeError: { code: "42501", message: "sensitive row payload and database details" },
+  });
+  const response = await request({ table: "students", rows: [{ class_name: "5/1", student_name: "Student A" }] }, deps);
+  const body = await response.text();
+  assertEquals(response.status, 503);
+  assertEquals(body.includes("sensitive row payload"), false);
+  assertEquals(body.includes("42501"), false);
 });
