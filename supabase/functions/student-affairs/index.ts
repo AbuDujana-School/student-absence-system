@@ -1915,7 +1915,7 @@ async function handle(req: Request) {
     return reply(200, { ok: true, permissions: row });
   }
   if (body?.action === "competition_settings") {
-    const permissions = await permissionsFor(p, true);
+    const permissions = p.type === "admin" ? {} : await permissionsFor(p, true);
     if (p.type !== "admin" && permissions?.can_view_competition !== true) return reply(403, { error: "لا تملك صلاحية مشاهدة إعدادات البطولة." });
     const mode = String(body.mode || "read");
     if (mode === "save") {
@@ -1936,7 +1936,7 @@ async function handle(req: Request) {
     });
   }
   if (body?.action === "competition") {
-    const permissions = await permissionsFor(p, true);
+    const permissions = p.type === "admin" ? {} : await permissionsFor(p, true);
     if (p.type !== "admin" && permissions?.can_view_competition !== true) {
       return reply(403, { error: "لا تملك صلاحية مشاهدة لوحة سباق التميز." });
     }
