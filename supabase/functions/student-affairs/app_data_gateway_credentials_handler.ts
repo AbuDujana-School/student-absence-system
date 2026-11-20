@@ -36,15 +36,28 @@ export async function handleAppCredentialSnapshot(
   const principal = await deps.currentPrincipal(session.principal.type, session.principal.name);
   if (!principal) return reply(401, { error: "تعذر التحقق من صلاحية الحساب الحالية." }, deps.headers);
 
-  const [{ data: adminSetting, error: adminError }, { data: accounts, error: accountsError }] = await Promise.all([
-    deps.db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
-    deps.db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin").order("name", { ascending: true }),
+  // Only administrators may receive the full credential roster or the administrator PIN verifier.
+  // A teacher/custom account receives only its own verifier for the existing offline-login contract.
+  const isAdmin = principal.type === "admin";
+  const accountQuery = deps.db.from("teachers")
+    .select("name,role,pin_hash,pin_salt,permissions,must_change_pin");
+  const scopedAccountQuery = isAdmin
+    ? accountQuery.order("name", { ascending: true })
+    : accountQuery.eq("name", principal.name);
+  const [adminResult, accountResult] = await Promise.all([
+    isAdmin
+      ? deps.db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle()
+      : Promise.resolve({ data: null, error: null }),
+    scopedAccountQuery,
   ]);
-  if (adminError || accountsError) {
+  if (adminResult.error || accountResult.error) {
     return reply(503, { error: "تعذر تحميل بيانات التحقق الآمن حالياً." }, deps.headers);
   }
 
-  const adminPin = adminSetting?.value && typeof adminSetting.value.hash === "string" &&
+  const adminSetting = adminResult.data;
+  const accounts = accountResult.data;
+  const adminPin = isAdmin && adminSetting?.value &&
+    typeof adminSetting.value.hash === "string" &&
     typeof adminSetting.value.salt === "string"
     ? { hash: adminSetting.value.hash, salt: adminSetting.value.salt } : null;
   const safeAccounts = (accounts || []).map((account: any) => ({
