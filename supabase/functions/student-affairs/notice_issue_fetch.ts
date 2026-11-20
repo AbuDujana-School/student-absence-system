@@ -38,9 +38,7 @@ export async function fetchNoticeRowsForClasses(
   const batchRows: any[] = Array.isArray(batch.data) ? batch.data : [];
   const hasExactCount = typeof batch.count === "number" && Number.isFinite(batch.count);
   const total = hasExactCount ? Number(batch.count) : batchRows.length;
-  const batchIsComplete = hasExactCount
-    ? total <= NOTICE_CLASS_ROW_LIMIT && batchRows.length === total
-    : batchRows.length < NOTICE_CLASS_ROW_LIMIT;
+  const batchIsComplete = hasExactCount && total <= NOTICE_CLASS_ROW_LIMIT && batchRows.length === total;
 
   if (batchIsComplete) {
     const perClass = new Map<string, number>();
@@ -53,8 +51,9 @@ export async function fetchNoticeRowsForClasses(
     return batchRows;
   }
 
-  // The batch count is above the safe window (or the count metadata is absent
-  // at the limit). Fall back to the old per-class reads and enforce the same
+  // The batch count is above the safe window, the returned row count is
+  // incomplete, or exact count metadata is unavailable. Fall back to the old
+  // per-class reads and enforce the same
   // 5,000-row ceiling independently for each class.
   const rowsByClass = new Map<string, any[]>();
   const fallbackErrors: Error[] = [];
