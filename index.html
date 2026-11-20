@@ -2552,7 +2552,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4" disabled><span class="text-xs font-bold">📄 دخول قسم التقارير (يُحدد تلقائياً)</span></label>
         <div class="col-span-2 rounded-2xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/20 p-4 space-y-3">
           <div class="text-xs font-black text-purple-900 dark:text-purple-200">صلاحيات التقارير المستقلة</div>
-          <p class="text-[11px] leading-5 text-purple-800 dark:text-purple-300">فعّل التقارير التي يسمح لهذا المعلم بالاطلاع عليها فقط. لا تمنح صلاحية تقرير واحد الوصول إلى التقارير الأخرى.</p>
+          <p class="text-[11px] leading-5 text-purple-800 dark:text-purple-300">فعّل التقارير التي يسمح لهذا المعلم بالاطلاع عليها فقط. لا تمنح صلاحية تقرير واحد الوصول إلى التقارير الأخرى. صلاحية «التقارير» القديمة لا تمنح وصولاً تلقائياً؛ حدّد التقارير المطلوبة صراحةً.</p>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportMorningAssemblyLateness" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">⏰ تقرير التأخر عن الطابور الصباحي</span></label>
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportStudentAffairs" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📊 لوحة تقارير شؤون الطلبة</span></label>
@@ -8429,7 +8429,7 @@ function canAccessReport(key, user = activeUser) {
   if (!REPORT_PERMISSION_KEYS.includes(key)) return false;
   const p = user?.permissions && typeof user.permissions === 'object' ? user.permissions : {};
   if (user?.type === 'admin' || p.admin === true || isAdminAuthorized()) return true;
-  return hasGranularReportPermissions(p) ? p[key] === true : p.reports === true;
+  return p[key] === true;
 }
 function canAccessAnyReport(user = activeUser) {
   return user?.type === 'admin' || user?.permissions?.admin === true || isAdminAuthorized()
