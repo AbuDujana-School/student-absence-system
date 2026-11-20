@@ -825,7 +825,7 @@ jobs:
       - name: Run protected offline credential gateway tests
         run: deno test supabase/functions/student-affairs/app_data_gateway_credentials_handler_test.ts
       - name: Verify deployed preview gateway rejects missing and unknown app sessions
-        if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || github.ref == 'refs/heads/fix/integrated-school-sync-hardening-final-20261120' || (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119' || github.event.pull_request.head.ref == 'fix/integrated-school-sync-hardening-final-20261120'))
+        if: github.ref == 'refs/heads/test/app-data-gateway-handler-20261119' || github.ref == 'refs/heads/fix/integrated-school-sync-hardening-final-20261120' || github.ref == 'refs/heads/fix/issue-325-authenticated-write-gateway-20261120' || (github.event_name == 'pull_request' && (github.event.pull_request.head.ref == 'test/app-data-gateway-handler-20261119' || github.event.pull_request.head.ref == 'fix/integrated-school-sync-hardening-final-20261120' || github.event.pull_request.head.ref == 'fix/issue-325-authenticated-write-gateway-20261120'))
         env:
           PREVIEW_URL: "https://wawplttrpiinoukpjqqx.supabase.co"
           PREVIEW_PUBLISHABLE_KEY: "sb_publishable_7BEkF9yQ9A5eOiK1jIWQww_Uv424Y0i"
@@ -848,6 +848,19 @@ jobs:
             exit 1
           fi
           echo "Deployed preview rejected both missing and unknown app sessions (HTTP 401)."
+          for payload in \
+            '{"action":"app_data_gateway_write","table":"attendance","rows":[{}]}' \
+            '{"action":"app_data_gateway_credentials_read"}' \
+            '{"action":"app_data_gateway_credentials_write","target_type":"teacher","target_name":"synthetic","hash":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","salt":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"}'; do
+            body_file="$(mktemp)"
+            status="$(curl --silent --show-error --output "$body_file" --write-out '%{http_code}' --request POST "$endpoint" --header "apikey: $PREVIEW_PUBLISHABLE_KEY" --header 'Content-Type: application/json' --data "$payload")"
+            if [ "$status" != "401" ]; then
+              echo "A protected gateway action did not reject a missing session (HTTP $status)."
+              cat "$body_file"
+              exit 1
+            fi
+          done
+          echo "Deployed preview rejected missing-session read, write, and credential actions (HTTP 401)."
       - name: Run general app Supabase session store tests
         run: deno test supabase/functions/student-affairs/app_session_store_test.ts
       - name: Run report authorization tests
