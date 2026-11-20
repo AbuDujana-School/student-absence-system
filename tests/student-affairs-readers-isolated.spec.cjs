@@ -65,6 +65,10 @@ async function openIsolatedApp(page) {
         }) });
         return;
       }
+      if (body.action === "reports" && body.report_mode === "view") {
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ attendance: [], behaviors: [] }) });
+        return;
+      }
       if (body.action === "reports" && body.report_mode === "analytics") {
         await route.fulfill({ status: 200, headers, body: JSON.stringify({
           analytics: { QA_ONLY_CLASS: { selected_attendance_records: 3, behavior_sessions: 2 } },
