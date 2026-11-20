@@ -453,7 +453,8 @@ Deno.test("cloud sync fetches only the columns consumed by the local school snap
     "shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)",
   ];
   for (const projection of projections) assert(load.includes(projection), "Missing narrow cloud projection: " + projection);
-  assert((load.match(/date: r\.date_str/g) || []).length === 2, "Attendance and behavior snapshots must both retain their date_str value");
+  const recordMappings = load.slice(load.indexOf("if (shouldLoad('attendance'))"), load.indexOf("mergeDirtyLocalState"));
+  assert((recordMappings.match(/date: r\.date_str/g) || []).length === 2, "Attendance and behavior snapshots must both retain their date_str value");
   for (const table of ["teachers", "attendance", "behaviors", "school_settings", "duty_reports"]) {
     assert(!load.includes("fetchAllPaginated('" + table + "', '*')"), "Cloud sync must not fetch unused columns from " + table);
   }
