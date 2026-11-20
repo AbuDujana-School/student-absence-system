@@ -379,7 +379,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   await page.context().setOffline(false);
 
   expect(manifestCalls).toBe(3);
-  expect(gatewayReads.length).toBe(5);
+  expect(gatewayReads.length).toBe(7);
   expect(blockedWrites, "No unexpected REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
