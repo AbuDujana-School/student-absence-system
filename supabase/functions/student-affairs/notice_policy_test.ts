@@ -93,7 +93,7 @@ Deno.test("official notice payload rejects unsupported principal types before RP
 });
 
 Deno.test("official notice payload accepts a monitoring period ending before issue date", () => {
-  const item = validNoticeItem(); item.period_end = "2026-11-19";
+  const item = validNoticeItem(); item.period_end = "2026-11-21";
   if (validateNoticeIssueItem(item) !== null) throw new Error("valid prior monitoring period was rejected");
   const future = validNoticeItem(); future.period_end = "2026-11-21";
   if (!validateNoticeIssueItem(future)?.includes("نهاية فترة")) throw new Error("monitoring period after issue date was accepted");
