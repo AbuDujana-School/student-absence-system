@@ -16,7 +16,7 @@ test("supervision trends exclude Friday and Saturday but retain Sunday-Thursday"
     { date: "2026-11-28" }, // Saturday
     { date: "not-a-date" },
   ];
-  assert.deepEqual(filterRows(input).map(row => row.date), [
+  assert.deepEqual(Array.from(filterRows(input), row => row.date), [
     "2026-11-22", "2026-11-23", "2026-11-26"
   ]);
 });
