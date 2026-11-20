@@ -62,6 +62,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/app_sessions_isolation.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
+      - name: Apply official notice period validation correction
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261120120000_fix_notice_period_end_validation.sql
+      - name: Verify official notice period date handling
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/notice_period_validation.sql
       - name: Prepare isolated school data tables for student transfer integration
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
@@ -847,6 +851,10 @@ jobs:
         run: deno test supabase/functions/student-affairs/report_policy_test.ts
       - name: Run incremental notice policy tests
         run: deno test supabase/functions/student-affairs/notice_policy_test.ts
+      - name: Type-check batched notice issue reader
+        run: deno check supabase/functions/student-affairs/notice_issue_fetch.ts
+      - name: Run batched notice issue reader tests
+        run: deno test supabase/functions/student-affairs/notice_issue_fetch_test.ts
       - name: Run Student Affairs supervision access policy tests
         run: deno test supabase/functions/student-affairs/supervision_access_policy_test.ts
       - name: Run competition policy tests
