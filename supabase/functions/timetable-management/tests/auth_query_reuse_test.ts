@@ -109,3 +109,14 @@ Deno.test("linked timetable authorization avoids repeating the cell read perform
     throw new Error("The personal timetable handler must retain its authoritative cell read");
   }
 });
+
+Deno.test("department subject resolution reuses an already loaded teacher directory", () => {
+  const helper = section("async function getActiveDepartmentSubjects(", "function timetableTeacherIdentityKey(");
+  if (!helper.includes("preloadedDirectory ?? await teacherDirectory()")) {
+    throw new Error("Department subject resolution must accept a preloaded teacher directory");
+  }
+  if (!source.includes("getActiveDepartmentSubjects(actor.departmentId, directory)") ||
+      !source.includes("getActiveDepartmentSubjects(actorDepartmentId, directory)")) {
+    throw new Error("Department workflows must reuse the directory they already loaded");
+  }
+});
