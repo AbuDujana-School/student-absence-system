@@ -11,6 +11,12 @@ function section(startMarker: string, endMarker: string): string {
   return html.slice(start, end);
 }
 
+Deno.test("robust upsert fallback selects only conflict keys and at most one row", () => {
+  const upsert = section("async function robustUpsert(", "async function fetchAllPaginated(");
+  assert(upsert.includes("sb.from(table).select(cols.join(',')).limit(1)"), "Fallback existence check must select only conflict-key columns and one row");
+  assert(!upsert.includes("sb.from(table).select('*')"), "Fallback must not download complete rows or credential fields");
+});
+
 Deno.test("robust upsert diagnostics never expose row payloads or credential fields", () => {
   const upsert = section("async function robustUpsert(", "async function fetchAllPaginated(");
   assert(upsert.includes("(row and message omitted; code"), "Failure diagnostics must omit both row payloads and raw database messages");
