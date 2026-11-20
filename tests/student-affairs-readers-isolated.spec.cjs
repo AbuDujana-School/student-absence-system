@@ -468,6 +468,12 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
 });
 
 
+test("weekly discipline championship has no manual refresh button", async ({ page }) => {
+  await openIsolatedApp(page);
+  await expect(page.locator('#saCompetitionPanel button[onclick="saLoadCompetition()"]')).toHaveCount(0);
+  await expect(page.locator("#saCompetitionPanel")).toContainText("الخميس الساعة 1:50 ظهراً بتوقيت عُمان");
+});
+
 test("weekly discipline championship is scheduled once at 13:50 Oman time", () => {
   const migrationPath = path.join(process.cwd(), "supabase/migrations/20261121135000_student_affairs_competition_single_weekly_run.sql");
   const migration = fs.readFileSync(migrationPath, "utf8");
