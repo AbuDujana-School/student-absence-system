@@ -27,6 +27,13 @@ const PIN_ITERATIONS = 150000;
 const SESSION_HOURS = 8;
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-client-info, x-cron-secret", "Access-Control-Allow-Methods": "POST, OPTIONS", "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
 function reply(status: number, body: Record<string, unknown>) { return new Response(JSON.stringify(body), { status, headers: cors }); }
+function canAccessStudentAffairsAppReport(principal: AppPrincipal) {
+  if (principal.type === "admin") return true;
+  const permissions = principal.permissions && typeof principal.permissions === "object" ? principal.permissions : {};
+  const reportKeys = ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"];
+  const hasGranularPermissions = reportKeys.some((key) => Object.prototype.hasOwnProperty.call(permissions, key));
+  return hasGranularPermissions ? permissions.reportStudentAffairs === true : permissions.reports === true;
+}
 const enc = new TextEncoder();
 function hex(bytes: Uint8Array) { return Array.from(bytes).map(b => b.toString(16).padStart(2, "0")).join(""); }
 async function sha256(value: string) { return hex(new Uint8Array(await crypto.subtle.digest("SHA-256", enc.encode(value)))); }
@@ -1573,7 +1580,7 @@ async function handle(req: Request) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
       }
-      if (appPrincipal.type !== "admin" && appPrincipal.permissions?.reports !== true) {
+      if (!canAccessStudentAffairsAppReport(appPrincipal)) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
       }
       p = appPrincipal;
