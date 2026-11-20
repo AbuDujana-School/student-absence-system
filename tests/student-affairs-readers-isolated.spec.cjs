@@ -194,7 +194,13 @@ test("supervision screen renders the synthetic team trend", async ({ page }) => 
 });
 
 test("student affairs reports and notices do not render inline print previews", async ({ page }) => {
-  await openIsolatedApp(page);
+  const traffic = await openIsolatedApp(page);
+  await page.evaluate(() => {
+    saReportPermissions = { role: "visitor", can_read_attendance: true, can_print_attendance: true, allowed_attendance_classes: ["QA_ONLY_CLASS"], attendance_statuses: ["absent", "late", "escape", "outside"] };
+    saPopulateReportClasses();
+    saSetDomain("attendance");
+  });
+  expect(traffic.functionCalls.filter((item) => item.action === "reports" && item.report_mode === "view")).toHaveLength(0);
   await expect(page.locator("#saSummary")).toBeHidden();
   await expect(page.locator("#saResults")).toBeHidden();
   await expect(page.locator("#saViewButton")).toBeHidden();
