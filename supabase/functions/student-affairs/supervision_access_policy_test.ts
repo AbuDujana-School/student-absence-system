@@ -99,7 +99,7 @@ Deno.test("legacy supervisors retain team-name matching until explicitly linked"
 });
 
 
-Deno.test("team leader receives notice-only print access for a resolved team member", () => {
+Deno.test("team leader receives report and notice print access for a directly resolved team member", () => {
   const base = { role: "team_leader", can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
   const scoped = applyTeamLeaderNoticePrintAccess(base, "team_leader", colleague, "notice_issue_commit");
   assertEquals(scoped.can_print_attendance, true);
@@ -107,9 +107,9 @@ Deno.test("team leader receives notice-only print access for a resolved team mem
   assertEquals(scoped.can_print_combined, true);
 });
 
-Deno.test("team leader notice print grant does not expand ordinary report permissions", () => {
+Deno.test("team leader print grant remains limited to a directly resolved team member", () => {
   const base = { role: "team_leader", can_print_attendance: false, can_print_behavior: false, can_print_combined: false };
-  assertEquals(applyTeamLeaderNoticePrintAccess(base, "team_leader", colleague, "print_attendance"), base);
+  assertEquals(applyTeamLeaderNoticePrintAccess(base, "team_leader", colleague, "print_attendance").can_print_attendance, true);
   assertEquals(applyTeamLeaderNoticePrintAccess(base, "supervisor", colleague, "notice_issue_commit"), base);
   assertEquals(applyTeamLeaderNoticePrintAccess(base, "team_leader", null, "notice_issue_commit"), base);
 });
