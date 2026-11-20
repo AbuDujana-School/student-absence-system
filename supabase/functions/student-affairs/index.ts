@@ -11,6 +11,7 @@ import {
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
 import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
+import { handleAppDataGatewayWrite } from "./app_data_gateway_write_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
@@ -781,6 +782,16 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
   });
 }
 
+async function writeAppDataGateway(req: Request, body: any): Promise<Response> {
+  return await handleAppDataGatewayWrite(req, body, {
+    db,
+    headers: cors,
+    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    currentPrincipal: (type, name) => currentAppPrincipal(type, name),
+    resolveScope: (principal) => resolveAppDataScopeForPrincipal(principal as AppPrincipal),
+  });
+}
+
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
   if (principal.type === "admin") return true;
   const { data, error } = await db.from("timetable_access_permissions")
@@ -816,6 +827,13 @@ async function handle(req: Request) {
     catch (error) {
       console.error("App data gateway read failed:", error);
       return reply(500, { error: "تعذر تحميل البيانات المطلوبة حالياً." });
+    }
+  }
+  if (body?.action === "app_data_gateway_write") {
+    try { return await writeAppDataGateway(req, body); }
+    catch (error) {
+      console.error("App data gateway write failed:", error);
+      return reply(500, { error: "تعذر حفظ البيانات المطلوبة حالياً." });
     }
   }
   if (body?.action === "admin_save_student_roster") {
