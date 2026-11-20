@@ -1,0 +1,44 @@
+import { canAccessReportPermission, hasExplicitReportPermissions } from "./report_access_policy.ts";
+
+Deno.test("legacy reports permission remains compatible until granular flags are set", () => {
+  const legacy = { reports: true };
+  assert(!hasExplicitReportPermissions(legacy), "legacy permissions should not be treated as granular");
+  for (const report of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"] as const) {
+    assert(canAccessReportPermission("teacher", legacy, report), "legacy reports should retain prior access");
+  }
+});
+
+Deno.test("explicit report permissions grant only the selected report", () => {
+  const permissions = {
+    reports: true,
+    reportMorningAssemblyLateness: false,
+    reportStudentAffairs: true,
+    reportComprehensiveAbsence: false,
+    reportClassLatenessFollowup: false,
+  };
+  assert(canAccessReportPermission("teacher", permissions, "reportStudentAffairs"), "selected report should be allowed");
+  assert(!canAccessReportPermission("teacher", permissions, "reportMorningAssemblyLateness"), "unselected morning report must be denied");
+  assert(!canAccessReportPermission("teacher", permissions, "reportComprehensiveAbsence"), "unselected absence report must be denied");
+  assert(!canAccessReportPermission("teacher", permissions, "reportClassLatenessFollowup"), "unselected lesson lateness report must be denied");
+});
+
+Deno.test("explicit false flags override legacy broad access", () => {
+  const permissions = {
+    reports: true,
+    reportMorningAssemblyLateness: false,
+    reportStudentAffairs: false,
+    reportComprehensiveAbsence: false,
+    reportClassLatenessFollowup: false,
+  };
+  assert(!canAccessReportPermission("teacher", permissions, "reportStudentAffairs"), "explicit false must not fall back to legacy reports");
+});
+
+Deno.test("administrator bypasses report flags while ordinary accounts without grants are denied", () => {
+  assert(canAccessReportPermission("admin", {}, "reportStudentAffairs"), "administrator should retain full access");
+  assert(!canAccessReportPermission("teacher", {}, "reportStudentAffairs"), "no report grant should be denied");
+  assert(!canAccessReportPermission("custom", { reports: false }, "reportMorningAssemblyLateness"), "custom account without grant should be denied");
+});
+
+function assert(condition: boolean, message: string): asserts condition {
+  if (!condition) throw new Error(message);
+}
