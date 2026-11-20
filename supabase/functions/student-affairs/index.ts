@@ -162,7 +162,7 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   }
   return null;
 }
-async function permissionsFor(p: { type: string; name: string }, strictCompetition = false) {
+async function permissionsFor(p: { type: string; name: string; permissions?: Record<string, unknown> }, strictCompetition = false) {
   if (p.type === "admin") {
     const [{ data: classes }, { data: teachers }, { data: permissionRows }] = await Promise.all([
       db.from("classes").select("name"),
@@ -179,9 +179,13 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
       }).sort((a: any, b: any) => a.name.localeCompare(b.name, "ar"));
     return { role: "admin", own_allowed_attendance_classes: all, own_allowed_behavior_classes: all, team_allowed_attendance_classes: all, team_allowed_behavior_classes: all, allowed_classes: all, allowed_attendance_classes: all, allowed_behavior_classes: all, attendance_statuses: ["absent", "late", "escape", "outside"], can_read_attendance: true, can_read_behavior: true, can_view_analytics: true, can_view_competition: true, competition_participant: false, can_print_attendance: true, can_print_behavior: true, can_print_combined: true, team_members: [], teacher_directory: teacherDirectory };
   }
+  const principalPermissions = p.permissions && typeof p.permissions === "object" ? p.permissions : null;
+  const teacherLookup = principalPermissions
+    ? Promise.resolve({ data: { name: p.name, role: p.type === "custom" ? "custom" : "teacher", permissions: principalPermissions }, error: null })
+    : db.from("teachers").select("name,role,permissions").eq("name", p.name).maybeSingle();
   const [{ data }, { data: teacher }] = await Promise.all([
     db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle(),
-    db.from("teachers").select("name,role,permissions").eq("name", p.name).maybeSingle()
+    teacherLookup
   ]);
   const legacy = Array.isArray(data?.allowed_classes) ? data.allowed_classes : [];
   const ownAttendance = Array.isArray(data?.allowed_attendance_classes) ? data.allowed_attendance_classes : legacy;
@@ -269,8 +273,12 @@ async function permissionsFor(p: { type: string; name: string }, strictCompetiti
   }
   return applyReportsEntryPermissions(reportPermissions, reportClasses, reportsAccess);
 }
-async function hasStudentAffairsAccess(p: { type: string; name: string }) {
+async function hasStudentAffairsAccess(p: { type: string; name: string; permissions?: Record<string, unknown> }) {
   if (p.type === "admin") return true;
+  if (p.permissions && typeof p.permissions === "object") {
+    if (p.type !== "teacher" && p.type !== "custom") return false;
+    return p.permissions.studentAffairs === true || p.permissions.admin === true;
+  }
   const { data, error } = await db.from("teachers").select("role,permissions").eq("name", p.name).maybeSingle();
   if (error || !data) return false;
   const expectedRole = p.type === "custom" ? "custom" : "teacher";
@@ -416,12 +424,16 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
   };
 }
 async function readCompetitionTermSettings() {
-  const [{ data: calendar, error: calendarError }, { data: visibility, error: visibilityError }] = await Promise.all([
-    db.from("school_settings").select("value").eq("key", "competition_term_calendar").maybeSingle(),
-    db.from("school_settings").select("value").eq("key", "competition_visibility_mode").maybeSingle()
-  ]);
-  if (calendarError || visibilityError) throw calendarError || visibilityError;
-  const terms = (Array.isArray(calendar?.value) ? calendar.value : [])
+  // Read both small settings in one indexed request instead of issuing two
+  // separate PostgREST calls every time the competition panel is opened.
+  const { data: rows, error } = await db.from("school_settings")
+    .select("key,value")
+    .in("key", ["competition_term_calendar", "competition_visibility_mode"]);
+  if (error) throw error;
+  const settings = new Map<string, unknown>((rows || []).map((row: any) => [String(row.key), row.value] as [string, unknown]));
+  const calendar = settings.get("competition_term_calendar");
+  const visibility = settings.get("competition_visibility_mode") as any;
+  const terms = (Array.isArray(calendar) ? calendar : [])
     .filter((term: any) => isValidIsoDate(term?.start) && isValidIsoDate(term?.end) && term.start <= term.end)
     .sort((a: any, b: any) => String(a.start).localeCompare(String(b.start)))
     .map((term: any) => ({ id: String(term.start), start: String(term.start), end: String(term.end), label: String(term.label || "الفصل الدراسي") }));
@@ -431,7 +443,7 @@ async function readCompetitionTermSettings() {
     || terms.filter((term: any) => term.start <= today).sort((a: any, b: any) => String(b.start).localeCompare(String(a.start)))[0]
     || terms[0];
   if (!currentTerm) competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
-  return { terms, currentTerm, showBothTerms: visibility?.value?.showBothTerms === true };
+  return { terms, currentTerm, showBothTerms: visibility?.showBothTerms === true };
 }
 async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, requestedTermId?: unknown) {
   if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
