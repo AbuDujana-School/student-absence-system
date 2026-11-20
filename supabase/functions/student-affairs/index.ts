@@ -274,7 +274,9 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
     can_print_attendance: data?.can_print_attendance === true, can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
   };
-  const reportsAccess = tp.reports === true;
+  const reportPermissionKeys = ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"];
+  const hasGranularReportPermissions = reportPermissionKeys.some((key) => Object.prototype.hasOwnProperty.call(tp, key));
+  const reportsAccess = hasGranularReportPermissions ? tp.reportStudentAffairs === true : tp.reports === true;
   let reportClasses: string[] = [];
   if (reportsAccess) {
     const { data: classes, error: classesError } = await db.from("classes").select("name");
