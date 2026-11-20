@@ -5620,13 +5620,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) resumeCloudSync();
   });
-  // Poll the cloud safely while the app is active. Local pending edits are never
-  // overwritten; uploads require explicit approval and queued deletions stay inert.
+  // Poll every two minutes to reduce idle background requests. Reconnect and
+  // return-to-app events still trigger an immediate refresh; local edits remain protected.
   setInterval(() => {
     if (!navigator.onLine || !activeUser || document.hidden) return;
     if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
     else refreshCloudDataSilently();
-  }, 60000);
+  }, 120000);
   if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
     setTimeout(() => retryOfflineSyncSilently(), 1800);
   }

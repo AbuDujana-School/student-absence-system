@@ -56,7 +56,11 @@ Deno.test("cloud refresh polling is read-only whenever local edits or live captu
   assert(refresh.includes("attendanceDirty || behaviorDirty"), "Refresh must not replace an active unsaved capture session");
   assert(refresh.includes("await loadSystemDataFromCloud()"), "Safe refresh must fetch the latest cloud state");
   const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
-  assert(events.includes("}, 60000);"), "Active sessions must poll cloud data periodically");
+  assert(events.includes("}, 120000);"), "Active sessions must use the reduced two-minute polling interval");
+  assert(events.includes("window.addEventListener('online'"), "Network reconnect must still trigger a prompt refresh");
+  assert(events.includes("window.addEventListener('pageshow'"), "Returning to the app must still trigger a prompt refresh");
+  assert(events.includes("document.addEventListener('visibilitychange'"), "Making the app visible must still trigger a prompt refresh");
+  assert(events.includes("}, 1200);"), "Resume refreshes must remain prompt rather than waiting for the next poll");
 });
 
 Deno.test("default PIN initialization and credential migration are not invoked automatically", () => {
