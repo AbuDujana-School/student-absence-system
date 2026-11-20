@@ -73,6 +73,8 @@ test("school sync projections and timetable access reads stay isolated and minim
   const projections = new Map();
   const functionActions = [];
   const gatewayReads = [];
+  const gatewayWrites = [];
+  const legacyWrites = [];
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
@@ -120,6 +122,12 @@ test("school sync projections and timetable access reads stay isolated and minim
         }) });
         return;
       }
+      if (payload.action === "app_data_gateway_write") {
+        gatewayWrites.push({ table: payload.table, rows: payload.rows || [],
+          authorization: request.headers()["authorization"] || "" });
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ saved: (payload.rows || []).length }) });
+        return;
+      }
       unexpectedSupabaseTraffic.push({ method, path: url.pathname, action: payload.action || "" });
       await route.fulfill({ status: 400, headers, body: JSON.stringify({ error: "Unexpected Student Affairs action" }) });
       return;
@@ -132,12 +140,18 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
 
     if (url.pathname.startsWith("/rest/v1/")) {
+      const requestedTable = url.pathname.split("/").filter(Boolean).pop();
+      if (method === "POST" && TABLES.includes(requestedTable)) {
+        legacyWrites.push({ method, table: requestedTable });
+        await route.fulfill({ status: 201, headers: { ...headers, "content-range": "*/1" }, body: "[]" });
+        return;
+      }
       if (method !== "GET" && method !== "HEAD") {
         blockedWrites.push({ method, path: url.pathname });
         await route.fulfill({ status: 405, headers, body: "Writes are disabled in isolated preview tests." });
         return;
       }
-      const table = url.pathname.split("/").filter(Boolean).pop();
+      const table = requestedTable;
       if (!TABLES.includes(table)) {
         unexpectedSupabaseTraffic.push({ method, url: request.url() });
         await route.fulfill({ status: 404, headers, body: "{}" });
@@ -278,6 +292,49 @@ test("school sync projections and timetable access reads stay isolated and minim
   }
 
   await page.evaluate(async () => {
+    const now = new Date().toISOString();
+    await robustUpsert("classes", [{ name: "QA_ONLY_WRITE_CLASS" }], "name", 200);
+    await robustUpsert("students", [{ class_name: "QA_ONLY_CLASS", student_name: "QA_ONLY_WRITE_STUDENT" }], "class_name,student_name", 200);
+    await robustUpsert("attendance", [{
+      record_key: "qa-write-attendance", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_ADMIN", records: {}, updated_at: now
+    }], "record_key", 200);
+    await robustUpsert("behaviors", [{
+      record_key: "qa-write-behavior", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_ADMIN", records: {}, updated_at: now
+    }], "record_key", 200);
+    await robustUpsert("duty_reports", [{
+      id: "qa-write-duty", date_str: "2026-11-20", day_num: 5, period: 1,
+      class_name: "QA_ONLY_CLASS", subject: "QA only", teacher_name: "QA_ONLY_ADMIN",
+      reported_by: "QA_ONLY_ADMIN", status: "pending", reviewed_by: null,
+      reviewed_at: null, created_at: now
+    }], "id", 200);
+  });
+  expect(gatewayWrites.map((item) => item.table).sort()).toEqual([
+    "attendance", "behaviors", "classes", "duty_reports", "students"
+  ]);
+  expect(gatewayWrites.every((item) => item.authorization === "Bearer " + "a".repeat(64))).toBe(true);
+  expect(legacyWrites).toEqual([]);
+
+  const compatibilityWriteChecks = await page.evaluate(async () => {
+    activeUser = { type: "teacher", name: "QA_ONLY_TEACHER", permissions: { attendance: true } };
+    await robustUpsert("attendance", [{
+      record_key: "qa-teacher-legacy-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_TEACHER", records: {}, updated_at: new Date().toISOString()
+    }], "record_key", 100);
+    activeUser = { type: "custom", name: "QA_ONLY_CUSTOM", permissions: { behavior: true } };
+    await robustUpsert("behaviors", [{
+      record_key: "qa-custom-legacy-write", date_str: "2026-11-20", class_name: "QA_ONLY_CLASS",
+      period: 1, teacher_name: "QA_ONLY_CUSTOM", records: {}, updated_at: new Date().toISOString()
+    }], "record_key", 100);
+    activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    return true;
+  });
+  expect(compatibilityWriteChecks).toBe(true);
+  expect(gatewayWrites).toHaveLength(5);
+  expect(legacyWrites.map((item) => item.table).sort()).toEqual(["attendance", "behaviors"]);
+
+  await page.evaluate(async () => {
     timetableCanAccess = true;
     await timetableLoadImports();
     await timetableLoadImports({ refreshAccess: false });
@@ -287,7 +344,7 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   expect(manifestCalls).toBe(3);
   expect(gatewayReads.length).toBe(5);
-  expect(blockedWrites, "No REST writes may occur in isolated browser tests").toEqual([]);
+  expect(blockedWrites, "No unexpected REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
 });
