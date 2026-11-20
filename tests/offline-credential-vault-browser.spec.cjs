@@ -40,6 +40,29 @@ test("real Chromium IndexedDB persists device-bound vault and isolates principal
       await page.goto(origin);
       await page.addScriptTag({ url: origin + "/vault.js" });
 
+      const failedOpenCanRetry = await page.evaluate(async () => {
+        let attempts = 0;
+        const brokenFactory = {
+          open() {
+            attempts += 1;
+            throw new Error("synthetic IndexedDB open failure");
+          },
+        };
+        const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(
+          brokenFactory,
+          "vault-open-retry-qa",
+        );
+        for (let attempt = 0; attempt < 2; attempt += 1) {
+          try {
+            await store.read();
+          } catch {
+            // Expected: each failed open should release the cached promise.
+          }
+        }
+        return attempts;
+      });
+      expect(failedOpenCanRetry).toBe(2);
+
       const saved = await page.evaluate(async () => {
         const principal = { type: "teacher", name: "Browser QA Teacher" };
         const store = VaultApi.createIndexedDbOfflineCredentialVaultStore(indexedDB, "vault-browser-qa");
