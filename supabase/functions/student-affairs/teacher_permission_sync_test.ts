@@ -68,3 +68,18 @@ Deno.test("verified app principals reuse Student Affairs permissions without a d
   assert(permissions.includes("Promise.resolve({ data: { name: p.name"), "Verified principals must avoid a second teachers request");
   assert(permissions.includes('db.from("teachers").select("name,role,permissions")'), "Legacy Student Affairs sessions must retain the database fallback");
 });
+
+
+Deno.test("competition term calendar and visibility settings use one database request", () => {
+  const start = edgeIndex.indexOf("async function readCompetitionTermSettings()");
+  const end = edgeIndex.indexOf("async function buildTermCompetitionSnapshot", start);
+  assert(start >= 0 && end > start, "Could not locate competition term settings reader");
+  const reader = edgeIndex.slice(start, end);
+  const tableReads = reader.match(/db\\.from\\("school_settings"\\)/g) || [];
+  assert(tableReads.length === 1, "Competition settings must use one school_settings request");
+  assert(reader.includes('.select("key,value")'), "The combined request must retrieve only key and value");
+  assert(reader.includes('.in("key", ["competition_term_calendar", "competition_visibility_mode"])'), "The combined request must fetch both required settings");
+  assert(reader.includes('settings.get("competition_term_calendar")'), "Calendar data must retain its original setting key");
+  assert(reader.includes('settings.get("competition_visibility_mode")'), "Visibility data must retain its original setting key");
+  assert(reader.includes("visibility?.showBothTerms === true"), "The visibility behavior must remain unchanged");
+});
