@@ -2526,6 +2526,7 @@ async function saSelectSupervisionTeacher(name){
   saSetDomain(saDomain);
   await saLoadSupervisionTrend("teacher");
 }
+function saFilterSupervisionTrendRows(rows){return (Array.isArray(rows)?rows:[]).filter(row=>{const date=String(row?.date||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const day=new Date(date+"T12:00:00.000Z").getUTCDay();return day!==5&&day!==6;});}
 async function saLoadSupervisionTrend(scope="own"){
   const panel=document.getElementById("saSupervisionPanel"),status=document.getElementById("saSupervisionStatus");if(!panel||panel.classList.contains("hidden"))return;
   const from=document.getElementById("saSupervisionFrom")?.value||"2000-01-01",to=document.getElementById("saSupervisionTo")?.value||getOmanLocalDate();if(from>to){if(status){status.textContent="تاريخ البداية يجب ألا يكون بعد النهاية.";status.classList.remove("hidden");}return;}
@@ -2533,7 +2534,7 @@ async function saLoadSupervisionTrend(scope="own"){
   saSupervisionScope=scope;const subtitle=document.getElementById("saSupervisionSubtitle");if(subtitle)subtitle.textContent=scope==="team"?"أداء صفوفك وصفوف المعلمين المشرف عليهم في فريقك فقط.":scope==="teacher"?"أداء المعلم المحدد وفصوله المسندة فقط.":"أداء صفوفك المسندة إليك فقط.";
   if(status){status.textContent="جارٍ تحميل اتجاه حالات الغياب والانضباط...";status.classList.remove("hidden");}
   try{
-    const d=await saRequest({action:"supervision_trend",scope,teacher_name:scope==="teacher"?saSupervisionTeacherName:"",from,to}),allRows=Array.isArray(d.series)?d.series:[],rows=allRows.filter(row=>{const date=String(row?.date||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return false;const day=new Date(date+"T12:00:00.000Z").getUTCDay();return day!==5&&day!==6;}),labels=rows.map(x=>x.date);
+    const d=await saRequest({action:"supervision_trend",scope,teacher_name:scope==="teacher"?saSupervisionTeacherName:"",from,to}),allRows=Array.isArray(d.series)?d.series:[],rows=saFilterSupervisionTrendRows(allRows),labels=rows.map(x=>x.date);
     const canvas=document.getElementById("saSupervisionTrendChart");if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}
     if(canvas&&typeof Chart!=="undefined"){
       const ctx=canvas.getContext("2d");
