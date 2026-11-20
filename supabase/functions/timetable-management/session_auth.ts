@@ -41,8 +41,6 @@ export interface TimetableAuthStore {
   canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number, permissions?: Record<string, unknown>): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string, action?: string): Promise<boolean>;
   /** Lightweight portal-setting check used only for the teacher's own daily notice. */
-  hasLinkedTeacherPortalNoticeAccess?(name: string): Promise<boolean>;
-  hasOwnDailySubstitutionAssignment?(name: string): Promise<boolean>;
   hasSchoolwideReserveStatsAccess?(type: "teacher" | "custom", name: string): Promise<boolean>;
 }
 
@@ -92,13 +90,21 @@ export async function resolveTimetablePrincipal(
       "timetable_check_access",
       "timetable_duty_report_context",
       "timetable_activity_report_data",
-      "teacher_substitution_get_today",
     ]).has(requestedAction);
   const teacher = await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
+  // These two reads are strictly self-scoped by their request handlers. The
+  // handlers verify the live portal allow-list or query only this teacher's
+  // assignments, so preflight permission/portal queries here are redundant.
+  if (type === "teacher" && new Set([
+    "teacher_timetable_get_own",
+    "teacher_substitution_get_today",
+  ]).has(requestedAction)) {
+    return { type, name, portalOnly: true };
+  }
   // The schoolwide statistics grant is relevant only to the statistics action.
   // Avoid one permission-table read on every unrelated timetable request.
   const needsSchoolwideReserveStats = new Set([
