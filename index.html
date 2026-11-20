@@ -8418,6 +8418,9 @@ async function repPrint(){
 }
 
 const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup'];
+function canManageReportPermissions() {
+  return activeUser?.type === 'admin' || activeUser?.permissions?.admin === true || isAdminAuthorized();
+}
 function hasGranularReportPermissions(permissions) {
   const p = permissions && typeof permissions === 'object' ? permissions : {};
   return REPORT_PERMISSION_KEYS.some(key => Object.prototype.hasOwnProperty.call(p, key));
@@ -9253,6 +9256,10 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_reportClassLatenessFollowup').checked = hasGranularReports ? p.reportClassLatenessFollowup === true : legacyAllReports;
   document.getElementById('perm_p_reports').checked = legacyAllReports || REPORT_PERMISSION_KEYS.some(key => p[key] === true);
   document.getElementById('perm_p_reports').disabled = true;
+  REPORT_PERMISSION_KEYS.forEach(key => {
+    const control = document.getElementById('perm_p_' + key);
+    if (control) control.disabled = !canManageReportPermissions();
+  });
   document.getElementById('perm_p_duty').checked = !!p.duty;
   document.getElementById('perm_p_security').checked = !!p.security;
   document.getElementById('perm_p_admin').checked = !!p.admin;
@@ -9276,11 +9283,13 @@ async function saveTeacherPermissions() {
   t.permissions.teachers = document.getElementById('perm_p_teachers').checked;
   t.permissions.students = document.getElementById('perm_p_students').checked;
   t.permissions.alerts = document.getElementById('perm_p_alerts').checked;
-  t.permissions.reportMorningAssemblyLateness = document.getElementById('perm_p_reportMorningAssemblyLateness').checked;
-  t.permissions.reportStudentAffairs = document.getElementById('perm_p_reportStudentAffairs').checked;
-  t.permissions.reportComprehensiveAbsence = document.getElementById('perm_p_reportComprehensiveAbsence').checked;
-  t.permissions.reportClassLatenessFollowup = document.getElementById('perm_p_reportClassLatenessFollowup').checked;
-  t.permissions.reports = REPORT_PERMISSION_KEYS.some(key => t.permissions[key] === true);
+  if (canManageReportPermissions()) {
+    t.permissions.reportMorningAssemblyLateness = document.getElementById('perm_p_reportMorningAssemblyLateness').checked;
+    t.permissions.reportStudentAffairs = document.getElementById('perm_p_reportStudentAffairs').checked;
+    t.permissions.reportComprehensiveAbsence = document.getElementById('perm_p_reportComprehensiveAbsence').checked;
+    t.permissions.reportClassLatenessFollowup = document.getElementById('perm_p_reportClassLatenessFollowup').checked;
+    t.permissions.reports = REPORT_PERMISSION_KEYS.some(key => t.permissions[key] === true);
+  }
   t.permissions.duty = document.getElementById('perm_p_duty').checked;
   t.permissions.sync = document.getElementById('perm_p_sync').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
