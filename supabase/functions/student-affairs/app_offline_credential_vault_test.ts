@@ -1,7 +1,10 @@
 import { assert, assertEquals } from "jsr:@std/assert";
 import {
+  clearOfflineCredentialVault,
   createOfflineCredentialVaultKey,
   openOfflineCredentialSnapshot,
+  restoreOfflineCredentialVault,
+  saveOfflineCredentialVault,
   sealOfflineCredentialSnapshot,
 } from "./app_offline_credential_vault.ts";
 
@@ -107,4 +110,37 @@ Deno.test("vault rejects invalid principals, excessive lifetime, and extractable
 
   const validEnvelope = await sealOfflineCredentialSnapshot({ accounts: [] }, teacher, key, { now: fixedNow });
   assertEquals(await openOfflineCredentialSnapshot(validEnvelope, teacher, extractableKey, { now: fixedNow + 1 }), null);
+});
+
+
+Deno.test("IndexedDB store contract saves and restores only the same account's encrypted vault", async () => {
+  let key: CryptoKey | null = null;
+  let envelope: import("./app_offline_credential_vault.ts").OfflineCredentialEnvelope | null = null;
+  const store = {
+    async read() { return { key, envelope }; },
+    async write(nextKey: CryptoKey, nextEnvelope: typeof envelope) {
+      key = nextKey;
+      envelope = nextEnvelope;
+    },
+    async clear() { key = null; envelope = null; },
+  };
+  const snapshot = { accounts: [{ name: teacher.name, pin_hash: "a".repeat(64) }] };
+  await saveOfflineCredentialVault(snapshot, teacher, store, {
+    now: fixedNow,
+    ttlMs: 30 * 60 * 1000,
+  });
+  assert(key);
+  assert(envelope);
+  assertEquals(JSON.stringify(envelope).includes("pin_hash"), false);
+  assertEquals(
+    await restoreOfflineCredentialVault(teacher, store, { now: fixedNow + 1 }),
+    snapshot,
+  );
+  assertEquals(
+    await restoreOfflineCredentialVault(otherTeacher, store, { now: fixedNow + 1 }),
+    null,
+  );
+  await clearOfflineCredentialVault(store);
+  assertEquals(await store.read(), { key: null, envelope: null });
+  assertEquals(await restoreOfflineCredentialVault(teacher, store, { now: fixedNow + 2 }), null);
 });
