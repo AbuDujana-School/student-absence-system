@@ -284,6 +284,43 @@ test("notice preview scans synthetic rows without issuing official notices", asy
 });
 
 
+
+test("notice PDF packs three short notices after a hidden preview is revealed for measurement", async ({ page }) => {
+  await openIsolatedApp(page);
+  const result = await page.evaluate(async () => {
+    const panel = document.getElementById("saNoticePreviewPanel");
+    panel.classList.add("hidden");
+    const students = Array.from({ length: 3 }, (_, i) => ({
+      className: "QA_ONLY_CLASS",
+      name: "QA_SHORT_NOTICE_" + (i + 1),
+      issue_number: i + 1,
+      events: [{ type: "absent", date: "2026/11/20", period: "1", note: "" }],
+      groups: new Map([["absent", {
+        type: "absent", note: "",
+        events: [{ date: "2026/11/20", period: "1" }],
+      }]]),
+    }));
+    saNoticeRenderPreview(students, 3);
+    const ready = await saNoticePreviewReady;
+    const root = document.getElementById("saNoticePrintRoot");
+    const pages = [...root.querySelectorAll(":scope > .sa-notice-page")];
+    return {
+      ready,
+      previewVisible: !panel.classList.contains("hidden"),
+      pageCount: pages.length,
+      cardCounts: pages.map(item => item.querySelectorAll(".sa-notice-card").length),
+      capacities: pages.map(item => Number(item.dataset.capacity)),
+      failedCards: root.querySelectorAll('.sa-notice-card[data-fit-failed="true"]').length,
+    };
+  });
+  expect(result.ready).toBe(true);
+  expect(result.previewVisible).toBe(true);
+  expect(result.pageCount).toBe(1);
+  expect(result.cardCounts).toEqual([3]);
+  expect(result.capacities).toEqual([3]);
+  expect(result.failedCards).toBe(0);
+});
+
 test("notice PDF keeps each complete notice on one page with readable minimum font", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
