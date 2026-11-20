@@ -6179,10 +6179,24 @@ async function saveSystemDataToCloud(options = {}) {
 
     if (syncDirty.admin_pin) {
       if (syncSnapshotDb.adminPin?.hash) {
-        const { error } = await sb.from('school_settings').upsert({
-          key: 'admin_pin', value: { hash: syncSnapshotDb.adminPin.hash, salt: syncSnapshotDb.adminPin.salt }
-        }, { onConflict: 'key' });
-        if (error) throw new Error('admin_pin: ' + error.message);
+        const token = appAuthSession?.token || readAppAuthToken();
+        if (!token || !hasUnexpiredAppAuthSession() ||
+            activeUser?.type !== 'admin' ||
+            appAuthSession?.principal?.type !== 'admin' ||
+            appAuthSession?.principal?.name !== activeUser.name) {
+          throw new Error('تغيير رمز المدير يحتاج إلى جلسة مدير موثقة وسارية؛ بقي التغيير محفوظاً محلياً.');
+        }
+        const result = await appAuthRequest({
+          action: 'app_data_gateway_credentials_write',
+          target_type: 'admin',
+          target_name: activeUser.name,
+          hash: syncSnapshotDb.adminPin.hash,
+          salt: syncSnapshotDb.adminPin.salt,
+          must_change_pin: false
+        }, token);
+        if (result?.updated !== true) {
+          throw new Error('لم تؤكد بوابة بيانات الاعتماد تحديث رمز المدير؛ بقي التغيير محفوظاً محلياً.');
+        }
       }
       clearSyncedDirtyFlag('admin_pin', syncSnapshotDb);
     }
