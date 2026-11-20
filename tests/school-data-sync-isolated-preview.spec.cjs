@@ -265,14 +265,16 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(gatewayReads.length, "Unchanged manifest must not reread through the gateway")
     .toBe(gatewayReadsBeforeUnchangedRefresh);
 
+  const readsBeforeChangedRefresh = new Map(reads);
   manifest.teachers = 2;
   manifest.school_settings = 2;
   const changedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(changedRefresh, "Changed manifest refresh must complete").toBe(true);
-  expect(reads.get("teachers") || 0).toBe(2);
-  expect(reads.get("school_settings") || 0).toBe(2);
+  expect(reads.get("teachers") || 0).toBe((readsBeforeChangedRefresh.get("teachers") || 0) + 1);
+  expect(reads.get("school_settings") || 0).toBe((readsBeforeChangedRefresh.get("school_settings") || 0) + 1);
   for (const table of ["classes", "students", "attendance", "behaviors", "duty_reports"]) {
-    expect(reads.get(table) || 0, "Unchanged table must not be fetched again: " + table).toBe(1);
+    expect(reads.get(table) || 0, "Unchanged table must not be fetched again: " + table)
+      .toBe(readsBeforeChangedRefresh.get(table) || 0);
   }
 
   await page.evaluate(async () => {
