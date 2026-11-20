@@ -832,7 +832,8 @@ async function handle(req: Request) {
   if (body?.action === "app_data_gateway_write") {
     try { return await writeAppDataGateway(req, body); }
     catch (error) {
-      console.error("App data gateway write failed:", error);
+      const code = String((error as { code?: unknown })?.code || "unknown").slice(0, 40);
+      console.error("App data gateway write failed (code):", code);
       return reply(500, { error: "تعذر حفظ البيانات المطلوبة حالياً." });
     }
   }
