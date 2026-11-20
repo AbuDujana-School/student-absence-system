@@ -9249,12 +9249,11 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_students').checked = !!p.students;
   document.getElementById('perm_p_alerts').checked = !!p.alerts;
   const hasGranularReports = hasGranularReportPermissions(p);
-  const legacyAllReports = !hasGranularReports && p.reports === true;
-  document.getElementById('perm_p_reportMorningAssemblyLateness').checked = hasGranularReports ? p.reportMorningAssemblyLateness === true : legacyAllReports;
-  document.getElementById('perm_p_reportStudentAffairs').checked = hasGranularReports ? p.reportStudentAffairs === true : legacyAllReports;
-  document.getElementById('perm_p_reportComprehensiveAbsence').checked = hasGranularReports ? p.reportComprehensiveAbsence === true : legacyAllReports;
-  document.getElementById('perm_p_reportClassLatenessFollowup').checked = hasGranularReports ? p.reportClassLatenessFollowup === true : legacyAllReports;
-  document.getElementById('perm_p_reports').checked = legacyAllReports || REPORT_PERMISSION_KEYS.some(key => p[key] === true);
+  document.getElementById('perm_p_reportMorningAssemblyLateness').checked = hasGranularReports && p.reportMorningAssemblyLateness === true;
+  document.getElementById('perm_p_reportStudentAffairs').checked = hasGranularReports && p.reportStudentAffairs === true;
+  document.getElementById('perm_p_reportComprehensiveAbsence').checked = hasGranularReports && p.reportComprehensiveAbsence === true;
+  document.getElementById('perm_p_reportClassLatenessFollowup').checked = hasGranularReports && p.reportClassLatenessFollowup === true;
+  document.getElementById('perm_p_reports').checked = REPORT_PERMISSION_KEYS.some(key => p[key] === true);
   document.getElementById('perm_p_reports').disabled = true;
   REPORT_PERMISSION_KEYS.forEach(key => {
     const control = document.getElementById('perm_p_' + key);
