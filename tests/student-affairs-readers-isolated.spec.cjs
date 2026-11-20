@@ -321,6 +321,51 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
   expect(result.failedCards).toBe(0);
 });
 
+
+test("notice PDF keeps short violation lines grouped without vertical space distribution", async ({ page }) => {
+  await openIsolatedApp(page);
+  const result = await page.evaluate(async () => {
+    const panel = document.getElementById("saNoticePreviewPanel");
+    panel.classList.remove("hidden");
+    const students = Array.from({ length: 3 }, (_, i) => ({
+      className: "QA_ONLY_CLASS",
+      name: "QA_COMPACT_NOTICE_" + (i + 1),
+      issue_number: i + 1,
+      events: [{ type: "absent", date: "2026/11/20", period: "1", note: "" }],
+      groups: new Map([["absent", {
+        type: "absent", note: "",
+        events: [{ date: "2026/11/20", period: "1" }],
+      }]]),
+    }));
+    saNoticeRenderPreview(students, 3);
+    const ready = await saNoticePreviewReady;
+    const root = document.getElementById("saNoticePrintRoot");
+    const page = root.querySelector(".sa-notice-page");
+    const card = page?.querySelector(".sa-notice-card");
+    const list = card?.querySelector(".notice-items");
+    const inner = card?.firstElementChild;
+    const style = element => element ? getComputedStyle(element) : null;
+    return {
+      ready,
+      pageCount: root.querySelectorAll(":scope > .sa-notice-page").length,
+      cardCount: page?.querySelectorAll(".sa-notice-card").length || 0,
+      cardJustify: style(card)?.justifyContent,
+      innerDisplay: style(inner)?.display,
+      listDisplay: style(list)?.display,
+      listJustify: style(list)?.justifyContent,
+      failedCards: root.querySelectorAll('.sa-notice-card[data-fit-failed="true"]').length,
+    };
+  });
+  expect(result.ready).toBe(true);
+  expect(result.pageCount).toBe(1);
+  expect(result.cardCount).toBe(3);
+  expect(result.cardJustify).toBe("flex-start");
+  expect(result.innerDisplay).toBe("block");
+  expect(result.listDisplay).toBe("block");
+  expect(result.listJustify).toBe("normal");
+  expect(result.failedCards).toBe(0);
+});
+
 test("notice PDF keeps each complete notice on one page with readable minimum font", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
