@@ -92,9 +92,11 @@ Deno.test("official notice payload rejects unsupported principal types before RP
   if (!validateNoticeIssueItem(item)?.includes("نوع حساب")) throw new Error("unsupported principal type was not identified");
 });
 
-Deno.test("official notice payload rejects malformed date windows", () => {
+Deno.test("official notice payload accepts a monitoring period ending before issue date", () => {
   const item = validNoticeItem(); item.period_end = "2026-11-19";
-  if (!validateNoticeIssueItem(item)?.includes("نهاية فترة")) throw new Error("period end before issue date was accepted");
+  if (validateNoticeIssueItem(item) !== null) throw new Error("valid prior monitoring period was rejected");
+  const future = validNoticeItem(); future.period_end = "2026-11-21";
+  if (!validateNoticeIssueItem(future)?.includes("نهاية فترة")) throw new Error("monitoring period after issue date was accepted");
   const impossible = validNoticeItem(); impossible.issued_on = "2026-02-31";
   if (!validateNoticeIssueItem(impossible)?.includes("تاريخ إصدار")) throw new Error("impossible issue date was accepted");
 });
