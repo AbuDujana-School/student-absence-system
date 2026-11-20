@@ -427,7 +427,7 @@ async function readCompetitionTermSettings() {
     .select("key,value")
     .in("key", ["competition_term_calendar", "competition_visibility_mode"]);
   if (error) throw error;
-  const settings = new Map<string, unknown>((rows || []).map((row: any) => [String(row.key), row.value]));
+  const settings = new Map<string, unknown>((rows || []).map((row: any) => [String(row.key), row.value] as [string, unknown]));
   const calendar = settings.get("competition_term_calendar");
   const visibility = settings.get("competition_visibility_mode") as any;
   const terms = (Array.isArray(calendar) ? calendar : [])
