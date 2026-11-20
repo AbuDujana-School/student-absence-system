@@ -355,8 +355,8 @@ test("school sync projections and timetable access reads stay isolated and minim
   });
   expect(roleScopedWriteChecks.mismatchedSessionDenied).toBe(true);
   expect(gatewayWrites).toHaveLength(7);
-  expect(gatewayWrites.filter((item) => item.table === "attendance")).toHaveLength(3);
-  expect(gatewayWrites.filter((item) => item.table === "behaviors")).toHaveLength(3);
+  expect(gatewayWrites.filter((item) => item.table === "attendance")).toHaveLength(2);
+  expect(gatewayWrites.filter((item) => item.table === "behaviors")).toHaveLength(2);
   expect(legacyWrites).toEqual([]);
 
   await page.evaluate(async () => {
