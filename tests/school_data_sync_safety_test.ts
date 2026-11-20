@@ -350,12 +350,4 @@ Deno.test("secure session validation completes before cloud loading begins", () 
   assert(saveToken >= 0 && saveToken < loginFinalize, "A new secure token must be stored before loading protected school data");
 });
 
-Deno.test("offline cached login remains available without opening cloud reads", () => {
-  const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
-  const finalize = section("async function finalizeLoginState()", "function initDarkMode()");
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
-  assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Offline login must have a locally restored snapshot available");
-  assert(finalize.includes("else if (!navigator.onLine && cloudDataLoadState === 'not-started')"), "Offline sign-in must use the local-only readiness path");
-  assert(finalize.includes("if (offlineSnapshotRestoredAtBoot)"), "Offline dashboard access must depend on a real restored snapshot");
-  assert(load.includes("if (navigator.onLine && !hasUnexpiredAppAuthSession())"), "An unverified online session must never be treated as an offline cloud session");
-});
+

@@ -743,7 +743,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Test secure cloud bootstrap, session expiry, and offline legacy session gates
+      - name: Test secure cloud bootstrap and session expiry gates
         run: node --test tests/app_auth_bootstrap_order_test.mjs
       - uses: denoland/setup-deno@v2
         with:
