@@ -152,3 +152,46 @@ export function buildNoticeCandidates(input: BuildNoticeCandidatesInput): Notice
   }
   return result.sort((a, b) => a.class_name.localeCompare(b.class_name, "ar", { numeric: true }) || a.student_name.localeCompare(b.student_name, "ar"));
 }
+
+function isValidNoticeDate(value: unknown): value is string {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const parsed = new Date(value + "T00:00:00.000Z");
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
+}
+
+/**
+ * Validate every field consumed by issue_student_affairs_notices before making
+ * the privileged RPC call. This turns malformed candidates into a safe 400
+ * response instead of a database exception/HTTP 500.
+ */
+export function validateNoticeIssueItem(value: unknown): string | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return "بنية التنبيه غير صالحة.";
+  const item = value as Record<string, unknown>;
+  const textValue = (key: string) => typeof item[key] === "string" ? (item[key] as string).trim() : "";
+  if (!textValue("class_name")) return "اسم الصف مفقود.";
+  if (!textValue("student_name")) return "اسم الطالب مفقود.";
+  if (!textValue("issued_by_name")) return "اسم مصدر الإصدار مفقود.";
+  if (!["admin", "teacher", "custom"].includes(textValue("issued_by_type"))) return "نوع حساب مصدر الإصدار غير صالح.";
+  if (typeof item.delivered !== "boolean") return "حالة تسليم التنبيه غير صالحة.";
+  if (!Number.isInteger(item.threshold) || Number(item.threshold) < 1 || Number(item.threshold) > 10) return "حد المخالفات غير صالح.";
+  if (!isValidNoticeDate(item.issued_on)) return "تاريخ إصدار التنبيه غير صالح.";
+  if (!isValidNoticeDate(item.period_end) || item.period_end > item.issued_on) return "نهاية فترة المخالفات تتجاوز تاريخ الإصدار أو غير صالحة.";
+  if (item.period_start !== null && item.period_start !== undefined) {
+    if (!isValidNoticeDate(item.period_start) || item.period_start > item.period_end) return "بداية فترة المخالفات غير صالحة.";
+  }
+  if (!Array.isArray(item.selected_types) || !item.selected_types.length ||
+      item.selected_types.some(type => typeof type !== "string" || !(NOTICE_TYPES as readonly string[]).includes(type))) {
+    return "قائمة أنواع المخالفات غير صالحة.";
+  }
+  if (!Array.isArray(item.events) || !item.events.length) return "لا توجد وقائع صالحة داخل التنبيه.";
+  for (const raw of item.events) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return "توجد واقعة مخالفة لبنية التنبيه.";
+    const event = raw as Record<string, unknown>;
+    if (typeof event.type !== "string" || !(NOTICE_TYPES as readonly string[]).includes(event.type) ||
+        !(item.selected_types as string[]).includes(event.type)) return "نوع إحدى الوقائع غير مطابق للأنواع المختارة.";
+    if (!isValidNoticeDate(event.date) || event.date > item.period_end) return "تاريخ إحدى الوقائع غير صالح أو خارج فترة المخالفات.";
+    if (typeof event.period !== "string" || !event.period.trim()) return "رقم الحصة في إحدى الوقائع مفقود.";
+    if (event.note !== undefined && typeof event.note !== "string") return "ملاحظة إحدى الوقائع غير صالحة.";
+  }
+  return null;
+}
