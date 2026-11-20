@@ -339,26 +339,26 @@ test("notice PDF uses natural-height A4 packing without flex expansion", async (
       stylePresent: Boolean(style),
       previewWidth: /width:200mm!important/.test(css),
       naturalPageHeight: /height:auto!important;min-height:0!important;max-height:none!important/.test(css),
-      printMargins: /@page\\s*\\{size:A4 portrait;margin:5mm\\}/.test(css),
+      printMargins: /@page\s*\{size:A4 portrait;margin:5mm\}/.test(css),
       printWidth: /width:100%!important;min-width:0!important;max-width:none!important/.test(css),
       avoidPageBreak: /break-inside:avoid!important;page-break-inside:avoid!important/.test(css),
       naturalCard: /flex:none!important;flex-grow:0!important;flex-shrink:0!important/.test(css),
-      readableFont: /font-size:11pt!important;line-height:1\\.38!important/.test(css),
-      naturalMeasurement: /getBoundingClientRect\\(\\)\\.height/.test(source),
-      cappedAtThree: /Math\\.min\\(3,Number\\(perPage\\)\\|\\|3\\)/.test(source),
+      readableFont: /font-size:11pt!important;line-height:1\.38!important/.test(css),
+      naturalMeasurement: /getBoundingClientRect\(\)\.height/.test(source),
+      cappedAtThree: /Math\.min\(3,Number\(perPage\)\|\|3\)/.test(source),
     };
   });
   expect(result).toEqual({
     stylePresent: true,
     previewWidth: true,
     naturalPageHeight: true,
-    printMargins: true,
+      printMargins: /@page\s*\{size:A4 portrait;margin:5mm\}/.test(css),
     printWidth: true,
     avoidPageBreak: true,
     naturalCard: true,
-    readableFont: true,
-    naturalMeasurement: true,
-    cappedAtThree: true,
+      readableFont: /font-size:11pt!important;line-height:1\.38!important/.test(css),
+      naturalMeasurement: /getBoundingClientRect\(\)\.height/.test(source),
+      cappedAtThree: /Math\.min\(3,Number\(perPage\)\|\|3\)/.test(source),
   });
 });
 
