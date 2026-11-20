@@ -137,9 +137,10 @@ export async function openOfflineCredentialSnapshot(
       (record.expiresAt as number) <= now ||
       (record.expiresAt as number) <= (record.createdAt as number) ||
       (record.expiresAt as number) - (record.createdAt as number) > MAX_VAULT_TTL_MS ||
-      typeof record.iv !== "string" || typeof record.ciphertext !== "string") return null;
+      typeof record.iv !== "string" || record.iv.length > 32 ||
+      typeof record.ciphertext !== "string" || record.ciphertext.length > Math.ceil((MAX_SNAPSHOT_BYTES + 16) * 4 / 3) + 4) return null;
 
-  if (key.type !== "secret" || key.algorithm.name !== "AES-GCM" ||
+  if (key.type !== "secret" || key.extractable || key.algorithm.name !== "AES-GCM" ||
       !key.usages.includes("decrypt")) return null;
 
   try {
