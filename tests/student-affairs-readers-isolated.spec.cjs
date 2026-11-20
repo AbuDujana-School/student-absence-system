@@ -322,7 +322,7 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
 });
 
 
-test("notice PDF keeps short violation lines grouped without vertical space distribution", async ({ page }) => {
+test("notice PDF applies final print layout after every stylesheet and uses compact vertical flow", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
     const panel = document.getElementById("saNoticePreviewPanel");
@@ -341,30 +341,48 @@ test("notice PDF keeps short violation lines grouped without vertical space dist
     const ready = await saNoticePreviewReady;
     const root = document.getElementById("saNoticePrintRoot");
     const page = root.querySelector(".sa-notice-page");
-    const card = page?.querySelector(".sa-notice-card");
+    const cards = [...(page?.querySelectorAll(".sa-notice-card") || [])];
+    const card = cards[0];
     const list = card?.querySelector(".notice-items");
     const inner = card?.firstElementChild;
     const style = element => element ? getComputedStyle(element) : null;
+    const rect = element => {
+      const r = element?.getBoundingClientRect();
+      return r ? { top:r.top, bottom:r.bottom, height:r.height } : null;
+    };
     return {
       ready,
       pageCount: root.querySelectorAll(":scope > .sa-notice-page").length,
-      cardCount: page?.querySelectorAll(".sa-notice-card").length || 0,
+      cardCount: cards.length,
+      pageDisplay: style(page)?.display,
+      pageJustify: style(page)?.justifyContent,
+      pageHeight: rect(page)?.height,
+      cardDisplay: style(card)?.display,
       cardJustify: style(card)?.justifyContent,
+      cardHeights: cards.map(x => rect(x)?.height),
       innerDisplay: style(inner)?.display,
       listDisplay: style(list)?.display,
       listJustify: style(list)?.justifyContent,
       failedCards: root.querySelectorAll('.sa-notice-card[data-fit-failed="true"]').length,
+      trailingStyleOrder: document.getElementById("sa-notice-final-print-cascade")?.compareDocumentPosition(
+        [...document.querySelectorAll("style")].filter(x => x.id.startsWith("sa-notice")).at(-2)
+      ),
     };
   });
   expect(result.ready).toBe(true);
   expect(result.pageCount).toBe(1);
   expect(result.cardCount).toBe(3);
+  expect(result.pageDisplay).toBe("flex");
+  expect(result.pageJustify).toBe("flex-start");
+  expect(result.cardDisplay).toBe("flex");
   expect(result.cardJustify).toBe("flex-start");
+  expect(result.pageHeight).toBeGreaterThan(700);
+  expect(Math.min(...result.cardHeights)).toBeGreaterThan(result.pageHeight * 0.25);
   expect(result.innerDisplay).toBe("block");
   expect(result.listDisplay).toBe("block");
-  expect(result.listJustify).toBe("normal");
   expect(result.failedCards).toBe(0);
 });
+
 
 test("notice PDF keeps each complete notice on one page with readable minimum font", async ({ page }) => {
   await openIsolatedApp(page);
