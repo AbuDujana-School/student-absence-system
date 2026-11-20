@@ -74,7 +74,7 @@ async function fetchTeacherTimetableCells(
   if (matchedError) throw matchedError;
   if (!unresolved.length) return matched || [];
 
-  const directory = await teacherDirectory();
+  const directory = preloadedDirectory ?? await teacherDirectory();
   const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
   return selectTeacherTimetableCells(
     matched || [],
@@ -236,7 +236,10 @@ async function teacherDirectory() {
     canManageSubstitutions: item.permissions?.reserve === true,
   })).filter((item: any) => item.name);
 }
-async function getActiveDepartmentSubjects(departmentId: string): Promise<string[]> {
+async function getActiveDepartmentSubjects(
+  departmentId: string,
+  preloadedDirectory?: Awaited<ReturnType<typeof teacherDirectory>>,
+): Promise<string[]> {
   const normalizedDepartmentId = String(departmentId || "").trim();
   if (!normalizedDepartmentId) return [];
   const directory = await teacherDirectory();
@@ -1316,7 +1319,7 @@ async function handle(req: Request) {
       const directory=await teacherDirectory();
       const actor=directory.find((teacher:any)=>teacher.name===principal.name&&teacher.role==="teacher");
       if(!actor?.canManageSubstitutions||!actor.departmentId) return reply(403,{error:"حسابك غير مخوّل لإدارة احتياط قسم محدد."});
-      allowedSubjects=new Set(await getActiveDepartmentSubjects(actor.departmentId));
+      allowedSubjects=new Set(await getActiveDepartmentSubjects(actor.departmentId, directory));
       allowedAbsentTeachers=new Set(directory
         .filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId===actor.departmentId)
         .map((teacher:any)=>teacher.name));
@@ -1347,7 +1350,7 @@ async function handle(req: Request) {
       const actor=directory.find((teacher:any)=>teacher.name===principal.name&&teacher.role==="teacher");
       if(!actor?.canManageSubstitutions||!actor.departmentId) return reply(403,{error:"لا تملك صلاحية إدارة احتياط مادة محددة."});
       actorDepartmentId=actor.departmentId;
-      const allowedSubjects=new Set(await getActiveDepartmentSubjects(actorDepartmentId));
+      const allowedSubjects=new Set(await getActiveDepartmentSubjects(actorDepartmentId, directory));
       if(!allowedSubjects.has(subject)) return reply(403,{error:"لا يمكنك إلغاء احتياط مادة خارج قسمك."});
     }
     const {data,error}=await db.rpc("reset_timetable_substitution_records",{p_payload:{
