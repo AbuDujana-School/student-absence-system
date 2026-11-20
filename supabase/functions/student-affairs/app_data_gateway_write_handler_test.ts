@@ -15,18 +15,22 @@ function fixture(options: {
 } = {}) {
   const calls: Array<[string, ...unknown[]]> = [];
   let saved: Record<string, unknown>[] | null = null;
-  const query: any = {
-    select(value: string) { calls.push(["select", value]); return this; },
-    in(...args: unknown[]) { calls.push(["in", ...args]); return Promise.resolve({ data: options.existing ?? [], error: null }); },
-    async upsert(rows: Record<string, unknown>[], config: unknown) {
-      calls.push(["upsert", config]);
-      saved = rows;
-      return { error: options.writeError ?? null };
-    },
-  };
   const deps = {
     headers,
-    db: { from(table: string) { calls.push(["from", table]); return query; } },
+    db: {
+      from(table: string) { calls.push(["from", table]); return {}; },
+      async rpc(name: string, args: Record<string, unknown>) {
+        calls.push(["rpc", name, args]);
+        const rows = args.p_rows as Record<string, unknown>[];
+        const table = String(args.p_table);
+        if (!args.p_allow_owner_overwrite && (table === "attendance" || table === "behaviors") &&
+          (options.existing ?? []).some((existing) =>
+            rows.some((row) => row.record_key === existing.record_key && row.teacher_name !== existing.teacher_name)
+          )) return { data: null, error: new Error("owner conflict") };
+        saved = rows;
+        return { data: rows.length, error: options.writeError ?? null };
+      },
+    },
     async readSession(_authorization: string | null) { return options.session === undefined ? session : options.session; },
     async currentPrincipal(_type: string, _name: string) { return options.principal === undefined ? teacher : options.principal; },
     async resolveScope() { return options.scope ?? { allowedClasses: ["5/1"], allowedAttendanceClasses: ["5/1"], allowedBehaviorClasses: ["5/1"] }; },
@@ -53,7 +57,7 @@ Deno.test("admin writes allowlisted student rows using server-owned conflict tar
   const response = await request({ table: "students", rows: [{ class_name: "5/1", student_name: "Student A" }] }, deps);
   assertEquals(response.status, 200);
   assertEquals(getSaved(), [{ class_name: "5/1", student_name: "Student A" }]);
-  assert(calls.some(([name, config]) => name === "upsert" && (config as any).onConflict === "class_name,student_name"));
+  assert(calls.some(([name, rpcName, args]) => name === "rpc" && rpcName === "app_data_gateway_write_records" && (args as any).p_allow_owner_overwrite === true));
 });
 
 Deno.test("teacher writes only own attendance in the explicitly granted class", async () => {
@@ -62,7 +66,7 @@ Deno.test("teacher writes only own attendance in the explicitly granted class", 
     record_key: "r1", class_name: "5/1", teacher_name: "Teacher A", period: 1, records: {},
   }] }, deps);
   assertEquals(response.status, 200);
-  assert(calls.some(([name]) => name === "upsert"));
+  assert(calls.some(([name, rpcName]) => name === "rpc" && rpcName === "app_data_gateway_write_records"));
 });
 
 Deno.test("teacher cannot write another teacher's row or an out-of-scope class", async () => {
@@ -85,7 +89,7 @@ Deno.test("teacher cannot overwrite an existing attendance record owned by anoth
     record_key: "r1", class_name: "5/1", teacher_name: "Teacher A", period: 1, records: {},
   }] }, deps);
   assertEquals(response.status, 403);
-  assertEquals(calls.some(([name]) => name === "upsert"), false);
+  assertEquals(calls.some(([name, rpcName]) => name === "rpc" && rpcName === "app_data_gateway_write_records"), false);
 });
 
 Deno.test("writes reject credential fields, admin PIN settings, duplicate conflict keys, and deletes", async () => {
