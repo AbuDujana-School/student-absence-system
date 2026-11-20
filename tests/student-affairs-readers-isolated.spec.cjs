@@ -268,6 +268,7 @@ test("notice scan prints PDF directly without showing an on-screen preview", asy
     await saGenerateAutomaticNotices();
   }, dates);
 
+  await page.locator("#saNoticePrintAction").click();
   const scans = traffic.functionCalls.filter((item) => item.report_mode === "notice_scan");
   const history = traffic.functionCalls.filter((item) => item.report_mode === "notice_history");
   expect(scans).toHaveLength(1);
