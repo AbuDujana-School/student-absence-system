@@ -137,11 +137,13 @@ const timetableAuthStore: TimetableAuthStore = {
       .eq("principal_name", name).maybeSingle();
     return !error && data?.can_access === true;
   },
-  async hasDutyReportAccess(type, _name, teacherPermissions) {
+  async hasDutyReportAccess(type, _name, teacherPermissions, checkCurrentDay = true) {
     const permissions = teacherPermissions && typeof teacherPermissions === "object"
       ? teacherPermissions : {};
     if (permissions.duty === true || permissions.admin === true) return true;
     if (type !== "teacher" || permissions.dutyToday === false) return false;
+    // The duty-context handler performs the authoritative date/period check; do not read duty_module twice.
+    if (!checkCurrentDay) return true;
     const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
       .select("value").eq("key", "duty_module").maybeSingle();
     if (dutySettingError) return false;
