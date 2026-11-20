@@ -113,7 +113,7 @@ async function openIsolatedApp(page) {
 
 test("analytics screen renders only the selected synthetic class", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
-  await page.evaluate(async () => {
+  const analyticsDebug = await page.evaluate(async () => {
     saReportPermissions = {
       role: "admin", can_read_attendance: true, can_view_analytics: true,
       allowed_attendance_classes: ["QA_ONLY_CLASS"],
@@ -136,10 +136,11 @@ test("analytics screen renders only the selected synthetic class", async ({ page
       allowed: saGetAllowedReportClasses("attendance"),
       selected: saGetSelectedReportClasses("attendance"),
       resultText: document.getElementById("saResults")?.innerText || "",
+      statusSelection: saGetSelectedStatusFilters(),
     };
   });
   const call = traffic.functionCalls.find((item) => item.report_mode === "analytics");
-  expect(call, "Analytics request missing; observed calls: " + JSON.stringify(traffic.functionCalls)).toBeTruthy();
+  expect(call, "Analytics request missing; browser state: " + JSON.stringify(analyticsDebug) + "; observed calls: " + JSON.stringify(traffic.functionCalls)).toBeTruthy();
   expect(call.attendance_classes).toEqual(["QA_ONLY_CLASS"]);
   expect(call.behavior_classes).toEqual([]);
   expect(call.from).toBe("2026-11-18");
