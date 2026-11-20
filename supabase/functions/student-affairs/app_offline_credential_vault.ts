@@ -178,14 +178,52 @@ export interface OfflineCredentialVaultStore {
   clear(): Promise<void>;
 }
 
-function idbRequest<T>(request: IDBRequest<T>): Promise<T> {
+type VaultRequest<T> = {
+  result: T;
+  error: Error | null;
+  onsuccess: (() => void) | null;
+  onerror: (() => void) | null;
+};
+
+type VaultTransaction = {
+  objectStore(name: string): VaultObjectStore;
+  oncomplete: (() => void) | null;
+  onabort: (() => void) | null;
+  onerror: (() => void) | null;
+  error: Error | null;
+};
+
+type VaultObjectStore = {
+  get(key: string): VaultRequest<unknown>;
+  put(value: unknown, key: string): unknown;
+  clear(): unknown;
+};
+
+type VaultDatabase = {
+  transaction(store: string, mode: "readonly" | "readwrite"): VaultTransaction;
+  objectStoreNames: { contains(name: string): boolean };
+  createObjectStore(name: string): unknown;
+  close(): void;
+  onversionchange: (() => void) | null;
+};
+
+type VaultOpenRequest = VaultRequest<VaultDatabase> & {
+  onupgradeneeded: (() => void) | null;
+  onblocked: (() => void) | null;
+};
+
+export type OfflineCredentialVaultFactory = {
+  open(name: string, version: number): VaultOpenRequest;
+};
+
+function idbRequest<T>(request: VaultRequest<unknown>): Promise<T> {
   return new Promise((resolve, reject) => {
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => resolve(request.result as T);
     request.onerror = () => reject(request.error || new Error("Offline credential vault request failed."));
   });
 }
 
-function idbTransactionDone(transaction: IDBTransaction): Promise<void> {
+function idbTransactionDone(transaction: VaultTransaction): Promise<void> {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
     transaction.onabort = () => reject(transaction.error || new Error("Offline credential vault transaction aborted."));
@@ -194,16 +232,17 @@ function idbTransactionDone(transaction: IDBTransaction): Promise<void> {
 }
 
 /**
- * IndexedDB adapter. The non-extractable CryptoKey and its encrypted envelope
- * are committed together in one origin/browser-profile database transaction.
- * Do not copy either entry to localStorage, export the key, or sync this database.
+ * Browser IndexedDB adapter. Inject the browser's indexedDB factory from the
+ * frontend; keeping this module free of DOM globals also allows Deno to type-check
+ * the cryptographic core. The non-extractable key and encrypted envelope are
+ * committed together in one origin/browser-profile database transaction.
  */
 export function createIndexedDbOfflineCredentialVaultStore(
-  factory: IDBFactory = indexedDB,
+  factory: OfflineCredentialVaultFactory,
   databaseName = "abuDujanaCredentialVault",
 ): OfflineCredentialVaultStore {
-  let databasePromise: Promise<IDBDatabase> | null = null;
-  const openDatabase = (): Promise<IDBDatabase> => {
+  let databasePromise: Promise<VaultDatabase> | null = null;
+  const openDatabase = (): Promise<VaultDatabase> => {
     if (!databasePromise) {
       databasePromise = new Promise((resolve, reject) => {
         const request = factory.open(databaseName, 1);
@@ -239,8 +278,8 @@ export function createIndexedDbOfflineCredentialVaultStore(
       const done = idbTransactionDone(transaction);
       const store = transaction.objectStore("vault");
       const [key, envelope] = await Promise.all([
-        idbRequest(store.get("device-key") as IDBRequest<CryptoKey | undefined>),
-        idbRequest(store.get("envelope") as IDBRequest<OfflineCredentialEnvelope | undefined>),
+        idbRequest<CryptoKey | undefined>(store.get("device-key")),
+        idbRequest<OfflineCredentialEnvelope | undefined>(store.get("envelope")),
       ]);
       await done;
       return { key: key ?? null, envelope: envelope ?? null };
