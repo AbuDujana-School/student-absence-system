@@ -5,7 +5,7 @@ import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, proj
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
 import {
-  resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
+  resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession, verifyAndUpgradeAppCredential,
   type AppLoginCandidate, type AppPrincipal,
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
@@ -93,10 +93,37 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
     const secure = secureMap.get(candidate.type + "|" + candidate.name) as any;
-    if (secure && secure.source_hash === hash && secure.source_salt === salt) {
-      return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
-    }
-    return await verifyExistingPin(candidatePin, salt, hash, legacy || (legacy = await getLegacyPeppers()));
+    return await verifyAndUpgradeAppCredential(
+      candidatePin,
+      salt,
+      hash,
+      secure,
+      (value, secureSalt, secureHash) => verifyNewPin(value, secureSalt, secureHash, pepper),
+      async (value, legacySalt, legacyHash) =>
+        verifyExistingPin(value, legacySalt, legacyHash, legacy || (legacy = await getLegacyPeppers())),
+      async () => {
+        const upgradedSalt = hex(crypto.getRandomValues(new Uint8Array(16)));
+        const upgradedHash = await pbkdf2(pepper + ":" + upgradedSalt + ":" + candidatePin, upgradedSalt, 310000);
+        const { error: upgradeError } = await db.from("student_affairs_credentials").upsert({
+          principal_type: candidate.type,
+          principal_name: candidate.name,
+          pin_salt: upgradedSalt,
+          pin_hash: upgradedHash,
+          source_hash: hash,
+          source_salt: salt,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "principal_type,principal_name" });
+        if (upgradeError) throw upgradeError;
+        secureMap.set(candidate.type + "|" + candidate.name, {
+          principal_type: candidate.type,
+          principal_name: candidate.name,
+          pin_salt: upgradedSalt,
+          pin_hash: upgradedHash,
+          source_hash: hash,
+          source_salt: salt,
+        });
+      },
+    );
   });
 }
 

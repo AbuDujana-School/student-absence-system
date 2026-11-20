@@ -177,3 +177,34 @@ export async function revokeAppSession(store: AppSessionStore, authorization: un
   await store.deleteByTokenHash(await hashAppSessionToken(token));
   return true;
 }
+
+
+export interface AppStoredCredential {
+  pin_salt: string;
+  pin_hash: string;
+  source_hash: string;
+  source_salt: string;
+}
+
+/**
+ * Verify a legacy credential and upgrade only the separate server-side credential
+ * record after a successful match. The original teacher/admin PIN record is never
+ * modified. Once upgraded, subsequent logins avoid the legacy Vault lookup.
+ */
+export async function verifyAndUpgradeAppCredential(
+  pin: string,
+  sourceSalt: string,
+  sourceHash: string,
+  stored: AppStoredCredential | undefined,
+  verifySecure: (pin: string, salt: string, hash: string) => Promise<boolean>,
+  verifyLegacy: (pin: string, salt: string, hash: string) => Promise<boolean>,
+  upgradeLegacy: () => Promise<void>,
+): Promise<boolean> {
+  if (stored && stored.source_hash === sourceHash && stored.source_salt === sourceSalt) {
+    if (!stored.pin_salt || !stored.pin_hash) return false;
+    return await verifySecure(pin, stored.pin_salt, stored.pin_hash);
+  }
+  if (!await verifyLegacy(pin, sourceSalt, sourceHash)) return false;
+  await upgradeLegacy();
+  return true;
+}
