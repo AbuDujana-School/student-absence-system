@@ -390,4 +390,5 @@ Deno.test("daily reserve notice polling is visible-only and resumes promptly", (
   assert(watcher.includes("}, 120000);"), "Daily notice polling must use the two-minute interval");
   const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
   assert(events.includes("teacherShowDailySubstitutionWelcome()"), "Returning online or to a visible page must refresh the daily notice promptly");
+  assert(events.includes('document.visibilityState === "visible"'), "Resume refresh must not run while the page is hidden");
 });
