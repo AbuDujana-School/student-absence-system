@@ -48,6 +48,18 @@ Deno.test("supervision trend reader batches classes and paginates all rows", asy
   assertEquals(db.calls[0].orders.map((item: any) => item.column), ["date_str", "class_name", "record_key"]);
 });
 
+Deno.test("supervision trend reader uses one request for many authorized classes", async () => {
+  const classes = Array.from({ length: 28 }, (_, index) => `class-${index + 1}`);
+  const rows = classes.map((class_name) => ({ class_name, date_str: "2026-11-10", records: {} }));
+  const db = mockDb([{ data: rows, error: null }]);
+
+  const result = await fetchSupervisionTrendRows(db, "behaviors", classes, "2026-11-01", "2026-11-20");
+
+  assertEquals(result.length, 28);
+  assertEquals(db.calls.length, 1);
+  assertEquals(db.calls[0].in.values, classes);
+});
+
 Deno.test("supervision trend reader propagates database errors", async () => {
   const expected = new Error("synthetic database failure");
   const db = mockDb([{ data: null, error: expected }]);
