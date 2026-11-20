@@ -69,3 +69,56 @@ Deno.test("absence already recorded in a prior notice stays daily-deduplicated a
   });
   if (result.length !== 1 || result[0].events.length !== 1) throw new Error("daily absence count was not preserved");
 });
+
+
+const validNoticeItem = () => ({
+  class_name: "9/1", student_name: "طالب تجريبي", issued_on: "2026-11-20",
+  issued_by_type: "teacher", issued_by_name: "معلم تجريبي", delivered: false,
+  threshold: 2, period_start: "2026-11-01", period_end: "2026-11-20",
+  selected_types: ["late", "chaos"],
+  events: [
+    { type: "late", date: "2026-11-03", period: "1", note: "" },
+    { type: "chaos", date: "2026-11-04", period: "2", note: "ملاحظة" }
+  ]
+});
+
+Deno.test("official notice payload accepts a complete valid item", () => {
+  if (validateNoticeIssueItem(validNoticeItem()) !== null) throw new Error("valid official notice rejected");
+});
+
+Deno.test("official notice payload rejects unsupported principal types before RPC", () => {
+  const item = validNoticeItem(); item.issued_by_type = "visitor";
+  if (!validateNoticeIssueItem(item)?.includes("نوع حساب")) throw new Error("unsupported principal type was not identified");
+});
+
+Deno.test("official notice payload accepts a monitoring period ending before issue date", () => {
+  const item = validNoticeItem(); item.period_end = "2026-11-19";
+  if (validateNoticeIssueItem(item) !== null) throw new Error("valid prior monitoring period was rejected");
+  const future = validNoticeItem(); future.period_end = "2026-11-21";
+  if (!validateNoticeIssueItem(future)?.includes("نهاية فترة")) throw new Error("monitoring period after issue date was accepted");
+  const impossible = validNoticeItem(); impossible.issued_on = "2026-02-31";
+  if (!validateNoticeIssueItem(impossible)?.includes("تاريخ إصدار")) throw new Error("impossible issue date was accepted");
+});
+
+Deno.test("official notice payload rejects invalid selected types and empty events", () => {
+  const typeItem = validNoticeItem(); typeItem.selected_types = ["present"];
+  if (!validateNoticeIssueItem(typeItem)?.includes("قائمة أنواع")) throw new Error("unsupported selected type accepted");
+  const eventItem = validNoticeItem(); eventItem.events = [];
+  if (!validateNoticeIssueItem(eventItem)?.includes("لا توجد وقائع")) throw new Error("empty event list accepted");
+});
+
+Deno.test("official notice payload rejects event dates and categories outside the selected window", () => {
+  const dateItem = validNoticeItem(); dateItem.events[0].date = "2026-11-21";
+  if (!validateNoticeIssueItem(dateItem)?.includes("تاريخ إحدى الوقائع")) throw new Error("event after period end accepted");
+  const typeItem = validNoticeItem(); typeItem.events[0].type = "present";
+  if (!validateNoticeIssueItem(typeItem)?.includes("نوع إحدى الوقائع")) throw new Error("event category mismatch accepted");
+});
+
+Deno.test("official notice payload rejects empty issuer, invalid threshold and missing period", () => {
+  const issuer = validNoticeItem(); issuer.issued_by_name = " ";
+  if (!validateNoticeIssueItem(issuer)?.includes("اسم مصدر")) throw new Error("empty issuer accepted");
+  const threshold = validNoticeItem(); threshold.threshold = 0;
+  if (!validateNoticeIssueItem(threshold)?.includes("حد المخالفات")) throw new Error("invalid threshold accepted");
+  const period = validNoticeItem(); period.events[0].period = "";
+  if (!validateNoticeIssueItem(period)?.includes("رقم الحصة")) throw new Error("empty event period accepted");
+});
