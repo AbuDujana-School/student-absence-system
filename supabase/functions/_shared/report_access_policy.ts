@@ -20,7 +20,7 @@ export function canAccessReportPermission(
 ): boolean {
   if (principalType === "admin") return true;
   const value = permissions && typeof permissions === "object" ? permissions : {};
-  return hasExplicitReportPermissions(value)
-    ? value[report] === true
-    : value.reports === true;
+  // A legacy broad flag cannot identify which report was approved.
+  // Require an explicit grant for each report; admins retain the bypass above.
+  return value[report] === true;
 }
