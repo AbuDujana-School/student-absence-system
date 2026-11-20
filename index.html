@@ -2549,7 +2549,17 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_teachers" class="accent-cyan-600 w-4 h-4"><span class="text-xs font-bold">👨‍🏫 إدارة المعلمين</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_students" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🎓 إدارة الطلاب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_alerts" class="accent-red-600 w-4 h-4"><span class="text-xs font-bold">🔔 التنبيهات</span></label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📄 التقارير</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_reports" class="accent-purple-600 w-4 h-4" disabled><span class="text-xs font-bold">📄 دخول قسم التقارير (يُحدد تلقائياً)</span></label>
+        <div class="col-span-2 rounded-2xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50/70 dark:bg-purple-950/20 p-4 space-y-3">
+          <div class="text-xs font-black text-purple-900 dark:text-purple-200">صلاحيات التقارير المستقلة</div>
+          <p class="text-[11px] leading-5 text-purple-800 dark:text-purple-300">فعّل التقارير التي يسمح لهذا المعلم بالاطلاع عليها فقط. لا تمنح صلاحية تقرير واحد الوصول إلى التقارير الأخرى.</p>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportMorningAssemblyLateness" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">⏰ تقرير التأخر عن الطابور الصباحي</span></label>
+            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportStudentAffairs" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📊 لوحة تقارير شؤون الطلبة</span></label>
+            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportComprehensiveAbsence" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📋 تقارير الغياب الشامل</span></label>
+            <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportClassLatenessFollowup" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">🕒 كشف متابعة التأخر عن الحصص</span></label>
+          </div>
+        </div>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_duty" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة الدائمة</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_sync" class="accent-violet-600 w-4 h-4"><span class="text-xs font-bold">🔄 المزامنة</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_security" class="accent-slate-600 w-4 h-4"><span class="text-xs font-bold">🔐 الأمان</span></label>
@@ -3121,7 +3131,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 .dark #repSummary>div{background:linear-gradient(155deg,#0f172a,#111c2e)!important;border-color:#334155!important}
 .dark #repResults>section>div:first-child{background:linear-gradient(90deg,#172536,#101b2a)!important}
 </style></section>
-        <div class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
+        <div id="comprehensiveAbsenceReportPanel" class="bg-gradient-to-r from-emerald-800 to-teal-900 text-white p-6 rounded-3xl shadow-lg space-y-4">
           <div><h4 class="font-extrabold text-lg flex items-center gap-2"><i class="fa-solid fa-file-invoice text-emerald-300"></i> تقارير الغياب الشامل</h4></div>
           <div class="bg-white/10 backdrop-blur-md p-4 rounded-2xl border border-white/20 grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
             <div><label class="block text-[11px] font-bold text-emerald-200 mb-1">الصف:</label><select id="reportClassFilter" onchange="renderReportsSection()" class="w-full p-2.5 bg-slate-900/80 text-white border border-emerald-500/30 rounded-2xl text-xs font-bold outline-none"><option value="all">جميع الصفوف</option></select></div>
@@ -3129,7 +3139,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <button onclick="resetReportFilters()" class="w-full bg-slate-800 hover:bg-slate-700 text-emerald-200 p-2.5 rounded-2xl text-xs font-bold">اليوم</button>
           </div>
         </div>
-        <div class="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 p-5 rounded-3xl flex flex-wrap gap-3 items-center justify-between">
+        <div id="comprehensiveAbsenceActions" class="bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 p-5 rounded-3xl flex flex-wrap gap-3 items-center justify-between">
           <div class="text-xs font-bold text-emerald-900 dark:text-emerald-300"><i class="fa-solid fa-print"></i> التقرير جاهز:</div>
           <div class="flex flex-wrap gap-2">
             <button onclick="printHorizontalReport()" class="bg-emerald-800 hover:bg-emerald-900 text-white px-5 py-2.5 rounded-2xl text-xs font-bold shadow-md flex items-center gap-2"><i class="fa-solid fa-print"></i> طباعة / PDF</button>
@@ -7034,9 +7044,9 @@ function buildMorningAssemblyReportRows(rows) {
 }
 async function loadMorningAssemblyLatenessReport() {
   const container = document.getElementById('morningAssemblyReportContainer'); if (!container) return;
-  if (!(activeUser?.type === 'admin' || activeUser?.permissions?.reports === true)) {
+  if (!canAccessReport('reportMorningAssemblyLateness')) {
     document.getElementById('morningAssemblyReportAccess')?.classList.remove('hidden');
-    document.getElementById('morningAssemblyReportAccess').textContent = 'عرض التقرير متاح لمدير النظام أو لمن لديه صلاحية التقارير.';
+    document.getElementById('morningAssemblyReportAccess').textContent = 'لا تملك صلاحية الاطلاع على تقرير التأخر عن الطابور الصباحي.';
     return;
   }
   try {
@@ -7532,6 +7542,7 @@ function getLateFollowupRows(){
  return rows.sort((a,b)=>b.date.localeCompare(a.date)||a.className.localeCompare(b.className,'ar')||a.period-b.period||a.student.localeCompare(b.student,'ar'));
 }
 function renderLateFollowupReport(){
+ if(!canAccessReport('reportClassLatenessFollowup'))return;
  const body=document.getElementById('lateFollowupReportBody');if(!body)return;
  const fromEl=document.getElementById('lateReportFrom'),toEl=document.getElementById('lateReportTo'),today=getOmanLocalDate();
  if(!fromEl.value&&!toEl.value){const d=new Date(today+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-6);fromEl.value=d.toISOString().slice(0,10);toEl.value=today;}
@@ -7545,10 +7556,12 @@ function renderLateFollowupReport(){
  body.innerHTML=rows.length?rows.map((r,i)=>'<tr class="'+(i%2?'bg-slate-50 dark:bg-slate-900/40':'')+'"><td class="p-3 border">'+(i+1)+'</td><td class="p-3 border text-right font-bold">'+escapeHtml(r.student)+'</td><td class="p-3 border" dir="ltr">'+escapeHtml(formatClassName(r.className))+'</td><td class="p-3 border">'+r.period+'</td><td class="p-3 border" dir="ltr">'+escapeHtml(r.date)+'</td><td class="p-3 border">'+escapeHtml(r.teacher)+'</td></tr>').join(''):'<tr><td colspan="6" class="p-8 text-slate-400 text-xs">لا توجد حالات تأخر مسجلة في الفترة المحددة.</td></tr>';
 }
 function resetLateFollowupReport(){
+ if(!canAccessReport('reportClassLatenessFollowup')){showToast('لا تملك صلاحية هذا الكشف.','error');return;}
  const today=getOmanLocalDate(),d=new Date(today+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-6);
  document.getElementById('lateReportFrom').value=d.toISOString().slice(0,10);document.getElementById('lateReportTo').value=today;document.getElementById('lateReportClassFilter').value='all';renderLateFollowupReport();
 }
 function printLateFollowupReport(){
+ if(!canAccessReport('reportClassLatenessFollowup')){showToast('لا تملك صلاحية طباعة كشف متابعة التأخر عن الحصص.','error');return;}
  const from=document.getElementById('lateReportFrom')?.value||'',to=document.getElementById('lateReportTo')?.value||'',cf=document.getElementById('lateReportClassFilter')?.value||'all';
  if(from>to){showToast('تحقق من الفترة الزمنية قبل الطباعة.','error');return;}
  const rows=getLateFollowupRows().sort((a,b)=>sortClassesList([a.className,b.className]).indexOf(a.className)-sortClassesList([a.className,b.className]).indexOf(b.className)||b.date.localeCompare(a.date)||a.period-b.period||a.student.localeCompare(b.student,'ar'));if(!rows.length){showToast('لا توجد حالات تأخر للطباعة في الفترة المحددة.','info');return;}
@@ -7557,6 +7570,7 @@ function printLateFollowupReport(){
  const w=window.open('','_blank');if(!w){showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error');return;}w.document.open();w.document.write(html);w.document.close();
 }
 function renderReportsSection() {
+  if (!canAccessReport('reportComprehensiveAbsence')) { document.getElementById('reportClassesContainer')?.replaceChildren(); return; }
   const cf = document.getElementById('reportClassFilter').value;
   const td = document.getElementById('reportDatePicker').value;
   const c = document.getElementById('reportClassesContainer'); if (!c) return;
@@ -7585,9 +7599,10 @@ function renderReportsSection() {
       g.appendChild(pc);
     }
   });
-  renderLateFollowupReport();
+  if (canAccessReport('reportClassLatenessFollowup')) renderLateFollowupReport();
 }
 function printHorizontalReport() {
+  if (!canAccessReport('reportComprehensiveAbsence')) { showToast('لا تملك صلاحية الاطلاع على تقارير الغياب الشامل.','error'); return; }
   const td = document.getElementById('reportDatePicker').value;
   const cf = document.getElementById('reportClassFilter').value;
   const classes = sortClassesList(cf === 'all' ? db.classes : [cf]);
@@ -7598,6 +7613,7 @@ function printHorizontalReport() {
   w.document.write(printHTML); w.document.close(); w.focus(); setTimeout(() => w.print(), 500);
 }
 function exportAttendanceExcel() {
+  if (!canAccessReport('reportComprehensiveAbsence')) { showToast('لا تملك صلاحية تصدير تقارير الغياب الشامل.','error'); return; }
   const td = document.getElementById('reportDatePicker').value;
   let csv = "\uFEFFالصف,الحصة,المعلم,الطالب,الحالة\n";
   sortClassesList(db.classes).forEach(cn => { for (let p = 1; p <= 8; p++) { const sd = db.attendance[`${td}_${cn}_p${p}`]; if (sd?.records) { const issues = sortAttendanceIssues(Object.entries(sd.records).filter(([n, s]) => s !== 'present')); if (!issues.some(([, status]) => status === 'absent')) csv += `${escapeCsvField(formatClassName(cn))},${escapeCsvField('الحصة ' + p)},${escapeCsvField(sd.teacher || 'معلم')},,${escapeCsvField('لا غائب')}
@@ -8178,12 +8194,14 @@ function initAdminDashboard() {
 
 let repPermissions=null,repDomain="attendance",repLastReport=null,repReportsInitialized=false,repReportsInitPromise=null;
 async function repRequest(body){
+ if((body?.action === 'reports' || body?.action === 'reports_permissions') && !canAccessReport('reportStudentAffairs')) throw Object.assign(new Error('لا تملك صلاحية لوحة تقارير شؤون الطلبة.'),{status:403});
  const token=appAuthSession?.token||readAppAuthToken();
  if(!token)throw Object.assign(new Error("انتهت جلسة التطبيق. سجّل الدخول إلى التطبيق أولاً."),{status:401});
  return appAuthRequest(body,token);
 }
 async function repInitStudentAffairsReports(){
  const panel=document.getElementById("repStudentAffairsPanel");if(!panel)return;
+ if(!canAccessReport('reportStudentAffairs')){panel.classList.add('hidden');return;}
  if(repReportsInitialized){repRefreshReportsVisibility();return;}
  if(repReportsInitPromise)return repReportsInitPromise;
  repReportsInitPromise=(async()=>{
@@ -8201,6 +8219,7 @@ async function repInitStudentAffairsReports(){
  return repReportsInitPromise;
 }
 function repRefreshReportsVisibility(){
+ if(!canAccessReport('reportStudentAffairs')){document.getElementById("repStudentAffairsPanel")?.classList.add("hidden");return;}
  if(!repReportsInitialized)return;
  if(!repGetAllowedReportClasses("attendance").length&&!repGetAllowedReportClasses("behavior").length){
   document.getElementById("repControls").classList.add("hidden");
@@ -8396,9 +8415,36 @@ async function repPrint(){
   }
 }
 
+const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup'];
+function hasGranularReportPermissions(permissions) {
+  const p = permissions && typeof permissions === 'object' ? permissions : {};
+  return REPORT_PERMISSION_KEYS.some(key => Object.prototype.hasOwnProperty.call(p, key));
+}
+function canAccessReport(key, user = activeUser) {
+  if (!REPORT_PERMISSION_KEYS.includes(key)) return false;
+  const p = user?.permissions && typeof user.permissions === 'object' ? user.permissions : {};
+  if (user?.type === 'admin' || p.admin === true || isAdminAuthorized()) return true;
+  return hasGranularReportPermissions(p) ? p[key] === true : p.reports === true;
+}
+function canAccessAnyReport(user = activeUser) {
+  return user?.type === 'admin' || user?.permissions?.admin === true || isAdminAuthorized()
+    || REPORT_PERMISSION_KEYS.some(key => canAccessReport(key, user));
+}
+function refreshReportPanelsVisibility() {
+  const visibility = {
+    morningAssemblyLatenessReportPanel: canAccessReport('reportMorningAssemblyLateness'),
+    repStudentAffairsPanel: canAccessReport('reportStudentAffairs'),
+    comprehensiveAbsenceReportPanel: canAccessReport('reportComprehensiveAbsence'),
+    comprehensiveAbsenceActions: canAccessReport('reportComprehensiveAbsence'),
+    reportClassesContainer: canAccessReport('reportComprehensiveAbsence'),
+    lateFollowupReportSection: canAccessReport('reportClassLatenessFollowup')
+  };
+  Object.entries(visibility).forEach(([id, show]) => document.getElementById(id)?.classList.toggle('hidden', !show));
+  document.getElementById('tab-reports')?.classList.toggle('hidden', !canAccessAnyReport());
+}
 function switchAdminTab(tab) {
   const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
-  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : (isA || !!(activeUser?.permissions?.[k]));
+  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : k === 'reports' ? (isA || canAccessAnyReport()) : (isA || !!(activeUser?.permissions?.[k]));
   const canDashboard = isA || hasMultipleAdminPermissions(activeUser);
   const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
   if (tab === 'timetable' && activeUser?.type !== 'admin' && !timetableCanAccess) { showToast('لا تملك صلاحية منظومة الجداول والاحتياط.', 'error'); return; }
@@ -8431,7 +8477,12 @@ function switchAdminTab(tab) {
   if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
   if (tab === 'duty') initDutyAdminPanel();
   if (tab === 'alerts') generateSmartAlerts();
-  if (tab === 'reports') { renderReportsSection(); renderLateFollowupReport(); repInitStudentAffairsReports(); }
+  if (tab === 'reports') {
+    refreshReportPanelsVisibility();
+    if (canAccessReport('reportComprehensiveAbsence')) renderReportsSection();
+    if (canAccessReport('reportClassLatenessFollowup')) renderLateFollowupReport();
+    if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
+  }
   if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
 }
 /* ============ Students admin ============ */
@@ -9191,7 +9242,14 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_sync').checked = !!p.sync;
   document.getElementById('perm_p_students').checked = !!p.students;
   document.getElementById('perm_p_alerts').checked = !!p.alerts;
-  document.getElementById('perm_p_reports').checked = !!p.reports;
+  const hasGranularReports = hasGranularReportPermissions(p);
+  const legacyAllReports = !hasGranularReports && p.reports === true;
+  document.getElementById('perm_p_reportMorningAssemblyLateness').checked = hasGranularReports ? p.reportMorningAssemblyLateness === true : legacyAllReports;
+  document.getElementById('perm_p_reportStudentAffairs').checked = hasGranularReports ? p.reportStudentAffairs === true : legacyAllReports;
+  document.getElementById('perm_p_reportComprehensiveAbsence').checked = hasGranularReports ? p.reportComprehensiveAbsence === true : legacyAllReports;
+  document.getElementById('perm_p_reportClassLatenessFollowup').checked = hasGranularReports ? p.reportClassLatenessFollowup === true : legacyAllReports;
+  document.getElementById('perm_p_reports').checked = legacyAllReports || REPORT_PERMISSION_KEYS.some(key => p[key] === true);
+  document.getElementById('perm_p_reports').disabled = true;
   document.getElementById('perm_p_duty').checked = !!p.duty;
   document.getElementById('perm_p_security').checked = !!p.security;
   document.getElementById('perm_p_admin').checked = !!p.admin;
@@ -9215,7 +9273,11 @@ async function saveTeacherPermissions() {
   t.permissions.teachers = document.getElementById('perm_p_teachers').checked;
   t.permissions.students = document.getElementById('perm_p_students').checked;
   t.permissions.alerts = document.getElementById('perm_p_alerts').checked;
-  t.permissions.reports = document.getElementById('perm_p_reports').checked;
+  t.permissions.reportMorningAssemblyLateness = document.getElementById('perm_p_reportMorningAssemblyLateness').checked;
+  t.permissions.reportStudentAffairs = document.getElementById('perm_p_reportStudentAffairs').checked;
+  t.permissions.reportComprehensiveAbsence = document.getElementById('perm_p_reportComprehensiveAbsence').checked;
+  t.permissions.reportClassLatenessFollowup = document.getElementById('perm_p_reportClassLatenessFollowup').checked;
+  t.permissions.reports = REPORT_PERMISSION_KEYS.some(key => t.permissions[key] === true);
   t.permissions.duty = document.getElementById('perm_p_duty').checked;
   t.permissions.sync = document.getElementById('perm_p_sync').checked;
   t.permissions.security = document.getElementById('perm_p_security').checked;
