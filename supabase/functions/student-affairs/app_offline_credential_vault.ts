@@ -245,6 +245,7 @@ export function createIndexedDbOfflineCredentialVaultStore(
   const openDatabase = (): Promise<VaultDatabase> => {
     if (!databasePromise) {
       databasePromise = new Promise((resolve, reject) => {
+        let settled = false;
         const request = factory.open(databaseName, 1);
         request.onupgradeneeded = () => {
           const database = request.result;
@@ -252,6 +253,13 @@ export function createIndexedDbOfflineCredentialVaultStore(
         };
         request.onsuccess = () => {
           const database = request.result;
+          // A blocked open may later succeed after the other tab closes. Do not leak
+          // that late connection after the caller has already received a rejection.
+          if (settled) {
+            database.close();
+            return;
+          }
+          settled = true;
           database.onversionchange = () => {
             database.close();
             databasePromise = null;
@@ -259,13 +267,22 @@ export function createIndexedDbOfflineCredentialVaultStore(
           resolve(database);
         };
         request.onerror = () => {
+          if (settled) return;
+          settled = true;
           databasePromise = null;
           reject(request.error || new Error("Unable to open offline credential vault."));
         };
         request.onblocked = () => {
+          if (settled) return;
+          settled = true;
           databasePromise = null;
           reject(new Error("Offline credential vault is blocked by another browser tab."));
         };
+      }).catch((error) => {
+        // Also recover from a synchronous factory.open() exception so a later
+        // operation can retry rather than reusing a permanently rejected promise.
+        databasePromise = null;
+        throw error;
       });
     }
     return databasePromise;
