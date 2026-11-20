@@ -74,7 +74,83 @@ async function fetchTeacherTimetableCells(
   if (matchedError) throw matchedError;
   if (!unresolved.length) return matched || [];
 
-  const directory = preloadedDirectory ?? await teacherDirectory();
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { createClient } from "npm:@supabase/supabase-js@2";
+import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
+import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema, type SystemTeacher } from "./timetable_import.ts";
+import { aggregateClassTimetables } from "./timetable_class_grid.ts";
+import { buildDutyReportContext } from "./duty_report_context.ts";
+import { canReadDutyReportPeriod, isDutyReportEligibleOnDay } from "./duty_report_access.ts";
+import { fetchAllTimetablePages } from "./timetable_pagination.ts";
+import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
+import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
+import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
+
+const URL = Deno.env.get("SUPABASE_URL")!;
+const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+const db = createClient(URL, SERVICE_KEY, { auth: { persistSession: false, autoRefreshToken: false } });
+const DAYS = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"];
+function muscatDateAndWeekday(now = new Date()) {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Muscat", year: "numeric", month: "2-digit", day: "2-digit",
+  }).formatToParts(now);
+  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
+  const weekdayName = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Asia/Muscat", weekday: "long",
+  }).format(now);
+  const weekdayMap: Record<string,string> = {
+    Sunday: "الأحد", Monday: "الاثنين", Tuesday: "الثلاثاء",
+    Wednesday: "الأربعاء", Thursday: "الخميس",
+  };
+  return {
+    date: String(values.year) + "-" + String(values.month).padStart(2,"0") + "-" + String(values.day).padStart(2,"0"),
+    weekday: weekdayMap[weekdayName] || "",
+  };
+}
+// Maximum accepted import: 500 teachers × 5 weekdays × 8 periods = 20,000 cells.
+// PostgREST may cap each response at 1,000 rows, so full-week reads are paginated.
+const TIMETABLE_CELL_PAGE_SIZE = 1000;
+const WEEKLY_CELL_FETCH_LIMIT = 25000;
+async function fetchAllTimetableCells(queryForRange: (from:number,to:number)=>any): Promise<any[]> {
+  return fetchAllTimetablePages(queryForRange, TIMETABLE_CELL_PAGE_SIZE, WEEKLY_CELL_FETCH_LIMIT);
+}
+async function fetchAllSubstitutionRows(queryForRange: (from:number,to:number)=>any): Promise<any[]> {
+  // Historical fairness and points must not silently stop at the weekly-grid row limit.
+  return fetchAllTimetablePages(queryForRange, TIMETABLE_CELL_PAGE_SIZE, 100000);
+}
+
+/**
+ * Read only one teacher's active timetable cells. Matched names are canonical
+ * teacher-directory values and are indexed; unresolved legacy rows retain the
+ * previous name-resolution fallback without downloading the whole weekly grid.
+ */
+async function fetchTeacherTimetableCells(
+  versionId: string,
+  teacherName: string,
+  selectColumns: string,
+  teachingOnly = false,
+): Promise<any[]> {
+  let exactQuery = db.from("timetable_weekly_cells")
+    .select(selectColumns)
+    .eq("version_id", versionId)
+    .eq("matched_teacher_name", teacherName);
+  if (teachingOnly) exactQuery = exactQuery.eq("cell_status", "teaching");
+
+  const [{ data: matched, error: matchedError }, unresolved] = await Promise.all([
+    exactQuery.order("id"),
+    fetchAllTimetableCells((from, to) => {
+      let query = db.from("timetable_weekly_cells")
+        .select(selectColumns)
+        .eq("version_id", versionId)
+        .or(TEACHER_TIMETABLE_FALLBACK_FILTER);
+      if (teachingOnly) query = query.eq("cell_status", "teaching");
+      return query.order("id").range(from, to);
+    }),
+  ]);
+  if (matchedError) throw matchedError;
+  if (!unresolved.length) return matched || [];
+
+  const directory = await teacherDirectory();
   const systemTeachers: SystemTeacher[] = directory.filter((item: any) => item.role === "teacher");
   return selectTeacherTimetableCells(
     matched || [],
@@ -242,7 +318,7 @@ async function getActiveDepartmentSubjects(
 ): Promise<string[]> {
   const normalizedDepartmentId = String(departmentId || "").trim();
   if (!normalizedDepartmentId) return [];
-  const directory = await teacherDirectory();
+  const directory = preloadedDirectory ?? await teacherDirectory();
   const systemTeachers: SystemTeacher[] = directory.filter((teacher: any) =>
     teacher.role === "teacher" && teacher.departmentId === normalizedDepartmentId
   );
