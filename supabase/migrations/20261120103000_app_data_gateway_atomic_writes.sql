@@ -28,8 +28,8 @@ begin
       teacher_name = excluded.teacher_name,
       records = excluded.records,
       updated_at = excluded.updated_at
-    where p_allow_owner_overwrite or public.attendance.teacher_name is not distinct from excluded.teacher_name
-    returning record_key into v_count;
+    where p_allow_owner_overwrite or public.attendance.teacher_name is not distinct from excluded.teacher_name;
+
   elsif p_table = 'behaviors' then
     insert into public.behaviors (record_key, date_str, class_name, period, teacher_name, records, updated_at)
     select x.record_key, x.date_str, x.class_name, x.period, x.teacher_name, x.records, x.updated_at
@@ -41,8 +41,8 @@ begin
       teacher_name = excluded.teacher_name,
       records = excluded.records,
       updated_at = excluded.updated_at
-    where p_allow_owner_overwrite or public.behaviors.teacher_name is not distinct from excluded.teacher_name
-    returning record_key into v_count;
+    where p_allow_owner_overwrite or public.behaviors.teacher_name is not distinct from excluded.teacher_name;
+
   elsif p_table = 'students' then
     if not p_allow_owner_overwrite then raise exception 'admin only' using errcode = '42501'; end if;
     insert into public.students (class_name, student_name)
