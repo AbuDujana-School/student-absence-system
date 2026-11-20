@@ -244,7 +244,7 @@ export function createIndexedDbOfflineCredentialVaultStore(
   let databasePromise: Promise<VaultDatabase> | null = null;
   const openDatabase = (): Promise<VaultDatabase> => {
     if (!databasePromise) {
-      databasePromise = new Promise((resolve, reject) => {
+      databasePromise = new Promise<VaultDatabase>((resolve, reject) => {
         let settled = false;
         const request = factory.open(databaseName, 1);
         request.onupgradeneeded = () => {
@@ -285,7 +285,7 @@ export function createIndexedDbOfflineCredentialVaultStore(
         throw error;
       });
     }
-    return databasePromise;
+    return databasePromise!;
   };
 
   return {
