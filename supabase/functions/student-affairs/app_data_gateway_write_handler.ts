@@ -45,7 +45,7 @@ export async function handleAppDataGatewayWrite(
   const principal = await deps.currentPrincipal(session.principal.type, session.principal.name);
   if (!principal) return reply(401, { error: "تعذر التحقق من صلاحية الحساب الحالية." }, deps.headers);
 
-  const tableValue = body?.table;
+  if (body?.operation !== undefined && body.operation !== "write") {\n    return reply(400, { error: "عملية البيانات المطلوبة غير مدعومة." }, deps.headers);\n  }\n\n  const tableValue = body?.table;
   if (typeof tableValue !== "string" || !(APP_DATA_TABLES as readonly string[]).includes(tableValue)) {
     return reply(400, { error: "نوع البيانات المطلوب غير مدعوم." }, deps.headers);
   }
