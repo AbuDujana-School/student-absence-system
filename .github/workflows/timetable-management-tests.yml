@@ -101,7 +101,7 @@ jobs:
       - name: Type-check timetable management
         run: deno check supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests/*.ts
       - name: Run timetable unit tests
-        run: deno test --allow-read=supabase/migrations --allow-read=supabase/functions/timetable-management/index.ts supabase/functions/timetable-management/tests
+        run: deno test --allow-read=supabase/migrations --allow-read=supabase/functions/timetable-management/index.ts --allow-read=supabase/functions/timetable-management/session_auth.ts supabase/functions/timetable-management/tests
       - name: Check timetable worker JavaScript syntax
         run: node --check timetable-text.worker.js
       - name: Check reserve workflow JavaScript syntax
