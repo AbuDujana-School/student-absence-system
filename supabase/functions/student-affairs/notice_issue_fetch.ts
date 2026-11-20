@@ -36,9 +36,13 @@ export async function fetchNoticeRowsForClasses(
 
   if (batch.error) throw new Error("تعذر قراءة سجلات المخالفات التاريخية.");
   const batchRows: any[] = Array.isArray(batch.data) ? batch.data : [];
-  const total = Number.isFinite(batch.count) ? Number(batch.count) : batchRows.length;
+  const hasExactCount = typeof batch.count === "number" && Number.isFinite(batch.count);
+  const total = hasExactCount ? Number(batch.count) : batchRows.length;
+  const batchIsComplete = hasExactCount
+    ? total <= NOTICE_CLASS_ROW_LIMIT && batchRows.length === total
+    : batchRows.length < NOTICE_CLASS_ROW_LIMIT;
 
-  if (total <= NOTICE_CLASS_ROW_LIMIT && batchRows.length === total) {
+  if (batchIsComplete) {
     const perClass = new Map<string, number>();
     for (const row of batchRows) {
       const className = String(row.class_name || "");
