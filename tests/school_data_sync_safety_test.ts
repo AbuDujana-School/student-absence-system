@@ -307,3 +307,41 @@ Deno.test("mixed dirty edits and queued deletions remain separately visible", ()
   assert(status.includes("طلب حذف للمراجعة"), "The status must disclose queued deletion review alongside pending uploads");
   assert(status.includes("void syncPendingLocalChanges()"), "The primary action must upload dirty records without executing deletions");
 });
+
+
+Deno.test("unauthenticated startup does not fetch protected school tables", () => {
+  const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
+  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
+  assert(!boot.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
+  const noUserGuard = load.indexOf("if (!activeUser)");
+  const secureSessionGuard = load.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
+  const manifestFetch = load.indexOf("fetchAppSyncManifest()");
+  assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
+  assert(secureSessionGuard > noUserGuard && secureSessionGuard < localRestore, "Online reads must require a validated secure application session");
+  assert(localRestore < manifestFetch, "The manifest request may occur only after the authentication guards");
+});
+
+Deno.test("secure session validation completes before cloud loading begins", () => {
+  const check = section("async function checkExistingSession()", "async function handleUserLogin(e)");
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord(");
+  const validate = check.indexOf("appAuthRequest({ action: \"app_session\" }, appToken)");
+  const activate = check.indexOf("activeUser = result.principal");
+  const finalize = check.indexOf("await finalizeLoginState()");
+  assert(validate >= 0 && validate < activate && activate < finalize, "A stored app session must be validated before activating the principal");
+  const saveToken = login.indexOf("saveAppAuthSession(serverLogin)");
+  const loginFinalize = login.indexOf("await finalizeLoginState()");
+  assert(saveToken >= 0 && saveToken < loginFinalize, "A new secure token must be stored before loading protected school data");
+});
+
+Deno.test("offline cached login remains available without opening cloud reads", () => {
+  const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
+  const finalize = section("async function finalizeLoginState()", "function initDarkMode()");
+  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Offline login must have a locally restored snapshot available");
+  assert(finalize.includes("else if (!navigator.onLine && cloudDataLoadState === 'not-started')"), "Offline sign-in must use the local-only readiness path");
+  assert(finalize.includes("if (offlineSnapshotRestoredAtBoot)"), "Offline dashboard access must depend on a real restored snapshot");
+  assert(load.includes("if (navigator.onLine && !hasUnexpiredAppAuthSession())"), "An unverified online session must never be treated as an offline cloud session");
+});
