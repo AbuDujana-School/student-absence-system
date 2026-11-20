@@ -51,7 +51,7 @@ Deno.test("write handler rejects missing sessions before touching school tables"
   assertEquals(calls.some(([name]) => name === "from"), false);
 });
 
-Deno.test("admin writes allowlisted student rows using server-owned conflict targets", async () => {
+Deno.test("admin writes allowlisted student rows through the atomic database RPC", async () => {
   const admin = { type: "admin" as const, name: "مدير النظام العام" };
   const { deps, calls, getSaved } = fixture({ principal: admin, session: { principal: { type: "admin", name: admin.name } } });
   const response = await request({ table: "students", rows: [{ class_name: "5/1", student_name: "Student A" }] }, deps);
