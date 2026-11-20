@@ -134,3 +134,11 @@ These are intentional security/compatibility gates, not unfinished automatic fal
 - The Chromium regression now simulates an offline attendance edit, confirms it remains locally queued while offline, reconnects, uploads the queued row through the gateway, and verifies the dirty key clears only after the gateway acknowledgement. The same reconnect pass verifies the dedicated administrator PIN write action.
 - Verified CI on commit `91053ae8`: isolated Chromium school-sync regression **passed**, Student Affairs backend workflow **passed** (all 3 jobs), and timetable management tests **passed**.
 - Remaining direct PostgREST calls are now limited to the compatibility generic read/write helpers and the narrow legacy teacher-permission fallback. Those paths still cover teacher roster/credential snapshots, class/student/duty workflows, and are not declared migrated.
+
+
+### Stage 5 — incomplete acknowledgement and retry proof
+
+- Extended the isolated Chromium regression to simulate a gateway returning an incomplete saved-row count after reconnect.
+- Verified that the sync attempt fails, the affected attendance dirty key remains queued, and a subsequent successful retry clears that key only after full acknowledgement.
+- All fixtures and credential payloads remain synthetic and intercepted locally.
+- CI on commit `483cbdf0eab1a1f1361c77ba9842257d3931a2c5`: isolated browser regression **44758246172 passed**; Student Affairs backend **44758246085 passed** (3/3 jobs); timetable management **44758246087 passed**.
