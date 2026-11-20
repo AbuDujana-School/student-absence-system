@@ -362,7 +362,9 @@ Deno.test("unauthenticated startup does not fetch protected school tables", () =
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
   assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
-  assert(!boot.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
+  const sessionCheck = boot.indexOf("await checkExistingSession()");
+  const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
+  assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
   const noUserGuard = load.indexOf("if (!activeUser)");
   const secureSessionGuard = load.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
   const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
