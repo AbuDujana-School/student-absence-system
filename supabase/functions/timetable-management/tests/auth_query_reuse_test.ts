@@ -104,7 +104,7 @@ Deno.test("linked timetable authorization avoids repeating the cell read perform
   if (!resolver.includes("store.hasLinkedTeacherPortalAccess(name, requestedAction)")) {
     throw new Error("The requested action must be passed to linked portal authorization");
   }
-  const ownTimetable = section('if (body.action === "teacher_timetable_get_own")', 'if (body.action === "teacher_substitution_get_today")');
+  const ownTimetable = section('if (body.action === "teacher_timetable_get_own")', 'if (action === "timetable_substitution_departments")');
   if (!ownTimetable.includes("fetchTeacherTimetableCells")) {
     throw new Error("The personal timetable handler must retain its authoritative cell read");
   }
