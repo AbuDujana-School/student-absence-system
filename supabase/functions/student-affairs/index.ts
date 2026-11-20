@@ -4,6 +4,8 @@ import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, 
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
+import { fetchAnalyticsBatch } from "./analytics_batch_fetch.ts";
+import { fetchSupervisionTrendRows } from "./supervision_trend_fetch.ts";
 import {
   resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
   type AppLoginCandidate, type AppPrincipal,
@@ -1653,23 +1655,8 @@ async function handle(req: Request) {
         }
       }
     }
-    const fetchAll = async (table: "attendance" | "behaviors", classes: string[]) => {
-      const rows: any[] = [];
-      for (const className of classes) {
-        let offset = 0;
-        while (true) {
-          const { data, error } = await db.from(table).select("date_str,class_name,records")
-            .eq("class_name", className).gte("date_str", from).lte("date_str", to)
-            .order("date_str").range(offset, offset + 999);
-          if (error) throw error;
-          const page = data || [];
-          rows.push(...page);
-          if (page.length < 1000) break;
-          offset += page.length;
-        }
-      }
-      return rows;
-    };
+    const fetchAll = (table: "attendance" | "behaviors", classes: string[]) =>
+      fetchSupervisionTrendRows(db, table, classes, from, to);
     let attendanceRows: any[] = [], behaviorRows: any[] = [];
     try {
       [attendanceRows, behaviorRows] = await Promise.all([
@@ -2099,16 +2086,25 @@ async function handle(req: Request) {
     if (mode === "analytics") {
       const classes = Array.from(new Set([...requestedAttendance, ...requestedBehavior]));
       if (!classes.length) return reply(200, { attendance: [], behaviors: [], students: [], analytics: {}, permissions });
+      const attendanceClasses = classes.filter(className => allowedAttendance.has(className));
+      const behaviorClasses = classes.filter(className => allowedBehavior.has(className));
+      let batch: Awaited<ReturnType<typeof fetchAnalyticsBatch>>;
+      try {
+        batch = await fetchAnalyticsBatch(
+          db,
+          attendanceClasses,
+          behaviorClasses,
+          body.from || "2000-01-01",
+          body.to || "2100-12-31",
+        );
+      } catch {
+        return reply(500, { error: "تعذر تحميل التحليلات" });
+      }
       const analytics: Record<string, unknown> = {};
       for (const className of classes) {
-        const [a, b] = await Promise.all([
-          allowedAttendance.has(className) ? db.from("attendance").select("record_key,date_str,records", { count: "exact" }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31").limit(5000) : Promise.resolve({ data: [], error: null } as any),
-          allowedBehavior.has(className) ? db.from("behaviors").select("record_key", { count: "exact", head: true }).eq("class_name", className).gte("date_str", body.from || "2000-01-01").lte("date_str", body.to || "2100-12-31") : Promise.resolve({ count: 0, error: null } as any)
-        ]);
-        if (a.error || b.error) return reply(500, { error: "تعذر تحميل التحليلات" });
         const statusCounts: Record<string, number> = { absent: 0, late: 0, escape: 0, outside: 0 };
         const countedDailyAbsences = new Set<string>();
-        for (const session of (a.data || [])) {
+        for (const session of (batch.attendanceRowsByClass.get(className) || [])) {
           const date = String(session.date_str || ""), records = session.records && typeof session.records === "object" && !Array.isArray(session.records) ? session.records : {};
           for (const [student, value] of Object.entries(records as Record<string, unknown>)) {
             const status = typeof value === "string" ? value : value && typeof value === "object" ? String((value as Record<string, unknown>).status || "") : "";
@@ -2122,7 +2118,12 @@ async function handle(req: Request) {
           }
         }
         const selectedAttendanceRecords = Object.values(statusCounts).reduce((sum, count) => sum + count, 0);
-        analytics[className] = { attendance_sessions: a.count || (a.data || []).length, selected_attendance_records: selectedAttendanceRecords, attendance_status_counts: statusCounts, behavior_sessions: b.count || 0 };
+        analytics[className] = {
+          attendance_sessions: batch.attendanceSessionsByClass.get(className) || 0,
+          selected_attendance_records: selectedAttendanceRecords,
+          attendance_status_counts: statusCounts,
+          behavior_sessions: batch.behaviorSessionsByClass.get(className) || 0,
+        };
       }
       return reply(200, { attendance: [], behaviors: [], students: [], analytics, permissions });
     }
