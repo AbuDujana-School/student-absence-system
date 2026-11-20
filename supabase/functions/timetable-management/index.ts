@@ -1358,21 +1358,20 @@ async function handle(req: Request) {
         teacherDirectory(),
         fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("id,matched_teacher_name,weekday,period,cell_status,class_sections,subject")
           .eq("version_id",activeVersion.id).eq("weekday",weekday).order("id").range(from,to)),
-        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name,cell_status,weekday,period")
-          .eq("version_id",activeVersion.id).order("id").range(from,to)),
+        fetchAllTimetableCells((from,to)=>db.from("timetable_weekly_cells").select("matched_teacher_name,teacher_source_name,weekday,period")
+          .eq("version_id",activeVersion.id).eq("cell_status","teaching").order("id").range(from,to)),
         fetchAllSubstitutionRows((from,to)=>db.from("timetable_substitution_points_ledger").select("teacher_name,points_delta")
           .order("id").range(from,to)),
       ]);
       const weeklyQuotaByTeacher=countTeacherTeachingPeriods((weeklyLoad||[]).filter((cell:any)=>cell.matched_teacher_name).map((cell:any)=>({
         teacherId:String(cell.matched_teacher_name),weekday:String(cell.weekday||""),period:Number(cell.period),
-        className:"",status:cell.cell_status,
+        className:"",status:"teaching",
       })));
       const systemTeachersForReserve: SystemTeacher[] = directory
         .filter((teacher:any)=>teacher.role==="teacher")
         .map((teacher:any)=>({name:String(teacher.name||"").trim()}))
         .filter((teacher:SystemTeacher)=>teacher.name);
       const activeTeachingTeacherNames = new Set((weeklyLoad||[])
-        .filter((cell:any)=>cell.cell_status==="teaching")
         .map((cell:any)=>resolveTimetableTeacherName(cell.matched_teacher_name,cell.teacher_source_name,systemTeachersForReserve))
         .filter((name:string|null):name is string=>Boolean(name)));
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
