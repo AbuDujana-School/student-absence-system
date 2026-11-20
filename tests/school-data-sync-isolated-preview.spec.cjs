@@ -69,6 +69,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     duty_reports: 1,
   };
   let manifestCalls = 0;
+  let gatewaySavedCountOverride = null;
   const reads = new Map();
   const projections = new Map();
   const functionActions = [];
@@ -126,7 +127,9 @@ test("school sync projections and timetable access reads stay isolated and minim
       if (payload.action === "app_data_gateway_write") {
         gatewayWrites.push({ table: payload.table, rows: payload.rows || [],
           authorization: request.headers()["authorization"] || "" });
-        await route.fulfill({ status: 200, headers, body: JSON.stringify({ saved: (payload.rows || []).length }) });
+        const saved = gatewaySavedCountOverride === null
+          ? (payload.rows || []).length : gatewaySavedCountOverride;
+        await route.fulfill({ status: 200, headers, body: JSON.stringify({ saved }) });
         return;
       }
       if (payload.action === "app_data_gateway_credentials_write") {
@@ -435,6 +438,25 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(gatewayWrites.length).toBe(writesBeforeReconnect + 1);
   expect(gatewayWrites.at(-1).table).toBe("attendance");
   expect(gatewayWrites.at(-1).rows[0].record_key).toBe("QA_ONLY_OFFLINE_ATTENDANCE");
+
+  // A partial/incorrect acknowledgement must not clear the local dirty key.
+  const failedAckKey = "QA_ONLY_FAILED_ACK";
+  await page.evaluate(async (key) => {
+    db.attendance[key] = {
+      recordKey: key, className: "QA_ONLY_CLASS", teacherName: "QA_ONLY_ADMIN",
+      period: 1, records: { QA_ONLY_STUDENT: "late" }, updatedAt: new Date().toISOString()
+    };
+    dirtySets.attendance.add(key);
+    await persistOfflineState();
+  }, failedAckKey);
+  gatewaySavedCountOverride = 0;
+  const failedAckSync = await page.evaluate(async () => saveSystemDataToCloud({ manual: true, silent: true }));
+  gatewaySavedCountOverride = null;
+  expect(failedAckSync, "Incomplete gateway acknowledgement must fail the sync").toBe(false);
+  expect(await page.evaluate((key) => dirtySets.attendance.has(key), failedAckKey)).toBe(true);
+  const retriedSync = await page.evaluate(async () => saveSystemDataToCloud({ manual: true, silent: true }));
+  expect(retriedSync, "The retained dirty row must be retryable").toBe(true);
+  expect(await page.evaluate((key) => dirtySets.attendance.has(key), failedAckKey)).toBe(false);
 
   expect(manifestCalls).toBe(3);
   expect(gatewayReads.length).toBe(7);
