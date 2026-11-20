@@ -11,20 +11,19 @@ function section(startMarker: string, endMarker: string): string {
   return html.slice(start, end);
 }
 
-Deno.test("robust upsert fallback selects only conflict keys and at most one row", () => {
+Deno.test("robust upsert uses only batched writes with verified conflict targets", () => {
   const upsert = section("async function robustUpsert(", "async function fetchAllPaginated(");
-  assert(upsert.includes("sb.from(table).select(cols.join(',')).limit(1)"), "Fallback existence check must select only conflict-key columns and one row");
-  assert(!upsert.includes("sb.from(table).select('*')"), "Fallback must not download complete rows or credential fields");
+  assert(upsert.includes("sb.from(table).upsert(chunk, { onConflict: onConflictCols })"), "Writes must stay batched by the verified conflict target");
+  assert(!upsert.includes(".select(") && !upsert.includes(".update(") && !upsert.includes(".insert("), "A failed batch must not fan out into per-row requests");
+  assert(upsert.includes("if (error)"), "A failed bulk request must enter the fail-closed path");
 });
 
-Deno.test("robust upsert diagnostics never expose row payloads or credential fields", () => {
+Deno.test("robust upsert diagnostics never expose row payloads or raw database messages", () => {
   const upsert = section("async function robustUpsert(", "async function fetchAllPaginated(");
-  assert(upsert.includes("(row and message omitted; code"), "Failure diagnostics must omit both row payloads and raw database messages");
-  assert(!upsert.includes("rowErr, row"), "Console logging must never serialize a complete failed row");
-  assert(!upsert.includes("console.error(`robustUpsert failed for ${table} (row and message omitted; code ${code})`, msg)"), "Raw database messages must never be logged");
-  assert(!upsert.includes("failures.push({ table, row"), "Failure aggregation must not retain row payloads");
-  assert(!upsert.includes("failures.push({ table, error: msg })"), "Failure aggregation must not retain raw database messages");
-  assert(upsert.includes("failures.push({ table, code })"), "Only table and safe error codes may be retained");
+  assert(upsert.includes("const code = String(error?.code || error?.status || 'unknown')"), "Diagnostics must retain only a safe database error code");
+  assert(upsert.includes("local dirty state retained"), "Failure diagnostics must state that local edits remain available");
+  assert(!upsert.includes("error.message"), "Raw database error messages must not be logged or surfaced");
+  assert(!upsert.includes("rowErr") && !upsert.includes("failures.push"), "Failed row payloads and raw messages must not be retained");
 });
 
 Deno.test("cloud writes are blocked until a complete cloud load succeeds", () => {
