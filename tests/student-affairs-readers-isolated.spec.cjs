@@ -333,11 +333,11 @@ test("notice PDF uses exact A4 printable dimensions and updated fit font", async
       stylePresent: Boolean(style),
       previewWidth: /width:200mm!important/.test(css),
       previewHeight: /height:287mm!important/.test(css),
-      printMargins: /@page\\s*\\{size:A4 portrait;margin:5mm\\}/.test(css),
+      printMargins: /@page\s*\{size:A4 portrait;margin:5mm\}/.test(css),
       printWidth: /width:100%!important;min-width:0!important/.test(css),
       avoidPageBreak: /break-inside:avoid!important;page-break-inside:avoid!important/.test(css),
-      baseFont: /const baseFont=11\\.5/.test(fitSource),
-      minFont: /Math\\.max\\(8\\.6,baseFont-level\\.shrink\\)/.test(fitSource),
+      baseFont: /const baseFont=11\.5/.test(fitSource),
+      minFont: /Math\.max\(8\.6,baseFont-level\.shrink\)/.test(fitSource),
     };
   });
   expect(result).toEqual({
