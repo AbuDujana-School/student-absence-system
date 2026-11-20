@@ -12,6 +12,11 @@ test("morning assembly lateness appears in isolated branch preview without produ
 
   const response = await request.get(previewUrl, { timeout: 30_000 });
   expect(response.status()).toBe(200);
+  const html = await response.text();
+  expect(html).toContain('location.hostname.endsWith(".abu-dujana-school-preview.pages.dev")');
+  expect(html).toContain('IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co"');
+  expect(html).toContain('const SA_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW');
+  expect(html).toContain('const TIMETABLE_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW');
 
   const productionRequests = [];
   const pageErrors = [];
