@@ -37,7 +37,7 @@ export interface TimetableAuthStore {
   hasAdminCredential(): Promise<boolean>;
   findTeacher(name: string, includePermissions?: boolean): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
-  hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>): Promise<boolean>;
+  hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>, checkCurrentDay?: boolean): Promise<boolean>;
   canReadDutyReportContext?(type: "teacher" | "custom", name: string, date: string, weekday: string, period: number, permissions?: Record<string, unknown>): Promise<boolean>;
   hasLinkedTeacherPortalAccess?(name: string): Promise<boolean>;
   /** Lightweight portal-setting check used only for the teacher's own daily notice. */
@@ -115,7 +115,7 @@ export async function resolveTimetablePrincipal(
   if (await store.hasTimetableAccess(type, name)) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
     const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
-      ? await store.hasDutyReportAccess(type, name, permissions)
+      ? await store.hasDutyReportAccess(type, name, permissions, requestedAction !== "timetable_duty_report_context")
       : false;
     return {
       type, name, permissions, reserveAccess, schoolwideReserveStats,
@@ -127,7 +127,7 @@ export async function resolveTimetablePrincipal(
   if (reserveAccess) {
     const schoolwideReserveStats = await hasSchoolwideReserveStats();
     const dutyReportAccess = dutyReportAction && store.hasDutyReportAccess
-      ? await store.hasDutyReportAccess(type, name, permissions)
+      ? await store.hasDutyReportAccess(type, name, permissions, requestedAction !== "timetable_duty_report_context")
       : false;
     return {
       type, name, permissions, reserveAccess: true, schoolwideReserveStats,
@@ -167,7 +167,7 @@ export async function resolveTimetablePrincipal(
     "teacher_substitution_get_today",
   ]).has(requestedAction);
   if ((dutyReportAction || mayUseDutyBootstrap) && store.hasDutyReportAccess
-    && await store.hasDutyReportAccess(type, name, permissions)) {
+    && await store.hasDutyReportAccess(type, name, permissions, requestedAction !== "timetable_duty_report_context")) {
     return { type, name, permissions, dutyReportOnly: true, dutyReportAccess: true };
   }
   return null;
