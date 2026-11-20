@@ -146,22 +146,11 @@ export async function resolveTimetablePrincipal(
   }
   // The daily notice exposes only this teacher's own assignments. For this
   // action, verify the configured portal allow-list without loading weekly cells.
-  if (type === "teacher" && requestedAction === "teacher_substitution_get_today") {
-    if (store.hasLinkedTeacherPortalNoticeAccess
-      && await store.hasLinkedTeacherPortalNoticeAccess(name)) {
-      return { type, name, portalOnly: true };
-    }
-    if (store.hasOwnDailySubstitutionAssignment
-      && await store.hasOwnDailySubstitutionAssignment(name)) {
-      return { type, name };
-    }
-  } else if (type === "teacher" && new Set([
+  if (type === "teacher" && new Set([
     "health",
     "timetable_check_access",
-    "teacher_timetable_get_own",
   ]).has(requestedAction)) {
-    // Full linked-schedule verification is needed only for portal-capable reads.
-    // Do not load weekly cells while resolving unrelated timetable actions.
+    // Full linked-schedule verification is needed only for portal status reads.
     if (store.hasLinkedTeacherPortalAccess
       && await store.hasLinkedTeacherPortalAccess(name, requestedAction)) {
       return { type, name, portalOnly: true };
