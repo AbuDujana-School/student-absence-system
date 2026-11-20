@@ -342,6 +342,31 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(functionActions.filter((action) => action === "timetable_list_access")).toHaveLength(1);
   expect(functionActions.filter((action) => action === "timetable_list_imports")).toHaveLength(2);
 
+  const offlineSeed = await page.evaluate(async () => {
+    const key = "QA_ONLY_OFFLINE_ATTENDANCE";
+    db.attendance[key] = {
+      recordKey: key, className: "QA_ONLY_CLASS", teacherName: "QA_ONLY_ADMIN",
+      period: 1, records: { QA_ONLY_STUDENT: "absent" }, updatedAt: new Date().toISOString()
+    };
+    dirtySets.attendance.add(key);
+    return { persisted: await persistOfflineState(), dirty: dirtySets.attendance.has(key) };
+  });
+  expect(offlineSeed.persisted, "Synthetic offline state must persist locally").toBe(true);
+  expect(offlineSeed.dirty).toBe(true);
+  await page.context().setOffline(true);
+  const offlineSync = await page.evaluate(async () => {
+    const result = await syncPendingLocalChanges();
+    return {
+      result,
+      dirty: dirtySets.attendance.has("QA_ONLY_OFFLINE_ATTENDANCE"),
+      record: db.attendance["QA_ONLY_OFFLINE_ATTENDANCE"]?.records?.QA_ONLY_STUDENT
+    };
+  });
+  expect(offlineSync.result, "Offline sync must not attempt a cloud write").toBe(false);
+  expect(offlineSync.dirty, "Offline dirty key must remain queued").toBe(true);
+  expect(offlineSync.record).toBe("absent");
+  await page.context().setOffline(false);
+
   expect(manifestCalls).toBe(3);
   expect(gatewayReads.length).toBe(5);
   expect(blockedWrites, "No unexpected REST writes may occur in isolated browser tests").toEqual([]);
