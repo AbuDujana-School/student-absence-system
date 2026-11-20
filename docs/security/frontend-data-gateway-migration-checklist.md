@@ -88,3 +88,12 @@ Use synthetic preview data only. Run each case for admin, teacher, and custom ac
 - Stage backend deployment separately from production RLS/grant tightening.
 - Record pre-cutover policy/grant state and prepare a tested rollback that restores the prior application path without modifying school records.
 - Tighten production policies/grants only in a separately approved, monitored cutover after the gateway-backed frontend is live and verified.
+
+
+### Stage 2 — teacher/custom attendance and behavior reads
+
+- Teacher and custom accounts now route only `attendance` and `behaviors` reads through the authenticated gateway. The request requires an unexpired session whose server-issued principal type and name exactly match the active account.
+- Teacher permission normalization now matches the existing UI: attendance/behavior are enabled unless explicitly `false`. Custom accounts remain explicit opt-in and are not default-granted.
+- Class filters continue to come only from server-side timetable assignments and explicit Student Affairs grants. A valid account with no server-derived class scope receives an empty page, not an unscoped query or a sync-stopping authorization error.
+- Teacher/custom reads for classes, students, duty reports, teacher roster, and settings remain on the compatibility path. Teacher/custom writes remain unchanged pending row-ownership and offline retry tests.
+- Isolated Chromium coverage now checks administrator reads, teacher attendance reads, custom behavior reads, and verifies the two migrated tables do not fall back to direct PostgREST reads for those roles.
