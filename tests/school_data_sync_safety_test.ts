@@ -407,3 +407,14 @@ Deno.test("verified secure sessions reuse server-returned permissions without a 
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   assert(login.indexOf("saveAppAuthSession(serverLogin)") < login.indexOf("await finalizeLoginState()"), "A new secure login must save its verified principal before permissions are reused");
 });
+
+
+Deno.test("failed bulk upserts fail closed without per-row query amplification", () => {
+  const helper = section("async function robustUpsert(", "async function fetchAllPaginated(");
+  assert(helper.includes("await sb.from(table).upsert(chunk, { onConflict: onConflictCols })"), "Cloud writes must remain batched by the verified conflict target");
+  assert(helper.includes("if (error)"), "A failed batch must enter the error path");
+  assert(helper.includes("throw new Error("), "A failed batch must propagate failure to the sync caller");
+  assert(!helper.includes(".select(") && !helper.includes(".update(") && !helper.includes(".insert("), "A failed batch must never fan out into per-row SELECT, UPDATE, or INSERT requests");
+  assert(helper.includes("local dirty state retained"), "The failure log must explicitly preserve local dirty state");
+  assert(!helper.includes("error.message"), "Database error messages must not be copied into logs or user-facing errors");
+});
