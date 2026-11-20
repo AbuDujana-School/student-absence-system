@@ -27,7 +27,12 @@ async function openIsolatedApp(page) {
       await route.fulfill({ status: 204, headers });
       return;
     }
-    if (url.pathname.startsWith("/rest/v1/")) {
+    // Supabase JS performs a lightweight HEAD health check against the project root.
+    if (url.pathname === "/" && method === "HEAD") {
+      await route.fulfill({ status: 200, headers: { date: new Date().toUTCString() } });
+      return;
+    }
+    if (url.pathname.startsWith("/rest/v1/"))
       if (method !== "GET" && method !== "HEAD") {
         traffic.blockedWrites.push({ method, path: url.pathname });
         await route.fulfill({ status: 405, headers, body: JSON.stringify({ error: "Writes disabled in isolated browser tests" }) });
@@ -110,14 +115,22 @@ test("analytics screen renders only the selected synthetic class", async ({ page
       allowed_attendance_classes: ["QA_ONLY_CLASS"],
       attendance_statuses: ["absent", "late", "escape", "outside"],
     };
-    saDomain = "attendance";
+    saSetDomain("attendance");
     saPopulateReportClasses();
+    document.querySelectorAll("#saReportClassesContainer .sa-report-class-chk").forEach((input) => { input.checked = true; });
     document.getElementById("saFrom").value = "2026-11-18";
     document.getElementById("saTo").value = "2026-11-20";
     await saLoadAnalytics();
+    return {
+      domain: saDomain,
+      permission: saReportPermissions?.can_view_analytics,
+      allowed: saGetAllowedReportClasses("attendance"),
+      selected: saGetSelectedReportClasses("attendance"),
+      resultText: document.getElementById("saResults")?.innerText || "",
+    };
   });
   const call = traffic.functionCalls.find((item) => item.report_mode === "analytics");
-  expect(call).toBeTruthy();
+  expect(call, "Analytics request missing; check screen setup: " + JSON.stringify(await page.locator("#saResults").innerText())).toBeTruthy();
   expect(call.attendance_classes).toEqual(["QA_ONLY_CLASS"]);
   expect(call.behavior_classes).toEqual([]);
   expect(call.from).toBe("2026-11-18");
