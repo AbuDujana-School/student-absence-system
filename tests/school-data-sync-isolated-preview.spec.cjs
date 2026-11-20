@@ -166,8 +166,6 @@ test("school sync projections and timetable access reads stay isolated and minim
   });
 
   const previewUrl = process.env.PREVIEW_URL || "http://127.0.0.1:4173/";
-  // Use a normal Oman school day so the reserve dashboard does not exercise Friday-only validation.
-  await page.clock.install({ time: new Date("2026-11-22T08:00:00+04:00") });
   const response = await page.goto(previewUrl, { waitUntil: "domcontentloaded", timeout: 60_000 });
   expect(response, "Local preview must return an HTTP response").not.toBeNull();
   expect(response.status()).toBe(200);
@@ -221,7 +219,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     expect(projections.get(table), "Narrow projection for " + table).toBe(select);
   }
 
-  const unchangedRefresh = await page.evaluate(() => refreshCloudDataSilently());
+  const unchangedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(unchangedRefresh, "Unchanged manifest refresh must complete").toBe(true);
   for (const table of TABLES) {
     expect(reads.get(table) || 0, "Unchanged manifest must not reread " + table).toBe(1);
@@ -229,7 +227,7 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   manifest.teachers = 2;
   manifest.school_settings = 2;
-  const changedRefresh = await page.evaluate(() => refreshCloudDataSilently());
+  const changedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(changedRefresh, "Changed manifest refresh must complete").toBe(true);
   expect(reads.get("teachers") || 0).toBe(2);
   expect(reads.get("school_settings") || 0).toBe(2);
