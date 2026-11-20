@@ -357,7 +357,7 @@ function projectCompetitionResponse(snapshot: any, principal: { type: string; na
       weeklyAwardPoints: team.weeklyAwardPoints, complete: team.complete,
       resultStatus: team.resultStatus
     };
-    if (isAdmin) {
+    if (canSeeAll) {
       Object.assign(projected, {
         attendanceRate: team.attendanceRate, behaviorRate: team.behaviorRate,
         attendanceIncidents: team.attendanceIncidents, behaviorIncidents: team.behaviorIncidents,
