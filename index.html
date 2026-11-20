@@ -5425,6 +5425,19 @@ async function retryOfflineSyncSilently() {
     offlineAutoSyncInProgress = false;
   }
 }
+function refreshCloudDependentViews() {
+  if (!activeUser) return;
+  try {
+    if (isAdminAuthorized()) {
+      if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+      if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+    }
+    if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
+    if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
+    refreshDutyDashboardCard();
+  } catch (error) { console.error('Cloud refresh view update failed:', error); }
+}
+
 async function refreshCloudDataSilently() {
   if (cloudRefreshInProgress || cloudSaveInProgress || !navigator.onLine || !activeUser ||
       document.hidden || cloudDataLoadState !== 'ready' || attendanceDirty || behaviorDirty ||
@@ -5432,17 +5445,7 @@ async function refreshCloudDataSilently() {
   cloudRefreshInProgress = true;
   try {
     const success = await loadSystemDataFromCloud();
-    if (success && activeUser) {
-      try {
-        if (isAdminAuthorized()) {
-          if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
-          if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
-        }
-        if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
-        if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
-        refreshDutyDashboardCard();
-      } catch (error) { console.error('Cloud refresh view update failed:', error); }
-    }
+    if (success && activeUser) refreshCloudDependentViews();
     return success;
   } finally {
     cloudRefreshInProgress = false;
@@ -5475,13 +5478,21 @@ async function syncPendingLocalChanges() {
     showToast('انتهت جلسة الدخول الآمنة. أعد تسجيل الدخول قبل المزامنة؛ بقيت التعديلات محفوظة محلياً.', 'error');
     return false;
   }
-  if (cloudDataLoadState !== 'ready') {
-    showToast('انتظر اكتمال تحميل بيانات المدرسة قبل المزامنة.', 'error');
-    return false;
-  }
   if (attendanceDirty || behaviorDirty) {
     showToast('احفظ تغييرات الرصد الحالية أولاً، ثم أعد المزامنة.', 'error');
     return false;
+  }
+  if (cloudDataLoadState === 'loading') {
+    showToast('جارٍ تحميل بيانات المدرسة؛ انتظر اكتماله ثم أعد المزامنة.', 'info');
+    return false;
+  }
+  if (cloudDataLoadState !== 'ready') {
+    const recovered = await loadSystemDataFromCloud();
+    if (!recovered) {
+      updateSyncStatus(false, 'تعذر تحديث بيانات الخادم - التعديلات المحلية محفوظة');
+      showToast('تعذر استعادة الاتصال بالخادم. بقيت التعديلات المحلية محفوظة ولم يتم رفعها.', 'error');
+      return false;
+    }
   }
 
   const pendingDeletes = getPendingDeletes().length;
@@ -5607,12 +5618,32 @@ window.addEventListener('DOMContentLoaded', async () => {
   window.addEventListener('offline', () => {
     updateSyncStatus(false, hasPendingOfflineChanges() ? "غير متصل - التغييرات محفوظة محلياً" : "غير متصل - البيانات المحلية متاحة");
   });
+  let cloudResumeInProgress = false;
   const resumeCloudSync = () => {
-    if (!navigator.onLine || !activeUser) return;
-    setTimeout(() => {
-      if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
-      else refreshCloudDataSilently();
-      if (activeUser?.type === "teacher") void teacherShowDailySubstitutionWelcome();
+    if (!navigator.onLine || !activeUser || document.hidden || cloudResumeInProgress ||
+        cloudSaveInProgress || cloudRefreshInProgress || manualOfflineSyncInProgress ||
+        attendanceDirty || behaviorDirty) return;
+    cloudResumeInProgress = true;
+    setTimeout(async () => {
+      try {
+        if (!navigator.onLine || !activeUser || document.hidden || cloudDataLoadState === 'loading' ||
+            cloudSaveInProgress || cloudRefreshInProgress || manualOfflineSyncInProgress ||
+            attendanceDirty || behaviorDirty) return;
+        let recoveredCloud = false;
+        if (cloudDataLoadState !== 'ready') {
+          const recovered = await loadSystemDataFromCloud();
+          if (!recovered) return;
+          recoveredCloud = true;
+        }
+        if (hasPendingOfflineRecordChanges()) await retryOfflineSyncSilently();
+        else if (recoveredCloud) refreshCloudDependentViews();
+        else await refreshCloudDataSilently();
+        if (activeUser?.type === "teacher") void teacherShowDailySubstitutionWelcome();
+      } catch (error) {
+        console.warn('Cloud reconnect recovery failed; local changes remain محفوظة.', error);
+      } finally {
+        cloudResumeInProgress = false;
+      }
     }, 1200);
   };
   window.addEventListener('online', () => {
@@ -5623,15 +5654,13 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.addEventListener('visibilitychange', () => {
     if (!document.hidden) resumeCloudSync();
   });
-  // Poll every two minutes to reduce idle background requests. Reconnect and
-  // return-to-app events still trigger an immediate refresh; local edits remain protected.
+  // Periodic polling uses the same guarded recovery path as reconnect/return events.
   setInterval(() => {
-    if (!navigator.onLine || !activeUser || document.hidden) return;
-    if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
-    else refreshCloudDataSilently();
+    resumeCloudSync();
   }, 120000);
-  if (navigator.onLine && activeUser && hasPendingOfflineRecordChanges()) {
-    setTimeout(() => retryOfflineSyncSilently(), 1800);
+  if (navigator.onLine && activeUser &&
+      (cloudDataLoadState !== 'ready' || hasPendingOfflineRecordChanges())) {
+    setTimeout(() => resumeCloudSync(), 1800);
   }
 });
 
