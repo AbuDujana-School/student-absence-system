@@ -1,0 +1,61 @@
+name: Morning assembly lateness isolated browser preview
+
+on:
+  push:
+    branches:
+      - feature/morning-assembly-lateness
+    paths:
+      - "index.html"
+      - "tests/morning-assembly-lateness-preview.spec.cjs"
+      - ".github/workflows/morning-assembly-lateness-preview.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "tests/morning-assembly-lateness-preview.spec.cjs"
+      - ".github/workflows/morning-assembly-lateness-preview.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: morning-assembly-lateness-preview-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-browser-preview:
+    name: Verify morning lateness UI and production isolation
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - name: Check out tested commit
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: npm install --no-save @playwright/test
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run isolated branch-preview browser test
+        env:
+          PREVIEW_URL: https://feature-morning-assembly-lat.abu-dujana-school-preview.pages.dev/
+        run: npx playwright test tests/morning-assembly-lateness-preview.spec.cjs --reporter=line
+
+      - name: Upload browser evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: morning-assembly-lateness-browser-evidence
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 7
