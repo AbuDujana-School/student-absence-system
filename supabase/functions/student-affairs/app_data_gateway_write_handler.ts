@@ -9,7 +9,7 @@ import {
 
 type SessionIdentity = { principal: { type: string; name: string } } | null;
 type GatewayDependencies = {
-  db: { from(table: string): any; rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }> };
+  db: { from(table: string): any; rpc(name: string, args: Record<string, unknown>): PromiseLike<{ data: unknown; error: unknown }> };
   headers: HeadersInit;
   readSession(authorization: string | null): Promise<SessionIdentity>;
   currentPrincipal(type: string, name: string): Promise<AppDataPrincipal | null>;
