@@ -4739,6 +4739,11 @@ let saNoticePreviewReady=Promise.resolve(true);
 function saNoticeRenderPreview(students,perPage=3){
   const capacity=Math.max(1,Math.min(3,Number(perPage)||3));
   const root=document.getElementById("saNoticePrintRoot");
+  // The generation flow hides the preview while scanning. Reveal it before
+  // measuring cards: hidden ancestors report zero layout dimensions and make
+  // every 3/2/1-card candidate look as if it overflows, yielding one student/page.
+  const previewPanel=document.getElementById("saNoticePreviewPanel");
+  if(previewPanel)previewPanel.classList.remove("hidden");
   const initialPages=saNoticeBuildPages(students,capacity);
   const run=++saNoticePreviewFitRun;
   root.innerHTML=initialPages.map((page,pageIndex)=>{
