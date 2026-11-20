@@ -1,5 +1,6 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
-import { buildNoticeCandidates, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
+import { buildNoticeCandidates, validateNoticeIssueItem, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
+import { fetchNoticeRowsForClasses } from "./notice_issue_fetch.ts";
 import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
@@ -2044,32 +2045,31 @@ async function handle(req: Request) {
       if (useBehavior && (!behaviorClasses.length || !areClassesAllowed(behaviorClasses, [...allowedBehavior]))) return reply(403, { error: "توجد صفوف سلوك خارج نطاق صلاحياتك." });
       const noticeClasses = [...new Set([...attendanceClasses, ...behaviorClasses])];
       if (!noticeClasses.length) return reply(400, { error: "حدد صفاً واحداً على الأقل." });
-      const jobs: Array<{ className: string; year: number; from: string; to: string; attendance: boolean; behavior: boolean }> = [];
       const firstYear = Number(rangeFrom.slice(0, 4)), lastYear = Number(rangeTo.slice(0, 4));
-      noticeClasses.forEach(className => {
-        for (let year = firstYear; year <= lastYear; year++) jobs.push({
-          className, year, from: year === firstYear ? rangeFrom : year + "-01-01", to: year === lastYear ? rangeTo : year + "-12-31",
-          attendance: attendanceClasses.includes(className), behavior: behaviorClasses.includes(className)
-        });
+      const yearJobs = Array.from({ length: lastYear - firstYear + 1 }, (_, index) => {
+        const year = firstYear + index;
+        return {
+          year,
+          from: year === firstYear ? rangeFrom : year + "-01-01",
+          to: year === lastYear ? rangeTo : year + "-12-31",
+        };
       });
       const attendanceRows: any[] = [], behaviorRows: any[] = [], loadErrors: Error[] = [];
-      let jobCursor = 0;
-      const loadWorker = async () => {
-        while (jobCursor < jobs.length) {
-          const job = jobs[jobCursor++];
+      let yearCursor = 0;
+      const loadYearWorker = async () => {
+        while (yearCursor < yearJobs.length) {
+          const job = yearJobs[yearCursor++];
           try {
             const [a, b] = await Promise.all([
-              job.attendance ? db.from("attendance").select("record_key,date_str,class_name,period,records").eq("class_name", job.className).gte("date_str", job.from).lte("date_str", job.to).order("date_str", { ascending: true }).limit(5000) : Promise.resolve({ data: [], error: null } as any),
-              job.behavior ? db.from("behaviors").select("record_key,date_str,class_name,period,records").eq("class_name", job.className).gte("date_str", job.from).lte("date_str", job.to).order("date_str", { ascending: true }).limit(5000) : Promise.resolve({ data: [], error: null } as any)
+              fetchNoticeRowsForClasses(db, "attendance", attendanceClasses, job.from, job.to, job.year),
+              fetchNoticeRowsForClasses(db, "behaviors", behaviorClasses, job.from, job.to, job.year),
             ]);
-            if (a.error || b.error) throw new Error("تعذر قراءة سجلات المخالفات التاريخية.");
-            if ((a.data || []).length >= 5000 || (b.data || []).length >= 5000) throw new Error("بلغت سجلات أحد الصفوف الحد الأقصى في سنة " + job.year + ". لم نعتمد أي تنبيه حتى لا تكون النتائج ناقصة.");
-            for (const row of [...(a.data || []), ...(b.data || [])]) if (String(row.class_name || "") !== job.className) throw new Error("وصل سجل من صف خارج النطاق المصرح به.");
-            attendanceRows.push(...(a.data || [])); behaviorRows.push(...(b.data || []));
+            attendanceRows.push(...a);
+            behaviorRows.push(...b);
           } catch (error) { loadErrors.push(error instanceof Error ? error : new Error("تعذر قراءة السجلات.")); }
         }
       };
-      await Promise.all(Array.from({ length: Math.min(3, jobs.length) }, () => loadWorker()));
+      await Promise.all(Array.from({ length: Math.min(3, yearJobs.length) }, () => loadYearWorker()));
       if (loadErrors.length) return reply(500, { error: loadErrors[0].message });
       const { data: historyRows, error: historyError } = await db.from("student_affairs_notice_issues").select("class_name,student_name,issue_number,issued_on,events").in("class_name", noticeClasses).lte("issued_on", issuedOn).order("issued_at", { ascending: true }).limit(10000);
       if (historyError) return reply(500, { error: "تعذر تحميل سجل التنبيهات للتحقق من الإصدار." });
@@ -2085,6 +2085,12 @@ async function handle(req: Request) {
         issued_by_type: p.type, issued_by_name: p.name, delivered, threshold,
         period_start: rangeFrom, period_end: rangeTo, selected_types: selectedTypes, events: candidate.events
       }));
+      if (payload.length > 1000) return reply(413, { error: "عدد التنبيهات في الدفعة يتجاوز الحد الآمن. لم يتم اعتماد أي تنبيه." });
+      if (!payload.length) return reply(200, { issued: [], candidates: [], message: "لم يتبقَّ تنبيه جديد بعد إعادة التحقق الذرية. ربما اعتمد مستخدم آخر التنبيه نفسه، أو لم تعد المخالفات الجديدة تبلغ الحد." });
+      for (let index = 0; index < payload.length; index++) {
+        const validationError = validateNoticeIssueItem(payload[index]);
+        if (validationError) return reply(400, { error: "تعذر اعتماد التنبيه رقم " + (index + 1) + ": " + validationError });
+      }
       const { data: issued, error: issueError } = await db.rpc("issue_student_affairs_notices", { p_items: payload });
       if (issueError) return reply(500, { error: "تعذر حفظ التنبيهات الرسمية. لم نعرضها على أنها معتمدة." });
       const issuedRows = Array.isArray(issued) ? issued : [];
