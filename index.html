@@ -5144,11 +5144,34 @@ async function queueCloudDelete(table, filters) {
 }
 // Fail-closed protection: queued deletions are retained for review and are never auto-executed.
 async function flushPendingDeletes() { return false; }
+// Stage 1 write cutover is administrator-only. Teacher/custom writes remain
+// on the established path until their per-table ownership and permission parity
+// has passed isolated browser tests. Credential and settings writes are excluded.
+const ADMIN_GATEWAY_WRITE_TABLES = new Set(['classes', 'students', 'attendance', 'behaviors', 'duty_reports']);
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
-  // All callers use conflict targets verified against production UNIQUE/PRIMARY KEY indexes.
-  // A failed batch must fail closed instead of multiplying a gateway or permission error
-  // into per-row SELECT/UPDATE/INSERT requests. Dirty keys are cleared only after success.
+  if (activeUser?.type === 'admin' && ADMIN_GATEWAY_WRITE_TABLES.has(table)) {
+    const token = appAuthSession?.token || readAppAuthToken();
+    if (!token || !hasUnexpiredAppAuthSession() ||
+        appAuthSession?.principal?.type !== 'admin' ||
+        appAuthSession?.principal?.name !== activeUser.name) {
+      throw new Error('تحتاج مزامنة بيانات المدير إلى جلسة موثقة وسارية؛ بقيت التغييرات محفوظة محلياً.');
+    }
+    for (let i = 0; i < rows.length; i += chunkSize) {
+      const chunk = rows.slice(i, i + chunkSize);
+      const result = await appAuthRequest({
+        action: 'app_data_gateway_write',
+        table,
+        rows: chunk
+      }, token);
+      if (Number(result?.saved) !== chunk.length) {
+        throw new Error('لم تؤكد بوابة البيانات حفظ الدفعة كاملة؛ بقيت التغييرات المحلية محفوظة.');
+      }
+    }
+    return;
+  }
+  // Compatibility path retained for teacher/custom roles and excluded sensitive tables.
+  // Dirty keys are cleared by the caller only after every batch succeeds.
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
     const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
