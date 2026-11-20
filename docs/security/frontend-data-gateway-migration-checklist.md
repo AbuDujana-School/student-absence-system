@@ -97,3 +97,13 @@ Use synthetic preview data only. Run each case for admin, teacher, and custom ac
 - Class filters continue to come only from server-side timetable assignments and explicit Student Affairs grants. A valid account with no server-derived class scope receives an empty page, not an unscoped query or a sync-stopping authorization error.
 - Teacher/custom reads for classes, students, duty reports, teacher roster, and settings remain on the compatibility path. Teacher/custom writes remain unchanged pending row-ownership and offline retry tests.
 - Isolated Chromium coverage now checks administrator reads, teacher attendance reads, custom behavior reads, and verifies the two migrated tables do not fall back to direct PostgREST reads for those roles.
+
+
+### Stage 3 — teacher/custom own attendance and behavior writes
+
+- Teacher and custom writes for `attendance` and `behaviors` now use `app_data_gateway_write` with the same exact session-principal type/name match as reads.
+- The server still verifies explicit custom permissions, teacher legacy-default permissions, server-derived class scope, and that `teacher_name` equals the authenticated principal for non-admin rows. The atomic database RPC retains owner-conflict rejection.
+- All other non-admin writes (classes, students, teacher roster, duty reports, settings, credentials, and deletes) remain unchanged and are not migrated by this stage.
+- The client requires a full saved-row acknowledgement before the sync caller clears dirty keys. Network/authorization failures throw before dirty-key clearing, preserving the local retry queue.
+- Isolated Playwright Chromium test covers admin writes, teacher attendance writes, custom behavior writes, session/principal mismatch rejection, and offline dirty-state retention.
+- CI on commit `6d6c42f2`: isolated browser regression, Student Affairs backend tests, and timetable management tests all passed.
