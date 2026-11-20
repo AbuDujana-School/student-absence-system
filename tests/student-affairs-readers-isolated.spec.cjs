@@ -282,3 +282,72 @@ test("notice preview scans synthetic rows without issuing official notices", asy
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
 });
+
+test("notice PDF packs short notices three per page and keeps long notices readable without spill pages", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  const layout = await page.evaluate(async () => {
+    const makeStudent = (name, groupCount, serial) => {
+      const groups = new Map();
+      const events = [];
+      for (let i = 0; i < groupCount; i++) {
+        const event = { date: "2026/11/" + String((i % 27) + 1).padStart(2, "0"), period: String((i % 8) + 1) };
+        events.push(event);
+        groups.set("qa_type_" + i, { type: "qa_type_" + i, note: "", events: [event] });
+      }
+      return { name, className: "QA_ONLY_CLASS", issue_number: serial, events, groups };
+    };
+
+    const shortStudents = [
+      makeStudent("QA_SHORT_1", 1, 1),
+      makeStudent("QA_SHORT_2", 1, 2),
+      makeStudent("QA_SHORT_3", 1, 3),
+    ];
+    saNoticeRenderPreview(shortStudents, 3);
+    const shortReady = await saNoticePreviewReady;
+    const shortPages = [...document.querySelectorAll("#saNoticePrintRoot .sa-notice-page")].map((node) => ({
+      capacity: Number(node.dataset.capacity),
+      cards: node.querySelectorAll(".sa-notice-card").length,
+    }));
+
+    const longStudents = [
+      makeStudent("QA_LONG_1", 22, 4),
+      makeStudent("QA_LONG_2", 22, 5),
+      makeStudent("QA_LONG_3", 22, 6),
+    ];
+    saNoticeRenderPreview(longStudents, 3);
+    const longReady = await saNoticePreviewReady;
+    const longPages = [...document.querySelectorAll("#saNoticePrintRoot .sa-notice-page")].map((node) => ({
+      capacity: Number(node.dataset.capacity),
+      cards: node.querySelectorAll(".sa-notice-card").length,
+      fitFailed: node.querySelectorAll('.sa-notice-card[data-fit-failed="true"]').length,
+      fontSizes: [...node.querySelectorAll(".sa-notice-card")].map((card) => parseFloat(getComputedStyle(card).fontSize)),
+      names: [...node.querySelectorAll(".sa-notice-card .notice-meta strong:first-of-type")].map((node) => node.textContent),
+    }));
+    document.body.classList.add("sa-notice-print-mode");
+    return { shortReady, shortPages, longReady, longPages };
+  });
+
+  expect(layout.shortReady).toBe(true);
+  expect(layout.shortPages).toEqual([{ capacity: 3, cards: 3 }]);
+  expect(layout.longReady).toBe(true);
+  expect(layout.longPages.length).toBeGreaterThan(0);
+  expect(layout.longPages.every((page) => page.cards > 0 && page.cards <= 3 && page.fitFailed === 0)).toBe(true);
+  expect(layout.longPages.some((page) => page.capacity < 3)).toBe(true);
+  expect(layout.longPages.flatMap((page) => page.fontSizes).every((size) => size >= 14.3)).toBe(true);
+
+  await page.emulateMedia({ media: "print" });
+  const printRules = await page.evaluate(() => {
+    const pages = [...document.querySelectorAll("#saNoticePrintRoot .sa-notice-page")];
+    return {
+      pageOverflow: pages.map((node) => getComputedStyle(node).overflow),
+      cardOverflow: [...document.querySelectorAll("#saNoticePrintRoot .sa-notice-card")].map((node) => getComputedStyle(node).overflow),
+      lastBreakAfter: pages.length ? getComputedStyle(pages[pages.length - 1]).breakAfter : null,
+    };
+  });
+  expect(printRules.pageOverflow.every((value) => value === "hidden")).toBe(true);
+  expect(printRules.cardOverflow.every((value) => value === "hidden")).toBe(true);
+  expect(printRules.lastBreakAfter).toBe("auto");
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+});

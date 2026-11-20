@@ -1816,6 +1816,33 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+<style id="sa-notice-pdf-pagination-fix">
+/* Keep every notice page inside its own A4 sheet. Overflow is measured by the
+   paginator first; clipping is only a final guard against browser spill pages. */
+@media print {
+  body.sa-notice-print-mode #saNoticePrintRoot { display:block!important; }
+  body.sa-notice-print-mode #saNoticePrintRoot .sa-notice-page {
+    box-sizing:border-box!important;
+    height:287mm!important; min-height:287mm!important; max-height:287mm!important;
+    margin:0!important; padding:0!important;
+    overflow:hidden!important;
+    break-inside:avoid!important; page-break-inside:avoid!important;
+    break-after:page!important; page-break-after:always!important;
+  }
+  body.sa-notice-print-mode #saNoticePrintRoot .sa-notice-page:last-child {
+    break-after:auto!important; page-break-after:auto!important;
+  }
+  body.sa-notice-print-mode #saNoticePrintRoot .sa-notice-card {
+    min-height:0!important; max-height:none!important;
+    overflow:hidden!important;
+    break-inside:avoid!important; page-break-inside:avoid!important;
+  }
+  body.sa-notice-print-mode #saNoticePrintRoot .sa-notice-cutline {
+    flex:0 0 0!important; height:0!important; min-height:0!important;
+    margin:0!important; padding:0!important;
+  }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -4687,22 +4714,17 @@ function saNoticeFitCards(scope){
     ["font-size","line-height","--notice-line-height","--notice-item-gap","--notice-block-gap","--notice-card-pad"].forEach(prop=>card.style.removeProperty(prop));
     const eventCount=Number(card.querySelectorAll(".notice-items li").length)||1;
     const textLength=(card.querySelector(".notice-items")?.innerText||"").length;
-    const density=Math.max(eventCount,textLength/95);
-    // Fit each notice against its actual rendered height. First use the full
-    // available card space, then progressively tighten spacing and typography.
-    // Three students remain the target per A4 page; the caller only falls back
-    // to two/one when a complete, readable three-card page cannot be achieved.
+    // Preserve readable type. If three cards cannot fit at 10.8pt or larger,
+    // the paginator gives this page two cards, then one, rather than shrinking text.
     const baseFont=12;
     const levels=[
       {shrink:0,line:1.42,item:1.25,block:1.15,pad:2.6},
-      {shrink:.25,line:1.36,item:1.0,block:.95,pad:2.2},
-      {shrink:.5,line:1.30,item:.75,block:.75,pad:1.8},
-      {shrink:.8,line:1.24,item:.5,block:.5,pad:1.4},
-      {shrink:1.1,line:1.18,item:.3,block:.35,pad:1.1},
-      {shrink:1.5,line:1.14,item:.2,block:.25,pad:.9},
-      {shrink:2.0,line:1.11,item:.12,block:.18,pad:.7},
-      {shrink:2.6,line:1.08,item:.08,block:.12,pad:.5},
-      {shrink:3.2,line:1.06,item:.04,block:.08,pad:.4}
+      {shrink:.2,line:1.39,item:1.15,block:1.05,pad:2.4},
+      {shrink:.4,line:1.36,item:1.0,block:.95,pad:2.2},
+      {shrink:.65,line:1.32,item:.85,block:.8,pad:2.0},
+      {shrink:.85,line:1.28,item:.7,block:.7,pad:1.8},
+      {shrink:1.0,line:1.25,item:.6,block:.6,pad:1.7},
+      {shrink:1.2,line:1.22,item:.5,block:.5,pad:1.6}
     ];
     let fitted=false;
     for(let i=0;i<levels.length;i++){
