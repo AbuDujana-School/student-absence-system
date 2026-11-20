@@ -254,11 +254,16 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(gatewayReads.filter((item) => item.table === "classes")).toHaveLength(1);
   expect(reads.get("classes") || 0).toBe(2);
 
+  const readsBeforeUnchangedRefresh = new Map(reads);
+  const gatewayReadsBeforeUnchangedRefresh = gatewayReads.length;
   const unchangedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(unchangedRefresh, "Unchanged manifest refresh must complete").toBe(true);
   for (const table of TABLES) {
-    expect(reads.get(table) || 0, "Unchanged manifest must not reread " + table).toBe(1);
+    expect(reads.get(table) || 0, "Unchanged manifest must not reread " + table)
+      .toBe(readsBeforeUnchangedRefresh.get(table) || 0);
   }
+  expect(gatewayReads.length, "Unchanged manifest must not reread through the gateway")
+    .toBe(gatewayReadsBeforeUnchangedRefresh);
 
   manifest.teachers = 2;
   manifest.school_settings = 2;
