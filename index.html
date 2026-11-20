@@ -5612,6 +5612,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => {
       if (hasPendingOfflineRecordChanges()) retryOfflineSyncSilently();
       else refreshCloudDataSilently();
+      if (activeUser?.type === "teacher") void teacherShowDailySubstitutionWelcome();
     }, 1200);
   };
   window.addEventListener('online', () => {
@@ -10311,10 +10312,10 @@ function teacherStartDailySubstitutionWatcher() {
   }
   if (activeUser?.type !== "teacher") return;
   teacherReserveNoticeRefreshTimer = setInterval(() => {
-    if (activeUser?.type === "teacher" && document.visibilityState !== "prerender") {
+    if (activeUser?.type === "teacher" && navigator.onLine && document.visibilityState === "visible") {
       void teacherShowDailySubstitutionWelcome();
     }
-  }, 45000);
+  }, 120000);
 }
 
 async function openTeacherTimetableView() {

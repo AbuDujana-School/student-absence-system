@@ -60,6 +60,15 @@ Deno.test("reconnect retries upload only after explicit approval of an unchanged
   assert(!retry.includes("flushPendingDeletes("), "Background retry must never execute queued deletions");
 });
 
+Deno.test("daily reserve notice polling is visible-only and resumes promptly", () => {
+  const watcher = section("function teacherStartDailySubstitutionWatcher()", "async function openTeacherTimetableView()");
+  assert(watcher.includes("navigator.onLine"), "Daily notice polling must pause while offline");
+  assert(watcher.includes('document.visibilityState === "visible"'), "Daily notice polling must pause for hidden pages");
+  assert(watcher.includes("}, 120000);"), "Daily notice polling must use the two-minute interval");
+  const events = section("const resumeCloudSync =", "});\n\nfunction initDarkMode()");
+  assert(events.includes("teacherShowDailySubstitutionWelcome()"), "Returning online or to a visible page must refresh the daily notice promptly");
+});
+
 Deno.test("cloud refresh polling is read-only whenever local edits or live capture are pending", () => {
   const refresh = section("async function refreshCloudDataSilently()", "let manualOfflineSyncInProgress");
   assert(refresh.includes("hasPendingOfflineRecordChanges()"), "Refresh must stop when local dirty records exist");
