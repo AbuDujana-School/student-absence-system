@@ -5145,40 +5145,18 @@ async function queueCloudDelete(table, filters) {
 async function flushPendingDeletes() { return false; }
 async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   if (!rows || rows.length === 0) return;
-  const cols = String(onConflictCols).split(',').map(s => s.trim()).filter(Boolean);
-  const failures = [];
+  // All callers use conflict targets verified against production UNIQUE/PRIMARY KEY indexes.
+  // A failed batch must fail closed instead of multiplying a gateway or permission error
+  // into per-row SELECT/UPDATE/INSERT requests. Dirty keys are cleared only after success.
   for (let i = 0; i < rows.length; i += chunkSize) {
     const chunk = rows.slice(i, i + chunkSize);
     const { error } = await sb.from(table).upsert(chunk, { onConflict: onConflictCols });
-    if (!error) continue;
-    for (const row of chunk) {
-      try {
-        let matchObj = {};
-        cols.forEach(c => { matchObj[c] = row[c]; });
-        let query = sb.from(table).select(cols.join(',')).limit(1);
-        for (const [k,v] of Object.entries(matchObj)) query = query.eq(k, v);
-        const { data: existing, error: fetchErr } = await query;
-        if (fetchErr) throw fetchErr;
-        if (existing && existing.length > 0) {
-          let uq = sb.from(table).update(row);
-          for (const [k,v] of Object.entries(matchObj)) uq = uq.eq(k, v);
-          const { error: ue } = await uq; if (ue) throw ue;
-        } else {
-          const { error: ie } = await sb.from(table).insert(row); if (ie) throw ie;
-        }
-      } catch(rowErr) {
-          const msg = String(rowErr?.message || rowErr);
-          const code = String(rowErr?.code || rowErr?.status || 'unknown');
-          // Database error messages can echo submitted values; expose only a safe code.
-          console.error(`robustUpsert failed for ${table} (row and message omitted; code ${code})`);
-          if (/does not exist|invalid input syntax|violates foreign key|violates check constraint|no unique or exclusion constraint/i.test(msg)) {
-            throw new Error(`تعذر حفظ السجل في جدول "${table}" بسبب قيد أو بنية بيانات (رمز ${code}).`);
-          }
-          failures.push({ table, code });
-      }
+    if (error) {
+      const code = String(error?.code || error?.status || 'unknown');
+      console.error(`Cloud upsert failed for ${table}; local dirty state retained (code ${code}).`);
+      throw new Error(`تعذر حفظ البيانات في جدول "${table}" (رمز ${code}).`);
     }
   }
-  if (failures.length > 0) throw new Error(`فشل حفظ ${failures.length} سجل في "${table}" (رمز ${failures[0].code}).`);
 }
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
   const all = []; let from = 0;
