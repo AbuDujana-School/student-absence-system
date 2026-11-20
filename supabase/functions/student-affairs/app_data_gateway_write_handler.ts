@@ -57,6 +57,26 @@ export async function handleAppDataGatewayWrite(
     }
   }
 
+  const conflictColumns: Record<AppDataTable, string[]> = {
+    classes: ["name"],
+    students: ["class_name", "student_name"],
+    teachers: ["name"],
+    attendance: ["record_key"],
+    behaviors: ["record_key"],
+    school_settings: ["key"],
+    duty_reports: ["id"],
+  };
+  const seenKeys = new Set<string>();
+  for (const row of rows) {
+    const values = conflictColumns[table].map((column) => String(row[column] ?? "").trim());
+    if (values.some((value) => !value)) {
+      return reply(400, { error: "مفتاح أحد السجلات مفقود." }, deps.headers);
+    }
+    const key = JSON.stringify(values);
+    if (seenKeys.has(key)) return reply(400, { error: "توجد سجلات مكررة ضمن عملية الحفظ." }, deps.headers);
+    seenKeys.add(key);
+  }
+
   // The database function performs ownership checks and upserts atomically in one transaction.
   const { data: saved, error } = await deps.db.rpc("app_data_gateway_write_records", {
     p_table: table,
