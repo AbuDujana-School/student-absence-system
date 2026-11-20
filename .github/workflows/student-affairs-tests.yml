@@ -816,6 +816,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_data_gateway_handler.ts
       - name: Run isolated app data gateway HTTP integration tests
         run: deno test supabase/functions/student-affairs/app_data_gateway_handler_test.ts
+      - name: Type-check app data principal permission normalization
+        run: deno check supabase/functions/student-affairs/app_data_gateway_principal.ts
+      - name: Test app data principal permission normalization
+        run: deno test supabase/functions/student-affairs/app_data_gateway_principal_test.ts
       - name: Type-check authenticated app data gateway write handler
         run: deno check supabase/functions/student-affairs/app_data_gateway_write_handler.ts
       - name: Run authenticated app data gateway write tests
