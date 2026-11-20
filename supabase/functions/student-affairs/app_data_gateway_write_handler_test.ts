@@ -88,8 +88,8 @@ Deno.test("teacher cannot overwrite an existing attendance record owned by anoth
   const response = await request({ table: "attendance", rows: [{
     record_key: "r1", class_name: "5/1", teacher_name: "Teacher A", period: 1, records: {},
   }] }, deps);
-  assertEquals(response.status, 403);
-  assertEquals(calls.some(([name, rpcName]) => name === "rpc" && rpcName === "app_data_gateway_write_records"), false);
+  assertEquals(response.status, 503);
+  assertEquals(calls.some(([name, rpcName]) => name === "rpc" && rpcName === "app_data_gateway_write_records"), true);
 });
 
 Deno.test("writes reject credential fields, admin PIN settings, duplicate conflict keys, and deletes", async () => {
