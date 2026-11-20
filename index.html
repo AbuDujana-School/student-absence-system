@@ -304,6 +304,36 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #saNoticePrintRoot .sa-notice-card .notice-meta strong{font-weight:900!important}
 #saNoticePrintRoot .sa-notice-card .notice-items li{font-weight:600!important}
 #saNoticePrintRoot .sa-notice-cutline{border-top:1px dashed #b5bbc2!important;margin:.6mm 0!important}
+/* Keep each notice's text naturally grouped at the top of its card.
+   The previous space-between/space-evenly rules stretched short notices
+   vertically and created large blank gaps between their violation lines. */
+#saNoticePrintRoot .sa-notice-card{
+  justify-content:flex-start!important;
+}
+#saNoticePrintRoot .sa-notice-card > div:first-child{
+  display:block!important;
+  flex:0 0 auto!important;
+  min-height:0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-items,
+#saNoticePrintRoot .sa-notice-card.compact .notice-items{
+  display:block!important;
+  flex:0 0 auto!important;
+  min-height:0!important;
+  justify-content:flex-start!important;
+  margin:.8mm 0 1.2mm!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-items li{
+  margin:.8mm 0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-intro,
+#saNoticePrintRoot .sa-notice-card .notice-conclusion{
+  margin:1.1mm 0!important;
+}
+#saNoticePrintRoot .sa-notice-card .notice-signatures{
+  margin-top:2mm!important;
+}
+
 </style>
 
 <style id="sa-notice-viewport-fix">
