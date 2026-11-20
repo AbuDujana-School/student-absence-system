@@ -320,9 +320,11 @@ test("school sync projections and timetable access reads stay isolated and minim
       reported_by: "QA_ONLY_ADMIN", status: "pending", reviewed_by: null,
       reviewed_at: null, created_at: now
     }], "id", 200);
+    await robustUpsert("school_settings", [{ key: "custom_categories", value: ["QA_ONLY_CATEGORY"] }], "key", 100);
+    await robustUpsert("school_settings", [{ key: "duty_module", value: { graceMinutes: 5, periods: [] } }], "key", 100);
   });
   expect(gatewayWrites.map((item) => item.table).sort()).toEqual([
-    "attendance", "behaviors", "classes", "duty_reports", "students"
+    "attendance", "behaviors", "classes", "duty_reports", "school_settings", "school_settings", "students"
   ]);
   expect(gatewayWrites.every((item) => item.authorization === "Bearer " + "a".repeat(64))).toBe(true);
   expect(legacyWrites).toEqual([]);
@@ -354,9 +356,10 @@ test("school sync projections and timetable access reads stay isolated and minim
     return { mismatchedSessionDenied };
   });
   expect(roleScopedWriteChecks.mismatchedSessionDenied).toBe(true);
-  expect(gatewayWrites).toHaveLength(7);
+  expect(gatewayWrites).toHaveLength(9);
   expect(gatewayWrites.filter((item) => item.table === "attendance")).toHaveLength(2);
   expect(gatewayWrites.filter((item) => item.table === "behaviors")).toHaveLength(2);
+  expect(gatewayWrites.filter((item) => item.table === "school_settings")).toHaveLength(2);
   expect(legacyWrites).toEqual([]);
 
   await page.evaluate(async () => {
