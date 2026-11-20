@@ -89,6 +89,7 @@ Deno.test("notice reader refuses a class that reaches the old per-class cap afte
   const db = mockDb([
     { data: Array.from({ length: 5000 }, () => ({ class_name: "9/1" })), error: null, count: 5001 },
     { data: cappedRows, error: null },
+    { data: [], error: null },
   ]);
 
   await assertRejects(
@@ -96,7 +97,7 @@ Deno.test("notice reader refuses a class that reaches the old per-class cap afte
     Error,
     "بلغت سجلات أحد الصفوف الحد الأقصى في سنة 2026",
   );
-  assertEquals(db.calls.length, 2);
+  assertEquals(db.calls.length, 3);
 });
 
 Deno.test("notice reader falls back even below 5,000 when exact count metadata is absent", async () => {
