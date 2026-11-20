@@ -15,6 +15,7 @@ on:
       - "feature/student-affairs-secure-preview"
       - "feature/student-affairs-supervision-roles"
       - "feature/smart-substitution-system"
+      - "fix/notice-commit-validation-20261120"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/migrations/**"
@@ -53,6 +54,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261111140000_general_app_sessions.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
+      - name: Apply official notice period validation correction
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261120120000_fix_notice_period_end_validation.sql
+      - name: Verify official notice period date handling
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/notice_period_validation.sql
       - name: Prepare isolated school data tables for student transfer integration
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
