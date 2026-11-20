@@ -1848,6 +1848,45 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   }
 }
 </style>
+
+<style id="sa-notice-a4-exact-layout">
+/* A4 preview at printable dimensions: 210mm paper minus 5mm margins per side. */
+#saNoticePrintRoot{overflow-x:auto!important}
+#saNoticePrintRoot .sa-notice-page{
+  box-sizing:border-box!important;
+  width:200mm!important;min-width:200mm!important;
+  height:287mm!important;min-height:287mm!important;max-height:287mm!important;
+  margin:0 auto 6mm!important;padding:0!important;
+  display:flex!important;flex-direction:column!important;
+  justify-content:flex-start!important;gap:1.4mm!important;
+  overflow:hidden!important;
+}
+#saNoticePrintRoot .sa-notice-card{
+  box-sizing:border-box!important;
+  flex:1 1 0!important;min-height:0!important;
+  break-inside:avoid!important;page-break-inside:avoid!important;
+}
+@media print{
+  @page{size:A4 portrait;margin:5mm}
+  #saNoticePrintRoot{width:100%!important;overflow:visible!important}
+  #saNoticePrintRoot .sa-notice-page{
+    width:100%!important;min-width:0!important;
+    height:287mm!important;min-height:287mm!important;max-height:287mm!important;
+    margin:0!important;padding:0!important;
+    justify-content:flex-start!important;gap:1.4mm!important;
+    break-after:page!important;page-break-after:always!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;
+    overflow:visible!important;
+  }
+  #saNoticePrintRoot .sa-notice-page:last-child{
+    break-after:auto!important;page-break-after:auto!important;
+  }
+  #saNoticePrintRoot .sa-notice-page .sa-notice-card{
+    flex:1 1 0!important;min-height:0!important;
+    break-inside:avoid!important;page-break-inside:avoid!important;
+  }
+}
+</style>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-100 dark:bg-slate-900 text-slate-800 dark:text-slate-100 transition-colors duration-300 custom-scrollbar">
 
@@ -4724,7 +4763,7 @@ function saNoticeFitCards(scope){
     // available card space, then progressively tighten spacing and typography.
     // Three students remain the target per A4 page; the caller only falls back
     // to two/one when a complete, readable three-card page cannot be achieved.
-    const baseFont=12;
+    const baseFont=11.5;
     const levels=[
       {shrink:0,line:1.42,item:1.25,block:1.15,pad:2.6},
       {shrink:.25,line:1.38,item:1.0,block:1.0,pad:2.3},
@@ -4736,7 +4775,7 @@ function saNoticeFitCards(scope){
     let fitted=false;
     for(let i=0;i<levels.length;i++){
       const level=levels[i];
-      const fontSize=Math.max(10.5,baseFont-level.shrink);
+      const fontSize=Math.max(8.6,baseFont-level.shrink);
       card.style.setProperty("font-size",fontSize+"pt","important");
       card.style.setProperty("--notice-line-height",String(level.line));
       card.style.setProperty("--notice-item-gap",level.item+"mm");
