@@ -392,3 +392,18 @@ Deno.test("online cloud saves without a secure session stay local and never uplo
   assert(guard >= 0 && localSave > guard && durableSave > localSave, "Unauthenticated cloud saves must persist local changes first");
   assert(noUpload > durableSave && upload > noUpload, "Unauthenticated saves must return before any cloud upload snapshot is created");
 });
+
+Deno.test("verified secure sessions reuse server-returned permissions without a duplicate gateway read", () => {
+  const refresh = section("async function refreshActiveUserPermissions()", "async function finalizeLoginState()");
+  const securePrincipal = refresh.indexOf("const securePrincipal = appAuthSession?.principal");
+  const gatewayRead = refresh.indexOf("action: 'app_data_gateway_read'");
+  assert(securePrincipal >= 0 && gatewayRead > securePrincipal, "Verified server permissions must be reused before the legacy gateway refresh");
+  assert(refresh.includes("securePrincipal?.name === user.name && securePrincipal?.type === user.type"), "Only the matching verified principal may bypass the duplicate read");
+  assert(refresh.includes("let allowLegacyFallback = !token"), "Legacy sessions must retain their compatibility fallback");
+  assert(refresh.includes("if (!data && allowLegacyFallback)"), "Legacy sessions must retain the existing permissions refresh path");
+
+  const restore = section("async function checkExistingSession()", "async function handleUserLogin(");
+  assert(restore.indexOf("appAuthSession = { token: appToken") < restore.indexOf("await finalizeLoginState()"), "A restored secure session must be verified before permissions are reused");
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  assert(login.indexOf("saveAppAuthSession(serverLogin)") < login.indexOf("await finalizeLoginState()"), "A new secure login must save its verified principal before permissions are reused");
+});
