@@ -9,21 +9,11 @@ import {
 
 type SessionIdentity = { principal: { type: string; name: string } } | null;
 type GatewayDependencies = {
-  db: { from(table: string): any };
+  db: { from(table: string): any; rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }> };
   headers: HeadersInit;
   readSession(authorization: string | null): Promise<SessionIdentity>;
   currentPrincipal(type: string, name: string): Promise<AppDataPrincipal | null>;
   resolveScope(principal: AppDataPrincipal): Promise<AppDataScope>;
-};
-
-const CONFLICT_TARGETS: Record<AppDataTable, string> = {
-  classes: "name",
-  students: "class_name,student_name",
-  teachers: "name",
-  attendance: "record_key",
-  behaviors: "record_key",
-  school_settings: "key",
-  duty_reports: "id",
 };
 
 function reply(status: number, body: Record<string, unknown>, headers: HeadersInit): Response {
@@ -67,30 +57,14 @@ export async function handleAppDataGatewayWrite(
     }
   }
 
-  const conflictTarget = CONFLICT_TARGETS[table];
-  const conflictColumns = conflictTarget.split(",");
-  const conflictKeys = new Set<string>();
-  for (const row of rows) {
-    const key = conflictColumns.map((column) => String(row[column] ?? "")).join("\u001f");
-    if (conflictColumns.some((column) => !String(row[column] ?? "").trim()) || conflictKeys.has(key)) {
-      return reply(400, { error: "مفتاح السجل مفقود أو مكرر ضمن عملية الحفظ." }, deps.headers);
-    }
-    conflictKeys.add(key);
+  // The database function performs ownership checks and upserts atomically in one transaction.
+  const { data: saved, error } = await deps.db.rpc("app_data_gateway_write_records", {
+    p_table: table,
+    p_rows: rows,
+    p_allow_owner_overwrite: principal.type === "admin",
+  });
+  if (error || Number(saved) !== rows.length) {
+    return reply(503, { error: "تعذر حفظ البيانات بأمان حالياً. احتُفظ بالتغييرات المحلية." }, deps.headers);
   }
-
-  // A teacher must not overwrite a record owned by another teacher through a colliding record key.
-  if (principal.type !== "admin" && (table === "attendance" || table === "behaviors")) {
-    const keys = rows.map((row) => String(row.record_key));
-    const { data: existing, error: lookupError } = await deps.db.from(table)
-      .select("record_key,teacher_name")
-      .in("record_key", keys);
-    if (lookupError) return reply(503, { error: "تعذر التحقق من السجلات الحالية. لم يتم الحفظ." }, deps.headers);
-    if ((existing || []).some((row: any) => String(row.teacher_name || "") !== principal.name)) {
-      return reply(403, { error: "يوجد سجل محفوظ لمعلم آخر. لم يتم تغيير أي سجل." }, deps.headers);
-    }
-  }
-
-  const { error } = await deps.db.from(table).upsert(rows, { onConflict: conflictTarget });
-  if (error) return reply(503, { error: "تعذر حفظ البيانات حالياً. احتُفظ بالتغييرات المحلية." }, deps.headers);
-  return reply(200, { saved: rows.length }, deps.headers);
+  return reply(200, { saved: Number(saved) }, deps.headers);
 }
