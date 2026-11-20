@@ -290,9 +290,9 @@ test("notice preview scans synthetic rows without issuing official notices", asy
   expect(scans[0].behavior_classes).toEqual([]);
   expect(history).toHaveLength(1);
   expect(history[0].notice_classes).toEqual(["QA_ONLY_CLASS"]);
-  await expect(page.locator("#saNoticePreviewPanel")).not.toHaveClass(/hidden/);
-  await expect(page.locator("#saNoticePreviewSummary")).toContainText("عدد الطلاب المستحقين: 1");
-  await expect(page.locator("#saNoticePreviewSummary")).toContainText("المخالفات الجديدة المحتسبة: 2");
+  await expect(page.locator("#saNoticePreviewPanel")).toHaveClass(/hidden/);
+  await expect(page.locator("#saNoticePrintAction")).toBeVisible();
+  await expect(page.locator("#saNoticeStatus")).toContainText("اكتمل تجهيز 1 تنبيهاً");
   const generated = await page.evaluate(() => ({
     count: saNoticeLastGenerated.length,
     student: saNoticeLastGenerated[0]?.name,
@@ -312,7 +312,7 @@ test("notice preview scans synthetic rows without issuing official notices", asy
 
 
 
-test("notice PDF packs three short notices after a hidden preview is revealed for measurement", async ({ page }) => {
+test("notice PDF keeps the on-screen preview hidden while packing three short notices", async ({ page }) => {
   await openIsolatedApp(page);
   const result = await page.evaluate(async () => {
     const panel = document.getElementById("saNoticePreviewPanel");
@@ -344,7 +344,7 @@ test("notice PDF packs three short notices after a hidden preview is revealed fo
     };
   });
   expect(result.ready).toBe(true);
-  expect(result.previewVisible).toBe(true);
+  expect(result.previewVisible).toBe(false);
   expect(result.pageCount).toBe(1);
   expect(result.cardCounts).toEqual([3]);
   expect(result.cardDisplay).toBe("block");
