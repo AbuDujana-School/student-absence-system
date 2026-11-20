@@ -351,3 +351,15 @@ Deno.test("secure session validation completes before cloud loading begins", () 
 });
 
 
+
+
+Deno.test("online cloud saves without a secure session stay local and never upload", () => {
+  const save = section("async function saveSystemDataToCloud(options = {})", "async function checkExistingSession()");
+  const guard = save.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const localSave = save.indexOf("saveToLocalStorageSafe()", guard);
+  const durableSave = save.indexOf("await persistOfflineState()", localSave);
+  const noUpload = save.indexOf("return false;", durableSave);
+  const upload = save.indexOf("const syncSnapshotDb");
+  assert(guard >= 0 && localSave > guard && durableSave > localSave, "Unauthenticated cloud saves must persist local changes first");
+  assert(noUpload > durableSave && upload > noUpload, "Unauthenticated saves must return before any cloud upload snapshot is created");
+});
