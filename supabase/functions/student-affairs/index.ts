@@ -421,12 +421,16 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
   };
 }
 async function readCompetitionTermSettings() {
-  const [{ data: calendar, error: calendarError }, { data: visibility, error: visibilityError }] = await Promise.all([
-    db.from("school_settings").select("value").eq("key", "competition_term_calendar").maybeSingle(),
-    db.from("school_settings").select("value").eq("key", "competition_visibility_mode").maybeSingle()
-  ]);
-  if (calendarError || visibilityError) throw calendarError || visibilityError;
-  const terms = (Array.isArray(calendar?.value) ? calendar.value : [])
+  // Read both small settings in one indexed request instead of issuing two
+  // separate PostgREST calls every time the competition panel is opened.
+  const { data: rows, error } = await db.from("school_settings")
+    .select("key,value")
+    .in("key", ["competition_term_calendar", "competition_visibility_mode"]);
+  if (error) throw error;
+  const settings = new Map<string, unknown>((rows || []).map((row: any) => [String(row.key), row.value]));
+  const calendar = settings.get("competition_term_calendar");
+  const visibility = settings.get("competition_visibility_mode") as any;
+  const terms = (Array.isArray(calendar) ? calendar : [])
     .filter((term: any) => isValidIsoDate(term?.start) && isValidIsoDate(term?.end) && term.start <= term.end)
     .sort((a: any, b: any) => String(a.start).localeCompare(String(b.start)))
     .map((term: any) => ({ id: String(term.start), start: String(term.start), end: String(term.end), label: String(term.label || "الفصل الدراسي") }));
@@ -436,7 +440,7 @@ async function readCompetitionTermSettings() {
     || terms.filter((term: any) => term.start <= today).sort((a: any, b: any) => String(b.start).localeCompare(String(a.start)))[0]
     || terms[0];
   if (!currentTerm) competitionError(409, "لم يتم إعداد تواريخ الفصل الدراسي في إعدادات المدرسة.");
-  return { terms, currentTerm, showBothTerms: visibility?.value?.showBothTerms === true };
+  return { terms, currentTerm, showBothTerms: visibility?.showBothTerms === true };
 }
 async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, requestedTermId?: unknown) {
   if (principal.type !== "admin" && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
