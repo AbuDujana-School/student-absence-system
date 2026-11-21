@@ -396,8 +396,8 @@ async function handle(req: Request) {
       return reply(400,{error:"حدد فترة زمنية صحيحة لتقرير توزيع الاحتياط."});
     }
     const fromMs=Date.parse(dateFrom+"T00:00:00Z"),toMs=Date.parse(dateTo+"T00:00:00Z");
-    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs||toMs-fromMs>5*366*86400000) {
-      return reply(400,{error:"الفترة القصوى لتقرير توزيع الاحتياط هي خمس سنوات."});
+    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs) {
+      return reply(400,{error:"الفترة المحددة لتقرير توزيع الاحتياط غير صالحة."});
     }
     const [directory,rows]=await Promise.all([
       teacherDirectory(),
