@@ -87,6 +87,21 @@ Deno.test("schoolwide reserve report uses one official page per day and a dedica
   assert(source.includes("wrappedSwitch.__reserveDistributionWrapped"),"The reports tab must open for teachers with the dedicated reserve-report grant");
 });
 
+Deno.test("schoolwide reserve report permission lookup reads canonical db.teachers records", () => {
+  const start=source.indexOf("function schoolwideReserveReportTeacherRecord(index,name){");
+  const end=source.indexOf("\n  function installSchoolwideReserveReportPermissionBridge()",start);
+  assert(start>=0&&end>start,"The dedicated report permission teacher lookup must exist");
+  const helper=source.slice(start,end);
+  assert(helper.includes('typeof db!=="undefined"&&Array.isArray(db?.teachers)'),"Permission lookup must read the canonical db.teachers array");
+  const factory=new Function("db","window",helper+"; return schoolwideReserveReportTeacherRecord;") as
+    (db:{teachers:Array<{name:string;permissions:Record<string,unknown>}>},window:Record<string,unknown>) =>
+      (index:number,name:string)=>{name:string;permissions:Record<string,unknown>}|null;
+  const teacher={name:"معلم اختبار",permissions:{reportSubstitutionDistribution:true}};
+  const lookup=factory({teachers:[teacher]}, {});
+  assert(lookup(0,teacher.name)?.permissions.reportSubstitutionDistribution===true,"Opening permissions must retrieve the saved schoolwide report grant");
+  assert(lookup(-1,teacher.name)?.name===teacher.name,"Save fallback must resolve the teacher by exact name");
+});
+
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
