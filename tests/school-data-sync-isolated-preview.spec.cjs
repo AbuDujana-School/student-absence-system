@@ -241,12 +241,12 @@ test("school sync projections and timetable access reads stay isolated and minim
     }),
     new Promise((_, reject) => setTimeout(() => reject(new Error(
       "Browser evaluation stalled; diagnostics: " +
-      browserDiagnostics.filter(line => line.includes("SYNC_TEST_DIAG")).join(" | ")
+      browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)/.test(line)).join(" | ")
     )), 20000)),
   ]);
   if (!initialLoad.result) {
     throw new Error("Synthetic initial cloud snapshot failed: " + JSON.stringify(initialLoad) +
-      "; browser diagnostics: " + browserDiagnostics.filter(line => line.includes("SYNC_TEST_DIAG")).join(" | "));
+      "; browser diagnostics: " + browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)/.test(line)).join(" | "));
   }
   expect(initialLoad.result, "Synthetic initial cloud snapshot must load").toBe(true);
 
