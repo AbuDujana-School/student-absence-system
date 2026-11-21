@@ -779,8 +779,10 @@
     const items=source.filter(item=>item.assignmentDate===date&&item.absentTeacherName===absentTeacherName&&
       item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status))
       .filter((item,index,all)=>all.findIndex(row=>row.id===item.id)===index);
-    if(!items.length){status("لا توجد حصص نشطة قابلة للحذف لهذا المعلم في هذا التاريخ.","error");return;}
-    if(!window.confirm("سيتم حذف توزيع المعلم الغائب بالكامل في "+date+" ("+items.length+" حصص)، مع الاحتفاظ بجميع سجلات المراجعة. هل تريد المتابعة؟"))return;
+    if(!items.length){status("لا توجد حصص قابلة للحذف لهذا المعلم في هذا التاريخ.","error");return;}
+    const completedCount=items.filter(item=>item.status==="completed").length;
+    const completedWarning=completedCount?"، منها "+completedCount+" حصص مكتملة وستُلغى نقاطها أيضاً":"";
+    if(!window.confirm("سيتم حذف توزيع المعلم الغائب بالكامل في "+date+" ("+items.length+" حصص"+completedWarning+")، وعكس جميع نقاطه مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
     try{
       const token=appAuthSession?.token||readAppAuthToken();
       const assignmentIds=items.map(item=>item.id);
