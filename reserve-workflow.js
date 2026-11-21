@@ -448,6 +448,11 @@
       const savedAbsenceReason=saved.find(item=>item.absentTeacherName===absentName&&item.absenceReason&&item.absenceReason!=="-")?.absenceReason||"";
       if(savedAbsenceReason)reserveAbsenceReasons[absentName]=savedAbsenceReason;
       const absenceReason=savedAbsenceReason||reserveAbsenceReasons[absentName]||"";
+      const savedRows=rows.filter(item=>item.kind==="saved");
+      const savedGroupDate=timetableSubstitutionGetDate().date;
+      const canDeleteSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
+      const canEditSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+      const mixedSavedActions=pendingRows.length&&canDeleteSavedGroup?'<div class="flex flex-wrap gap-2">'+(canEditSavedGroup?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button></div>':"";
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
         const reserveKey=reserveReasonKey(absentName,item.period);
@@ -471,7 +476,7 @@
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
         : '<div class="border-t border-slate-200 bg-emerald-50 p-3 text-[10px] font-bold text-emerald-700">لا توجد تكليفات جديدة لهذا المعلم؛ الحصص الظاهرة محفوظة مسبقاً.</div>';
-      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,absenceReason,!rows.some(item=>item.kind==="saved"))+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
+      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div><div class="flex flex-wrap items-center gap-2">'+mixedSavedActions+reasonControlMarkup(absentName,absenceReason,!savedRows.length)+'</div></div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
