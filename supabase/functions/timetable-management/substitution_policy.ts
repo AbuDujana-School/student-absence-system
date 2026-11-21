@@ -261,6 +261,15 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
     const rankedCandidates=firstPassSameDepartment.length?firstPassSameDepartment:
       firstPassOtherDepartments.length?firstPassOtherDepartments:
       allSameDepartment.length?allSameDepartment:allOtherDepartments;
+    // Keep the manual dropdown in the exact same priority tiers as automatic allocation:
+    // same-department first cover, cross-department first cover, then second daily cover.
+    // Each tier already carries the fairness ordering from getAvailableSubstitutionCandidates.
+    const rankedOptions=[
+      ...firstPassSameDepartment,
+      ...firstPassOtherDepartments,
+      ...allSameDepartment.filter(option=>(option.dailySubstitutionCount??0)>=1),
+      ...allOtherDepartments.filter(option=>(option.dailySubstitutionCount??0)>=1),
+    ];
     const candidate=rankedCandidates[0];
     if(!candidate){
       unassigned.push({absentTeacherName:absent.name,weekday:lesson.weekday,period:lesson.period,className:lesson.className,...(lesson.subject?{subject:lesson.subject}:{})});
@@ -277,7 +286,7 @@ export function buildBatchSubstitutionPlan(query:BatchSubstitutionPlanQuery):Bat
       points,pointsBalanceAfter:teacher.pointsBalance??0,absentPointsBalanceAfter:absentTeacher?.pointsBalance??0,
       substituteDailyTeachingCount:candidate.dailyTeachingCount??0,
       createsThreeConsecutive:candidate.wouldCreateTriple===true,
-      candidateOptions:allCandidates.map(option=>({
+      candidateOptions:rankedOptions.map(option=>({
         teacherName:option.name,pointsBalance:option.pointsBalance??0,weeklyQuota:option.weeklyQuota??0,
         dailyTeachingCount:option.dailyTeachingCount??0,dailySubstitutionCount:option.dailySubstitutionCount??0,
         occupiedPeriods:option.occupiedPeriods??[],adjacent:option.proximityScore===1,
