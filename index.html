@@ -13465,6 +13465,16 @@ async function timetableSaveOwner() {
       if(button){button.disabled=checkedAbsentees().length===0;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع المقترح';}
     }
   };
+  window.subxRefreshExistingPlan=async function(){
+    const date=selectedDate(),weekday=weekdayFor(date);
+    if(!weekday||!currentAbsentNames.length)return;
+    const includeOtherDepartments=document.getElementById('substitutionOtherDepartments')?.checked===true;
+    const otherDepartmentId=includeOtherDepartments?document.getElementById('substitutionOtherDepartmentSelect')?.value||"":"";
+    const otherTeacherNames=includeOtherDepartments?getSubstitutionSelectedOtherTeacherNames():[];
+    currentPlan=await appAuthRequest({action:'timetable_substitution_batch_preview',weekday,assignmentDate:date,absentTeacherNames:currentAbsentNames,includeOtherDepartments,otherDepartmentId,otherTeacherNames},getToken());
+    renderPlan();
+    if(typeof window.substitutionLoadStats==='function')await window.substitutionLoadStats();
+  };
   function renderPlan(){
     const panel=document.getElementById('substitutionPlanPanel');
     const root=document.getElementById('substitutionPlanAssignments');
@@ -13497,8 +13507,11 @@ async function timetableSaveOwner() {
       });
       html+='</div></div>';
     });
-    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><span class="font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="font-black text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+' · محفوظ</span></div>';}).join('')+'</div></div>':'';
+    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){const editable=item.canEdit!==false&&String(item.assignmentDate||'')===getOmanLocalDate()&&['assigned','confirmed'].includes(String(item.status||''));const actions=editable?'<div class="flex shrink-0 gap-1"><button type="button" data-subx-existing-edit="'+esc(item.id)+'" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-black text-indigo-700 hover:bg-indigo-100">تعديل</button><button type="button" data-subx-existing-delete="'+esc(item.id)+'" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-black text-rose-700 hover:bg-rose-100">حذف</button></div>':'<span class="text-[10px] text-slate-400">'+(item.status==='completed'?'مكتمل':'سجل سابق · للعرض فقط')+'</span>';return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><div class="min-w-0"><span class="block font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="mt-1 block text-[10px] text-slate-500">السبب: '+esc(item.reason||'—')+' · البديل: <strong class="text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+'</strong></span></div><div class="flex items-center gap-2">'+actions+'</div></div>';}).join('')+'</div></div>':'';
     root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>'));
+    if(typeof window.timetableDailyRegisterExternalAssignments==='function')window.timetableDailyRegisterExternalAssignments(existing);
+    root.querySelectorAll('[data-subx-existing-edit]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyOpenArchiveEdit==='function')window.timetableDailyOpenArchiveEdit(button.dataset.subxExistingEdit);else showToast('واجهة التعديل غير متاحة حالياً.','error');});});
+    root.querySelectorAll('[data-subx-existing-delete]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyCancelAssignment==='function')window.timetableDailyCancelAssignment(button.dataset.subxExistingDelete);else showToast('واجهة الحذف غير متاحة حالياً.','error');});});
     root.querySelectorAll('select[data-substitution-row]').forEach(function(select){
       select.addEventListener('change',function(){
         const row=Number(select.dataset.substitutionRow);
@@ -13555,7 +13568,7 @@ async function timetableSaveOwner() {
       const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=false;
       const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=false;
       showToast('تم اعتماد وحفظ توزيع الاحتياط.','success');
-      await window.substitutionLoadStats();
+      await window.subxRefreshExistingPlan();
     }catch(error){
       showToast(error?.message||'تعذر حفظ التوزيع. لم يتم اعتماد التوزيع الجزئي.','error');
       const status=document.getElementById('substitutionSaveStatus');

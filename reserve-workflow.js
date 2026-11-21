@@ -778,6 +778,7 @@
       await appAuthRequest({action:"timetable_substitution_cancel",assignmentId,weekday:item.weekday,assignmentDate:item.assignmentDate},token);
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
+      if(typeof window.subxRefreshExistingPlan==="function")await window.subxRefreshExistingPlan();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
       if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
@@ -813,6 +814,14 @@
   };
 
 
+  window.timetableDailyRegisterExternalAssignments = function(items) {
+    (Array.isArray(items)?items:[]).forEach(item=>{
+      if(!item||!item.id)return;
+      const normalized={...item,canEdit:item.canEdit!==false,assignmentDate:item.assignmentDate||"",weekday:item.weekday||"",status:item.status||"assigned"};
+      const index=reserveArchive.findIndex(row=>String(row.id)===String(normalized.id));
+      if(index>=0)reserveArchive[index]=normalized;else reserveArchive.push(normalized);
+    });
+  };
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
@@ -914,6 +923,7 @@
           if(absentSelect.value!==item.absentTeacherName&&!timetableDailyAbsentTeachers.includes(absentSelect.value)){timetableDailyAbsentTeachers.push(absentSelect.value);timetableDailyRenderTags();}
           status("تم حفظ التعديلات وتحديث الحصة والصف والمادة وفق الجدول، مع الاحتفاظ بالسجل السابق في سجل المراجعة.","success");
           await timetableDailyRefreshAll();
+          if(typeof window.subxRefreshExistingPlan==="function")await window.subxRefreshExistingPlan();
           if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
           if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
           if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
