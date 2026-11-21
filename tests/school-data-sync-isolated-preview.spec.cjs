@@ -94,6 +94,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
 
     const method = request.method();
+    browserDiagnostics.push("SUPABASE_REQ " + method + " " + url.pathname);
     if (url.pathname === "/" && method === "HEAD") {
       await route.fulfill({ status: 200, headers: { date: new Date().toUTCString() } });
       return;
@@ -241,12 +242,12 @@ test("school sync projections and timetable access reads stay isolated and minim
     }),
     new Promise((_, reject) => setTimeout(() => reject(new Error(
       "Browser evaluation stalled; diagnostics: " +
-      browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)/.test(line)).join(" | ")
+      browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)|SUPABASE_REQ/.test(line)).join(" | ")
     )), 20000)),
   ]);
   if (!initialLoad.result) {
     throw new Error("Synthetic initial cloud snapshot failed: " + JSON.stringify(initialLoad) +
-      "; browser diagnostics: " + browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)/.test(line)).join(" | "));
+      "; browser diagnostics: " + browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)|SUPABASE_REQ/.test(line)).join(" | "));
   }
   expect(initialLoad.result, "Synthetic initial cloud snapshot must load").toBe(true);
 
