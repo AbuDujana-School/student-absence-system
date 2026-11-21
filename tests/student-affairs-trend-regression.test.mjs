@@ -49,3 +49,10 @@ test("Cloudflare branch preview hosts fail closed without connecting to producti
   assert.equal(isPreviewHost("school.example.com"), false);
   assert.match(html, /window\.__ABUDUJANA_CLOUDFLARE_PREVIEW__ === true \|\| isCloudflareBranchPreviewHost\(window\.location\?\.hostname\)/);
 });
+
+test("Cloudflare branch previews disable production Supabase and authentication writes", () => {
+  assert.match(html, /const SUPABASE_URL = IS_CLOUDFLARE_PREVIEW \? "https:\/\/preview-disabled\.invalid" : "https:\/\/ylsocrvwqibptuwfzbke\.supabase\.co"/);
+  assert.match(html, /const SA_API_URL=IS_CLOUDFLARE_PREVIEW\?"https:\/\/preview-disabled\.invalid\/functions\/v1\/student-affairs"/);
+  assert.match(html, /if \(IS_CLOUDFLARE_PREVIEW\) throw new Error\("تسجيل الدخول الحقيقي غير متاح في نسخة المعاينة\."\)/);
+  assert.match(html, /if \(IS_CLOUDFLARE_PREVIEW\) \{\s*updateSyncStatus\(false, "معاينة محلية فقط"\);\s*return true;/);
+});
