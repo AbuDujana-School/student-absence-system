@@ -187,7 +187,8 @@ test("school sync projections and timetable access reads stay isolated and minim
     { timeout: 20_000 },
   );
 
-  const initialLoad = await page.evaluate(async () => {
+  const initialLoad = await Promise.race([
+    page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     localOnlySession = false;
     appAuthSession = {
@@ -235,7 +236,12 @@ test("school sync projections and timetable access reads stay isolated and minim
       console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:error:" + String(error?.message || error));
       return { result: false, trace, error: String(error?.message || error) };
     }
-  });
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(
+      "Browser evaluation stalled; diagnostics: " +
+      browserDiagnostics.filter(line => line.includes("SYNC_TEST_DIAG")).join(" | ")
+    )), 20000)),
+  ]);
   if (!initialLoad.result) {
     throw new Error("Synthetic initial cloud snapshot failed: " + JSON.stringify(initialLoad) +
       "; browser diagnostics: " + browserDiagnostics.filter(line => line.includes("SYNC_TEST_DIAG")).join(" | "));
