@@ -390,7 +390,7 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
   const { currentTerm } = await readCompetitionTermSettings();
   const week = getSchoolWeekRange(today);
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
-  const afterCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
+  const afterCutoff = isCompetitionWeeklyCutoffReached(weekday, getOmanClockMinutes());
   const latestClosedWeekStart = afterCutoff ? week.start : shiftCompetitionDate(week.start, -7);
   const baseQuery = () => db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
@@ -558,7 +558,7 @@ async function finalizeCompetitionWeek() {
   const today = getOmanIsoDate();
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
   const currentWeek = getSchoolWeekRange(today);
-  const afterWeeklyCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
+  const afterWeeklyCutoff = isCompetitionWeeklyCutoffReached(weekday, getOmanClockMinutes());
   // Before Thursday 13:50, the latest closed week is eligible. After the cutoff, this week is eligible.
   const eligibleStart = afterWeeklyCutoff ? currentWeek.start : shiftCompetitionDate(currentWeek.start, -7);
   const { currentTerm } = await readCompetitionTermSettings();
