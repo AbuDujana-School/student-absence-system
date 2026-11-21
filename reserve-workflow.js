@@ -1360,7 +1360,7 @@
       });
       return;
     }
-    const header=view.querySelector(".relative.z-10.flex.flex-wrap.items-center.justify-between.gap-3");
+    const header=view.querySelector(".subx-toolbar")||view.querySelector(".relative.z-10.flex.flex-wrap.items-center.justify-between.gap-3");
     const stats=$("substitutionStatsPanel");
     const plan=$("substitutionPlanPanel");
     if(!header||!stats||!plan)return;
@@ -1577,6 +1577,93 @@
     };
   }
 
+
+  // Integrate absence reasons and post-approval controls into the actual home
+  // substitution workflow (#substitutionView), not only the timetable sub-panel.
+  function installMainSubstitutionViewIntegration(){
+    const root=$("substitutionView");
+    if(!root||root.dataset.mainReserveReasonsInstalled==="1")return;
+    root.dataset.mainReserveReasonsInstalled="1";
+    const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
+    const bypass=new WeakSet();
+    root.addEventListener("change",event=>{
+      const input=event.target;
+      if(!(input instanceof HTMLInputElement)||!input.matches('input[name="substitutionAbsentTeacher"]'))return;
+      if(bypass.has(input)){bypass.delete(input);return;}
+      if(!input.checked)return;
+      const absentName=String(input.value||"").trim();
+      if(!absentName||reasons[absentName])return;
+      event.stopImmediatePropagation();
+      event.stopPropagation();
+      input.checked=false;
+      openAbsenceReasonPicker(absentName,value=>{
+        reasons[absentName]=value;
+        input.checked=true;
+        bypass.add(input);
+        input.dispatchEvent(new Event("change",{bubbles:true}));
+      });
+    },true);
+
+    if(typeof window.substitutionToggleAllAbsentees==="function"&&!window.substitutionToggleAllAbsentees.__mainReserveReasonWrapped){
+      const originalToggle=window.substitutionToggleAllAbsentees;
+      const wrappedToggle=function(){
+        const boxes=Array.from(root.querySelectorAll('input[name="substitutionAbsentTeacher"]'));
+        const unchecked=boxes.filter(box=>!box.checked);
+        if(!unchecked.length){
+          boxes.filter(box=>box.checked).forEach(box=>{
+            box.checked=false;bypass.add(box);box.dispatchEvent(new Event("change",{bubbles:true}));
+          });
+          return;
+        }
+        (async()=>{
+          for(const box of unchecked){
+            const absentName=String(box.value||"").trim();
+            if(!absentName)continue;
+            if(!reasons[absentName]){
+              const value=await new Promise(resolve=>openAbsenceReasonPicker(absentName,resolve));
+              if(!value)break;
+              reasons[absentName]=value;
+            }
+            box.checked=true;bypass.add(box);box.dispatchEvent(new Event("change",{bubbles:true}));
+          }
+        })();
+      };
+      wrappedToggle.__mainReserveReasonWrapped=true;
+      wrappedToggle.__original=originalToggle;
+      window.substitutionToggleAllAbsentees=wrappedToggle;
+    }
+
+    if(typeof window.appAuthRequest==="function"&&!window.appAuthRequest.__mainReserveReasonPayloadWrapped){
+      const originalRequest=window.appAuthRequest;
+      const wrappedRequest=async function(body,token){
+        if(body?.action==="timetable_substitution_batch_save"&&Array.isArray(body.assignments)){
+          body={...body,assignments:body.assignments.map(item=>({
+            ...item,
+            absenceReason:String(item?.absenceReason||reasons[String(item?.absentTeacherName||"").trim()]||"-").trim()
+          }))};
+        }
+        return originalRequest.call(this,body,token);
+      };
+      wrappedRequest.__mainReserveReasonPayloadWrapped=true;
+      wrappedRequest.__original=originalRequest;
+      window.appAuthRequest=wrappedRequest;
+    }
+
+    if(typeof window.printOfficialReserveReport==="function"&&!window.printOfficialReserveReport.__mainReserveReasonWrapped){
+      const originalPrint=window.printOfficialReserveReport;
+      const wrappedPrint=function(groups,...args){
+        const enriched=(Array.isArray(groups)?groups:[]).map(group=>({
+          ...group,
+          reason:String(reasons[String(group?.absentName||"").trim()]||group?.reason||"-")
+        }));
+        return originalPrint.call(this,enriched,...args);
+      };
+      wrappedPrint.__mainReserveReasonWrapped=true;
+      wrappedPrint.__original=originalPrint;
+      window.printOfficialReserveReport=wrappedPrint;
+    }
+  }
+
   installLegacyOtherDepartmentTeacherPicker();
   installAbsenceReasonPicker();
   if(typeof MutationObserver!=="undefined"&&document.body){
@@ -1584,6 +1671,7 @@
     absencePickerObserver.observe(document.body,{subtree:true,childList:true});
   }
 
+  installMainSubstitutionViewIntegration();
   installReserveEnhancements();
   installHomeReserveArchive();
   installReserveArchiveAutoRefresh();
