@@ -6,6 +6,7 @@
   let reserveDraftApproved = new Set();
   let reserveLastAbsentSignature = "";
   let reserveReasons = Object.create(null);
+  let reserveAbsenceReasons = Object.create(null);
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
   let reserveOtherDepartmentId = "";
@@ -23,7 +24,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -51,6 +52,7 @@
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
       reserveDraftApproved=new Set(Array.isArray(saved.approvedAbsentTeachers)?saved.approvedAbsentTeachers.filter(name=>timetableDailyAbsentTeachers.includes(name)):[]);
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
+      reserveAbsenceReasons=Object.assign(Object.create(null),saved.absenceReasons||{});
       reserveDraftScope=currentDraftScope();
       if(typeof timetableDailyRenderTags==="function")timetableDailyRenderTags();
       status("استُعيدت مسودة الاحتياط غير المحفوظة من هذا الجهاز. راجعها قبل الاعتماد.","info");
@@ -115,10 +117,13 @@
     renderOtherDepartmentTeachers();
   }
 
-  function reasonControlMarkup(absentName, reason) {
-    const value=String(reason||"").trim();
-    return '<div class="w-full max-w-md"><label class="mb-1 block text-[10px] font-black text-slate-600">سبب الاحتياط <span class="font-normal text-slate-400">(اختياري)</span></label>'+
-      '<textarea data-tt-reason="'+esc(absentName)+'" rows="2" maxlength="500" class="tt-reason resize-y" placeholder="اكتب سبب الاحتياط أو اتركه فارغاً">'+esc(value)+'</textarea></div>';
+  function reasonControlMarkup(absentName, reserveReason, absenceReason) {
+    const reserveValue=String(reserveReason||"").trim(),absenceValue=String(absenceReason||"").trim();
+    return '<div class="grid w-full max-w-2xl gap-2 sm:grid-cols-2">'+
+      '<label class="block text-[10px] font-black text-slate-600">سبب الغياب <span class="font-normal text-slate-400">(لماذا لم يحضر المعلم؟)</span>'+
+      '<textarea data-tt-absence-reason="'+esc(absentName)+'" rows="2" maxlength="500" class="tt-reason mt-1 w-full resize-y" placeholder="إجازة مرضية، إجازة اضطرارية، مهمة رسمية...">'+esc(absenceValue)+'</textarea></label>'+
+      '<label class="block text-[10px] font-black text-slate-600">سبب الاحتياط <span class="font-normal text-slate-400">(ما التكليف المطلوب من البديل؟)</span>'+
+      '<textarea data-tt-reason="'+esc(absentName)+'" rows="2" maxlength="500" class="tt-reason mt-1 w-full resize-y" placeholder="تغطية حصة المعلم الغائب...">'+esc(reserveValue)+'</textarea></label></div>';
   }
 
 
@@ -365,6 +370,9 @@
       const savedReason = saved.find(item=>item.absentTeacherName===absentName&&item.reason&&item.reason!=="-")?.reason || "";
       if (reserveReasons[absentName] === undefined && savedReason) reserveReasons[absentName] = savedReason;
       const reason = reserveReasons[absentName] ?? savedReason;
+      const savedAbsenceReason=saved.find(item=>item.absentTeacherName===absentName&&item.absenceReason&&item.absenceReason!=="-")?.absenceReason||"";
+      if(reserveAbsenceReasons[absentName]===undefined&&savedAbsenceReason)reserveAbsenceReasons[absentName]=savedAbsenceReason;
+      const absenceReason=reserveAbsenceReasons[absentName]??savedAbsenceReason;
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
         let choice="", action="";
@@ -384,7 +392,7 @@
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
         : '<div class="border-t border-slate-200 bg-emerald-50 p-3 text-[10px] font-bold text-emerald-700">لا توجد تكليفات جديدة لهذا المعلم؛ الحصص الظاهرة محفوظة مسبقاً.</div>';
-      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason)+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
+      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,reason,absenceReason)+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
@@ -430,6 +438,10 @@
       reserveReasons[input.dataset.ttReason]=input.value.trim();
       persistStoredDraft();
     }));
+    host.querySelectorAll("[data-tt-absence-reason]").forEach(input=>input.addEventListener("input",()=>{
+      reserveAbsenceReasons[input.dataset.ttAbsenceReason]=input.value.trim();
+      persistStoredDraft();
+    }));
     host.querySelectorAll("[data-tt-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttEdit)));
     host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
     updateBatchSaveVisibility();
@@ -463,7 +475,8 @@
     if(unresolved.length){status("لا يمكن الحفظ قبل معالجة جميع الحصص التي تحتاج إلى بديل.", "error");return;}
     const assignments=reserveDraftAssignments.filter(item=>item.substituteTeacherName&&reserveDraftApproved.has(item.absentTeacherName)).map(item=>({
       absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:Number(item.period),
-      reserveReason:(reserveReasons[item.absentTeacherName]||"").trim()||"-"
+      reserveReason:(reserveReasons[item.absentTeacherName]||"").trim()||"-",
+      absenceReason:(reserveAbsenceReasons[item.absentTeacherName]||"").trim()||"-"
     }));
     if(!assignments.length){status("لا توجد اقتراحات جاهزة للحفظ. أعد إعداد التوزيع الذكي أو اختر البدلاء يدوياً.","error");return;}
     timetableDailyBusy=true;timetableDailySetBusy(true);
