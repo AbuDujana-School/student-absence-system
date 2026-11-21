@@ -86,3 +86,19 @@ test("logout resets the cloud bootstrap state before the next account signs in",
   const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
   assert.ok(finalize.includes("cloudDataLoadState !== 'ready'"));
 });
+
+test("each authenticated account starts a fresh cloud bootstrap", () => {
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  const session = login.indexOf("saveAppAuthSession(serverLogin)");
+  const reset = login.indexOf("cloudDataLoadState = 'not-started'", session);
+  const principal = login.indexOf("activeUser = serverLogin.principal", session);
+  assert.ok(session >= 0 && reset > session && principal > reset);
+  assert.match(login.slice(reset, principal), /cloudRefreshInProgress = false/);
+  assert.match(login.slice(reset, principal), /cloudWritesBlockedByManifestFailure = false/);
+});
+
+test("logout clears account-scoped cloud readiness", () => {
+  const logout = section("function _performLogout()", "function openChangePinModal()");
+  assert.match(logout, /cloudDataLoadState = 'not-started'/);
+  assert.match(logout, /cloudWritesBlockedByManifestFailure = false/);
+});
