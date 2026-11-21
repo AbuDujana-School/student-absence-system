@@ -365,7 +365,7 @@ Deno.test("unauthenticated startup does not fetch protected school tables", () =
   const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
   assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
   const noUserGuard = load.indexOf("if (!activeUser)");
-  const secureSessionGuard = load.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const secureSessionGuard = load.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
   const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
   const manifestFetch = load.indexOf("fetchAppSyncManifest()");
   assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
@@ -390,7 +390,7 @@ Deno.test("secure session validation completes before cloud loading begins", () 
 
 Deno.test("online cloud saves without a secure session stay local and never upload", () => {
   const save = section("async function saveSystemDataToCloud(options = {})", "async function checkExistingSession()");
-  const guard = save.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const guard = save.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
   const localSave = save.indexOf("saveToLocalStorageSafe()", guard);
   const durableSave = save.indexOf("await persistOfflineState()", localSave);
   const noUpload = save.indexOf("return false;", durableSave);

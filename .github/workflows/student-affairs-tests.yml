@@ -775,7 +775,7 @@ jobs:
       - name: Run Student Affairs trend and competition UI regression tests
         run: node --test tests/student-affairs-trend-regression.test.mjs
       - name: Test secure cloud bootstrap and session expiry gates
-        run: node --test tests/app_auth_bootstrap_order_test.mjs
+        run: node --test tests/app_auth_bootstrap_order_test.mjs tests/offline_login_fallback_test.mjs
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x

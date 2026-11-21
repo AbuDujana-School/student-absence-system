@@ -43,7 +43,7 @@ test("online cloud reads require an unexpired server-issued app session before a
   assert.match(helper, /Date\.parse\(session\.expires_at\) > Date\.now\(\)/);
 
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  const guard = loader.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const guard = loader.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
   const manifest = loader.indexOf("fetchAppSyncManifest()");
   assert.ok(guard >= 0 && manifest > guard);
   assert.match(loader.slice(guard, manifest), /cloudDataLoadState = 'failed'/);
@@ -54,7 +54,7 @@ test("online cloud writes require an unexpired server-issued app session", () =>
   const end = html.indexOf("async function checkExistingSession()", start);
   assert.ok(start >= 0 && end > start);
   const save = html.slice(start, end);
-  const guard = save.indexOf("if (navigator.onLine && !hasUnexpiredAppAuthSession())");
+  const guard = save.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
   const upload = save.indexOf("const syncSnapshotDb");
   assert.ok(guard >= 0 && upload > guard);
   assert.match(save.slice(guard, upload), /لم تُرسل أي بيانات/);
