@@ -1376,7 +1376,9 @@
 
   function installHomeReserveArchive() {
     const view=$("substitutionView");
-    if(!view||view.dataset.cumulativeArchiveInstalled==="1")return;
+    // Do not initialize or fetch reserve archives while the user is on the login
+    // screen or another dashboard. Install only when the reserve view is opened.
+    if(!view||view.classList.contains("hidden")||view.dataset.cumulativeArchiveInstalled==="1")return;
     const accessCheck=view.dataset.cumulativeArchiveAccessCheck||"";
     if(accessCheck==="pending"||accessCheck==="denied")return;
     const canViewLocally=activeUser?.type==="admin"||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.type==="admin";
@@ -1714,16 +1716,51 @@
 
   installMainSubstitutionViewIntegration();
   installReserveEnhancements();
-  installHomeReserveArchive();
   installReserveArchiveAutoRefresh();
   window.timetableDailyInstallAdminTools=installAdminReserveTools;
   window.timetableDailyInstallDepartmentTools=installDepartmentReserveTools;
+  // These installers are idempotent; defer reserve-specific UI until its own
+  // view is opened instead of reacting to unrelated dashboard/login mutations.
   installDepartmentReserveTools();
   installAdminReserveTools();
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const adminToolsObserver=new MutationObserver(()=>{installMainSubstitutionViewIntegration();installDepartmentReserveTools();installAdminReserveTools();installHomeReserveArchive();installReserveArchiveAutoRefresh();applyTeacherTimetablePresentation();});
-    adminToolsObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class","style"]});
+    const reserveDomObserver=new MutationObserver(()=>{
+      installMainSubstitutionViewIntegration();
+      installDepartmentReserveTools();
+      installAdminReserveTools();
+      installReserveArchiveAutoRefresh();
+      applyTeacherTimetablePresentation();
+    });
+    // Child-list changes are sufficient for dynamically-created reserve panels.
+    // Broad class/style observation on the entire document caused needless
+    // reserve initialization during unrelated view transitions.
+    reserveDomObserver.observe(document.body,{subtree:true,childList:true});
+    const substitutionView=$("substitutionView");
+    if(substitutionView){
+      const substitutionVisibilityObserver=new MutationObserver(()=>{
+        if(!substitutionView.classList.contains("hidden")){
+          installMainSubstitutionViewIntegration();
+          installHomeReserveArchive();
+        }
+      });
+      substitutionVisibilityObserver.observe(substitutionView,{attributes:true,attributeFilter:["class"]});
+      if(!substitutionView.classList.contains("hidden"))installHomeReserveArchive();
+    }
+    const timetablePanel=$("timetableSubstitutionPanel");
+    if(timetablePanel){
+      const timetableVisibilityObserver=new MutationObserver(()=>{
+        if(!timetablePanel.classList.contains("hidden")){
+          installDepartmentReserveTools();
+          installAdminReserveTools();
+        }
+      });
+      timetableVisibilityObserver.observe(timetablePanel,{attributes:true,attributeFilter:["class"]});
+      if(!timetablePanel.classList.contains("hidden")){
+        installDepartmentReserveTools();
+        installAdminReserveTools();
+      }
+    }
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
       const timetableObserver=new MutationObserver(()=>applyTeacherTimetablePresentation());
@@ -1995,7 +2032,13 @@
       if($("reserveDistributionFrom"))$("reserveDistributionFrom").value=today;
       if($("reserveDistributionTo"))$("reserveDistributionTo").value=today;
     }
-    if(panel&&schoolwideReserveReportAllowed()&&!panel.dataset.reserveDistributionReportAutoLoaded){
+    if(panel&&!panel.dataset.reserveDistributionVisibilityObserver&&typeof MutationObserver!=="undefined"){
+      panel.dataset.reserveDistributionVisibilityObserver="1";
+      new MutationObserver(()=>{
+        if(!panel.classList.contains("hidden"))installSchoolwideReserveDistributionReport();
+      }).observe(panel,{attributes:true,attributeFilter:["class"]});
+    }
+    if(panel&&!panel.classList.contains("hidden")&&schoolwideReserveReportAllowed()&&!panel.dataset.reserveDistributionReportAutoLoaded){
       panel.dataset.reserveDistributionReportAutoLoaded="1";
       Promise.resolve().then(()=>window.loadSubstitutionDistributionReport());
     }
