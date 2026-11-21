@@ -1713,4 +1713,193 @@
       timetableObserver.observe(timetableHost,{childList:true,subtree:true});
     }
   }
+
+
+  // Schoolwide reserve report: one official A4 page per day, all departments.
+  let schoolwideReserveReportRows = [];
+  let schoolwideReserveReportDays = [];
+  let schoolwideReserveReportRangeKey = "";
+  function schoolwideReserveReportIsAdmin(){
+    try{return activeUser?.type==="admin"||appAuthSession?.principal?.type==="admin"||
+      (typeof window.isAdminAuthorized==="function"&&window.isAdminAuthorized()===true);}catch{return false;}
+  }
+  function schoolwideReserveReportAllowed(){
+    return schoolwideReserveReportIsAdmin()||
+      activeUser?.permissions?.reportSubstitutionDistribution===true||
+      appAuthSession?.principal?.permissions?.reportSubstitutionDistribution===true;
+  }
+  function schoolwideReserveReportCanManage(){
+    try{if(typeof window.canManageReportPermissions==="function")return window.canManageReportPermissions()===true;}catch{}
+    return schoolwideReserveReportIsAdmin();
+  }
+  function schoolwideReserveReportTeacherRecord(index,name){
+    const lists=[];
+    try{if(typeof teachers!=="undefined"&&Array.isArray(teachers))lists.push(teachers);}catch{}
+    ["teachers","allTeachers","teacherData","teachersData","staff","beneficiaries","beneficiaryTeachers"].forEach(k=>{
+      try{if(Array.isArray(window[k]))lists.push(window[k]);}catch{}
+    });
+    for(const list of lists){
+      const indexed=list[Number(index)];
+      if(indexed&&String(indexed.name||"").trim()===String(name||"").trim())return indexed;
+      const found=list.find(x=>String(x?.name||"").trim()===String(name||"").trim());
+      if(found)return found;
+    }
+    return null;
+  }
+  function installSchoolwideReserveReportPermissionBridge(){
+    if(typeof window.canAccessReport==="function"&&!window.canAccessReport.__reserveDistributionWrapped){
+      const original=window.canAccessReport;
+      const wrapped=function(key,...args){return String(key)==="reportSubstitutionDistribution"?schoolwideReserveReportAllowed():original.call(this,key,...args);};
+      wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.canAccessReport=wrapped;
+    }
+    if(typeof window.canAccessAnyReport==="function"&&!window.canAccessAnyReport.__reserveDistributionWrapped){
+      const original=window.canAccessAnyReport;
+      const wrapped=function(...args){return schoolwideReserveReportAllowed()||original.apply(this,args);};
+      wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.canAccessAnyReport=wrapped;
+    }
+    const box=$("perm_p_reportSubstitutionDistribution");
+    if(box&&!box.dataset.reserveDistributionChangeBound){
+      box.dataset.reserveDistributionChangeBound="1";
+      box.addEventListener("change",()=>{box.dataset.reserveDistributionTouched="1";});
+    }
+    if(typeof window.openPermissionsModal==="function"&&!window.openPermissionsModal.__reserveDistributionWrapped){
+      const original=window.openPermissionsModal;
+      const wrapped=function(index,...args){
+        const result=original.call(this,index,...args);
+        const checkbox=$("perm_p_reportSubstitutionDistribution"),name=String($("permTeacherName")?.textContent||"").trim();
+        const record=schoolwideReserveReportTeacherRecord(index,name);
+        if(checkbox){
+          if(record?.permissions&&Object.prototype.hasOwnProperty.call(record.permissions,"reportSubstitutionDistribution")){
+            checkbox.checked=record.permissions.reportSubstitutionDistribution===true;
+            checkbox.dataset.reserveDistributionInitial=checkbox.checked?"true":"false";
+          }else checkbox.dataset.reserveDistributionInitial="unknown";
+          checkbox.dataset.reserveDistributionTouched="0";
+          checkbox.disabled=!schoolwideReserveReportCanManage();
+        }
+        return result;
+      };
+      wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.openPermissionsModal=wrapped;
+    }
+    if(typeof window.robustUpsert==="function"&&!window.robustUpsert.__reserveDistributionWrapped){
+      const original=window.robustUpsert;
+      const wrapped=async function(table,rows,...args){
+        let next=rows;
+        const modal=$("teacherPermissionsModal"),checkbox=$("perm_p_reportSubstitutionDistribution");
+        if(String(table||"").toLowerCase()==="teachers"&&Array.isArray(rows)&&modal&&!modal.classList.contains("hidden")&&checkbox&&schoolwideReserveReportCanManage()){
+          const name=String($("permTeacherName")?.textContent||"").trim();
+          const record=schoolwideReserveReportTeacherRecord(-1,name);
+          const initial=checkbox.dataset.reserveDistributionInitial||"unknown",touched=checkbox.dataset.reserveDistributionTouched==="1";
+          next=rows.map(row=>{
+            if(String(row?.name||"").trim()!==name)return row;
+            const permissions={...(row.permissions&&typeof row.permissions==="object"?row.permissions:{})};
+            const value=touched?checkbox.checked:initial!=="unknown"?initial==="true":
+              Object.prototype.hasOwnProperty.call(permissions,"reportSubstitutionDistribution")?permissions.reportSubstitutionDistribution===true:
+              record?.permissions?.reportSubstitutionDistribution===true;
+            permissions.reportSubstitutionDistribution=value;
+            return {...row,permissions};
+          });
+        }
+        return original.call(this,table,next,...args);
+      };
+      wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.robustUpsert=wrapped;
+    }
+    const panel=$("reserveDistributionReportPanel");
+    if(panel)panel.classList.toggle("hidden",!schoolwideReserveReportAllowed());
+    const tab=$("tab-reports");
+    if(tab){
+      let allowed=schoolwideReserveReportAllowed();
+      try{allowed=allowed||(typeof window.canAccessAnyReport==="function"&&window.canAccessAnyReport()===true);}catch{}
+      tab.classList.toggle("hidden",!allowed);
+    }
+  }
+  function schoolwideReserveReportSetStatus(message,kind){
+    const node=$("reserveDistributionReportStatus");if(!node)return;
+    node.textContent=String(message||"");
+    node.className="rounded-xl border p-3 text-xs font-bold "+
+      (kind==="error"?"border-rose-200 bg-rose-50 text-rose-800":kind==="success"?"border-emerald-200 bg-emerald-50 text-emerald-800":"border-slate-200 bg-slate-50 text-slate-600");
+    node.classList.remove("hidden");
+  }
+  function schoolwideReserveReportBuildDays(rows){
+    const byDate=new Map();
+    (Array.isArray(rows)?rows:[]).forEach(row=>{
+      const date=String(row?.assignmentDate||"").trim(),name=String(row?.absentTeacherName||"").trim();
+      if(!date||!name)return;
+      if(!byDate.has(date))byDate.set(date,{date,weekday:String(row.weekday||""),teachers:new Map()});
+      const day=byDate.get(date),department=String(row.absentTeacherDepartment||"").trim(),key=name+"\\u0000"+department;
+      if(!day.teachers.has(key))day.teachers.set(key,{absentName:name,department,absenceReason:String(row.absenceReason||"-"),rows:[]});
+      const group=day.teachers.get(key);
+      if((!group.absenceReason||group.absenceReason==="-")&&row.absenceReason)group.absenceReason=String(row.absenceReason);
+      group.rows.push({period:Number(row.period||0),className:String(row.className||""),substitute:String(row.substituteTeacherName||""),subject:String(row.subject||"")});
+    });
+    return [...byDate.values()].sort((a,b)=>b.date.localeCompare(a.date)).map(day=>({
+      date:day.date,weekday:day.weekday,
+      groups:[...day.teachers.values()].sort((a,b)=>a.absentName.localeCompare(b.absentName,"ar")).map(g=>({
+        absentName:g.absentName+(g.department?" – "+g.department:""),absenceReason:g.absenceReason,
+        rows:g.rows.sort((a,b)=>a.period-b.period)
+      }))
+    }));
+  }
+  function schoolwideReserveReportRender(){
+    const host=$("reserveDistributionReportResults"),summary=$("reserveDistributionReportSummary");if(!host||!summary)return;
+    const days=schoolwideReserveReportDays,teachersCount=days.reduce((n,d)=>n+d.groups.length,0);
+    summary.innerHTML=[["الأيام المشمولة",days.length],["المعلمون الغائبون",teachersCount],["حصص الاحتياط",schoolwideReserveReportRows.length]]
+      .map(([label,value])=>'<div class="rounded-xl border border-cyan-100 bg-cyan-50 p-3 text-center"><strong class="block text-lg font-black text-cyan-900">'+esc(value)+'</strong><span class="text-[10px] font-bold text-cyan-800">'+esc(label)+'</span></div>').join("");
+    if(!days.length){host.innerHTML='<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500">لا توجد توزيعات احتياط محفوظة في الفترة المحددة.</div>';return;}
+    host.innerHTML=days.map(day=>'<section class="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">'+
+      '<div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2"><strong class="text-sm font-black text-slate-900">'+esc(day.weekday)+' · '+esc(formatReserveDateArabic(day.date))+'</strong><span class="text-[10px] font-bold text-slate-500">'+day.groups.length+' معلم غائب · '+day.groups.reduce((n,g)=>n+g.rows.length,0)+' حصة</span></div>'+
+      day.groups.map(g=>'<div class="rounded-xl border border-cyan-100 bg-cyan-50/40 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-900">'+esc(g.absentName)+'</strong><span class="text-[10px] text-slate-500">سبب الغياب: '+esc(g.absenceReason||"-")+'</span></div>'+
+      '<div class="mt-2 overflow-x-auto"><table class="w-full min-w-[520px] text-center text-[11px]"><thead class="bg-slate-100 text-slate-700"><tr><th class="p-2">الحصة</th><th class="p-2">الصف</th><th class="p-2">المعلم البديل</th><th class="p-2">المادة</th></tr></thead><tbody>'+
+      g.rows.map(r=>'<tr class="border-t border-slate-100"><td class="p-2">'+esc(formatReservePeriod(r.period))+'</td><td class="p-2">'+esc(r.className||"—")+'</td><td class="p-2 font-bold">'+esc(r.substitute||"—")+'</td><td class="p-2">'+esc(r.subject||"—")+'</td></tr>').join("")+
+      '</tbody></table></div></div>').join("")+'</section>').join("");
+  }
+  window.resetSubstitutionDistributionReport=function(){
+    const today=reserveCurrentMuscatDate();
+    if($("reserveDistributionFrom"))$("reserveDistributionFrom").value=today;
+    if($("reserveDistributionTo"))$("reserveDistributionTo").value=today;
+    return window.loadSubstitutionDistributionReport();
+  };
+  window.loadSubstitutionDistributionReport=async function(){
+    const from=$("reserveDistributionFrom")?.value||"",to=$("reserveDistributionTo")?.value||"";
+    if(!from||!to||from>to){schoolwideReserveReportSetStatus("حدد تاريخ البداية والنهاية بصورة صحيحة.","error");return false;}
+    if(!schoolwideReserveReportAllowed()){schoolwideReserveReportSetStatus("لا تملك صلاحية تقرير توزيع الاحتياط.","error");return false;}
+    const host=$("reserveDistributionReportResults");
+    if(host)host.innerHTML='<div class="rounded-xl bg-slate-50 p-5 text-center text-xs text-slate-500">جارٍ تحميل التقرير...</div>';
+    schoolwideReserveReportSetStatus("جارٍ تحميل جميع توزيعات الاحتياط في الفترة المحددة...");
+    try{
+      const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error("انتهت جلسة الدخول. أعد تسجيل الدخول ثم حاول مجدداً.");
+      const response=await appAuthRequest({action:"timetable_substitution_report",dateFrom:from,dateTo:to},token);
+      schoolwideReserveReportRows=Array.isArray(response?.archive)?response.archive:[];
+      schoolwideReserveReportDays=schoolwideReserveReportBuildDays(schoolwideReserveReportRows);
+      schoolwideReserveReportRangeKey=from+"|"+to;schoolwideReserveReportRender();
+      schoolwideReserveReportSetStatus("تم تحميل "+schoolwideReserveReportRows.length+" تكليفاً من جميع التخصصات، مرتبة من الأحدث إلى الأقدم.","success");
+      return true;
+    }catch(error){
+      schoolwideReserveReportRows=[];schoolwideReserveReportDays=[];schoolwideReserveReportRangeKey="";
+      if(host)host.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-800">'+esc(error?.message||"تعذر تحميل تقرير الاحتياط.")+'</div>';
+      schoolwideReserveReportSetStatus(error?.message||"تعذر تحميل التقرير.","error");return false;
+    }
+  };
+  window.printSubstitutionDistributionReport=async function(){
+    const from=$("reserveDistributionFrom")?.value||"",to=$("reserveDistributionTo")?.value||"";
+    if(schoolwideReserveReportRangeKey!==from+"|"+to&&!await window.loadSubstitutionDistributionReport())return;
+    if(!schoolwideReserveReportDays.length){schoolwideReserveReportSetStatus("لا توجد سجلات في الفترة المحددة للطباعة.","error");return;}
+    if(typeof window.printSchoolwideReserveDistributionReport!=="function"){schoolwideReserveReportSetStatus("قالب الطباعة الرسمي غير متاح حالياً.","error");return;}
+    window.printSchoolwideReserveDistributionReport(schoolwideReserveReportDays);
+  };
+  function installSchoolwideReserveDistributionReport(){
+    installSchoolwideReserveReportPermissionBridge();
+    const panel=$("reserveDistributionReportPanel");
+    if(panel&&!panel.dataset.reserveDistributionReportInitialized){
+      panel.dataset.reserveDistributionReportInitialized="1";
+      const today=reserveCurrentMuscatDate();
+      if($("reserveDistributionFrom"))$("reserveDistributionFrom").value=today;
+      if($("reserveDistributionTo"))$("reserveDistributionTo").value=today;
+    }
+  }
+  installSchoolwideReserveDistributionReport();
+  if(typeof MutationObserver!=="undefined"&&document.body&&!window.__schoolwideSubstitutionReportInstalled){
+    window.__schoolwideSubstitutionReportInstalled=true;
+    new MutationObserver(()=>installSchoolwideReserveDistributionReport()).observe(document.body,{subtree:true,childList:true});
+  }
+
 })();
