@@ -56,3 +56,17 @@ test("Cloudflare branch previews disable production Supabase and authentication 
   assert.match(html, /if \(IS_CLOUDFLARE_PREVIEW\) throw new Error\("تسجيل الدخول الحقيقي غير متاح في نسخة المعاينة\."\)/);
   assert.match(html, /if \(IS_CLOUDFLARE_PREVIEW\) \{\s*updateSyncStatus\(false, "معاينة محلية فقط"\);\s*return true;/);
 });
+
+
+test("competition API complete snapshots are normalized to the UI approved contract", () => {
+  const helperStart = html.indexOf("function saNormalizeCompetitionResponse(data){");
+  const helperEnd = html.indexOf("async function saLoadCompetition(){", helperStart);
+  assert.ok(helperStart >= 0 && helperEnd > helperStart, "competition response normalizer must exist before the loader");
+  const normalize = vm.runInNewContext("(" + html.slice(helperStart, helperEnd).trim() + ")");
+  const complete = { status: "complete", period: "weekly", teams: [{ teamId: "synthetic", rank: 1 }] };
+  assert.equal(normalize(complete).status, "approved");
+  assert.equal(normalize(complete).teams.length, 1);
+  assert.equal(normalize({ status: "complete", teams: [] }).status, "complete", "empty snapshots must not be promoted to approved");
+  assert.equal(normalize({ status: "no_completed_weeks", teams: [] }).status, "no_completed_weeks");
+  assert.ok(html.includes('const response=await saRequest({action:"competition",period:requestPeriod,termId});' + String.fromCharCode(10) + '    const data=saNormalizeCompetitionResponse(response);'));
+});
