@@ -4020,6 +4020,29 @@ function saCompetitionDayLabel(date){
   return (days[weekday]||"")+" "+date.slice(5);
 }
 function saRefreshCompetitionAfterRecordSave(){const panel=document.getElementById("saCompetitionPanel");if(panel&&!panel.classList.contains("hidden")&&saCanViewCompetition())saLoadCompetition();}
+let saCompetitionCutoffRefreshTimer=null;
+function saScheduleCompetitionCutoffRefresh(){
+  if(saCompetitionCutoffRefreshTimer!==null){clearTimeout(saCompetitionCutoffRefreshTimer);saCompetitionCutoffRefreshTimer=null;}
+  const panel=document.getElementById("saCompetitionPanel");
+  if(!panel||panel.classList.contains("hidden")||!saCanViewCompetition())return;
+  const today=getOmanLocalDate();
+  const weekday=new Date(today+"T12:00:00.000Z").getUTCDay();
+  const minutes=omanNowParts().minutes;
+  let daysUntilThursday=(4-weekday+7)%7;
+  let targetMinutes=13*60+56;
+  if(daysUntilThursday===0&&minutes>=targetMinutes){
+    if(minutes<14*60+6&&saCompetitionData?.status!=="approved")targetMinutes=14*60+6;
+    else daysUntilThursday=7;
+  }
+  const [year,month,day]=today.split("-").map(Number);
+  const targetUtc=Date.UTC(year,month-1,day+daysUntilThursday,Math.floor(targetMinutes/60)-4,targetMinutes%60);
+  const delay=Math.max(1000,targetUtc-getTrustedDate().getTime());
+  saCompetitionCutoffRefreshTimer=setTimeout(()=>{
+    saCompetitionCutoffRefreshTimer=null;
+    const currentPanel=document.getElementById("saCompetitionPanel");
+    if(currentPanel&&!currentPanel.classList.contains("hidden")&&navigator.onLine&&saCanViewCompetition())saLoadCompetition();
+  },delay);
+}
 let saCompetitionLastResumeRefreshAt=0;
 function saRefreshCompetitionOnReturn(){
   if(document.visibilityState!=="visible"||!navigator.onLine)return;
@@ -4065,12 +4088,14 @@ async function saLoadCompetition(){
     if(requestId!==saCompetitionLoadSequence||!saCanViewCompetition())return;
     saCompetitionData=data;
     saRenderCompetition(data);
+    saScheduleCompetitionCutoffRefresh();
   }catch(error){
     if(requestId!==saCompetitionLoadSequence)return;
     const status=document.getElementById("saCompetitionStatus");
     if(status){status.textContent=error?.message||"تعذر تحميل نتائج البطولة.";status.classList.remove("hidden");}
     const podium=document.getElementById("saCompetitionPodium");
     if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-red-200 bg-red-50 p-5 text-center text-xs font-bold text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">'+escapeHtml(error?.message||"تعذر تحميل نتائج البطولة")+'</div>';
+    saScheduleCompetitionCutoffRefresh();
   }
 }
 function saSetCompetitionCompareScope(scope){
