@@ -78,3 +78,30 @@ test("a successful server login stores its verified session before cloud bootstr
   const load = login.indexOf("await finalizeLoginState()", saveSession);
   assert.ok(saveSession >= 0 && load > saveSession);
 });
+
+
+test("offline IndexedDB restoration cannot stall cloud synchronization", () => {
+  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue");
+  assert.match(restore, /انتهت مهلة فتح التخزين المحلي/);
+  assert.match(restore, /انتهت مهلة قراءة التخزين المحلي/);
+  assert.match(restore, /tx\.onabort/);
+  assert.match(restore, /tx\.onerror/);
+  assert.match(restore, /return restoreLocalStorageOfflineSnapshot\(\)/);
+  assert.match(restore, /offlineDbPromise = null/);
+});
+
+test("cloud manifest and table downloads have bounded waits", () => {
+  const sync = section("function withAppSyncTimeout", "function getChangedAppSyncTables");
+  assert.match(sync, /setTimeout/);
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(loader, /withAppSyncTimeout\(fetchAppSyncManifest\(\), 10000/);
+  assert.match(loader, /Promise\.all\(\[/);
+  assert.match(loader, /20000, 'انتهت مهلة تحميل بيانات المدرسة/);
+});
+
+test("optional timetable and teacher notice refreshes do not block successful login", () => {
+  const finalizer = section("async function finalizeLoginState()", "function ");
+  assert.match(finalizer, /void bounded\(timetableRefreshAccess\(\)/);
+  assert.match(finalizer, /requestAnimationFrame\(\(\) => requestAnimationFrame/);
+  assert.match(finalizer, /void bounded\(teacherShowDailySubstitutionWelcome\(\)/);
+});
