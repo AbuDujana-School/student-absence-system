@@ -1745,6 +1745,9 @@
   }
   function schoolwideReserveReportTeacherRecord(index,name){
     const lists=[];
+    // The main application stores the authoritative teacher directory in db.teachers;
+    // it is a top-level lexical binding, not window.teachers.
+    try{if(typeof db!=="undefined"&&Array.isArray(db?.teachers))lists.push(db.teachers);}catch{}
     try{if(typeof teachers!=="undefined"&&Array.isArray(teachers))lists.push(teachers);}catch{}
     ["teachers","allTeachers","teacherData","teachersData","staff","beneficiaries","beneficiaryTeachers"].forEach(k=>{
       try{if(Array.isArray(window[k]))lists.push(window[k]);}catch{}
