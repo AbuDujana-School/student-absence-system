@@ -100,7 +100,8 @@ test("cloud manifest and table downloads have bounded waits", () => {
   const sync = section("function withAppSyncTimeout", "function getChangedAppSyncTables");
   assert.match(sync, /setTimeout/);
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  assert.match(loader, /withAppSyncTimeout\(fetchAppSyncManifest\(\), 10000/);
+  assert.match(sync, /withAppSyncTimeout\([\s\S]*?sb\.rpc\('get_app_sync_manifest'\)[\s\S]*?10000/);
+  assert.match(loader, /nextManifest = await fetchAppSyncManifest\(\)/);
   assert.match(loader, /Promise\.all\(\[/);
   assert.match(loader, /20000, 'انتهت مهلة تحميل بيانات المدرسة/);
 });
