@@ -134,10 +134,13 @@ jobs:
         run: node --check reserve-workflow.js
       - name: Check teacher attendance compliance report JavaScript syntax
         run: node --check teacher-attendance-compliance.js
-      - name: Check optional reserve reason UI
+      - name: Check reserve reason picker and post-save controls
         run: |
           grep -q 'data-tt-reason' reserve-workflow.js
-          grep -q 'src="./reserve-workflow.js"' index.html
+          grep -q 'ABSENCE_REASON_OPTIONS' reserve-workflow.js
+          grep -q 'data-tt-delete-saved-group' reserve-workflow.js
+          grep -q 'data-tt-edit-saved-group' reserve-workflow.js
+          grep -Eq "src=[\"'](\\./)?reserve-workflow\\.js([?\"']|[\"'])" index.html
       - name: Check timetable import UI JavaScript syntax
         run: |
           node <<'NODE'
