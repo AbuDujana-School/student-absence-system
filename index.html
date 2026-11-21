@@ -6863,6 +6863,11 @@ async function handleUserLogin(e) {
     }
     if (serverLogin?.token && serverLogin?.principal) {
       saveAppAuthSession(serverLogin);
+      // Every authenticated principal gets a fresh cloud bootstrap. A previous
+      // account's "ready" flag describes its snapshot, not this account's session.
+      cloudDataLoadState = 'not-started';
+      cloudRefreshInProgress = false;
+      cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
       loginAttempts = 0; loginLockedUntil = 0;
       await finalizeLoginState();
