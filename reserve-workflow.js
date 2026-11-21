@@ -663,7 +663,7 @@
 
   window.timetableDailyRenderArchive = function () {
     const host=$("timetableDailyArchiveResults");if(!host)return;
-    const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+    const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
     const activeHost=$("timetableDailyActiveResults"),activeCount=$("timetableDailyActiveCount");
     if(activeCount)activeCount.textContent=String(activeRecords.length);
     if(activeHost){
@@ -683,7 +683,7 @@
     }
     const grouped=new Map();
     reserveArchive.forEach(item=>{const key=item.assignmentDate||"تاريخ غير محدد";if(!grouped.has(key))grouped.set(key,[]);grouped.get(key).push(item);});
-    const activeTotal=reserveArchive.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status)).length;
+    const activeTotal=reserveArchive.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status)).length;
     const archivedTotal=reserveArchive.length-activeTotal;
     host.innerHTML='<div class="mb-3 grid gap-2 sm:grid-cols-2">'+
       '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات نشطة قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' تكليف متاح تعديلها وحذفها حتى نهاية اليوم بتوقيت سلطنة عمان</span></div>'+
