@@ -93,8 +93,11 @@ test("each authenticated account starts a fresh cloud bootstrap", () => {
   const reset = login.indexOf("cloudDataLoadState = 'not-started'", session);
   const principal = login.indexOf("activeUser = serverLogin.principal", session);
   assert.ok(session >= 0 && reset > session && principal > reset);
-  assert.match(login.slice(reset, principal), /cloudRefreshInProgress = false/);
   assert.match(login.slice(reset, principal), /cloudWritesBlockedByManifestFailure = false/);
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
+  assert.match(finalize, /if \(cloudRefreshInProgress\)/);
+  assert.match(finalize, /waitForPreviousRefresh/);
+  assert.match(finalize, /await loadSystemDataFromCloud\(\)/);
 });
 
 test("logout clears account-scoped cloud readiness", () => {
