@@ -1833,7 +1833,7 @@
           const result=await originalSave.apply(this,args);
           if(schoolwideReserveReportPendingPermission&&!schoolwideReserveReportPermissionWriteSeen&&savedRecord?.permissions){
             const permissions={...savedRecord.permissions,reportSubstitutionDistribution:value};
-            const upsert=window.robustUpsert?.__original||window.robustUpsert;
+            const upsert=window.robustUpsert?.__original||window.robustUpsert||(typeof robustUpsert==="function"?robustUpsert:null);
             if(typeof upsert==="function")await upsert.call(this,"teachers",[{name,permissions}],"name",100);
           }
           return result;
