@@ -6337,7 +6337,11 @@ function withAppSyncTimeout(promise, timeoutMs, message) {
 }
 
 async function fetchAppSyncManifest() {
-  const { data, error } = await sb.rpc('get_app_sync_manifest');
+  const { data, error } = await withAppSyncTimeout(
+    sb.rpc('get_app_sync_manifest'),
+    10000,
+    'انتهت مهلة التحقق من تحديثات الخادم.'
+  );
   if (error) throw error;
   const manifest = normalizeAppSyncManifest(data);
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
@@ -6392,7 +6396,7 @@ async function loadSystemDataFromCloud() {
     // when no server-side change has occurred since this device's last snapshot.
     let nextManifest = null;
     try {
-      nextManifest = await withAppSyncTimeout(fetchAppSyncManifest(), 10000, 'انتهت مهلة التحقق من تحديثات الخادم.');
+      nextManifest = await fetchAppSyncManifest();
     } catch (manifestError) {
       // A transient manifest/network failure must not fan out into seven full-table
       // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
