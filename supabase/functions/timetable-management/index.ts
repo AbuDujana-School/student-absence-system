@@ -1540,6 +1540,7 @@ async function handle(req: Request) {
       if(body.action==="timetable_substitution_save") {
         const period=Number(body.period), assignmentDate=String(body.assignmentDate||""), substitute=String(body.substituteTeacherName||"").trim();
         if(!absentTeacherName||!substitute||!Number.isInteger(period)||period<1||period>Number(activeVersion.period_count||7)||!/^\d{4}-\d{2}-\d{2}$/.test(assignmentDate))return reply(400,{error:"حدد التاريخ والمعلم الغائب والبديل والحصة."});
+        if(principal.type!=="admin"&&!isSubstitutionPeriodOpen(assignmentDate,period,periodTimings))return reply(409,{error:"لا يمكن إضافة تكليف لهذه الحصة بعد انتهاء وقتها المحدد في الجدول."});
         const substituteTeacher=directory.find((teacher:any)=>teacher.name===substitute&&teacher.role==="teacher");
         if(!substituteTeacher||!activeTeachingTeacherNames.has(substituteTeacher.name))return reply(404,{error:"المعلم البديل غير موجود ضمن معلمي التدريس في الجدول النشط."});
         const absentDepartmentId=directory.find((teacher:any)=>teacher.name===absentTeacherName&&teacher.role==="teacher")?.departmentId||"";
@@ -1688,6 +1689,9 @@ async function handle(req: Request) {
         }));
         if(normalized.some((item:any)=>!selectedNames.includes(item.absentTeacherName)||!item.substituteTeacherName||!Number.isInteger(item.period)||item.period<1||item.period>Number(activeVersion.period_count||7))){
           return reply(400,{error:"توجد حصة غير مكتملة أو معلم بديل غير صالح في التوزيع المقترح."});
+        }
+        if(principal.type!=="admin"&&normalized.some((item:any)=>!isSubstitutionPeriodOpen(assignmentDate,item.period,periodTimings))){
+          return reply(409,{error:"يتضمن التوزيع حصة انتهى وقتها؛ لا يمكن إضافة تكليف لها بعد نهاية وقتها المحدد في الجدول."});
         }
         for(const item of normalized){
           const substituteTeacher=directory.find((teacher:any)=>teacher.name===item.substituteTeacherName&&teacher.role==="teacher");
