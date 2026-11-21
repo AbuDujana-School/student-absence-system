@@ -6957,6 +6957,14 @@ async function refreshActiveUserPermissions() {
 }
 
 async function finalizeLoginState() {
+  // Make the authenticated shell visible immediately. Cloud synchronization and
+  // optional permission checks must never hold the user on the login screen.
+  document.getElementById('loginView')?.classList.add('hidden');
+  document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+  const bounded = (promise, ms, label) => Promise.race([
+    Promise.resolve(promise),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(label || 'انتهت مهلة الاتصال.')), ms))
+  ]);
   // Do not download protected school tables until a user has an authenticated
   // or locally restored offline session. Online users load after app_login or
   // app_session succeeds; offline users continue with the restored device cache.
@@ -6964,8 +6972,13 @@ async function finalizeLoginState() {
     cloudDataLoadState = 'ready';
     updateSyncStatus(false, 'وضع محلي فقط - البيانات والتعديلات محفوظة على هذا الجهاز؛ أعد تسجيل الدخول الآمن عند عودة الاتصال');
   } else if (navigator.onLine && cloudDataLoadState !== 'ready') {
-    const loaded = await loadSystemDataFromCloud();
-    if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
+    updateSyncStatus(false, 'تم تسجيل الدخول؛ جارِ تحميل بيانات المدرسة...');
+    void loadSystemDataFromCloud().then(loaded => {
+      if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
+    }).catch(error => {
+      console.warn('Background cloud load failed after login.', error);
+      updateSyncStatus(false, 'تم تسجيل الدخول؛ تعذر تحميل البيانات الآن، أعد المحاولة من زر المزامنة');
+    });
   } else if (!navigator.onLine && cloudDataLoadState === 'not-started') {
     if (offlineSnapshotRestoredAtBoot) {
       cloudDataLoadState = 'ready';
@@ -6977,8 +6990,8 @@ async function finalizeLoginState() {
     }
   }
   if (!localOnlySession) {
-    await refreshActiveUserPermissions();
-    await timetableRefreshAccess();
+    await bounded(refreshActiveUserPermissions(), 7000, 'تعذر تحديث صلاحيات الحساب الآن.');
+    await bounded(timetableRefreshAccess(), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
   } else {
     timetableCanAccess = false;
     teacherPortalCanAccess = false;
@@ -7033,7 +7046,10 @@ async function finalizeLoginState() {
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
   if (behCard) behCard.classList.toggle('hidden', !canAccessBehavior());
   refreshDutyDashboardCard(); refreshSubstitutionDashboardCard(); renderDutyTodayRecords();
-  if (!localOnlySession) { await checkAndEnforcePinChange(); await checkAndEnforceAdminPinChange(); }
+  if (!localOnlySession) {
+    try { await bounded(checkAndEnforcePinChange(), 5000, 'تعذر فحص تغيير الرقم السري الآن.'); } catch (error) { console.warn('PIN policy check deferred:', error); }
+    try { await bounded(checkAndEnforceAdminPinChange(), 5000, 'تعذر فحص رقم المدير الآن.'); } catch (error) { console.warn('Admin PIN policy check deferred:', error); }
+  }
   window.refreshCombinedReportTabs?.();
 }
 function hasAdminPanelAccess(user = activeUser) {
