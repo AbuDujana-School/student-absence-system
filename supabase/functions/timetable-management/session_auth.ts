@@ -217,11 +217,19 @@ export function canUseTimetableAction(
     if (substitutionActions.has(action)) return hasReservePermission;
     return new Set(["health","timetable_check_access","teacher_timetable_get_own","teacher_substitution_get_today"]).has(action);
   }
+  // Custom coordinator accounts have an explicit timetable-access grant.
+  // Allow them to use the department-scoped reserve workflow, including
+  // batch preview/save and editing active assignments. The request handlers
+  // still enforce department scope, active-version and same-day constraints.
   const customSubstitutionActions = new Set([
     "timetable_substitution_preview",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
     "timetable_substitution_cancel_batch",
+    "timetable_substitution_batch_preview",
+    "timetable_substitution_batch_save",
+    "timetable_substitution_update",
+    "timetable_substitution_update_batch",
   ]);
   return new Set([
     "health",
