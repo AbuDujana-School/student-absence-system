@@ -14,6 +14,7 @@ on:
       - "tests/app_sync_manifest_logic_test.ts"
       - "tests/app_auth_bootstrap_order_test.mjs"
       - "tests/app_auth_bootstrap_order_test.mjs"
+      - "tests/**"
   push:
     branches:
       - "main"
@@ -31,6 +32,7 @@ on:
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
       - "tests/student-affairs-readers-isolated.spec.cjs"
+      - "tests/**"
 jobs:
 
   # Isolated PostgreSQL 16 integration test; never connects to the school project.
@@ -767,6 +769,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Run Student Affairs trend and competition UI regression tests
+        run: node --test tests/student-affairs-trend-regression.test.mjs
       - name: Test secure cloud bootstrap and session expiry gates
         run: node --test tests/app_auth_bootstrap_order_test.mjs
       - uses: denoland/setup-deno@v2
