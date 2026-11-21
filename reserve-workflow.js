@@ -440,7 +440,7 @@
         const savedRows=rows.filter(item=>item.kind==="saved");
         const date=timetableSubstitutionGetDate().date;
         const canDelete=date===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
-        const canEdit=date===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+        const canEdit=date===reserveCurrentMuscatDate()&&savedRows.some(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status))&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
         const savedReason=String(savedRows.find(item=>item.absenceReason&&item.absenceReason!=="-")?.absenceReason||reserveAbsenceReasons[absentName]||"");
         const actions=canDelete?'<div class="mt-3 flex flex-wrap gap-2">'+(canEdit?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button></div>':'<span class="mt-2 block text-[10px] text-slate-500">التوزيع غير قابل للتعديل أو الحذف في هذه الحالة.</span>';
         return '<section class="tt-group border border-emerald-200 bg-emerald-50 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><div class="text-[10px] font-black text-emerald-700">تم حفظ التوزيع</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+savedRows.length+' حصص محفوظة</div><div class="mt-1 text-[10px] text-amber-800">سبب الغياب: '+esc(savedReason||"—")+'</div></div>'+actions+'</div></section>';
@@ -451,7 +451,7 @@
       const savedRows=rows.filter(item=>item.kind==="saved");
       const savedGroupDate=timetableSubstitutionGetDate().date;
       const canDeleteSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
-      const canEditSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+      const canEditSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.some(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status))&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
       const mixedSavedActions=pendingRows.length&&canDeleteSavedGroup?'<div class="flex flex-wrap gap-2">'+(canEditSavedGroup?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button></div>':"";
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
@@ -709,7 +709,7 @@
   };
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
-    const source=[...(reserveArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])];
+    const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[])];
     const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit!==false&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
     if(!items.length){status("لا توجد تكليفات قابلة للتعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
     try{
