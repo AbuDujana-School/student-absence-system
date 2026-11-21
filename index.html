@@ -6360,7 +6360,6 @@ async function loadSystemDataFromCloud() {
     const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await withAppSyncTimeout(Promise.all([
       shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
       shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
-      shouldLoad('teachers') ? fetchAllPaginated('teachers', 'class_name, student_name') : Promise.resolve(null),
       shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
       shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
       shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
