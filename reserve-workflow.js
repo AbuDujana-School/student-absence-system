@@ -122,9 +122,9 @@
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
   const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"];
-  function openAbsenceReasonPicker(absentName,onConfirm){
+  function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
-    const current=String(reserveAbsenceReasons[absentName]||"");
+    const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
     const selected=ABSENCE_REASON_OPTIONS.includes(current)?current:(current.startsWith("أخرى:")?"أخرى":"");
     const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
     const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
@@ -154,6 +154,11 @@
       if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
+  window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm){
+    openAbsenceReasonPicker(absentName,function(value){
+      if(typeof onConfirm==="function")onConfirm(value);
+    },String(currentValue||""));
+  };
   function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
     const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";
@@ -778,6 +783,7 @@
       await appAuthRequest({action:"timetable_substitution_cancel",assignmentId,weekday:item.weekday,assignmentDate:item.assignmentDate},token);
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
+      if(typeof window.subxRefreshExistingPlan==="function")await window.subxRefreshExistingPlan();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
       if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
@@ -813,6 +819,14 @@
   };
 
 
+  window.timetableDailyRegisterExternalAssignments = function(items) {
+    (Array.isArray(items)?items:[]).forEach(item=>{
+      if(!item||!item.id)return;
+      const normalized={...item,canEdit:item.canEdit!==false,assignmentDate:item.assignmentDate||"",weekday:item.weekday||"",status:item.status||"assigned"};
+      const index=reserveArchive.findIndex(row=>String(row.id)===String(normalized.id));
+      if(index>=0)reserveArchive[index]=normalized;else reserveArchive.push(normalized);
+    });
+  };
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
@@ -914,6 +928,7 @@
           if(absentSelect.value!==item.absentTeacherName&&!timetableDailyAbsentTeachers.includes(absentSelect.value)){timetableDailyAbsentTeachers.push(absentSelect.value);timetableDailyRenderTags();}
           status("تم حفظ التعديلات وتحديث الحصة والصف والمادة وفق الجدول، مع الاحتفاظ بالسجل السابق في سجل المراجعة.","success");
           await timetableDailyRefreshAll();
+          if(typeof window.subxRefreshExistingPlan==="function")await window.subxRefreshExistingPlan();
           if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
           if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
           if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
@@ -1678,7 +1693,7 @@
       const wrappedPrint=function(groups,...args){
         const enriched=(Array.isArray(groups)?groups:[]).map(group=>({
           ...group,
-          reason:String(reasons[reasonKey(group?.absentName)]||group?.reason||"-")
+          reason:String(group?.reason||reasons[reasonKey(group?.absentName)]||"-")
         }));
         return originalPrint.call(this,enriched,...args);
       };
@@ -1735,6 +1750,9 @@
   }
   function schoolwideReserveReportTeacherRecord(index,name){
     const lists=[];
+    // The main application stores the authoritative teacher directory in db.teachers;
+    // it is a top-level lexical binding, not window.teachers.
+    try{if(typeof db!=="undefined"&&Array.isArray(db?.teachers))lists.push(db.teachers);}catch{}
     try{if(typeof teachers!=="undefined"&&Array.isArray(teachers))lists.push(teachers);}catch{}
     ["teachers","allTeachers","teacherData","teachersData","staff","beneficiaries","beneficiaryTeachers"].forEach(k=>{
       try{if(Array.isArray(window[k]))lists.push(window[k]);}catch{}

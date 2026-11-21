@@ -87,6 +87,45 @@ Deno.test("schoolwide reserve report uses one official page per day and a dedica
   assert(source.includes("wrappedSwitch.__reserveDistributionWrapped"),"The reports tab must open for teachers with the dedicated reserve-report grant");
 });
 
+Deno.test("schoolwide reserve report permission lookup reads canonical db.teachers records", () => {
+  const start=source.indexOf("function schoolwideReserveReportTeacherRecord(index,name){");
+  const end=source.indexOf("\n  function installSchoolwideReserveReportPermissionBridge()",start);
+  assert(start>=0&&end>start,"The dedicated report permission teacher lookup must exist");
+  const helper=source.slice(start,end);
+  assert(helper.includes('typeof db!=="undefined"&&Array.isArray(db?.teachers)'),"Permission lookup must read the canonical db.teachers array");
+  const factory=new Function("db","window",helper+"; return schoolwideReserveReportTeacherRecord;") as
+    (db:{teachers:Array<{name:string;permissions:Record<string,unknown>}>},window:Record<string,unknown>) =>
+      (index:number,name:string)=>{name:string;permissions:Record<string,unknown>}|null;
+  const teacher={name:"معلم اختبار",permissions:{reportSubstitutionDistribution:true}};
+  const lookup=factory({teachers:[teacher]}, {});
+  assert(lookup(0,teacher.name)?.permissions.reportSubstitutionDistribution===true,"Opening permissions must retrieve the saved schoolwide report grant");
+  assert(lookup(-1,teacher.name)?.name===teacher.name,"Save fallback must resolve the teacher by exact name");
+});
+
+Deno.test("main substitution view requires, saves, and prints the selected absence reason", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(source.includes("window.openSubstitutionAbsenceReasonPicker = function"),"The main substitution view must have access to the shared reason picker");
+  assert(html.includes("function requestAbsenceReason(input,onComplete)"),"Selecting an absent teacher must request an absence reason");
+  assert(html.includes("absenceReasonsByTeacher.has(name)"),"A reason is required for each selected absent teacher");
+  assert(html.includes('absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"'),"The chosen reason must be included in the atomic batch-save payload");
+  assert(html.includes("absenceReasonsByTeacher.get(name)||storedReason"),"The selected reason must be available to the official PDF when preview rows do not carry it yet");
+  assert(source.includes('const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"]'),"The picker must retain the five approved absence reasons");
+  assert(source.includes('if(choice==="أخرى"&&!custom)'),"The custom reason must be required when «أخرى» is selected");
+});
+
+Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("absenceReasonsByTeacher.delete(input.value);"),"Deselecting an absent teacher must clear the previous choice so reselecting opens the picker again");
+  assert(html.includes("if(input.checked)requestAbsenceReason(input)"),"Selecting the teacher again must open the reason picker");
+  assert(source.includes('reason:String(group?.reason||reasons[reasonKey(group?.absentName)]||"-")'),"The official PDF must prioritize the reason selected in the main substitution view");
+});
+
+Deno.test("main substitution absentee list displays the chosen absence reason", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("data-subx-absence-reason"),"The absentee card must display its selected absence reason");
+  assert(html.includes("reasonLabel.textContent='سبب الغياب: '+String(value)"),"Confirming the modal must update the visible reason label");
+});
+
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");

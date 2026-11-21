@@ -13278,6 +13278,7 @@ async function timetableSaveOwner() {
   let currentPlan=null;
   let currentAbsentNames=[];
   let savedPlan=false;
+  const absenceReasonsByTeacher=new Map();
   const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
   function esc(value){
     return String(value==null?'':value).replace(/[&<>"']/g,function(ch){
@@ -13315,10 +13316,37 @@ async function timetableSaveOwner() {
   }
   function updateSelectedCount(){
     const names=checkedAbsentees();
+    const reasonsReady=names.every(name=>absenceReasonsByTeacher.has(name));
     const count=document.getElementById('substitutionSelectedCount');
     const generate=document.getElementById('substitutionGenerateButton');
-    if(count)count.textContent=names.length+' محدد';
-    if(generate)generate.disabled=names.length===0;
+    if(count)count.textContent=names.length+' محدد'+(names.length&&!reasonsReady?' · حدد سبب الغياب لكل معلم':'');
+    if(generate)generate.disabled=names.length===0||!reasonsReady;
+  }
+  function requestAbsenceReason(input,onComplete){
+    const name=String(input?.value||'').trim();
+    if(!name||!input?.checked){if(typeof onComplete==='function')onComplete();return;}
+    const openPicker=window.openSubstitutionAbsenceReasonPicker;
+    if(typeof openPicker!=='function'){
+      input.checked=false;
+      showToast('نافذة سبب الغياب غير جاهزة. حدّث الصفحة ثم حاول مجدداً.','error');
+      updateSelectedCount();
+      if(typeof onComplete==='function')onComplete();
+      return;
+    }
+    input.disabled=true;
+    openPicker(name,'',function(value){
+      input.disabled=false;
+      const reasonLabel=input.closest('label')?.querySelector('[data-subx-absence-reason]');
+      if(value){
+        absenceReasonsByTeacher.set(name,String(value));
+        if(reasonLabel)reasonLabel.textContent='سبب الغياب: '+String(value);
+      }else{
+        input.checked=false;
+        if(reasonLabel)reasonLabel.textContent='سبب الغياب: لم يحدد';
+      }
+      updateSelectedCount();
+      if(typeof onComplete==='function')onComplete();
+    });
   }
   function renderAbsentees(names){
     const root=document.getElementById('substitutionAbsenteeList');
@@ -13330,11 +13358,21 @@ async function timetableSaveOwner() {
     root.innerHTML=names.map(function(name,index){
       return '<label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-rose-800">'+
         '<input type="checkbox" name="substitutionAbsentTeacher" value="'+esc(name)+'" class="h-4 w-4 accent-rose-600">'+
-        '<span class="min-w-0 flex-1 text-xs font-black text-slate-800 dark:text-slate-100">'+esc(name)+'</span>'+
+        '<span class="min-w-0 flex-1"><span class="block text-xs font-black text-slate-800 dark:text-slate-100">'+esc(name)+'</span><span data-subx-absence-reason class="mt-1 block break-words text-[9px] font-bold text-slate-500 dark:text-slate-400">سبب الغياب: لم يحدد</span></span>'+
         '<span class="rounded-lg bg-white px-2 py-1 text-[9px] font-black text-rose-600 dark:bg-slate-900 dark:text-rose-300">غائب</span></label>';
     }).join('');
     root.querySelectorAll('input[name="substitutionAbsentTeacher"]').forEach(function(input){
-      input.addEventListener('change',function(){clearPlan();updateSelectedCount();});
+      const reasonLabel=input.closest('label')?.querySelector('[data-subx-absence-reason]');
+      if(reasonLabel&&absenceReasonsByTeacher.has(input.value))reasonLabel.textContent='سبب الغياب: '+absenceReasonsByTeacher.get(input.value);
+      input.addEventListener('change',function(){
+        clearPlan();
+        if(input.checked)requestAbsenceReason(input);
+        else {
+          absenceReasonsByTeacher.delete(input.value);
+          if(reasonLabel)reasonLabel.textContent='سبب الغياب: لم يحدد';
+          updateSelectedCount();
+        }
+      });
     });
     updateSelectedCount();
   }
@@ -13400,6 +13438,7 @@ async function timetableSaveOwner() {
     window.refreshSubstitutionDashboardCard();
   };
   window.substitutionDateChanged=async function(){
+    absenceReasonsByTeacher.clear();
     clearPlan();
     await window.substitutionLoadAbsentees();
     await window.substitutionLoadStats();
@@ -13407,8 +13446,25 @@ async function timetableSaveOwner() {
   window.substitutionToggleAllAbsentees=function(){
     const boxes=Array.from(document.querySelectorAll('input[name="substitutionAbsentTeacher"]'));
     const shouldCheck=boxes.some(box=>!box.checked);
-    boxes.forEach(box=>{box.checked=shouldCheck;});
-    clearPlan();updateSelectedCount();
+    clearPlan();
+    if(!shouldCheck){
+      boxes.forEach(box=>{
+        box.checked=false;box.disabled=false;absenceReasonsByTeacher.delete(box.value);
+        const reasonLabel=box.closest('label')?.querySelector('[data-subx-absence-reason]');
+        if(reasonLabel)reasonLabel.textContent='سبب الغياب: لم يحدد';
+      });
+      updateSelectedCount();
+      return;
+    }
+    const queue=boxes.filter(box=>!box.checked);
+    queue.forEach(box=>{box.checked=true;});
+    updateSelectedCount();
+    const askNext=function(){
+      const next=queue.shift();
+      if(!next){updateSelectedCount();return;}
+      requestAbsenceReason(next,askNext);
+    };
+    askNext();
   };
   window.substitutionLoadAbsentees=async function(){
     const root=document.getElementById('substitutionAbsenteeList');
@@ -13433,6 +13489,7 @@ async function timetableSaveOwner() {
     const names=checkedAbsentees();
     const date=selectedDate(),weekday=weekdayFor(date);
     if(!weekday||!names.length){showToast('حدد التاريخ والمعلمين الغائبين أولاً.','error');return;}
+    if(names.some(name=>!absenceReasonsByTeacher.has(name))){showToast('حدد سبب الغياب لكل معلم قبل إنشاء التوزيع.','error');updateSelectedCount();return;}
     const button=document.getElementById('substitutionGenerateButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ حساب التوزيع...';}
     setStatus('يجري فحص التعارضات والنصاب والنقاط والحصص المتجاورة...');
@@ -13464,6 +13521,16 @@ async function timetableSaveOwner() {
     }finally{
       if(button){button.disabled=checkedAbsentees().length===0;button.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع المقترح';}
     }
+  };
+  window.subxRefreshExistingPlan=async function(){
+    const date=selectedDate(),weekday=weekdayFor(date);
+    if(!weekday||!currentAbsentNames.length)return;
+    const includeOtherDepartments=document.getElementById('substitutionOtherDepartments')?.checked===true;
+    const otherDepartmentId=includeOtherDepartments?document.getElementById('substitutionOtherDepartmentSelect')?.value||"":"";
+    const otherTeacherNames=includeOtherDepartments?getSubstitutionSelectedOtherTeacherNames():[];
+    currentPlan=await appAuthRequest({action:'timetable_substitution_batch_preview',weekday,assignmentDate:date,absentTeacherNames:currentAbsentNames,includeOtherDepartments,otherDepartmentId,otherTeacherNames},getToken());
+    renderPlan();
+    if(typeof window.substitutionLoadStats==='function')await window.substitutionLoadStats();
   };
   function renderPlan(){
     const panel=document.getElementById('substitutionPlanPanel');
@@ -13497,8 +13564,11 @@ async function timetableSaveOwner() {
       });
       html+='</div></div>';
     });
-    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><span class="font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="font-black text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+' · محفوظ</span></div>';}).join('')+'</div></div>':'';
+    const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){const editable=item.canEdit!==false&&String(item.assignmentDate||'')===getOmanLocalDate()&&['assigned','confirmed'].includes(String(item.status||''));const actions=editable?'<div class="flex shrink-0 gap-1"><button type="button" data-subx-existing-edit="'+esc(item.id)+'" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-black text-indigo-700 hover:bg-indigo-100">تعديل</button><button type="button" data-subx-existing-delete="'+esc(item.id)+'" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-black text-rose-700 hover:bg-rose-100">حذف</button></div>':'<span class="text-[10px] text-slate-400">'+(item.status==='completed'?'مكتمل':'سجل سابق · للعرض فقط')+'</span>';return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><div class="min-w-0"><span class="block font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="mt-1 block text-[10px] text-slate-500">السبب: '+esc(item.reason||'—')+' · البديل: <strong class="text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+'</strong></span></div><div class="flex items-center gap-2">'+actions+'</div></div>';}).join('')+'</div></div>':'';
     root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>'));
+    if(typeof window.timetableDailyRegisterExternalAssignments==='function')window.timetableDailyRegisterExternalAssignments(existing);
+    root.querySelectorAll('[data-subx-existing-edit]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyOpenArchiveEdit==='function')window.timetableDailyOpenArchiveEdit(button.dataset.subxExistingEdit);else showToast('واجهة التعديل غير متاحة حالياً.','error');});});
+    root.querySelectorAll('[data-subx-existing-delete]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyCancelAssignment==='function')window.timetableDailyCancelAssignment(button.dataset.subxExistingDelete);else showToast('واجهة الحذف غير متاحة حالياً.','error');});});
     root.querySelectorAll('select[data-substitution-row]').forEach(function(select){
       select.addEventListener('change',function(){
         const row=Number(select.dataset.substitutionRow);
@@ -13528,6 +13598,7 @@ async function timetableSaveOwner() {
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
+    if(currentAbsentNames.some(name=>!absenceReasonsByTeacher.has(name))){showToast('لا يمكن حفظ التوزيع قبل تحديد أسباب غياب جميع المعلمين.','error');return;}
     const button=document.getElementById('substitutionSaveButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ الاعتماد والحفظ...';}
     const includeOtherDepartments=document.getElementById('substitutionOtherDepartments')?.checked===true;
@@ -13544,7 +13615,7 @@ async function timetableSaveOwner() {
       const result=await appAuthRequest({
         action:'timetable_substitution_batch_save',weekday:weekdayFor(selectedDate()),assignmentDate:selectedDate(),
         absentTeacherNames:currentAbsentNames,
-        assignments:currentPlan.assignments.map(function(item){return {absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:item.period};}),
+        assignments:currentPlan.assignments.map(function(item){return {absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:item.period,absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"};}),
         includeOtherDepartments,
         otherDepartmentId,
         otherTeacherNames
@@ -13555,7 +13626,7 @@ async function timetableSaveOwner() {
       const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=false;
       const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=false;
       showToast('تم اعتماد وحفظ توزيع الاحتياط.','success');
-      await window.substitutionLoadStats();
+      await window.subxRefreshExistingPlan();
     }catch(error){
       showToast(error?.message||'تعذر حفظ التوزيع. لم يتم اعتماد التوزيع الجزئي.','error');
       const status=document.getElementById('substitutionSaveStatus');
@@ -13612,7 +13683,10 @@ async function timetableSaveOwner() {
     const addRow=function(item){
       const name=String(item?.absentTeacherName||'').trim();
       if(!name)return;
-      if(!groups.has(name))groups.set(name,{absentName:name,reason:String(item?.absenceReason||item?.reason||''),rows:[]});
+      const storedReason=String(item?.absenceReason||item?.reason||'').trim();
+      const reason=(storedReason&&storedReason!=="-"&&storedReason!=="—")?storedReason:(absenceReasonsByTeacher.get(name)||storedReason);
+      if(!groups.has(name))groups.set(name,{absentName:name,reason,rows:[]});
+      else if(!groups.get(name).reason&&reason)groups.get(name).reason=reason;
       groups.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||''});
     };
     allAssignments.forEach(addRow);
