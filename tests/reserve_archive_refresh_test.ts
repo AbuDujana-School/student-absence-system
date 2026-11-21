@@ -98,4 +98,5 @@ Deno.test("whole-absence deletion includes completed same-day lessons while grou
   assert(deletion.includes('["assigned","confirmed","completed"].includes(item.status)'),"Whole-group deletion must include completed lessons");
   assert(deletion.includes('action:"timetable_substitution_cancel_batch"'),"Whole-group deletion must use the atomic batch cancellation action");
   assert(editing.includes('["assigned","confirmed"].includes(item.status)'),"Group editing must include only active lessons");
+  assert(source.includes('const canDeleteGroup=rows.length>0&&rows.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));'),"Archive group deletion must also include completed same-day lessons and exclude historical rows");
 });
