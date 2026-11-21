@@ -3778,6 +3778,7 @@ function saveAppAuthSession(session) {
   if (!session?.token || !/^[a-f0-9]{64}$/i.test(session.token)) throw new Error("استجابة جلسة الدخول غير صالحة.");
   try { sessionStorage.setItem(APP_AUTH_SESSION_KEY, session.token); } catch (error) { throw new Error("تعذر حفظ جلسة الدخول الآمنة في هذا المتصفح."); }
   appAuthSession = session;
+  if (localOnlySession) cloudDataLoadState = "not-started";
   localOnlySession = false;
 }
 function readAppAuthToken() { try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; } }
@@ -5887,7 +5888,7 @@ window.addEventListener('DOMContentLoaded', async () => {
     cloudResumeInProgress = true;
     setTimeout(async () => {
       try {
-        if (!navigator.onLine || !activeUser || document.hidden || cloudDataLoadState === 'loading' ||
+        if (localOnlySession || !hasUnexpiredAppAuthSession() || !navigator.onLine || !activeUser || document.hidden || cloudDataLoadState === 'loading' ||
             cloudSaveInProgress || cloudRefreshInProgress || manualOfflineSyncInProgress ||
             attendanceDirty || behaviorDirty) return;
         let recoveredCloud = false;
@@ -6615,7 +6616,6 @@ async function handleUserLogin(e) {
       loginAttempts = 0; loginLockedUntil = 0;
       await finalizeLoginState();
     } else if (useLegacyLogin) {
-      localOnlySession = true;
       clearAppAuthSession();
       await new Promise(resolve => setTimeout(resolve, 200));
       const found = await findUserByPinWithRecord(pin);
@@ -6629,6 +6629,7 @@ async function handleUserLogin(e) {
       loginAttempts = 0; loginLockedUntil = 0;
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
+      localOnlySession = true;
       // Preserve existing credential records during login. Credential upgrades require
       // a separately reviewed, explicit migration; never rewrite stored PIN hashes here.
       await finalizeLoginState();
@@ -6766,7 +6767,7 @@ async function finalizeLoginState() {
   const studentAffairsBtn = document.getElementById('studentAffairsBtn');
   const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
   const showAdminPanel = hasAdminPanelAccess(activeUser) || isAdmin;
-  const showStudentAffairs = isAdmin || activeUser.permissions?.studentAffairs === true;
+  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true);
   if (adminBtn) {
     adminBtn.classList.toggle('hidden', !showAdminPanel);
     adminBtn.classList.toggle('flex', showAdminPanel);
