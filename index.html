@@ -2173,33 +2173,127 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 @keyframes subxReveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 @media(max-width:640px){#substitutionView .subx-toolbar{padding:16px;border-radius:22px}#substitutionView .subx-toolbar h3{font-size:16px}#substitutionView .subx-rules-trigger{padding:9px 10px;font-size:10px}#substitutionView .subx-step{gap:5px}#substitutionView .subx-step>span{width:28px;height:28px;flex-basis:28px}#substitutionView .subx-step b{font-size:9px}#substitutionView .subx-step small{font-size:8px}#substitutionView .subx-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-floating-bar{width:calc(100vw - 18px);bottom:calc(8px + env(safe-area-inset-bottom));padding:9px;border-radius:17px;gap:8px}#substitutionView .subx-floating-copy b{font-size:10px}#substitutionView .subx-floating-copy small{font-size:9px}#substitutionView #subxGenerateDock #substitutionGenerateButton{padding:11px 12px;font-size:10px}}
 @media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation:none!important;transition:none!important}}
+
+/* Vibrant glass visual system — scoped strictly to substitutionView */
+#substitutionView{--subx-indigo:#4f46e5;--subx-blue:#2563eb;--subx-sky:#0ea5e9;--subx-amber:#f59e0b;--subx-rose:#f43f5e;--subx-emerald:#10b981}
+#substitutionView .subx-toolbar{border:1px solid rgba(148,163,184,.22);border-radius:24px;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(239,246,255,.76) 55%,rgba(245,243,255,.84));backdrop-filter:blur(22px) saturate(165%);-webkit-backdrop-filter:blur(22px) saturate(165%);box-shadow:0 18px 48px rgba(37,99,235,.10),inset 0 1px rgba(255,255,255,.8)}
+#substitutionView .subx-toolbar:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#2563eb,#4f46e5,#0ea5e9,#f59e0b)}
+#substitutionView .subx-toolbar:after{background:radial-gradient(circle,rgba(79,70,229,.18),transparent 70%)}
+.dark #substitutionView .subx-toolbar{background:linear-gradient(135deg,rgba(15,23,42,.88),rgba(30,41,75,.82) 55%,rgba(49,46,129,.34));backdrop-filter:blur(22px) saturate(150%);-webkit-backdrop-filter:blur(22px) saturate(150%)}
+#substitutionView .subx-eyebrow{color:#4f46e5}
+.dark #substitutionView .subx-eyebrow{color:#a5b4fc}
+#substitutionView .subx-toolbar h3{background:linear-gradient(100deg,#1e3a8a,#4f46e5 58%,#0284c7);-webkit-background-clip:text;background-clip:text;color:transparent}
+.dark #substitutionView .subx-toolbar h3{background-image:linear-gradient(100deg,#bfdbfe,#c4b5fd,#7dd3fc)}
+#substitutionView .subx-header-actions{display:flex;align-items:center;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+#substitutionView .subx-rules-trigger{border:1px solid rgba(217,119,6,.22);background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;padding:10px 14px;border-radius:13px;box-shadow:0 7px 18px rgba(217,119,6,.22)}
+#substitutionView .subx-rules-trigger:hover{transform:translateY(-2px);filter:brightness(1.05);box-shadow:0 10px 24px rgba(217,119,6,.3)}
+#substitutionView .subx-back-home{display:inline-flex;align-items:center;gap:7px;padding:10px 13px;border:1px solid rgba(100,116,139,.22);border-radius:13px;background:rgba(255,255,255,.62);color:#334155;font-size:11px;font-weight:900;backdrop-filter:blur(14px);transition:.22s}
+#substitutionView .subx-back-home:hover{transform:translateY(-2px);border-color:#6366f1;color:#4338ca;background:rgba(238,242,255,.9)}
+.dark #substitutionView .subx-back-home{background:rgba(15,23,42,.55);border-color:rgba(148,163,184,.24);color:#e2e8f0}
+#substitutionView .subx-tabs{background:rgba(226,232,240,.52);border-color:rgba(148,163,184,.2);backdrop-filter:blur(14px)}
+.dark #substitutionView .subx-tabs{background:rgba(15,23,42,.55)}
+#substitutionView .subx-tab.is-active{background:linear-gradient(135deg,#2563eb,#4f46e5);box-shadow:0 8px 22px rgba(79,70,229,.32),0 0 0 1px rgba(255,255,255,.2) inset}
+#substitutionView .subx-step.is-current,#substitutionView .subx-step.is-done{color:#4f46e5}
+#substitutionView .subx-step.is-current>span,#substitutionView .subx-step.is-done>span{border-color:transparent;background:linear-gradient(135deg,#2563eb,#4f46e5);box-shadow:0 0 0 5px rgba(79,70,229,.10),0 7px 18px rgba(79,70,229,.28)}
+#substitutionView .subx-step-line{background:linear-gradient(90deg,rgba(37,99,235,.52),rgba(79,70,229,.32),rgba(14,165,233,.3))}
+#substitutionView .subx-rules-drawer{border:1px solid rgba(99,102,241,.2);border-radius:24px;background:linear-gradient(135deg,rgba(255,255,255,.78),rgba(238,242,255,.82),rgba(240,249,255,.78));backdrop-filter:blur(22px) saturate(160%);-webkit-backdrop-filter:blur(22px) saturate(160%);box-shadow:0 20px 55px rgba(37,99,235,.13),inset 0 1px rgba(255,255,255,.8);padding:20px}
+.dark #substitutionView .subx-rules-drawer{background:linear-gradient(135deg,rgba(15,23,42,.9),rgba(30,41,75,.9),rgba(49,46,129,.32));border-color:rgba(129,140,248,.25)}
+#substitutionView .subx-rules-head h3{font-size:17px;background:linear-gradient(100deg,#1e3a8a,#4f46e5,#0284c7);-webkit-background-clip:text;background-clip:text;color:transparent}
+#substitutionView .subx-rules-head p{margin-top:4px;color:#64748b;font-size:10px}
+.dark #substitutionView .subx-rules-head p{color:#cbd5e1}
+#substitutionView .subx-rules-grid{grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+#substitutionView .subx-rules-grid>div{position:relative;overflow:hidden;min-width:0;padding:14px;border-radius:17px;background:rgba(255,255,255,.68);border:1px solid rgba(148,163,184,.2);box-shadow:0 7px 20px rgba(15,23,42,.045);backdrop-filter:blur(12px);transition:transform .22s,box-shadow .22s}
+#substitutionView .subx-rules-grid>div:hover{transform:translateY(-4px);box-shadow:0 14px 26px rgba(79,70,229,.12)}
+#substitutionView .subx-rules-grid .rule-blue{background:linear-gradient(145deg,rgba(219,234,254,.86),rgba(255,255,255,.72));border-color:rgba(37,99,235,.2)}
+#substitutionView .subx-rules-grid .rule-violet{background:linear-gradient(145deg,rgba(237,233,254,.9),rgba(255,255,255,.72));border-color:rgba(124,58,237,.2)}
+#substitutionView .subx-rules-grid .rule-cyan{background:linear-gradient(145deg,rgba(207,250,254,.88),rgba(255,255,255,.72));border-color:rgba(14,165,233,.2)}
+#substitutionView .subx-rules-grid .rule-rose{background:linear-gradient(145deg,rgba(255,228,230,.9),rgba(255,255,255,.72));border-color:rgba(244,63,94,.2)}
+#substitutionView .subx-rules-grid .rule-amber{background:linear-gradient(145deg,rgba(254,243,199,.92),rgba(255,255,255,.72));border-color:rgba(245,158,11,.25)}
+#substitutionView .subx-rules-grid .rule-blue i{color:#2563eb}#substitutionView .subx-rules-grid .rule-violet i{color:#7c3aed}#substitutionView .subx-rules-grid .rule-cyan i{color:#0284c7}#substitutionView .subx-rules-grid .rule-rose i{color:#e11d48}#substitutionView .subx-rules-grid .rule-amber i{color:#d97706}
+#substitutionView .subx-rules-grid b{font-size:11px;color:#172554}
+#substitutionView .subx-rules-grid p{font-size:9px;line-height:1.75;color:#475569}
+.dark #substitutionView .subx-rules-grid>div{background:rgba(15,23,42,.72);border-color:rgba(148,163,184,.2)}
+.dark #substitutionView .subx-rules-grid b{color:#f8fafc}.dark #substitutionView .subx-rules-grid p{color:#cbd5e1}
+#substitutionView .subx-points-panel{margin-top:14px;padding:15px;border:1px solid rgba(79,70,229,.16);border-radius:18px;background:rgba(255,255,255,.62);backdrop-filter:blur(14px)}
+.dark #substitutionView .subx-points-panel{background:rgba(15,23,42,.62);border-color:rgba(129,140,248,.2)}
+#substitutionView .subx-points-heading{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:12px;color:#3730a3;font-size:12px;font-weight:900}
+#substitutionView .subx-points-heading i{margin-left:6px;color:#4f46e5}
+#substitutionView .subx-points-heading small{color:#94a3b8;font-size:9px}
+.dark #substitutionView .subx-points-heading{color:#c7d2fe}
+#substitutionView .subx-points-matrix{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:8px}
+#substitutionView .subx-point-chip{display:flex;flex-direction:column;gap:6px;padding:10px 8px;border:1px solid rgba(37,99,235,.12);border-radius:13px;background:linear-gradient(145deg,rgba(239,246,255,.92),rgba(255,255,255,.8));text-align:center}
+#substitutionView .subx-point-chip small{font-size:9px;color:#64748b;font-weight:800}
+#substitutionView .subx-point-chip b{font-size:16px;color:#3730a3}
+#substitutionView .subx-point-chip em{font-size:9px;font-style:normal;color:#64748b}
+#substitutionView .subx-point-bonus{background:linear-gradient(145deg,#fff7ed,#ffedd5);border-color:rgba(217,119,6,.24)}
+#substitutionView .subx-point-bonus b{color:#c2410c}
+.dark #substitutionView .subx-point-chip{background:rgba(30,41,59,.8);border-color:rgba(129,140,248,.2)}
+.dark #substitutionView .subx-point-chip small,#substitutionView .subx-point-chip em{color:#cbd5e1}
+.dark #substitutionView .subx-point-chip b{color:#c7d2fe}
+#substitutionView .subx-rules-note{padding:10px 12px;border-radius:12px;background:rgba(79,70,229,.07);color:#4338ca;font-size:10px}
+.dark #substitutionView .subx-rules-note{color:#c7d2fe;background:rgba(99,102,241,.12)}
+#substitutionView .subx-date-card{position:relative;overflow:hidden;border-color:rgba(14,165,233,.22)!important;background:linear-gradient(140deg,rgba(224,242,254,.9),rgba(255,255,255,.92))!important;box-shadow:0 10px 28px rgba(14,165,233,.09)!important}
+#substitutionView .subx-date-card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#0ea5e9,#0284c7,#38bdf8)}
+#substitutionView .subx-date-card label{color:#075985!important}
+#substitutionView .subx-date-card input{border-color:rgba(14,165,233,.25)!important;background:rgba(255,255,255,.75)!important}
+#substitutionView #substitutionWeekdayLabel{display:inline-flex;padding:5px 9px;border-radius:9px;background:linear-gradient(135deg,#0ea5e9,#0284c7);color:#fff!important}
+#substitutionView .subx-search-wrap{border-color:rgba(99,102,241,.2);background:rgba(248,250,252,.82);backdrop-filter:blur(12px)}
+#substitutionView .subx-search-wrap:focus-within{border-color:#6366f1;box-shadow:0 0 0 4px rgba(99,102,241,.10)}
+#substitutionView .subx-search-wrap>i{color:#4f46e5}
+#substitutionView #substitutionAbsenteeList>label{border:1px solid rgba(148,163,184,.22)!important;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(239,246,255,.72))!important;backdrop-filter:blur(14px);box-shadow:0 7px 18px rgba(37,99,235,.055)!important}
+#substitutionView #substitutionAbsenteeList>label:hover{transform:translateY(-3px);border-color:rgba(14,165,233,.5)!important;box-shadow:0 13px 26px rgba(14,165,233,.13)!important}
+#substitutionView #substitutionAbsenteeList>label:has(input:checked){border:1.5px solid #f43f5e!important;background:linear-gradient(135deg,#fff1f2,#ffe4e6)!important;box-shadow:0 0 0 3px rgba(244,63,94,.10),0 10px 24px rgba(244,63,94,.13)!important;color:#be123c}
+#substitutionView #substitutionAbsenteeList>label:has(input:checked) span:last-child{background:linear-gradient(135deg,#f43f5e,#e11d48)!important;color:#fff!important}
+.dark #substitutionView #substitutionAbsenteeList>label{background:linear-gradient(135deg,rgba(30,41,59,.88),rgba(30,41,75,.75))!important}
+.dark #substitutionView #substitutionAbsenteeList>label:has(input:checked){background:linear-gradient(135deg,rgba(136,19,55,.38),rgba(190,24,93,.24))!important;border-color:#fb7185!important;color:#fecdd3}
+#substitutionView #subxGenerateDock #substitutionGenerateButton{background:linear-gradient(135deg,#6366f1,#0ea5e9)!important;box-shadow:0 8px 22px rgba(99,102,241,.32)!important;position:relative;overflow:hidden}
+#substitutionView #subxGenerateDock #substitutionGenerateButton:before{content:"";position:absolute;top:-50%;left:-65%;width:35%;height:200%;transform:rotate(22deg);background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent);animation:subxShimmer 3.8s ease-in-out infinite}
+#substitutionView #substitutionSaveButton{background:linear-gradient(135deg,#10b981,#059669)!important;box-shadow:0 7px 18px rgba(16,185,129,.18)}
+#substitutionView #substitutionPdfButton{background:linear-gradient(135deg,#1e3a8a,#2563eb)!important;border:0!important;color:#fff!important}
+#substitutionView #substitutionPdfButton i{color:#bfdbfe!important}
+#substitutionView #substitutionWhatsappButton{background:#25d366!important;color:#fff!important}
+#substitutionView .subx-floating-bar{background:rgba(255,255,255,.84);backdrop-filter:blur(24px) saturate(170%);-webkit-backdrop-filter:blur(24px) saturate(170%);border-color:rgba(99,102,241,.18);box-shadow:0 18px 55px rgba(30,41,59,.22)}
+#substitutionView .subx-floating-dot{background:#4f46e5;box-shadow:0 0 0 5px rgba(79,70,229,.13)}
+.dark #substitutionView .subx-floating-bar{background:rgba(15,23,42,.86)}
+@keyframes subxShimmer{0%,65%{left:-65%}100%{left:135%}}
+@media(max-width:900px){#substitutionView .subx-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-points-matrix{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:640px){#substitutionView .subx-header-actions{width:100%;justify-content:stretch}#substitutionView .subx-header-actions button{flex:1;justify-content:center;padding:10px 8px;font-size:10px}#substitutionView .subx-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-points-matrix{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-rules-drawer{padding:14px}}
+@media(prefers-reduced-motion:reduce){#substitutionView #subxGenerateDock #substitutionGenerateButton:before{animation:none}}
 </style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
-  <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-indigo-950 to-cyan-900 p-5 sm:p-7 text-white shadow-xl">
-    <div class="absolute -left-12 -top-16 h-52 w-52 rounded-full bg-cyan-300/15 blur-3xl"></div>
-    <div class="relative z-10 flex flex-wrap items-center justify-between gap-3">
-      <div class="flex items-center gap-3">
-        <div class="flex h-14 w-14 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-2xl shadow-inner backdrop-blur-md"><i class="fa-solid fa-calendar-check text-cyan-100"></i></div>
-        <div><span class="text-[10px] font-black tracking-widest text-cyan-200">منظومة التوزيع العادل</span><h2 class="mt-1 text-xl sm:text-2xl font-black">توزيع حصص الاحتياط</h2><p class="mt-1 text-[11px] text-cyan-100">اقتراح ذكي، مراجعة يدوية، ثم اعتماد ومشاركة</p></div>
-      </div>
-      <button type="button" onclick="closeSubstitutionView()" class="rounded-xl border border-white/20 bg-white/10 px-4 py-2.5 text-xs font-black text-white backdrop-blur-md hover:bg-white/20"><i class="fa-solid fa-arrow-right ml-1"></i> العودة للرئيسية</button>
-    </div>
-    <div class="relative z-10 mt-5 grid grid-cols-2 sm:grid-cols-4 gap-2">
-      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">آلية الاختيار</div><div class="mt-1 text-sm font-black">الأقل نقاطاً</div></div>
-      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">العدالة اليومية</div><div class="mt-1 text-sm font-black">حصة ثم حصتان عند الضرورة</div></div>
-      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">منع التعارض</div><div class="mt-1 text-sm font-black">أساسي واحتياط</div></div>
-      <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">المقاربة</div><div class="mt-1 text-sm font-black">تجنب 3 متتالية</div></div>
-    </div>
-  </div>
   <div class="subx-toolbar">
-    <div class="subx-toolbar-top"><div><span class="subx-eyebrow">مساحة العمل الذكية</span><h3>إدارة التوزيع اليومي</h3><p>اختر الغياب، راجع الاقتراح، ثم اعتمد بثقة.</p></div><button type="button" id="subxRulesToggle" class="subx-rules-trigger"><i class="fa-solid fa-sliders"></i><span>قواعد التوزيع</span></button></div>
+    <div class="subx-toolbar-top"><div><span class="subx-eyebrow">مساحة العمل الذكية</span><h3>إدارة التوزيع اليومي</h3><p>اختر الغياب، راجع الاقتراح، ثم اعتمد بثقة.</p></div><div class="subx-header-actions"><button type="button" id="subxRulesToggle" class="subx-rules-trigger"><i class="fa-solid fa-scale-balanced"></i><span>⚖️ عدالة التوزيع واحتساب النقاط</span></button><button type="button" class="subx-back-home" onclick="closeSubstitutionView()"><i class="fa-solid fa-arrow-right"></i><span>العودة للرئيسية</span></button></div></div>
     <div class="subx-tabs" role="tablist" aria-label="أقسام لوحة الاحتياط"><button type="button" class="subx-tab is-active" data-subx-tab="daily" role="tab" aria-selected="true"><i class="fa-solid fa-calendar-day"></i> التوزيع اليومي</button><button type="button" class="subx-tab" data-subx-tab="stats" role="tab" aria-selected="false"><i class="fa-solid fa-chart-column"></i> سجل النقاط والإحصائيات</button></div>
     <div class="subx-stepper" aria-label="مراحل التوزيع"><div class="subx-step is-current" id="subxStep1"><span>١</span><div><b>الاختيار</b><small>تحديد الغياب</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep2"><span>٢</span><div><b>المراجعة</b><small>فحص الاقتراح</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep3"><span>٣</span><div><b>الاعتماد</b><small>حفظ ومشاركة</small></div></div></div>
   </div>
-  <div id="subxRulesDrawer" class="subx-rules-drawer" hidden><div class="subx-rules-head"><div><span class="subx-eyebrow">شفافية وعدالة</span><h3>قواعد توزيع حصص الاحتياط</h3></div><button type="button" id="subxRulesClose" aria-label="إغلاق قواعد التوزيع">×</button></div>
-    <div class="subx-rules-grid"><div><i class="fa-solid fa-scale-balanced"></i><b>الأولوية للأقل نقاطاً</b><p>يُراعى رصيد النقاط وفق آلية النظام المعتمدة.</p></div><div><i class="fa-solid fa-calendar-check"></i><b>توازن التكليف اليومي</b><p>توزيع الحصص بما يحقق العدالة ويقلل التكرار غير الضروري.</p></div><div><i class="fa-solid fa-shield-halved"></i><b>منع التعارض</b><p>فحص الحصص الأساسية وتكليفات الاحتياط القائمة.</p></div><div><i class="fa-solid fa-arrows-left-right"></i><b>مراعاة التتابع</b><p>تجنب تكليف المعلم بثلاث حصص متتالية متى أمكن.</p></div></div><p class="subx-rules-note">هذه اللوحة توضح القواعد المعتمدة فقط؛ ولا تستبدل خوارزمية التوزيع أو تغيّرها.</p></div>
+  <div id="subxRulesDrawer" class="subx-rules-drawer" hidden>
+    <div class="subx-rules-head">
+      <div><span class="subx-eyebrow">شفافية • توازن • إنصاف</span><h3>⚖️ عدالة التوزيع واحتساب النقاط</h3><p>ملخص بصري للقواعد التي يستند إليها توزيع حصص الاحتياط.</p></div>
+      <button type="button" id="subxRulesClose" aria-label="إغلاق قواعد التوزيع">×</button>
+    </div>
+    <div class="subx-rules-grid">
+      <div class="subx-rule-card rule-blue"><i class="fa-solid fa-scale-balanced"></i><b>أولوية الأقل نقاطاً</b><p>تُراعى أولوية المعلم صاحب الرصيد الأقل لتحقيق التوازن في توزيع التكليفات.</p></div>
+      <div class="subx-rule-card rule-violet"><i class="fa-solid fa-shield-halved"></i><b>منع التعارض والتكرار</b><p>يُفحص الجدول الأساسي وتكليف الاحتياط في الحصة نفسها، مع تجنب التكرار قدر الإمكان.</p></div>
+      <div class="subx-rule-card rule-cyan"><i class="fa-solid fa-calendar-check"></i><b>العدالة اليومية</b><p>تُراعى أولوية من لم يحصل على احتياط في اليوم، ثم تُزاد الحصص عند الضرورة وفق المتاح.</p></div>
+      <div class="subx-rule-card rule-rose"><i class="fa-solid fa-arrows-left-right"></i><b>الحصص المتتالية</b><p>يتجنب النظام تكليف المعلم بثلاث حصص متتالية متى سمحت الخيارات المتاحة.</p></div>
+      <div class="subx-rule-card rule-amber"><i class="fa-solid fa-award"></i><b>تعويض الجهد</b><p>بحسب القاعدة الموضحة: عند تحقق شرط ثلاث حصص متتالية تُضاف نقطتان إلى الرصيد.</p></div>
+    </div>
+    <div class="subx-points-panel">
+      <div class="subx-points-heading"><span><i class="fa-solid fa-chart-column"></i> احتساب النقاط حسب رقم الحصة</span><small>قيمة النقاط لكل تكليف</small></div>
+      <div class="subx-points-matrix">
+        <div class="subx-point-chip"><small>الحصة 1–2</small><b>1 <em>نقطة</em></b></div>
+        <div class="subx-point-chip"><small>الحصة 3–4</small><b>2 <em>نقطتان</em></b></div>
+        <div class="subx-point-chip"><small>الحصة 5</small><b>4 <em>نقاط</em></b></div>
+        <div class="subx-point-chip"><small>الحصة 6</small><b>3 <em>نقاط</em></b></div>
+        <div class="subx-point-chip"><small>الحصة 7</small><b>5 <em>نقاط</em></b></div>
+        <div class="subx-point-chip"><small>الحصة 8</small><b>7 <em>نقاط</em></b></div>
+        <div class="subx-point-chip subx-point-bonus"><small>3 حصص متتالية</small><b>+2 <em>نقطتان إضافيتان</em></b></div>
+      </div>
+    </div>
+    <p class="subx-rules-note">هذه اللوحة للشرح والشفافية فقط؛ لم تتغير خوارزمية الترشيح أو احتساب النقاط أو قواعد الحفظ.</p>
+  </div>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
+    <div class="subx-date-card rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <label for="substitutionDate" class="mb-2 block text-xs font-black text-slate-700 dark:text-slate-200">اليوم والتاريخ</label>
       <input id="substitutionDate" type="date" onchange="substitutionDateChanged()" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
       <p id="substitutionWeekdayLabel" class="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">—</p>
@@ -2211,10 +2305,6 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       </label>
       <select id="substitutionOtherDepartmentSelect" class="hidden mt-3 w-full rounded-xl border border-indigo-200 bg-white p-3 text-xs font-bold text-slate-800 dark:border-indigo-900 dark:bg-slate-900 dark:text-white" disabled><option value="">اختر القسم المطلوب</option></select>
       <div id="substitutionOtherTeacherChoices" class="hidden mt-3 rounded-2xl border border-indigo-100 bg-white p-3 dark:border-indigo-900 dark:bg-slate-900" aria-live="polite"><p class="text-xs text-slate-500">اختر القسم لعرض المعلمين.</p></div>
-    </div>
-    <div class="rounded-3xl border border-cyan-200 bg-cyan-50/70 p-4 dark:border-cyan-900 dark:bg-cyan-950/30">
-      <div class="text-xs font-black text-cyan-900 dark:text-cyan-200">قاعدة النقاط</div>
-      <p class="mt-1 text-[11px] leading-5 text-cyan-800 dark:text-cyan-300">1–2: نقطة · 3–4: نقطتان · 5: أربع · 6: ثلاث · 7: خمس · 8: سبع نقاط</p>
     </div>
   </div>
 
