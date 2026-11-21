@@ -1399,7 +1399,7 @@ async function handle(req: Request) {
         const cancellationDate=String(body.assignmentDate||"");
         if(!assignment||assignment.weekday!==weekday||String(assignment.assignment_date||"")!==cancellationDate)return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
         if(cancellationDate!==todayInMuscat||!["assigned","confirmed"].includes(String(assignment.status||"")))return reply(409,{error:"يمكن حذف تكليف الاحتياط النشط خلال يومه فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان."});
-        const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type}});
+        const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type,force_points_reversal:true}});
         if(cancelError)throw cancelError;
         return reply(200,{ok:true,assignment:data});
       }
