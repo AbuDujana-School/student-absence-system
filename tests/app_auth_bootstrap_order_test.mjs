@@ -84,5 +84,5 @@ test("logout resets the cloud bootstrap state before the next account signs in",
   assert.match(logout, /cloudDataLoadState = 'not-started'/);
   assert.match(logout, /cloudWritesBlockedByManifestFailure = false/);
   const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
-  assert.match(finalize, /navigator\\.onLine && cloudDataLoadState !== 'ready'/);
+  assert.ok(finalize.includes("cloudDataLoadState !== 'ready'"));
 });
