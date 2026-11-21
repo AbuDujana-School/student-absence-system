@@ -6869,7 +6869,14 @@ async function handleUserLogin(e) {
       cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
       loginAttempts = 0; loginLockedUntil = 0;
-      await finalizeLoginState();
+      // Authentication is already complete and the server session is stored.
+      // Never keep the login form waiting for secondary dashboard initialization.
+      document.getElementById('loginView')?.classList.add('hidden');
+      document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+      void finalizeLoginState().catch(finalizeError => {
+        console.error('Post-login dashboard initialization failed; authenticated session remains active.', finalizeError);
+        showToast('تم تسجيل الدخول، لكن بعض عناصر لوحة النظام تأخر تجهيزها.', 'error');
+      });
     } else if (useLegacyLogin) {
       clearAppAuthSession();
       await new Promise(resolve => setTimeout(resolve, 200));
