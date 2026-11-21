@@ -6352,14 +6352,20 @@ function withAppSyncTimeout(promise, timeoutMs, message) {
 }
 
 async function fetchAppSyncManifest() {
+  const diag = stage => { if (window.__ABU_SYNC_TEST_DIAGNOSTICS__) console.log('SYNC_TEST_INTERNAL ' + stage); };
+  diag('manifest:start');
+  const rpcRequest = sb.rpc('get_app_sync_manifest');
+  diag('manifest:rpc-created');
   const { data, error } = await withAppSyncTimeout(
-    sb.rpc('get_app_sync_manifest'),
+    rpcRequest,
     10000,
     'انتهت مهلة التحقق من تحديثات الخادم.'
   );
+  diag('manifest:rpc-settled');
   if (error) throw error;
   const manifest = normalizeAppSyncManifest(data);
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
+  diag('manifest:success');
   return manifest;
 }
 function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback = localStorageFallbackSnapshot) {
