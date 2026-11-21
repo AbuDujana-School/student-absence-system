@@ -70,7 +70,7 @@ begin
   end loop;
   return jsonb_build_object('created_count',v_count,'assignments',v_results,'atomic',true);
 end;
-$function$
+$function$;
 
 
 CREATE OR REPLACE FUNCTION public.replace_timetable_substitution_batch_with_reason(p_payload jsonb)
@@ -135,7 +135,7 @@ begin
   end loop;
   return jsonb_build_object('ok',true,'updated_count',v_count,'replacements',v_results,'atomic',true);
 end;
-$function$
+$function$;
 
 
 revoke all on function public.create_timetable_substitution_batch_with_reason(jsonb) from public, anon, authenticated;
