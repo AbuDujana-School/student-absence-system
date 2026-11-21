@@ -941,7 +941,8 @@
     return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
   }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 22;
-  function reserveOfficialPrintPages(groups,date,weekday,subject){
+  function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
+    if(options?.singlePage)return [reserveOfficialPrintMarkup(groups,date,weekday,subject,options)];
     const pages=[];let current=[],count=0;
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
@@ -953,7 +954,7 @@
     if(current.length)pages.push(current);if(!pages.length)pages.push([]);
     return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject));
   }
-  function reserveOfficialPrintMarkup(groups,date,weekday,subject){
+  function reserveOfficialPrintMarkup(groups,date,weekday,subject,options={}){
     const widths=[20,16,10.5,10.5,13,11,19];
     const columns='<colgroup>'+widths.map(width=>'<col style="width:'+width+'%">').join('')+'</colgroup>';
     const header='<thead><tr><th>المعلم الغائب</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>معلم الاحتياط</th><th>التوقيع</th><th>الملاحظات</th></tr></thead>';
@@ -966,7 +967,8 @@
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"") +'</td><td class="tt-official-substitute">'+esc(row.substitute||"") +'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
-    const remaining=Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
+    const remaining=options?.singlePage?0:Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
+    const singlePageFontSize=used>60?5.8:used>44?6.6:used>30?7.4:used>22?8.2:9.2;
     const reservedSecondTeacher=remaining>0
       ?Array.from({length:remaining},(_,i)=>'<tr class="'+(i===0?'tt-official-group-start':'')+'">'+(i===0?'<td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td>':"")+'<td></td><td></td><td></td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>').join("")
       :"";
@@ -974,22 +976,22 @@
     if(!resolvedWeekday&&safeDate){const d=new Date(safeDate+"T12:00:00+04:00");if(Number.isFinite(d.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(d);}
     const detectedSubjects=[...new Set((groups||[]).flatMap(group=>(group.rows||[]).map(row=>String(row.subject||"").trim()).filter(Boolean)))];
     const subjectLabel=String(subject||"").trim()||detectedSubjects.join("، ");
-    const subjectTitle=subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط";
+    const subjectTitle=String(options?.title||"").trim()||(subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط");
 
-    return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
+    return '<main class="tt-official-page"'+(options?.singlePage?' data-single-page="1"':'')+'><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
 
       '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+
-      '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'">'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
+      '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'"'+(options?.singlePage?' style="font-size:'+singlePageFontSize+'pt"':'')+'>'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
   function reservePrintDocumentTitle(subject){
     const label=String(subject||"").trim().replace(/^مادة\s+/,"");
     return label?"احتياط مادة "+label:"كشف توزيع حصص الاحتياط";
   }
-  function printOfficialReservePages(pages,subject){
+  function printOfficialReservePages(pages,subject,options={}){
     const previousTitle=document.title;
-    document.title=reservePrintDocumentTitle(subject);
+    document.title=String(options?.title||"").trim()||reservePrintDocumentTitle(subject);
     document.getElementById("ttReservePrintRoot")?.remove();document.getElementById("ttReserveOfficialPrintStyle")?.remove();
     const style=document.createElement("style");style.id="ttReserveOfficialPrintStyle";
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
@@ -1017,6 +1019,7 @@
       '.tt-official-table tbody td.tt-official-substitute{color:#065f46!important;font-weight:900!important;background:#fff!important}'+
       '.tt-official-table th,.tt-official-table td{border-color:#1e293b!important}'+
       '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
+    if(options?.singlePage)style.textContent += '.tt-official-page[data-single-page="1"] .tt-official-table{height:auto!important}.tt-official-page[data-single-page="1"] .tt-official-table thead{height:7mm!important}.tt-official-page[data-single-page="1"] .tt-official-table thead th{height:7mm!important;padding:.35mm!important;font-size:8pt!important;line-height:1.1!important}.tt-official-page[data-single-page="1"] .tt-official-table tbody tr{height:auto!important;min-height:0!important}.tt-official-page[data-single-page="1"] .tt-official-table tbody td{height:auto!important;padding:.3mm .4mm!important;font-size:inherit!important;line-height:1.05!important}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
     let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();document.title=previousTitle;window.removeEventListener("afterprint",cleanup);};
     window.addEventListener("afterprint",cleanup,{once:true});
@@ -1040,6 +1043,11 @@
     const subject=await reservePrintActorSubject();
     const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"",subject);
     printOfficialReservePages(pages,subject);
+  };
+  window.printSchoolwideReserveDistributionReport=function(groups,date,weekday){
+    const options={singlePage:true,title:"توزيع الاحتياط"};
+    const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"","",options);
+    printOfficialReservePages(pages,"",options);
   };
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
