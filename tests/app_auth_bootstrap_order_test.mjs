@@ -43,10 +43,13 @@ test("online cloud reads require an unexpired server-issued app session before a
   assert.match(helper, /Date\.parse\(session\.expires_at\) > Date\.now\(\)/);
 
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  const guard = loader.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
+  const principalGuard = loader.indexOf("if (!activeUser)");
+  const localOnlyGuard = loader.indexOf("if (localOnlySession)", principalGuard);
+  const sessionGuard = loader.indexOf("if (navigator.onLine && !await ensureAppAuthSession())", localOnlyGuard);
   const manifest = loader.indexOf("fetchAppSyncManifest()");
-  assert.ok(guard >= 0 && manifest > guard);
-  assert.match(loader.slice(guard, manifest), /cloudDataLoadState = 'failed'/);
+  assert.ok(principalGuard >= 0 && localOnlyGuard > principalGuard);
+  assert.ok(sessionGuard > localOnlyGuard && manifest > sessionGuard);
+  assert.match(loader.slice(sessionGuard, manifest), /cloudDataLoadState = 'failed'/);
 });
 
 test("online cloud writes require an unexpired server-issued app session", () => {
