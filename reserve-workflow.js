@@ -833,8 +833,8 @@
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
       const absent=esc(group.absentName||""),rawReason=String(group.reason||"").trim(),reason=esc(rawReason==="-"||rawReason==="—"?"":rawReason);
       return rows.map((row,rowIndex)=>{
-        const merged=rowIndex===0?'<td class="tt-official-merged" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged" rowspan="'+rows.length+'">'+reason+'</td>':"";
-        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
+        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(reason||"—")+'</td>':"";
+        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"")+'</td><td class="tt-official-substitute">'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
     const remaining=Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
@@ -882,6 +882,16 @@
       '.tt-official-summary-box>.tt-summary-sub{color:#065f46}'+
       '.tt-official-table .tt-official-merged{background:#fff!important;color:#000!important;border:1.2px solid #1e293b!important;font-weight:900!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '.tt-official-table tbody td{background:#fff!important;color:#000!important}'+
+      '.tt-official-summary,.tt-official-summary-box,.tt-official-table th,.tt-official-table td{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'+
+      '.tt-official-summary-box{background:#fff!important;border:1.5px solid #1e293b!important;color:#000!important}'+
+      '.tt-official-summary-box>span{color:#334155!important;font-weight:900!important}'+
+      '.tt-official-summary-box>.tt-summary-absent,.tt-official-summary-box>.tt-summary-reason{color:#991b1b!important}'+
+      '.tt-official-summary-box>.tt-summary-class{color:#1e3a8a!important}'+
+      '.tt-official-summary-box>.tt-summary-sub{color:#065f46!important}'+
+      '.tt-official-table tbody td.tt-official-absent,.tt-official-table tbody td.tt-official-reason{color:#991b1b!important;font-weight:900!important;background:#fff!important;border:1.5px solid #1e293b!important}'+
+      '.tt-official-table tbody td.tt-official-class{color:#1e3a8a!important;font-weight:900!important;background:#fff!important}'+
+      '.tt-official-table tbody td.tt-official-substitute{color:#065f46!important;font-weight:900!important;background:#fff!important}'+
+      '.tt-official-table th,.tt-official-table td{border-color:#1e293b!important}'+
       '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
     let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();document.title=previousTitle;window.removeEventListener("afterprint",cleanup);};
@@ -1358,7 +1368,7 @@
         const editable=item.canEdit===true&&["assigned","confirmed"].includes(item.status);
         const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="assigned"?"محفوظ":String(item.status||"");
         const actions=editable
-          ?'<div class="flex shrink-0 flex-wrap gap-2"><button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-4 py-2 text-xs font-black text-indigo-900 hover:bg-indigo-100" data-home-today-edit="'+esc(item.id)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button><button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-4 py-2 text-xs font-black text-rose-800 hover:bg-rose-100" data-home-today-delete="'+esc(item.id)+'"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button></div>'
+          ?'<div class="flex shrink-0 flex-wrap gap-1.5"><button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-[11px] font-black text-indigo-900 transition hover:bg-indigo-100" data-home-today-edit="'+esc(item.id)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button><button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-[11px] font-black text-rose-800 transition hover:bg-rose-100" data-home-today-delete="'+esc(item.id)+'"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button></div>'
           :'<span class="text-[10px] font-bold text-slate-400">'+(item.status==="completed"?"مكتمل · لا يقبل التعديل":"للقراءة فقط · تحقق من صلاحية الإدارة وإصدار الجدول")+'</span>';
         return '<article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="min-w-0 flex-1"><strong class="block text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' · '+esc(item.subject||"—")+'</strong><span class="mt-1 block text-xs text-slate-700">المعلم البديل: '+esc(item.substituteTeacherName||"—")+'</span><span class="mt-1 block text-[10px] text-slate-500">'+state+' · السبب: '+esc(item.reason||"-")+'</span></div>'+actions+'</article>';
       }).join("")+'</div></section>'
