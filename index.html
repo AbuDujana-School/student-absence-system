@@ -2695,6 +2695,19 @@ function saSetupCompetitionPanel(){
   }
 }
 function saRefreshCompetitionAfterRecordSave(){const panel=document.getElementById("saCompetitionPanel");if(panel&&!panel.classList.contains("hidden")&&saCanViewCompetition())saLoadCompetition();}
+let saCompetitionLastResumeRefreshAt=0;
+function saRefreshCompetitionOnReturn(){
+  if(document.visibilityState!=="visible"||!navigator.onLine)return;
+  const panel=document.getElementById("saCompetitionPanel");
+  if(!panel||panel.classList.contains("hidden")||!saCanViewCompetition())return;
+  const now=Date.now();
+  if(now-saCompetitionLastResumeRefreshAt<1500)return;
+  saCompetitionLastResumeRefreshAt=now;
+  saLoadCompetition();
+}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")saRefreshCompetitionOnReturn();});
+window.addEventListener("focus",saRefreshCompetitionOnReturn);
+window.addEventListener("online",saRefreshCompetitionOnReturn);
 async function saLoadCompetition(){
   const requestId=++saCompetitionLoadSequence;
   if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة الانضباط.","error");return;}
