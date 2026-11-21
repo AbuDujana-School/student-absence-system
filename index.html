@@ -6244,6 +6244,20 @@ function withAppSyncTimeout(promise, timeoutMs, message, code) {
   });
 }
 
+async function persistOfflineStateWithTimeout(timeoutMs = 5000) {
+  try {
+    return await withAppSyncTimeout(
+      persistOfflineState(),
+      timeoutMs,
+      'تأخر حفظ النسخة المحلية.',
+      'APP_SYNC_LOCAL_SNAPSHOT_TIMEOUT'
+    );
+  } catch (error) {
+    console.warn('Local snapshot persistence did not finish within the allowed time; the localStorage fallback was retained.', error);
+    return false;
+  }
+}
+
 async function fetchAppSyncManifest() {
   const { data, error } = await withAppSyncTimeout(
     sb.rpc('get_app_sync_manifest'),
@@ -6345,14 +6359,16 @@ async function loadSystemDataFromCloud() {
       // Keep queued local deletions visible even when the cloud revision is unchanged.
       applyPendingLocalDeletions();
       saveToLocalStorageSafe();
-      await persistOfflineState();
+      const localSnapshotSaved = await persistOfflineStateWithTimeout();
       const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
         dirtySets.custom_categories || getPendingDeletes().length;
-      updateSyncStatus(!pendingSync, pendingSync
-        ? "محفوظ محلياً - بانتظار المزامنة"
-        : "متزامن");
+      updateSyncStatus(!pendingSync && localSnapshotSaved, !localSnapshotSaved
+        ? (pendingSync
+          ? "تم التحقق من الخادم؛ التعديلات محفوظة محلياً بانتظار المزامنة، وتعذر تحديث النسخة المحلية الدائمة."
+          : "تم التحقق من الخادم؛ تعذر تحديث النسخة المحلية الدائمة الآن.")
+        : pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
       return true;
     }
 
@@ -6504,15 +6520,17 @@ async function loadSystemDataFromCloud() {
     // cross-tab races where one tab could mark a newer manifest against an older cache.
     if (nextManifest) lastLoadedCloudManifest = nextManifest;
     saveToLocalStorageSafe();
-    await persistOfflineState();
+    const localSnapshotSaved = await persistOfflineStateWithTimeout();
 
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
       dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
       dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
       dirtySets.custom_categories || getPendingDeletes().length;
-    updateSyncStatus(!pendingSync, pendingSync
-      ? "محفوظ محلياً - بانتظار المزامنة"
-      : "متزامن");
+    updateSyncStatus(!pendingSync && localSnapshotSaved, !localSnapshotSaved
+      ? (pendingSync
+        ? "تم تحميل بيانات الخادم؛ التعديلات المحلية بانتظار المزامنة وتعذر تحديث النسخة المحلية الدائمة."
+        : "تم تحميل بيانات الخادم؛ تعذر تحديث النسخة المحلية الدائمة الآن.")
+      : pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
     return true;
   } catch(e) {
     cloudDataLoadState = 'failed';
@@ -6527,7 +6545,7 @@ async function loadSystemDataFromCloud() {
         db.dutyModule = normalizeDutyModule(db.dutyModule);
         Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k]));
         loadDirtySetsFromLocal();
-        await persistOfflineState();
+        await persistOfflineStateWithTimeout();
         updateSyncStatus(false, "محفوظ محلياً - بانتظار الاتصال");
         return false;
       } catch(pe) { console.warn('Local fallback restore failed', pe); }
