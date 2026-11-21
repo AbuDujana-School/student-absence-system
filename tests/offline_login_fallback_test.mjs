@@ -28,6 +28,8 @@ test("local-only mode blocks cloud reads, writes, and sync entry points", () => 
   assert.match(section("async function retryOfflineSyncSilently()", "async function refreshCloudDataSilently()"), /if \(localOnlySession \|\|/);
   assert.match(section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */"), /if \(localOnlySession\)/);
   assert.match(section("async function finalizeLoginState()", "function hasAdminPanelAccess"), /if \(localOnlySession\)/);
+  assert.match(section("async function appAuthRequest(body, token)", "function isLegacyAuthEndpointUnavailable(error)"), /if \\(localOnlySession\\) throw/);
+  assert.match(section("async function saRequest(body)", "async function appAuthRequest(body, token)"), /if \\(localOnlySession\\) throw/);
 });
 test("reconnection requires secure authentication before sync", () => {
   const init = section("window.addEventListener('offline'", "function initDarkMode()");
