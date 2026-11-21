@@ -158,7 +158,7 @@
   }
   function installAbsenceReasonPicker(){
     const handlerNames=Object.getOwnPropertyNames(window).filter(name=>
-      /^timetableDaily.*(?:Add|Select).*Absent/i.test(name)&&typeof window[name]==="function");
+      /^timetableDaily.*(?:Add|Select|Choose|Toggle).*Absent|^timetableDaily.*Absent.*(?:Add|Select|Choose|Toggle)/i.test(name)&&typeof window[name]==="function");
     if(typeof window.timetableDailyAddAbsent==="function"&&!handlerNames.includes("timetableDailyAddAbsent"))handlerNames.push("timetableDailyAddAbsent");
     let installed=false;
     handlerNames.forEach(handlerName=>{
@@ -168,6 +168,10 @@
         const absentName=args.map(value=>typeof value==="string"?value:String(value?.name||"").trim())
           .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
         if(!absentName)return original.apply(this,args);
+        const selectedDate=timetableSubstitutionGetDate().date;
+        const existing=[...(reserveArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
+          .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
+        if(existing){reserveAbsenceReasons[absentName]=existing.absenceReason;persistStoredDraft();return original.apply(this,args);}
         openAbsenceReasonPicker(absentName,value=>{
           reserveAbsenceReasons[absentName]=value;
           persistStoredDraft();
