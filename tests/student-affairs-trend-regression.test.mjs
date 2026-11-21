@@ -36,3 +36,16 @@ test("visible competition refreshes when the app returns without polling", () =>
   assert.match(html, /now-saCompetitionLastResumeRefreshAt<1500/);
   assert.doesNotMatch(html, /setInterval\([^\n]*saLoadCompetition/);
 });
+
+test("competition refresh is scheduled for Thursday after the 13:51 Oman cutoff", () => {
+  assert.match(html, /function saScheduleCompetitionCutoffRefresh\(\)/);
+  assert.match(html, /let targetMinutes=13\*60\+56/);
+  assert.match(html, /targetMinutes=14\*60\+6/);
+  assert.match(html, /saScheduleCompetitionCutoffRefresh\(\);/);
+  assert.match(html, /setTimeout\(\(\)=>\{/);
+  assert.doesNotMatch(html, /setInterval\([^\n]*saLoadCompetition/);
+});
+test("competition cutoff refresh remains limited to the visible authorized panel", () => {
+  assert.match(html, /if\(!panel\|\|panel\.classList\.contains\("hidden"\)\|\|!saCanViewCompetition\(\)\)return;/);
+  assert.match(html, /navigator\.onLine&&saCanViewCompetition\(\)\)saLoadCompetition\(\)/);
+});
