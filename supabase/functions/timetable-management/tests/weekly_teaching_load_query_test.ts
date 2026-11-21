@@ -5,7 +5,7 @@ function assert(condition: boolean, message: string) {
 }
 
 Deno.test("reserve weekly workload fetches once and filters teaching cells for scoring", () => {
-  const start = source.indexOf("const [directory,dayCells,weeklyLoad,pointsLedger]");
+  const start = source.indexOf("const [directory,dayCells,weeklyLoad,pointsLedger,periodTimings]");
   const end = source.indexOf("const weeklyQuotaByTeacher", start);
   assert(start >= 0 && end > start, "Reserve candidate workload query block must exist");
   const block = source.slice(start, end);
