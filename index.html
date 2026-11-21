@@ -2281,7 +2281,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  const observer=new MutationObserver(updateFloating);if(plan)observer.observe(plan,{attributes:true,attributeFilter:['class']});
  const status=$('#substitutionSaveStatus');if(status)observer.observe(status,{childList:true,characterData:true,subtree:true});
  const list=$('#substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateFloating();}).observe(list,{childList:true,subtree:true});
- root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton'))setTimeout(updateFloating,100);});
+ root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('button[onclick="substitutionToggleAllAbsentees()"]'))setTimeout(updateFloating,100);});
  setTab('daily');updateFloating();
 })();
 </script><style id="substitution-tab-visibility">#substitutionView .subx-tab-hidden{display:none!important}</style>
