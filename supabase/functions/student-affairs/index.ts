@@ -559,7 +559,7 @@ async function finalizeCompetitionWeek() {
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
   const currentWeek = getSchoolWeekRange(today);
   const afterWeeklyCutoff = isCompetitionWeeklyCutoffReached(weekday, getOmanClockMinutes());
-  // Before Thursday 13:50, the latest closed week is eligible. After the cutoff, this week is eligible.
+  // Before Thursday 13:51 Oman time, the latest closed week is eligible. After the cutoff, this week is eligible.
   const eligibleStart = afterWeeklyCutoff ? currentWeek.start : shiftCompetitionDate(currentWeek.start, -7);
   const { currentTerm } = await readCompetitionTermSettings();
   // Never abandon an earlier incomplete week when the calendar rolls forward; retry it until it completes.
