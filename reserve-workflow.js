@@ -1794,7 +1794,7 @@
             const permissions={...(row.permissions&&typeof row.permissions==="object"?row.permissions:{})};
             const value=touched?checkbox.checked:initial!=="unknown"?initial==="true":
               Object.prototype.hasOwnProperty.call(permissions,"reportSubstitutionDistribution")?permissions.reportSubstitutionDistribution===true:
-              record?.permissions?.reportSubstitutionDistribution===true;
+              record?.permissions?.reportSubstitutionDistribution===true||checkbox.checked;
             permissions.reportSubstitutionDistribution=value;
             return {...row,permissions};
           });
