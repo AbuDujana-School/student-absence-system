@@ -8193,7 +8193,7 @@ function printSubstitutionDistributionReport() {
       })
     };
   });
-  pages.forEach(page => window.printSchoolwideReserveDistributionReport(page.groups, page.date, page.weekday));
+  window.printSchoolwideReserveDistributionReport(pages);
 }
 function renderReportsSection() {
   if (!canAccessReport('reportComprehensiveAbsence')) { document.getElementById('reportClassesContainer')?.replaceChildren(); return; }
@@ -13746,7 +13746,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261121-reserve-report-2"></script>
+<script src="./reserve-workflow.js?v=20261121-reserve-report-3"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 </body>
 </html>
