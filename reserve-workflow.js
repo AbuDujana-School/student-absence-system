@@ -688,10 +688,9 @@
         const dayButton=editableItems.length?'<button type="button" class="tt-action bg-indigo-700 text-white" data-tt-open-day-edit="'+esc(date)+'">تعديل توزيع اليوم ('+editableItems.length+')</button>':"";
         const absentGroups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
-          const activeRows=rows.filter(item=>["assigned","confirmed"].includes(item.status));
-          const canDeleteGroup=activeRows.length>0&&activeRows.every(item=>item.canEdit!==false);
+          const canDeleteGroup=rows.length>0&&rows.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
           const groupDelete=canDeleteGroup?
-            '<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete-group-date="'+esc(date)+'" data-tt-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+activeRows.length+')</button>':"";
+            '<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete-group-date="'+esc(date)+'" data-tt-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+rows.length+')</button>':"";
           const rowsMarkup=rows.map(item=>{
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
             const editable=item.canEdit!==false&&["assigned","confirmed"].includes(item.status);
