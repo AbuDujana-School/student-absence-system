@@ -75,11 +75,31 @@ test("automatic and manual offline uploads stop before approval when secure sess
   assert.ok(manualGuard >= 0 && manualApproval > manualGuard);
 });
 
-test("a successful server login stores its verified session before cloud bootstrap", () => {
+test("a successful server login stores its verified session before detached cloud bootstrap", () => {
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
-  const load = login.indexOf("await finalizeLoginState()", saveSession);
-  assert.ok(saveSession >= 0 && load > saveSession);
+  const finalize = login.indexOf("void finalizeLoginState().catch", saveSession);
+  const dashboard = login.indexOf("dashboardSelectionView", saveSession);
+  assert.ok(saveSession >= 0 && finalize > saveSession);
+  assert.ok(dashboard > saveSession);
+  assert.match(login.slice(saveSession, finalize), /loginView.*classList\.add\('hidden'\)/);
+});
+
+test("cloud bootstrap requests have bounded waits and preserve local data on timeout", () => {
+  const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
+  assert.match(manifest, /withAppSyncTimeout\(/);
+  assert.match(manifest, /APP_SYNC_MANIFEST_TIMEOUT/);
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(loader, /APP_SYNC_MANIFEST_TIMEOUT/);
+  assert.match(loader, /APP_SYNC_TABLES_TIMEOUT/);
+  assert.match(loader, /cloudWritesBlockedByManifestFailure = true/);
+});
+
+test("timed-out previous refresh polling is cancelled", () => {
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
+  assert.match(finalize, /pollingCancelled = false/);
+  assert.match(finalize, /pollingCancelled = true/);
+  assert.match(finalize, /clearTimeout\(pollTimer\)/);
 });
 
 test("logout resets the cloud bootstrap state before the next account signs in", () => {
