@@ -140,8 +140,10 @@
       modal.querySelector("#ttAbsenceReasonOtherWrap")?.classList.toggle("hidden",radio.value!=="أخرى");
       if(radio.value==="أخرى")modal.querySelector("#ttAbsenceReasonOther")?.focus();
     }));
-    modal.querySelector("[data-absence-reason-cancel]")?.addEventListener("click",()=>modal.remove());
-    modal.addEventListener("click",event=>{if(event.target===modal)modal.remove();});
+    let settled=false;
+    const cancel=()=>{if(settled)return;settled=true;modal.remove();if(typeof onConfirm==="function")onConfirm(null);};
+    modal.querySelector("[data-absence-reason-cancel]")?.addEventListener("click",cancel);
+    modal.addEventListener("click",event=>{if(event.target===modal)cancel();});
     modal.querySelector("[data-absence-reason-confirm]")?.addEventListener("click",()=>{
       const choice=modal.querySelector('input[name="ttAbsenceReasonChoice"]:checked')?.value||"";
       const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
@@ -149,7 +151,7 @@
       if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
       if(choice==="أخرى"&&!custom){error.textContent="اكتب سبب الغياب عند اختيار «أخرى».";error.classList.remove("hidden");modal.querySelector("#ttAbsenceReasonOther")?.focus();return;}
       const value=choice==="أخرى"?"أخرى: "+custom:choice;
-      modal.remove();onConfirm(value);
+      if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
   function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
@@ -174,6 +176,7 @@
           .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
         if(existing){reserveAbsenceReasons[absentName]=existing.absenceReason;persistStoredDraft();return original.apply(this,args);}
         openAbsenceReasonPicker(absentName,value=>{
+          if(!value)return;
           reserveAbsenceReasons[absentName]=value;
           persistStoredDraft();
           try{
@@ -524,7 +527,9 @@
     }));
     host.querySelectorAll("[data-tt-edit-absence-reason]").forEach(button=>button.addEventListener("click",()=>{
       const absentName=button.dataset.ttEditAbsenceReason;
-      openAbsenceReasonPicker(absentName,value=>{reserveAbsenceReasons[absentName]=value;persistStoredDraft();window.timetableDailyRenderLessons();});
+      openAbsenceReasonPicker(absentName,value=>{
+          if(!value)return;
+          reserveAbsenceReasons[absentName]=value;persistStoredDraft();window.timetableDailyRenderLessons();});
     }));
     host.querySelectorAll("[data-tt-edit-saved-group]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveDayEdit(button.dataset.ttSavedDate,button.dataset.ttEditSavedGroup)));
     host.querySelectorAll("[data-tt-delete-saved-group]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyCancelAbsentDistribution(button.dataset.ttSavedDate,button.dataset.ttDeleteSavedGroup)));
@@ -1525,8 +1530,8 @@
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
         const groups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
-          const current=rows.filter(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
-          const canDelete=current.length>0&&current.every(item=>item.canEdit!==false);
+          const current=rows.filter(item=>["assigned","confirmed","completed"].includes(item.status));
+          const canDelete=current.length>0&&current.every(item=>item.canEdit===true);
           const deleteAll=canDelete?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-delete-group-date="'+esc(date)+'" data-home-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+current.length+')</button>':"";
           const rowHtml=rows.map(item=>{
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
@@ -1591,28 +1596,30 @@
   // substitution workflow (#substitutionView), not only the timetable sub-panel.
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
-    if(!root||root.dataset.mainReserveReasonsInstalled==="1")return;
-    root.dataset.mainReserveReasonsInstalled="1";
+    if(!root)return;
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
-    const bypass=new WeakSet();
-    root.addEventListener("change",event=>{
-      const input=event.target;
-      if(!(input instanceof HTMLInputElement)||!input.matches('input[name="substitutionAbsentTeacher"]'))return;
-      if(bypass.has(input)){bypass.delete(input);return;}
-      if(!input.checked)return;
-      const absentName=String(input.value||"").trim();
-      if(!absentName||reasons[absentName])return;
-      event.stopImmediatePropagation();
-      event.stopPropagation();
-      input.checked=false;
-      openAbsenceReasonPicker(absentName,value=>{
-        reasons[absentName]=value;
-        input.checked=true;
-        bypass.add(input);
-        input.dispatchEvent(new Event("change",{bubbles:true}));
-      });
-    },true);
-
+    const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
+    if(root.dataset.mainReserveReasonsInstalled!=="1"){
+      root.dataset.mainReserveReasonsInstalled="1";
+      root.addEventListener("change",event=>{
+        const input=event.target;
+        if(!(input instanceof HTMLInputElement)||!input.matches('input[name="substitutionAbsentTeacher"]'))return;
+        if(bypass.has(input)){bypass.delete(input);return;}
+        if(!input.checked)return;
+        const absentName=String(input.value||"").trim();
+        if(!absentName||reasons[absentName])return;
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+        input.checked=false;
+        openAbsenceReasonPicker(absentName,value=>{
+          if(!value)return;
+          reasons[absentName]=value;
+          input.checked=true;
+          bypass.add(input);
+          input.dispatchEvent(new Event("change",{bubbles:true}));
+        });
+      },true);
+    }
     if(typeof window.substitutionToggleAllAbsentees==="function"&&!window.substitutionToggleAllAbsentees.__mainReserveReasonWrapped){
       const originalToggle=window.substitutionToggleAllAbsentees;
       const wrappedToggle=function(){
@@ -1641,7 +1648,6 @@
       wrappedToggle.__original=originalToggle;
       window.substitutionToggleAllAbsentees=wrappedToggle;
     }
-
     if(typeof window.appAuthRequest==="function"&&!window.appAuthRequest.__mainReserveReasonPayloadWrapped){
       const originalRequest=window.appAuthRequest;
       const wrappedRequest=async function(body,token){
@@ -1657,13 +1663,12 @@
       wrappedRequest.__original=originalRequest;
       window.appAuthRequest=wrappedRequest;
     }
-
     if(typeof window.printOfficialReserveReport==="function"&&!window.printOfficialReserveReport.__mainReserveReasonWrapped){
       const originalPrint=window.printOfficialReserveReport;
       const wrappedPrint=function(groups,...args){
         const enriched=(Array.isArray(groups)?groups:[]).map(group=>({
           ...group,
-          reason:String(reasons[String(group?.absentName||"").trim()]||group?.reason||"-")
+          absenceReason:String(reasons[String(group?.absentName||"").trim()]||group?.absenceReason||"-")
         }));
         return originalPrint.call(this,enriched,...args);
       };
@@ -1672,7 +1677,6 @@
       window.printOfficialReserveReport=wrappedPrint;
     }
   }
-
   installLegacyOtherDepartmentTeacherPicker();
   installAbsenceReasonPicker();
   if(typeof MutationObserver!=="undefined"&&document.body){
@@ -1690,7 +1694,7 @@
   installAdminReserveTools();
   applyTeacherTimetablePresentation();
   if(typeof MutationObserver!=="undefined"&&document.body){
-    const adminToolsObserver=new MutationObserver(()=>{installDepartmentReserveTools();installAdminReserveTools();installHomeReserveArchive();installReserveArchiveAutoRefresh();applyTeacherTimetablePresentation();});
+    const adminToolsObserver=new MutationObserver(()=>{installMainSubstitutionViewIntegration();installDepartmentReserveTools();installAdminReserveTools();installHomeReserveArchive();installReserveArchiveAutoRefresh();applyTeacherTimetablePresentation();});
     adminToolsObserver.observe(document.body,{subtree:true,childList:true,attributes:true,attributeFilter:["class","style"]});
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
