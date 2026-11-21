@@ -147,3 +147,26 @@ Deno.test("reserve coordinator controls require explicit per-period permissions"
   assert(source.includes("item.canDelete!==true"), "Individual deletion must not rely on the edit permission");
   assert(!source.includes('date===reserveCurrentMuscatDate()&&savedRows'), "Future-dated assignments must not be hidden by a same-day-only UI condition");
 });
+
+Deno.test("reserve archives and reports initialize only when their own views are opened", () => {
+  const homeStart=source.indexOf("function installHomeReserveArchive()");
+  const homeEnd=source.indexOf("function setHomeArchiveStatus",homeStart);
+  assert(homeStart>=0&&homeEnd>homeStart,"Home archive installer must exist");
+  const home=source.slice(homeStart,homeEnd);
+  assert(home.includes('view.classList.contains("hidden")'),"Home archive must not initialize while the reserve view is hidden");
+
+  const boot=source.slice(source.indexOf("installMainSubstitutionViewIntegration();",source.indexOf("function installReserveArchiveAutoRefresh()")+1));
+  assert(!boot.includes("reserveDomObserver.observe(document.body"),"Reserve observers must not watch all dashboard mutations");
+  assert(!boot.includes('attributes:true,attributeFilter:["class","style"]'),"Reserve code must not observe all dashboard class/style mutations");
+  assert(boot.includes("substitutionVisibilityObserver"),"Home reserve initialization must follow its own view visibility");
+  assert(boot.includes("substitutionContentObserver"),"Dynamically-created home reserve content must still initialize");
+  assert(boot.includes("timetableVisibilityObserver"),"Timetable reserve tools must follow their own panel visibility");
+  assert(boot.includes("timetableContentObserver"),"Dynamically-created timetable reserve content must still initialize");
+
+  const reportStart=source.indexOf("function installSchoolwideReserveDistributionReport()");
+  const reportEnd=source.indexOf("\n  installSchoolwideReserveDistributionReport();",reportStart);
+  assert(reportStart>=0&&reportEnd>reportStart,"Schoolwide report installer must exist");
+  const report=source.slice(reportStart,reportEnd);
+  assert(report.includes('!panel.classList.contains("hidden")'),"Schoolwide report must not fetch while its panel is hidden");
+  assert(report.includes("reserveDistributionVisibilityObserver"),"Schoolwide report must initialize when its panel is opened");
+});
