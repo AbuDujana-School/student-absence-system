@@ -12,7 +12,7 @@ const TABLES = [
 ];
 
 test("school sync projections and timetable access reads stay isolated and minimal", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(60_000);
 
   const now = new Date().toISOString();
   const fixtures = {
