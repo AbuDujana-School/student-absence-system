@@ -179,6 +179,11 @@ test("school sync projections and timetable access reads stay isolated and minim
     undefined,
     { timeout: 30_000 },
   );
+  await page.waitForFunction(
+    () => window.__abuDujanaBootReady === true,
+    undefined,
+    { timeout: 20_000 },
+  );
 
   const initialLoad = await page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
