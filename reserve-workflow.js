@@ -1724,42 +1724,32 @@
   installDepartmentReserveTools();
   installAdminReserveTools();
   applyTeacherTimetablePresentation();
-  if(typeof MutationObserver!=="undefined"&&document.body){
-    const reserveDomObserver=new MutationObserver(()=>{
-      installMainSubstitutionViewIntegration();
-      installDepartmentReserveTools();
-      installAdminReserveTools();
-      installReserveArchiveAutoRefresh();
-      applyTeacherTimetablePresentation();
-    });
-    // Child-list changes are sufficient for dynamically-created reserve panels.
-    // Broad class/style observation on the entire document caused needless
-    // reserve initialization during unrelated view transitions.
-    reserveDomObserver.observe(document.body,{subtree:true,childList:true});
+  if(typeof MutationObserver!=="undefined"){
     const substitutionView=$("substitutionView");
     if(substitutionView){
-      const substitutionVisibilityObserver=new MutationObserver(()=>{
-        if(!substitutionView.classList.contains("hidden")){
-          installMainSubstitutionViewIntegration();
-          installHomeReserveArchive();
-        }
-      });
+      const initializeHomeReserveView=()=>{
+        if(substitutionView.classList.contains("hidden"))return;
+        installMainSubstitutionViewIntegration();
+        installHomeReserveArchive();
+      };
+      const substitutionVisibilityObserver=new MutationObserver(initializeHomeReserveView);
       substitutionVisibilityObserver.observe(substitutionView,{attributes:true,attributeFilter:["class"]});
-      if(!substitutionView.classList.contains("hidden"))installHomeReserveArchive();
+      const substitutionContentObserver=new MutationObserver(initializeHomeReserveView);
+      substitutionContentObserver.observe(substitutionView,{subtree:true,childList:true});
+      initializeHomeReserveView();
     }
     const timetablePanel=$("timetableSubstitutionPanel");
     if(timetablePanel){
-      const timetableVisibilityObserver=new MutationObserver(()=>{
-        if(!timetablePanel.classList.contains("hidden")){
-          installDepartmentReserveTools();
-          installAdminReserveTools();
-        }
-      });
-      timetableVisibilityObserver.observe(timetablePanel,{attributes:true,attributeFilter:["class"]});
-      if(!timetablePanel.classList.contains("hidden")){
+      const initializeTimetableReservePanel=()=>{
+        if(timetablePanel.classList.contains("hidden"))return;
         installDepartmentReserveTools();
         installAdminReserveTools();
-      }
+      };
+      const timetableVisibilityObserver=new MutationObserver(initializeTimetableReservePanel);
+      timetableVisibilityObserver.observe(timetablePanel,{attributes:true,attributeFilter:["class"]});
+      const timetableContentObserver=new MutationObserver(initializeTimetableReservePanel);
+      timetableContentObserver.observe(timetablePanel,{subtree:true,childList:true});
+      initializeTimetableReservePanel();
     }
     const timetableHost=$("teacherTimetableWeekGrid");
     if(timetableHost){
