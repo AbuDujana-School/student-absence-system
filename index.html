@@ -7133,7 +7133,7 @@ async function finalizeLoginState() {
       console.warn('Permission refresh deferred after successful login.', permissionError);
     }
     try {
-      await bounded(timetableRefreshAccess(), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
+      await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
     } catch (timetableError) {
       timetableCanAccess = activeUser?.type === 'admin';
       teacherPortalCanAccess = false;
@@ -11079,7 +11079,7 @@ function timetableSetStatus(message, kind) {
   el.classList.remove("hidden");
 }
 
-async function timetableRefreshAccess() {
+async function timetableRefreshAccess(options = {}) {
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token || !activeUser) {
     timetableCanAccess = false;
@@ -11101,7 +11101,9 @@ async function timetableRefreshAccess() {
   if (portalControl) portalControl.classList.toggle("hidden", activeUser?.type !== "admin");
   if (activeUser?.type === "admin") {
     timetableCanAccess = true;
-    await timetableLoadPortalStatus();
+    // Loading the full weekly grid and eligible-teacher directory is secondary
+    // admin portal work. Defer it during login; the settings tab loads it on demand.
+    if (options.deferAdminPortalStatus !== true) await timetableLoadPortalStatus();
   }
   const tab = document.getElementById("tab-timetable");
   if (tab) tab.style.display = timetableCanAccess ? "flex" : "none";
