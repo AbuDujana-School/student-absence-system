@@ -4031,7 +4031,7 @@ function saScheduleCompetitionCutoffRefresh(){
   let daysUntilThursday=(4-weekday+7)%7;
   let targetMinutes=13*60+56;
   if(daysUntilThursday===0&&minutes>=targetMinutes){
-    if(minutes<14*60+6&&saCompetitionData?.status!=="approved")targetMinutes=14*60+6;
+    if(minutes<14*60+6)targetMinutes=14*60+6;
     else daysUntilThursday=7;
   }
   const [year,month,day]=today.split("-").map(Number);
