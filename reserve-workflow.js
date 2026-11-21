@@ -1867,7 +1867,20 @@
       const node=$(id);if(node)node.classList.toggle("hidden",!(schoolwideReserveReportIsAdmin()||activeUser?.permissions?.[key]===true||appAuthSession?.principal?.permissions?.[key]===true));
     });
     const tab=$("tab-reports");
-    if(tab&&schoolwideReserveReportAllowed())tab.classList.remove("hidden");
+    if(tab&&schoolwideReserveReportAllowed()){
+      tab.classList.remove("hidden");
+      if(!tab.dataset.reserveDistributionOpenBound){
+        tab.dataset.reserveDistributionOpenBound="1";
+        tab.addEventListener("click",()=>{
+          if(!schoolwideReserveReportAllowed())return;
+          Promise.resolve().then(()=>{
+            const section=$("sec-reports");
+            document.querySelectorAll('[id^="sec-"]').forEach(node=>node.classList.toggle("hidden",node!==section));
+            section?.classList.remove("hidden");
+          });
+        });
+      }
+    }
   }
   function schoolwideReserveReportSetStatus(message,kind){
     const node=$("reserveDistributionReportStatus");if(!node)return;
