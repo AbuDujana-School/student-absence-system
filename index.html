@@ -7268,6 +7268,11 @@ function _performLogout() {
   revokeAppAuthSession();
   clearAppAuthSession();
   localOnlySession = false;
+  // A new principal must never inherit the previous user's "ready" cloud state.
+  // Reset the bootstrap gate so the next successful login revalidates and refreshes
+  // the school snapshot before the UI can claim that synchronization is complete.
+  cloudDataLoadState = 'not-started';
+  cloudWritesBlockedByManifestFailure = false;
   activeUser = null; selectedClass = null; selectedBehaviorClass = null;
   attendanceDirty = false; behaviorDirty = false;
   attendanceUndoStack = []; behaviorUndoStack = [];
