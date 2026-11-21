@@ -129,6 +129,15 @@ test("logout clears account-scoped cloud readiness", () => {
   assert.match(logout, /cloudWritesBlockedByManifestFailure = false/);
 });
 
+test("admin login defers full timetable portal status loading until the settings tab opens", () => {
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
+  assert.match(finalize, /timetableRefreshAccess\\(\\{ deferAdminPortalStatus: true \\}\\)/);
+  const access = section("async function timetableRefreshAccess", "async function timetableLoadPortalStatus");
+  assert.match(access, /options\\.deferAdminPortalStatus !== true/);
+  const settingsTab = section("function timetableSwitchDashboardTab", "function timetableDailyNormalizeName");
+  assert.match(settingsTab, /if \\(settings && isAdmin\\)[\\s\\S]*timetableLoadPortalStatus\\(\\)/);
+});
+
 test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cannot hang", () => {
   const persistence = section("async function persistOfflineStateWithTimeout", "async function fetchAppSyncManifest");
   assert.match(persistence, /withAppSyncTimeout\(/);
