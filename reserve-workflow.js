@@ -550,7 +550,8 @@
         byAbsent.get(name).rows.push({
           period:item.period,
           className:item.className,
-          substitute:item.substituteTeacherName||""
+          substitute:item.substituteTeacherName||"",
+          reserveReason:String(item.reason||"")
         });
       });
       return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");
@@ -850,15 +851,15 @@
     let used=0;
     const rowsMarkup=(groups||[]).map(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
-      const absent=esc(group.absentName||""),rawAbsenceReason=String(group.absenceReason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason),rawReserveReason=String(group.reserveReason||"").trim(),reserveReason=esc(rawReserveReason==="-"||rawReserveReason==="—"?"":rawReserveReason);
+      const absent=esc(group.absentName||""),rawAbsenceReason=String(group.absenceReason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
       return rows.map((row,rowIndex)=>{
-        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td><td class="tt-official-merged tt-official-reserve-reason" rowspan="'+rows.length+'">'+(reserveReason||"—")+'</td>':"";
-        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"")+'</td><td class="tt-official-substitute">'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
+        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td>':"";
+        return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td class="tt-official-reserve-reason">'+esc(row.reserveReason||"—")+'</td><td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"")+'</td><td class="tt-official-substitute">'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
     const remaining=Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
     const reservedSecondTeacher=remaining>0
-      ?Array.from({length:remaining},(_,i)=>'<tr class="'+(i===0?'tt-official-group-start':'')+'">'+(i===0?'<td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td>':"")+'<td></td><td></td><td></td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>').join("")
+      ?Array.from({length:remaining},(_,i)=>'<tr class="'+(i===0?'tt-official-group-start':'')+'">'+(i===0?'<td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td>':"")+'<td></td><td></td><td></td><td></td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>').join("")
       :"";
     const safeDate=String(date||"");let resolvedWeekday=String(weekday||"").trim();
     if(!resolvedWeekday&&safeDate){const d=new Date(safeDate+"T12:00:00+04:00");if(Number.isFinite(d.getTime()))resolvedWeekday=new Intl.DateTimeFormat("ar-OM",{weekday:"long",timeZone:"Asia/Muscat"}).format(d);}
@@ -969,11 +970,12 @@
       groups.forEach((group,index)=>{
         message+="*"+(index+1)+"-* المعلم الغائب: *"+group.absentName+"*\n";
         if(group.absenceReason&&group.absenceReason!=="-")message+="سبب الغياب: "+group.absenceReason+"\n";
-        if(group.reserveReason&&group.reserveReason!=="-")message+="سبب الاحتياط: "+group.reserveReason+"\n";
         message+="\n";
         group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(row=>{
           message+="- الحصة *"+String(row.period)+"* | الصف "+(row.className||"غير محدد")+"\n";
-          message+="*الاحتياط: "+(row.substitute||"لم يحدد")+"*\n\n";
+          message+="*الاحتياط: "+(row.substitute||"لم يحدد")+"*\n";
+          if(row.reserveReason&&row.reserveReason!=="-")message+="سبب الاحتياط: "+row.reserveReason+"\n";
+          message+="\n";
         });
       });
       message+="إدارة المدرسة";
