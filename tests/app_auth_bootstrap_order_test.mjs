@@ -128,3 +128,13 @@ test("logout clears account-scoped cloud readiness", () => {
   assert.match(logout, /cloudDataLoadState = 'not-started'/);
   assert.match(logout, /cloudWritesBlockedByManifestFailure = false/);
 });
+
+test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cannot hang", () => {
+  const persistence = section("async function persistOfflineStateWithTimeout", "async function fetchAppSyncManifest");
+  assert.match(persistence, /withAppSyncTimeout\(/);
+  assert.match(persistence, /APP_SYNC_LOCAL_SNAPSHOT_TIMEOUT/);
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
+  assert.doesNotMatch(loader, /await persistOfflineState\(\)/);
+  assert.match(loader, /تعذر تحديث النسخة المحلية الدائمة/);
+});
