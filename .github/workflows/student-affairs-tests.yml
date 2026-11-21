@@ -6,6 +6,7 @@ on:
       - "supabase/migrations/**"
       - ".github/workflows/student-affairs-tests.yml"
       - "index.html"
+      - "tests/**"
   push:
     branches:
       - "main"
