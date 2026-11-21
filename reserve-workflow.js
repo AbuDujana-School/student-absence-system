@@ -647,6 +647,7 @@
             includeOtherDepartments:includeOthers()},token);
           modal.remove();status("تم حفظ "+changes.length+" تعديل في عملية واحدة، مع الاحتفاظ بالسجلات السابقة في سجل المراجعة.","success");
           await timetableDailyLoadArchive();await timetableDailyRefreshAll();
+          if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
         }catch(error){errorBox.textContent=error?.message||"تعذر حفظ تعديلات اليوم؛ لم يتم اعتماد أي تعديل جزئي.";errorBox.classList.remove("hidden");button.disabled=false;button.textContent="حفظ تعديلات اليوم";}
       });
     }catch(error){status(error?.message||"تعذر فتح توزيع اليوم للتعديل.","error");}
@@ -664,6 +665,7 @@
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
   };
 
@@ -679,6 +681,7 @@
       status("تم حذف التوزيع بالكامل من السجل النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+      if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
     }catch(error){status(error?.message||"تعذر حذف التوزيع بالكامل؛ لم يتم اعتماد حذف جزئي.","error");}
   };
 
@@ -784,6 +787,7 @@
           status("تم حفظ التعديلات وتحديث الحصة والصف والمادة وفق الجدول، مع الاحتفاظ بالسجل السابق في سجل المراجعة.","success");
           await timetableDailyRefreshAll();
           if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
+          if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
           if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
         }catch(error){
           errorBox.textContent=error?.message||"تعذر حفظ التعديل.";
