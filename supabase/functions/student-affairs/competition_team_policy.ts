@@ -6,6 +6,11 @@ export type TeacherTeamConfig = {
     competition_participant?: boolean;
     competition_team_name?: string;
     competition_team_classes?: string[];
+    // Student Affairs supervision metadata may coexist with competition settings.
+    // These fields are intentionally not used to expand competition membership.
+    student_affairs_role?: string;
+    student_affairs_team_name?: string;
+    supervisor_team_leader_name?: string;
   } | null;
 };
 
