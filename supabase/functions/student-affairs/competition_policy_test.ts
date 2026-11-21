@@ -1,7 +1,7 @@
 import {
   awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, isCompetitionWeeklyCutoffReached,
   countAttendanceIncidents, countBehaviorIncidents, countAttendanceByStatus, countBehaviorByType, countRepeatStudents, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange,
-  gradeForClassName, isTeamDayComplete, getSessionCoverage
+  gradeForClassName, isTeamDayComplete, getSessionCoverage, getCompetitionMonthRange
 } from "./competition_policy.ts";
 
 const periods = [1,2,3,4,5,6,7,8];
@@ -14,6 +14,17 @@ Deno.test("grade names and Oman school week remain stable", () => {
   const week = getSchoolWeekRange("2026-11-10");
   if (week.start !== "2026-11-08" || week.end !== "2026-11-12" || getSchoolDays(week.start,week.end).length !== 5) throw new Error("school week must be Sunday-Thursday");
 });
+Deno.test("monthly competition period is resolved automatically from Oman date and clipped to the active term", () => {
+  const midMonth = getCompetitionMonthRange("2026-11-21", "2026-09-01", "2027-01-07");
+  if (midMonth?.from !== "2026-11-01" || midMonth?.to !== "2026-11-21") throw new Error("current month range must use Oman calendar month through today");
+  const termStartsMidMonth = getCompetitionMonthRange("2026-11-21", "2026-11-08", "2027-01-07");
+  if (termStartsMidMonth?.from !== "2026-11-08" || termStartsMidMonth?.to !== "2026-11-21") throw new Error("month range must not include dates before the active term");
+  const futureTerm = getCompetitionMonthRange("2026-11-21", "2026-12-01", "2027-01-07");
+  if (futureTerm !== null) throw new Error("future term must not produce a current-month result");
+  const endedTerm = getCompetitionMonthRange("2026-11-21", "2026-09-01", "2026-11-15");
+  if (endedTerm?.from !== "2026-11-01" || endedTerm?.to !== "2026-11-15") throw new Error("month range must stop at term end");
+});
+
 Deno.test("only an exact Sunday-to-Thursday range is a complete award week", () => {
   if (!isCompleteSchoolWeekRange("2026-11-08", "2026-11-12")) throw new Error("complete school week was rejected");
   if (isCompleteSchoolWeekRange("2026-11-08", "2026-11-10")) throw new Error("partial week was accepted");
