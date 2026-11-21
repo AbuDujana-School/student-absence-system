@@ -2243,7 +2243,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #substitutionView #substitutionAbsenteeList>label{border:1px solid rgba(148,163,184,.22)!important;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(239,246,255,.72))!important;backdrop-filter:blur(14px);box-shadow:0 7px 18px rgba(37,99,235,.055)!important}
 #substitutionView #substitutionAbsenteeList>label:hover{transform:translateY(-3px);border-color:rgba(14,165,233,.5)!important;box-shadow:0 13px 26px rgba(14,165,233,.13)!important}
 #substitutionView #substitutionAbsenteeList>label:has(input:checked){border:1.5px solid #f43f5e!important;background:linear-gradient(135deg,#fff1f2,#ffe4e6)!important;box-shadow:0 0 0 3px rgba(244,63,94,.10),0 10px 24px rgba(244,63,94,.13)!important;color:#be123c}
-#substitutionView #substitutionAbsenteeList>label:has(input:checked) span[data-absent-badge]{background:linear-gradient(135deg,#f43f5e,#e11d48)!important;color:#fff!important}
+#substitutionView #substitutionAbsenteeList>label:has(input:checked) span:last-child{background:linear-gradient(135deg,#f43f5e,#e11d48)!important;color:#fff!important}
 .dark #substitutionView #substitutionAbsenteeList>label{background:linear-gradient(135deg,rgba(30,41,59,.88),rgba(30,41,75,.75))!important}
 .dark #substitutionView #substitutionAbsenteeList>label:has(input:checked){background:linear-gradient(135deg,rgba(136,19,55,.38),rgba(190,24,93,.24))!important;border-color:#fb7185!important;color:#fecdd3}
 #substitutionView #subxGenerateDock #substitutionGenerateButton{background:linear-gradient(135deg,#6366f1,#0ea5e9)!important;box-shadow:0 8px 22px rgba(99,102,241,.32)!important;position:relative;overflow:hidden}
@@ -13160,10 +13160,10 @@ async function timetableSaveOwner() {
       return '<label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-rose-800">'+
         '<input type="checkbox" name="substitutionAbsentTeacher" value="'+esc(name)+'" class="h-4 w-4 accent-rose-600">'+
         '<span class="min-w-0 flex-1 text-xs font-black text-slate-800 dark:text-slate-100">'+esc(name)+'</span>'+
-        '<span data-absent-badge class="rounded-lg bg-rose-50 px-2 py-1 text-[9px] font-black text-rose-600 dark:bg-slate-900 dark:text-rose-300">غائب</span></label>';
+        '<span class="rounded-lg bg-white px-2 py-1 text-[9px] font-black text-rose-600 dark:bg-slate-900 dark:text-rose-300">غائب</span></label>';
     }).join('');
     root.querySelectorAll('input[name="substitutionAbsentTeacher"]').forEach(function(input){
-      input.addEventListener('change',function(){const badge=input.closest('label')?.querySelector('[data-absent-badge]');if(badge)badge.textContent=input.checked?'تم التحديد':'غائب';clearPlan();updateSelectedCount();});
+      input.addEventListener('change',function(){clearPlan();updateSelectedCount();});
     });
     updateSelectedCount();
   }
