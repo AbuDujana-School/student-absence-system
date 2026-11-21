@@ -429,7 +429,7 @@ async function handle(req: Request) {
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
         createdAt:row.reserve_created_at||row.created_at||null,
         canEdit:Boolean(activeVersion.data&&String(row.version_id)===String(activeVersion.data.id)&&
-          String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||""))&&
+          String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))&&
           (principal.type==="admin"||hasReservePermission)),
         absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
         period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
