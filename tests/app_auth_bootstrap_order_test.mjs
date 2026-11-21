@@ -78,3 +78,11 @@ test("a successful server login stores its verified session before cloud bootstr
   const load = login.indexOf("await finalizeLoginState()", saveSession);
   assert.ok(saveSession >= 0 && load > saveSession);
 });
+
+test("logout resets the cloud bootstrap state before the next account signs in", () => {
+  const logout = section("function _performLogout()", "function openChangePinModal()");
+  assert.match(logout, /cloudDataLoadState = 'not-started'/);
+  assert.match(logout, /cloudWritesBlockedByManifestFailure = false/);
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
+  assert.match(finalize, /navigator\\.onLine && cloudDataLoadState !== 'ready'/);
+});
