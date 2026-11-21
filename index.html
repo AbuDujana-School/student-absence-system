@@ -6274,6 +6274,8 @@ window.addEventListener('DOMContentLoaded', async () => {
       (cloudDataLoadState !== 'ready' || hasPendingOfflineRecordChanges())) {
     setTimeout(() => resumeCloudSync(), 1800);
   }
+  // Expose a read-only boot marker for isolated browser regression tests.
+  window.__abuDujanaBootReady = true;
 });
 
 function initDarkMode() { try { const isDark = localStorage.getItem('abuDujana_darkMode') === 'true'; if (isDark) { document.documentElement.classList.add('dark'); document.getElementById('darkModeIcon').className = 'fa-solid fa-sun text-sm'; } } catch(e) {} }
