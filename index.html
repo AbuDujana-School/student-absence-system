@@ -13192,7 +13192,7 @@ async function timetableSaveOwner() {
             setStatus(error?.message||'تعذر تحميل أقسام المدرسة.',true);
           }
         }
-        await window.subxRefreshExistingPlan();
+        await window.substitutionLoadStats();
       });
       other.dataset.departmentBinding='ready';
     }
@@ -13398,7 +13398,7 @@ async function timetableSaveOwner() {
       const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=false;
       const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=false;
       showToast('تم اعتماد وحفظ توزيع الاحتياط.','success');
-      await window.substitutionLoadStats();
+      await window.subxRefreshExistingPlan();
     }catch(error){
       showToast(error?.message||'تعذر حفظ التوزيع. لم يتم اعتماد التوزيع الجزئي.','error');
       const status=document.getElementById('substitutionSaveStatus');
