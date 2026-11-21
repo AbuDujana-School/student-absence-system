@@ -1965,6 +1965,10 @@
       if($("reserveDistributionFrom"))$("reserveDistributionFrom").value=today;
       if($("reserveDistributionTo"))$("reserveDistributionTo").value=today;
     }
+    if(panel&&schoolwideReserveReportAllowed()&&!panel.dataset.reserveDistributionReportAutoLoaded){
+      panel.dataset.reserveDistributionReportAutoLoaded="1";
+      Promise.resolve().then(()=>window.loadSubstitutionDistributionReport());
+    }
   }
   installSchoolwideReserveDistributionReport();
   if(typeof MutationObserver!=="undefined"&&document.body&&!window.__schoolwideSubstitutionReportInstalled){
