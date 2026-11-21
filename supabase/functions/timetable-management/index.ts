@@ -1730,12 +1730,12 @@ async function handle(req: Request) {
           id:String(row.id),assignmentDate:row.assignment_date||assignmentDate,
           canEdit:String(row.version_id)===String(activeVersion.id)&&["assigned","confirmed"].includes(String(row.status||""))&&
             (principal.type==="admin"
-              ? String(row.assignment_date||assignmentDate)===todayInMuscat
-              : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date||assignmentDate,row.period,periodTimings)),
+              ? String(row.assignment_date||"")===todayInMuscat
+              : hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
           canDelete:String(row.version_id)===String(activeVersion.id)&&
             (principal.type==="admin"
-              ? String(row.assignment_date||assignmentDate)===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))
-              : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date||assignmentDate,row.period,periodTimings)),
+              ? String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||""))
+              : hasReservePermission&&["assigned","confirmed"].includes(String(row.status||""))&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)),
           absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
           weekday:String(row.weekday),period:Number(row.period),
           className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
