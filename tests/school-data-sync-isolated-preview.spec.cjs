@@ -191,6 +191,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     localOnlySession = false;
+    window.__ABU_SYNC_TEST_DIAGNOSTICS__ = true;
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
