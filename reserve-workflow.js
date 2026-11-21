@@ -447,10 +447,10 @@
       if(!pendingRows.length){
         const savedRows=rows.filter(item=>item.kind==="saved");
         const date=timetableSubstitutionGetDate().date;
-        const canDelete=date===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
-        const canEdit=date===reserveCurrentMuscatDate()&&savedRows.some(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status))&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
+        const canDelete=savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
+        const canEdit=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
         const savedReason=String(savedRows.find(item=>item.absenceReason&&item.absenceReason!=="-")?.absenceReason||reserveAbsenceReasons[absentName]||"");
-        const actions=canDelete?'<div class="mt-3 flex flex-wrap gap-2">'+(canEdit?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button></div>':'<span class="mt-2 block text-[10px] text-slate-500">التوزيع غير قابل للتعديل أو الحذف في هذه الحالة.</span>';
+        const actions=(canEdit||canDelete)?'<div class="mt-3 flex flex-wrap gap-2">'+(canEdit?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+(canDelete?'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(date)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button>':"")+'</div>':'<span class="mt-2 block text-[10px] text-slate-500">انتهت مهلة الحصة أو أن السجل للقراءة فقط.</span>';
         return '<section class="tt-group border border-emerald-200 bg-emerald-50 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><div class="text-[10px] font-black text-emerald-700">تم حفظ التوزيع</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+savedRows.length+' حصص محفوظة</div><div class="mt-1 text-[10px] text-amber-800">سبب الغياب: '+esc(savedReason||"—")+'</div></div>'+actions+'</div></section>';
       }
       const savedAbsenceReason=saved.find(item=>item.absentTeacherName===absentName&&item.absenceReason&&item.absenceReason!=="-")?.absenceReason||"";
@@ -458,9 +458,9 @@
       const absenceReason=savedAbsenceReason||reserveAbsenceReasons[absentName]||"";
       const savedRows=rows.filter(item=>item.kind==="saved");
       const savedGroupDate=timetableSubstitutionGetDate().date;
-      const canDeleteSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
-      const canEditSavedGroup=savedGroupDate===reserveCurrentMuscatDate()&&savedRows.some(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status))&&savedRows.every(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
-      const mixedSavedActions=pendingRows.length&&canDeleteSavedGroup?'<div class="flex flex-wrap gap-2">'+(canEditSavedGroup?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button></div>':"";
+      const canDeleteSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canDelete===true);
+      const canEditSavedGroup=savedRows.length>0&&savedRows.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+      const mixedSavedActions=pendingRows.length&&(canDeleteSavedGroup||canEditSavedGroup)?'<div class="flex flex-wrap gap-2">'+(canEditSavedGroup?'<button type="button" data-tt-edit-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800">تعديل التوزيع</button>':"")+(canDeleteSavedGroup?'<button type="button" data-tt-delete-saved-group="'+esc(absentName)+'" data-tt-saved-date="'+esc(savedGroupDate)+'" class="tt-action border border-rose-200 bg-rose-50 text-rose-700">حذف الغياب والاحتياط بالكامل</button>':"")+'</div>':"";
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
         const reserveKey=reserveReasonKey(absentName,item.period);
@@ -471,7 +471,9 @@
         if (item.kind==="saved") {
           const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="cancelled"?"ملغى":"محفوظ";
           choice='<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"><div>البديل المحفوظ: '+esc(item.substituteTeacherName)+' · '+state+'</div><div class="mt-1 text-[10px] font-normal">سبب الغياب: '+esc(item.absenceReason||"-")+'</div><div class="mt-1 text-[10px] font-normal">سبب الاحتياط: '+esc(item.reason||"-")+'</div></div>';
-          action=item.assignmentDate===reserveCurrentMuscatDate()&&["assigned","confirmed"].includes(item.status)&&item.canEdit!==false&&item.id?'<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">إلغاء</button></div>':(item.canEdit===false?'<span class="text-[10px] text-slate-400">إصدار سابق · للعرض فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
+          const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button>':"";
+          const deleteButton=item.canDelete===true&&["assigned","confirmed","completed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button>':"";
+          action=editButton||deleteButton?'<div class="flex flex-wrap gap-1">'+editButton+deleteButton+'</div>':(item.canEdit===false&&item.canDelete!==true?'<span class="text-[10px] text-slate-400">انتهت مهلة الحصة · للقراءة فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
         } else {
           const candidates=item.candidateOptions||[];
           const options=candidates.map(candidate=>{const occupied=(Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods:[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b);const periodText=occupied.length?occupied.map(period=>new Intl.NumberFormat("ar").format(period)).join("، "):"—";return '<option value="'+esc(candidate.teacherName)+'" '+(draft?.substituteTeacherName===candidate.teacherName?"selected":"")+'>'+esc(candidate.teacherName)+' · الحصص '+periodText+'</option>';}).join("");
@@ -689,7 +691,7 @@
       Array.from(grouped.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,items])=>{
         const byAbsent=new Map();
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
-        const editableItems=items.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+        const editableItems=items.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
         const dayButton=editableItems.length?'<button type="button" class="tt-action bg-indigo-700 text-white" data-tt-open-day-edit="'+esc(date)+'">تعديل توزيع اليوم ('+editableItems.length+')</button>':"";
         const absentGroups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
@@ -699,7 +701,7 @@
             '<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete-group-date="'+esc(date)+'" data-tt-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+rows.length+')</button>':"";
           const rowsMarkup=rows.map(item=>{
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
-            const editable=item.canEdit!==false&&["assigned","confirmed"].includes(item.status);
+            const editable=item.canEdit===true&&["assigned","confirmed"].includes(item.status);
             const readOnly=item.canEdit===false&&["assigned","confirmed"].includes(item.status);
             const actions=editable?
               '<div class="flex flex-wrap gap-1"><button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button></div>':
@@ -720,8 +722,8 @@
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
     const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[])];
-    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit!==false&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
-    if(!items.length){status("لا توجد تكليفات قابلة للتعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
+    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
+    if(!items.length){status("لا توجد تكليفات ضمن مهلة التعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
     try{
       const absentNames=[...new Set(items.map(item=>item.absentTeacherName))],weekday=items[0].weekday;
       const previews=await Promise.all(absentNames.map(async name=>[name,await fetchArchivePreview(name,date,weekday)]));
@@ -777,7 +779,7 @@
   window.timetableDailyCancelAssignment = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
-    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){status("لا يمكن حذف هذا التكليف إلا خلال يومه، أو لأنه مكتمل أو مرتبط بإصدار جدول سابق.","error");return;}
+    if(item.canDelete!==true||!["assigned","confirmed","completed"].includes(item.status)){status("انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية وقت الحصة المحدد في الجدول.","error");return;}
     if(!window.confirm("سيتم حذف هذا التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
     try{
       const token=appAuthSession?.token||readAppAuthToken();
@@ -831,8 +833,8 @@
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
-    if(item.canEdit===false||!["assigned","confirmed"].includes(item.status)){
-      status("يمكن تعديل أو حذف التكليفات النشطة في يومها فقط، وحتى نهاية اليوم بتوقيت سلطنة عمان.","error");return;
+    if(item.canEdit!==true||!["assigned","confirmed"].includes(item.status)){
+      status("انتهت مهلة تعديل هذه الحصة؛ يسمح بالتعديل حتى نهاية وقتها المحدد في الجدول.","error");return;
     }
     try{
       const token=appAuthSession?.token||readAppAuthToken();
@@ -1515,9 +1517,8 @@
       byAbsent.get(name).push(item);
     });
     host.innerHTML=Array.from(byAbsent.entries()).map(([absentName,items])=>{
-      const editableRows=items.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
-      const groupCanEdit=editableRows.length>0&&items.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
-      const groupCanDelete=items.length>0&&items.every(item=>item.canDelete===true);
+        const groupCanEdit=items.length>0&&items.every(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+      const groupCanDelete=items.length>0&&items.every(item=>item.canDelete===true&&["assigned","confirmed","completed"].includes(item.status));
       const groupActions='<div class="flex flex-wrap gap-1.5">'+
         (groupCanEdit?'<button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-[10px] font-black text-indigo-900" data-home-today-edit-group="'+esc(absentName)+'">تعديل التوزيع</button>':'')+
         (groupCanDelete?'<button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-[10px] font-black text-rose-800" data-home-today-delete-group="'+esc(absentName)+'">حذف الغياب والاحتياط بالكامل</button>':'')+
@@ -1527,9 +1528,9 @@
       '<div class="space-y-2">'+items.map(item=>{
         const editable=item.canEdit===true&&["assigned","confirmed"].includes(item.status);
         const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="assigned"?"محفوظ":String(item.status||"");
-        const actions=editable
-          ?'<div class="flex shrink-0 flex-wrap gap-1.5"><button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-[11px] font-black text-indigo-900 transition hover:bg-indigo-100" data-home-today-edit="'+esc(item.id)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button><button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-[11px] font-black text-rose-800 transition hover:bg-rose-100" data-home-today-delete="'+esc(item.id)+'"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button></div>'
-          :'<span class="text-[10px] font-bold text-slate-400">'+(item.status==="completed"?"مكتمل · لا يقبل التعديل":"للقراءة فقط · تحقق من صلاحية الإدارة وإصدار الجدول")+'</span>';
+        const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)?'<button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-[11px] font-black text-indigo-900 transition hover:bg-indigo-100" data-home-today-edit="'+esc(item.id)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button>':"";
+        const deleteButton=item.canDelete===true?'<button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-[11px] font-black text-rose-800 transition hover:bg-rose-100" data-home-today-delete="'+esc(item.id)+'"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button>':"";
+        const actions=editButton||deleteButton?'<div class="flex shrink-0 flex-wrap gap-1.5">'+editButton+deleteButton+'</div>':'<span class="text-[10px] font-bold text-slate-400">'+(item.status==="completed"?"مكتمل · انتهت الحصة":"انتهت مهلة الحصة أو السجل للقراءة فقط")+'</span>';
         return '<article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="min-w-0 flex-1"><strong class="block text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' · '+esc(item.subject||"—")+'</strong><span class="mt-1 block text-xs text-slate-700">المعلم البديل: '+esc(item.substituteTeacherName||"—")+'</span><span class="mt-1 block text-[10px] text-amber-700">سبب الغياب: '+esc(item.absenceReason||"-")+'</span><span class="mt-1 block text-[10px] text-indigo-700">سبب الاحتياط: '+esc(item.reason||"-")+'</span></div>'+actions+'</article>';
       }).join("")+'</div></section>';
     }).join("");
@@ -1545,7 +1546,7 @@
     // current cumulative reserve record shown to coordinators or sent to print.
     const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد توزيعات احتياط فعلية في الفترة المحددة.</div>';return;}
-    const active=records.filter(item=>item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+    const active=records.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
     const historical=records.length-active.length;
     const byDate=new Map();
     records.forEach(item=>{const date=item.assignmentDate;if(!byDate.has(date))byDate.set(date,[]);byDate.get(date).push(item);});
@@ -1560,8 +1561,9 @@
           const deleteAll=canDelete?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-delete-group-date="'+esc(date)+'" data-home-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+current.length+')</button>':"";
           const rowHtml=rows.map(item=>{
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
-            const editable=item.canEdit!==false&&["assigned","confirmed"].includes(item.status);
-            const actions=editable?'<div class="flex gap-1"><button type="button" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800" data-home-archive-edit="'+esc(item.id)+'">تعديل</button><button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-archive-delete="'+esc(item.id)+'">حذف</button></div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&["assigned","confirmed"].includes(item.status)?"سجل تاريخي · للقراءة فقط":state)+'</span>';
+            const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)?'<button type="button" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800" data-home-archive-edit="'+esc(item.id)+'">تعديل</button>':"";
+            const deleteButton=item.canDelete===true?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-archive-delete="'+esc(item.id)+'">حذف</button>':"";
+            const actions=editButton||deleteButton?'<div class="flex gap-1">'+editButton+deleteButton+'</div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&item.canDelete!==true?"انتهت مهلة الحصة · للقراءة فقط":state)+'</span>';
             return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3"><div><strong class="block text-xs text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</strong><span class="block text-[10px] text-amber-700">سبب الغياب: '+esc(item.absenceReason||"-")+'</span><span class="block text-[10px] text-indigo-700">سبب الاحتياط: '+esc(item.reason||"-")+'</span><span class="block text-[10px] text-slate-500">'+state+'</span></div>'+actions+'</div>';
           }).join("");
           return '<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+deleteAll+'</div><div class="space-y-2">'+rowHtml+'</div></section>';
