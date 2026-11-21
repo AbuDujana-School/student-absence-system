@@ -13336,8 +13336,14 @@ async function timetableSaveOwner() {
     input.disabled=true;
     openPicker(name,'',function(value){
       input.disabled=false;
-      if(value)absenceReasonsByTeacher.set(name,String(value));
-      else input.checked=false;
+      const reasonLabel=input.closest('label')?.querySelector('[data-subx-absence-reason]');
+      if(value){
+        absenceReasonsByTeacher.set(name,String(value));
+        if(reasonLabel)reasonLabel.textContent='سبب الغياب: '+String(value);
+      }else{
+        input.checked=false;
+        if(reasonLabel)reasonLabel.textContent='سبب الغياب: لم يحدد';
+      }
       updateSelectedCount();
       if(typeof onComplete==='function')onComplete();
     });
@@ -13352,14 +13358,20 @@ async function timetableSaveOwner() {
     root.innerHTML=names.map(function(name,index){
       return '<label class="flex cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 transition hover:border-rose-300 hover:bg-rose-50 dark:border-slate-700 dark:bg-slate-800/70 dark:hover:border-rose-800">'+
         '<input type="checkbox" name="substitutionAbsentTeacher" value="'+esc(name)+'" class="h-4 w-4 accent-rose-600">'+
-        '<span class="min-w-0 flex-1 text-xs font-black text-slate-800 dark:text-slate-100">'+esc(name)+'</span>'+
+        '<span class="min-w-0 flex-1"><span class="block text-xs font-black text-slate-800 dark:text-slate-100">'+esc(name)+'</span><span data-subx-absence-reason class="mt-1 block break-words text-[9px] font-bold text-slate-500 dark:text-slate-400">سبب الغياب: لم يحدد</span></span>'+
         '<span class="rounded-lg bg-white px-2 py-1 text-[9px] font-black text-rose-600 dark:bg-slate-900 dark:text-rose-300">غائب</span></label>';
     }).join('');
     root.querySelectorAll('input[name="substitutionAbsentTeacher"]').forEach(function(input){
+      const reasonLabel=input.closest('label')?.querySelector('[data-subx-absence-reason]');
+      if(reasonLabel&&absenceReasonsByTeacher.has(input.value))reasonLabel.textContent='سبب الغياب: '+absenceReasonsByTeacher.get(input.value);
       input.addEventListener('change',function(){
         clearPlan();
         if(input.checked)requestAbsenceReason(input);
-        else {absenceReasonsByTeacher.delete(input.value);updateSelectedCount();}
+        else {
+          absenceReasonsByTeacher.delete(input.value);
+          if(reasonLabel)reasonLabel.textContent='سبب الغياب: لم يحدد';
+          updateSelectedCount();
+        }
       });
     });
     updateSelectedCount();

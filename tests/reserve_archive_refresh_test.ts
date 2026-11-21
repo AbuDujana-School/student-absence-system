@@ -120,6 +120,12 @@ Deno.test("main substitution view allows changing a reason by deselecting and re
   assert(source.includes('reason:String(group?.reason||reasons[reasonKey(group?.absentName)]||"-")'),"The official PDF must prioritize the reason selected in the main substitution view");
 });
 
+Deno.test("main substitution absentee list displays the chosen absence reason", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("data-subx-absence-reason"),"The absentee card must display its selected absence reason");
+  assert(html.includes("reasonLabel.textContent='سبب الغياب: '+String(value)"),"Confirming the modal must update the visible reason label");
+});
+
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
