@@ -2895,6 +2895,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportStudentAffairs" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📊 لوحة تقارير شؤون الطلبة</span></label>
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportComprehensiveAbsence" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📋 تقارير الغياب الشامل</span></label>
             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportClassLatenessFollowup" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">🕒 كشف متابعة التأخر عن الحصص</span></label>
+             <label class="flex items-center gap-2 cursor-pointer rounded-xl border border-purple-200 dark:border-purple-800 bg-white dark:bg-slate-900 p-3"><input type="checkbox" id="perm_p_reportSubstitutionDistribution" class="accent-purple-600 w-4 h-4"><span class="text-xs font-bold">📚 تقرير توزيع الاحتياط (جميع المواد)</span></label>
           </div>
         </div>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-slate-50 dark:bg-slate-900/50 rounded-2xl border border-slate-200 dark:border-slate-700"><input type="checkbox" id="perm_p_duty" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة الدائمة</span></label>
@@ -3497,6 +3498,21 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 
         
 
+        <section id="reserveDistributionReportPanel" class="hidden space-y-4 rounded-3xl border border-cyan-200 bg-white p-4 shadow-sm dark:border-cyan-900 dark:bg-slate-900 sm:p-6" dir="rtl">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div><h3 class="font-black text-base text-slate-800 dark:text-white"><i class="fa-solid fa-people-arrows-left-right ml-1 text-cyan-700"></i> توزيع الاحتياط</h3><p class="mt-1 text-xs leading-6 text-slate-500">كشف يومي موحّد يجمع جميع المعلمين الغائبين من كل التخصصات وتوزيعاتهم في صفحة مستقلة لكل يوم.</p></div>
+            <span class="rounded-xl border border-cyan-200 bg-cyan-50 px-3 py-2 text-[11px] font-bold text-cyan-800 dark:border-cyan-900 dark:bg-cyan-950/40 dark:text-cyan-200">تقرير جميع المواد</span>
+          </div>
+          <div class="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-950/40 sm:grid-cols-2 lg:grid-cols-4">
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">من تاريخ<input id="reserveDistributionFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"></label>
+            <label class="text-xs font-bold text-slate-700 dark:text-slate-200">إلى تاريخ<input id="reserveDistributionTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"></label>
+            <button type="button" onclick="resetSubstitutionDistributionReport()" class="self-end rounded-xl border border-slate-300 bg-white px-4 py-3 text-xs font-black text-slate-700 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"><i class="fa-solid fa-calendar-day ml-1"></i> اليوم</button>
+            <div class="flex items-end gap-2"><button type="button" onclick="loadSubstitutionDistributionReport()" class="flex-1 rounded-xl bg-cyan-800 px-4 py-3 text-xs font-black text-white shadow hover:bg-cyan-900"><i class="fa-solid fa-magnifying-glass ml-1"></i> عرض التقرير</button><button type="button" onclick="printSubstitutionDistributionReport()" class="flex-1 rounded-xl bg-slate-800 px-4 py-3 text-xs font-black text-white shadow hover:bg-slate-900"><i class="fa-solid fa-file-pdf ml-1"></i> طباعة PDF</button></div>
+          </div>
+          <div id="reserveDistributionReportStatus" class="hidden rounded-xl border p-3 text-xs font-bold" role="status" aria-live="polite"></div>
+          <div id="reserveDistributionReportSummary" class="grid grid-cols-1 gap-2 sm:grid-cols-3"></div>
+          <div id="reserveDistributionReportResults" class="space-y-4"><div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs text-slate-500 dark:border-slate-700">اختر الفترة ثم اضغط «عرض التقرير».</div></div>
+        </section>
       </div>
 
       <div id="sec-sync" class="hidden space-y-4">
@@ -8028,6 +8044,150 @@ function printLateFollowupReport(){
  const html='<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف متابعة التأخر عن الحصص</title><link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap" rel="stylesheet"><style>*{box-sizing:border-box}body{font-family:Tajawal,Arial,sans-serif;color:#1e293b;direction:rtl}.head{text-align:center;border-bottom:2px solid #006699;padding-bottom:12px;margin-bottom:16px}.school{font-size:23px;font-weight:800;color:#006699}.title{font-size:18px;font-weight:700;margin-top:5px}.sub{font-size:11px;color:#64748b;margin-top:5px}.meta{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;background:#f8fafc;border:1px solid #e2e8f0;padding:10px;margin-bottom:15px;font-size:11px}.meta b{display:block;color:#64748b;margin-bottom:4px}table{width:100%;border-collapse:collapse;font-size:11px}th{background:#f1f5f9;color:#004466}th,td{border:1px solid #94a3b8;padding:7px 6px;text-align:center}td.name{text-align:right;font-weight:700}tbody tr:nth-child(even){background:#f8fafc}.sign{display:flex;justify-content:space-between;gap:20px;margin-top:35px;font-size:11px}@page{size:A4 portrait;margin:13mm}@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}tr{break-inside:avoid}}</style></head><body><header class="head"><div class="school">'+esc(typeof SCHOOL_NAME!=='undefined'?SCHOOL_NAME:'مدرسة أبو دجانة الأنصاري')+'</div><div class="title">كشف تفريغ ومتابعة حالات التأخر عن الحصص</div><div class="sub">نظام حصر الغياب والسلوك الذكي · تاريخ الاستخراج: '+esc(getOmanLocalDate())+'</div></header><section class="meta"><div><b>الصفوف المشمولة</b>'+esc(label)+'</div><div><b>الفترة الزمنية</b>من '+esc(from||'—')+' إلى '+esc(to||'—')+'</div><div><b>إجمالي السجلات</b>'+rows.length+'</div></section><table><thead><tr><th>م</th><th>اسم الطالب</th><th>الصف</th><th>الحصة</th><th>تاريخ التأخر</th><th>المعلم الراصد</th></tr></thead><tbody>'+rows.map((r,i)=>'<tr><td>'+(i+1)+'</td><td class="name">'+esc(r.student)+'</td><td dir="ltr">'+esc(formatClassName(r.className))+'</td><td>'+r.period+'</td><td dir="ltr">'+esc(r.date)+'</td><td>'+esc(r.teacher)+'</td></tr>').join('')+'</tbody></table><div class="sign"><span>مُعد الكشف: .......................................</span><span>اعتماد إدارة المدرسة: .......................................</span></div><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),350));<\/script></body></html>';
  const w=window.open('','_blank');if(!w){showToast('يرجى السماح بالنوافذ المنبثقة للطباعة.','error');return;}w.document.open();w.document.write(html);w.document.close();
 }
+let reserveDistributionReportRows = [];
+function initSubstitutionDistributionReport() {
+  const today = getOmanLocalDate();
+  const from = document.getElementById('reserveDistributionFrom');
+  const to = document.getElementById('reserveDistributionTo');
+  if (from && !from.value) from.value = today;
+  if (to && !to.value) to.value = today;
+}
+function resetSubstitutionDistributionReport() {
+  const today = getOmanLocalDate();
+  const from = document.getElementById('reserveDistributionFrom');
+  const to = document.getElementById('reserveDistributionTo');
+  if (from) from.value = today;
+  if (to) to.value = today;
+  loadSubstitutionDistributionReport();
+}
+function setSubstitutionDistributionReportStatus(message, kind) {
+  const box = document.getElementById('reserveDistributionReportStatus');
+  if (!box) return;
+  box.textContent = message || '';
+  box.classList.toggle('hidden', !message);
+  box.className = 'rounded-xl border p-3 text-xs font-bold ' + (kind === 'error'
+    ? 'border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200'
+    : 'border-cyan-200 bg-cyan-50 text-cyan-900 dark:border-cyan-900 dark:bg-cyan-950/30 dark:text-cyan-200');
+}
+function renderSubstitutionDistributionReport() {
+  const host = document.getElementById('reserveDistributionReportResults');
+  const summary = document.getElementById('reserveDistributionReportSummary');
+  if (!host || !summary) return;
+  const byDate = new Map();
+  reserveDistributionReportRows.forEach(row => {
+    const date = String(row.assignmentDate || '');
+    if (!date) return;
+    if (!byDate.has(date)) byDate.set(date, []);
+    byDate.get(date).push(row);
+  });
+  const dates = [...byDate.keys()].sort((a,b) => b.localeCompare(a));
+  const absentCount = new Set(reserveDistributionReportRows.map(row => String(row.assignmentDate || '') + '|' + String(row.absentTeacherName || ''))).size;
+  summary.innerHTML = [
+    ['الأيام المشمولة', dates.length],
+    ['المعلمون الغائبون', absentCount],
+    ['حصص الاحتياط', reserveDistributionReportRows.length]
+  ].map(([label,value]) => '<div class="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-center dark:border-slate-700 dark:bg-slate-950/50"><span class="block text-[10px] font-bold text-slate-500">' + label + '</span><strong class="mt-1 block text-xl font-black text-cyan-800 dark:text-cyan-200">' + Number(value).toLocaleString('ar-OM') + '</strong></div>').join('');
+  if (!dates.length) {
+    host.innerHTML = '<div class="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700">لا توجد توزيعات احتياط في الفترة المحددة.</div>';
+    return;
+  }
+  host.innerHTML = dates.map(date => {
+    const rows = byDate.get(date).slice().sort((a,b) => String(a.absentTeacherName || '').localeCompare(String(b.absentTeacherName || ''),'ar') || Number(a.period)-Number(b.period));
+    const dateObject = new Date(date + 'T12:00:00+04:00');
+    const weekday = String(rows.find(row => row.weekday)?.weekday || (Number.isFinite(dateObject.getTime()) ? new Intl.DateTimeFormat('ar-OM',{weekday:'long',timeZone:'Asia/Muscat'}).format(dateObject) : ''));
+    const groups = new Map();
+    rows.forEach(row => {
+      const name = String(row.absentTeacherName || 'غير محدد');
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(row);
+    });
+    const groupHtml = [...groups.entries()].map(([name,items]) => {
+      const specialty = String(items.find(row => row.absentTeacherDepartment)?.absentTeacherDepartment || items.find(row => row.subject)?.subject || 'غير محدد');
+      const lessonRows = items.map(row => '<tr class="border-t border-slate-100 dark:border-slate-800"><td class="p-2 text-center">' + Number(row.period || 0) + '</td><td class="p-2 font-bold">' + escapeHtml(row.className || '—') + '</td><td class="p-2">' + escapeHtml(row.subject || '—') + '</td><td class="p-2 font-bold text-cyan-800 dark:text-cyan-200">' + escapeHtml(row.substituteTeacherName || '—') + '</td><td class="p-2 text-[10px] text-slate-500">' + escapeHtml(row.absenceReason || '—') + '</td></tr>').join('');
+      return '<section class="overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700"><div class="flex flex-wrap items-center justify-between gap-2 bg-slate-50 p-3 dark:bg-slate-800"><div><strong class="block text-xs font-black text-slate-900 dark:text-white">المعلم الغائب: ' + escapeHtml(name) + '</strong><span class="mt-1 block text-[10px] font-bold text-cyan-800 dark:text-cyan-200">التخصص: ' + escapeHtml(specialty) + '</span></div><span class="rounded-lg bg-white px-3 py-1 text-[10px] font-black text-slate-600 dark:bg-slate-900 dark:text-slate-300">' + items.length + ' حصص</span></div><div class="overflow-x-auto"><table class="w-full min-w-[620px] text-right text-[11px]"><thead class="bg-white text-slate-500 dark:bg-slate-900"><tr><th class="p-2 text-center">الحصة</th><th class="p-2">الصف</th><th class="p-2">المادة</th><th class="p-2">المعلم البديل</th><th class="p-2">سبب الغياب</th></tr></thead><tbody>' + lessonRows + '</tbody></table></div></section>';
+    }).join('');
+    return '<details open class="rounded-2xl border border-cyan-200 bg-white p-3 shadow-sm dark:border-cyan-900 dark:bg-slate-900"><summary class="flex cursor-pointer list-none flex-wrap items-center justify-between gap-2 text-xs font-black text-slate-800 dark:text-white"><span>' + escapeHtml(weekday) + ' · ' + escapeHtml(date) + '</span><span class="rounded-lg bg-cyan-50 px-3 py-1 text-cyan-800 dark:bg-cyan-950/40 dark:text-cyan-200">' + rows.length + ' حصة · ' + groups.size + ' معلم غائب</span></summary><div class="mt-3 space-y-3">' + groupHtml + '</div></details>';
+  }).join('');
+}
+async function loadSubstitutionDistributionReport(silent) {
+  if (!canAccessReport('reportSubstitutionDistribution')) {
+    setSubstitutionDistributionReportStatus('لا تملك صلاحية عرض تقرير توزيع الاحتياط.', 'error');
+    return;
+  }
+  initSubstitutionDistributionReport();
+  const from = document.getElementById('reserveDistributionFrom')?.value || '';
+  const to = document.getElementById('reserveDistributionTo')?.value || '';
+  if (!from || !to || from > to) {
+    setSubstitutionDistributionReportStatus('حدد فترة زمنية صحيحة؛ يجب ألا يتجاوز تاريخ البداية تاريخ النهاية.', 'error');
+    return;
+  }
+  const button = document.querySelector('#reserveDistributionReportPanel button[onclick="loadSubstitutionDistributionReport()"]');
+  if (button) { button.disabled = true; button.textContent = 'جارٍ تحميل التقرير...'; }
+  setSubstitutionDistributionReportStatus('جارٍ تحميل جميع توزيعات الاحتياط من قاعدة البيانات...', 'info');
+  try {
+    const token = appAuthSession?.token || readAppAuthToken();
+    const result = await appAuthRequest({ action: 'timetable_substitution_report', dateFrom: from, dateTo: to }, token);
+    reserveDistributionReportRows = Array.isArray(result.archive) ? result.archive : [];
+    renderSubstitutionDistributionReport();
+    setSubstitutionDistributionReportStatus(reserveDistributionReportRows.length
+      ? 'تم تحميل ' + reserveDistributionReportRows.length + ' حصة احتياط لجميع التخصصات، مرتبة من الأحدث إلى الأقدم.'
+      : 'لا توجد توزيعات احتياط في الفترة المحددة.', 'info');
+  } catch (error) {
+    reserveDistributionReportRows = [];
+    renderSubstitutionDistributionReport();
+    setSubstitutionDistributionReportStatus(error?.message || 'تعذر تحميل تقرير توزيع الاحتياط.', 'error');
+    if (!silent) showToast(error?.message || 'تعذر تحميل تقرير توزيع الاحتياط.', 'error');
+  } finally {
+    if (button) { button.disabled = false; button.innerHTML = '<i class="fa-solid fa-magnifying-glass ml-1"></i> عرض التقرير'; }
+  }
+}
+function printSubstitutionDistributionReport() {
+  if (!canAccessReport('reportSubstitutionDistribution')) {
+    showToast('لا تملك صلاحية طباعة تقرير توزيع الاحتياط.', 'error');
+    return;
+  }
+  if (!reserveDistributionReportRows.length) {
+    showToast('اعرض التقرير أولاً، ولا توجد بيانات جاهزة للطباعة.', 'error');
+    return;
+  }
+  const popup = window.open('', '_blank');
+  if (!popup) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
+  const byDate = new Map();
+  reserveDistributionReportRows.forEach(row => {
+    const date = String(row.assignmentDate || '');
+    if (!date) return;
+    if (!byDate.has(date)) byDate.set(date, []);
+    byDate.get(date).push(row);
+  });
+  const pages = [...byDate.keys()].sort((a,b) => b.localeCompare(a)).map(date => {
+    const rows = byDate.get(date).slice().sort((a,b) => String(a.absentTeacherName || '').localeCompare(String(b.absentTeacherName || ''),'ar') || Number(a.period)-Number(b.period));
+    const dateObject = new Date(date + 'T12:00:00+04:00');
+    const weekday = String(rows.find(row => row.weekday)?.weekday || (Number.isFinite(dateObject.getTime()) ? new Intl.DateTimeFormat('ar-OM',{weekday:'long',timeZone:'Asia/Muscat'}).format(dateObject) : ''));
+    const groups = new Map();
+    rows.forEach(row => {
+      const name = String(row.absentTeacherName || 'غير محدد');
+      if (!groups.has(name)) groups.set(name, []);
+      groups.get(name).push(row);
+    });
+    const rowCount = rows.length;
+    const fontSize = rowCount > 60 ? 5.8 : rowCount > 44 ? 6.6 : rowCount > 30 ? 7.4 : rowCount > 22 ? 8.2 : 9.2;
+    const tableRows = [...groups.entries()].map(([name,items]) => {
+      const specialty = String(items.find(row => row.absentTeacherDepartment)?.absentTeacherDepartment || items.find(row => row.subject)?.subject || '');
+      const absentLabel = name + (specialty ? ' — ' + specialty : '');
+      const absenceReason = String(items.find(row => row.absenceReason)?.absenceReason || '—');
+      return items.map((row,index) => '<tr>' + (index === 0
+        ? '<td class="merged" rowspan="' + items.length + '">' + escapeHtml(absentLabel) + '</td><td class="merged" rowspan="' + items.length + '">' + escapeHtml(absenceReason) + '</td>'
+        : '') + '<td>' + escapeHtml(new Intl.NumberFormat('ar-OM').format(Number(row.period) || 0)) + '</td><td>' + escapeHtml(row.className || '—') + '</td><td>' + escapeHtml(row.subject || '—') + '</td><td class="substitute">' + escapeHtml(row.substituteTeacherName || '—') + '</td><td></td></tr>').join('');
+    }).join('');
+    const widths = [24,13,8,13,13,17,12];
+    return '<main class="reserve-day-page"><header class="official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="school">مدرسة أبو دجانة</div></header><div class="meta"><span><b>اليوم:</b> ' + escapeHtml(weekday) + '</span><span><b>التاريخ:</b> ' + escapeHtml(date) + '</span></div><h2 class="report-title">توزيع الاحتياط</h2><table class="official-table" style="font-size:' + fontSize + 'pt"><colgroup>' + widths.map(width => '<col style="width:' + width + '%">').join('') + '</colgroup><thead><tr><th>المعلم الغائب والتخصص</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>المادة</th><th>المعلم البديل</th><th>التوقيع</th></tr></thead><tbody>' + tableRows + '</tbody></table><footer class="official-footer"><div class="manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="stamp"></div></footer></main>';
+  }).join('');
+  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>توزيع الاحتياط</title><style>@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#111;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}.reserve-day-page{width:100%;height:281mm;max-height:281mm;overflow:hidden;display:flex;flex-direction:column;border:.35mm solid #333;padding:2.5mm 3mm 2mm;page-break-after:always;break-after:page}.reserve-day-page:last-child{page-break-after:auto;break-after:auto}.official-heading{text-align:center;font-size:10pt;font-weight:700;line-height:1.3;padding:2mm;background:#078b98;color:#fff;border-bottom:1mm solid #155e75;-webkit-print-color-adjust:exact;print-color-adjust:exact}.official-heading .school{font-size:12pt;font-weight:900}.meta{display:flex;justify-content:space-between;gap:8mm;margin:2mm 0;font-size:10pt;font-weight:800}.report-title{text-align:center;font-size:12pt;font-weight:900;margin:0 auto 1.5mm;padding:1mm 8mm;background:#e8f1ff;border:1px solid #315b91;color:#173b68}.official-table{width:100%;border-collapse:collapse;table-layout:fixed;flex:0 0 auto;line-height:1.1}.official-table th,.official-table td{border:1px solid #222;text-align:center;vertical-align:middle;padding:.45mm .55mm;overflow-wrap:anywhere}.official-table thead th{background:#12345a!important;color:#fff!important;font-size:9pt;font-weight:900;-webkit-print-color-adjust:exact;print-color-adjust:exact}.official-table tbody tr{break-inside:avoid;page-break-inside:avoid}.official-table tbody td{font-size:inherit}.official-table .merged{font-weight:900}.official-table .substitute{font-weight:900;color:#12345a}.official-footer{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;min-height:17mm;padding-top:2mm;font-size:12pt}.manager{display:flex;flex-direction:column;gap:1mm;text-align:center}.stamp{width:40mm;height:14mm}@media print{html,body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.reserve-day-page{break-after:page}.reserve-day-page:last-child{break-after:auto}}</style></head><body>' + pages + '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),350));<\/script></body></html>';
+  popup.document.open();
+  popup.document.write(html);
+  popup.document.close();
+}
+
 function renderReportsSection() {
   if (!canAccessReport('reportComprehensiveAbsence')) { document.getElementById('reportClassesContainer')?.replaceChildren(); return; }
   const cf = document.getElementById('reportClassFilter').value;
@@ -8875,7 +9035,7 @@ async function repPrint(){
   }
 }
 
-const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup'];
+const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'];
 function canManageReportPermissions() {
   return activeUser?.type === 'admin' || activeUser?.permissions?.admin === true || isAdminAuthorized();
 }
@@ -8900,7 +9060,8 @@ function refreshReportPanelsVisibility() {
     comprehensiveAbsenceReportPanel: canAccessReport('reportComprehensiveAbsence'),
     comprehensiveAbsenceActions: canAccessReport('reportComprehensiveAbsence'),
     reportClassesContainer: canAccessReport('reportComprehensiveAbsence'),
-    lateFollowupReportSection: canAccessReport('reportClassLatenessFollowup')
+    lateFollowupReportSection: canAccessReport('reportClassLatenessFollowup'),
+    reserveDistributionReportPanel: canAccessReport('reportSubstitutionDistribution')
   };
   Object.entries(visibility).forEach(([id, show]) => document.getElementById(id)?.classList.toggle('hidden', !show));
   document.getElementById('tab-reports')?.classList.toggle('hidden', !canAccessAnyReport());
@@ -8946,6 +9107,7 @@ function switchAdminTab(tab) {
     if (canAccessReport('reportComprehensiveAbsence')) renderReportsSection();
     if (canAccessReport('reportClassLatenessFollowup')) renderLateFollowupReport();
     if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
+    if (canAccessReport('reportSubstitutionDistribution')) { initSubstitutionDistributionReport(); loadSubstitutionDistributionReport(true); }
   }
   if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
 }
@@ -9711,6 +9873,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_reportStudentAffairs').checked = hasGranularReports && p.reportStudentAffairs === true;
   document.getElementById('perm_p_reportComprehensiveAbsence').checked = hasGranularReports && p.reportComprehensiveAbsence === true;
   document.getElementById('perm_p_reportClassLatenessFollowup').checked = hasGranularReports && p.reportClassLatenessFollowup === true;
+  document.getElementById('perm_p_reportSubstitutionDistribution').checked = hasGranularReports && p.reportSubstitutionDistribution === true;
   document.getElementById('perm_p_reports').checked = REPORT_PERMISSION_KEYS.some(key => p[key] === true);
   document.getElementById('perm_p_reports').disabled = true;
   REPORT_PERMISSION_KEYS.forEach(key => {
@@ -9745,6 +9908,7 @@ async function saveTeacherPermissions() {
     t.permissions.reportStudentAffairs = document.getElementById('perm_p_reportStudentAffairs').checked;
     t.permissions.reportComprehensiveAbsence = document.getElementById('perm_p_reportComprehensiveAbsence').checked;
     t.permissions.reportClassLatenessFollowup = document.getElementById('perm_p_reportClassLatenessFollowup').checked;
+    t.permissions.reportSubstitutionDistribution = document.getElementById('perm_p_reportSubstitutionDistribution').checked;
     t.permissions.reports = REPORT_PERMISSION_KEYS.some(key => t.permissions[key] === true);
   }
   t.permissions.duty = document.getElementById('perm_p_duty').checked;
@@ -13575,7 +13739,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=9510fd8"></script>
+<script src="./reserve-workflow.js?v=20261121-reserve-report-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 </body>
 </html>
