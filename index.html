@@ -6817,7 +6817,12 @@ async function handleUserLogin(e) {
     let serverLogin = null;
     let useLegacyLogin = !navigator.onLine;
     if (!useLegacyLogin) {
-      try { serverLogin = await appAuthRequest({ action: "app_login", pin }); }
+      try {
+        serverLogin = await Promise.race([
+          appAuthRequest({ action: "app_login", pin }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error("استغرق الاتصال بخدمة تسجيل الدخول وقتاً أطول من المعتاد. تحقق من الاتصال ثم أعد المحاولة.")), 15000))
+        ]);
+      }
       catch (serverError) {
         if (isLegacyAuthEndpointUnavailable(serverError) || isNetworkFailureForOfflineFallback(serverError)) useLegacyLogin = true;
         else throw serverError;
