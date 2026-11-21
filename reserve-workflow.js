@@ -844,10 +844,10 @@
     const subjectTitle=subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط";
     const uniqueSummary=(values)=>[...new Set((values||[]).map(value=>String(value||"").trim()).filter(value=>value&&value!=="-"&&value!=="—"))].join("، ")||"—";
     const summaryMarkup='<section class="tt-official-summary" aria-label="ملخص بيانات التكليفات">'+
-      '<div class="tt-official-summary-box"><span>المعلم الغائب</span><strong class="tt-summary-absent">'+uniqueSummary((groups||[]).map(group=>group.absentName))+'</strong></div>'+
-      '<div class="tt-official-summary-box"><span>سبب الغياب</span><strong class="tt-summary-reason">'+uniqueSummary((groups||[]).map(group=>group.reason))+'</strong></div>'+
-      '<div class="tt-official-summary-box"><span>الصفوف</span><strong class="tt-summary-class">'+uniqueSummary((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.className)))+'</strong></div>'+
-      '<div class="tt-official-summary-box"><span>المعلم البديل</span><strong class="tt-summary-sub">'+uniqueSummary((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.substitute)))+'</strong></div></section>';
+      '<div class="tt-official-summary-box"><span>المعلم الغائب</span><strong class="tt-summary-absent">'+esc(uniqueSummary((groups||[]).map(group=>group.absentName)))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>سبب الغياب</span><strong class="tt-summary-reason">'+esc(uniqueSummary((groups||[]).map(group=>group.reason)))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>الصفوف</span><strong class="tt-summary-class">'+esc(uniqueSummary((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.className))))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>المعلم البديل</span><strong class="tt-summary-sub">'+esc(uniqueSummary((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.substitute))))+'</strong></div></section>';
     return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة السويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
 
