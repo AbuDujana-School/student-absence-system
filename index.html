@@ -5765,20 +5765,71 @@ function restoreLocalStorageOfflineSnapshot() {
 async function restoreOfflineState() {
   lastLoadedCloudManifest = null;
   localStorageFallbackSnapshot = false;
+  let database = null;
   try {
-    const database=await openOfflineDatabase();
-    const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
-    if(!snapshot?.db||typeof snapshot.db!=='object') {
+    // IndexedDB can remain pending on some mobile browsers when another tab holds
+    // an upgrade transaction. Never let local cache recovery block cloud sync.
+    database = await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('انتهت مهلة فتح التخزين المحلي')), 5000);
+      openOfflineDatabase().then(value => {
+        clearTimeout(timer);
+        resolve(value);
+      }, error => {
+        clearTimeout(timer);
+        reject(error);
+      });
+    });
+  } catch (error) {
+    offlineDbPromise = null;
+    console.warn('IndexedDB open unavailable or timed out; using the localStorage fallback.', error);
+    return restoreLocalStorageOfflineSnapshot();
+  }
+
+  try {
+    const snapshot = await new Promise((resolve, reject) => {
+      let settled = false;
+      let snapshotValue = null;
+      let timer = null;
+      let tx;
+      const finish = (error, value) => {
+        if (settled) return;
+        settled = true;
+        if (timer) clearTimeout(timer);
+        if (error) reject(error);
+        else resolve(value);
+      };
+      try {
+        tx = database.transaction('state', 'readonly');
+        const request = tx.objectStore('state').get('snapshot');
+        request.onsuccess = () => { snapshotValue = request.result || null; };
+        request.onerror = () => finish(request.error || new Error('فشل قراءة النسخة المحلية'));
+        tx.oncomplete = () => finish(null, snapshotValue);
+        tx.onerror = () => finish(tx.error || request.error || new Error('فشل تنفيذ قراءة النسخة المحلية'));
+        tx.onabort = () => finish(tx.error || new Error('أُلغيت قراءة النسخة المحلية'));
+        timer = setTimeout(() => {
+          try { tx.abort(); } catch (error) {}
+          finish(new Error('انتهت مهلة قراءة التخزين المحلي'));
+        }, 5000);
+      } catch (error) {
+        finish(error);
+      }
+    });
+    if (!snapshot?.db || typeof snapshot.db !== 'object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
       return restoreLocalStorageOfflineSnapshot();
     }
     lastLoadedCloudManifest = normalizeAppSyncManifest(snapshot.cloudSyncManifest);
-    db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
-    db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
-    restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
+    db = { ...db, ...snapshot.db };
+    if (!db.customUsers) db.customUsers = [];
+    if (!db.customCategories) db.customCategories = [];
+    if (!db.behaviors) db.behaviors = {};
+    db.dutyModule = normalizeDutyModule(db.dutyModule);
+    Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k] || []));
+    restoreDirtySetsObject(snapshot.dirtySets);
+    if (Array.isArray(snapshot.pendingDeletes)) setPendingDeletes(snapshot.pendingDeletes);
     return true;
-  } catch(error) {
+  } catch (error) {
     console.warn('IndexedDB restore unavailable; attempting the localStorage fallback.', error);
     return restoreLocalStorageOfflineSnapshot();
   }
@@ -6228,6 +6279,19 @@ function normalizeAppSyncManifest(value) {
   return normalized;
 }
 
+function withAppSyncTimeout(promise, timeoutMs, message) {
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message || 'انتهت مهلة المزامنة.')), timeoutMs);
+    Promise.resolve(promise).then(value => {
+      clearTimeout(timer);
+      resolve(value);
+    }, error => {
+      clearTimeout(timer);
+      reject(error);
+    });
+  });
+}
+
 async function fetchAppSyncManifest() {
   const { data, error } = await sb.rpc('get_app_sync_manifest');
   if (error) throw error;
@@ -6235,7 +6299,6 @@ async function fetchAppSyncManifest() {
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
   return manifest;
 }
-
 function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback = localStorageFallbackSnapshot) {
   if (!hasSnapshot || !lastLoadedCloudManifest) return [...APP_SYNC_TABLES];
   const changed = APP_SYNC_TABLES.filter(table =>
@@ -6285,7 +6348,7 @@ async function loadSystemDataFromCloud() {
     // when no server-side change has occurred since this device's last snapshot.
     let nextManifest = null;
     try {
-      nextManifest = await fetchAppSyncManifest();
+      nextManifest = await withAppSyncTimeout(fetchAppSyncManifest(), 10000, 'انتهت مهلة التحقق من تحديثات الخادم.');
     } catch (manifestError) {
       // A transient manifest/network failure must not fan out into seven full-table
       // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
@@ -6328,7 +6391,7 @@ async function loadSystemDataFromCloud() {
     }
 
     const shouldLoad = table => changedTables.includes(table);
-    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await Promise.all([
+    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await withAppSyncTimeout(Promise.all([
       shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
       shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
       shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
@@ -6336,7 +6399,7 @@ async function loadSystemDataFromCloud() {
       shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
       shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null),
       shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)
-    ]);
+    ]), 20000, 'انتهت مهلة تحميل بيانات المدرسة؛ بقيت النسخة المحلية محفوظة.');
 
     if (fullSync) {
       const empty = classesData.length === 0 && studentsData.length === 0 &&
@@ -7045,14 +7108,15 @@ async function finalizeLoginState() {
     } catch (permissionError) {
       console.warn('Permission refresh deferred after successful login.', permissionError);
     }
-    try {
-      await bounded(timetableRefreshAccess(), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
-    } catch (timetableError) {
-      timetableCanAccess = activeUser?.type === 'admin';
-      teacherPortalCanAccess = false;
-      teacherPortalEnabled = false;
-      console.warn('Timetable access refresh deferred after successful login.', timetableError);
-    }
+    // Timetable access is secondary to the core login. Refresh it in the
+    // background so a slow timetable endpoint cannot hold the login spinner.
+    void bounded(timetableRefreshAccess(), 7000, 'تعذر تحديث صلاحية الجدول الآن.')
+      .catch(timetableError => {
+        timetableCanAccess = activeUser?.type === 'admin';
+        teacherPortalCanAccess = false;
+        teacherPortalEnabled = false;
+        console.warn('Timetable access refresh deferred after successful login.', timetableError);
+      });
   } else {
     timetableCanAccess = false;
     teacherPortalCanAccess = false;
@@ -7062,12 +7126,11 @@ async function finalizeLoginState() {
   document.getElementById('dashboardSelectionView').classList.remove('hidden');
   if (activeUser?.type === "teacher" && !localOnlySession) {
     // Let the authenticated dashboard become visible before placing the daily reserve notice above it.
-    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    try {
-      await bounded(teacherShowDailySubstitutionWelcome(), 7000, 'تعذر تحميل تنبيه الاحتياط اليومي الآن.');
-    } catch (noticeError) {
-      console.warn('Daily reserve notice deferred after successful login.', noticeError);
-    }
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (activeUser?.type !== 'teacher' || localOnlySession) return;
+      void bounded(teacherShowDailySubstitutionWelcome(), 7000, 'تعذر تحميل تنبيه الاحتياط اليومي الآن.')
+        .catch(noticeError => console.warn('Daily reserve notice deferred after successful login.', noticeError));
+    }));
     teacherStartDailySubstitutionWatcher();
   } else if (teacherReserveNoticeRefreshTimer) {
     clearInterval(teacherReserveNoticeRefreshTimer);
