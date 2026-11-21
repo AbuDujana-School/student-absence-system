@@ -100,7 +100,7 @@ test("cloud manifest and table downloads have bounded waits", () => {
 });
 
 test("optional timetable and teacher notice refreshes do not block successful login", () => {
-  const finalizer = section("async function finalizeLoginState()", "function ");
+  const finalizer = section("async function finalizeLoginState()", "\nfunction ");
   assert.match(finalizer, /void bounded\(timetableRefreshAccess\(\)/);
   assert.match(finalizer, /requestAnimationFrame\(\(\) => requestAnimationFrame/);
   assert.match(finalizer, /void bounded\(teacherShowDailySubstitutionWelcome\(\)/);
