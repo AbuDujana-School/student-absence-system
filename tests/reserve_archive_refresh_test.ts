@@ -90,9 +90,11 @@ Deno.test("schoolwide reserve report uses one official page per day and a dedica
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
-  assert(deleteStart>=0&&editStart>deleteStart,"Group deletion and group editing handlers must exist");
-  const deletion=source.slice(deleteStart,editStart);
-  const editing=source.slice(editStart,source.indexOf("window.timetableDailyOpenArchiveEdit",editStart));
+  const editEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",editStart);
+  const deleteEnd=source.indexOf("window.timetableDailyOpenArchiveEdit = async function",deleteStart);
+  assert(deleteStart>=0&&editStart>=0&&editEnd>editStart&&deleteEnd>deleteStart,"Group deletion and group editing handlers must exist");
+  const deletion=source.slice(deleteStart,deleteEnd);
+  const editing=source.slice(editStart,editEnd);
   assert(deletion.includes('["assigned","confirmed","completed"].includes(item.status)'),"Whole-group deletion must include completed lessons");
   assert(deletion.includes('action:"timetable_substitution_cancel_batch"'),"Whole-group deletion must use the atomic batch cancellation action");
   assert(editing.includes('["assigned","confirmed"].includes(item.status)'),"Group editing must include only active lessons");
