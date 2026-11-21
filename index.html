@@ -2281,7 +2281,8 @@ if (window.__ABUDUJANA_CLOUDFLARE_PREVIEW__) document.getElementById("cloudflare
 
 <script>
 /* ============ Supabase & Crypto config ============ */
-const IS_CLOUDFLARE_PREVIEW = window.__ABUDUJANA_CLOUDFLARE_PREVIEW__ === true;
+function isCloudflareBranchPreviewHost(hostname){const host=String(hostname||"").toLowerCase();return ["student-absence-system.pages.dev","abu-dujana-school-preview.pages.dev"].some(root=>host.endsWith("."+root));}
+const IS_CLOUDFLARE_PREVIEW = window.__ABUDUJANA_CLOUDFLARE_PREVIEW__ === true || isCloudflareBranchPreviewHost(window.location?.hostname);
 const SUPABASE_URL = IS_CLOUDFLARE_PREVIEW ? "https://preview-disabled.invalid" : "https://ylsocrvwqibptuwfzbke.supabase.co";
 const SUPABASE_ANON_KEY = IS_CLOUDFLARE_PREVIEW ? "preview-disabled-key" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inlsc29jcnZ3cWlicHR1d2Z6YmtlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM4MTc0MTYsImV4cCI6MjEwOTM5MzQxNn0.JlAa_cKpSwOnrlkTl2FZl6_Fb1DXjTNw7Z3vdTXDi-U";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
