@@ -20,11 +20,20 @@ test("supervision trends exclude Friday and Saturday but retain Sunday-Thursday"
     "2026-11-22", "2026-11-23", "2026-11-26"
   ]);
 });
-test("chaos chart and legend use a clearly distinct teal color", () => {
+test("chaos chart and legend use a clearly distinct amber color", () => {
   assert.match(html, /\["الفوضى","chaos","#a16207"\]/);
   assert.match(html, /style="background:#a16207"><\/i>الفوضى/);
 });
 test("attendance and behavior saves refresh a visible competition panel", () => {
   assert.match(html, /loadSessionAttendance\(\); saRefreshCompetitionAfterRecordSave\(\);/);
   assert.match(html, /loadSessionBehavior\(\); saRefreshCompetitionAfterRecordSave\(\);/);
+});
+
+test("visible competition refreshes when the app returns without background polling", () => {
+  assert.match(html, /function saRefreshCompetitionOnReturn\(\)/);
+  assert.match(html, /document\.addEventListener\("visibilitychange",\(\)=>\{if\(document\.visibilityState==="visible"\)saRefreshCompetitionOnReturn\(\);\}\)/);
+  assert.match(html, /window\.addEventListener\("focus",saRefreshCompetitionOnReturn\)/);
+  assert.match(html, /window\.addEventListener\("online",saRefreshCompetitionOnReturn\)/);
+  assert.match(html, /now-saCompetitionLastResumeRefreshAt<1500/);
+  assert.doesNotMatch(html, /setInterval\([^\n]*saLoadCompetition/);
 });
