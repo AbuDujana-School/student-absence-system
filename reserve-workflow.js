@@ -960,7 +960,7 @@
     let used=0;
     const rowsMarkup=(groups||[]).map(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
-      const absent=esc(group.absentName||""),rawAbsenceReason=String(group.absenceReason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
+      const absent=esc(group.absentName||""),rawAbsenceReason=String(group.absenceReason||group.reason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
       return rows.map((row,rowIndex)=>{
         const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td>':"";
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"") +'</td><td class="tt-official-substitute">'+esc(row.substitute||"") +'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
