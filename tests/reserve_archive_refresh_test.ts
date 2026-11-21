@@ -113,6 +113,13 @@ Deno.test("main substitution view requires, saves, and prints the selected absen
   assert(source.includes('if(choice==="أخرى"&&!custom)'),"The custom reason must be required when «أخرى» is selected");
 });
 
+Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("else {absenceReasonsByTeacher.delete(input.value);updateSelectedCount();}"),"Deselecting an absent teacher must clear the previous choice so reselecting opens the picker again");
+  assert(html.includes("if(input.checked)requestAbsenceReason(input)"),"Selecting the teacher again must open the reason picker");
+  assert(source.includes('reason:String(group?.reason||reasons[reasonKey(group?.absentName)]||"-")'),"The official PDF must prioritize the reason selected in the main substitution view");
+});
+
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");

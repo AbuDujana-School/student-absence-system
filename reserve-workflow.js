@@ -1693,7 +1693,7 @@
       const wrappedPrint=function(groups,...args){
         const enriched=(Array.isArray(groups)?groups:[]).map(group=>({
           ...group,
-          reason:String(reasons[reasonKey(group?.absentName)]||group?.reason||"-")
+          reason:String(group?.reason||reasons[reasonKey(group?.absentName)]||"-")
         }));
         return originalPrint.call(this,enriched,...args);
       };

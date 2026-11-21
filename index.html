@@ -13333,11 +13333,6 @@ async function timetableSaveOwner() {
       if(typeof onComplete==='function')onComplete();
       return;
     }
-    if(absenceReasonsByTeacher.has(name)){
-      updateSelectedCount();
-      if(typeof onComplete==='function')onComplete();
-      return;
-    }
     input.disabled=true;
     openPicker(name,'',function(value){
       input.disabled=false;
@@ -13364,7 +13359,7 @@ async function timetableSaveOwner() {
       input.addEventListener('change',function(){
         clearPlan();
         if(input.checked)requestAbsenceReason(input);
-        else updateSelectedCount();
+        else {absenceReasonsByTeacher.delete(input.value);updateSelectedCount();}
       });
     });
     updateSelectedCount();
@@ -13441,7 +13436,7 @@ async function timetableSaveOwner() {
     const shouldCheck=boxes.some(box=>!box.checked);
     clearPlan();
     if(!shouldCheck){
-      boxes.forEach(box=>{box.checked=false;box.disabled=false;});
+      boxes.forEach(box=>{box.checked=false;box.disabled=false;absenceReasonsByTeacher.delete(box.value);});
       updateSelectedCount();
       return;
     }
@@ -13672,7 +13667,8 @@ async function timetableSaveOwner() {
     const addRow=function(item){
       const name=String(item?.absentTeacherName||'').trim();
       if(!name)return;
-      const reason=String(item?.absenceReason||item?.reason||absenceReasonsByTeacher.get(name)||'');
+      const storedReason=String(item?.absenceReason||item?.reason||'').trim();
+      const reason=(storedReason&&storedReason!=="-"&&storedReason!=="—")?storedReason:(absenceReasonsByTeacher.get(name)||storedReason);
       if(!groups.has(name))groups.set(name,{absentName:name,reason,rows:[]});
       else if(!groups.get(name).reason&&reason)groups.get(name).reason=reason;
       groups.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||''});
