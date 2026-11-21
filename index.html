@@ -6866,7 +6866,6 @@ async function handleUserLogin(e) {
       // Every authenticated principal gets a fresh cloud bootstrap. A previous
       // account's "ready" flag describes its snapshot, not this account's session.
       cloudDataLoadState = 'not-started';
-      cloudRefreshInProgress = false;
       cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
       loginAttempts = 0; loginLockedUntil = 0;
@@ -7031,9 +7030,22 @@ async function finalizeLoginState() {
     updateSyncStatus(false, 'وضع محلي فقط - البيانات والتعديلات محفوظة على هذا الجهاز؛ أعد تسجيل الدخول الآمن عند عودة الاتصال');
   } else if (navigator.onLine && cloudDataLoadState !== 'ready') {
     updateSyncStatus(false, 'تم تسجيل الدخول؛ جارِ تحميل بيانات المدرسة...');
-    void loadSystemDataFromCloud().then(loaded => {
+    void (async () => {
+      // If a refresh started under the previous account is still unwinding,
+      // let its finally block release the shared refresh lock before starting
+      // this account's authoritative bootstrap. Never clear the lock manually.
+      if (cloudRefreshInProgress) {
+        await bounded(new Promise(resolve => {
+          const waitForPreviousRefresh = () => {
+            if (!cloudRefreshInProgress) resolve();
+            else setTimeout(waitForPreviousRefresh, 100);
+          };
+          waitForPreviousRefresh();
+        }), 12000, 'تأخر انتهاء المزامنة السابقة.');
+      }
+      const loaded = await loadSystemDataFromCloud();
       if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
-    }).catch(error => {
+    })().catch(error => {
       console.warn('Background cloud load failed after login.', error);
       updateSyncStatus(false, 'تم تسجيل الدخول؛ تعذر تحميل البيانات الآن، أعد المحاولة من زر المزامنة');
     });
