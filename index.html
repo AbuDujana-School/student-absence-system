@@ -6995,8 +6995,21 @@ async function finalizeLoginState() {
     }
   }
   if (!localOnlySession) {
-    await bounded(refreshActiveUserPermissions(), 7000, 'تعذر تحديث صلاحيات الحساب الآن.');
-    await bounded(timetableRefreshAccess(), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
+    // Permission refresh is secondary to authentication. Never strand a valid
+    // signed-in user on a half-initialized screen if an auxiliary check is slow.
+    try {
+      await bounded(refreshActiveUserPermissions(), 7000, 'تعذر تحديث صلاحيات الحساب الآن.');
+    } catch (permissionError) {
+      console.warn('Permission refresh deferred after successful login.', permissionError);
+    }
+    try {
+      await bounded(timetableRefreshAccess(), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
+    } catch (timetableError) {
+      timetableCanAccess = activeUser?.type === 'admin';
+      teacherPortalCanAccess = false;
+      teacherPortalEnabled = false;
+      console.warn('Timetable access refresh deferred after successful login.', timetableError);
+    }
   } else {
     timetableCanAccess = false;
     teacherPortalCanAccess = false;
@@ -7007,7 +7020,11 @@ async function finalizeLoginState() {
   if (activeUser?.type === "teacher" && !localOnlySession) {
     // Let the authenticated dashboard become visible before placing the daily reserve notice above it.
     await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    await teacherShowDailySubstitutionWelcome();
+    try {
+      await bounded(teacherShowDailySubstitutionWelcome(), 7000, 'تعذر تحميل تنبيه الاحتياط اليومي الآن.');
+    } catch (noticeError) {
+      console.warn('Daily reserve notice deferred after successful login.', noticeError);
+    }
     teacherStartDailySubstitutionWatcher();
   } else if (teacherReserveNoticeRefreshTimer) {
     clearInterval(teacherReserveNoticeRefreshTimer);
