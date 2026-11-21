@@ -122,9 +122,9 @@
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
   const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"];
-  function openAbsenceReasonPicker(absentName,onConfirm){
+  function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
-    const current=String(reserveAbsenceReasons[absentName]||"");
+    const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
     const selected=ABSENCE_REASON_OPTIONS.includes(current)?current:(current.startsWith("أخرى:")?"أخرى":"");
     const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
     const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
@@ -154,6 +154,11 @@
       if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
+  window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm){
+    openAbsenceReasonPicker(absentName,function(value){
+      if(typeof onConfirm==="function")onConfirm(value);
+    },String(currentValue||""));
+  };
   function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
     const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";

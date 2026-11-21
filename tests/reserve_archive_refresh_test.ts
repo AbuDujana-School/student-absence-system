@@ -102,6 +102,17 @@ Deno.test("schoolwide reserve report permission lookup reads canonical db.teache
   assert(lookup(-1,teacher.name)?.name===teacher.name,"Save fallback must resolve the teacher by exact name");
 });
 
+Deno.test("main substitution view requires, saves, and prints the selected absence reason", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(source.includes("window.openSubstitutionAbsenceReasonPicker = function"),"The main substitution view must have access to the shared reason picker");
+  assert(html.includes("function requestAbsenceReason(input,onComplete)"),"Selecting an absent teacher must request an absence reason");
+  assert(html.includes("absenceReasonsByTeacher.has(name)"),"A reason is required for each selected absent teacher");
+  assert(html.includes('absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"'),"The chosen reason must be included in the atomic batch-save payload");
+  assert(html.includes("absenceReasonsByTeacher.get(name)||''"),"The selected reason must be available to the official PDF when preview rows do not carry it yet");
+  assert(source.includes('const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"]'),"The picker must retain the five approved absence reasons");
+  assert(source.includes('if(choice==="أخرى"&&!custom)'),"The custom reason must be required when «أخرى» is selected");
+});
+
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");

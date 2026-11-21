@@ -13278,6 +13278,7 @@ async function timetableSaveOwner() {
   let currentPlan=null;
   let currentAbsentNames=[];
   let savedPlan=false;
+  const absenceReasonsByTeacher=new Map();
   const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
   function esc(value){
     return String(value==null?'':value).replace(/[&<>"']/g,function(ch){
@@ -13315,10 +13316,36 @@ async function timetableSaveOwner() {
   }
   function updateSelectedCount(){
     const names=checkedAbsentees();
+    const reasonsReady=names.every(name=>absenceReasonsByTeacher.has(name));
     const count=document.getElementById('substitutionSelectedCount');
     const generate=document.getElementById('substitutionGenerateButton');
-    if(count)count.textContent=names.length+' محدد';
-    if(generate)generate.disabled=names.length===0;
+    if(count)count.textContent=names.length+' محدد'+(names.length&&!reasonsReady?' · حدد سبب الغياب لكل معلم':'');
+    if(generate)generate.disabled=names.length===0||!reasonsReady;
+  }
+  function requestAbsenceReason(input,onComplete){
+    const name=String(input?.value||'').trim();
+    if(!name||!input?.checked){if(typeof onComplete==='function')onComplete();return;}
+    const openPicker=window.openSubstitutionAbsenceReasonPicker;
+    if(typeof openPicker!=='function'){
+      input.checked=false;
+      showToast('نافذة سبب الغياب غير جاهزة. حدّث الصفحة ثم حاول مجدداً.','error');
+      updateSelectedCount();
+      if(typeof onComplete==='function')onComplete();
+      return;
+    }
+    if(absenceReasonsByTeacher.has(name)){
+      updateSelectedCount();
+      if(typeof onComplete==='function')onComplete();
+      return;
+    }
+    input.disabled=true;
+    openPicker(name,'',function(value){
+      input.disabled=false;
+      if(value)absenceReasonsByTeacher.set(name,String(value));
+      else input.checked=false;
+      updateSelectedCount();
+      if(typeof onComplete==='function')onComplete();
+    });
   }
   function renderAbsentees(names){
     const root=document.getElementById('substitutionAbsenteeList');
@@ -13334,7 +13361,11 @@ async function timetableSaveOwner() {
         '<span class="rounded-lg bg-white px-2 py-1 text-[9px] font-black text-rose-600 dark:bg-slate-900 dark:text-rose-300">غائب</span></label>';
     }).join('');
     root.querySelectorAll('input[name="substitutionAbsentTeacher"]').forEach(function(input){
-      input.addEventListener('change',function(){clearPlan();updateSelectedCount();});
+      input.addEventListener('change',function(){
+        clearPlan();
+        if(input.checked)requestAbsenceReason(input);
+        else updateSelectedCount();
+      });
     });
     updateSelectedCount();
   }
@@ -13400,6 +13431,7 @@ async function timetableSaveOwner() {
     window.refreshSubstitutionDashboardCard();
   };
   window.substitutionDateChanged=async function(){
+    absenceReasonsByTeacher.clear();
     clearPlan();
     await window.substitutionLoadAbsentees();
     await window.substitutionLoadStats();
@@ -13407,8 +13439,21 @@ async function timetableSaveOwner() {
   window.substitutionToggleAllAbsentees=function(){
     const boxes=Array.from(document.querySelectorAll('input[name="substitutionAbsentTeacher"]'));
     const shouldCheck=boxes.some(box=>!box.checked);
-    boxes.forEach(box=>{box.checked=shouldCheck;});
-    clearPlan();updateSelectedCount();
+    clearPlan();
+    if(!shouldCheck){
+      boxes.forEach(box=>{box.checked=false;box.disabled=false;});
+      updateSelectedCount();
+      return;
+    }
+    const queue=boxes.filter(box=>!box.checked);
+    queue.forEach(box=>{box.checked=true;});
+    updateSelectedCount();
+    const askNext=function(){
+      const next=queue.shift();
+      if(!next){updateSelectedCount();return;}
+      requestAbsenceReason(next,askNext);
+    };
+    askNext();
   };
   window.substitutionLoadAbsentees=async function(){
     const root=document.getElementById('substitutionAbsenteeList');
@@ -13433,6 +13478,7 @@ async function timetableSaveOwner() {
     const names=checkedAbsentees();
     const date=selectedDate(),weekday=weekdayFor(date);
     if(!weekday||!names.length){showToast('حدد التاريخ والمعلمين الغائبين أولاً.','error');return;}
+    if(names.some(name=>!absenceReasonsByTeacher.has(name))){showToast('حدد سبب الغياب لكل معلم قبل إنشاء التوزيع.','error');updateSelectedCount();return;}
     const button=document.getElementById('substitutionGenerateButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ حساب التوزيع...';}
     setStatus('يجري فحص التعارضات والنصاب والنقاط والحصص المتجاورة...');
@@ -13541,6 +13587,7 @@ async function timetableSaveOwner() {
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
+    if(currentAbsentNames.some(name=>!absenceReasonsByTeacher.has(name))){showToast('لا يمكن حفظ التوزيع قبل تحديد أسباب غياب جميع المعلمين.','error');return;}
     const button=document.getElementById('substitutionSaveButton');
     if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ الاعتماد والحفظ...';}
     const includeOtherDepartments=document.getElementById('substitutionOtherDepartments')?.checked===true;
@@ -13557,7 +13604,7 @@ async function timetableSaveOwner() {
       const result=await appAuthRequest({
         action:'timetable_substitution_batch_save',weekday:weekdayFor(selectedDate()),assignmentDate:selectedDate(),
         absentTeacherNames:currentAbsentNames,
-        assignments:currentPlan.assignments.map(function(item){return {absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:item.period};}),
+        assignments:currentPlan.assignments.map(function(item){return {absentTeacherName:item.absentTeacherName,substituteTeacherName:item.substituteTeacherName,period:item.period,absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"};}),
         includeOtherDepartments,
         otherDepartmentId,
         otherTeacherNames
@@ -13625,7 +13672,9 @@ async function timetableSaveOwner() {
     const addRow=function(item){
       const name=String(item?.absentTeacherName||'').trim();
       if(!name)return;
-      if(!groups.has(name))groups.set(name,{absentName:name,reason:String(item?.absenceReason||item?.reason||''),rows:[]});
+      const reason=String(item?.absenceReason||item?.reason||absenceReasonsByTeacher.get(name)||'');
+      if(!groups.has(name))groups.set(name,{absentName:name,reason,rows:[]});
+      else if(!groups.get(name).reason&&reason)groups.get(name).reason=reason;
       groups.get(name).rows.push({period:item.period,className:item.className,substitute:item.substituteTeacherName||''});
     };
     allAssignments.forEach(addRow);
