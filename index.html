@@ -13448,7 +13448,11 @@ async function timetableSaveOwner() {
     const shouldCheck=boxes.some(box=>!box.checked);
     clearPlan();
     if(!shouldCheck){
-      boxes.forEach(box=>{box.checked=false;box.disabled=false;absenceReasonsByTeacher.delete(box.value);});
+      boxes.forEach(box=>{
+        box.checked=false;box.disabled=false;absenceReasonsByTeacher.delete(box.value);
+        const reasonLabel=box.closest('label')?.querySelector('[data-subx-absence-reason]');
+        if(reasonLabel)reasonLabel.textContent='سبب الغياب: لم يحدد';
+      });
       updateSelectedCount();
       return;
     }
