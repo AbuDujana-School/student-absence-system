@@ -1,7 +1,7 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 import { buildNoticeCandidates, validateNoticeIssueItem, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
 import { fetchNoticeRowsForClasses } from "./notice_issue_fetch.ts";
-import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange, isCompetitionWeeklyCutoffReached } from "./competition_policy.ts";
+import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange, isCompetitionWeeklyCutoffReached, getCompetitionMonthRange } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
@@ -1948,6 +1948,23 @@ async function handle(req: Request) {
       const period = String(body.period || "weekly");
       if (period === "weekly") snapshot = await getLatestWeeklyCompetition(p, permissions);
       else if (period === "term") snapshot = await buildTermCompetitionSnapshot(p, permissions, body.termId);
+      else if (period === "monthly") {
+        // Monthly results are always resolved server-side from the current Oman calendar month.
+        // Ignore client-supplied dates so teachers never need to select or enter a period.
+        const termSettings = await readCompetitionTermSettings();
+        const range = getCompetitionMonthRange(getOmanIsoDate(), termSettings.currentTerm.start, termSettings.currentTerm.end);
+        if (!range) {
+          snapshot = projectCompetitionResponse({
+            from: getOmanIsoDate().slice(0, 7) + "-01", to: getOmanIsoDate(),
+            today: getOmanIsoDate(), period: "monthly", status: "not_started",
+            teams: [], ownGrades: [], ownClasses: [], classComparison: [],
+            dailyProgress: [], weeklyWins: {}, weeklyPoints: {}, weeklyHistory: [], completedWeeks: 0
+          }, p, permissions);
+        } else {
+          const live = await buildCompetitionSnapshot(p, permissions, range.from, range.to, "monthly");
+          snapshot = projectCompetitionResponse(live, p, permissions);
+        }
+      }
       else {
         let from = body.from, to = body.to;
         const termSettings = await readCompetitionTermSettings();

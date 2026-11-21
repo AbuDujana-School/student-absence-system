@@ -12,6 +12,15 @@ export const COMPETITION_WEEKLY_CUTOFF_MINUTES_OMAN = 13 * 60 + 51;
 export function isCompetitionWeeklyCutoffReached(weekday: number, omanClockMinutes: number): boolean {
   return weekday > 4 || (weekday === 4 && omanClockMinutes >= COMPETITION_WEEKLY_CUTOFF_MINUTES_OMAN);
 }
+/** Resolves the current calendar month automatically, clipped to the active school term and today (Oman date). */
+export function getCompetitionMonthRange(todayValue: unknown, termStartValue: unknown, termEndValue: unknown): { from: string; to: string } | null {
+  const today = asIsoDate(todayValue), termStart = asIsoDate(termStartValue), termEnd = asIsoDate(termEndValue);
+  if (!today || !termStart || !termEnd || termStart > termEnd) return null;
+  const monthStart = today.slice(0, 7) + "-01";
+  const from = monthStart > termStart ? monthStart : termStart;
+  const to = today < termEnd ? today : termEnd;
+  return from <= to ? { from, to } : null;
+}
 const ARABIC_GRADE_NAMES: Array<[RegExp, string]> = [
   [/التاسع|تاسع/, "9"], [/العاشر|عاشر/, "10"], [/الحادي\s*عشر|حادي\s*عشر/, "11"], [/الثاني\s*عشر|ثاني\s*عشر/, "12"]
 ];
