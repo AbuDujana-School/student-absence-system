@@ -562,3 +562,44 @@ Deno.test("teacher activity report permission reuses the authenticated teacher p
     throw new Error("Teacher identity was not loaded exactly once");
   }
 });
+
+
+Deno.test("reserve distribution report grant is read-only and does not grant archive access", async () => {
+  const tokenHash = await digest(TOKEN);
+  const session = { principal_type: "teacher", principal_name: "Report Teacher", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: {
+      name: "Report Teacher",
+      role: "teacher",
+      permissions: { reportSubstitutionDistribution: true },
+    },
+    calls,
+  });
+  const reportPrincipal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_substitution_report",
+  );
+  if (reportPrincipal?.type !== "teacher" ||
+      reportPrincipal.permissions?.reportSubstitutionDistribution !== true) {
+    throw new Error("A teacher with the dedicated reserve report grant was rejected");
+  }
+  if (!calls.some((call) => call.startsWith("session:" + tokenHash + ":"))) {
+    throw new Error("The report action did not validate the signed session");
+  }
+  if (calls.some((call) => call.startsWith("access:"))) {
+    throw new Error("The read-only report grant unexpectedly required or received archive access");
+  }
+
+  const archiveOnlyStore = storeWith(session, {
+    teacher: {
+      name: "Report Teacher",
+      role: "teacher",
+      permissions: { reportSubstitutionDistribution: true },
+    },
+  });
+  if (await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, archiveOnlyStore, NOW, "timetable_substitution_archive",
+  ) !== null) {
+    throw new Error("The report-only grant incorrectly authorized the reserve archive");
+  }
+});
