@@ -21,8 +21,8 @@ test("supervision trends exclude Friday and Saturday but retain Sunday-Thursday"
   ]);
 });
 test("chaos chart and legend use a clearly distinct teal color", () => {
-  assert.match(html, /\["الفوضى","chaos","#0f766e"\]/);
-  assert.match(html, /style="background:#0f766e"><\/i>الفوضى/);
+  assert.match(html, /\["الفوضى","chaos","#a16207"\]/);
+  assert.match(html, /style="background:#a16207"><\/i>الفوضى/);
 });
 test("attendance and behavior saves refresh a visible competition panel", () => {
   assert.match(html, /loadSessionAttendance\(\); saRefreshCompetitionAfterRecordSave\(\);/);
