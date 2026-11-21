@@ -84,6 +84,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121094733_separate_absence_and_reserve_reasons.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121095327_persist_absence_reason_atomically_in_substitution_batches.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121132216_force_full_points_reversal_on_batch_cancel.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121133012_allow_completed_same_day_absence_group_cancellation.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_batch_cancel_reverses_all_points.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_absent_reassignment_permissions.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_same_day_corrections.sql
