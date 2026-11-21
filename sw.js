@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v37';
+const CACHE_NAME = 'abudujana-app-v38';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v44';
+const RUNTIME_CACHE = 'abudujana-static-v45';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -60,6 +60,24 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (!isCacheableStaticRequest(request, url)) return;
+
+  // Always fetch the reserve workflow from the network first. Older releases
+  // could keep serving a cached JavaScript file after a GitHub Pages update.
+  if (url.origin === self.location.origin && /\/reserve-workflow\.js$/.test(url.pathname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(RUNTIME_CACHE);
+      try {
+        const response = await fetch(request, { cache: 'no-store' });
+        if (response && response.ok) cache.put(request, response.clone()).catch(() => {});
+        return response;
+      } catch (error) {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        return new Response('', { status: 504, statusText: 'Reserve workflow unavailable offline' });
+      }
+    })());
+    return;
+  }
 
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
