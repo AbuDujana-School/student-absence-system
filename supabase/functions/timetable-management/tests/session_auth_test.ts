@@ -194,7 +194,12 @@ Deno.test("non-admin substitution access requires the correct explicit authoriza
   if (canUseTimetableAction("custom", "teacher_substitution_get_today")) {
     throw new Error("Custom account gained teacher-only daily reserve notice access");
   }
-  for (const action of ["timetable_substitution_preview", "timetable_substitution_save", "timetable_substitution_cancel", "timetable_substitution_cancel_batch"]) {
+  for (const action of [
+    "timetable_substitution_preview", "timetable_substitution_save",
+    "timetable_substitution_cancel", "timetable_substitution_cancel_batch",
+    "timetable_substitution_batch_preview", "timetable_substitution_batch_save",
+    "timetable_substitution_update", "timetable_substitution_update_batch",
+  ]) {
     if (canUseTimetableAction("teacher", action)) throw new Error("Teacher without reserve permission was allowed: " + action);
     if (!canUseTimetableAction("teacher", action, false, true)) throw new Error("Reserve-enabled teacher was denied: " + action);
     if (!canUseTimetableAction("custom", action)) throw new Error("Scoped custom coordinator was denied: " + action);
@@ -277,8 +282,11 @@ Deno.test("reserve archive and edit actions require explicit reserve permission"
     if (canUseTimetableAction("teacher", action)) {
       throw new Error("Teacher without reserve permission was allowed: " + action);
     }
-    if (canUseTimetableAction("custom", action)) {
-      throw new Error("Custom coordinator was granted archive mutation: " + action);
+    if (action === "timetable_substitution_archive" && canUseTimetableAction("custom", action)) {
+      throw new Error("Custom coordinator was granted archive access without the separate archive grant: " + action);
+    }
+    if (action !== "timetable_substitution_archive" && !canUseTimetableAction("custom", action)) {
+      throw new Error("Scoped custom coordinator was denied same-day edit capability: " + action);
     }
     if (!canUseTimetableAction("admin", action)) {
       throw new Error("Administrator was denied: " + action);
