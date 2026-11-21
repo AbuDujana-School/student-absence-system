@@ -6228,8 +6228,29 @@ function normalizeAppSyncManifest(value) {
   return normalized;
 }
 
+function withAppSyncTimeout(promise, timeoutMs, message, code) {
+  let timer = null;
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((_, reject) => {
+      timer = setTimeout(() => {
+        const error = new Error(message);
+        error.code = code;
+        reject(error);
+      }, timeoutMs);
+    })
+  ]).finally(() => {
+    if (timer !== null) clearTimeout(timer);
+  });
+}
+
 async function fetchAppSyncManifest() {
-  const { data, error } = await sb.rpc('get_app_sync_manifest');
+  const { data, error } = await withAppSyncTimeout(
+    sb.rpc('get_app_sync_manifest'),
+    8000,
+    'تأخر التحقق من تحديثات الخادم.',
+    'APP_SYNC_MANIFEST_TIMEOUT'
+  );
   if (error) throw error;
   const manifest = normalizeAppSyncManifest(data);
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
@@ -6297,6 +6318,14 @@ async function loadSystemDataFromCloud() {
       const manifestRpcMissing = manifestCode === 'PGRST202' || manifestCode === '42883' ||
         manifestStatus === 404 || /function .*get_app_sync_manifest.*(not found|does not exist)/i.test(manifestMessage);
       console.warn('Cloud revision manifest unavailable.', manifestError);
+      if (manifestError?.code === 'APP_SYNC_MANIFEST_TIMEOUT') {
+        cloudWritesBlockedByManifestFailure = true;
+        cloudDataLoadState = offlineSnapshotAvailable ? 'ready' : 'failed';
+        updateSyncStatus(false, offlineSnapshotAvailable
+          ? 'تأخر التحقق من تحديثات الخادم؛ بقيت البيانات المحلية محفوظة ولم تُرفع أي تغييرات حتى نجاح التحقق.'
+          : 'تعذر التحقق من تحديثات الخادم في الوقت المحدد؛ أعد المحاولة عند استقرار الاتصال.');
+        return false;
+      }
       if (offlineSnapshotAvailable && lastLoadedCloudManifest && !manifestRpcMissing) {
         cloudWritesBlockedByManifestFailure = true;
         cloudDataLoadState = 'ready';
@@ -6328,15 +6357,16 @@ async function loadSystemDataFromCloud() {
     }
 
     const shouldLoad = table => changedTables.includes(table);
-    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await Promise.all([
+    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await withAppSyncTimeout(Promise.all([
       shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
       shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
+      shouldLoad('teachers') ? fetchAllPaginated('teachers', 'class_name, student_name') : Promise.resolve(null),
       shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
       shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
       shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
       shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null),
       shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)
-    ]);
+    ]), 20000, 'تأخر تحميل بيانات المدرسة من الخادم.', 'APP_SYNC_TABLES_TIMEOUT');
 
     if (fullSync) {
       const empty = classesData.length === 0 && studentsData.length === 0 &&
@@ -7042,13 +7072,24 @@ async function finalizeLoginState() {
       // let its finally block release the shared refresh lock before starting
       // this account's authoritative bootstrap. Never clear the lock manually.
       if (cloudRefreshInProgress) {
-        await bounded(new Promise(resolve => {
-          const waitForPreviousRefresh = () => {
-            if (!cloudRefreshInProgress) resolve();
-            else setTimeout(waitForPreviousRefresh, 100);
-          };
-          waitForPreviousRefresh();
-        }), 12000, 'تأخر انتهاء المزامنة السابقة.');
+        let pollTimer = null;
+        let pollingCancelled = false;
+        try {
+          await bounded(new Promise(resolve => {
+            const waitForPreviousRefresh = () => {
+              if (pollingCancelled) return;
+              if (!cloudRefreshInProgress) {
+                resolve();
+                return;
+              }
+              pollTimer = setTimeout(waitForPreviousRefresh, 100);
+            };
+            waitForPreviousRefresh();
+          }), 12000, 'تأخر انتهاء المزامنة السابقة.');
+        } finally {
+          pollingCancelled = true;
+          if (pollTimer !== null) clearTimeout(pollTimer);
+        }
       }
       const loaded = await loadSystemDataFromCloud();
       if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
