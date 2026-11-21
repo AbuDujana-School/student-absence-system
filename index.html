@@ -6896,11 +6896,16 @@ async function handleUserLogin(e) {
         refreshCloudDataSilently(),
         new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة التحقق من المزامنة.')), 10000))
       ]).then(refreshed => {
-        if (!refreshed && cloudDataLoadState === 'ready' && !cloudRefreshInProgress &&
+        if (!refreshed && cloudDataLoadState === 'ready' &&
             !cloudSaveInProgress && !manualOfflineSyncInProgress) {
-          updateSyncStatus(false, hasPendingOfflineChanges()
-            ? 'تم تسجيل الدخول؛ توجد تعديلات محلية بانتظار المزامنة'
-            : 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
+          // A refresh already running (for example, one started before an account
+          // switch) makes refreshCloudDataSilently return false immediately.
+          // Do not leave the sync indicator stuck on "connecting" in that case.
+          updateSyncStatus(false, cloudRefreshInProgress
+            ? 'تم تسجيل الدخول؛ توجد مزامنة سابقة قيد التنفيذ، ويمكن إعادة المحاولة إذا استمر التأخير'
+            : hasPendingOfflineChanges()
+              ? 'تم تسجيل الدخول؛ توجد تعديلات محلية بانتظار المزامنة'
+              : 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
         }
       }).catch(syncError => {
         console.warn('Background post-login cloud sync verification failed; login remains active.', syncError);
