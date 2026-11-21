@@ -182,13 +182,44 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   const initialLoad = await page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    localOnlySession = false;
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      principal: { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } },
     };
-    return await loadSystemDataFromCloud();
+    const trace = [];
+    const timed = (name, timeoutMs = 12000) => {
+      const original = window[name];
+      if (typeof original !== "function") return;
+      window[name] = async (...args) => {
+        trace.push(name + ":start");
+        try {
+          const value = await Promise.race([
+            original(...args),
+            new Promise((_, reject) => setTimeout(() => reject(new Error(name + " exceeded " + timeoutMs + "ms")), timeoutMs)),
+          ]);
+          trace.push(name + ":done");
+          return value;
+        } catch (error) {
+          trace.push(name + ":error:" + String(error?.message || error));
+          throw error;
+        }
+      };
+    };
+    ["restoreOfflineState", "fetchAppSyncManifest", "fetchAllPaginated",
+      "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineState"].forEach(name => timed(name));
+    try {
+      const result = await Promise.race([
+        loadSystemDataFromCloud(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("loadSystemDataFromCloud exceeded 45000ms")), 45000)),
+      ]);
+      return { result, trace };
+    } catch (error) {
+      return { result: false, trace, error: String(error?.message || error) };
+    }
   });
-  expect(initialLoad, "Synthetic initial cloud snapshot must load").toBe(true);
+  expect(initialLoad.result, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify(initialLoad)).toBe(true);
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,
