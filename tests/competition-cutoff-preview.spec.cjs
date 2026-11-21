@@ -33,6 +33,8 @@ test("visible competition panel schedules one refresh at 13:56 and one retry at 
     Date.now = () => fixedNow;
     const originalSetTimeout = window.setTimeout;
     const captured = [];
+    window.__competitionRefreshCount = 0;
+    window.saLoadCompetition = () => { window.__competitionRefreshCount++; };
     window.setTimeout = (callback, delay, ...args) => {
       captured.push({ callback, delay: Number(delay) });
       return originalSetTimeout(() => {}, 60 * 60 * 1000);
@@ -41,12 +43,18 @@ test("visible competition panel schedules one refresh at 13:56 and one retry at 
     try {
       saScheduleCompetitionCutoffRefresh();
       const first = captured.at(-1)?.delay;
+      fixedNow = Date.parse("2026-11-26T09:56:00.000Z");
+      captured.at(-1)?.callback();
+      const firstRefreshCount = window.__competitionRefreshCount;
       // At 14:00 Oman, schedule the one delayed retry for 14:06.
       fixedNow = Date.parse("2026-11-26T10:00:00.000Z");
       saScheduleCompetitionCutoffRefresh();
       const retry = captured.at(-1)?.delay;
+      fixedNow = Date.parse("2026-11-26T10:06:00.000Z");
+      captured.at(-1)?.callback();
+      const finalRefreshCount = window.__competitionRefreshCount;
       const timerCount = captured.length;
-      return { first, retry, timerCount, panelVisible: !document.getElementById("saCompetitionPanel").classList.contains("hidden") };
+      return { first, retry, timerCount, firstRefreshCount, finalRefreshCount, panelVisible: !document.getElementById("saCompetitionPanel").classList.contains("hidden") };
     } finally {
       window.setTimeout = originalSetTimeout;
     }
@@ -56,6 +64,8 @@ test("visible competition panel schedules one refresh at 13:56 and one retry at 
   expect(result.first).toBe(60_000);
   expect(result.retry).toBe(6 * 60_000);
   expect(result.timerCount).toBe(2);
+  expect(result.firstRefreshCount).toBe(1);
+  expect(result.finalRefreshCount).toBe(2);
 });
 
 test("cutoff refresh is not scheduled for a hidden or unauthorized competition panel", async ({ page }) => {
