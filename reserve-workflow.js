@@ -1719,6 +1719,8 @@
   let schoolwideReserveReportRows = [];
   let schoolwideReserveReportDays = [];
   let schoolwideReserveReportRangeKey = "";
+  let schoolwideReserveReportPendingPermission = null;
+  let schoolwideReserveReportPermissionWriteSeen = false;
   function schoolwideReserveReportIsAdmin(){
     try{return activeUser?.type==="admin"||appAuthSession?.principal?.type==="admin"||
       (typeof window.isAdminAuthorized==="function"&&window.isAdminAuthorized()===true);}catch{return false;}
@@ -1783,28 +1785,87 @@
     if(typeof window.robustUpsert==="function"&&!window.robustUpsert.__reserveDistributionWrapped){
       const original=window.robustUpsert;
       const wrapped=async function(table,rows,...args){
-        let next=rows;
+        let next=rows,applied=false;
         const modal=$("teacherPermissionsModal"),checkbox=$("perm_p_reportSubstitutionDistribution");
-        if(String(table||"").toLowerCase()==="teachers"&&Array.isArray(rows)&&modal&&!modal.classList.contains("hidden")&&checkbox&&schoolwideReserveReportCanManage()){
+        const isTeacherWrite=String(table||"").toLowerCase()==="teachers"&&Array.isArray(rows)&&schoolwideReserveReportCanManage();
+        if(isTeacherWrite&&schoolwideReserveReportPendingPermission){
+          const pending=schoolwideReserveReportPendingPermission;
+          next=rows.map(row=>{
+            if(String(row?.name||"").trim()!==pending.name)return row;
+            const permissions={...(pending.record?.permissions||{}),...(row.permissions&&typeof row.permissions==="object"?row.permissions:{})};
+            permissions.reportSubstitutionDistribution=pending.value;applied=true;
+            return {...row,permissions};
+          });
+        }else if(isTeacherWrite&&modal&&!modal.classList.contains("hidden")&&checkbox){
           const name=String($("permTeacherName")?.textContent||"").trim();
           const record=schoolwideReserveReportTeacherRecord(-1,name);
           const initial=checkbox.dataset.reserveDistributionInitial||"unknown",touched=checkbox.dataset.reserveDistributionTouched==="1";
           next=rows.map(row=>{
             if(String(row?.name||"").trim()!==name)return row;
-            const permissions={...(row.permissions&&typeof row.permissions==="object"?row.permissions:{})};
+            const permissions={...(record?.permissions||{}),...(row.permissions&&typeof row.permissions==="object"?row.permissions:{})};
             const value=touched?checkbox.checked:initial!=="unknown"?initial==="true":
               Object.prototype.hasOwnProperty.call(permissions,"reportSubstitutionDistribution")?permissions.reportSubstitutionDistribution===true:
               record?.permissions?.reportSubstitutionDistribution===true||checkbox.checked;
-            permissions.reportSubstitutionDistribution=value;
+            permissions.reportSubstitutionDistribution=value;applied=true;
             return {...row,permissions};
           });
         }
-        return original.call(this,table,next,...args);
+        const result=await original.call(this,table,next,...args);
+        if(applied)schoolwideReserveReportPermissionWriteSeen=true;
+        return result;
       };
       wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.robustUpsert=wrapped;
     }
+    if(typeof window.saveTeacherPermissions==="function"&&!window.saveTeacherPermissions.__reserveDistributionWrapped){
+      const originalSave=window.saveTeacherPermissions;
+      const wrappedSave=async function(...args){
+        const checkbox=$("perm_p_reportSubstitutionDistribution");
+        const name=String($("permTeacherName")?.textContent||"").trim();
+        const record=schoolwideReserveReportTeacherRecord(-1,name);
+        const initial=checkbox?.dataset.reserveDistributionInitial||"unknown";
+        const touched=checkbox?.dataset.reserveDistributionTouched==="1";
+        const value=checkbox?(touched?checkbox.checked:initial!=="unknown"?initial==="true":
+          record?.permissions?.reportSubstitutionDistribution===true||checkbox.checked):false;
+        const savedRecord=record?{...record,permissions:{...(record.permissions||{})}}:null;
+        schoolwideReserveReportPendingPermission=name&&checkbox&&schoolwideReserveReportCanManage()?{name,value,record:savedRecord}:null;
+        schoolwideReserveReportPermissionWriteSeen=false;
+        try{
+          const result=await originalSave.apply(this,args);
+          if(schoolwideReserveReportPendingPermission&&!schoolwideReserveReportPermissionWriteSeen&&savedRecord?.permissions){
+            const permissions={...savedRecord.permissions,reportSubstitutionDistribution:value};
+            const upsert=window.robustUpsert?.__original||window.robustUpsert;
+            if(typeof upsert==="function")await upsert.call(this,"teachers",[{name,permissions}],"name",100);
+          }
+          return result;
+        }finally{schoolwideReserveReportPendingPermission=null;}
+      };
+      wrappedSave.__reserveDistributionWrapped=true;wrappedSave.__original=originalSave;window.saveTeacherPermissions=wrappedSave;
+    }
+    if(typeof window.switchAdminTab==="function"&&!window.switchAdminTab.__reserveDistributionWrapped){
+      const originalSwitch=window.switchAdminTab;
+      const wrappedSwitch=function(tab,...args){
+        const result=originalSwitch.call(this,tab,...args);
+        if(String(tab)==="reports"&&schoolwideReserveReportAllowed()){
+          const section=$("sec-reports");
+          document.querySelectorAll('[id^="sec-"]').forEach(node=>node.classList.toggle("hidden",node!==section));
+          section?.classList.remove("hidden");
+          $("tab-reports")?.classList.add("active");
+        }
+        return result;
+      };
+      wrappedSwitch.__reserveDistributionWrapped=true;wrappedSwitch.__original=originalSwitch;window.switchAdminTab=wrappedSwitch;
+    }
     const panel=$("reserveDistributionReportPanel");
-    if(panel)panel.classList.toggle("hidden",!schoolwideReserveReportAllowed());
+    const reportPanelRules=[
+      ["morningAssemblyLatenessReportPanel","reportMorningAssemblyLateness"],
+      ["repStudentAffairsPanel","reportStudentAffairs"],
+      ["comprehensiveAbsenceReportPanel","reportComprehensiveAbsence"],
+      ["lateFollowupReportSection","reportClassLatenessFollowup"],
+      ["reserveDistributionReportPanel","reportSubstitutionDistribution"]
+    ];
+    reportPanelRules.forEach(([id,key])=>{
+      const node=$(id);if(node)node.classList.toggle("hidden",!(schoolwideReserveReportIsAdmin()||activeUser?.permissions?.[key]===true||appAuthSession?.principal?.permissions?.[key]===true));
+    });
     const tab=$("tab-reports");
     if(tab){
       let allowed=schoolwideReserveReportAllowed();
