@@ -89,6 +89,11 @@ test("offline IndexedDB restoration cannot stall cloud synchronization", () => {
   assert.match(restore, /tx\.onerror/);
   assert.match(restore, /return restoreLocalStorageOfflineSnapshot\(\)/);
   assert.match(restore, /offlineDbPromise = null/);
+  const persist = section("async function persistOfflineState()", "function restoreLocalStorageOfflineSnapshot");
+  assert.match(persist, /انتهت مهلة فتح التخزين المحلي للحفظ/);
+  assert.match(persist, /انتهت مهلة حفظ النسخة المحلية/);
+  assert.match(persist, /tx\.onabort/);
+  assert.match(persist, /tx\.onerror/);
 });
 
 test("cloud manifest and table downloads have bounded waits", () => {
