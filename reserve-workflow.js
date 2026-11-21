@@ -152,9 +152,10 @@
       modal.remove();onConfirm(value);
     });
   }
-  function reasonControlMarkup(absentName, absenceReason) {
+  function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
-    return '<div class="flex flex-wrap items-center gap-2 text-[10px] font-black text-slate-600"><span>سبب الغياب: '+esc(value||"لم يحدد")+'</span><button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button></div>';
+    const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";
+    return '<div class="flex flex-wrap items-center gap-2 text-[10px] font-black text-slate-600"><span>سبب الغياب: '+esc(value||"لم يحدد")+'</span>'+edit+'</div>';
   }
   function installAbsenceReasonPicker(){
     const handlerNames=Object.getOwnPropertyNames(window).filter(name=>
@@ -444,8 +445,8 @@
         return '<section class="tt-group border border-emerald-200 bg-emerald-50 p-3"><div class="flex flex-wrap items-center justify-between gap-2"><div><div class="text-[10px] font-black text-emerald-700">تم حفظ التوزيع</div><strong class="text-xs text-slate-900">'+esc(absentName)+'</strong><div class="text-[10px] text-emerald-700">'+savedRows.length+' حصص محفوظة</div><div class="mt-1 text-[10px] text-amber-800">سبب الغياب: '+esc(savedReason||"—")+'</div></div>'+actions+'</div></section>';
       }
       const savedAbsenceReason=saved.find(item=>item.absentTeacherName===absentName&&item.absenceReason&&item.absenceReason!=="-")?.absenceReason||"";
-      if(reserveAbsenceReasons[absentName]===undefined&&savedAbsenceReason)reserveAbsenceReasons[absentName]=savedAbsenceReason;
-      const absenceReason=reserveAbsenceReasons[absentName]??savedAbsenceReason;
+      if(savedAbsenceReason)reserveAbsenceReasons[absentName]=savedAbsenceReason;
+      const absenceReason=savedAbsenceReason||reserveAbsenceReasons[absentName]||"";
       const cards = rows.map(item => {
         const draft = reserveDraftAssignments.find(row=>row.absentTeacherName===absentName&&Number(row.period)===Number(item.period));
         const reserveKey=reserveReasonKey(absentName,item.period);
@@ -469,7 +470,7 @@
       const approvalControl=pendingRows.length
         ? '<div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-200 bg-slate-50 p-3"><span class="text-[10px] font-bold '+(approved?'text-emerald-700':'text-slate-500')+'">'+(approved?'تم اعتماد توزيع هذا المعلم ضمن مسودة اليوم':'راجع الحصص والبدلاء ثم اعتمد هذا المعلم')+'</span><button type="button" data-tt-approve="'+esc(absentName)+'" class="tt-action '+(approved?'border border-emerald-300 bg-emerald-50 text-emerald-800':'bg-indigo-700 text-white')+'">'+(approved?'إلغاء الاعتماد للمراجعة':'اعتماد توزيع هذا المعلم')+'</button></div>'
         : '<div class="border-t border-slate-200 bg-emerald-50 p-3 text-[10px] font-bold text-emerald-700">لا توجد تكليفات جديدة لهذا المعلم؛ الحصص الظاهرة محفوظة مسبقاً.</div>';
-      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,absenceReason)+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
+      return '<section class="tt-group"><div class="tt-group-head"><div><div class="text-[10px] font-black text-emerald-700">المعلم الغائب</div><h4 class="mt-1 text-sm font-black text-slate-900">'+esc(absentName)+'</h4><div class="mt-1 text-[10px] text-slate-500">'+rows.length+' حصة · '+rows.filter(x=>x.kind==="saved").length+' محفوظة · '+rows.filter(x=>x.kind==="planned").length+' مقترحة</div></div>'+reasonControlMarkup(absentName,absenceReason,!rows.some(item=>item.kind==="saved"))+'</div><div class="space-y-2 p-3 sm:p-4">'+cards+'</div>'+approvalControl+'</section>';
     }).join("") || '<div class="rounded-xl border border-slate-200 p-4 text-xs text-slate-500">لا توجد حصص مطلوبة.</div>';
     host.querySelectorAll("[data-tt-substitute]").forEach(select=>select.addEventListener("change",()=>{
       const item=reserveDraftAssignments.find(row=>row.absentTeacherName===select.dataset.absent&&Number(row.period)===Number(select.dataset.period));
