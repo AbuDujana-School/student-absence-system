@@ -13486,9 +13486,8 @@ async function timetableSaveOwner() {
       rows.forEach(function(row){
         const item=row.item,index=row.index;
         const options=(item.candidateOptions||[]).map(function(option){
-          const occupied=(option.occupiedPeriods||[]).join('، ')||'لا توجد حصص تدريس';
-          const warnings=(option.createsThreeConsecutive?' ⚠ ثلاث متتالية':'')+(option.adjacent?' · حصة مجاورة':'');
-          const label=option.teacherName+' · شغال: '+occupied+' · الرصيد: '+option.pointsBalance+' · احتياط اليوم: '+option.dailySubstitutionCount+' · النصاب الأسبوعي: '+option.weeklyQuota+' · نصاب اليوم: '+option.dailyTeachingCount+warnings;
+          const occupied=(option.occupiedPeriods||[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b).map(period=>new Intl.NumberFormat('ar-OM').format(period)).join('، ')||'لا توجد حصص تدريس';
+          const label=option.teacherName+' · الحصص '+occupied;
           return '<option value="'+esc(option.teacherName)+'" '+(option.teacherName===item.substituteTeacherName?'selected':'')+'>'+esc(label)+'</option>';
         }).join('');
         html+='<div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">'+
