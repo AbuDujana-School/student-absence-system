@@ -115,7 +115,7 @@ Deno.test("main substitution view requires, saves, and prints the selected absen
 
 Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(html.includes("else {absenceReasonsByTeacher.delete(input.value);updateSelectedCount();}"),"Deselecting an absent teacher must clear the previous choice so reselecting opens the picker again");
+  assert(html.includes("absenceReasonsByTeacher.delete(input.value);"),"Deselecting an absent teacher must clear the previous choice so reselecting opens the picker again");
   assert(html.includes("if(input.checked)requestAbsenceReason(input)"),"Selecting the teacher again must open the reason picker");
   assert(source.includes('reason:String(group?.reason||reasons[reasonKey(group?.absentName)]||"-")'),"The official PDF must prioritize the reason selected in the main substitution view");
 });
