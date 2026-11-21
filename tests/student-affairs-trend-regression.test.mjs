@@ -37,3 +37,15 @@ test("visible competition refreshes when the app returns without background poll
   assert.match(html, /now-saCompetitionLastResumeRefreshAt<1500/);
   assert.doesNotMatch(html, /setInterval\([^\n]*saLoadCompetition/);
 });
+
+test("Cloudflare branch preview hosts fail closed without connecting to production", () => {
+  const match = html.match(/function isCloudflareBranchPreviewHost\(hostname\)\{[^\n]*\}/);
+  assert.ok(match, "preview-host detector must exist");
+  const isPreviewHost = vm.runInNewContext("(" + match[0] + ")");
+  assert.equal(isPreviewHost("fix-student-affairs-trend-we.student-absence-system.pages.dev"), true);
+  assert.equal(isPreviewHost("099871fa.student-absence-system.pages.dev"), true);
+  assert.equal(isPreviewHost("fix-student-affairs-trend-we.abu-dujana-school-preview.pages.dev"), true);
+  assert.equal(isPreviewHost("student-absence-system.pages.dev"), false);
+  assert.equal(isPreviewHost("school.example.com"), false);
+  assert.match(html, /window\.__ABUDUJANA_CLOUDFLARE_PREVIEW__ === true \|\| isCloudflareBranchPreviewHost\(window\.location\?\.hostname\)/);
+});
