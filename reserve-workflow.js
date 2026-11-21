@@ -702,7 +702,8 @@
   };
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
-    const items=reserveArchive.filter(item=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit!==false&&["assigned","confirmed"].includes(item.status));
+    const source=[...(reserveArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])];
+    const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit!==false&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
     if(!items.length){status("لا توجد تكليفات قابلة للتعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
     try{
       const absentNames=[...new Set(items.map(item=>item.absentTeacherName))],weekday=items[0].weekday;
