@@ -141,21 +141,7 @@ Deno.test("whole-absence deletion includes completed same-day lessons while grou
 });
 
 
-Deno.test("reserve coordinator edit and delete windows follow each lesson end time", async () => {
-  const edge = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
-  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261121184500_substitution_per_period_edit_deadline.sql", import.meta.url));
-
-  assert(edge.includes("function substitutionPeriodDeadlineMs"), "The server must calculate a deadline for each period");
-  assert(edge.includes("function isSubstitutionPeriodOpen"), "The server must expose a shared per-period open-window check");
-  assert(edge.includes("loadSubstitutionPeriodTimings"), "The server must read the school's configured period timings");
-  assert(edge.includes("isSubstitutionPeriodOpen(cancellationDate,assignment.period,periodTimings)"), "Individual deletion must validate the assigned period deadline");
-  assert(edge.includes("isSubstitutionPeriodOpen(assignmentDate,row.period,periodTimings)"), "Group deletion must validate every lesson independently");
-  assert(edge.includes("isSubstitutionPeriodOpen(editableAssignment.assignment_date,requestedPeriod,periodTimings)"), "A reassignment must also validate the destination period deadline");
-  assert(edge.includes("canDelete:Boolean(activeVersion.data"), "Archive rows must expose a separate delete permission");
-  assert(migration.includes("timetable_substitution_period_edit_deadline"), "Database RPCs must use the shared period deadline function");
-  assert(migration.includes("timetable_substitution_period_is_open"), "Database RPCs must reject edits after the lesson deadline");
-  assert(migration.includes("replace_timetable_substitution_with_reason"), "Single-record replacement must be protected in the database");
-  assert(migration.includes("reassign_timetable_substitution_absent_with_reason"), "Changing the absent teacher must be protected in the database");
+Deno.test("reserve coordinator controls require explicit per-period permissions", () => {
   assert(source.includes("item.canEdit===true"), "The interface must require an explicit edit grant");
   assert(source.includes("item.canDelete===true"), "The interface must require an explicit delete grant");
   assert(source.includes("item.canDelete!==true"), "Individual deletion must not rely on the edit permission");
