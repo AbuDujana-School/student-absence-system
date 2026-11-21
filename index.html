@@ -3737,6 +3737,7 @@ function uiReviewBack(){
 }
 
 async function saRequest(body){
+  if (localOnlySession) throw new Error("يلزم تسجيل الدخول الآمن قبل الاتصال بخدمات شؤون الطلبة.");
   if(IS_UI_REVIEW_PREVIEW){
     const action=String(body?.action||"");
     if(action==="get_my_permissions")return {permissions:{can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"visitor"}};
@@ -3752,7 +3753,7 @@ async function saRequest(body){
     if(action==="supervision_trend")return {series:[],class_count:0};
     throw new Error("هذه معاينة واجهات فقط؛ جميع عمليات الحفظ والتعديل والاتصال بالبيانات معطلة.");
   }const h={"Content-Type":"application/json","apikey":SA_API_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
-async function appAuthRequest(body, token) { if(IS_UI_REVIEW_PREVIEW) throw new Error("تسجيل الدخول غير متاح في معاينة الواجهات.");
+async function appAuthRequest(body, token) { if (localOnlySession) throw new Error("يلزم تسجيل الدخول الآمن قبل الاتصال بالخدمات."); if(IS_UI_REVIEW_PREVIEW) throw new Error("تسجيل الدخول غير متاح في معاينة الواجهات.");
   const headers = { "Content-Type": "application/json", apikey: SA_API_KEY };
   if (token) headers.Authorization = "Bearer " + token;
   let response;
@@ -6630,6 +6631,8 @@ async function handleUserLogin(e) {
       const sessionSecret = await deriveSessionSecret(pin, found.record.salt);
       await createSignedSession(activeUser.name, activeUser.type, sessionSecret);
       localOnlySession = true;
+      saSession = null;
+      try { localStorage.removeItem("abuDujana_studentAffairsSession"); sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch (error) {}
       // Preserve existing credential records during login. Credential upgrades require
       // a separately reviewed, explicit migration; never rewrite stored PIN hashes here.
       await finalizeLoginState();
