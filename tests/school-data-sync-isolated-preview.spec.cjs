@@ -12,7 +12,7 @@ const TABLES = [
 ];
 
 test("school sync projections and timetable access reads stay isolated and minimal", async ({ page }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(60_000);
 
   const now = new Date().toISOString();
   const fixtures = {
@@ -77,8 +77,10 @@ test("school sync projections and timetable access reads stay isolated and minim
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
+  const browserDiagnostics = [];
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
+  page.on("console", (message) => browserDiagnostics.push(message.text()));
 
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
@@ -92,6 +94,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
 
     const method = request.method();
+    browserDiagnostics.push("SUPABASE_REQ " + method + " " + url.pathname);
     if (url.pathname === "/" && method === "HEAD") {
       await route.fulfill({ status: 200, headers: { date: new Date().toUTCString() } });
       return;
@@ -179,16 +182,74 @@ test("school sync projections and timetable access reads stay isolated and minim
     undefined,
     { timeout: 30_000 },
   );
+  await page.waitForFunction(
+    () => window.__abuDujanaBootReady === true,
+    undefined,
+    { timeout: 20_000 },
+  );
 
-  const initialLoad = await page.evaluate(async () => {
+  const initialLoad = await Promise.race([
+    page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
+    localOnlySession = false;
+    window.__ABU_SYNC_TEST_DIAGNOSTICS__ = true;
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+      principal: { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } },
     };
-    return await loadSystemDataFromCloud();
-  });
-  expect(initialLoad, "Synthetic initial cloud snapshot must load").toBe(true);
+    const trace = [];
+    const timed = (name, timeoutMs = 12000) => {
+      const original = window[name];
+      if (typeof original !== "function") {
+        trace.push(name + ":missing");
+        console.log("SYNC_TEST_DIAG " + name + ":missing");
+        return;
+      }
+      window[name] = async (...args) => {
+        trace.push(name + ":start");
+        console.log("SYNC_TEST_DIAG " + name + ":start");
+        try {
+          const value = await Promise.race([
+            original(...args),
+            new Promise((_, reject) => setTimeout(() => reject(new Error(name + " exceeded " + timeoutMs + "ms")), timeoutMs)),
+          ]);
+          trace.push(name + ":done");
+          console.log("SYNC_TEST_DIAG " + name + ":done");
+          return value;
+        } catch (error) {
+          trace.push(name + ":error:" + String(error?.message || error));
+          console.log("SYNC_TEST_DIAG " + name + ":error:" + String(error?.message || error));
+          throw error;
+        }
+      };
+    };
+    ["restoreOfflineState", "openOfflineDatabase", "restoreLocalStorageOfflineSnapshot",
+      "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud",
+      "persistOfflineState"].forEach(name => timed(name));
+    try {
+      console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:start");
+      const result = await Promise.race([
+        loadSystemDataFromCloud(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("loadSystemDataFromCloud exceeded 45000ms")), 45000)),
+      ]);
+      console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:done:" + result);
+      return { result, trace };
+    } catch (error) {
+      console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:error:" + String(error?.message || error));
+      return { result: false, trace, error: String(error?.message || error) };
+    }
+    }),
+    new Promise((_, reject) => setTimeout(() => reject(new Error(
+      "Browser evaluation stalled; diagnostics: " +
+      browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)|SUPABASE_REQ/.test(line)).join(" | ")
+    )), 20000)),
+  ]);
+  if (!initialLoad.result) {
+    throw new Error("Synthetic initial cloud snapshot failed: " + JSON.stringify(initialLoad) +
+      "; browser diagnostics: " + browserDiagnostics.filter(line => /SYNC_TEST_(DIAG|INTERNAL)|SUPABASE_REQ/.test(line)).join(" | "));
+  }
+  expect(initialLoad.result, "Synthetic initial cloud snapshot must load").toBe(true);
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,

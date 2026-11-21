@@ -43,10 +43,11 @@ test("online cloud reads require an unexpired server-issued app session before a
   assert.match(helper, /Date\.parse\(session\.expires_at\) > Date\.now\(\)/);
 
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  const guard = loader.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
+  const localOnlyGuard = loader.indexOf("if (localOnlySession)");
+  const onlineSessionGuard = loader.indexOf("if (navigator.onLine && !await ensureAppAuthSession())");
   const manifest = loader.indexOf("fetchAppSyncManifest()");
-  assert.ok(guard >= 0 && manifest > guard);
-  assert.match(loader.slice(guard, manifest), /cloudDataLoadState = 'failed'/);
+  assert.ok(localOnlyGuard >= 0 && onlineSessionGuard > localOnlyGuard && manifest > onlineSessionGuard);
+  assert.match(loader.slice(onlineSessionGuard, manifest), /cloudDataLoadState = 'failed'/);
 });
 
 test("online cloud writes require an unexpired server-issued app session", () => {
@@ -77,4 +78,37 @@ test("a successful server login stores its verified session before cloud bootstr
   const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
   const load = login.indexOf("await finalizeLoginState()", saveSession);
   assert.ok(saveSession >= 0 && load > saveSession);
+});
+
+
+test("offline IndexedDB restoration cannot stall cloud synchronization", () => {
+  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue");
+  assert.match(restore, /انتهت مهلة فتح التخزين المحلي/);
+  assert.match(restore, /انتهت مهلة قراءة التخزين المحلي/);
+  assert.match(restore, /tx\.onabort/);
+  assert.match(restore, /tx\.onerror/);
+  assert.match(restore, /return restoreLocalStorageOfflineSnapshot\(\)/);
+  assert.match(restore, /offlineDbPromise = null/);
+  const persist = section("async function persistOfflineState()", "function restoreLocalStorageOfflineSnapshot");
+  assert.match(persist, /انتهت مهلة فتح التخزين المحلي للحفظ/);
+  assert.match(persist, /انتهت مهلة حفظ النسخة المحلية/);
+  assert.match(persist, /tx\.onabort/);
+  assert.match(persist, /tx\.onerror/);
+});
+
+test("cloud manifest and table downloads have bounded waits", () => {
+  const sync = section("function withAppSyncTimeout", "function getChangedAppSyncTables");
+  assert.match(sync, /setTimeout/);
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(sync, /withAppSyncTimeout\([\s\S]*?sb\.rpc\('get_app_sync_manifest'\)[\s\S]*?10000/);
+  assert.match(loader, /nextManifest = await fetchAppSyncManifest\(\)/);
+  assert.match(loader, /Promise\.all\(\[/);
+  assert.match(loader, /20000, 'انتهت مهلة تحميل بيانات المدرسة/);
+});
+
+test("optional timetable and teacher notice refreshes do not block successful login", () => {
+  const finalizer = section("async function finalizeLoginState()", "\nfunction ");
+  assert.match(finalizer, /void bounded\(timetableRefreshAccess\(\)/);
+  assert.match(finalizer, /requestAnimationFrame\(\(\) => requestAnimationFrame/);
+  assert.match(finalizer, /void bounded\(teacherShowDailySubstitutionWelcome\(\)/);
 });
