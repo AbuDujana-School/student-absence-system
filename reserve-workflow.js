@@ -154,23 +154,32 @@
     return '<div class="flex flex-wrap items-center gap-2 text-[10px] font-black text-slate-600"><span>سبب الغياب: '+esc(value||"لم يحدد")+'</span><button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button></div>';
   }
   function installAbsenceReasonPicker(){
-    const original=window.timetableDailyAddAbsent;
-    if(typeof original!=="function"||original.__reserveAbsenceReasonWrapped)return false;
-    const wrapped=function(name,...args){
-      const absentName=String(name?.name||name||"").trim();
-      if(!absentName||timetableDailyAbsentTeachers.includes(absentName))return original.apply(this,[name,...args]);
-      openAbsenceReasonPicker(absentName,value=>{
-        reserveAbsenceReasons[absentName]=value;
-        persistStoredDraft();
-        try{
-          const result=original.apply(this,[name,...args]);
-          Promise.resolve(result).then(()=>{persistStoredDraft();window.timetableDailyRenderLessons?.();});
-        }catch(error){delete reserveAbsenceReasons[absentName];status(error?.message||"تعذر إضافة المعلم الغائب.","error");}
-      });
-    };
-    wrapped.__reserveAbsenceReasonWrapped=true;
-    window.timetableDailyAddAbsent=wrapped;
-    return true;
+    const handlerNames=Object.getOwnPropertyNames(window).filter(name=>
+      /^timetableDaily.*(?:Add|Select).*Absent/i.test(name)&&typeof window[name]==="function");
+    if(typeof window.timetableDailyAddAbsent==="function"&&!handlerNames.includes("timetableDailyAddAbsent"))handlerNames.push("timetableDailyAddAbsent");
+    let installed=false;
+    handlerNames.forEach(handlerName=>{
+      const original=window[handlerName];
+      if(typeof original!=="function"||original.__reserveAbsenceReasonWrapped)return;
+      const wrapped=function(...args){
+        const absentName=args.map(value=>typeof value==="string"?value:String(value?.name||"").trim())
+          .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
+        if(!absentName)return original.apply(this,args);
+        openAbsenceReasonPicker(absentName,value=>{
+          reserveAbsenceReasons[absentName]=value;
+          persistStoredDraft();
+          try{
+            const result=original.apply(this,args);
+            Promise.resolve(result).then(()=>{persistStoredDraft();window.timetableDailyRenderLessons?.();});
+          }catch(error){delete reserveAbsenceReasons[absentName];status(error?.message||"تعذر إضافة المعلم الغائب.","error");}
+        });
+      };
+      wrapped.__reserveAbsenceReasonWrapped=true;
+      wrapped.__reserveAbsenceReasonOriginal=original;
+      window[handlerName]=wrapped;
+      installed=true;
+    });
+    return installed;
   }
   function reserveDutyReasonMarkup(absentName, period, reason) {
     const value=String(reason||"").trim(),key=reserveReasonKey(absentName,period);
