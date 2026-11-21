@@ -787,6 +787,7 @@
         timetableDailyAbsentTeachers=timetableDailyAbsentTeachers.filter(name=>name!==absentTeacherName);
         delete reserveAbsenceReasons[absentTeacherName];
         delete reserveReasons[absentTeacherName];
+        Object.keys(reserveReasons).filter(key=>key.startsWith(String(absentTeacherName)+"\u0000")).forEach(key=>delete reserveReasons[key]);
         Object.keys(reserveManualChoices).filter(key=>key.startsWith(String(absentTeacherName)+"\u0000")).forEach(key=>delete reserveManualChoices[key]);
         reserveDraftApproved.delete(absentTeacherName);
         timetableDailyRenderTags();
