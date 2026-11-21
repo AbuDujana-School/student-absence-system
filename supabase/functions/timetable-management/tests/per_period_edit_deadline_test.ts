@@ -10,6 +10,9 @@ Deno.test("reserve server permissions follow each lesson's configured end time",
   assert(source.includes("loadSubstitutionPeriodTimings"), "The server must read the school's configured period timings");
   assert(source.includes("isSubstitutionPeriodOpen(assignmentDate,period,periodTimings)"), "Single new assignments must be blocked after the lesson deadline");
   assert(source.includes("normalized.some((item:any)=>!isSubstitutionPeriodOpen(assignmentDate,item.period,periodTimings))"), "Batch additions must validate every proposed lesson deadline");
+  assert(source.includes('if(principal.type!=="admin"&&!isSubstitutionPeriodOpen(assignmentDate,period,periodTimings))'), "Single additions must be blocked after the lesson deadline");
+  assert(source.includes("planningTimetable=principal.type===\"admin\"?timetable:"), "Batch preview must not suggest new assignments for expired lessons");
+  assert(source.includes('blockReason:periodOpen?null:"period_passed"'), "Single preview must explain that an expired lesson cannot receive a new assignment");
   assert(source.includes("isSubstitutionPeriodOpen(cancellationDate,assignment.period,periodTimings)"), "Individual deletion must validate the assigned period deadline");
   assert(source.includes("isSubstitutionPeriodOpen(assignmentDate,row.period,periodTimings)"), "Group deletion must validate every lesson independently");
   assert(source.includes("isSubstitutionPeriodOpen(editableAssignment.assignment_date,requestedPeriod,periodTimings)"), "A reassignment must also validate the destination period deadline");
