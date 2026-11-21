@@ -68,5 +68,5 @@ test("competition API complete snapshots are normalized to the UI approved contr
   assert.equal(normalize(complete).teams.length, 1);
   assert.equal(normalize({ status: "complete", teams: [] }).status, "complete", "empty snapshots must not be promoted to approved");
   assert.equal(normalize({ status: "no_completed_weeks", teams: [] }).status, "no_completed_weeks");
-  assert.ok(html.includes('const response=await saRequest({action:"competition",period:requestPeriod,termId});\\n    const data=saNormalizeCompetitionResponse(response);'));
+  assert.ok(html.includes('const response=await saRequest({action:"competition",period:requestPeriod,termId});' + String.fromCharCode(10) + '    const data=saNormalizeCompetitionResponse(response);'));
 });
