@@ -6877,7 +6877,18 @@ async function handleUserLogin(e) {
         updateSyncStatus(false, 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
       });
     }
-    if (!localOnlySession && (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true)) { try { await saLogin(pin); } catch(saError) { console.warn("Student Affairs session not established:", saError); saSession = null; try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {} } }
+    if (!localOnlySession && (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true)) {
+      // Student Affairs is an optional module after the main app session. Load it
+      // separately so its reports/permissions queries cannot block the main login.
+      void Promise.race([
+        saLogin(pin),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('تأخر تحميل قسم شؤون الطلبة.')), 8000))
+      ]).catch(saError => {
+        console.warn("Student Affairs initialization deferred; main login remains active:", saError);
+        saSession = null;
+        try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {}
+      });
+    }
     showToast("أهلاً بك: " + activeUser.name, "success");
     document.getElementById("userPinInput").value = "";
   } catch(error) {
