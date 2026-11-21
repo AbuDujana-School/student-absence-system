@@ -1510,7 +1510,8 @@ async function handle(req: Request) {
             Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
           .map((row:any)=>({
             id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
-            canEdit:String(row.version_id)===String(activeVersion.id)&&String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||"")),
+            canEdit:(principal.type==="admin"||hasReservePermission)&&String(row.version_id)===String(activeVersion.id)&&String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||"")),
+            canDelete:(principal.type==="admin"||hasReservePermission)&&String(row.version_id)===String(activeVersion.id)&&String(row.assignment_date||"")===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")),
             absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
             period:Number(row.period),className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
             subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
@@ -1643,7 +1644,9 @@ async function handle(req: Request) {
           row.weekday===weekday&&row.status!=="cancelled"&&
           (row.assignment_date?String(row.assignment_date)===assignmentDate:String(row.version_id)===String(activeVersion.id))
         ).map((row:any)=>({
-          id:String(row.id),assignmentDate:row.assignment_date||assignmentDate,canEdit:String(row.version_id)===String(activeVersion.id),
+          id:String(row.id),assignmentDate:row.assignment_date||assignmentDate,
+          canEdit:(principal.type==="admin"||hasReservePermission)&&String(row.version_id)===String(activeVersion.id)&&String(row.assignment_date||assignmentDate)===todayInMuscat&&["assigned","confirmed"].includes(String(row.status||"")),
+          canDelete:(principal.type==="admin"||hasReservePermission)&&String(row.version_id)===String(activeVersion.id)&&String(row.assignment_date||assignmentDate)===todayInMuscat&&["assigned","confirmed","completed"].includes(String(row.status||"")),
           absentTeacherName:String(row.absent_teacher_name||""),substituteTeacherName:String(row.teacher_name||""),
           weekday:String(row.weekday),period:Number(row.period),
           className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
