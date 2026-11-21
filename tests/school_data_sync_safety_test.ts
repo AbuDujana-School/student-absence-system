@@ -359,20 +359,25 @@ Deno.test("an empty successful permission-gateway response never falls back to d
 Deno.test("unauthenticated startup does not fetch protected school tables", () => {
   const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
-  assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
-  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
+  assert(boot.includes("if (!offlineSnapshotRestorePromise) offlineSnapshotRestorePromise = restoreOfflineState()") &&
+    boot.includes("offlineSnapshotRestoredAtBoot = await offlineSnapshotRestorePromise"),
+    "Startup must begin and await the shared local-only snapshot restoration");
+  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await offlineSnapshotRestorePromise"),
+    "Session validation must follow local-only restoration");
   const sessionCheck = boot.indexOf("await checkExistingSession()");
   const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
   assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
   const noUserGuard = load.indexOf("if (!activeUser)");
   const localOnlyGuard = load.indexOf("if (localOnlySession)");
   const secureSessionGuard = load.indexOf("if (navigator.onLine && !await ensureAppAuthSession())");
-  const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
+  const restorePromise = load.indexOf("if (!offlineSnapshotRestorePromise) offlineSnapshotRestorePromise = restoreOfflineState()");
+  const localRestore = load.indexOf("const offlineSnapshotAvailable = await offlineSnapshotRestorePromise");
   const manifestFetch = load.indexOf("fetchAppSyncManifest()");
-  assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
-  assert(localOnlyGuard > noUserGuard && localOnlyGuard < localRestore, "Local-only sessions must stop before protected cloud reads");
-  assert(secureSessionGuard > localOnlyGuard && secureSessionGuard < localRestore, "Online reads must require a server-validated secure application session");
-  assert(localRestore < manifestFetch, "The manifest request may occur only after the authentication guards");
+  assert(noUserGuard >= 0 && noUserGuard < restorePromise, "No active principal must stop cloud loading before any snapshot or table fetch");
+  assert(localOnlyGuard > noUserGuard && localOnlyGuard < restorePromise, "Local-only sessions must stop before protected cloud reads");
+  assert(secureSessionGuard > localOnlyGuard && secureSessionGuard < restorePromise, "Online reads must require a server-validated secure application session");
+  assert(restorePromise >= 0 && localRestore > restorePromise && localRestore < manifestFetch,
+    "Cloud loading must await the single shared startup snapshot before requesting the manifest");
 });
 
 Deno.test("secure session validation completes before cloud loading begins", () => {
