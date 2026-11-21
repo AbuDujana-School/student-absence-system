@@ -1484,9 +1484,16 @@
       if(!byAbsent.has(name))byAbsent.set(name,[]);
       byAbsent.get(name).push(item);
     });
-    host.innerHTML=Array.from(byAbsent.entries()).map(([absentName,items])=>
-      '<section class="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">'+
-      '<div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-900">المعلم الغائب: '+esc(absentName)+'</strong><span class="text-[10px] text-slate-500">'+items.length+' حصص</span></div>'+
+    host.innerHTML=Array.from(byAbsent.entries()).map(([absentName,items])=>{
+      const editableRows=items.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
+      const groupCanEdit=editableRows.length>0&&items.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
+      const groupCanDelete=items.length>0&&items.every(item=>item.canEdit===true&&["assigned","confirmed","completed"].includes(item.status));
+      const groupActions='<div class="flex flex-wrap gap-1.5">'+
+        (groupCanEdit?'<button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-[10px] font-black text-indigo-900" data-home-today-edit-group="'+esc(absentName)+'">تعديل التوزيع</button>':'')+
+        (groupCanDelete?'<button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-[10px] font-black text-rose-800" data-home-today-delete-group="'+esc(absentName)+'">حذف الغياب والاحتياط بالكامل</button>':'')+
+      '</div>';
+      return '<section class="rounded-2xl border border-emerald-100 bg-white p-3 shadow-sm">'+
+      '<div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-900">المعلم الغائب: '+esc(absentName)+'</strong><div class="flex flex-wrap items-center gap-2"><span class="text-[10px] text-slate-500">'+items.length+' حصص</span>'+groupActions+'</div></div>'+
       '<div class="space-y-2">'+items.map(item=>{
         const editable=item.canEdit===true&&["assigned","confirmed"].includes(item.status);
         const state=item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":item.status==="assigned"?"محفوظ":String(item.status||"");
@@ -1494,8 +1501,10 @@
           ?'<div class="flex shrink-0 flex-wrap gap-1.5"><button type="button" class="rounded-lg border border-indigo-300 bg-indigo-50 px-3 py-1.5 text-[11px] font-black text-indigo-900 transition hover:bg-indigo-100" data-home-today-edit="'+esc(item.id)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل</button><button type="button" class="rounded-lg border border-rose-300 bg-rose-50 px-3 py-1.5 text-[11px] font-black text-rose-800 transition hover:bg-rose-100" data-home-today-delete="'+esc(item.id)+'"><i class="fa-solid fa-trash-can ml-1"></i> حذف</button></div>'
           :'<span class="text-[10px] font-bold text-slate-400">'+(item.status==="completed"?"مكتمل · لا يقبل التعديل":"للقراءة فقط · تحقق من صلاحية الإدارة وإصدار الجدول")+'</span>';
         return '<article class="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="min-w-0 flex-1"><strong class="block text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' · '+esc(item.subject||"—")+'</strong><span class="mt-1 block text-xs text-slate-700">المعلم البديل: '+esc(item.substituteTeacherName||"—")+'</span><span class="mt-1 block text-[10px] text-amber-700">سبب الغياب: '+esc(item.absenceReason||"-")+'</span><span class="mt-1 block text-[10px] text-indigo-700">سبب الاحتياط: '+esc(item.reason||"-")+'</span></div>'+actions+'</article>';
-      }).join("")+'</div></section>'
-    ).join("");
+      }).join("")+'</div></section>';
+    }).join("");
+    host.querySelectorAll("[data-home-today-edit-group]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveDayEdit(today,button.dataset.homeTodayEditGroup)));
+    host.querySelectorAll("[data-home-today-delete-group]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyCancelAbsentDistribution(today,button.dataset.homeTodayDeleteGroup)));
     host.querySelectorAll("[data-home-today-edit]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveEdit(button.dataset.homeTodayEdit)));
     host.querySelectorAll("[data-home-today-delete]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyCancelAssignment(button.dataset.homeTodayDelete)));
   };
@@ -1516,7 +1525,7 @@
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
         const groups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
-          const current=rows.filter(item=>["assigned","confirmed"].includes(item.status));
+          const current=rows.filter(item=>item.canEdit!==false&&["assigned","confirmed","completed"].includes(item.status));
           const canDelete=current.length>0&&current.every(item=>item.canEdit!==false);
           const deleteAll=canDelete?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-delete-group-date="'+esc(date)+'" data-home-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+current.length+')</button>':"";
           const rowHtml=rows.map(item=>{
