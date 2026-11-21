@@ -1724,8 +1724,10 @@ async function handle(req: Request) {
         const selectedAbsentDepartmentIds=new Set(selectedAbsent.map((teacher:any)=>teacher.departmentId));
         const scopedCandidates=candidates.filter((teacher:any)=>selectedAbsentDepartmentIds.has(teacher.departmentId)||
           (includeOtherDepartments&&teacher.departmentId===otherDepartmentId&&otherTeacherNames.includes(teacher.name)));
+        const planningTimetable=principal.type==="admin"?timetable:
+          timetable.filter((cell:any)=>isSubstitutionPeriodOpen(assignmentDate,cell.period,periodTimings));
         const plan=buildBatchSubstitutionPlan({
-          teachers:scopedCandidates,timetable,assignments,absentTeachers:selectedAbsent,weekday,
+          teachers:scopedCandidates,timetable:planningTimetable,assignments,absentTeachers:selectedAbsent,weekday,
           assignmentDate,versionId:activeVersion.id,includeOtherDepartments:includeOtherDepartments||false,
           otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],
         });
@@ -1766,10 +1768,11 @@ async function handle(req: Request) {
       const absent=directory.find((t:any)=>t.name===absentTeacherName);
       const lessons=getAbsentTeacherLessons(timetable,absentTeacherName,weekday);
       const lessonOptions=lessons.map((lesson)=>{
-        const eligible=getAvailableSubstitutionCandidates({teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],assignmentDate:date||undefined,versionId:activeVersion.id});
+        const periodOpen=principal.type==="admin"||isSubstitutionPeriodOpen(date,lesson.period,periodTimings);
+        const eligible=periodOpen?getAvailableSubstitutionCandidates({teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],assignmentDate:date||undefined,versionId:activeVersion.id}):[];
         const sourceCell=dayCells.find((c:any)=>c.matched_teacher_name===absentTeacherName&&Number(c.period)===lesson.period);
         const existing=(assignmentRows||[]).find((x:any)=>x.source_cell_id===sourceCell?.id&&(!date||!x.assignment_date||x.assignment_date===date)&&x.status!=="cancelled");
-        return {...lesson,candidates:eligible,assignment:existing?{id:existing.id,substituteTeacherName:String(existing.teacher_name),status:String(existing.status)}:null};
+        return {...lesson,candidates:eligible,blockReason:periodOpen?null:"period_passed",assignment:existing?{id:existing.id,substituteTeacherName:String(existing.teacher_name),status:String(existing.status)}:null};
       });
       return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,lessons:lessonOptions,includeOtherDepartments});
     } catch(error) {
