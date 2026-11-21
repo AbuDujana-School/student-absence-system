@@ -1678,7 +1678,7 @@
       const wrappedPrint=function(groups,...args){
         const enriched=(Array.isArray(groups)?groups:[]).map(group=>({
           ...group,
-          absenceReason:String(reasons[reasonKey(group?.absentName)]||group?.absenceReason||"-")
+          reason:String(reasons[reasonKey(group?.absentName)]||group?.reason||"-")
         }));
         return originalPrint.call(this,enriched,...args);
       };
