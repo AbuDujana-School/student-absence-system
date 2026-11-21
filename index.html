@@ -6215,7 +6215,8 @@ window.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try { const savedOffset = localStorage.getItem('abuDujana_timeOffset'); if (savedOffset !== null) serverTimeOffset = Number(savedOffset) || 0; } catch(e) {}
-  offlineSnapshotRestoredAtBoot = await restoreOfflineState();
+  if (!offlineSnapshotRestorePromise) offlineSnapshotRestorePromise = restoreOfflineState();
+  offlineSnapshotRestoredAtBoot = await offlineSnapshotRestorePromise;
   syncServerTime();
   // Authentication/session restoration now precedes every protected cloud-table read.
   await checkExistingSession();
@@ -6317,6 +6318,9 @@ async function migrateCredentialsIfNeeded() {
 
 let cloudDataLoadState = 'not-started';
 let offlineSnapshotRestoredAtBoot = false;
+// Share one startup restore across boot and login-triggered cloud sync. Re-reading
+// IndexedDB immediately after boot is redundant and can stall on some mobile browsers.
+let offlineSnapshotRestorePromise = null;
 let localOnlySession = false;
 const APP_SYNC_TABLES = ['classes','students','teachers','attendance','behaviors','school_settings','duty_reports'];
 let lastLoadedCloudManifest = null;
@@ -6396,7 +6400,8 @@ async function loadSystemDataFromCloud() {
   }
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
-  const offlineSnapshotAvailable = await restoreOfflineState();
+  if (!offlineSnapshotRestorePromise) offlineSnapshotRestorePromise = restoreOfflineState();
+  const offlineSnapshotAvailable = await offlineSnapshotRestorePromise;
   loadDirtySetsFromLocal();
   const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
   let pendingLocalState = captureDirtyLocalState();
