@@ -1,5 +1,5 @@
 import {
-  awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores,
+  awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, isCompetitionWeeklyCutoffReached,
   countAttendanceIncidents, countBehaviorIncidents, countAttendanceByStatus, countBehaviorByType, countRepeatStudents, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange,
   gradeForClassName, isTeamDayComplete, getSessionCoverage
 } from "./competition_policy.ts";
@@ -154,4 +154,12 @@ Deno.test("competition behavior metrics count every selected type in array recor
   if (countBehaviorIncidents(rows) !== 4) throw new Error("all selected behavior types must count as incidents");
   if (counts.eating !== 1 || counts.talking !== 2 || counts.chaos !== 1) throw new Error("array behavior type breakdown failed");
   if (countRepeatStudents(rows,"behavior") !== 1) throw new Error("repeat behavior students must recognize array records");
+});
+
+Deno.test("weekly results cutoff is exactly Thursday 13:51 Oman time", () => {
+  if (isCompetitionWeeklyCutoffReached(4, 13 * 60 + 50)) throw new Error("Thursday 13:50 must remain before cutoff");
+  if (!isCompetitionWeeklyCutoffReached(4, 13 * 60 + 51)) throw new Error("Thursday 13:51 must reach cutoff");
+  if (!isCompetitionWeeklyCutoffReached(4, 14 * 60)) throw new Error("Thursday after cutoff must be eligible");
+  if (!isCompetitionWeeklyCutoffReached(5, 0) || !isCompetitionWeeklyCutoffReached(6, 0)) throw new Error("Friday and Saturday must remain after cutoff");
+  if (isCompetitionWeeklyCutoffReached(3, 23 * 60 + 59)) throw new Error("Wednesday must remain before Thursday cutoff");
 });

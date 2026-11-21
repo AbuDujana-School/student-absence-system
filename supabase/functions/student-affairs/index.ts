@@ -1,7 +1,7 @@
 import { authorizeReportMode, isValidIsoDate, filterAttendanceRecordMap, filterBehaviorRecordMap, behaviorTypesFromRecord, areClassesAllowed, applyReportsEntryPermissions } from "./report_policy.ts";
 import { buildNoticeCandidates, validateNoticeIssueItem, NOTICE_ATTENDANCE_TYPES, NOTICE_BEHAVIOR_TYPES, NOTICE_TYPES } from "./notice_policy.ts";
 import { fetchNoticeRowsForClasses } from "./notice_issue_fetch.ts";
-import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange } from "./competition_policy.ts";
+import { awardWeeklyCompetitionPoints, rankCompetitionTeamsByAccumulatedPoints, buildTeamRates, calculateRelativeCompetitionScores, getSchoolDays, getSchoolWeekRange, isCompleteSchoolWeekRange, isCompetitionWeeklyCutoffReached } from "./competition_policy.ts";
 import { buildCompetitionTeams, findCompetitionClassesOutsidePersonalScope, projectCompetitionTeam } from "./competition_team_policy.ts";
 import { projectCompetitionClassComparison } from "./competition_response_policy.ts";
 import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisionReportPermissions, resolveSupervisionTeacher } from "./supervision_access_policy.ts";
@@ -390,7 +390,7 @@ async function getLatestWeeklyCompetition(principal: { type: string; name: strin
   const { currentTerm } = await readCompetitionTermSettings();
   const week = getSchoolWeekRange(today);
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
-  const afterCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
+  const afterCutoff = isCompetitionWeeklyCutoffReached(weekday, getOmanClockMinutes());
   const latestClosedWeekStart = afterCutoff ? week.start : shiftCompetitionDate(week.start, -7);
   const baseQuery = () => db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
@@ -558,8 +558,8 @@ async function finalizeCompetitionWeek() {
   const today = getOmanIsoDate();
   const weekday = new Date(today + "T12:00:00.000Z").getUTCDay();
   const currentWeek = getSchoolWeekRange(today);
-  const afterWeeklyCutoff = weekday > 4 || (weekday === 4 && getOmanClockMinutes() >= 13 * 60 + 50);
-  // Before Thursday 13:50, the latest closed week is eligible. After the cutoff, this week is eligible.
+  const afterWeeklyCutoff = isCompetitionWeeklyCutoffReached(weekday, getOmanClockMinutes());
+  // Before Thursday 13:51 Oman time, the latest closed week is eligible. After the cutoff, this week is eligible.
   const eligibleStart = afterWeeklyCutoff ? currentWeek.start : shiftCompetitionDate(currentWeek.start, -7);
   const { currentTerm } = await readCompetitionTermSettings();
   // Never abandon an earlier incomplete week when the calendar rolls forward; retry it until it completes.

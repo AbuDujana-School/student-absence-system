@@ -1031,6 +1031,29 @@ jobs:
       - name: Run isolated browser integration tests
         run: npx playwright test tests/student-affairs-readers-isolated.spec.cjs --reporter=line
 
+      - name: Wait for isolated Cloudflare competition preview
+        env:
+          COMPETITION_PREVIEW_URL: "https://fix-competition-weekly-auto.abu-dujana-school-preview.pages.dev/"
+        run: |
+          set -euo pipefail
+          preview_file="$(mktemp)"
+          for attempt in $(seq 1 60); do
+            if curl --connect-timeout 10 --max-time 20 --fail --silent "$COMPETITION_PREVIEW_URL" --output "$preview_file" && grep -q "saCompetitionCutoffRefreshTimer" "$preview_file"; then
+              echo "Cloudflare branch preview serves the competition cutoff implementation."
+              rm -f "$preview_file"
+              exit 0
+            fi
+            sleep 5
+          done
+          rm -f "$preview_file"
+          echo "Timed out waiting for the Cloudflare branch preview to serve the tested commit."
+          exit 1
+
+      - name: Test deployed isolated competition preview in Chromium
+        env:
+          COMPETITION_PREVIEW_URL: "https://fix-competition-weekly-auto.abu-dujana-school-preview.pages.dev/?review=student-affairs"
+        run: npx playwright test tests/competition-cutoff-preview.spec.cjs --reporter=line
+
       - name: Upload browser evidence
         if: always()
         uses: actions/upload-artifact@v4
