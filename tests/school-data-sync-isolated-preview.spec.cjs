@@ -77,8 +77,10 @@ test("school sync projections and timetable access reads stay isolated and minim
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
+  const browserDiagnostics = [];
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
+  page.on("console", (message) => browserDiagnostics.push(message.text()));
 
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
@@ -196,18 +198,25 @@ test("school sync projections and timetable access reads stay isolated and minim
     const trace = [];
     const timed = (name, timeoutMs = 12000) => {
       const original = window[name];
-      if (typeof original !== "function") return;
+      if (typeof original !== "function") {
+        trace.push(name + ":missing");
+        console.log("SYNC_TEST_DIAG " + name + ":missing");
+        return;
+      }
       window[name] = async (...args) => {
         trace.push(name + ":start");
+        console.log("SYNC_TEST_DIAG " + name + ":start");
         try {
           const value = await Promise.race([
             original(...args),
             new Promise((_, reject) => setTimeout(() => reject(new Error(name + " exceeded " + timeoutMs + "ms")), timeoutMs)),
           ]);
           trace.push(name + ":done");
+          console.log("SYNC_TEST_DIAG " + name + ":done");
           return value;
         } catch (error) {
           trace.push(name + ":error:" + String(error?.message || error));
+          console.log("SYNC_TEST_DIAG " + name + ":error:" + String(error?.message || error));
           throw error;
         }
       };
@@ -215,16 +224,23 @@ test("school sync projections and timetable access reads stay isolated and minim
     ["restoreOfflineState", "fetchAppSyncManifest", "fetchAllPaginated",
       "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineState"].forEach(name => timed(name));
     try {
+      console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:start");
       const result = await Promise.race([
         loadSystemDataFromCloud(),
         new Promise((_, reject) => setTimeout(() => reject(new Error("loadSystemDataFromCloud exceeded 45000ms")), 45000)),
       ]);
+      console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:done:" + result);
       return { result, trace };
     } catch (error) {
+      console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:error:" + String(error?.message || error));
       return { result: false, trace, error: String(error?.message || error) };
     }
   });
-  expect(initialLoad.result, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify(initialLoad)).toBe(true);
+  if (!initialLoad.result) {
+    throw new Error("Synthetic initial cloud snapshot failed: " + JSON.stringify(initialLoad) +
+      "; browser diagnostics: " + browserDiagnostics.filter(line => line.includes("SYNC_TEST_DIAG")).join(" | "));
+  }
+  expect(initialLoad.result, "Synthetic initial cloud snapshot must load").toBe(true);
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,
