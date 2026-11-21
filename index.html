@@ -6857,23 +6857,25 @@ async function handleUserLogin(e) {
       // a separately reviewed, explicit migration; never rewrite stored PIN hashes here.
       await finalizeLoginState();
     } else { throw new Error("استجابة تسجيل الدخول الآمن غير مكتملة."); }
-    // A previous account may have left the in-memory cloud state marked ready.
-    // Revalidate the manifest after account switching so the sync badge cannot
-    // remain on its initial "جاري الاتصال" label without a fresh cloud check.
+    // Verify cloud sync in the background. Authentication must never wait for
+    // a full school-data refresh: slow tables or a stalled request used to keep
+    // the login handler busy even after the server had issued a valid session.
     if (!localOnlySession && navigator.onLine && cloudDataLoadState === 'ready') {
-      updateSyncStatus(false, 'جارِ التحقق من المزامنة...');
-      try {
-        const refreshed = await refreshCloudDataSilently();
+      updateSyncStatus(false, 'تم تسجيل الدخول؛ جارِ التحقق من المزامنة...');
+      void Promise.race([
+        refreshCloudDataSilently(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('انتهت مهلة التحقق من المزامنة.')), 10000))
+      ]).then(refreshed => {
         if (!refreshed && cloudDataLoadState === 'ready' && !cloudRefreshInProgress &&
             !cloudSaveInProgress && !manualOfflineSyncInProgress) {
           updateSyncStatus(false, hasPendingOfflineChanges()
             ? 'تم تسجيل الدخول؛ توجد تعديلات محلية بانتظار المزامنة'
             : 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
         }
-      } catch (syncError) {
-        console.warn('Post-login cloud sync verification failed; login remains active.', syncError);
+      }).catch(syncError => {
+        console.warn('Background post-login cloud sync verification failed; login remains active.', syncError);
         updateSyncStatus(false, 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
-      }
+      });
     }
     if (!localOnlySession && (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true)) { try { await saLogin(pin); } catch(saError) { console.warn("Student Affairs session not established:", saError); saSession = null; try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {} } }
     showToast("أهلاً بك: " + activeUser.name, "success");
