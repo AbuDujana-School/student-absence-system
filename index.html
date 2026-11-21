@@ -10605,8 +10605,12 @@ function exportDutyReportsCSV() {
 // PWA shell registration. Offline data persistence is implemented in a separate stage.
 if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js").catch(error => {
-      console.warn("تعذر تسجيل خدمة التطبيق:", error);
+    navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).then(registration => {
+      // Installed PWA windows may keep an older worker longer than a normal
+      // browser tab. Check for an update whenever the app starts.
+      return registration.update();
+    }).catch(error => {
+      console.warn("تعذر تحديث خدمة التطبيق:", error);
     });
   });
 }
