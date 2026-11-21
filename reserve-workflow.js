@@ -968,7 +968,7 @@
       }).join("");
     }).join("");
     const remaining=options?.singlePage?0:Math.max(0,RESERVE_OFFICIAL_ROWS_PER_PAGE-used);
-    const singlePageFontSize=used>60?5.8:used>44?6.6:used>30?7.4:used>22?8.2:9.2;
+    const singlePageFontSize=used>85?4.8:used>70?5.2:used>60?5.8:used>44?6.6:used>30?7.4:used>22?8.2:9.2;
     const reservedSecondTeacher=remaining>0
       ?Array.from({length:remaining},(_,i)=>'<tr class="'+(i===0?'tt-official-group-start':'')+'">'+(i===0?'<td class="tt-official-merged" rowspan="'+remaining+'"></td><td class="tt-official-merged" rowspan="'+remaining+'"></td>':"")+'<td></td><td></td><td></td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>').join("")
       :"";
@@ -1608,6 +1608,7 @@
     const root=$("substitutionView");
     if(!root)return;
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
+    const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
     if(root.dataset.mainReserveReasonsInstalled!=="1"){
       root.dataset.mainReserveReasonsInstalled="1";
@@ -1617,13 +1618,13 @@
         if(bypass.has(input)){bypass.delete(input);return;}
         if(!input.checked)return;
         const absentName=String(input.value||"").trim();
-        if(!absentName||reasons[absentName])return;
+        if(!absentName||reasons[reasonKey(absentName)])return;
         event.stopImmediatePropagation();
         event.stopPropagation();
         input.checked=false;
         openAbsenceReasonPicker(absentName,value=>{
           if(!value)return;
-          reasons[absentName]=value;
+          reasons[reasonKey(absentName)]=value;
           input.checked=true;
           bypass.add(input);
           input.dispatchEvent(new Event("change",{bubbles:true}));
@@ -1645,10 +1646,10 @@
           for(const box of unchecked){
             const absentName=String(box.value||"").trim();
             if(!absentName)continue;
-            if(!reasons[absentName]){
+            if(!reasons[reasonKey(absentName)]){
               const value=await new Promise(resolve=>openAbsenceReasonPicker(absentName,resolve));
               if(!value)break;
-              reasons[absentName]=value;
+              reasons[reasonKey(absentName)]=value;
             }
             box.checked=true;bypass.add(box);box.dispatchEvent(new Event("change",{bubbles:true}));
           }
@@ -1664,7 +1665,7 @@
         if(body?.action==="timetable_substitution_batch_save"&&Array.isArray(body.assignments)){
           body={...body,assignments:body.assignments.map(item=>({
             ...item,
-            absenceReason:String(item?.absenceReason||reasons[String(item?.absentTeacherName||"").trim()]||"-").trim()
+            absenceReason:String(item?.absenceReason||reasons[reasonKey(item?.absentTeacherName)]||"-").trim()
           }))};
         }
         return originalRequest.call(this,body,token);
@@ -1678,7 +1679,7 @@
       const wrappedPrint=function(groups,...args){
         const enriched=(Array.isArray(groups)?groups:[]).map(group=>({
           ...group,
-          absenceReason:String(reasons[String(group?.absentName||"").trim()]||group?.absenceReason||"-")
+          absenceReason:String(reasons[reasonKey(group?.absentName)]||group?.absenceReason||"-")
         }));
         return originalPrint.call(this,enriched,...args);
       };
