@@ -409,6 +409,8 @@ Deno.test("batch planner prioritizes the absent teacher's own subject department
   });
   equal(plan.assignedCount,1,"The absent lesson should be covered");
   equal(plan.assignments[0].substituteTeacherName,"بديل من نفس المادة","Same-department teacher must outrank cross-department support even with a higher points balance");
+  equal(plan.assignments[0].candidateOptions[0].teacherName,"بديل من نفس المادة","Dropdown must show same-department candidate before cross-department support");
+  equal(plan.assignments[0].candidateOptions[1].teacherName,"بديل من قسم آخر","Cross-department candidate follows same-department options");
 });
 
 Deno.test("reserve permission grants substitution actions only", async () => {
@@ -579,4 +581,6 @@ Deno.test("manual override options retain teachers who already have one daily co
   });
   equal(plan.assignments[0].substituteTeacherName,"بديل جديد","The automatic suggestion should prefer a teacher with no daily cover");
   assert(plan.assignments[0].candidateOptions.some(option=>option.teacherName==="بديل بحصة"&&option.dailySubstitutionCount===1),"A one-cover teacher remains available for manual override up to the two-cover cap");
+  equal(plan.assignments[0].candidateOptions[0].teacherName,"بديل جديد","Dropdown must put the first daily-cover tier ahead of second daily-cover options");
+  equal(plan.assignments[0].candidateOptions[1].teacherName,"بديل بحصة","Second daily-cover option remains available after first-cover candidates");
 });
