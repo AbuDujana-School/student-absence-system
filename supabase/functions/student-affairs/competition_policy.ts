@@ -7,6 +7,11 @@ export const COMPETITION_ATTENDANCE_STATUSES = ["absent", "late", "outside", "es
 export const COMPETITION_BEHAVIOR_TYPES = ["eating", "talking", "tools", "chaos", "sleeping", "homework", "other"];
 export const COMPETITION_WEEKDAYS = [0, 1, 2, 3, 4];
 export const COMPETITION_REQUIRED_PERIODS = [1, 2, 3, 4, 5, 6, 7, 8];
+export const COMPETITION_WEEKLY_CUTOFF_MINUTES_OMAN = 13 * 60 + 51;
+/** Thursday's weekly result becomes eligible at 13:51 Asia/Muscat; Friday/Saturday are already after the school week. */
+export function isCompetitionWeeklyCutoffReached(weekday: number, omanClockMinutes: number): boolean {
+  return weekday > 4 || (weekday === 4 && omanClockMinutes >= COMPETITION_WEEKLY_CUTOFF_MINUTES_OMAN);
+}
 const ARABIC_GRADE_NAMES: Array<[RegExp, string]> = [
   [/التاسع|تاسع/, "9"], [/العاشر|عاشر/, "10"], [/الحادي\s*عشر|حادي\s*عشر/, "11"], [/الثاني\s*عشر|ثاني\s*عشر/, "12"]
 ];
