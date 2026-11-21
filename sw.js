@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v39';
+const CACHE_NAME = 'abudujana-app-v40';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v46';
+const RUNTIME_CACHE = 'abudujana-static-v47';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -82,7 +82,7 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        const response = await fetch(request);
+        const response = await fetch(request, { cache: 'no-store' });
         if (response && response.ok && url.origin === self.location.origin) {
           const cache = await caches.open(CACHE_NAME);
           cache.put('./index.html', response.clone()).catch(() => {});
