@@ -365,11 +365,13 @@ Deno.test("unauthenticated startup does not fetch protected school tables", () =
   const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
   assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
   const noUserGuard = load.indexOf("if (!activeUser)");
-  const secureSessionGuard = load.indexOf("if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession()))");
+  const localOnlyGuard = load.indexOf("if (localOnlySession)", noUserGuard);
+  const secureSessionGuard = load.indexOf("if (navigator.onLine && !await ensureAppAuthSession())", localOnlyGuard);
   const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
   const manifestFetch = load.indexOf("fetchAppSyncManifest()");
   assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
-  assert(secureSessionGuard > noUserGuard && secureSessionGuard < localRestore, "Online reads must require a validated secure application session");
+  assert(localOnlyGuard > noUserGuard && localOnlyGuard < localRestore, "Local-only sessions must not reach protected cloud reads");
+  assert(secureSessionGuard > localOnlyGuard && secureSessionGuard < localRestore, "Online reads must require a validated secure application session");
   assert(localRestore < manifestFetch, "The manifest request may occur only after the authentication guards");
 });
 
