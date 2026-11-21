@@ -1881,6 +1881,16 @@
         });
       }
     }
+    if(panel&&!panel.dataset.reserveDistributionAccessObserver){
+      panel.dataset.reserveDistributionAccessObserver="1";
+      new MutationObserver(()=>panel.classList.toggle("hidden",!schoolwideReserveReportAllowed()))
+        .observe(panel,{attributes:true,attributeFilter:["class"]});
+    }
+    if(tab&&!tab.dataset.reserveDistributionTabObserver){
+      tab.dataset.reserveDistributionTabObserver="1";
+      new MutationObserver(()=>{if(schoolwideReserveReportAllowed())tab.classList.remove("hidden");})
+        .observe(tab,{attributes:true,attributeFilter:["class"]});
+    }
   }
   function schoolwideReserveReportSetStatus(message,kind){
     const node=$("reserveDistributionReportStatus");if(!node)return;
