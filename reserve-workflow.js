@@ -663,6 +663,7 @@
       await appAuthRequest({action:"timetable_substitution_cancel",assignmentId,weekday:item.weekday,assignmentDate:item.assignmentDate},token);
       status("تم حذف التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة.","success");
       await timetableDailyRefreshAll();
+      if(typeof window.subxRefreshExistingPlan==="function")await window.subxRefreshExistingPlan();
       if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
     }catch(error){status(error?.message||"تعذر إلغاء التكليف؛ لم يُحذف أي سجل.","error");}
   };
@@ -683,6 +684,14 @@
   };
 
 
+  window.timetableDailyRegisterExternalAssignments = function(items) {
+    (Array.isArray(items)?items:[]).forEach(item=>{
+      if(!item||!item.id)return;
+      const normalized={...item,canEdit:item.canEdit!==false,assignmentDate:item.assignmentDate||"",weekday:item.weekday||"",status:item.status||"assigned"};
+      const index=reserveArchive.findIndex(row=>String(row.id)===String(normalized.id));
+      if(index>=0)reserveArchive[index]=normalized;else reserveArchive.push(normalized);
+    });
+  };
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
     const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
@@ -774,6 +783,7 @@
           if(absentSelect.value!==item.absentTeacherName&&!timetableDailyAbsentTeachers.includes(absentSelect.value)){timetableDailyAbsentTeachers.push(absentSelect.value);timetableDailyRenderTags();}
           status("تم حفظ التعديلات وتحديث الحصة والصف والمادة وفق الجدول، مع الاحتفاظ بالسجل السابق في سجل المراجعة.","success");
           await timetableDailyRefreshAll();
+          if(typeof window.subxRefreshExistingPlan==="function")await window.subxRefreshExistingPlan();
           if(!$("timetableDailyArchivePanel")?.classList.contains("hidden"))await timetableDailyLoadArchive();
           if(!$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&typeof window.substitutionLoadCumulativeArchive==="function")await window.substitutionLoadCumulativeArchive();
         }catch(error){
@@ -820,7 +830,7 @@
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
       const absent=esc(group.absentName||""),rawReason=String(group.reason||"").trim(),reason=esc(rawReason==="-"||rawReason==="—"?"":rawReason);
       return rows.map((row,rowIndex)=>{
-        const merged=rowIndex===0?'<td class="tt-official-merged" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged" rowspan="'+rows.length+'">'+reason+'</td>':"";
+        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+reason+'</td>':"";
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td>'+esc(row.className||"")+'</td><td>'+esc(row.substitute||"")+'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
@@ -833,10 +843,17 @@
     const detectedSubjects=[...new Set((groups||[]).flatMap(group=>(group.rows||[]).map(row=>String(row.subject||"").trim()).filter(Boolean)))];
     const subjectLabel=String(subject||"").trim()||detectedSubjects.join("، ");
     const subjectTitle=subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط";
+    const uniqueText=(values)=>[...new Set(values.map(value=>String(value||"").trim()).filter(Boolean))].join("، ")||"—";
+    const summaryMarkup='<section class="tt-official-summary">'+
+      '<div class="tt-official-summary-box"><span>المعلم الغائب</span><strong class="tt-summary-absent">'+uniqueText((groups||[]).map(group=>group.absentName))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>سبب الغياب</span><strong class="tt-summary-reason">'+uniqueText((groups||[]).map(group=>group.reason).filter(value=>value&&value!=="-"&&value!=="—"))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>الصفوف</span><strong class="tt-summary-classes">'+uniqueText((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.className)))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>معلم الاحتياط</span><strong class="tt-summary-substitute">'+uniqueText((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.substitute)))+'</strong></div></section>';
     return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة السويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
 
       '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+
+      summaryMarkup+
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'">'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
@@ -852,9 +869,10 @@
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
       '.tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm;display:flex;flex-direction:column;direction:rtl;background:#fff;border:.35mm solid #333;padding:2.5mm 3mm 2mm;overflow:hidden;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
       '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;line-height:1.35;padding:2.5mm 2mm 2mm;background:#078b98;color:#fff;border-bottom:1mm solid #155e75;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:12.5pt;margin-top:.7mm!important}'+
-      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}.tt-official-table th{height:9mm;font-size:9.5pt;font-weight:900;background:#078b98;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
+      '.tt-official-summary{flex:0 0 auto;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2mm;margin:1.5mm 0 2mm;direction:rtl}.tt-official-summary-box{min-width:0;display:flex;flex-direction:column;gap:1mm;padding:2mm;border:1px solid #1e293b;border-radius:1.5mm;background:#f8fafc;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-summary-box span{font-size:7.5pt;font-weight:900;color:#334155}.tt-official-summary-box strong{font-size:8.5pt;line-height:1.45;font-weight:900;overflow-wrap:anywhere;color:#000}.tt-official-summary-box .tt-summary-absent,.tt-official-summary-box .tt-summary-reason{color:#991b1b}.tt-official-summary-box .tt-summary-classes{color:#1e3a8a}.tt-official-summary-box .tt-summary-substitute{color:#065f46}'+
+      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}.tt-official-table th{height:9mm;font-size:9.5pt;font-weight:900;background:#078b98;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal;background:#fff!important;color:#000!important}.tt-official-table .tt-official-absent,.tt-official-table .tt-official-reason{color:#991b1b!important}.tt-official-table tbody td{background:#fff!important;color:#000!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
       '.tt-official-footer{direction:ltr;flex:0 0 19mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:1.5mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:16mm;flex:0 0 42mm;display:block;font-weight:700}'+
-      '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
+      '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}@media(max-width:650px){.tt-official-summary{grid-template-columns:repeat(2,minmax(0,1fr))}}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
     let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();document.title=previousTitle;window.removeEventListener("afterprint",cleanup);};
     window.addEventListener("afterprint",cleanup,{once:true});
