@@ -113,6 +113,7 @@ Deno.test("cloud refresh uses a manifest gate and guards every full-table reques
   assert(start >= 0 && end > start, "Cloud refresh implementation must exist");
   const load = html.slice(start, end);
   assert(load.includes("nextManifest = await fetchAppSyncManifest()"), "Each refresh must check the small manifest first");
+  assert(html.includes("sb.rpc('get_app_sync_manifest')") && html.includes("انتهت مهلة التحقق من تحديثات الخادم."), "Manifest requests must have a bounded wait");
   assert(load.includes("const changedTables = nextManifest") && load.includes("getChangedAppSyncTables(nextManifest, offlineSnapshotAvailable)"), "A valid manifest must select changed tables");
   assert(load.includes(": [...APP_SYNC_TABLES]"), "A missing manifest RPC or first load must retain the compatibility full-sync fallback");
   assert(load.includes("manifestCode === 'PGRST202'") && load.includes("manifestCode === '42883'"), "Only a known missing RPC may trigger legacy full sync after a manifest error");
