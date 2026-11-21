@@ -1038,7 +1038,7 @@ jobs:
           set -euo pipefail
           preview_file="$(mktemp)"
           for attempt in $(seq 1 60); do
-            if curl --fail --silent "$COMPETITION_PREVIEW_URL" --output "$preview_file" && grep -q "saCompetitionCutoffRefreshTimer" "$preview_file"; then
+            if curl --connect-timeout 10 --max-time 20 --fail --silent "$COMPETITION_PREVIEW_URL" --output "$preview_file" && grep -q "saCompetitionCutoffRefreshTimer" "$preview_file"; then
               echo "Cloudflare branch preview serves the competition cutoff implementation."
               rm -f "$preview_file"
               exit 0
