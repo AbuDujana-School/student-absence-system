@@ -222,8 +222,9 @@ test("school sync projections and timetable access reads stay isolated and minim
         }
       };
     };
-    ["restoreOfflineState", "fetchAppSyncManifest", "fetchAllPaginated",
-      "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineState"].forEach(name => timed(name));
+    ["restoreOfflineState", "openOfflineDatabase", "restoreLocalStorageOfflineSnapshot",
+      "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud",
+      "persistOfflineState"].forEach(name => timed(name));
     try {
       console.log("SYNC_TEST_DIAG loadSystemDataFromCloud:start");
       const result = await Promise.race([
