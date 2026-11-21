@@ -96,6 +96,11 @@ export async function resolveTimetablePrincipal(
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
+  // A dedicated report grant is read-only and authorizes only the all-school reserve report action.
+  if (requestedAction === "timetable_substitution_report" &&
+      type === "teacher" && permissions.reportSubstitutionDistribution === true) {
+    return { type, name, permissions };
+  }
   // These two reads are strictly self-scoped by their request handlers. The
   // handlers verify the live portal allow-list or query only this teacher's
   // assignments, so preflight permission/portal queries here are redundant.
