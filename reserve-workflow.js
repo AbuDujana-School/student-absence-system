@@ -620,7 +620,7 @@
         const lesson=(preview?.lessons||[]).find(row=>Number(row.period)===Number(item.period));
         const candidates=lesson?.candidates||[];
         const options=candidates.filter(candidate=>candidate.name!==item.substituteTeacherName)
-          .map(candidate=>'<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · رصيد '+Number(candidate.pointsBalance||0)+' · احتياط اليوم '+Number(candidate.dailySubstitutionCount||0)+'</option>').join("");
+          .map(candidate=>{const occupied=(Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods:[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b);const periodText=occupied.length?occupied.map(period=>new Intl.NumberFormat("ar").format(period)).join("، "):"—";return '<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · شغال '+periodText+'</option>';}).join("");
         return '<div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3" data-archive-day-row="'+esc(item.id)+'">'+
           '<div><div class="text-[10px] font-black text-slate-500">'+esc(item.absentTeacherName)+'</div><div class="mt-1 text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"-")+'</div><div class="text-[10px] text-slate-500">'+esc(item.subject||"")+'</div></div>'+
           '<label class="text-[10px] font-black text-slate-600">المعلم البديل<select data-batch-sub-id="'+esc(item.id)+'" data-original-sub="'+esc(item.substituteTeacherName)+'" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="'+esc(item.substituteTeacherName)+'" selected>'+esc(item.substituteTeacherName)+' (الحالي)</option>'+options+'</select></label>'+
@@ -703,7 +703,7 @@
       const makeSubstituteOptions=(candidates,selected)=>{
         const rows=Array.isArray(candidates)?candidates:[];
         const choices=rows.filter(candidate=>candidate.name!==selected).map(candidate=>
-          '<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · رصيد '+Number(candidate.pointsBalance||0)+'</option>'
+          '<option value="'+esc(candidate.name)+'">'+esc(candidate.name)+' · شغال '+((Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods:[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b).map(period=>new Intl.NumberFormat("ar").format(period)).join("، ")||"—")+'</option>'
         ).join("");
         return '<option value="'+esc(selected)+'" selected>'+esc(selected)+' (الحالي)</option>'+choices;
       };
