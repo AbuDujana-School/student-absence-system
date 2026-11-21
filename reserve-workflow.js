@@ -59,7 +59,8 @@
       return true;
     }catch{return false;}
   }
-  const draftKey = (name, period) => String(name) + "\u0000" + Number(period);\n  const reserveReasonKey = (name, period) => String(name) + "::" + Number(period);
+  const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
+  const reserveReasonKey = (name, period) => String(name) + "::" + Number(period);
   function currentDraftScope() {
     try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+selectedOtherDepartmentId():"department"].join("|"); }
     catch { return ""; }
