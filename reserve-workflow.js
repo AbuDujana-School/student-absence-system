@@ -700,6 +700,11 @@
           '<option value="'+Number(lesson.period)+'" '+(Number(lesson.period)===Number(selected)?"selected":"")+'>الحصة '+Number(lesson.period)+' · '+esc(lesson.className||"—")+'</option>'
         ).join("");
       };
+      const makeClassOptions=(lessons,selected)=>{
+        return (Array.isArray(lessons)?lessons:[]).slice().sort((a,b)=>Number(a.period)-Number(b.period)).map(lesson=>
+          '<option value="'+Number(lesson.period)+'" '+(Number(lesson.period)===Number(selected)?"selected":"")+' >'+esc(lesson.className||"—")+' · الحصة '+Number(lesson.period)+'</option>'
+        ).join("");
+      };
       const makeSubstituteOptions=(candidates,selected)=>{
         const rows=Array.isArray(candidates)?candidates:[];
         const choices=rows.filter(candidate=>candidate.name!==selected).map(candidate=>
@@ -717,6 +722,7 @@
         '<div class="grid gap-3 sm:grid-cols-2">'+
         '<label class="block text-xs font-black text-slate-700">المعلم الغائب<select id="ttArchiveEditAbsent" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+absentNames.map(name=>'<option value="'+esc(name)+'" '+(name===item.absentTeacherName?"selected":"")+'>'+esc(name)+'</option>').join("")+'</select></label>'+
         '<label class="block text-xs font-black text-slate-700">الحصة<select id="ttArchiveEditPeriod" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makePeriodOptions(initialLessons,selectedInitialPeriod)+'</select></label>'+
+        '<label class="block text-xs font-black text-slate-700">الصف (مرتبط بالجدول)<select id="ttArchiveEditClass" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makeClassOptions(initialLessons,selectedInitialPeriod)+'</select></label>'+
         '<label class="block text-xs font-black text-slate-700 sm:col-span-2">المعلم البديل<select id="ttArchiveEditSubstitute" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs">'+makeSubstituteOptions((initialLessons.find(row=>Number(row.period)===selectedInitialPeriod)||{}).candidates,item.substituteTeacherName)+'</select></label>'+
         '<div id="ttArchiveEditClassInfo" class="rounded-xl border border-sky-100 bg-sky-50 p-3 text-xs text-sky-900 sm:col-span-2"></div>'+
         '<label class="block text-xs font-black text-slate-700 sm:col-span-2">سبب الاحتياط (اختياري)<textarea id="ttArchiveEditReason" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 bg-slate-50 p-3 text-xs" placeholder="اكتب السبب أو اتركه فارغاً">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label></div>'+
@@ -727,11 +733,13 @@
       const absentSelect=modal.querySelector("#ttArchiveEditAbsent");
       const periodSelect=modal.querySelector("#ttArchiveEditPeriod");
       const subSelect=modal.querySelector("#ttArchiveEditSubstitute");
+      const classSelect=modal.querySelector("#ttArchiveEditClass");
       const classInfo=modal.querySelector("#ttArchiveEditClassInfo");
       const errorBox=modal.querySelector("#ttArchiveEditError");
       const getSelectedLesson=()=>((currentPreview.lessons||[]).find(row=>Number(row.period)===Number(periodSelect.value))||null);
       const renderSelectedLesson=()=>{
         const lesson=getSelectedLesson();
+        if(classSelect)classSelect.innerHTML=makeClassOptions(currentPreview.lessons,periodSelect.value);
         if(!lesson){
           classInfo.textContent="لا توجد حصة مطابقة في الجدول لهذا الاختيار.";
           subSelect.innerHTML="";
@@ -761,6 +769,7 @@
         }finally{absentSelect.disabled=false;periodSelect.disabled=false;subSelect.disabled=false;}
       });
       periodSelect.addEventListener("change",renderSelectedLesson);
+      classSelect?.addEventListener("change",()=>{periodSelect.value=classSelect.value;renderSelectedLesson();});
       modal.querySelector("#ttArchiveEditSave").addEventListener("click",async()=>{
         const button=modal.querySelector("#ttArchiveEditSave");
         const lesson=getSelectedLesson();
@@ -833,10 +842,16 @@
     const detectedSubjects=[...new Set((groups||[]).flatMap(group=>(group.rows||[]).map(row=>String(row.subject||"").trim()).filter(Boolean)))];
     const subjectLabel=String(subject||"").trim()||detectedSubjects.join("، ");
     const subjectTitle=subjectLabel?(detectedSubjects.length>1&&!subject?"توزيع احتياط مواد: "+subjectLabel:"توزيع احتياط مادة "+subjectLabel):"كشف توزيع حصص الاحتياط";
+    const uniqueSummary=(values)=>[...new Set((values||[]).map(value=>String(value||"").trim()).filter(value=>value&&value!=="-"&&value!=="—"))].join("، ")||"—";
+    const summaryMarkup='<section class="tt-official-summary" aria-label="ملخص بيانات التكليفات">'+
+      '<div class="tt-official-summary-box"><span>المعلم الغائب</span><strong class="tt-summary-absent">'+uniqueSummary((groups||[]).map(group=>group.absentName))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>سبب الغياب</span><strong class="tt-summary-reason">'+uniqueSummary((groups||[]).map(group=>group.reason))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>الصفوف</span><strong class="tt-summary-class">'+uniqueSummary((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.className)))+'</strong></div>'+
+      '<div class="tt-official-summary-box"><span>المعلم البديل</span><strong class="tt-summary-sub">'+uniqueSummary((groups||[]).flatMap(group=>(group.rows||[]).map(row=>row.substitute)))+'</strong></div></section>';
     return '<main class="tt-official-page"><header class="tt-official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة السويق</div><div class="tt-official-school">مدرسة أبو دجانة</div></header>'+
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
 
-      '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+
+      '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+summaryMarkup+
       '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'">'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
@@ -854,6 +869,15 @@
       '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;line-height:1.35;padding:2.5mm 2mm 2mm;background:#078b98;color:#fff;border-bottom:1mm solid #155e75;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:12.5pt;margin-top:.7mm!important}'+
       '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}.tt-official-table th{height:9mm;font-size:9.5pt;font-weight:900;background:#078b98;color:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
       '.tt-official-footer{direction:ltr;flex:0 0 19mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:1.5mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:16mm;flex:0 0 42mm;display:block;font-weight:700}'+
+      '.tt-official-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2mm;margin:0 0 2mm;padding:2mm;background:#f8fafc;border:1.2px solid #1e293b;border-radius:1.5mm;direction:rtl;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+      '.tt-official-summary-box{min-width:0;display:flex;flex-direction:column;gap:.7mm;padding:1.5mm 2mm;background:#fff;border:1px solid #1e293b;border-radius:1mm;color:#000;overflow-wrap:anywhere}'+
+      '.tt-official-summary-box>span{font-size:8pt;font-weight:900;color:#334155}'+
+      '.tt-official-summary-box>strong{font-size:9pt;font-weight:900;color:#000;line-height:1.45;overflow-wrap:anywhere}'+
+      '.tt-official-summary-box>.tt-summary-absent,.tt-official-summary-box>.tt-summary-reason{color:#991b1b}'+
+      '.tt-official-summary-box>.tt-summary-class{color:#1e3a8a}'+
+      '.tt-official-summary-box>.tt-summary-sub{color:#065f46}'+
+      '.tt-official-table .tt-official-merged{background:#fff!important;color:#000!important;border:1.2px solid #1e293b!important;font-weight:900!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
+      '.tt-official-table tbody td{background:#fff!important;color:#000!important}'+
       '@media screen{#ttReservePrintRoot{width:210mm;margin:12px auto!important;padding:8mm!important;background:#fff;box-shadow:0 2px 18px #0002}.tt-official-page{margin:0 auto 8mm}}@media print{#ttReservePrintRoot{width:auto}.tt-official-page{margin:0}}';
     document.head.appendChild(style);const root=document.createElement("div");root.id="ttReservePrintRoot";root.innerHTML=(pages||[]).join("");document.body.appendChild(root);document.body.classList.add("tt-reserve-print-mode");
     let cleaned=false;const cleanup=()=>{if(cleaned)return;cleaned=true;document.body.classList.remove("tt-reserve-print-mode");root.remove();style.remove();document.title=previousTitle;window.removeEventListener("afterprint",cleanup);};
@@ -883,9 +907,9 @@
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
     return timetableDailyAbsentTeachers.map(absentName=>{
       const rows=[
-        ...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName})),
-        ...planned.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName})),
-        ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:""}))
+        ...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName,reason:x.reason||x.reserveReason||x.reserve_reason||""})),
+        ...planned.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName,reason:x.reason||x.reserveReason||x.reserve_reason||""})),
+        ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:"",reason:x.reason||x.reserveReason||x.reserve_reason||""}))
       ].sort((a,b)=>Number(a.period)-Number(b.period));
       return {absentName,reason:String(reserveReasons[absentName]||rows.find(row=>row.reason)?.reason||""),rows};
     }).filter(group=>group.rows.length);
