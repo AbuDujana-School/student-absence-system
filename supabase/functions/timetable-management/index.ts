@@ -1418,7 +1418,7 @@ async function handle(req: Request) {
         if(batchRowsError)throw batchRowsError;
         if(!batchRows||batchRows.length!==rawIds.length)return reply(404,{error:"تعذر العثور على جميع حصص التوزيع المطلوب حذفه."});
         if(batchRows.some((row:any)=>row.absent_teacher_name!==absentName||row.assignment_date!==assignmentDate||
-          row.weekday!==weekday||!["assigned","confirmed"].includes(String(row.status||"")))) {
+          row.weekday!==weekday||!["assigned","confirmed","completed"].includes(String(row.status||"")))) {
           return reply(409,{error:"تحتوي القائمة على حصص لا تنتمي إلى توزيع المعلم والتاريخ المحددين أو لم تعد نشطة."});
         }
         const {data,error:batchCancelError}=await db.rpc("cancel_timetable_substitution_batch",{p_payload:{
