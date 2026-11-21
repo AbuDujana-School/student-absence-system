@@ -1895,7 +1895,7 @@
       const date=String(row?.assignmentDate||"").trim(),name=String(row?.absentTeacherName||"").trim();
       if(!date||!name)return;
       if(!byDate.has(date))byDate.set(date,{date,weekday:String(row.weekday||""),teachers:new Map()});
-      const day=byDate.get(date),department=String(row.absentTeacherDepartment||"").trim(),key=name+"\\u0000"+department;
+      const day=byDate.get(date),department=String(row.absentTeacherDepartment||row.subject||"").trim(),key=name+"\\u0000"+department;
       if(!day.teachers.has(key))day.teachers.set(key,{absentName:name,department,absenceReason:String(row.absenceReason||"-"),rows:[]});
       const group=day.teachers.get(key);
       if((!group.absenceReason||group.absenceReason==="-")&&row.absenceReason)group.absenceReason=String(row.absenceReason);
