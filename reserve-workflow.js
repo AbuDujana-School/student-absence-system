@@ -535,10 +535,12 @@
       items.forEach(item=>{
         const name=String(item.absentTeacherName||"");
         if(!byAbsent.has(name)){
-          const rawReason=String(item.reason||"").trim();
+          const rawAbsenceReason=String(item.absenceReason||"").trim();
+          const rawReserveReason=String(item.reason||"").trim();
           byAbsent.set(name,{
             absentName:name,
-            reason:rawReason==="-"||rawReason==="—"?"":String(item.reason||""),
+            absenceReason:rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason,
+            reserveReason:rawReserveReason==="-"||rawReserveReason==="—"?"":rawReserveReason,
             rows:[]
           });
         }
