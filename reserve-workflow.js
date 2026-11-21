@@ -1044,10 +1044,12 @@
     const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"",subject);
     printOfficialReservePages(pages,subject);
   };
-  window.printSchoolwideReserveDistributionReport=function(groups,date,weekday){
+  window.printSchoolwideReserveDistributionReport=function(dayReports){
     const options={singlePage:true,title:"توزيع الاحتياط"};
-    const pages=reserveOfficialPrintPages(Array.isArray(groups)?groups:[],date||"",weekday||"","",options);
-    printOfficialReservePages(pages,"",options);
+    const pages=(Array.isArray(dayReports)?dayReports:[]).map(day=>
+      reserveOfficialPrintMarkup(Array.isArray(day?.groups)?day.groups:[],day?.date||"",day?.weekday||"","",options)
+    );
+    if(pages.length)printOfficialReservePages(pages,"",options);
   };
   function buildReserveReportGroups(response){
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
