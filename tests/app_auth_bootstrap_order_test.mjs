@@ -135,7 +135,8 @@ test("admin login defers full timetable portal status loading until the settings
   const access = section("async function timetableRefreshAccess", "async function timetableLoadPortalStatus");
   assert.match(access, /options\.deferAdminPortalStatus !== true/);
   const settingsTab = section("function timetableSwitchDashboardTab", "function timetableDailyNormalizeName");
-  assert.match(settingsTab, /if \(settings && isAdmin\)[\s\\S]*timetableLoadPortalStatus\(\)/);
+  const settingsGate = settingsTab.indexOf("if (settings && isAdmin)");
+  assert.ok(settingsGate >= 0 && settingsTab.indexOf("timetableLoadPortalStatus();", settingsGate) > settingsGate);
 });
 
 test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cannot hang", () => {
