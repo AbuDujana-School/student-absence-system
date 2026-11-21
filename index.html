@@ -2112,6 +2112,68 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
   </div>
 
+<style id="substitution-cinematic-ui">
+#substitutionView{--subx-line:rgba(148,163,184,.23);padding-bottom:112px;isolation:isolate}
+#substitutionView .subx-toolbar{position:relative;overflow:hidden;border:1px solid var(--subx-line);border-radius:28px;padding:20px;background:linear-gradient(135deg,rgba(255,255,255,.97),rgba(240,253,250,.91) 58%,rgba(239,246,255,.96));box-shadow:0 18px 55px rgba(15,41,66,.09)}
+.dark #substitutionView .subx-toolbar{background:linear-gradient(135deg,#0f172a,#0f2d39 58%,#1e293b);border-color:rgba(148,163,184,.18);box-shadow:0 20px 60px rgba(0,0,0,.2)}
+#substitutionView .subx-toolbar:after{content:"";position:absolute;width:240px;height:240px;left:-90px;top:-150px;border-radius:50%;background:radial-gradient(circle,rgba(13,148,136,.16),transparent 70%);pointer-events:none}
+#substitutionView .subx-toolbar-top{position:relative;z-index:1;display:flex;align-items:center;justify-content:space-between;gap:14px}
+#substitutionView .subx-eyebrow{display:block;color:#0d9488;font-size:10px;font-weight:900;letter-spacing:.12em}
+#substitutionView .subx-toolbar h3,#substitutionView .subx-rules-head h3{margin-top:4px;color:#10263e;font-size:18px;font-weight:900}
+.dark #substitutionView .subx-toolbar h3,.dark #substitutionView .subx-rules-head h3{color:#f8fafc}
+#substitutionView .subx-toolbar-top p{margin-top:4px;color:#64748b;font-size:11px}.dark #substitutionView .subx-toolbar-top p{color:#cbd5e1}
+#substitutionView .subx-rules-trigger{display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid rgba(13,148,136,.25);border-radius:14px;background:rgba(13,148,136,.08);color:#0f766e;font-size:11px;font-weight:900;transition:.2s}
+#substitutionView .subx-rules-trigger:hover{transform:translateY(-2px);background:rgba(13,148,136,.15)}.dark #substitutionView .subx-rules-trigger{color:#99f6e4}
+#substitutionView .subx-tabs{position:relative;z-index:1;display:flex;gap:7px;margin-top:18px;padding:5px;border:1px solid var(--subx-line);border-radius:16px;background:rgba(148,163,184,.08)}
+#substitutionView .subx-tab{display:flex;flex:1;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:9px 12px;border-radius:12px;color:#64748b;font-size:11px;font-weight:900;transition:.22s}
+#substitutionView .subx-tab.is-active{background:linear-gradient(110deg,#0f766e,#0891b2);color:#fff;box-shadow:0 7px 20px rgba(8,145,178,.2)}
+#substitutionView .subx-stepper{position:relative;z-index:1;display:flex;align-items:center;justify-content:center;gap:clamp(7px,2vw,22px);margin:20px auto 2px;max-width:590px}
+#substitutionView .subx-step{display:flex;align-items:center;gap:8px;color:#94a3b8;transition:.25s}
+#substitutionView .subx-step>span{display:grid;place-items:center;width:32px;height:32px;flex:0 0 32px;border:1px solid #cbd5e1;border-radius:50%;background:#fff;color:#64748b;font-size:11px;font-weight:900}
+#substitutionView .subx-step b{display:block;font-size:10px;font-weight:900}#substitutionView .subx-step small{display:block;margin-top:2px;font-size:9px;color:#94a3b8}
+#substitutionView .subx-step.is-current,#substitutionView .subx-step.is-done{color:#0f766e}
+#substitutionView .subx-step.is-current>span,#substitutionView .subx-step.is-done>span{border-color:#0d9488;background:linear-gradient(135deg,#0f766e,#0891b2);color:white;box-shadow:0 5px 14px rgba(13,148,136,.2)}
+.dark #substitutionView .subx-step>span{background:#0f172a;border-color:#475569;color:#cbd5e1}
+#substitutionView .subx-step-line{width:clamp(16px,7vw,65px);height:1px;background:linear-gradient(90deg,rgba(13,148,136,.5),rgba(148,163,184,.3))}
+#substitutionView .subx-rules-drawer{position:relative;border:1px solid rgba(13,148,136,.22);border-radius:24px;padding:18px;background:linear-gradient(135deg,#f0fdfa,#eff6ff);box-shadow:0 12px 35px rgba(15,41,66,.08);animation:subxReveal .28s ease both}
+.dark #substitutionView .subx-rules-drawer{background:linear-gradient(135deg,#0f292f,#172554);border-color:rgba(45,212,191,.2)}
+#substitutionView .subx-rules-drawer[hidden]{display:none!important}
+#substitutionView .subx-rules-head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+#substitutionView .subx-rules-head button{width:34px;height:34px;border-radius:11px;background:rgba(148,163,184,.15);font-size:22px;color:#64748b}
+#substitutionView .subx-rules-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:15px}
+#substitutionView .subx-rules-grid>div{padding:13px;border:1px solid rgba(148,163,184,.2);border-radius:16px;background:rgba(255,255,255,.68)}
+.dark #substitutionView .subx-rules-grid>div{background:rgba(15,23,42,.48)}
+#substitutionView .subx-rules-grid i{display:block;margin-bottom:9px;color:#0d9488}
+#substitutionView .subx-rules-grid b{display:block;font-size:11px;color:#17324d}#substitutionView .subx-rules-grid p{margin-top:5px;font-size:10px;line-height:1.7;color:#64748b}
+.dark #substitutionView .subx-rules-grid b{color:#e2e8f0}.dark #substitutionView .subx-rules-grid p{color:#cbd5e1}
+#substitutionView .subx-rules-note{margin-top:12px;font-size:10px;line-height:1.8;color:#0f766e}
+#substitutionView .subx-search-wrap{display:flex;align-items:center;gap:10px;margin-top:16px;padding:0 13px;border:1px solid #dbe4ed;border-radius:15px;background:#f8fafc;transition:.2s}
+#substitutionView .subx-search-wrap:focus-within{border-color:#0d9488;box-shadow:0 0 0 4px rgba(13,148,136,.09)}
+#substitutionView .subx-search-wrap>i{color:#0d9488}
+#substitutionView .subx-search-wrap input{width:100%;min-width:0;padding:12px 0;background:transparent;outline:none;color:#0f2942;font-size:12px;font-weight:700}
+#substitutionView .subx-search-wrap input::placeholder{color:#94a3b8}
+#substitutionView .subx-search-wrap kbd{padding:4px 7px;border-radius:7px;background:#e2e8f0;color:#64748b;font-size:9px}
+.dark #substitutionView .subx-search-wrap{background:#0f172a;border-color:#334155}.dark #substitutionView .subx-search-wrap input{color:#f8fafc}
+#substitutionView #substitutionAbsenteeList>label{border-radius:17px!important;background:linear-gradient(120deg,#fff,#f8fafc)!important;box-shadow:0 4px 14px rgba(15,41,66,.035);transition:transform .2s,border-color .2s,box-shadow .2s}
+#substitutionView #substitutionAbsenteeList>label:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(15,41,66,.08)}
+#substitutionView #substitutionAbsenteeList>label:has(input:checked){border-color:#0d9488!important;background:linear-gradient(120deg,#f0fdfa,#ecfeff)!important;box-shadow:0 0 0 2px rgba(13,148,136,.12)}
+.dark #substitutionView #substitutionAbsenteeList>label{background:linear-gradient(120deg,#172033,#111c2d)!important}
+.dark #substitutionView #substitutionAbsenteeList>label:has(input:checked){background:linear-gradient(120deg,#103b3b,#123044)!important}
+#substitutionView .subx-floating-bar{position:fixed;z-index:70;right:50%;bottom:calc(14px + env(safe-area-inset-bottom));display:flex;align-items:center;justify-content:space-between;gap:14px;width:min(720px,calc(100vw - 28px));padding:11px 14px;border:1px solid rgba(148,163,184,.25);border-radius:20px;background:rgba(255,255,255,.92);box-shadow:0 18px 55px rgba(2,8,23,.2);backdrop-filter:blur(18px);transform:translate(50%,18px);opacity:0;pointer-events:none;transition:.25s}
+#substitutionView .subx-floating-bar.is-visible{transform:translate(50%,0);opacity:1;pointer-events:auto}
+.dark #substitutionView .subx-floating-bar{background:rgba(15,23,42,.94);border-color:rgba(148,163,184,.22)}
+#substitutionView .subx-floating-copy{display:flex;align-items:center;gap:10px;min-width:0}
+#substitutionView .subx-floating-dot{width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#0d9488;box-shadow:0 0 0 5px rgba(13,148,136,.12)}
+#substitutionView .subx-floating-copy b{display:block;color:#10263e;font-size:11px;font-weight:900}
+#substitutionView .subx-floating-copy small{display:block;margin-top:3px;color:#64748b;font-size:10px}
+.dark #substitutionView .subx-floating-copy b{color:#f8fafc}
+#substitutionView #subxGenerateDock #substitutionGenerateButton{white-space:nowrap;padding:12px 18px;border-radius:14px;background:linear-gradient(110deg,#0f766e,#0891b2);box-shadow:0 8px 22px rgba(8,145,178,.24)}
+#substitutionView #subxGenerateDock #substitutionGenerateButton:disabled{opacity:.48;box-shadow:none}
+#substitutionView .rounded-3xl{transition:border-color .2s,box-shadow .2s}
+@keyframes subxReveal{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:640px){#substitutionView .subx-toolbar{padding:16px;border-radius:22px}#substitutionView .subx-toolbar h3{font-size:16px}#substitutionView .subx-rules-trigger{padding:9px 10px;font-size:10px}#substitutionView .subx-step{gap:5px}#substitutionView .subx-step>span{width:28px;height:28px;flex-basis:28px}#substitutionView .subx-step b{font-size:9px}#substitutionView .subx-step small{font-size:8px}#substitutionView .subx-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-floating-bar{width:calc(100vw - 18px);bottom:calc(8px + env(safe-area-inset-bottom));padding:9px;border-radius:17px;gap:8px}#substitutionView .subx-floating-copy b{font-size:10px}#substitutionView .subx-floating-copy small{font-size:9px}#substitutionView #subxGenerateDock #substitutionGenerateButton{padding:11px 12px;font-size:10px}}
+@media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation:none!important;transition:none!important}}
+</style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-indigo-950 to-cyan-900 p-5 sm:p-7 text-white shadow-xl">
     <div class="absolute -left-12 -top-16 h-52 w-52 rounded-full bg-cyan-300/15 blur-3xl"></div>
@@ -2129,7 +2191,13 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div class="rounded-2xl border border-white/15 bg-white/10 p-3 backdrop-blur-md"><div class="text-[10px] text-cyan-100">المقاربة</div><div class="mt-1 text-sm font-black">تجنب 3 متتالية</div></div>
     </div>
   </div>
-
+  <div class="subx-toolbar">
+    <div class="subx-toolbar-top"><div><span class="subx-eyebrow">مساحة العمل الذكية</span><h3>إدارة التوزيع اليومي</h3><p>اختر الغياب، راجع الاقتراح، ثم اعتمد بثقة.</p></div><button type="button" id="subxRulesToggle" class="subx-rules-trigger"><i class="fa-solid fa-sliders"></i><span>قواعد التوزيع</span></button></div>
+    <div class="subx-tabs" role="tablist" aria-label="أقسام لوحة الاحتياط"><button type="button" class="subx-tab is-active" data-subx-tab="daily" role="tab" aria-selected="true"><i class="fa-solid fa-calendar-day"></i> التوزيع اليومي</button><button type="button" class="subx-tab" data-subx-tab="stats" role="tab" aria-selected="false"><i class="fa-solid fa-chart-column"></i> سجل النقاط والإحصائيات</button></div>
+    <div class="subx-stepper" aria-label="مراحل التوزيع"><div class="subx-step is-current" id="subxStep1"><span>١</span><div><b>الاختيار</b><small>تحديد الغياب</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep2"><span>٢</span><div><b>المراجعة</b><small>فحص الاقتراح</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep3"><span>٣</span><div><b>الاعتماد</b><small>حفظ ومشاركة</small></div></div></div>
+  </div>
+  <div id="subxRulesDrawer" class="subx-rules-drawer" hidden><div class="subx-rules-head"><div><span class="subx-eyebrow">شفافية وعدالة</span><h3>قواعد توزيع حصص الاحتياط</h3></div><button type="button" id="subxRulesClose" aria-label="إغلاق قواعد التوزيع">×</button></div>
+    <div class="subx-rules-grid"><div><i class="fa-solid fa-scale-balanced"></i><b>الأولوية للأقل نقاطاً</b><p>يُراعى رصيد النقاط وفق آلية النظام المعتمدة.</p></div><div><i class="fa-solid fa-calendar-check"></i><b>توازن التكليف اليومي</b><p>توزيع الحصص بما يحقق العدالة ويقلل التكرار غير الضروري.</p></div><div><i class="fa-solid fa-shield-halved"></i><b>منع التعارض</b><p>فحص الحصص الأساسية وتكليفات الاحتياط القائمة.</p></div><div><i class="fa-solid fa-arrows-left-right"></i><b>مراعاة التتابع</b><p>تجنب تكليف المعلم بثلاث حصص متتالية متى أمكن.</p></div></div><p class="subx-rules-note">هذه اللوحة توضح القواعد المعتمدة فقط؛ ولا تستبدل خوارزمية التوزيع أو تغيّرها.</p></div>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div class="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <label for="substitutionDate" class="mb-2 block text-xs font-black text-slate-700 dark:text-slate-200">اليوم والتاريخ</label>
@@ -2155,6 +2223,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div><h3 class="text-sm font-black text-slate-900 dark:text-white"><i class="fa-solid fa-user-minus ml-2 text-rose-500"></i>المعلمون الغائبون</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">تظهر لك الأسماء التي يسمح نطاق صلاحيتك بإدارتها ولديها حصص تدريس في اليوم المحدد.</p></div>
       <div class="flex items-center gap-2"><span id="substitutionSelectedCount" class="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800 dark:bg-cyan-950/50 dark:text-cyan-200">0 محدد</span><button type="button" onclick="substitutionToggleAllAbsentees()" class="rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800">تحديد الكل</button></div>
     </div>
+    <div class="subx-search-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="subxTeacherSearch" type="search" autocomplete="off" placeholder="ابحث باسم المعلم..." aria-label="البحث في قائمة المعلمين الغائبين"><kbd>بحث</kbd></div>
     <div id="substitutionAbsenteeList" class="mt-4 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3"><p class="col-span-full rounded-2xl bg-slate-50 p-4 text-xs text-slate-400 dark:bg-slate-800">جارٍ تحميل المعلمين...</p></div>
     <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
       <p id="substitutionAbsenteeStatus" class="text-[11px] font-bold text-slate-500 dark:text-slate-400">اختر المعلمين الغائبين ثم أنشئ التوزيع المقترح.</p>
@@ -2183,7 +2252,40 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <div class="flex items-center justify-between gap-2"><div><h3 class="text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-line ml-2 text-cyan-600"></i>نقاط الاحتياط والإحصائيات</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">رصيدك وتوزيع حصص الاحتياط من الأولى إلى الثامنة.</p></div><button type="button" onclick="substitutionLoadStats()" class="rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600 dark:border-slate-700 dark:text-slate-300"><i class="fa-solid fa-rotate ml-1"></i>تحديث</button></div>
     <div id="substitutionStatsContent" class="rounded-3xl border border-slate-200 bg-white p-4 text-xs text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900">جارٍ تحميل الإحصائيات...</div>
   </div>
+  <div id="subxFloatingBar" class="subx-floating-bar" aria-live="polite"><div class="subx-floating-copy"><span class="subx-floating-dot"></span><div><b>جاهز لإنشاء التوزيع؟</b><small id="subxSelectedSummary">لم يتم تحديد أي معلم بعد</small></div></div><div id="subxGenerateDock"></div></div>
 </section>
+<script id="substitution-cinematic-interactions">
+(function(){
+ const root=document.getElementById('substitutionView');if(!root||root.dataset.subxEnhanced==='yes')return;root.dataset.subxEnhanced='yes';
+ const $=q=>root.querySelector(q),tabs=Array.from(root.querySelectorAll('[data-subx-tab]')),stats=$('#substitutionStatsPanel'),dateGrid=$('#substitutionDate')?.closest('.grid'),absenteeCard=$('#substitutionAbsenteeList')?.closest('.rounded-3xl'),plan=$('#substitutionPlanPanel'),search=$('#subxTeacherSearch'),floating=$('#subxFloatingBar'),generate=$('#substitutionGenerateButton'),dock=$('#subxGenerateDock'),summary=$('#subxSelectedSummary'),rules=$('#subxRulesDrawer');let activeTab='daily';
+ if(generate&&dock&&!dock.contains(generate))dock.appendChild(generate);
+ function updateFloating(){
+  const checked=Array.from(root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked'));
+  if(summary)summary.textContent=checked.length?checked.length+' معلم محدد للتوزيع':'لم يتم تحديد أي معلم بعد';
+  if(floating)floating.classList.toggle('is-visible',activeTab==='daily'&&checked.length>0);
+  const hasPlan=!!plan&&!plan.classList.contains('hidden'),saved=(($('#substitutionSaveStatus')?.textContent)||'').includes('تم حفظ');
+  $('#subxStep1')?.classList.toggle('is-current',!hasPlan);$('#subxStep1')?.classList.toggle('is-done',hasPlan);
+  $('#subxStep2')?.classList.toggle('is-current',hasPlan&&!saved);$('#subxStep2')?.classList.toggle('is-done',saved);
+  $('#subxStep3')?.classList.toggle('is-current',saved);$('#subxStep3')?.classList.toggle('is-done',saved);
+ }
+ function setTab(name){
+  activeTab=name==='stats'?'stats':'daily';const isStats=activeTab==='stats';
+  tabs.forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
+  [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',isStats));stats?.classList.toggle('hidden',!isStats);updateFloating();
+  if(isStats&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
+ }
+ tabs.forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.subxTab)));
+ $('#subxRulesToggle')?.addEventListener('click',()=>{if(rules)rules.hidden=!rules.hidden;});$('#subxRulesClose')?.addEventListener('click',()=>{if(rules)rules.hidden=true;});
+ search?.addEventListener('input',()=>{const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));});
+ root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateFloating();});
+ const observer=new MutationObserver(updateFloating);if(plan)observer.observe(plan,{attributes:true,attributeFilter:['class']});
+ const status=$('#substitutionSaveStatus');if(status)observer.observe(status,{childList:true,characterData:true,subtree:true});
+ const list=$('#substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateFloating();}).observe(list,{childList:true,subtree:true});
+ root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton'))setTimeout(updateFloating,100);});
+ setTab('daily');updateFloating();
+})();
+</script><style id="substitution-tab-visibility">#substitutionView .subx-tab-hidden{display:none!important}</style>
+
 
 <section id="teacherTimetableView" class="hidden space-y-5" dir="rtl">
   <div class="relative overflow-hidden rounded-3xl bg-gradient-to-l from-slate-950 via-cyan-950 to-emerald-900 p-5 sm:p-7 text-white shadow-xl">
