@@ -639,7 +639,8 @@
         return '<div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-3" data-archive-day-row="'+esc(item.id)+'">'+
           '<div><div class="text-[10px] font-black text-slate-500">'+esc(item.absentTeacherName)+'</div><div class="mt-1 text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"-")+'</div><div class="text-[10px] text-slate-500">'+esc(item.subject||"")+'</div></div>'+
           '<label class="text-[10px] font-black text-slate-600">المعلم البديل<select data-batch-sub-id="'+esc(item.id)+'" data-original-sub="'+esc(item.substituteTeacherName)+'" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="'+esc(item.substituteTeacherName)+'" selected>'+esc(item.substituteTeacherName)+' (الحالي)</option>'+options+'</select></label>'+
-          '<label class="text-[10px] font-black text-slate-600">سبب الاحتياط<textarea data-batch-reason="'+esc(item.id)+'" data-original-reason="'+esc(item.reason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="اختياري">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label></div>';
+          '<label class="text-[10px] font-black text-slate-600">سبب الغياب<textarea data-batch-absence-reason="'+esc(item.id)+'" data-original-absence-reason="'+esc(item.absenceReason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="إجازة مرضية، مهمة رسمية...">'+esc(item.absenceReason==="-"?"":item.absenceReason||"")+'</textarea></label>'+
+          '<label class="text-[10px] font-black text-slate-600">سبب الاحتياط<textarea data-batch-reason="'+esc(item.id)+'" data-original-reason="'+esc(item.reason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="تكليف تغطية الحصة...">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label></div>';
       }).join("");
       modal.innerHTML='<div class="max-h-[90vh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"><div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-900">مراجعة وتعديل توزيع اليوم بالكامل</h3><p class="mt-1 text-[10px] text-slate-500">التاريخ: '+esc(date)+' · '+items.length+' تكليف · التغييرات تحفظ في عملية واحدة.</p></div><button type="button" data-close-day-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div><div class="space-y-2">'+rows+'</div><div id="ttArchiveDayEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex justify-end gap-2"><button type="button" data-close-day-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveDayEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ تعديلات اليوم</button></div></div>';
       document.body.appendChild(modal);
@@ -648,10 +649,10 @@
         const button=modal.querySelector("#ttArchiveDayEditSave"),errorBox=modal.querySelector("#ttArchiveDayEditError");
         const changes=[];
         modal.querySelectorAll("[data-batch-sub-id]").forEach(select=>{
-          const id=select.dataset.batchSubId,reasonInput=modal.querySelector('[data-batch-reason="'+id+'"]');
-          const reason=(reasonInput?.value||"").trim()||"-";
-          if(select.value!==select.dataset.originalSub||reason!==(reasonInput?.dataset.originalReason||"-")){
-            changes.push({assignmentId:id,substituteTeacherName:select.value,reserveReason:reason});
+          const id=select.dataset.batchSubId,reasonInput=modal.querySelector('[data-batch-reason="'+id+'"]'),absenceInput=modal.querySelector('[data-batch-absence-reason="'+id+'"]');
+          const reason=(reasonInput?.value||"").trim()||"-",absenceReason=(absenceInput?.value||"").trim()||"-";
+          if(select.value!==select.dataset.originalSub||reason!==(reasonInput?.dataset.originalReason||"-")||absenceReason!==(absenceInput?.dataset.originalAbsenceReason||"-")){
+            changes.push({assignmentId:id,substituteTeacherName:select.value,reserveReason:reason,absenceReason});
           }
         });
         if(!changes.length){modal.remove();status("لم تغيّر أي بيانات في توزيع هذا اليوم.","info");return;}
@@ -936,11 +937,11 @@
     const current=currentPlanRows(response||{}),saved=current.saved||[],planned=current.planned||[],missing=current.missing||[];
     return timetableDailyAbsentTeachers.map(absentName=>{
       const rows=[
-        ...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName,reason:x.reason||x.reserveReason||x.reserve_reason||""})),
+        ...saved.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName,reason:x.reason||x.reserveReason||x.reserve_reason||"",absenceReason:x.absenceReason||""})),
         ...planned.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:x.substituteTeacherName,reason:x.reason||x.reserveReason||x.reserve_reason||""})),
         ...missing.filter(x=>x.absentTeacherName===absentName).map(x=>({period:x.period,className:x.className,subject:x.subject,substitute:"",reason:x.reason||x.reserveReason||x.reserve_reason||""}))
       ].sort((a,b)=>Number(a.period)-Number(b.period));
-      return {absentName,absenceReason:String(reserveAbsenceReasons[absentName]||""),reserveReason:String(reserveReasons[absentName]||rows.find(row=>row.reason)?.reason||""),rows};
+      return {absentName,absenceReason:String(reserveAbsenceReasons[absentName]||rows.find(row=>row.absenceReason&&row.absenceReason!=="-")?.absenceReason||""),reserveReason:String(reserveReasons[absentName]||rows.find(row=>row.reason)?.reason||""),rows};
     }).filter(group=>group.rows.length);
   }
   window.timetableDailyPrintReport = async function () {
@@ -963,7 +964,10 @@
       const date=$("timetableSubstitutionDate")?.value||"",weekday=$("timetableSubstitutionWeekday")?.value||"";
       let message="*توزيع حصص الاحتياط*\n\n*"+weekday+"، "+formatReserveDateArabic(date)+"*\n\n";
       groups.forEach((group,index)=>{
-        message+="*"+(index+1)+"-* المعلم الغائب: *"+group.absentName+"*\n\n";
+        message+="*"+(index+1)+"-* المعلم الغائب: *"+group.absentName+"*\n";
+        if(group.absenceReason&&group.absenceReason!=="-")message+="سبب الغياب: "+group.absenceReason+"\n";
+        if(group.reserveReason&&group.reserveReason!=="-")message+="سبب الاحتياط: "+group.reserveReason+"\n";
+        message+="\n";
         group.rows.slice().sort((a,b)=>Number(a.period)-Number(b.period)).forEach(row=>{
           message+="- الحصة *"+String(row.period)+"* | الصف "+(row.className||"غير محدد")+"\n";
           message+="*الاحتياط: "+(row.substitute||"لم يحدد")+"*\n\n";
