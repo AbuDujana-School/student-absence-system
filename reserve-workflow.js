@@ -644,12 +644,18 @@
         return '<div class="grid grid-cols-1 gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3 sm:grid-cols-4" data-archive-day-row="'+esc(item.id)+'">'+
           '<div><div class="text-[10px] font-black text-slate-500">'+esc(item.absentTeacherName)+'</div><div class="mt-1 text-xs font-black text-slate-900">الحصة '+Number(item.period)+' · '+esc(item.className||"-")+'</div><div class="text-[10px] text-slate-500">'+esc(item.subject||"")+'</div></div>'+
           '<label class="text-[10px] font-black text-slate-600">المعلم البديل<select data-batch-sub-id="'+esc(item.id)+'" data-original-sub="'+esc(item.substituteTeacherName)+'" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs"><option value="'+esc(item.substituteTeacherName)+'" selected>'+esc(item.substituteTeacherName)+' (الحالي)</option>'+options+'</select></label>'+
-          '<label class="text-[10px] font-black text-slate-600">سبب الغياب<textarea data-batch-absence-reason="'+esc(item.id)+'" data-original-absence-reason="'+esc(item.absenceReason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="إجازة مرضية، مهمة رسمية...">'+esc(item.absenceReason==="-"?"":item.absenceReason||"")+'</textarea></label>'+
+          '<label class="text-[10px] font-black text-slate-600">سبب الغياب<textarea data-batch-absence-reason="'+esc(item.id)+'" data-batch-absence-group="'+esc(item.absentTeacherName)+'" data-original-absence-reason="'+esc(item.absenceReason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="إجازة مرضية، مهمة رسمية...">'+esc(item.absenceReason==="-"?"":item.absenceReason||"")+'</textarea></label>'+
           '<label class="text-[10px] font-black text-slate-600">سبب الاحتياط<textarea data-batch-reason="'+esc(item.id)+'" data-original-reason="'+esc(item.reason||"-")+'" rows="1" class="mt-1 w-full rounded-lg border border-slate-300 bg-white p-2 text-xs" placeholder="تكليف تغطية الحصة...">'+esc(item.reason==="-"?"":item.reason||"")+'</textarea></label></div>';
       }).join("");
       modal.innerHTML='<div class="max-h-[90vh] w-full max-w-5xl space-y-4 overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 shadow-2xl"><div class="flex flex-wrap items-center justify-between gap-3"><div><h3 class="font-black text-base text-slate-900">مراجعة وتعديل توزيع اليوم بالكامل</h3><p class="mt-1 text-[10px] text-slate-500">التاريخ: '+esc(date)+' · '+items.length+' تكليف · التغييرات تحفظ في عملية واحدة.</p></div><button type="button" data-close-day-edit class="rounded-xl bg-slate-100 px-3 py-2">×</button></div><div class="space-y-2">'+rows+'</div><div id="ttArchiveDayEditError" class="hidden rounded-xl bg-red-50 p-3 text-xs text-red-700"></div><div class="flex justify-end gap-2"><button type="button" data-close-day-edit class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold">إلغاء</button><button type="button" id="ttArchiveDayEditSave" class="rounded-xl bg-indigo-700 px-4 py-2 text-xs font-black text-white">حفظ تعديلات اليوم</button></div></div>';
       document.body.appendChild(modal);
       modal.querySelectorAll("[data-close-day-edit]").forEach(button=>button.addEventListener("click",()=>modal.remove()));
+      modal.querySelectorAll("[data-batch-absence-reason]").forEach(input=>input.addEventListener("input",()=>{
+        const group=input.dataset.batchAbsenceGroup;
+        modal.querySelectorAll("[data-batch-absence-reason]").forEach(other=>{
+          if(other.dataset.batchAbsenceGroup===group)other.value=input.value;
+        });
+      }));
       modal.querySelector("#ttArchiveDayEditSave").addEventListener("click",async()=>{
         const button=modal.querySelector("#ttArchiveDayEditSave"),errorBox=modal.querySelector("#ttArchiveDayEditError");
         const changes=[];
