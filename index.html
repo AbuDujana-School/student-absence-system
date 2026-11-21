@@ -5809,6 +5809,8 @@ function restoreLocalStorageOfflineSnapshot() {
 async function restoreOfflineState() {
   lastLoadedCloudManifest = null;
   localStorageFallbackSnapshot = false;
+  const diag = stage => { if (window.__ABU_SYNC_TEST_DIAGNOSTICS__) console.log('SYNC_TEST_INTERNAL ' + stage); };
+  diag('restore:start');
   let database = null;
   try {
     // IndexedDB can remain pending on some mobile browsers when another tab holds
@@ -5817,7 +5819,8 @@ async function restoreOfflineState() {
       const timer = setTimeout(() => reject(new Error('انتهت مهلة فتح التخزين المحلي')), 5000);
       openOfflineDatabase().then(value => {
         clearTimeout(timer);
-        resolve(value);
+        diag('restore:database-opened');
+      resolve(value);
       }, error => {
         clearTimeout(timer);
         reject(error);
@@ -5830,6 +5833,7 @@ async function restoreOfflineState() {
   }
 
   try {
+    diag('restore:before-read-transaction');
     const snapshot = await new Promise((resolve, reject) => {
       let settled = false;
       let snapshotValue = null;
@@ -5845,12 +5849,14 @@ async function restoreOfflineState() {
       try {
         tx = database.transaction('state', 'readonly');
         const request = tx.objectStore('state').get('snapshot');
-        request.onsuccess = () => { snapshotValue = request.result || null; };
-        request.onerror = () => finish(request.error || new Error('فشل قراءة النسخة المحلية'));
-        tx.oncomplete = () => finish(null, snapshotValue);
-        tx.onerror = () => finish(tx.error || request.error || new Error('فشل تنفيذ قراءة النسخة المحلية'));
-        tx.onabort = () => finish(tx.error || new Error('أُلغيت قراءة النسخة المحلية'));
+        diag('restore:transaction-created');
+        request.onsuccess = () => { snapshotValue = request.result || null; diag('restore:request-success'); };
+        request.onerror = () => { diag('restore:request-error'); finish(request.error || new Error('فشل قراءة النسخة المحلية')); };
+        tx.oncomplete = () => { diag('restore:transaction-complete'); finish(null, snapshotValue); };
+        tx.onerror = () => { diag('restore:transaction-error'); finish(tx.error || request.error || new Error('فشل تنفيذ قراءة النسخة المحلية')); };
+        tx.onabort = () => { diag('restore:transaction-abort'); finish(tx.error || new Error('أُلغيت قراءة النسخة المحلية')); };
         timer = setTimeout(() => {
+          diag('restore:read-timeout');
           try { tx.abort(); } catch (error) {}
           finish(new Error('انتهت مهلة قراءة التخزين المحلي'));
         }, 5000);
@@ -5858,9 +5864,11 @@ async function restoreOfflineState() {
         finish(error);
       }
     });
+    diag('restore:read-finished');
     if (!snapshot?.db || typeof snapshot.db !== 'object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
+      diag('restore:using-localstorage');
       return restoreLocalStorageOfflineSnapshot();
     }
     lastLoadedCloudManifest = normalizeAppSyncManifest(snapshot.cloudSyncManifest);
@@ -5872,6 +5880,7 @@ async function restoreOfflineState() {
     Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k] || []));
     restoreDirtySetsObject(snapshot.dirtySets);
     if (Array.isArray(snapshot.pendingDeletes)) setPendingDeletes(snapshot.pendingDeletes);
+    diag('restore:success');
     return true;
   } catch (error) {
     console.warn('IndexedDB restore unavailable; attempting the localStorage fallback.', error);
