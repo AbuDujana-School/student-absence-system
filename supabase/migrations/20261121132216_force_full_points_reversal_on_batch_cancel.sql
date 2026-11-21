@@ -57,5 +57,5 @@ begin
   end loop;
   return jsonb_build_object('ok',true,'cancelled_count',v_count,'assignments',v_results,'atomic',true);
 end;
-$function$
+$function$;
 
