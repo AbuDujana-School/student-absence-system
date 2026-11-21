@@ -16,6 +16,8 @@ on:
       - ".github/workflows/timetable-management-tests.yml"
       - "index.html"
       - "reserve-workflow.js"
+      - "tests/reserve_archive_refresh_test.ts"
+      - "tests/reserve_archive_refresh_test.ts"
       - "timetable-text.worker.js"
       - "timetable_pdf_import.js"
       - "timetable-pdf-import.js"
