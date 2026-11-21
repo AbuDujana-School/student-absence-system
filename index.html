@@ -3997,6 +3997,33 @@ function hasUnexpiredAppAuthSession() {
   return !!(session?.token && typeof session.expires_at === 'string' &&
     Number.isFinite(Date.parse(session.expires_at)) && Date.parse(session.expires_at) > Date.now());
 }
+async function ensureAppAuthSession() {
+  if (hasUnexpiredAppAuthSession()) return true;
+  const token = readAppAuthToken();
+  if (!token) return false;
+  try {
+    // The opaque token is persisted separately from its expiry metadata.
+    // Re-validate it with the server before treating a missing in-memory
+    // session object as a logout; never infer validity from the token shape.
+    const result = await appAuthRequest({ action: "app_session" }, token);
+    const principal = result?.principal;
+    const expiresAt = result?.expires_at;
+    if (!principal?.type || !principal?.name ||
+        typeof expiresAt !== "string" ||
+        !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now()) {
+      clearAppAuthSession();
+      return false;
+    }
+    appAuthSession = { token, expires_at: expiresAt, principal };
+    activeUser = principal;
+    localOnlySession = false;
+    return true;
+  } catch (error) {
+    if (error?.status === 401 || error?.status === 403) clearAppAuthSession();
+    console.warn("Unable to restore the verified application session before cloud sync.", error);
+    return false;
+  }
+}
 async function revokeAppAuthSession() { const token = appAuthSession?.token || readAppAuthToken(); if (!token) return; try { await appAuthRequest({ action: "app_logout" }, token); } catch (error) { console.warn("Unable to revoke application session immediately."); } }
 function saPopulateStatusFilter(){
   const container=document.getElementById("saStatusCheckboxesContainer");
@@ -6235,11 +6262,14 @@ async function loadSystemDataFromCloud() {
     updateSyncStatus(false, 'سجّل الدخول أولاً لتحميل بيانات المدرسة');
     return false;
   }
-  if (localOnlySession || (navigator.onLine && !hasUnexpiredAppAuthSession())) {
+  if (localOnlySession) {
     cloudDataLoadState = 'failed';
-    updateSyncStatus(false, localOnlySession
-      ? 'وضع محلي فقط؛ أعد تسجيل الدخول الآمن قبل الاتصال ببيانات المدرسة'
-      : 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
+    updateSyncStatus(false, 'وضع محلي فقط؛ أعد تسجيل الدخول الآمن قبل الاتصال ببيانات المدرسة');
+    return false;
+  }
+  if (navigator.onLine && !await ensureAppAuthSession()) {
+    cloudDataLoadState = 'failed';
+    updateSyncStatus(false, 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
     return false;
   }
   cloudDataLoadState = 'loading';
