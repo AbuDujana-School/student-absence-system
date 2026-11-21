@@ -6719,7 +6719,7 @@ function updateSyncStatus(isSynced, text) {
   if (!ind || !txt) return;
   const pendingRecords = hasPendingOfflineRecordChanges();
   const pendingDeletes = getPendingDeletes().length;
-  const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل)/.test(String(text || ''));
+  const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل|جارِ التحقق|جاري الاتصال)/.test(String(text || ''));
   const reviewOnly = !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
   let displayText = text || (isSynced ? "متزامن" : "محلي");
   if (reviewOnly) displayText = `المزامنة مكتملة؛ ${pendingDeletes} طلب حذف للمراجعة`;
@@ -6852,6 +6852,24 @@ async function handleUserLogin(e) {
       // a separately reviewed, explicit migration; never rewrite stored PIN hashes here.
       await finalizeLoginState();
     } else { throw new Error("استجابة تسجيل الدخول الآمن غير مكتملة."); }
+    // A previous account may have left the in-memory cloud state marked ready.
+    // Revalidate the manifest after account switching so the sync badge cannot
+    // remain on its initial "جاري الاتصال" label without a fresh cloud check.
+    if (!localOnlySession && navigator.onLine && cloudDataLoadState === 'ready') {
+      updateSyncStatus(false, 'جارِ التحقق من المزامنة...');
+      try {
+        const refreshed = await refreshCloudDataSilently();
+        if (!refreshed && cloudDataLoadState === 'ready' && !cloudRefreshInProgress &&
+            !cloudSaveInProgress && !manualOfflineSyncInProgress) {
+          updateSyncStatus(false, hasPendingOfflineChanges()
+            ? 'تم تسجيل الدخول؛ توجد تعديلات محلية بانتظار المزامنة'
+            : 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
+        }
+      } catch (syncError) {
+        console.warn('Post-login cloud sync verification failed; login remains active.', syncError);
+        updateSyncStatus(false, 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
+      }
+    }
     if (!localOnlySession && (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true)) { try { await saLogin(pin); } catch(saError) { console.warn("Student Affairs session not established:", saError); saSession = null; try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {} } }
     showToast("أهلاً بك: " + activeUser.name, "success");
     document.getElementById("userPinInput").value = "";
