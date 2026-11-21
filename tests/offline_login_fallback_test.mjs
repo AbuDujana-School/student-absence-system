@@ -23,7 +23,10 @@ test("offline PIN validation requires a restored snapshot with credential hashes
   assert.ok(login.indexOf("hasUsableOfflineLoginSnapshot()") < login.indexOf("findUserByPinWithRecord(pin)"));
 });
 test("local-only mode blocks cloud reads, writes, and sync entry points", () => {
-  assert.match(section("async function loadSystemDataFromCloud()", "function syncValuesEqual"), /if \(localOnlySession \|\|/);
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(loader, /if \(!activeUser\)/);
+  assert.match(loader, /if \(localOnlySession\)/);
+  assert.match(loader, /if \(navigator\.onLine && !await ensureAppAuthSession\(\)\)/);
   assert.match(section("async function saveSystemDataToCloud(options = {})", "async function checkExistingSession()"), /if \(localOnlySession \|\|/);
   assert.match(section("async function retryOfflineSyncSilently()", "async function refreshCloudDataSilently()"), /if \(localOnlySession \|\|/);
   assert.match(section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */"), /if \(localOnlySession\)/);
