@@ -79,7 +79,10 @@ function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timi
 }
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
-  if (error) throw error;
+  if (error) {
+    console.error("Substitution period timings could not be loaded; edit and delete controls will remain closed.");
+    return {};
+  }
   return data?.value && typeof data.value === "object" ? data.value as Record<string, unknown> : {};
 }
 
