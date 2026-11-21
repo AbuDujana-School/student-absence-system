@@ -2709,6 +2709,12 @@ function saRefreshCompetitionOnReturn(){
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")saRefreshCompetitionOnReturn();});
 window.addEventListener("focus",saRefreshCompetitionOnReturn);
 window.addEventListener("online",saRefreshCompetitionOnReturn);
+function saNormalizeCompetitionResponse(data){
+  // The API persists finalized weekly snapshots as `complete`; the UI historically expected `approved`.
+  // Normalize that contract once at the boundary so every display path treats saved results consistently.
+  if(data&&data.status==="complete"&&Array.isArray(data.teams)&&data.teams.length>0)return {...data,status:"approved"};
+  return data;
+}
 async function saLoadCompetition(){
   const requestId=++saCompetitionLoadSequence;
   if(!saCanViewCompetition()){showToast("لا تملك صلاحيات عرض بطولة الانضباط.","error");return;}
@@ -2719,7 +2725,8 @@ async function saLoadCompetition(){
   const podium=document.getElementById("saCompetitionPodium");
   if(podium)podium.innerHTML='<div class="col-span-full rounded-xl border border-slate-200 p-8 text-center text-xs font-bold text-slate-500 dark:border-slate-700"><i class="fa-solid fa-spinner fa-spin ml-2"></i> جارٍ إعداد لوحة البطولة...</div>';
   try{
-    const data=await saRequest({action:"competition",period:requestPeriod,termId});
+    const response=await saRequest({action:"competition",period:requestPeriod,termId});
+    const data=saNormalizeCompetitionResponse(response);
     if(requestId!==saCompetitionLoadSequence||!saCanViewCompetition())return;
     saCompetitionData=data;
     saRenderCompetition(data);
