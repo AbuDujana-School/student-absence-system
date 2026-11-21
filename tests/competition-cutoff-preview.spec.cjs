@@ -72,7 +72,7 @@ test("cutoff refresh is not scheduled for a hidden or unauthorized competition p
       const hiddenCount = scheduled;
       panel.classList.remove("hidden");
       saSession.principal.type = "teacher";
-      saReportPermissions.can_view_competition = false;
+      window.saCanViewCompetition = () => false;
       saScheduleCompetitionCutoffRefresh();
       return { hiddenCount, unauthorizedCount: scheduled };
     } finally {
