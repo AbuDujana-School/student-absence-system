@@ -8150,8 +8150,10 @@ function printSubstitutionDistributionReport() {
     showToast('اعرض التقرير أولاً، ولا توجد بيانات جاهزة للطباعة.', 'error');
     return;
   }
-  const popup = window.open('', '_blank');
-  if (!popup) { showToast('يرجى السماح بالنوافذ المنبثقة لطباعة التقرير.', 'error'); return; }
+  if (typeof window.printSchoolwideReserveDistributionReport !== 'function') {
+    showToast('تعذر تحميل قالب الطباعة الرسمي. حدّث الصفحة ثم أعد المحاولة.', 'error');
+    return;
+  }
   const byDate = new Map();
   reserveDistributionReportRows.forEach(row => {
     const date = String(row.assignmentDate || '');
@@ -8160,34 +8162,39 @@ function printSubstitutionDistributionReport() {
     byDate.get(date).push(row);
   });
   const pages = [...byDate.keys()].sort((a,b) => b.localeCompare(a)).map(date => {
-    const rows = byDate.get(date).slice().sort((a,b) => String(a.absentTeacherName || '').localeCompare(String(b.absentTeacherName || ''),'ar') || Number(a.period)-Number(b.period));
+    const dayRows = byDate.get(date).slice().sort((a,b) =>
+      String(a.absentTeacherName || '').localeCompare(String(b.absentTeacherName || ''),'ar') ||
+      Number(a.period)-Number(b.period));
     const dateObject = new Date(date + 'T12:00:00+04:00');
-    const weekday = String(rows.find(row => row.weekday)?.weekday || (Number.isFinite(dateObject.getTime()) ? new Intl.DateTimeFormat('ar-OM',{weekday:'long',timeZone:'Asia/Muscat'}).format(dateObject) : ''));
+    const weekday = String(dayRows.find(row => row.weekday)?.weekday ||
+      (Number.isFinite(dateObject.getTime()) ? new Intl.DateTimeFormat('ar-OM',{weekday:'long',timeZone:'Asia/Muscat'}).format(dateObject) : ''));
     const groups = new Map();
-    rows.forEach(row => {
+    dayRows.forEach(row => {
       const name = String(row.absentTeacherName || 'غير محدد');
       if (!groups.has(name)) groups.set(name, []);
       groups.get(name).push(row);
     });
-    const rowCount = rows.length;
-    const fontSize = rowCount > 60 ? 5.8 : rowCount > 44 ? 6.6 : rowCount > 30 ? 7.4 : rowCount > 22 ? 8.2 : 9.2;
-    const tableRows = [...groups.entries()].map(([name,items]) => {
-      const specialty = String(items.find(row => row.absentTeacherDepartment)?.absentTeacherDepartment || items.find(row => row.subject)?.subject || '');
-      const absentLabel = name + (specialty ? ' — ' + specialty : '');
-      const absenceReason = String(items.find(row => row.absenceReason)?.absenceReason || '—');
-      return items.map((row,index) => '<tr>' + (index === 0
-        ? '<td class="merged" rowspan="' + items.length + '">' + escapeHtml(absentLabel) + '</td><td class="merged" rowspan="' + items.length + '">' + escapeHtml(absenceReason) + '</td>'
-        : '') + '<td>' + escapeHtml(new Intl.NumberFormat('ar-OM').format(Number(row.period) || 0)) + '</td><td>' + escapeHtml(row.className || '—') + '</td><td>' + escapeHtml(row.subject || '—') + '</td><td class="substitute">' + escapeHtml(row.substituteTeacherName || '—') + '</td><td></td></tr>').join('');
-    }).join('');
-    const widths = [24,13,8,13,13,17,12];
-    return '<main class="reserve-day-page"><header class="official-heading"><div>سلطنة عُمان</div><div>وزارة التربية والتعليم</div><div>المديرية العامة لمحافظة شمال الباطنة</div><div>إدارة التعليم بالسويق</div><div class="school">مدرسة أبو دجانة</div></header><div class="meta"><span><b>اليوم:</b> ' + escapeHtml(weekday) + '</span><span><b>التاريخ:</b> ' + escapeHtml(date) + '</span></div><h2 class="report-title">توزيع الاحتياط</h2><table class="official-table" style="font-size:' + fontSize + 'pt"><colgroup>' + widths.map(width => '<col style="width:' + width + '%">').join('') + '</colgroup><thead><tr><th>المعلم الغائب والتخصص</th><th>سبب الغياب</th><th>الحصة</th><th>الصف</th><th>المادة</th><th>المعلم البديل</th><th>التوقيع</th></tr></thead><tbody>' + tableRows + '</tbody></table><footer class="official-footer"><div class="manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="stamp"></div></footer></main>';
-  }).join('');
-  const html = '<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>توزيع الاحتياط</title><style>@page{size:A4 portrait;margin:8mm}*{box-sizing:border-box}html,body{margin:0;padding:0;background:#fff;color:#111;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}.reserve-day-page{width:100%;height:281mm;max-height:281mm;overflow:hidden;display:flex;flex-direction:column;border:.35mm solid #333;padding:2.5mm 3mm 2mm;page-break-after:always;break-after:page}.reserve-day-page:last-child{page-break-after:auto;break-after:auto}.official-heading{text-align:center;font-size:10pt;font-weight:700;line-height:1.3;padding:2mm;background:#078b98;color:#fff;border-bottom:1mm solid #155e75;-webkit-print-color-adjust:exact;print-color-adjust:exact}.official-heading .school{font-size:12pt;font-weight:900}.meta{display:flex;justify-content:space-between;gap:8mm;margin:2mm 0;font-size:10pt;font-weight:800}.report-title{text-align:center;font-size:12pt;font-weight:900;margin:0 auto 1.5mm;padding:1mm 8mm;background:#e8f1ff;border:1px solid #315b91;color:#173b68}.official-table{width:100%;border-collapse:collapse;table-layout:fixed;flex:0 0 auto;line-height:1.1}.official-table th,.official-table td{border:1px solid #222;text-align:center;vertical-align:middle;padding:.45mm .55mm;overflow-wrap:anywhere}.official-table thead th{background:#12345a!important;color:#fff!important;font-size:9pt;font-weight:900;-webkit-print-color-adjust:exact;print-color-adjust:exact}.official-table tbody tr{break-inside:avoid;page-break-inside:avoid}.official-table tbody td{font-size:inherit}.official-table .merged{font-weight:900}.official-table .substitute{font-weight:900;color:#12345a}.official-footer{margin-top:auto;display:flex;justify-content:space-between;align-items:flex-end;min-height:17mm;padding-top:2mm;font-size:12pt}.manager{display:flex;flex-direction:column;gap:1mm;text-align:center}.stamp{width:40mm;height:14mm}@media print{html,body{print-color-adjust:exact;-webkit-print-color-adjust:exact}.reserve-day-page{break-after:page}.reserve-day-page:last-child{break-after:auto}}</style></head><body>' + pages + '<script>window.addEventListener("load",()=>setTimeout(()=>window.print(),350));<\/script></body></html>';
-  popup.document.open();
-  popup.document.write(html);
-  popup.document.close();
+    return {
+      date,
+      weekday,
+      groups: [...groups.entries()].map(([name,items]) => {
+        const specialty = String(items.find(row => row.absentTeacherDepartment)?.absentTeacherDepartment ||
+          items.find(row => row.subject)?.subject || '').trim();
+        return {
+          absentName: name + (specialty ? ' — ' + specialty : ''),
+          absenceReason: String(items.find(row => row.absenceReason && row.absenceReason !== '-')?.absenceReason || ''),
+          rows: items.map(row => ({
+            period: row.period,
+            className: row.className || '',
+            subject: row.subject || '',
+            substitute: row.substituteTeacherName || ''
+          }))
+        };
+      })
+    };
+  });
+  pages.forEach(page => window.printSchoolwideReserveDistributionReport(page.groups, page.date, page.weekday));
 }
-
 function renderReportsSection() {
   if (!canAccessReport('reportComprehensiveAbsence')) { document.getElementById('reportClassesContainer')?.replaceChildren(); return; }
   const cf = document.getElementById('reportClassFilter').value;
@@ -13739,7 +13746,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261121-reserve-report-1"></script>
+<script src="./reserve-workflow.js?v=20261121-reserve-report-2"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 </body>
 </html>
