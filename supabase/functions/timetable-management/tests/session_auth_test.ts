@@ -17,6 +17,7 @@ function storeWith(
   session: TimetableSessionLookup | null,
   options: {
     admin?: boolean;
+    managedAdmin?: boolean;
     teacher?: { name: string; role: string; reserveAccess?: boolean; permissions?: Record<string, unknown> } | null;
     access?: boolean;
     reserve?: boolean;
@@ -35,6 +36,10 @@ function storeWith(
     async hasAdminCredential() {
       calls.push("admin");
       return options.admin === true;
+    },
+    async hasManagedAdminCredential(name) {
+      calls.push("managed-admin:" + name);
+      return options.managedAdmin === true;
     },
     async findTeacher(name, includePermissions = false) {
       calls.push("teacher:" + name);
@@ -162,6 +167,36 @@ Deno.test("administrator access requires the configured system administrator cre
   const missingCredential = storeWith(session, { admin: false });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, missingCredential, NOW) !== null) {
     throw new Error("Administrator session without a configured credential was accepted");
+  }
+});
+
+Deno.test("separately managed secondary administrator receives a full timetable admin principal", async () => {
+  const session = { principal_type: "admin", principal_name: "مدير النظام الثاني", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const allowed = storeWith(session, { managedAdmin: true, calls });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowed, NOW);
+  if (principal?.type !== "admin" || principal.name !== "مدير النظام الثاني") {
+    throw new Error("Verified secondary administrator was not resolved as an admin");
+  }
+  if (!calls.includes("managed-admin:مدير النظام الثاني")) {
+    throw new Error("Secondary administrator credential was not revalidated");
+  }
+
+  const missingCredential = storeWith(session, { managedAdmin: false });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, missingCredential, NOW) !== null) {
+    throw new Error("Secondary administrator session without a managed credential was accepted");
+  }
+});
+
+Deno.test("unknown admin identities cannot borrow the legacy admin credential", async () => {
+  const session = { principal_type: "admin", principal_name: "Unknown Admin", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, { admin: true, managedAdmin: false, calls });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW) !== null) {
+    throw new Error("Unknown administrator identity was accepted");
+  }
+  if (!calls.includes("managed-admin:Unknown Admin") || calls.includes("admin")) {
+    throw new Error("Unknown administrator incorrectly used the legacy credential check");
   }
 });
 
