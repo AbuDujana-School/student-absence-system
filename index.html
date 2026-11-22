@@ -3973,6 +3973,9 @@ async function appAuthRequest(body, token, signal) {
   const headers = { "Content-Type": "application/json", apikey: SA_API_KEY };
   if (token) headers.Authorization = "Bearer " + token;
   const requestUrl = action.startsWith("timetable_") || action === "teacher_timetable_get_own" || action === "teacher_substitution_get_today" ? TIMETABLE_API_URL : SA_API_URL;
+  const traceLogin = action === "app_login";
+  const requestStartedAt = performance.now();
+  if (traceLogin) console.info("[AUTH_TRACE] app_login:request-start");
   let response;
   try {
     response = await fetch(requestUrl, {
@@ -3988,7 +3991,18 @@ async function appAuthRequest(body, token, signal) {
     error.aborted = networkError?.name === "AbortError";
     throw error;
   }
-  let data = {}; try { data = await response.json(); } catch (error) {}
+  if (traceLogin) console.info("[AUTH_TRACE] app_login:response-headers", {
+    status: response.status,
+    elapsedMs: Math.round(performance.now() - requestStartedAt)
+  });
+  let data = {}; try { data = await response.json(); } catch (error) {
+    if (traceLogin) console.warn("[AUTH_TRACE] app_login:response-json-failed", error);
+  }
+  if (traceLogin) console.info("[AUTH_TRACE] app_login:response-parsed", {
+    hasToken: !!data?.token,
+    principalType: data?.principal?.type || null,
+    elapsedMs: Math.round(performance.now() - requestStartedAt)
+  });
   if (!response.ok) {
     const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن.");
     error.status = response.status;
@@ -6447,6 +6461,9 @@ function normalizeAppSyncManifest(value) {
   return normalized;
 }
 
+const APP_SYNC_MANIFEST_TIMEOUT_MS = 300000;
+const APP_SYNC_TABLES_TIMEOUT_MS = 300000;
+
 function withAppSyncTimeout(promise, timeoutMs, message, code) {
   let timer = null;
   return Promise.race([
@@ -6480,7 +6497,7 @@ async function persistOfflineStateWithTimeout(timeoutMs = 5000) {
 async function fetchAppSyncManifest() {
   const { data, error } = await withAppSyncTimeout(
     sb.rpc('get_app_sync_manifest'),
-    8000,
+    APP_SYNC_MANIFEST_TIMEOUT_MS,
     'تأخر التحقق من تحديثات الخادم.',
     'APP_SYNC_MANIFEST_TIMEOUT'
   );
@@ -6542,13 +6559,20 @@ async function loadSystemDataFromCloud() {
   let offlineSnapshot = null;
   let pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
+  console.info("[AUTH_TRACE] cloud-sync:manifest-stage-start", {
+    principalType: activeUser?.type || null
+  });
 
   try {
     // The manifest is metadata-only. It avoids downloading the seven school tables
     // when no server-side change has occurred since this device's last snapshot.
     let nextManifest = null;
     try {
+      const manifestStartedAt = performance.now();
       nextManifest = await fetchAppSyncManifest();
+      console.info("[AUTH_TRACE] cloud-sync:manifest-stage-done", {
+        elapsedMs: Math.round(performance.now() - manifestStartedAt)
+      });
     } catch (manifestError) {
       // A transient manifest/network failure must not fan out into seven full-table
       // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
@@ -6617,7 +6641,7 @@ async function loadSystemDataFromCloud() {
       shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
       shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null),
       shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)
-    ]), 20000, 'تأخر تحميل بيانات المدرسة من الخادم.', 'APP_SYNC_TABLES_TIMEOUT');
+    ]), APP_SYNC_TABLES_TIMEOUT_MS, 'تأخر تحميل بيانات المدرسة من الخادم.', 'APP_SYNC_TABLES_TIMEOUT');
 
     if (fullSync) {
       const empty = classesData.length === 0 && studentsData.length === 0 &&
@@ -7223,25 +7247,31 @@ async function handleUserLogin(e) {
       cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
       authenticatedLoginCommitted = true;
+      renderAuthenticatedDashboardShell();
+      console.info("[AUTH_TRACE] login:authenticated-shell-shown", {
+        principalType: activeUser?.type || null
+      });
       loginAttempts = 0; loginLockedUntil = 0;
       // Authentication is already complete and the server session is stored.
       // Never keep the login form waiting for secondary dashboard initialization.
       document.getElementById('loginView')?.classList.add('hidden');
       document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+      let postLoginInitializationStarted = false;
       const startPostLoginInitialization = () => {
+        if (postLoginInitializationStarted) return;
+        postLoginInitializationStarted = true;
+        console.info("[AUTH_TRACE] post-login-initialization:start");
         void finalizeLoginState().catch(finalizeError => {
           console.error('Post-login dashboard initialization failed; authenticated session remains active.', finalizeError);
           showToast('تم تسجيل الدخول، لكن بعض عناصر لوحة النظام تأخر تجهيزها.', 'error');
         });
       };
-      // Defer all secondary initialization until after the browser has painted
-      // the authenticated dashboard. This prevents mobile WebViews from leaving
-      // the login screen visually stuck while synchronous bootstrap work runs.
+      // Prefer a post-paint start, but never rely on requestAnimationFrame alone:
+      // mobile WebViews may pause RAF while the page is backgrounded or repainting.
       if (typeof window.requestAnimationFrame === 'function') {
         window.requestAnimationFrame(() => window.setTimeout(startPostLoginInitialization, 0));
-      } else {
-        window.setTimeout(startPostLoginInitialization, 0);
       }
+      window.setTimeout(startPostLoginInitialization, 50);
     } else if (useLegacyLogin) {
       clearAppAuthSession();
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -7387,7 +7417,39 @@ async function refreshActiveUserPermissions() {
   }
 }
 
+function renderAuthenticatedDashboardShell() {
+  const user = activeUser;
+  if (!user) return;
+  const isAdmin = user.type === "admin" || user.permissions?.admin === true || isAdminAuthorized();
+  document.getElementById("loginView")?.classList.add("hidden");
+  document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
+  const name = document.getElementById("activeUserName");
+  if (name) name.textContent = user.name || "";
+  const adminBtn = document.getElementById("adminPanelBtn");
+  const showAdminPanel = hasAdminPanelAccess(user) || isAdmin;
+  if (adminBtn) {
+    adminBtn.classList.toggle("hidden", !showAdminPanel);
+    adminBtn.classList.toggle("flex", showAdminPanel);
+  }
+  const studentAffairsBtn = document.getElementById("studentAffairsBtn");
+  const showStudentAffairs = !localOnlySession && (isAdmin || user.permissions?.studentAffairs === true);
+  if (studentAffairsBtn) {
+    studentAffairsBtn.classList.toggle("hidden", !showStudentAffairs);
+    studentAffairsBtn.classList.toggle("flex", showStudentAffairs);
+  }
+  const teacherTimetableBtn = document.getElementById("teacherTimetableBtn");
+  if (teacherTimetableBtn) {
+    teacherTimetableBtn.classList.add("hidden");
+    teacherTimetableBtn.classList.remove("flex");
+  }
+  const changePin = document.getElementById("changeTeacherPinBtn");
+  if (changePin) changePin.classList.toggle("hidden", user.type !== "teacher");
+}
+
 async function finalizeLoginState() {
+  console.info("[AUTH_TRACE] finalizeLoginState:start", {
+    principalType: activeUser?.type || null
+  });
   // Make the authenticated shell visible immediately. Cloud synchronization and
   // optional permission checks must never hold the user on the login screen.
   document.getElementById('loginView')?.classList.add('hidden');
