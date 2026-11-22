@@ -126,12 +126,9 @@ async function currentAppPrincipal(type: string, name: string): Promise<AppPrinc
     };
   }
   if (type === "custom" ? data.role !== "custom" : data.role !== "teacher") return null;
-  if (type === "teacher" && isSecondaryAdminTeacher(data)) {
-    return {
-      type: "admin", name: data.name, permissions: FULL_ADMIN_PERMISSIONS,
-      mustChangePin: data.must_change_pin === true || data.permissions?.mustChangePin === true,
-    };
-  }
+  // A teacher session created before promotion must sign in again to receive an
+  // administrator session type; never silently upgrade a stale bearer session.
+  if (type === "teacher" && isSecondaryAdminTeacher(data)) return null;
   return {
     type: type as "teacher" | "custom",
     name: data.name,
