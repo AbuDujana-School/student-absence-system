@@ -215,6 +215,13 @@ test("school sync projections and timetable access reads stay isolated and minim
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
     console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, restorePromiseExists: !!offlineSnapshotRestorePromise, readyState: document.readyState }));
+    const originalEnsureRestore = window.ensureOfflineSnapshotRestored;
+    window.ensureOfflineSnapshotRestored = function (...args) {
+      console.log("QA_SYNC ensureRestore:call:" + JSON.stringify({ promiseExists: !!offlineSnapshotRestorePromise, bootRestored: offlineSnapshotRestoredAtBoot }));
+      const result = originalEnsureRestore.apply(this, args);
+      console.log("QA_SYNC ensureRestore:return:" + JSON.stringify({ promiseExists: !!offlineSnapshotRestorePromise }));
+      return result;
+    };
     const originalGet = IDBObjectStore.prototype.get;
     IDBObjectStore.prototype.get = function (...args) {
       console.log("QA_IDB get:start:" + this.name + ":" + String(args[0]));
