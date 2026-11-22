@@ -49,11 +49,11 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Run admin login source regression checks first
+        run: node --test tests/admin_login_secondary_modules_test.mjs
+
       - name: Run isolated administrator browser tests
         run: npx playwright test tests/admin-login-lab-preview.spec.cjs --reporter=line
-
-      - name: Run admin login source regression checks
-        run: node --test tests/admin_login_secondary_modules_test.mjs
 
       - name: Upload diagnostic evidence
         if: always()
