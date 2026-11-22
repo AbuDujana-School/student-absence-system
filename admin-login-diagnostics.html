@@ -211,7 +211,7 @@ small{display:block;margin-top:20px;color:#738392;line-height:1.7}
         throw new Error("يلزم الدخول بحساب مدير النظام العام الحالي لإنشاء الحساب الثاني.");
       }
       const created = await post(SA_URL, { action: "admin_create_secondary_admin" }, token);
-      if (created.ok !== true || !/^\\d{10}$/.test(String(created.pin || ""))) {
+      if (created.ok !== true || !/^\d{10}$/.test(String(created.pin || ""))) {
         throw new Error(created.error || "لم يؤكد الخادم إنشاء الحساب.");
       }
       createResult.replaceChildren();
