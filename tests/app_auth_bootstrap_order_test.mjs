@@ -273,19 +273,37 @@ test("secure login remains available after a local-only session and stale 401 ca
 });
 
 
-test("authenticated login paints the dashboard before secondary initialization and restores the UI in finally", () => {
+test("authenticated dashboard shell is rendered immediately and post-login initialization has a timer fallback", () => {
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
   const committed = login.indexOf("authenticatedLoginCommitted = true", saveSession);
-  const shell = login.indexOf("dashboardSelectionView", committed);
-  const deferred = login.indexOf("const startPostLoginInitialization", shell);
+  const shellCall = login.indexOf("renderAuthenticatedDashboardShell()", committed);
+  const deferred = login.indexOf("const startPostLoginInitialization", shellCall);
   const frame = login.indexOf("requestAnimationFrame", deferred);
-  const finalizer = login.indexOf("finalizeLoginState()", frame);
+  const fallback = login.indexOf("window.setTimeout(startPostLoginInitialization, 50)", frame);
+  const finalizer = login.indexOf("void finalizeLoginState().catch", deferred);
   const finallyBlock = login.indexOf("} finally {", finalizer);
-  assert.ok(saveSession >= 0 && committed > saveSession && shell > committed);
-  assert.ok(deferred > shell && frame > deferred && finalizer > frame);
+  assert.ok(saveSession >= 0 && committed > saveSession && shellCall > committed);
+  assert.ok(deferred > shellCall && frame > deferred && fallback > frame);
+  assert.ok(finalizer > deferred && finallyBlock > finalizer);
+  assert.match(login.slice(deferred, fallback), /postLoginInitializationStarted/);
   assert.match(login.slice(finallyBlock), /if \(authenticatedLoginCommitted\)/);
   assert.match(login.slice(finallyBlock), /loginView.*classList\.add\('hidden'\)/);
   assert.match(login.slice(finallyBlock), /dashboardSelectionView.*classList\.remove\('hidden'\)/);
   assert.match(login.slice(finallyBlock), /btn\.disabled = false/);
+  const shell = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
+  assert.match(shell, /dashboardSelectionView.*classList\.remove\('hidden'\)/);
+  assert.match(shell, /adminPanelBtn/);
+  assert.match(shell, /studentAffairsBtn/);
+});
+
+test("first cloud manifest and table reads have explicit five-minute deadlines", () => {
+  assert.match(html, /const APP_SYNC_MANIFEST_TIMEOUT_MS = 300000/);
+  assert.match(html, /const APP_SYNC_TABLES_TIMEOUT_MS = 300000/);
+  const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
+  assert.match(manifest, /APP_SYNC_MANIFEST_TIMEOUT_MS/);
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(loader, /APP_SYNC_TABLES_TIMEOUT_MS/);
+  assert.match(loader, /APP_SYNC_MANIFEST_TIMEOUT/);
+  assert.match(loader, /APP_SYNC_TABLES_TIMEOUT/);
 });
