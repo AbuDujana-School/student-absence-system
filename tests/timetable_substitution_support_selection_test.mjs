@@ -13,7 +13,7 @@ function section(start, end) {
 
 test("timetable support department is translated into server-validated teacher names", () => {
   const loader = section("async function timetableLoadOtherDepartmentOptions", "function timetableGetOtherDepartmentTeacherNames");
-  assert.match(loader, /checkboxId==="timetableSubstitutionOtherDepartments"\s*\{\s*window\.timetableSubstitutionOtherDepartmentsData=departments;/);
+  assert.match(loader, /checkboxId==="timetableSubstitutionOtherDepartments"\)\s*\{\s*window\.timetableSubstitutionOtherDepartmentsData=departments;/);
   const helper = section("function timetableGetOtherDepartmentTeacherNames", "function timetableSubstitutionOtherDepartmentChanged");
   assert.match(helper, /department\?\.teachers/);
   const preview = section("async function timetablePreviewSubstitutions()", "function timetableRenderSubstitutionLessons");
