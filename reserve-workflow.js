@@ -2038,10 +2038,6 @@
         if(!panel.classList.contains("hidden"))installSchoolwideReserveDistributionReport();
       }).observe(panel,{attributes:true,attributeFilter:["class"]});
     }
-    if(panel&&!panel.classList.contains("hidden")&&schoolwideReserveReportAllowed()&&!panel.dataset.reserveDistributionReportAutoLoaded){
-      panel.dataset.reserveDistributionReportAutoLoaded="1";
-      Promise.resolve().then(()=>window.loadSubstitutionDistributionReport());
-    }
   }
   installSchoolwideReserveDistributionReport();
   if(typeof MutationObserver!=="undefined"&&document.body&&!window.__schoolwideSubstitutionReportInstalled){
