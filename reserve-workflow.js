@@ -582,14 +582,24 @@
       const {date,weekday}=timetableSubstitutionGetDate(),token=appAuthSession?.token||readAppAuthToken();
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
         absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
-      status("تم حفظ "+(result.assignmentCount||assignments.length)+" تكليف في عملية واحدة. يجري تحديث الأرشيف.","success");
+      const savedCount=Number(result.assignmentCount||assignments.length);
+      // A successful batch-save response is the commit confirmation. Clear the
+      // local draft immediately so a later refresh failure cannot invite a duplicate save.
       reserveManualChoices=Object.create(null);
       reserveDraftApproved=new Set();
-      await timetableDailyRefreshAll();await timetableDailyLoadArchive();
       clearStoredDraft();
-      // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
-      if(typeof window.teacherShowDailySubstitutionWelcome==="function") await window.teacherShowDailySubstitutionWelcome();
-    }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي. لم يتم حفظ جزء من العملية.","error");}
+      status("تم تأكيد حفظ "+savedCount+" تكليف في الخادم. يجري تحديث العرض والأرشيف...","success");
+      try{
+        await timetableDailyRefreshAll();
+        await timetableDailyLoadArchive();
+        // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
+        if(typeof window.teacherShowDailySubstitutionWelcome==="function") await window.teacherShowDailySubstitutionWelcome();
+        status("تم حفظ "+savedCount+" تكليف وتحديث العرض والأرشيف بنجاح.","success");
+      }catch(refreshError){
+        status("تم حفظ "+savedCount+" تكليف بنجاح في الخادم، لكن تعذر تحديث العرض أو الأرشيف الآن. حدّث القائمة قبل أي إجراء جديد، ولا تُعد اعتماد التوزيع نفسه.","info");
+        console.warn("Reserve batch was committed, but the post-save refresh failed.",refreshError);
+      }
+    }catch(error){status(error?.message||"تعذر حفظ التوزيع الجماعي؛ لم يصل تأكيد من الخادم.","error");}
     finally{timetableDailyBusy=false;timetableDailySetBusy(false);}
   };
 
