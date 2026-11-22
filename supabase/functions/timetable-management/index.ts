@@ -151,6 +151,14 @@ const timetableAuthStore: TimetableAuthStore = {
       .select("value").eq("key", "admin_pin").maybeSingle();
     return !error && !!data?.value?.hash && !!data?.value?.salt;
   },
+  async hasManagedAdminCredential(name) {
+    if (!name || name === "مدير النظام العام") return false;
+    const { data, error } = await db.from("student_affairs_credentials")
+      .select("principal_name,pin_hash,pin_salt,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", name).maybeSingle();
+    return !error && data?.principal_name === name && !!data.pin_hash && !!data.pin_salt
+      && data.source_hash == null && data.source_salt == null;
+  },
   async findTeacher(name, includePermissions = false) {
     let data: any = null;
     let error: any = null;
