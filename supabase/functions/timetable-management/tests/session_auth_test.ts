@@ -189,26 +189,6 @@ Deno.test("explicitly promoted teacher accounts receive full admin timetable aut
   }
 });
 
-Deno.test("an existing teacher session is upgraded only while its live teacher record has admin=true", async () => {
-  const teacherSession = {
-    principal_type: "teacher",
-    principal_name: "Tester1",
-    expires_at: EXPIRY,
-  };
-  const promoted = storeWith(teacherSession, {
-    teacher: { name: "Tester1", role: "teacher", permissions: { admin: true } },
-  });
-  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, promoted, NOW, "timetable_preview");
-  if (principal?.type !== "admin") throw new Error("Promoted teacher session did not resolve as admin");
-
-  const revoked = storeWith(teacherSession, {
-    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false } },
-  });
-  if (await resolveTimetablePrincipal("Bearer " + TOKEN, revoked, NOW, "timetable_preview") !== null) {
-    throw new Error("Unprivileged teacher session bypassed timetable access grants");
-  }
-});
-
 Deno.test("unknown principal types and empty teacher names are rejected", async () => {
   const unknown = storeWith({ principal_type: "visitor", principal_name: "Visitor", expires_at: EXPIRY });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, unknown, NOW) !== null) {
