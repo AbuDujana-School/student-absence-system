@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v46';
+const CACHE_NAME = 'abudujana-app-v47';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,22 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v53';
-const CDN_PRECACHE = [
-  'https://cdn.tailwindcss.com',
-  'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
-  'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
-  'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css',
-  'https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&display=swap'
-];
-const CDN_HOSTS = new Set([
-  'cdn.tailwindcss.com',
-  'cdn.jsdelivr.net',
-  'cdnjs.cloudflare.com',
-  'fonts.googleapis.com',
-  'fonts.gstatic.com'
-]);
-
+const RUNTIME_CACHE = 'abudujana-static-v54';
 function fetchWithTimeout(request, timeoutMs = 7000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -39,8 +24,8 @@ self.addEventListener('install', event => {
     const precacheWork = (async () => {
       const cache = await caches.open(CACHE_NAME);
       await cache.addAll(APP_SHELL);
-      const runtime = await caches.open(RUNTIME_CACHE);
-      await Promise.allSettled(CDN_PRECACHE.map(url => runtime.add(url)));
+      // External CDN and backend requests are deliberately not precached.
+      // They remain normal browser network requests and are never intercepted here.
     })();
     await Promise.race([
       precacheWork,
@@ -63,11 +48,11 @@ function isSupabaseRequest(url) {
     /\/(rest\/v1|auth\/v1|storage\/v1|functions\/v1|realtime\/v1)(\/|$)/.test(url.pathname);
 }
 function isCacheableStaticRequest(request, url) {
-  if (request.method !== 'GET' || isSupabaseRequest(url)) return false;
-  if (url.origin === self.location.origin) {
-    return !url.pathname.includes('/.well-known/') && !/\/api\//.test(url.pathname);
-  }
-  return CDN_HOSTS.has(url.hostname);
+  if (request.method !== 'GET') return false;
+  // Let all cross-origin requests (CDNs, Supabase, fonts, analytics, etc.)
+  // pass through untouched. Only same-origin static files are cache candidates.
+  if (url.origin !== self.location.origin || isSupabaseRequest(url)) return false;
+  return !url.pathname.includes('/.well-known/') && !/\/api\//.test(url.pathname);
 }
 
 self.addEventListener('fetch', event => {
