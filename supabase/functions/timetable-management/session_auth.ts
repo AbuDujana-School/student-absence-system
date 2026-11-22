@@ -98,18 +98,15 @@ export async function resolveTimetablePrincipal(
 
   const type = session.principal_type;
   const name = session.principal_name;
-  // The same identity read also checks whether an existing teacher session has
-  // since been explicitly promoted to administrator; no extra round-trip is needed.
-  const teacher = await store.findTeacher(name, true);
+  const needsTeacherPermissions = requestedAction.startsWith("timetable_substitution_") ||
+    new Set([
+      "health",
+      "timetable_check_access",
+      "timetable_duty_report_context",
+      "timetable_activity_report_data",
+    ]).has(requestedAction);
+  const teacher = await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
-  if (isSecondaryAdminTeacher(teacher)) {
-    return {
-      type: "admin",
-      name,
-      permissions: teacher.permissions && typeof teacher.permissions === "object"
-        ? teacher.permissions : {},
-    };
-  }
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
