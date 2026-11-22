@@ -835,7 +835,7 @@ async function handle(req: Request) {
       const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
       const actor = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!actor || actor.type !== "admin") return reply(403, { error: "إنشاء مدير إضافي متاح لمدير النظام فقط." });
+      if (!actor || actor.type !== "admin" || actor.name !== "مدير النظام العام") return reply(403, { error: "إنشاء مدير إضافي متاح لحساب مدير النظام العام الحالي فقط." });
 
       const secondaryName = "مدير النظام الثاني";
       const { data: existing, error: existingError } = await db.from("student_affairs_credentials")
