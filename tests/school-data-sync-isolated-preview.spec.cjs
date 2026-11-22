@@ -84,6 +84,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   const browserConsole = [];
   const supabaseRequests = [];
   const routeEvents = [];
+  let requestPhase = "before-probe";
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
   page.on("console", (message) => {
@@ -92,10 +93,10 @@ test("school sync projections and timetable access reads stay isolated and minim
     if (line.startsWith("QA_FETCH_MOCK manifest")) manifestCalls += 1;
   });
   page.on("request", (request) => {
-    if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ method: request.method(), url: request.url() });
+    if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length });
   });
   page.on("response", (response) => {
-    if (response.url().includes(SUPABASE_HOST)) browserConsole.push("QA_RESPONSE " + response.status() + " " + response.url());
+    if (response.url().includes(SUPABASE_HOST)) browserConsole.push("QA_RESPONSE " + requestPhase + " " + response.status() + " " + response.url());
   });
   page.on("requestfailed", (request) => {
     if (request.url().includes(SUPABASE_HOST)) browserConsole.push("QA_REQUEST_FAILED " + request.failure()?.errorText + " " + request.url());
@@ -125,7 +126,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   // Only synthetic QA rows are returned; no real credentials or school data are used.
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
     const request = route.request();
-    routeEvents.push({ stage: "handler-enter", method: request.method(), url: request.url() });
+    routeEvents.push({ stage: "handler-enter", phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length });
     const url = new URL(request.url());
     if (url.hostname !== SUPABASE_HOST) {
       unexpectedSupabaseTraffic.push({ method: request.method(), url: request.url() });
@@ -228,6 +229,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   ]);
   expect(pageResponsive.nodeTimedOut, "The browser page must remain responsive before cloud loading").toBeFalsy();
 
+  requestPhase = "direct-probe";
   const directFetchProbe = await page.evaluate(async () => {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5_000);
@@ -246,6 +248,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
   });
   browserConsole.push("QA_DIRECT_FETCH_PROBE " + JSON.stringify(directFetchProbe));
+  requestPhase = "sync-load";
 
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
@@ -348,7 +351,9 @@ test("school sync projections and timetable access reads stay isolated and minim
       } : {
         kind: typeof input, url: String(input || "").slice(0, 500),
         initKeys: args[1] ? Object.keys(args[1]) : [], method: args[1]?.method || "GET",
-        headers: args[1]?.headers ? Object.keys(args[1].headers) : [],
+        headers: args[1]?.headers ? Array.from(new Headers(args[1].headers).keys()) : [],
+        credentials: args[1]?.credentials || "same-origin", mode: args[1]?.mode || "cors",
+        bodyLength: typeof args[1]?.body === "string" ? args[1].body.length : null,
         signalAborted: args[1]?.signal?.aborted,
       };
       console.log("QA_SYNC nativeFetch:call:" + JSON.stringify(requestInfo));
