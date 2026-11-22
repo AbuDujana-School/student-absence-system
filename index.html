@@ -6309,7 +6309,12 @@ async function loadSystemDataFromCloud() {
   }
   cloudDataLoadState = 'loading';
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
-  const offlineSnapshotAvailable = await restoreOfflineState();
+  // The boot sequence already restored IndexedDB before presenting the login form.
+  // Re-reading it here is redundant and can stall account activation on mobile
+  // browsers while an IndexedDB transaction is still settling. Reuse that trusted
+  // in-memory snapshot for the first authenticated cloud bootstrap; only retry
+  // restoration when boot could not obtain a usable local snapshot.
+  const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot || await restoreOfflineState();
   loadDirtySetsFromLocal();
   const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
   let pendingLocalState = captureDirtyLocalState();
