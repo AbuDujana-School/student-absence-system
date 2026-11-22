@@ -190,3 +190,27 @@ test("unchanged cloud manifests persist only queued deletion overlays", () => {
   assert.ok(manifestSave >= 0 && finalPersist > manifestSave && fallbackSave > finalPersist);
   assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
 });
+
+
+test("mobile session storage failure keeps the authenticated page session in memory", () => {
+  const save = section("function saveAppAuthSession(session)", "function hasUnexpiredAppAuthSession()");
+  assert.ok(save.includes("appAuthSession = session"));
+  assert.ok(save.indexOf("appAuthSession = session") < save.indexOf("sessionStorage.setItem"));
+  assert.equal(save.includes('throw new Error("تعذر حفظ جلسة الدخول الآمنة في هذا المتصفح.'), false);
+
+  const read = section("function readAppAuthToken()", "function clearAppAuthSession()");
+  assert.ok(read.includes("appAuthSession?.token"));
+});
+
+test("a secondary service 401 cannot clear a valid app session without canonical validation", () => {
+  const request = section("async function appAuthRequest(body, token)", "function isLegacyAuthEndpointUnavailable(error)");
+  assert.ok(request.includes('if (action === "app_session") clearAppAuthSession();'));
+  assert.ok(request.includes("await validateCanonicalAppAuthSession(token || readAppAuthToken())"));
+  assert.equal(request.includes('if (response.status === 401 && action !== "app_login") clearAppAuthSession();'), false);
+
+  const validation = section("async function validateCanonicalAppAuthSession(token)", "function isLegacyAuthEndpointUnavailable(error)");
+  assert.ok(validation.includes('JSON.stringify({ action: "app_session" })'));
+  assert.ok(validation.includes("if (response.status === 401)"));
+  assert.ok(validation.includes("if (!response.ok) return null"));
+  assert.ok(validation.includes("if (currentToken === token) clearAppAuthSession()"));
+});
