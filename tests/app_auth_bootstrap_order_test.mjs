@@ -204,8 +204,8 @@ test("mobile session storage failure keeps the authenticated page session in mem
 });
 
 test("a secondary service 401 cannot clear a valid app session without canonical validation", () => {
-  const request = section("async function appAuthRequest(body, token)", "function isLegacyAuthEndpointUnavailable(error)");
-  assert.ok(request.includes('if (action === "app_session") clearAppAuthSession();'));
+  const request = section("async function appAuthRequest(body, token, signal)", "function isLegacyAuthEndpointUnavailable(error)");
+  assert.ok(request.includes('if (action === "app_session") {'));\n  assert.ok(request.includes("currentToken === token"));
   assert.ok(request.includes("await validateCanonicalAppAuthSession(token || readAppAuthToken())"));
   assert.equal(request.includes('if (response.status === 401 && action !== "app_login") clearAppAuthSession();'), false);
 
@@ -243,4 +243,28 @@ test("authenticated login refreshes all independent report panel visibility afte
 
   const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
   assert.ok(finalize.includes("refreshReportPanelsVisibility();"));
+});
+
+
+test("a new login supersedes stale session restoration and only one login may run per page", () => {
+  assert.match(html, /let appLoginInProgress = false/);
+  assert.match(html, /let appLoginGeneration = 0/);
+  const restore = section("async function checkExistingSession()", "function normalizeAppPinDigits");
+  assert.match(restore, /restoreGeneration = appLoginGeneration/);
+  assert.match(restore, /restoreIsCurrent\(\)/);
+  assert.match(restore, /controller\.abort\(\)/);
+  assert.match(restore, /setTimeout\(\(\) => controller.abort\(\), 5000\)/);
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  assert.match(login, /if \(appLoginInProgress\)/);
+  assert.match(login, /appLoginInProgress = true/);
+  assert.match(login, /loginController\.signal/);
+  assert.match(login, /loginController\.abort\(\)/);
+  assert.match(login, /appLoginInProgress = false/);
+  assert.match(login, /clearTimeout\(loginTimeoutId\)/);
+});
+
+test("secure login remains available after a local-only session and stale 401 cannot clear a newer session", () => {
+  const request = section("async function appAuthRequest(body, token, signal)", "async function validateCanonicalAppAuthSession");
+  assert.match(request, /localOnlySession && action !== "app_login"/);
+  assert.match(request, /if \(token && currentToken === token\) clearAppAuthSession\(\)/);
 });

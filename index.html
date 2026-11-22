@@ -3759,6 +3759,8 @@ const SCHOOL_NAME = 'مدرسة أبو دجانة الأنصاري';
 let serverTimeOffset = 0, lastServerSyncSuccess = 0;
 const APP_AUTH_SESSION_KEY = 'abuDujana_appSession';
 let appAuthSession = null;
+let appLoginInProgress = false;
+let appLoginGeneration = 0;
 
 /* ============ Unified Period Color ============ */
 const UNIFIED_PERIOD_GRADIENT = { from: '#0d9488', via: '#0f766e', to: '#115e59', shadow: 'rgba(13,148,136,.4)' };
@@ -3961,21 +3963,39 @@ async function saRequest(body){
     if(action==="supervision_trend")return {series:[],class_count:0};
     throw new Error("هذه معاينة واجهات فقط؛ جميع عمليات الحفظ والتعديل والاتصال بالبيانات معطلة.");
   }const h={"Content-Type":"application/json","apikey":SA_API_KEY};if(saSession?.token)h.Authorization="Bearer "+saSession.token;let r;try{r=await fetch(SA_API_URL,{method:"POST",headers:h,body:JSON.stringify(body),cache:"no-store"});}catch(networkError){const e=new Error("تعذر الاتصال بخدمة شؤون الطلبة. تحقق من الإنترنت ثم أعد المحاولة؛ لم يتم تسجيل خروجك.");e.status=0;throw e;}let d={};try{d=await r.json()}catch(e){}if(!r.ok){const e=new Error(d.error||"تعذر تنفيذ الطلب");e.status=r.status;throw e;}return d;}
-async function appAuthRequest(body, token) { if (localOnlySession) throw new Error("يلزم تسجيل الدخول الآمن قبل الاتصال بالخدمات."); if(IS_UI_REVIEW_PREVIEW) throw new Error("تسجيل الدخول غير متاح في معاينة الواجهات.");
+async function appAuthRequest(body, token, signal) {
+  const action = String(body?.action || "");
+  if (localOnlySession && action !== "app_login") throw new Error("يلزم تسجيل الدخول الآمن قبل الاتصال بالخدمات.");
+  if (IS_UI_REVIEW_PREVIEW) throw new Error("تسجيل الدخول غير متاح في معاينة الواجهات.");
   const headers = { "Content-Type": "application/json", apikey: SA_API_KEY };
   if (token) headers.Authorization = "Bearer " + token;
-  let response;
-  const action = String(body?.action || "");
   const requestUrl = action.startsWith("timetable_") || action === "teacher_timetable_get_own" || action === "teacher_substitution_get_today" ? TIMETABLE_API_URL : SA_API_URL;
-  try { response = await fetch(requestUrl, { method: "POST", headers, body: JSON.stringify(body), cache: "no-store" }); }
-  catch (networkError) { const error = new Error("تعذر الاتصال بخدمة تسجيل الدخول الآمن."); error.status = 0; error.networkFailure = networkError instanceof TypeError || networkError?.name === "NetworkError"; throw error; }
+  let response;
+  try {
+    response = await fetch(requestUrl, {
+      method: "POST", headers, body: JSON.stringify(body), cache: "no-store",
+      ...(signal ? { signal } : {})
+    });
+  } catch (networkError) {
+    const error = new Error(networkError?.name === "AbortError"
+      ? "تم إيقاف طلب الاتصال بعد انتهاء المهلة."
+      : "تعذر الاتصال بخدمة تسجيل الدخول الآمن.");
+    error.status = 0;
+    error.networkFailure = networkError instanceof TypeError || networkError?.name === "NetworkError";
+    error.aborted = networkError?.name === "AbortError";
+    throw error;
+  }
   let data = {}; try { data = await response.json(); } catch (error) {}
   if (!response.ok) {
     const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن.");
     error.status = response.status;
     if (response.status === 401 && action !== "app_login") {
-      if (action === "app_session") clearAppAuthSession();
-      else await validateCanonicalAppAuthSession(token || readAppAuthToken());
+      if (action === "app_session") {
+        const currentToken = appAuthSession?.token || readAppAuthToken();
+        if (token && currentToken === token) clearAppAuthSession();
+      } else {
+        await validateCanonicalAppAuthSession(token || readAppAuthToken());
+      }
     }
     throw error;
   }
@@ -6982,25 +7002,43 @@ async function initDefaults() {
 
 /* ============ Auth ============ */
 async function checkExistingSession() {
+  const restoreGeneration = appLoginGeneration;
+  const restoreIsCurrent = () => restoreGeneration === appLoginGeneration && !appLoginInProgress;
   const appToken = readAppAuthToken();
   if (appToken) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5000);
+    let result = null;
     try {
-      const result = await appAuthRequest({ action: "app_session" }, appToken);
-      if (result?.principal?.type && result?.principal?.name) {
-        appAuthSession = { token: appToken, expires_at: result.expires_at, principal: result.principal };
-        activeUser = result.principal;
-        try { saSession = saReadStoredSession(); } catch (error) { saSession = null; }
-        await finalizeLoginState();
-        return;
-      }
-      clearAppAuthSession();
+      result = await appAuthRequest({ action: "app_session" }, appToken, controller.signal);
     } catch (error) {
-      if (error?.status === 401 || error?.status === 403) clearAppAuthSession();
-      else console.warn("Secure application session unavailable; checking the existing compatible session.");
+      if (!restoreIsCurrent()) return;
+      if (error?.status === 401 || error?.status === 403) {
+        const currentToken = appAuthSession?.token || readAppAuthToken();
+        if (currentToken === appToken) clearAppAuthSession();
+      } else {
+        console.warn("Secure application session unavailable; checking the existing compatible session.");
+      }
+    } finally {
+      clearTimeout(timeout);
     }
+    if (!restoreIsCurrent()) return;
+    if (result?.principal?.type && result?.principal?.name) {
+      const currentToken = appAuthSession?.token || readAppAuthToken();
+      if (currentToken !== appToken) return;
+      appAuthSession = { token: appToken, expires_at: result.expires_at, principal: result.principal };
+      activeUser = result.principal;
+      try { saSession = saReadStoredSession(); } catch (error) { saSession = null; }
+      await finalizeLoginState();
+      return;
+    }
+    const currentToken = appAuthSession?.token || readAppAuthToken();
+    if (currentToken === appToken) clearAppAuthSession();
   }
+  if (!restoreIsCurrent()) return;
   try {
     const token = await verifyStoredSession();
+    if (!restoreIsCurrent()) return;
     if (!token) { try { localStorage.removeItem("abuDujana_activeUser"); } catch(e) {} try { localStorage.removeItem("abuDujana_session"); } catch(e) {} return; }
     if (navigator.onLine) {
       // A browser-only legacy session is not a server-validated app session.
@@ -7014,11 +7052,14 @@ async function checkExistingSession() {
     if (token.role === "admin") user = { type: "admin", name: "مدير النظام العام", permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
     else if (token.role === "custom") { const u = (db.customUsers || []).find(x => x.name === token.userName); if (u) user = { type: "custom", name: u.name, permissions: u.permissions || {} }; }
     else if (token.role === "teacher") { const t = (db.teachers || []).find(x => x.name === token.userName); if (t) user = { type: "teacher", name: t.name, permissions: t.permissions || {} }; }
+    if (!restoreIsCurrent()) return;
     if (!user) { clearSession(); return; }
     activeUser = user;
     try { saSession = saReadStoredSession(); } catch(e) { saSession = null; }
     await finalizeLoginState();
-  } catch(error) { console.warn("Compatible session restore failed."); }
+  } catch(error) {
+    if (restoreIsCurrent()) console.warn("Compatible session restore failed.");
+  }
 }
 
 
@@ -7034,11 +7075,20 @@ function normalizeAppPinDigits(value) {
 
 async function handleUserLogin(e) {
   e.preventDefault();
+  if (appLoginInProgress) {
+    showToast("طلب تسجيل الدخول قيد التنفيذ بالفعل. انتظر نتيجته.", "info");
+    return;
+  }
   const now = Date.now();
   if (now < loginLockedUntil) { const wait = Math.ceil((loginLockedUntil - now) / 1000); showToast("محاولات كثيرة. انتظر " + wait + " ثانية.", "error"); return; }
   const pinInput = document.getElementById("userPinInput");
   const pin = normalizeAppPinDigits(pinInput?.value?.trim() || "");
   if (!pin) return;
+  appLoginInProgress = true;
+  const loginGeneration = ++appLoginGeneration;
+  const loginController = new AbortController();
+  let loginTimeoutId = null;
+  let loginTimedOut = false;
   if (pinInput) pinInput.value = pin;
   const btn = document.getElementById("loginSubmitBtn");
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
@@ -7048,14 +7098,25 @@ async function handleUserLogin(e) {
     let useLegacyLogin = !navigator.onLine;
     if (!useLegacyLogin) {
       try {
-        serverLogin = await Promise.race([
-          appAuthRequest({ action: "app_login", pin }),
-          new Promise((_, reject) => setTimeout(() => reject(new Error("استغرق الاتصال بخدمة تسجيل الدخول وقتاً أطول من المعتاد. تحقق من الاتصال ثم أعد المحاولة.")), 15000))
-        ]);
+        loginTimeoutId = setTimeout(() => {
+          loginTimedOut = true;
+          loginController.abort();
+        }, 15000);
+        serverLogin = await appAuthRequest(
+          { action: "app_login", pin },
+          undefined,
+          loginController.signal
+        );
       }
       catch (serverError) {
+        if (loginTimedOut) {
+          throw new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 15 ثانية. أعد المحاولة؛ لم يتم تغيير بيانات الحساب.");
+        }
         if (isLegacyAuthEndpointUnavailable(serverError) || isNetworkFailureForOfflineFallback(serverError)) useLegacyLogin = true;
         else throw serverError;
+      } finally {
+        if (loginTimeoutId !== null) clearTimeout(loginTimeoutId);
+        loginTimeoutId = null;
       }
     }
     if (useLegacyLogin && !hasUsableOfflineLoginSnapshot()) {
@@ -7142,7 +7203,12 @@ async function handleUserLogin(e) {
       if (error.status === 429) showToast(error.message || "محاولات كثيرة. حاول لاحقاً.", "error");
       else { loginAttempts++; if (loginAttempts >= 5) loginLockedUntil = now + Math.min(30, Math.pow(2, loginAttempts - 5)) * 1000 * 5; document.getElementById("loginError").classList.remove("hidden"); }
     } else { console.error("Login error:", error); showToast(error?.message || "تعذر التحقق من بيانات الدخول حالياً. لم يتم تغيير أي بيانات.", "error"); }
-  } finally { btn.disabled = false; btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>'; }
+  } finally {
+    if (loginTimeoutId !== null) clearTimeout(loginTimeoutId);
+    if (appLoginGeneration === loginGeneration) appLoginInProgress = false;
+    btn.disabled = false;
+    btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>';
+  }
 }
 
 
