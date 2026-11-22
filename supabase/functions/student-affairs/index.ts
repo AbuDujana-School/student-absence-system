@@ -16,6 +16,8 @@ import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
+import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
+import { isAdditionalAdminTeacher } from "./admin_principal_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -67,32 +69,51 @@ function validPin(pin: unknown): pin is string { return typeof pin === "string" 
 const appSessionStore = createSupabaseAppSessionStore(db as unknown as AppSessionDatabaseClient);
 
 async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincipal | null> {
-  const [{ data: adminSetting, error: adminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+  // The administrator is the highest-priority principal. Verify this record
+  // first so an admin login never waits for full teacher/credential directory scans.
+  const [{ data: adminSetting, error: adminError }, { data: adminSecure, error: adminSecureError }] = await Promise.all([
     db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
-    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
-    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt"),
+    db.from("student_affairs_credentials").select("pin_salt,pin_hash,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", "مدير النظام العام").maybeSingle(),
   ]);
-  if (adminError || usersError || upgradedError) throw new Error("Unable to load login records");
-  const candidates: AppLoginCandidate[] = [];
+  if (adminError || adminSecureError) throw new Error("Unable to load administrator login record");
   const adminRecord = adminSetting?.value;
+  let legacy: { pbkdf2: string; sha256: string } | null = null;
   if (adminRecord?.hash && adminRecord?.salt) {
-    candidates.push({
-      type: "admin", name: "مدير النظام العام",
-      hash: adminRecord.hash, salt: adminRecord.salt,
-      permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
-    });
+    const secure = adminSecure as any;
+    const adminMatches = secure && secure.source_hash === adminRecord.hash && secure.source_salt === adminRecord.salt
+      ? await verifyNewPin(pin, secure.pin_salt, secure.pin_hash, pepper)
+      : await verifyExistingPin(pin, adminRecord.salt, adminRecord.hash, legacy || (legacy = await getLegacyPeppers()));
+    if (adminMatches) {
+      return {
+        type: "admin", name: "مدير النظام العام",
+        permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
+        mustChangePin: false,
+      };
+    }
   }
+
+  // Only non-admin attempts need the teacher/custom-user directory.
+  const [{ data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
+    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt")
+      .in("principal_type", ["custom", "teacher"]),
+  ]);
+  if (usersError || upgradedError) throw new Error("Unable to load user login records");
+  const candidates: AppLoginCandidate[] = [];
   for (const user of users || []) {
-    const type = user.role === "custom" ? "custom" : "teacher";
+    const designatedAdmin = isAdditionalAdminTeacher(user);
+    const type = designatedAdmin ? "admin" : user.role === "custom" ? "custom" : "teacher";
     if (!user.pin_hash || !user.pin_salt) continue;
     candidates.push({
       type, name: user.name, hash: user.pin_hash, salt: user.pin_salt,
-      permissions: user.permissions || {},
+      permissions: designatedAdmin
+        ? { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true, admin: true, studentAffairs: true, morningAssemblyLateness: true }
+        : user.permissions || {},
       mustChangePin: user.must_change_pin === true || user.permissions?.mustChangePin === true,
     });
   }
   const secureMap = new Map((upgraded || []).map((item: any) => [item.principal_type + "|" + item.principal_name, item]));
-  let legacy: { pbkdf2: string; sha256: string } | null = null;
   return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
@@ -106,9 +127,14 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
 
 async function currentAppPrincipal(type: string, name: string): Promise<AppPrincipal | null> {
   if (type === "admin") {
-    const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
-    if (error || !data?.value?.hash || !data?.value?.salt) return null;
-    return { type: "admin", name, permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true }, mustChangePin: false };
+    if (name === "مدير النظام العام") {
+      const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
+      if (error || !data?.value?.hash || !data?.value?.salt) return null;
+    } else {
+      const { data, error } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
+      if (error || !data || !isAdditionalAdminTeacher(data)) return null;
+    }
+    return { type: "admin", name, permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true, admin: true, studentAffairs: true, morningAssemblyLateness: true }, mustChangePin: false };
   }
   const { data, error } = await db.from("teachers").select("name,role,permissions,must_change_pin").eq("name", name).maybeSingle();
   if (error || !data || (type === "custom" ? data.role !== "custom" : data.role === "custom")) return null;
@@ -118,6 +144,17 @@ async function currentAppPrincipal(type: string, name: string): Promise<AppPrinc
     permissions: data.permissions && typeof data.permissions === "object" ? data.permissions : {},
     mustChangePin: data.must_change_pin === true || data.permissions?.mustChangePin === true,
   };
+}
+
+async function readAuthorizedAppSession(authorization: unknown) {
+  const session = await readAppSession(appSessionStore, authorization);
+  if (!session) return null;
+  const principal = await currentAppPrincipal(session.principal.type, session.principal.name);
+  if (!principal) {
+    await revokeAppSession(appSessionStore, authorization);
+    return null;
+  }
+  return { ...session, principal };
 }
 
 async function clientKey(req: Request) {
@@ -145,10 +182,11 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   const { data: adminSetting } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
   const adminRecord = adminSetting?.value;
   if (adminRecord?.hash && adminRecord?.salt) candidates.push({ type: "admin", name: "مدير النظام العام", hash: adminRecord.hash, salt: adminRecord.salt });
-  const { data: users, error } = await db.from("teachers").select("name,role,pin_hash,pin_salt");
+  const { data: users, error } = await db.from("teachers").select("name,role,pin_hash,pin_salt,permissions");
   if (error) throw error;
+  for (const u of (users || []).filter((x: any) => isAdditionalAdminTeacher(x))) if (u.pin_hash && u.pin_salt) candidates.push({ type: "admin", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   for (const u of (users || []).filter((x: any) => x.role === "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "custom", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
-  for (const u of (users || []).filter((x: any) => x.role !== "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
+  for (const u of (users || []).filter((x: any) => x.role === "teacher" && !isAdditionalAdminTeacher(x))) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   const { data: upgraded } = await db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt");
   const secureMap = new Map((upgraded || []).map((x: any) => [x.principal_type + "|" + x.principal_name, x]));
   let legacy: { pbkdf2: string; sha256: string } | null = null;
@@ -289,12 +327,35 @@ async function hasStudentAffairsAccess(p: { type: string; name: string; permissi
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
     && (data.permissions?.studentAffairs === true || data.permissions?.admin === true);
 }
+async function adminStudentAffairsAccessEnabled(): Promise<boolean> {
+  try {
+    const { data, error } = await db.from("school_settings")
+      .select("value")
+      .eq("key", "admin_student_affairs_access")
+      .maybeSingle();
+    if (error) throw error;
+    return isAdminStudentAffairsAccessEnabled(data?.value);
+  } catch (error) {
+    // Fail closed for this optional module only; the general application login
+    // and all unrelated school permissions remain unaffected.
+    console.error("Admin Student Affairs access setting unavailable; denying this module only.", error);
+    return false;
+  }
+}
 async function getSession(req: Request) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[a-f0-9]{64}$/i.test(token)) return null;
   const tokenHash = await sha256(token);
   const { data } = await db.from("student_affairs_sessions").select("*").eq("token_hash", tokenHash).gt("expires_at", new Date().toISOString()).maybeSingle();
   if (!data) return null;
+  if (data.principal_type === "admin") {
+    if (!(await adminStudentAffairsAccessEnabled())) return null;
+    if (data.principal_name !== "مدير النظام العام") {
+      const { data: teacher, error: teacherError } = await db.from("teachers")
+        .select("name,role,permissions").eq("name", data.principal_name).maybeSingle();
+      if (teacherError || !teacher || !isAdditionalAdminTeacher(teacher)) return null;
+    }
+  }
   return { tokenHash, principal: { type: data.principal_type, name: data.principal_name } };
 }
 function asBool(v: unknown) { return v === true; }
@@ -781,7 +842,7 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
   return await handleAppDataGatewayRead(req, body, {
     db,
     headers: cors,
-    readSession: (authorization) => readAppSession(appSessionStore, authorization),
+    readSession: (authorization) => readAuthorizedAppSession(authorization),
     currentPrincipal: (type, name) => currentAppPrincipal(type, name),
     resolveScope: (principal) => resolveAppDataScopeForPrincipal(principal as AppPrincipal),
   });
@@ -806,11 +867,20 @@ async function handle(req: Request) {
     if (!validPin(body.pin)) return reply(400, { error: "بيانات الدخول غير صحيحة" });
     const rate = await rateLimit(req);
     if (rate.blocked) return reply(429, { error: "محاولات كثيرة. حاول بعد 15 دقيقة." });
+    const loginStartedAt = performance.now();
     try {
       const principal = await findAppPrincipal(body.pin, await getPepper());
+      console.info("Application login credential check completed", {
+        principalType: principal?.type || "none",
+        durationMs: Math.round(performance.now() - loginStartedAt),
+      });
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
       const issued = await issueAppSession(appSessionStore, principal, Date.now(), SESSION_HOURS);
       await clearFailedLogin(rate.key);
+      console.info("Application login session issued", {
+        principalType: principal.type,
+        durationMs: Math.round(performance.now() - loginStartedAt),
+      });
       return reply(200, { ...issued, principal });
     } catch (error) {
       console.error("General application login failed:", error);
@@ -826,7 +896,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "admin_save_student_roster") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
@@ -860,7 +930,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "admin_transfer_student") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
@@ -905,12 +975,15 @@ async function handle(req: Request) {
   }
   if (body?.action === "app_student_affairs_session") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      }
+      if (principal.type === "admin" && !(await adminStudentAffairsAccessEnabled())) {
+        return reply(403, { error: "تم تعليق دخول مدير النظام إلى شؤون الطلبة مؤقتاً للاختبار؛ يمكن إعادة الصلاحية دون تغيير الحساب." });
       }
       if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) {
         return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة." });
@@ -938,7 +1011,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "app_session") {
     try {
-      const session = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const session = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
       const principal = await currentAppPrincipal(session.principal.type, session.principal.name);
       if (!principal) {
@@ -967,6 +1040,9 @@ async function handle(req: Request) {
     try {
       const principal = await findPrincipal(body.pin, await getPepper());
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
+      if (principal.type === "admin" && !(await adminStudentAffairsAccessEnabled())) {
+        return reply(403, { error: "تم تعليق دخول مدير النظام إلى شؤون الطلبة مؤقتاً للاختبار؛ يمكن إعادة الصلاحية دون تغيير الحساب." });
+      }
       if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة" }); }
       await clearFailedLogin(rate.key);
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
@@ -979,7 +1055,7 @@ async function handle(req: Request) {
   }
   if (["timetable_check_access","timetable_list_access","timetable_set_access"].includes(String(body?.action || ""))) {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal) return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
@@ -1044,7 +1120,7 @@ async function handle(req: Request) {
   }
   if (["timetable_parse_day","timetable_save_weekly_day","timetable_activate_weekly_version","timetable_get_weekly_draft"].includes(String(body?.action || ""))) {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
@@ -1143,7 +1219,7 @@ async function handle(req: Request) {
 
   if (body?.action === "timetable_teacher_weekly_get") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
@@ -1197,7 +1273,7 @@ async function handle(req: Request) {
 
   if (body?.action === "teacher_timetable_get_own") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "teacher") {
@@ -1231,7 +1307,7 @@ async function handle(req: Request) {
 
   if (["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel"].includes(String(body?.action || ""))) {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal) return reply(401, { error: "تعذر التحقق من المستخدم الحالي." });
@@ -1380,7 +1456,7 @@ async function handle(req: Request) {
 
   if (body?.action === "timetable_preview") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
@@ -1429,7 +1505,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "timetable_save_import") {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || principal.type !== "admin") {
@@ -1478,7 +1554,7 @@ async function handle(req: Request) {
   }
   if (["timetable_list_imports","timetable_get_import","timetable_mutate_record","timetable_list_owner_candidates","timetable_reassign_owner"].includes(String(body?.action || ""))) {
     try {
-      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal || !(await hasTimetableAccess(principal))) {
@@ -1569,12 +1645,15 @@ async function handle(req: Request) {
   let session: Awaited<ReturnType<typeof getSession>> = null;
   let p: { type: string; name: string };
   if (body?.action === "reports_permissions" || body?.action === "reports") {
-    const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+    const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
     if (appSession) {
       const appPrincipal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!appPrincipal) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      }
+      if (appPrincipal.type === "admin" && !(await adminStudentAffairsAccessEnabled())) {
+        return reply(403, { error: "تم تعليق دخول مدير النظام إلى تقارير شؤون الطلبة مؤقتاً للاختبار." });
       }
       if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs")) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
