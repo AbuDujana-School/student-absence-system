@@ -215,7 +215,28 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
 });
 
 
-import { canUseTimetableAction } from "../session_auth.ts";
+import { canResetSubstitution, canUseTimetableAction } from "../session_auth.ts";
+
+Deno.test("both legacy and separately managed admins can reset all active substitutions", () => {
+  for (const adminName of ["مدير النظام العام", "مدير النظام الثاني"]) {
+    // Both identities are resolved as the same verified admin principal type.
+    if (!canResetSubstitution("admin", "all_active")) {
+      throw new Error("Administrator was denied full reset: " + adminName);
+    }
+    if (!canResetSubstitution("admin", "subject_day")) {
+      throw new Error("Administrator was denied subject/day reset: " + adminName);
+    }
+  }
+  if (canResetSubstitution("teacher", "all_active", true)) {
+    throw new Error("Reserve coordinator gained full-school reset permission");
+  }
+  if (!canResetSubstitution("teacher", "subject_day", true)) {
+    throw new Error("Reserve coordinator lost subject/day reset permission");
+  }
+  if (canResetSubstitution("custom", "subject_day", true)) {
+    throw new Error("Custom account gained substitution reset permission");
+  }
+});
 
 Deno.test("non-admin substitution access requires the correct explicit authorization", () => {
   const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own"];
