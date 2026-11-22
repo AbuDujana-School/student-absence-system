@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v40';
+const CACHE_NAME = 'abudujana-app-v41';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v47';
+const RUNTIME_CACHE = 'abudujana-static-v48';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -60,6 +60,25 @@ self.addEventListener('fetch', event => {
   if (request.method !== 'GET') return;
   const url = new URL(request.url);
   if (!isCacheableStaticRequest(request, url)) return;
+
+  // JavaScript and CSS must be refreshed from the network first. A stale
+  // cached application script can leave login or cloud-sync UI in an old state
+  // after GitHub Pages has already published a newer index.html.
+  if (url.origin === self.location.origin && /\\.(?:js|css)$/.test(url.pathname)) {
+    event.respondWith((async () => {
+      const cache = await caches.open(RUNTIME_CACHE);
+      try {
+        const response = await fetch(request, { cache: 'no-store' });
+        if (response && response.ok) cache.put(request, response.clone()).catch(() => {});
+        return response;
+      } catch (error) {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+        return new Response('', { status: 504, statusText: 'Application script unavailable offline' });
+      }
+    })());
+    return;
+  }
 
   // Always fetch the reserve workflow from the network first. Older releases
   // could keep serving a cached JavaScript file after a GitHub Pages update.
