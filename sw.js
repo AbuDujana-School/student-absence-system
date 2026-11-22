@@ -1,4 +1,4 @@
-const CACHE_NAME = 'abudujana-app-v44';
+const CACHE_NAME = 'abudujana-app-v45';
 const APP_SHELL = [
   './',
   './index.html',
@@ -9,7 +9,7 @@ const APP_SHELL = [
   './icons/icon-512.png',
   './icons/icon-512-maskable.png'
 ];
-const RUNTIME_CACHE = 'abudujana-static-v51';
+const RUNTIME_CACHE = 'abudujana-static-v52';
 const CDN_PRECACHE = [
   'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2',
@@ -25,12 +25,27 @@ const CDN_HOSTS = new Set([
   'fonts.gstatic.com'
 ]);
 
+function fetchWithTimeout(request, timeoutMs = 7000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  return fetch(request, { cache: 'no-store', signal: controller.signal })
+    .finally(() => clearTimeout(timeoutId));
+}
+
 self.addEventListener('install', event => {
   event.waitUntil((async () => {
-    const cache = await caches.open(CACHE_NAME);
-    await cache.addAll(APP_SHELL);
-    const runtime = await caches.open(RUNTIME_CACHE);
-    await Promise.allSettled(CDN_PRECACHE.map(url => runtime.add(url)));
+    // Do not let a slow CDN or a stalled shell request prevent the new worker
+    // from installing. Partial precaching is safe; runtime requests have fallbacks.
+    const precacheWork = (async () => {
+      const cache = await caches.open(CACHE_NAME);
+      await cache.addAll(APP_SHELL);
+      const runtime = await caches.open(RUNTIME_CACHE);
+      await Promise.allSettled(CDN_PRECACHE.map(url => runtime.add(url)));
+    })();
+    await Promise.race([
+      precacheWork,
+      new Promise(resolve => setTimeout(resolve, 12000))
+    ]);
   })().catch(error => { console.error('App shell precache failed:', error); }));
   self.skipWaiting();
 });
@@ -68,7 +83,7 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(RUNTIME_CACHE);
       try {
-        const response = await fetch(request, { cache: 'no-store' });
+        const response = await fetchWithTimeout(request, 7000);
         if (response && response.ok) cache.put(request, response.clone()).catch(() => {});
         return response;
       } catch (error) {
@@ -86,7 +101,7 @@ self.addEventListener('fetch', event => {
     event.respondWith((async () => {
       const cache = await caches.open(RUNTIME_CACHE);
       try {
-        const response = await fetch(request, { cache: 'no-store' });
+        const response = await fetchWithTimeout(request, 7000);
         if (response && response.ok) cache.put(request, response.clone()).catch(() => {});
         return response;
       } catch (error) {
@@ -101,7 +116,7 @@ self.addEventListener('fetch', event => {
   if (request.mode === 'navigate') {
     event.respondWith((async () => {
       try {
-        const response = await fetch(request, { cache: 'no-store' });
+        const response = await fetchWithTimeout(request, 7000);
         if (response && response.ok && url.origin === self.location.origin) {
           const cache = await caches.open(CACHE_NAME);
           cache.put('./index.html', response.clone()).catch(() => {});
@@ -121,7 +136,7 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(RUNTIME_CACHE);
     const cached = await cache.match(request);
-    const networkFetch = fetch(request).then(response => {
+    const networkFetch = fetchWithTimeout(request, 7000).then(response => {
       if (response && (response.ok || response.type === 'opaque')) cache.put(request, response.clone()).catch(() => {});
       return response;
     });
