@@ -93,9 +93,10 @@ Deno.test("general app principal resolution supports a separately named second a
     { type: "teacher", name: "Teacher A", hash: "teacher-hash", salt: "teacher-salt" },
     { type: "admin", name: "مدير النظام الثاني", hash: "secondary-admin-hash", salt: "secondary-admin-salt" },
   ];
-  const verify = async (_pin: string, _salt: string, hash: string) =>
-    hash === "legacy-admin-hash" || hash === "secondary-admin-hash";
-  const primary = await resolveAppPrincipal("1234567890", candidates, async (_pin, _salt, hash) => hash === "legacy-admin-hash");
+  const verify = async (pin: string, _salt: string, hash: string) =>
+    (pin === "1234567890" && hash === "legacy-admin-hash")
+    || (pin === "9876543210" && hash === "secondary-admin-hash");
+  const primary = await resolveAppPrincipal("1234567890", candidates, verify);
   const secondary = await resolveAppPrincipal("9876543210", candidates, verify);
   if (primary?.type !== "admin" || primary.name !== "مدير النظام العام") {
     throw new Error("Legacy administrator identity changed");
