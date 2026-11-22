@@ -20,7 +20,8 @@ button:disabled{opacity:.5;cursor:wait}
 <div class="note"><b>مهم:</b> هذا اختبار لمرحلة ما بعد المصادقة بصفة مدير تجريبية، وليس تسجيل دخول حقيقيًا بحساب المدرسة. جميع طلبات التطبيق المحمية معطلة في بيئة المعاينة.</div>
 <iframe id="app" title="واجهة النظام التجريبية" src="./?review=admin-login-lab"></iframe>
 <div class="actions">
-<button onclick="run('dashboard')">1. تهيئة لوحة المدير</button>
+<button onclick="run('dashboard')">1. اختبار إنهاء تسجيل دخول المدير</button>
+<button onclick="run('dashboardPanel')">2. فتح لوحة التحكم بعد الدخول</button>
 <button onclick="run('studentAffairs')">2. محاكاة تحميل شؤون الطلبة للمدير</button>
 <button onclick="run('reserve')">3. اختبار واجهة الاحتياط</button>
 <button onclick="run('duty')">4. اختبار واجهة المناوبة</button>
@@ -56,14 +57,18 @@ async function run(name){
  }
  const measure=async(label,fn)=>{const t=performance.now();try{const result=await fn();return {label,ms:Math.round(performance.now()-t),ok:true,result:result??null};}catch(e){return {label,ms:Math.round(performance.now()-t),ok:false,error:String(e?.stack||e)};}};
  let out=[];
- if(testCase==="dashboard"||testCase==="all"){
+ if(["dashboard","dashboardPanel","all"].includes(testCase)){
    localOnlySession=false;cloudDataLoadState="ready";
    appAuthSession={token:"a".repeat(64),expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"}};
    const authActions=[];
    window.appAuthRequest=async(body)=>{authActions.push(body.action);if(body.action==="timetable_check_access")return {canAccess:true,teacherPortalEnabled:false,teacherPortalCanAccess:false};return {};};
-   out.push(await measure("تهيئة لوحة المدير بعد مصادقة افتراضية",()=>finalizeLoginState()));
-   out.push({label:"طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي",ms:0,ok:true,result:{appStudentAffairsSessionCalls:authActions.filter(x=>x==="app_student_affairs_session").length,allAuthActions:authActions}});
-   out.push(await measure("فتح لوحة التحكم",()=>{openAdminModal();switchAdminTab("dashboard");}));
+   if(testCase==="dashboard"||testCase==="all"){
+     out.push(await measure("تهيئة لوحة المدير بعد مصادقة افتراضية",()=>finalizeLoginState()));
+     out.push({label:"طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي",ms:0,ok:true,result:{appStudentAffairsSessionCalls:authActions.filter(x=>x==="app_student_affairs_session").length,allAuthActions:authActions}});
+   }
+   if(testCase==="dashboardPanel"||testCase==="all"){
+     out.push(await measure("فتح لوحة التحكم",async()=>{await openAdminModal();}));
+   }
  }
  if(testCase==="studentAffairs"||testCase==="all"){
    localOnlySession=false;
