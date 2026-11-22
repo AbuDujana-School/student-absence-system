@@ -33,7 +33,7 @@ button:disabled{opacity:.5;cursor:wait}
 <script>
 const frame=document.getElementById('app'),log=document.getElementById('log');
 function write(v){log.textContent+=((log.textContent.trim()? "\n":"")+v);}
-function run(name){
+async function run(name){
  const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
  const w=frame.contentWindow;
  const script=`(async()=>{
