@@ -378,10 +378,12 @@ Deno.test("unauthenticated startup does not fetch protected school tables", () =
 Deno.test("secure session validation completes before cloud loading begins", () => {
   const check = section("async function checkExistingSession()", "async function handleUserLogin(e)");
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord(");
-  const validate = check.indexOf("appAuthRequest({ action: \"app_session\" }, appToken)");
+  const validate = check.indexOf("appAuthRequest({ action: \"app_session\" }, appToken, controller.signal)");
+  const staleGuard = check.indexOf("if (!restoreIsCurrent()) return;\n    if (result?.principal?.type", validate);
   const activate = check.indexOf("activeUser = result.principal");
   const finalize = check.indexOf("await finalizeLoginState()");
-  assert(validate >= 0 && validate < activate && activate < finalize, "A stored app session must be validated before activating the principal");
+  assert(validate >= 0 && validate < staleGuard && staleGuard < activate && activate < finalize,
+    "A stored app session must be validated and remain current before activating the principal");
   const saveToken = login.indexOf("saveAppAuthSession(serverLogin)");
   const loginFinalize = login.indexOf("await finalizeLoginState()");
   assert(saveToken >= 0 && saveToken < loginFinalize, "A new secure token must be stored before loading protected school data");
