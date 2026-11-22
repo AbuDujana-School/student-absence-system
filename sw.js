@@ -64,7 +64,7 @@ self.addEventListener('fetch', event => {
   // JavaScript and CSS must be refreshed from the network first. A stale
   // cached application script can leave login or cloud-sync UI in an old state
   // after GitHub Pages has already published a newer index.html.
-  if (url.origin === self.location.origin && /\\.(?:js|css)$/.test(url.pathname)) {
+  if (url.origin === self.location.origin && /\.(?:js|css)$/.test(url.pathname)) {
     event.respondWith((async () => {
       const cache = await caches.open(RUNTIME_CACHE);
       try {
