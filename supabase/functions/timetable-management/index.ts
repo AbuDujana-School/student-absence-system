@@ -151,6 +151,12 @@ const timetableAuthStore: TimetableAuthStore = {
       .select("value").eq("key", "admin_pin").maybeSingle();
     return !error && !!data?.value?.hash && !!data?.value?.salt;
   },
+  async findAdminTeacher(name) {
+    const { data, error } = await db.from("teachers")
+      .select("name,role,permissions").eq("name", name).maybeSingle();
+    return !error && data?.name === name && data.role === "teacher"
+      && data.permissions?.admin === true && data.permissions?.additionalAdmin === true;
+  },
   async findTeacher(name, includePermissions = false) {
     let data: any = null;
     let error: any = null;
@@ -330,6 +336,17 @@ function buildClassCoverage(cells: any[], classNames: string[], periodCount: num
     classes,
   };
 }
+async function isAdminReserveAccessEnabled(): Promise<boolean> {
+  const { data, error } = await db.from("school_settings")
+    .select("value").eq("key", "admin_reserve_access").maybeSingle();
+  if (error) throw new Error("Unable to verify temporary admin reserve access gate");
+  const setting = data?.value;
+  if (!setting || typeof setting !== "object" || Array.isArray(setting)) return true;
+  if (setting.enabled !== false) return true;
+  const expiresAt = typeof setting.expires_at === "string" ? Date.parse(setting.expires_at) : Number.NaN;
+  return Number.isFinite(expiresAt) && Date.now() >= expiresAt;
+}
+
 async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
@@ -338,6 +355,16 @@ async function handle(req: Request) {
   const action = String(body.action || "");
   const principal = await requirePrincipal(req, action);
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
+  if (principal.type === "admin" && action.startsWith("timetable_substitution_")) {
+    try {
+      if (!(await isAdminReserveAccessEnabled())) {
+        return reply(403, { error: "تم إيقاف صلاحية إدارة الاحتياط للمدير العام مؤقتاً لأغراض التشخيص." });
+      }
+    } catch (error) {
+      console.error("Admin reserve access gate check failed:", error instanceof Error ? error.message : "unknown");
+      return reply(503, { error: "تعذر التحقق من صلاحية الاحتياط المؤقتة. حاول لاحقاً." });
+    }
+  }
   // The live reserve grant is already included in the teacher identity lookup.
   const hasReservePermission = principal.type === "teacher" &&
     action.startsWith("timetable_substitution_") && principal.reserveAccess === true;

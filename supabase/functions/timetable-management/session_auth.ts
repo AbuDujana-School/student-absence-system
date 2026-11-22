@@ -35,6 +35,7 @@ export interface TimetableTeacherLookup {
 export interface TimetableAuthStore {
   findSession(tokenHash: string, nowIso: string): Promise<TimetableSessionLookup | null>;
   hasAdminCredential(): Promise<boolean>;
+  findAdminTeacher?(name: string): Promise<boolean>;
   findTeacher(name: string, includePermissions?: boolean): Promise<TimetableTeacherLookup | null>;
   hasTimetableAccess(type: "teacher" | "custom", name: string): Promise<boolean>;
   hasDutyReportAccess?(type: "teacher" | "custom", name: string, permissions?: Record<string, unknown>, checkCurrentDay?: boolean): Promise<boolean>;
@@ -73,9 +74,14 @@ export async function resolveTimetablePrincipal(
   const expiresAt = Date.parse(session.expires_at);
   if (!Number.isFinite(expiresAt) || expiresAt <= now) return null;
 
-  if (session.principal_type === "admin" && session.principal_name === "مدير النظام العام") {
-    return await store.hasAdminCredential()
-      ? { type: "admin", name: "مدير النظام العام" }
+  if (session.principal_type === "admin" && typeof session.principal_name === "string" && session.principal_name.trim()) {
+    if (session.principal_name === "مدير النظام العام") {
+      return await store.hasAdminCredential()
+        ? { type: "admin", name: "مدير النظام العام" }
+        : null;
+    }
+    return store.findAdminTeacher && await store.findAdminTeacher(session.principal_name)
+      ? { type: "admin", name: session.principal_name }
       : null;
   }
 

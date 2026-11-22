@@ -17,6 +17,7 @@ function storeWith(
   session: TimetableSessionLookup | null,
   options: {
     admin?: boolean;
+    adminTeacher?: boolean;
     teacher?: { name: string; role: string; reserveAccess?: boolean; permissions?: Record<string, unknown> } | null;
     access?: boolean;
     reserve?: boolean;
@@ -35,6 +36,10 @@ function storeWith(
     async hasAdminCredential() {
       calls.push("admin");
       return options.admin === true;
+    },
+    async findAdminTeacher(name) {
+      calls.push("admin-teacher:" + name);
+      return options.adminTeacher === true;
     },
     async findTeacher(name, includePermissions = false) {
       calls.push("teacher:" + name);
@@ -601,5 +606,19 @@ Deno.test("reserve distribution report grant is read-only and does not grant arc
     "Bearer " + TOKEN, archiveOnlyStore, NOW, "timetable_substitution_archive",
   ) !== null) {
     throw new Error("The report-only grant incorrectly authorized the reserve archive");
+  }
+});
+
+
+Deno.test("additional administrator sessions require the explicit additional-admin marker on the teacher record", async () => {
+  const session = { principal_type: "admin", principal_name: "Tester1", expires_at: EXPIRY };
+  const allowed = storeWith(session, { adminTeacher: true });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowed, NOW);
+  if (principal?.type !== "admin" || principal.name !== "Tester1") {
+    throw new Error("Explicitly designated additional administrator was rejected");
+  }
+  const ordinaryTeacher = storeWith(session, { adminTeacher: false, teacher: { name: "Tester1", role: "teacher" } });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, ordinaryTeacher, NOW) !== null) {
+    throw new Error("Ordinary teacher session was promoted to administrator");
   }
 });
