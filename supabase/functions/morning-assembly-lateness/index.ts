@@ -65,9 +65,9 @@ async function authenticate(req:Request):Promise<Principal|null> {
     return {type:"admin",name:String(user.name),permissions:{}};
   }
   if (user.role !== session.principal_type) return null;
-  if (isSecondaryAdminTeacher(user)) {
-    return {type:"admin",name:String(user.name),permissions:{}};
-  }
+  // A teacher bearer issued before promotion is stale; the app-session bridge
+  // requires a fresh login before this account receives administrator access.
+  if (session.principal_type === "teacher" && isSecondaryAdminTeacher(user)) return null;
   return {
     type:session.principal_type as "teacher"|"custom",
     name:String(user.name),
