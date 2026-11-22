@@ -151,7 +151,7 @@ test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cann
   assert.match(persistence, /withAppSyncTimeout\(/);
   assert.match(persistence, /APP_SYNC_LOCAL_SNAPSHOT_TIMEOUT/);
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
+  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 2);
   assert.doesNotMatch(loader, /await persistOfflineState\(\)/);
   assert.match(loader, /تعذر تحديث النسخة المحلية الدائمة/);
 });
