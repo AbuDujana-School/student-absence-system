@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>مختبر عزل دخول المدير - مدرسة أبو دجانة</title>
+<style>
+*{box-sizing:border-box}body{margin:0;padding:18px;font-family:Tahoma,Arial,sans-serif;background:#f2f6f8;color:#17324b}
+main{max-width:980px;margin:auto;background:white;border:1px solid #dbe5ea;border-radius:20px;padding:20px;box-shadow:0 10px 35px #17324b12}
+h1{font-size:22px;margin:0 0 8px}p{line-height:1.8;color:#526879;font-size:13px}
+.note{background:#fff8e8;border:1px solid #f0dca8;padding:12px;border-radius:12px;font-size:12px;line-height:1.8}
+iframe{width:100%;height:480px;border:1px solid #d5e0e6;border-radius:12px;background:#fff;margin:14px 0}
+.actions{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+button{padding:12px;border:0;border-radius:10px;background:#155e63;color:white;font-weight:700;cursor:pointer}
+button:disabled{opacity:.5;cursor:wait}
+#log{white-space:pre-wrap;direction:rtl;background:#102a43;color:#d8e9f3;padding:14px;border-radius:12px;min-height:140px;font:12px/1.8 monospace;overflow-wrap:anywhere}
+</style></head>
+<body><main>
+<h1>مختبر عزل مسار دخول المدير</h1>
+<p>نسخة تجريبية معزولة. لا تستخدم الرقم السري الحقيقي، ولا تتصل بقاعدة بيانات المدرسة أو تعدّل سجلاتها. تختبر واجهة المدير وأقسام الاحتياط والمناوبة والطابور وشؤون الطلبة باستخدام بيانات وهمية.</p>
+<div class="note"><b>مهم:</b> هذا اختبار لمرحلة ما بعد المصادقة بصفة مدير تجريبية، وليس تسجيل دخول حقيقيًا بحساب المدرسة. جميع طلبات التطبيق المحمية معطلة في بيئة المعاينة.</div>
+<iframe id="app" title="واجهة النظام التجريبية" src="./?review=admin-login-lab"></iframe>
+<div class="actions">
+<button onclick="run('dashboard')">1. تهيئة لوحة المدير</button>
+<button onclick="run('studentAffairs')">2. محاكاة تحميل شؤون الطلبة للمدير</button>
+<button onclick="run('reserve')">3. اختبار واجهة الاحتياط</button>
+<button onclick="run('duty')">4. اختبار واجهة المناوبة</button>
+<button onclick="run('morning')">5. اختبار الطابور الصباحي</button>
+<button onclick="run('timetable')">6. اختبار صلاحية الجدول</button>
+<button onclick="run('all')">تشغيل جميع الاختبارات بالتتابع</button>
+</div>
+<h3>سجل الاختبارات</h3><div id="log">بانتظار تشغيل الاختبار...</div>
+</main>
+<script>
+const frame=document.getElementById('app'),log=document.getElementById('log');
+function write(v){log.textContent+=((log.textContent.trim()? "\n":"")+v);}
+function run(name){
+ const buttons=[...document.querySelectorAll('button')];buttons.forEach(b=>b.disabled=true);
+ const w=frame.contentWindow;
+ const script=`(async()=>{
+ const testCase="@@CASE@@";
+ const started=performance.now();
+ if(!window.__adminLabReady){
+   uiReviewPrepare();
+   localOnlySession=true;
+   activeUser={type:"admin",name:"مدير تجريبي",permissions:{admin:true,studentAffairs:true,duty:true,reports:true}};
+   db.classes=(DEFAULT_CLASSES||[]).slice();
+   db.teachers=Array.from({length:120},(_,i)=>({name:"معلم تجريبي "+(i+1),role:"teacher",permissions:{studentAffairs:true,student_affairs_role:i%10===0?"team_leader":i%10===1?"supervisor":"",student_affairs_team_name:"فريق "+Math.floor(i/10),duty:true}}));
+   db.students=Object.fromEntries(db.classes.map(c=>[c,Array.from({length:12},(_,i)=>"طالب تجريبي "+(i+1))]));
+   db.dutyModule=normalizeDutyModule(db.dutyModule);
+   db.dutyModule.periods=Array.from({length:8},(_,i)=>({start:"07:"+String(i*5).padStart(2,"0"),end:"07:"+String(i*5+4).padStart(2,"0")}));
+   db.dutyModule.records=[];
+   saSession={token:"preview-session",expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"}};
+   saReportPermissions={can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"admin"};
+   saAdminData={teachers:db.teachers,permissions:[],classes:db.classes.map(name=>({name}))};
+   window.__adminLabReady=true;
+ }
+ const measure=async(label,fn)=>{const t=performance.now();try{const result=await fn();return {label,ms:Math.round(performance.now()-t),ok:true,result:result??null};}catch(e){return {label,ms:Math.round(performance.now()-t),ok:false,error:String(e?.stack||e)};}};
+ let out=[];
+ if(testCase==="dashboard"||testCase==="all"){
+   localOnlySession=true;out.push(await measure("تهيئة لوحة المدير",()=>finalizeLoginState()));
+   out.push(await measure("فتح لوحة التحكم",()=>{openAdminModal();switchAdminTab("dashboard");}));
+ }
+ if(testCase==="studentAffairs"||testCase==="all"){
+   localOnlySession=false;
+   appAuthSession={token:"a".repeat(64),expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"}};
+   window.appAuthRequest=async(body)=>({principal:{type:"admin",name:"مدير تجريبي"},permissions:{can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"admin"}});
+   saAdminData={teachers:db.teachers,permissions:[],classes:db.classes.map(name=>({name}))};
+   out.push(await measure("محاكاة saLogin للمدير مع 120 معلم",()=>saLogin("1234")));
+   out.push(await measure("تهيئة منافسات وإشراف شؤون الطلبة",async()=>{await saSetupCompetitionPanel();await saSetupSupervisionPanel();}));
+ }
+ if(testCase==="reserve"||testCase==="all"){
+   localOnlySession=true;out.push(await measure("فتح واجهة الاحتياط",()=>openSubstitutionView()));
+ }
+ if(testCase==="duty"||testCase==="all"){
+   localOnlySession=true;out.push(await measure("فتح واجهة المناوبة",()=>{openDutyView();initDutyAdminPanel();}));
+ }
+ if(testCase==="morning"||testCase==="all"){
+   localOnlySession=true;out.push(await measure("عرض بطاقة الطابور",()=>refreshMorningAssemblyLatenessCard()));
+   out.push(await measure("فتح واجهة الطابور وعرض الصفوف",()=>openMorningAssemblyLateness()));
+ }
+ if(testCase==="timetable"||testCase==="all"){
+   localOnlySession=false;out.push(await measure("فحص تهيئة صلاحية الجدول",()=>timetableRefreshAccess({deferAdminPortalStatus:true})));
+ }
+ return out;
+})()`;
+ try{
+   const results=await w.eval(script.replace("@@CASE@@",name));
+   results.forEach(r=>write((r.ok?"نجح":"تعثر")+" | "+r.label+" | "+r.ms+" ms"+(r.error?"\n"+r.error:"")));
+ }catch(e){write("خطأ في تشغيل الاختبار: "+String(e?.stack||e));}
+ finally{buttons.forEach(b=>b.disabled=false);}
+}
+frame.addEventListener('load',()=>{log.textContent="تم تحميل نسخة المعاينة. اختر اختباراً للبدء.";});
+</script></body></html>
