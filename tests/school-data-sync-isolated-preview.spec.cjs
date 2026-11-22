@@ -11,8 +11,12 @@ const TABLES = [
   "duty_reports",
 ];
 
-test("school sync projections and timetable access reads stay isolated and minimal", async ({ page }) => {
+test("school sync projections and timetable access reads stay isolated and minimal", async ({ browser }) => {
   test.setTimeout(120_000);
+  // Keep the service worker out of this isolated test so Playwright network routes
+  // can intercept every Supabase request before it leaves the browser.
+  const context = await browser.newContext({ serviceWorkers: "block" });
+  const page = await context.newPage();
 
   const now = new Date().toISOString();
   const fixtures = {
@@ -391,4 +395,5 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(blockedWrites, "No REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
+  await context.close();
 });
