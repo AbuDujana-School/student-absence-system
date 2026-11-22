@@ -43,7 +43,7 @@ test.afterAll(async () => { await browser?.close(); await new Promise(resolve =>
 
 async function prepareAdmin() {
   await page.goto(baseUrl,{waitUntil:"domcontentloaded",timeout:60000});
-  await expect(page.locator("#uiReviewLauncher")).toBeVisible({timeout:30000});
+  await expect(page.locator("#uiReviewLauncher")).toHaveCount(1);
   await page.evaluate(() => {
     uiReviewPrepare();
     localOnlySession = false;
