@@ -57,15 +57,31 @@ function run(name){
  const measure=async(label,fn)=>{const t=performance.now();try{const result=await fn();return {label,ms:Math.round(performance.now()-t),ok:true,result:result??null};}catch(e){return {label,ms:Math.round(performance.now()-t),ok:false,error:String(e?.stack||e)};}};
  let out=[];
  if(testCase==="dashboard"||testCase==="all"){
-   localOnlySession=true;out.push(await measure("تهيئة لوحة المدير",()=>finalizeLoginState()));
+   localOnlySession=false;cloudDataLoadState="ready";
+   appAuthSession={token:"a".repeat(64),expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"}};
+   const authActions=[];
+   window.appAuthRequest=async(body)=>{authActions.push(body.action);if(body.action==="timetable_check_access")return {canAccess:true,teacherPortalEnabled:false,teacherPortalCanAccess:false};return {};};
+   out.push(await measure("تهيئة لوحة المدير بعد مصادقة افتراضية",()=>finalizeLoginState()));
+   out.push({label:"طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي",ms:0,ok:true,result:{appStudentAffairsSessionCalls:authActions.filter(x=>x==="app_student_affairs_session").length,allAuthActions:authActions}});
    out.push(await measure("فتح لوحة التحكم",()=>{openAdminModal();switchAdminTab("dashboard");}));
  }
  if(testCase==="studentAffairs"||testCase==="all"){
    localOnlySession=false;
    appAuthSession={token:"a".repeat(64),expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"}};
-   window.appAuthRequest=async(body)=>({principal:{type:"admin",name:"مدير تجريبي"},permissions:{can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"admin"}});
-   saAdminData={teachers:db.teachers,permissions:[],classes:db.classes.map(name=>({name}))};
-   out.push(await measure("محاكاة saLogin للمدير مع 120 معلم",()=>saLogin("1234")));
+   saSession=null;
+   const permissions={can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"admin",allowed_attendance_classes:db.classes,allowed_behavior_classes:db.classes,attendance_statuses:["absent","late","escape","outside"]};
+   window.appAuthRequest=async(body)=>body.action==="app_student_affairs_session"?{token:"b".repeat(64),expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"},permissions}:({canAccess:true});
+   window.saRequest=async(body)=>{
+     if(body.action==="get_permissions")return {teachers:db.teachers,permissions:[],classes:db.classes.map(name=>({name}))};
+     if(body.action==="get_my_permissions")return {permissions};
+     if(body.action==="reports")return {attendance:[],behaviors:[]};
+     if(body.action==="competition_settings"){const y=Number(getOmanLocalDate().slice(0,4));return {terms:[{id:y+"-09-01",start:y+"-09-01",end:(y+1)+"-06-30",label:"فصل تجريبي"}],currentTermId:y+"-09-01",selectedTermId:y+"-09-01",showBothTerms:false};}
+     if(body.action==="competition")return {status:"no_participants",period:body.period||"weekly",teams:[],weeklyPoints:{},weeklyWins:{}};
+     if(body.action==="supervision_team")return {teachers:db.teachers};
+     if(body.action==="supervision_trend")return {series:[],class_count:db.classes.length};
+     return {};
+   };
+   out.push(await measure("فتح شؤون الطلبة لأول مرة (تحميل مؤجل بعد النقر)",()=>openStudentAffairsView(true)));
    out.push(await measure("تهيئة منافسات وإشراف شؤون الطلبة",async()=>{await saSetupCompetitionPanel();await saSetupSupervisionPanel();}));
  }
  if(testCase==="reserve"||testCase==="all"){
