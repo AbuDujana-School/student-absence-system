@@ -8,7 +8,7 @@ import { canReadDutyReportPeriod, isDutyReportEligibleOnDay } from "./duty_repor
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
-import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
+import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canResetSubstitution, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1418,7 +1418,7 @@ async function handle(req: Request) {
     const date=String(body.assignmentDate||"").trim();
     const subject=String(body.subject||"").trim();
     const isSystemAdmin=principal.type==="admin";
-    if(!isSystemAdmin && !(principal.type==="teacher"&&hasReservePermission&&mode==="subject_day")) {
+    if(!canResetSubstitution(principal.type, mode, hasReservePermission)) {
       return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل متاح لحسابات المدير."});
     }
     if(mode==="subject_day" && (!/^\d{4}-\d{2}-\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
