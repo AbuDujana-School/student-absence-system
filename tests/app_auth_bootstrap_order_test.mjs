@@ -166,17 +166,25 @@ test("IndexedDB restore is bounded and falls back without blocking authenticated
   assert.match(restore, /database\.transaction\('state', 'readonly'\)/);
 });
 
-test("cloud bootstrap avoids synchronous localStorage serialization when IndexedDB persistence succeeds", () => {
+test("unchanged cloud manifests do not reserialize the full offline database", () => {
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
   const noChangeStart = loader.indexOf("if (nextManifest && changedTables.length === 0)");
   const noChangeEnd = loader.indexOf("const shouldLoad =", noChangeStart);
   assert.ok(noChangeStart >= 0 && noChangeEnd > noChangeStart);
   const noChange = loader.slice(noChangeStart, noChangeEnd);
-  assert.ok(noChange.indexOf("await persistOfflineStateWithTimeout()") < noChange.indexOf("saveToLocalStorageSafe()"));
-  assert.match(noChange, /if \(!localSnapshotSaved && \(hasPendingOfflineChanges\(\) \|\| getPendingDeletes\(\)\.length\)\)/);
+  assert.doesNotMatch(noChange, /persistOfflineStateWithTimeout|saveToLocalStorageSafe/);
+  assert.match(noChange, /applyPendingLocalDeletions\(\)/);
+  assert.match(noChange, /updateSyncStatus\(!pendingSync, pendingSync/);
+
+  const capture = section("function captureDirtyLocalState()", "function mergeDirtyLocalState");
+  assert.match(capture, /pickDirtyEntries\(db\.students, dirty\.students\)/);
+  assert.match(capture, /pickDirtyEntries\(db\.attendance, dirty\.attendance\)/);
+  assert.match(capture, /pickDirtyEntries\(db\.behaviors, dirty\.behaviors\)/);
+  assert.doesNotMatch(capture, /cloneOfflineValue\(db\)/);
 
   const manifestSave = loader.lastIndexOf("if (nextManifest) lastLoadedCloudManifest = nextManifest");
   const finalPersist = loader.indexOf("await persistOfflineStateWithTimeout()", manifestSave);
   const fallbackSave = loader.indexOf("if (!localSnapshotSaved) saveToLocalStorageSafe()", manifestSave);
   assert.ok(manifestSave >= 0 && finalPersist > manifestSave && fallbackSave > finalPersist);
+  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 2);
 });
