@@ -227,6 +227,6 @@ test("mobile PIN input normalizes Arabic, Persian, and full-width numerals befor
   assert.equal(normalize(" ١2۳٤ "), " 1234 ");
 
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
-  assert.match(login, /normalizeAppPinDigits\\(pinInput\\?\\.value\\?\\.trim\\(\\) \\|\\| ""\\)/);
-  assert.match(login, /pinInput\\.value = pin/);
+  assert.ok(login.includes('normalizeAppPinDigits(pinInput?.value?.trim() || "")'));
+  assert.ok(login.includes("pinInput.value = pin"));
 });
