@@ -34,6 +34,7 @@ jobs:
     name: Exercise admin modules with mock data only
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # Keep the harness alive long enough to surface its bounded preview diagnostics.
     steps:
       - name: Check out isolated diagnostic branch
         uses: actions/checkout@v4
