@@ -86,6 +86,26 @@ test("school sync projections and timetable access reads stay isolated and minim
     if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ method: request.method(), url: request.url() });
   });
 
+  await page.addInitScript(() => {
+    const originalGet = IDBObjectStore.prototype.get;
+    IDBObjectStore.prototype.get = function (...args) {
+      console.log("QA_BOOT_IDB get:start:" + this.name + ":" + String(args[0]));
+      const request = originalGet.apply(this, args);
+      request.addEventListener("success", () => console.log("QA_BOOT_IDB get:success:" + this.name));
+      request.addEventListener("error", () => console.log("QA_BOOT_IDB get:error:" + this.name + ":" + (request.error?.message || "unknown")));
+      return request;
+    };
+    const originalTransaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      console.log("QA_BOOT_IDB tx:start:" + JSON.stringify(args));
+      const transaction = originalTransaction.apply(this, args);
+      transaction.addEventListener("complete", () => console.log("QA_BOOT_IDB tx:complete"));
+      transaction.addEventListener("abort", () => console.log("QA_BOOT_IDB tx:abort:" + (transaction.error?.message || "unknown")));
+      transaction.addEventListener("error", () => console.log("QA_BOOT_IDB tx:error:" + (transaction.error?.message || "unknown")));
+      return transaction;
+    };
+  });
+
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
