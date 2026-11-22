@@ -1,3 +1,4 @@
+import { isAdditionalAdminTeacher } from "./admin_principal_policy.ts";
 import {
   createAppSessionToken,
   type AppSessionRecord,
@@ -145,4 +146,17 @@ Deno.test("general app session refuses invalid identities and invalid TTLs", asy
   rejected = false;
   try { await issueAppSession(store, { type: "admin", name: "Admin", permissions: {}, mustChangePin: false }, Date.now(), 48); } catch { rejected = true; }
   if (!rejected) throw new Error("Excessive TTL accepted");
+});
+
+
+Deno.test("additional admin elevation requires a separate explicit marker on a teacher", () => {
+  if (!isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: true, additionalAdmin: true } })) {
+    throw new Error("Explicitly designated additional administrator was rejected");
+  }
+  if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: true } })) {
+    throw new Error("Admin permission alone must not elevate a teacher");
+  }
+  if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: false, additionalAdmin: true } })) {
+    throw new Error("Additional-admin marker without admin permission must be rejected");
+  }
 });
