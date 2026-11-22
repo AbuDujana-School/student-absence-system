@@ -318,6 +318,12 @@ test("school sync projections and timetable access reads stay isolated and minim
       restKeys: sb?.rest ? Object.keys(sb.rest) : [],
       restFetchType: typeof sb?.rest?.fetch,
       restUrl: sb?.rest?.url || null,
+      restTimeout: sb?.rest?.timeout ?? null,
+      restFetchIsWindowFetch: sb?.rest?.fetch === window.fetch,
+      restBaseFetchIsWindowFetch: sb?.rest?.baseFetch === window.fetch,
+      restFetchSource: typeof sb?.rest?.fetch === "function" ? sb.rest.fetch.toString().slice(0, 900) : null,
+      restWrapFetchSource: typeof sb?.rest?.wrapFetch === "function" ? sb.rest.wrapFetch.toString().slice(0, 900) : null,
+      restBaseFetchSource: typeof sb?.rest?.baseFetch === "function" ? sb.rest.baseFetch.toString().slice(0, 900) : null,
       locksType: typeof navigator?.locks,
       serviceWorkerController: !!navigator?.serviceWorker?.controller
     }));
