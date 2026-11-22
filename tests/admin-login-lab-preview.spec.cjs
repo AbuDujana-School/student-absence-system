@@ -62,12 +62,22 @@ test.afterAll(async () => {
   await new Promise(resolve => server?.close(resolve));
 });
 
-async function prepareCase(buttonName, expectedLabel) {
+async function prepareCase(caseKey, buttonName, expectedLabel) {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
   const app = page.frameLocator("#app");
   await expect(app.locator("body")).toContainText("معاينة واجهات فقط", { timeout: 30000 });
-  await page.getByRole("button", { name: buttonName }).click();
-  await expect(page.locator("#log")).toContainText(expectedLabel, { timeout: 30000 });
+  // Invoke the async harness directly. Playwright's click action can time out
+  // while the preview's async cross-frame evaluation is still running, hiding
+  // the actual module result. A bounded evaluation reports the harness result.
+  const execution = await page.evaluate(async key => {
+    const runPromise = window.run(key);
+    return await Promise.race([
+      runPromise.then(() => ({ completed: true })),
+      new Promise(resolve => setTimeout(() => resolve({ completed: false, timeout: true }), 20000))
+    ]);
+  }, caseKey);
+  expect(execution.completed, `preview case did not finish: ${caseKey}`).toBe(true);
+  await expect(page.locator("#log")).toContainText(expectedLabel, { timeout: 5000 });
   const log = await page.locator("#log").innerText();
   expect(log, `case failed: ${expectedLabel}\n${log}`).not.toContain("تعثر |");
   expect(log, `case threw an exception: ${expectedLabel}\n${log}`).not.toContain("خطأ في تشغيل الاختبار");
@@ -75,20 +85,20 @@ async function prepareCase(buttonName, expectedLabel) {
 }
 
 test("admin post-login finalization completes without starting Student Affairs or production calls", async () => {
-  const log = await prepareCase("1. اختبار إنهاء تسجيل دخول المدير", "طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي");
+  const log = await prepareCase("dashboard", "1. اختبار إنهاء تسجيل دخول المدير", "طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي");
   expect(log).toContain('"appStudentAffairsSessionCalls":0');
   expect(productionRequests).toEqual([]);
   expect(browserErrors).toEqual([]);
 });
 
 test("administrator control panel opens independently after login", async () => {
-  const log = await prepareCase("2. فتح لوحة التحكم بعد الدخول", "فتح لوحة التحكم");
+  const log = await prepareCase("dashboardPanel", "2. فتح لوحة التحكم بعد الدخول", "فتح لوحة التحكم");
   expect(productionRequests).toEqual([]);
   expect(browserErrors).toEqual([]);
 });
 
 test("Student Affairs obtains its secondary session only after the administrator opens it", async () => {
-  const log = await prepareCase("2. محاكاة تحميل شؤون الطلبة للمدير", "فتح شؤون الطلبة لأول مرة");
+  const log = await prepareCase("studentAffairs", "2. محاكاة تحميل شؤون الطلبة للمدير", "فتح شؤون الطلبة لأول مرة");
   expect(log).toContain("تهيئة منافسات وإشراف شؤون الطلبة");
   expect(productionRequests).toEqual([]);
   expect(browserErrors).toEqual([]);
@@ -101,7 +111,7 @@ test("reserve, duty, morning assembly and timetable modules initialize in the ad
     ["5. اختبار الطابور الصباحي", "فتح واجهة الطابور وعرض الصفوف"],
     ["6. اختبار صلاحية الجدول", "فحص تهيئة صلاحية الجدول"]
   ]) {
-    await prepareCase(button, label);
+    await prepareCase(({ "3. اختبار واجهة الاحتياط":"reserve", "4. اختبار واجهة المناوبة":"duty", "5. اختبار الطابور الصباحي":"morning", "6. اختبار صلاحية الجدول":"timetable" })[button], button, label);
     expect(productionRequests).toEqual([]);
     expect(browserErrors).toEqual([]);
   }
