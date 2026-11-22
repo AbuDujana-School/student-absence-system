@@ -43,7 +43,7 @@ test("online cloud reads require an unexpired server-issued app session before a
   assert.match(helper, /session\?\.token/);
   assert.match(helper, /Date\.parse\(session\.expires_at\) > Date\.now\(\)/);
 
-  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  const loader = section("async function loadSystemDataFromCloud(options = {})", "function syncValuesEqual");
   const principalGuard = loader.indexOf("if (!activeUser)");
   const localOnlyGuard = loader.indexOf("if (localOnlySession)", principalGuard);
   const sessionGuard = loader.indexOf("if (navigator.onLine && !await ensureAppAuthSession())", localOnlyGuard);
@@ -90,7 +90,7 @@ test("cloud bootstrap requests have bounded waits and preserve local data on tim
   const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
   assert.match(manifest, /withAppSyncTimeout\(/);
   assert.match(manifest, /APP_SYNC_MANIFEST_TIMEOUT/);
-  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  const loader = section("async function loadSystemDataFromCloud(options = {})", "function syncValuesEqual");
   assert.match(loader, /APP_SYNC_MANIFEST_TIMEOUT/);
   assert.match(loader, /APP_SYNC_TABLES_TIMEOUT/);
   assert.match(loader, /cloudWritesBlockedByManifestFailure = true/);
@@ -121,7 +121,7 @@ test("each authenticated account starts a fresh cloud bootstrap", () => {
   const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
   assert.match(finalize, /if \(cloudRefreshInProgress\)/);
   assert.match(finalize, /waitForPreviousRefresh/);
-  assert.match(finalize, /await loadSystemDataFromCloud\(\)/);
+  assert.match(finalize, /await loadSystemDataFromCloud\(\{ forceFullSync: activeUser\?\.type === 'admin' \}\)/);
 });
 
 test("logout clears account-scoped cloud readiness", () => {
@@ -141,7 +141,7 @@ test("admin login defers full timetable portal status loading until the settings
 });
 
 test("authenticated cloud bootstrap reuses the offline snapshot already restored during app boot", () => {
-  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  const loader = section("async function loadSystemDataFromCloud(options = {})", "function syncValuesEqual");
   assert.match(loader, /const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot \|\| await restoreOfflineState\(\)/);
   const boot = section("window.addEventListener('DOMContentLoaded'", "function ");
   assert.match(boot, /offlineSnapshotRestoredAtBoot = await restoreOfflineState\(\)/);
@@ -151,7 +151,7 @@ test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cann
   const persistence = section("async function persistOfflineStateWithTimeout", "async function fetchAppSyncManifest");
   assert.match(persistence, /withAppSyncTimeout\(/);
   assert.match(persistence, /APP_SYNC_LOCAL_SNAPSHOT_TIMEOUT/);
-  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  const loader = section("async function loadSystemDataFromCloud(options = {})", "function syncValuesEqual");
   assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
   assert.doesNotMatch(loader, /await persistOfflineState\(\)/);
   assert.match(loader, /تعذر تحديث النسخة المحلية الدائمة/);
@@ -168,7 +168,7 @@ test("IndexedDB restore is bounded and falls back without blocking authenticated
 });
 
 test("unchanged cloud manifests persist only queued deletion overlays", () => {
-  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  const loader = section("async function loadSystemDataFromCloud(options = {})", "function syncValuesEqual");
   const noChangeStart = loader.indexOf("if (nextManifest && changedTables.length === 0)");
   const noChangeEnd = loader.indexOf("const shouldLoad =", noChangeStart);
   assert.ok(noChangeStart >= 0 && noChangeEnd > noChangeStart);

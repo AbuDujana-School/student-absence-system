@@ -6503,7 +6503,7 @@ function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback
   return changed;
 }
 
-async function loadSystemDataFromCloud() {
+async function loadSystemDataFromCloud(options = {}) {
   // Defense in depth: callers outside the normal login flow must not trigger
   // school-table reads while the application has no authenticated principal.
   if (!activeUser) {
@@ -6540,8 +6540,9 @@ async function loadSystemDataFromCloud() {
     // The manifest is metadata-only. It avoids downloading the seven school tables
     // when no server-side change has occurred since this device's last snapshot.
     let nextManifest = null;
-    try {
-      nextManifest = await fetchAppSyncManifest();
+    if (options.forceFullSync !== true) {
+      try {
+        nextManifest = await fetchAppSyncManifest();
     } catch (manifestError) {
       // A transient manifest/network failure must not fan out into seven full-table
       // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
@@ -6567,6 +6568,9 @@ async function loadSystemDataFromCloud() {
         updateSyncStatus(false, 'تعذر التحقق من تحديثات الخادم؛ التعديلات محفوظة محلياً ولن تُرفع حتى نجاح التحقق. سيُعاد المحاولة.');
         return false;
       }
+      }
+    } else {
+      console.warn('Temporary admin-login diagnostic: using the authenticated full-sync path instead of the revision manifest.');
     }
 
     const changedTables = nextManifest
@@ -7403,7 +7407,7 @@ async function finalizeLoginState() {
           if (pollTimer !== null) clearTimeout(pollTimer);
         }
       }
-      const loaded = await loadSystemDataFromCloud();
+      const loaded = await loadSystemDataFromCloud({ forceFullSync: activeUser?.type === 'admin' });
       if (!loaded) console.warn('Authenticated session is using the available local school snapshot.');
     })().catch(error => {
       console.warn('Background cloud load failed after login.', error);

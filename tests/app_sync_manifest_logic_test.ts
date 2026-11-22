@@ -4,7 +4,7 @@ function assert(condition: boolean, message: string) {
 }
 function loadManifestLogic() {
   const start = html.indexOf("const APP_SYNC_TABLES =");
-  const end = html.indexOf("async function loadSystemDataFromCloud()", start);
+  const end = html.indexOf("async function loadSystemDataFromCloud(options = {})", start);
   assert(start >= 0 && end > start, "Revision manifest helpers must exist before cloud loading");
   const source = html.slice(start, end);
   const factory = new Function(`${source}
@@ -108,7 +108,7 @@ Deno.test("Cloudflare branch previews select the isolated Supabase project only"
 });
 
 Deno.test("cloud refresh uses a manifest gate and guards every full-table request", () => {
-  const start = html.indexOf("async function loadSystemDataFromCloud()");
+  const start = html.indexOf("async function loadSystemDataFromCloud(options = {})");
   const end = html.indexOf("async function saveSystemDataToCloud(", start);
   assert(start >= 0 && end > start, "Cloud refresh implementation must exist");
   const load = html.slice(start, end);
@@ -131,7 +131,7 @@ Deno.test("cloud refresh uses a manifest gate and guards every full-table reques
 });
 
 Deno.test("local edits made during cloud requests are recaptured before replacing datasets", () => {
-  const start = html.indexOf("async function loadSystemDataFromCloud()");
+  const start = html.indexOf("async function loadSystemDataFromCloud(options = {})");
   const end = html.indexOf("async function saveSystemDataToCloud(", start);
   const load = html.slice(start, end);
   const initialCapture = load.indexOf("let pendingLocalState = captureDirtyLocalState()");
@@ -172,7 +172,7 @@ Deno.test("localStorage fallback stores and restores its matching revision manif
 });
 
 Deno.test("transient manifest failure preserves local edits and blocks stale cloud uploads", () => {
-  const loadStart = html.indexOf("async function loadSystemDataFromCloud()");
+  const loadStart = html.indexOf("async function loadSystemDataFromCloud(options = {})");
   const saveStart = html.indexOf("async function saveSystemDataToCloud(options = {})", loadStart);
   assert(loadStart >= 0 && saveStart > loadStart, "Cloud load and save functions must exist");
   const load = html.slice(loadStart, saveStart);
