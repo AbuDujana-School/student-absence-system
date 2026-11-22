@@ -186,19 +186,28 @@ test("school sync projections and timetable access reads stay isolated and minim
     { timeout: 30_000 },
   );
 
-  const initialLoad = await page.evaluate(async () => {
+  const pageResponsive = await Promise.race([
+    page.evaluate(() => ({ readyState: document.readyState, title: document.title })),
+    new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 15_000)),
+  ]);
+  expect(pageResponsive.nodeTimedOut, "The browser page must remain responsive before cloud loading").toBeFalsy();
+
+  const loadEvaluation = page.evaluate(async () => {
     const trace = [];
     const wrap = (name) => {
       const original = window[name];
-      if (typeof original !== "function") { trace.push(name + ":missing"); return; }
+      if (typeof original !== "function") { trace.push(name + ":missing"); console.log("QA_SYNC " + name + ":missing"); return; }
       window[name] = async (...args) => {
         trace.push(name + ":start");
+        console.log("QA_SYNC " + name + ":start");
         try {
           const value = await original(...args);
           trace.push(name + ":done");
+          console.log("QA_SYNC " + name + ":done");
           return value;
         } catch (error) {
           trace.push(name + ":error:" + (error?.message || String(error)));
+          console.log("QA_SYNC " + name + ":error:" + (error?.message || String(error)));
           throw error;
         }
       };
@@ -209,13 +218,15 @@ test("school sync projections and timetable access reads stay isolated and minim
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     };
-    const outcome = await Promise.race([
-      loadSystemDataFromCloud().then(value => ({ value }), error => ({ error: error?.stack || error?.message || String(error) })),
-      new Promise(resolve => setTimeout(() => resolve({ timedOut: true }), 30000)),
-    ]);
-    return { outcome, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
+    const value = await loadSystemDataFromCloud();
+    return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
-  expect(initialLoad.outcome, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toEqual({ value: true });
+  const initialLoad = await Promise.race([
+    loadEvaluation,
+    new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
+  ]);
+  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, browserConsole, pageErrors })).toBeFalsy();
+  expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,
