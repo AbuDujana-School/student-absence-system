@@ -1409,7 +1409,7 @@ async function handle(req: Request) {
     const mode=String(body.mode||"");
     const date=String(body.assignmentDate||"").trim();
     const subject=String(body.subject||"").trim();
-    const isSystemAdmin=principal.type==="admin"&&principal.name==="مدير النظام العام";
+    const isSystemAdmin=principal.type==="admin";
     if(!isSystemAdmin && !(principal.type==="teacher"&&hasReservePermission&&mode==="subject_day")) {
       return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل لمدير النظام العام."});
     }
