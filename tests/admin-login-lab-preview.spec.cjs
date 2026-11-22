@@ -67,7 +67,8 @@ test.afterAll(async () => {
 async function prepareCase(caseKey, buttonName, expectedLabel) {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
   const app = page.frameLocator("#app");
-  // The preview banner is the stable readiness signal; its sync-status text may be hidden by responsive UI.\n  await expect(app.locator("#uiReviewLauncher")).toBeVisible({ timeout: 45000 });
+  // Wait for the preview app itself, not just the outer iframe element.
+  await expect(app.locator("#uiReviewLauncher")).toBeVisible({ timeout: 45000 });
   // Start the preview asynchronously and let Playwright poll the log.
   // Awaiting window.run inside page.evaluate can hold the protocol call open
   // while the iframe performs its own async work.
