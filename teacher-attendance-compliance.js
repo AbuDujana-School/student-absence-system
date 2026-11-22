@@ -272,7 +272,9 @@
     const to = document.getElementById("teachersActivityTo");
     if (from && !from.value) from.value = today;
     if (to && !to.value) to.value = today;
-    loadReport();
+    // Keep this optional, data-heavy report out of the primary login/bootstrap path.
+    // The report's refresh button loads it on demand after the user opens the dashboard.
+    setStatus("اضغط «تحديث البيانات» لتحميل التقرير عند الحاجة.", "info");
   });
 
   function installComplianceModernUI() {
