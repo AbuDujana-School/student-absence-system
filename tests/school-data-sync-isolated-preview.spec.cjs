@@ -288,6 +288,32 @@ test("school sync projections and timetable access reads stay isolated and minim
         }
       };
     }
+    console.log("QA_SYNC restDiagnostics:" + JSON.stringify({
+      restType: typeof sb?.rest,
+      restKeys: sb?.rest ? Object.keys(sb.rest) : [],
+      restFetchType: typeof sb?.rest?.fetch,
+      restUrl: sb?.rest?.url || null,
+      locksType: typeof navigator?.locks,
+      serviceWorkerController: !!navigator?.serviceWorker?.controller
+    }));
+    if (typeof sb?.rest?.fetch === "function") {
+      const originalRestFetch = sb.rest.fetch.bind(sb.rest);
+      sb.rest.fetch = (...args) => {
+        console.log("QA_SYNC restFetch:call:" + String(args[0] || "").slice(0, 500));
+        try {
+          const result = originalRestFetch(...args);
+          console.log("QA_SYNC restFetch:return:" + (result && typeof result.then === "function" ? "promise" : typeof result));
+          if (result && typeof result.then === "function") {
+            result.then(response => console.log("QA_SYNC restFetch:fulfilled:" + response.status))
+              .catch(error => console.log("QA_SYNC restFetch:rejected:" + (error?.stack || error?.message || String(error))));
+          }
+          return result;
+        } catch (error) {
+          console.log("QA_SYNC restFetch:throw:" + (error?.stack || error?.message || String(error)));
+          throw error;
+        }
+      };
+    }
     ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
