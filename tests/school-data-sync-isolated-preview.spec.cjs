@@ -316,8 +316,28 @@ test("school sync projections and timetable access reads stay isolated and minim
       manifestFunctionType: typeof fetchAppSyncManifest,
       manifestFunctionSource: typeof fetchAppSyncManifest === "function" ? fetchAppSyncManifest.toString().slice(0, 1600) : null
     }));
-    // Keep the Supabase client and browser fetch implementation untouched.
-    // Network events are observed externally through Playwright page listeners.
+    // Add transparent call-boundary probes without changing RPC results or auth behavior.
+    // These distinguish a synchronous client stall from an auth-session lock wait.
+    const originalRpc = sb.rpc.bind(sb);
+    sb.rpc = (...args) => {
+      console.log("QA_RPC_CALL before:" + String(args[0]));
+      const result = originalRpc(...args);
+      console.log("QA_RPC_CALL returned:" + String(args[0]) + ":thenable=" + String(!!result && typeof result.then === "function"));
+      return result;
+    };
+    const originalGetSession = sb.auth.getSession.bind(sb.auth);
+    sb.auth.getSession = (...args) => {
+      console.log("QA_AUTH_SESSION_CALL start");
+      const result = originalGetSession(...args);
+      console.log("QA_AUTH_SESSION_CALL returned:thenable=" + String(!!result && typeof result.then === "function"));
+      return Promise.resolve(result).then(value => {
+        console.log("QA_AUTH_SESSION_CALL fulfilled");
+        return value;
+      }, error => {
+        console.log("QA_AUTH_SESSION_CALL rejected:" + (error?.message || String(error)));
+        throw error;
+      });
+    };
     ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
