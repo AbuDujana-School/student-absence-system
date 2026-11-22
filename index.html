@@ -7586,7 +7586,7 @@ async function checkAndEnforcePinChange() {
   return true;
 }
 async function checkAndEnforceAdminPinChange() {
-  if (!activeUser || activeUser.type !== 'admin') return false;
+  if (!activeUser || activeUser.type !== 'admin' || activeUser.name !== 'مدير النظام العام') return false;
   const isDefault = await verifyPinAgainstRecord('1234', db.adminPin);
   if (!isDefault) return false;
   const modal = document.getElementById('forceAdminPinModal');
