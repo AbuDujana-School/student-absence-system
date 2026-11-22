@@ -7022,11 +7022,24 @@ async function checkExistingSession() {
 }
 
 
+function normalizeAppPinDigits(value) {
+  return String(value ?? "").replace(/[٠-٩۰-۹０-９]/g, digit => {
+    const code = digit.charCodeAt(0);
+    const zeroCode = code >= 0x06f0 && code <= 0x06f9 ? 0x06f0
+      : code >= 0xff10 && code <= 0xff19 ? 0xff10
+      : 0x0660;
+    return String(code - zeroCode);
+  });
+}
+
 async function handleUserLogin(e) {
   e.preventDefault();
   const now = Date.now();
   if (now < loginLockedUntil) { const wait = Math.ceil((loginLockedUntil - now) / 1000); showToast("محاولات كثيرة. انتظر " + wait + " ثانية.", "error"); return; }
-  const pin = document.getElementById("userPinInput").value.trim(); if (!pin) return;
+  const pinInput = document.getElementById("userPinInput");
+  const pin = normalizeAppPinDigits(pinInput?.value?.trim() || "");
+  if (!pin) return;
+  if (pinInput) pinInput.value = pin;
   const btn = document.getElementById("loginSubmitBtn");
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
   document.getElementById("loginError").classList.add("hidden");

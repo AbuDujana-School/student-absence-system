@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { runInNewContext } from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
 
@@ -213,4 +214,19 @@ test("a secondary service 401 cannot clear a valid app session without canonical
   assert.ok(validation.includes("if (response.status === 401)"));
   assert.ok(validation.includes("if (!response.ok) return null"));
   assert.ok(validation.includes("if (currentToken === token) clearAppAuthSession()"));
+});
+
+
+test("mobile PIN input normalizes Arabic, Persian, and full-width numerals before login", () => {
+  const helper = section("function normalizeAppPinDigits(value)", "async function handleUserLogin(e)");
+  const normalize = runInNewContext(helper + "\\nnormalizeAppPinDigits");
+  assert.equal(normalize("١٢٣٤"), "1234");
+  assert.equal(normalize("۱۲۳۴"), "1234");
+  assert.equal(normalize("１２３４"), "1234");
+  assert.equal(normalize("1234"), "1234");
+  assert.equal(normalize(" ١2۳٤ "), " 1234 ");
+
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  assert.match(login, /normalizeAppPinDigits\\(pinInput\\?\\.value\\?\\.trim\\(\\) \\|\\| ""\\)/);
+  assert.match(login, /pinInput\\.value = pin/);
 });
