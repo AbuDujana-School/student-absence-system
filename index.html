@@ -10998,13 +10998,13 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
     showPwaUpdateNotice();
   });
 
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("./sw.js?v=20261122-login-refresh-2", { updateViaCache: "none" }).then(registration => {
-      // Check for a newer worker on every application start, including PWA windows.
-      return registration.update();
-    }).catch(error => {
-      console.warn("تعذر تحديث خدمة التطبيق:", error);
-    });
+  // Register immediately instead of waiting for window.load: external CDN assets
+  // must not delay the installed app's service-worker update check.
+  navigator.serviceWorker.register("./sw.js?v=20261122-admin-login-refresh-3", { updateViaCache: "none" }).then(registration => {
+    // Check for a newer worker on every application start, including PWA windows.
+    return registration.update();
+  }).catch(error => {
+    console.warn("تعذر تحديث خدمة التطبيق:", error);
   });
 }
 </script>
