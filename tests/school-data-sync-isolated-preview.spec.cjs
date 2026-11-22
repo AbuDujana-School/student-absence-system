@@ -141,7 +141,9 @@ test("school sync projections and timetable access reads stay isolated and minim
 
     if (url.pathname === "/rest/v1/rpc/get_app_sync_manifest" && method === "POST") {
       manifestCalls += 1;
+      console.log("QA_ROUTE manifest:start:" + manifestCalls);
       await route.fulfill({ status: 200, headers, body: JSON.stringify(manifest) });
+      console.log("QA_ROUTE manifest:fulfilled:" + manifestCalls);
       return;
     }
 
@@ -244,6 +246,14 @@ test("school sync projections and timetable access reads stay isolated and minim
       return transaction;
     };
     const originalFetch = window.fetch;
+    const originalSetTimeout = window.setTimeout;
+    window.setTimeout = function (callback, delay, ...args) {
+      if (delay === 8000) console.log("QA_SYNC timeout:scheduled");
+      return originalSetTimeout.call(window, function (...callbackArgs) {
+        if (delay === 8000) console.log("QA_SYNC timeout:fired");
+        return callback(...callbackArgs);
+      }, delay, ...args);
+    };
     console.log("QA_SYNC fetchType:" + typeof originalFetch + ":" + String(originalFetch).slice(0, 240));
     window.fetch = function (...args) {
       console.log("QA_SYNC fetch:call:" + String(args[0]));
@@ -270,7 +280,7 @@ test("school sync projections and timetable access reads stay isolated and minim
         }
       };
     };
-    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
+    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "withAppSyncTimeout", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
