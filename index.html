@@ -5807,7 +5807,36 @@ async function restoreOfflineState() {
   }
 }
 function cloneOfflineValue(value){return JSON.parse(JSON.stringify(value??null));}
-function captureDirtyLocalState(){return {db:cloneOfflineValue(db),dirty:serializeDirtySets()};}
+function captureDirtyLocalState() {
+  // Preserve only locally dirty records while cloud tables are in flight.
+  // Cloning the entire school database here can freeze Android WebViews.
+  const dirty = serializeDirtySets();
+  const teacherNames = new Set(dirty.teachers);
+  const dutyReportIds = new Set(dirty.duty_reports.map(id => String(id)));
+  const pickDirtyEntries = (source, keys) => {
+    const result = {};
+    keys.forEach(key => {
+      if (Object.prototype.hasOwnProperty.call(source || {}, key)) {
+        result[key] = cloneOfflineValue(source[key]);
+      }
+    });
+    return result;
+  };
+  const localDb = {
+    classes: [],
+    teachers: (db.teachers || []).filter(item => teacherNames.has(item.name)).map(cloneOfflineValue),
+    customUsers: (db.customUsers || []).filter(item => teacherNames.has(item.name)).map(cloneOfflineValue),
+    students: pickDirtyEntries(db.students, dirty.students),
+    attendance: pickDirtyEntries(db.attendance, dirty.attendance),
+    behaviors: pickDirtyEntries(db.behaviors, dirty.behaviors),
+    dutyModule: dirty.duty_module
+      ? cloneOfflineValue(db.dutyModule)
+      : { records: (db.dutyModule?.records || []).filter(item => dutyReportIds.has(String(item.id))).map(cloneOfflineValue) },
+    adminPin: dirty.admin_pin ? cloneOfflineValue(db.adminPin) : null,
+    customCategories: dirty.custom_categories ? cloneOfflineValue(db.customCategories || []) : []
+  };
+  return { db: localDb, dirty };
+}
 function mergeDirtyLocalState(snapshot) {
   if(!snapshot?.db||!snapshot?.dirty)return;
   const local=snapshot.db,d=snapshot.dirty;
@@ -6339,8 +6368,10 @@ async function loadSystemDataFromCloud() {
   // restoration when boot could not obtain a usable local snapshot.
   const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot || await restoreOfflineState();
   loadDirtySetsFromLocal();
-  const offlineSnapshot = offlineSnapshotAvailable ? cloneOfflineValue(db) : null;
-  let pendingLocalState = captureDirtyLocalState();
+  // A rollback snapshot is taken only if cloud tables actually need replacing.
+  // The unchanged-manifest path must not clone the full school database.
+  let offlineSnapshot = null;
+  let pendingLocalState = null;
   updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
 
   try {
@@ -6388,19 +6419,15 @@ async function loadSystemDataFromCloud() {
       applyPendingLocalDeletions();
       // IndexedDB is the durable snapshot. Avoid a synchronous full-database
       // localStorage serialization on the login path when IndexedDB is healthy.
-      const localSnapshotSaved = await persistOfflineStateWithTimeout();
-      if (!localSnapshotSaved && (hasPendingOfflineChanges() || getPendingDeletes().length)) {
-        saveToLocalStorageSafe();
-      }
       const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
         dirtySets.custom_categories || getPendingDeletes().length;
-      updateSyncStatus(!pendingSync && localSnapshotSaved, !localSnapshotSaved
-        ? (pendingSync
-          ? "تم التحقق من الخادم؛ التعديلات محفوظة محلياً بانتظار المزامنة، وتعذر تحديث النسخة المحلية الدائمة."
-          : "تم التحقق من الخادم؛ تعذر تحديث النسخة المحلية الدائمة الآن.")
-        : pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+      // The verified manifest is unchanged, so the restored IndexedDB snapshot
+      // is already authoritative. Do not serialize the entire database again.
+      updateSyncStatus(!pendingSync, pendingSync
+        ? "محفوظ محلياً - بانتظار المزامنة"
+        : "متزامن");
       return true;
     }
 
@@ -6426,12 +6453,20 @@ async function loadSystemDataFromCloud() {
       throw new Error('The server returned no classes after a class-table revision; local data was preserved.');
     }
 
+    // Keep a shallow rollback snapshot before replacing any cloud-backed datasets.
+    // Each replaced collection below is assigned a new object/array, so retaining
+    // the old references is sufficient and avoids a costly full JSON clone.
+    offlineSnapshot = {
+      ...db,
+      dutyModule: db.dutyModule ? { ...db.dutyModule } : db.dutyModule
+    };
+
     if (shouldLoad('students')) {
       await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
     }
 
-    // Re-capture after network awaits so edits made while tables were loading
-    // are merged back instead of being overwritten by the incoming cloud snapshot.
+    // Re-capture only dirty local records after network awaits so edits made
+    // while tables were loading are merged instead of being overwritten.
     pendingLocalState = captureDirtyLocalState();
 
     // Replace only the datasets whose revision changed. Unchanged datasets remain
