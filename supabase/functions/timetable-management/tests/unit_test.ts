@@ -1,7 +1,7 @@
 import { parseTimetableDay, validateSchoolTeacherCount } from "../timetable_grid.ts";
 import { matchSystemTeacherName, parseTimetableWorkbook, validateWorkbookSchema } from "../timetable_import.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal } from "../session_auth.ts";
-import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
+import { buildBatchSubstitutionPlan, canSeeAllAbsentTeachers, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, calculateSubstitutionWorkloadScore, getSubstitutionPeriodPoints, isValidSubstitutionDate, type TimetableEntry, type SubstitutionTeacher } from "../substitution_policy.ts";
 
 function assert(condition: unknown, message: string): asserts condition {
   if (!condition) throw new Error(message);
@@ -97,7 +97,7 @@ Deno.test("substitution candidates require one explicit free cell and respect as
   equal(lessons[0].period, 1, "Absent teacher lesson period");
 });
 
-Deno.test("department coordinators only see absent teachers in their own department", () => {
+Deno.test("department coordinators stay scoped while reserve-granted teachers see schoolwide absentees", () => {
   const directory = [
     { name: "معلم قسم العلوم", role: "teacher", departmentId: "science" },
     { name: "معلم قسم اللغة", role: "teacher", departmentId: "language" },
@@ -109,10 +109,15 @@ Deno.test("department coordinators only see absent teachers in their own departm
     { matchedTeacherName: "حساب مخصص", status: "teaching" },
     { matchedTeacherName: "معلم قسم العلوم", status: "free" },
   ];
-  const scoped = getVisibleAbsentTeachers(cells, directory, "science", false);
-  equal(scoped.length, 1, "Department-scoped absent teacher count");
+  const scoped = getVisibleAbsentTeachers(cells, directory, "science", canSeeAllAbsentTeachers("teacher", false));
+  equal(scoped.length, 1, "Ordinary teacher remains department-scoped");
   equal(scoped[0], "معلم قسم العلوم", "Only own-department teacher should be visible");
-  const admin = getVisibleAbsentTeachers(cells, directory, "", true);
+  const reserveManagerCanSeeAll = canSeeAllAbsentTeachers("teacher", true);
+  equal(reserveManagerCanSeeAll, true, "Reserve grant enables schoolwide absence coordination");
+  const reserveManager = getVisibleAbsentTeachers(cells, directory, "admin", reserveManagerCanSeeAll);
+  equal(reserveManager.length, 2, "Reserve manager sees all teaching teachers, excluding custom accounts");
+  equal(canSeeAllAbsentTeachers("custom", true), false, "Custom accounts do not gain reserve-manager scope");
+  const admin = getVisibleAbsentTeachers(cells, directory, "", canSeeAllAbsentTeachers("admin", false));
   equal(admin.length, 2, "Administrator sees all teaching teachers, excluding custom accounts");
 });
 

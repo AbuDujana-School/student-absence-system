@@ -7367,6 +7367,8 @@ async function finalizeLoginState() {
   // optional permission checks must never hold the user on the login screen.
   document.getElementById('loginView')?.classList.add('hidden');
   document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+  // Show the administrator-only morning assembly card immediately; do not wait for cloud sync or permission refresh.
+  refreshMorningAssemblyLatenessCard();
   const bounded = (promise, ms, label) => Promise.race([
     Promise.resolve(promise),
     new Promise((_, reject) => setTimeout(() => reject(new Error(label || 'انتهت مهلة الاتصال.')), ms))
@@ -7866,15 +7868,8 @@ let morningAssemblySelectedClass = null;
 let morningAssemblyReportRows = [];
 let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
-  if (!activeUser) return false;
-  if (activeUser.type === 'admin') return true;
-  if (activeUser.permissions?.morningAssemblyLateness !== true) return false;
-  if (activeUser.type === 'custom') return true;
-  if (activeUser.type !== 'teacher' || activeUser.permissions?.dutyToday === false) return false;
-  const now = omanNowParts();
-  return ['Sunday','Monday','Tuesday','Wednesday','Thursday'].includes(now.weekday)
-    && now.minutes >= 420 && now.minutes <= 510
-    && isTeacherOnDutyToday(activeUser.name);
+  // The morning-assembly lateness module is reserved exclusively for the general administrator.
+  return activeUser?.type === 'admin';
 }
 function refreshMorningAssemblyLatenessCard() {
   const card = document.getElementById('morningAssemblyLatenessDashboardCard');
@@ -7882,15 +7877,11 @@ function refreshMorningAssemblyLatenessCard() {
   const show = canUseMorningAssemblyLateness();
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
-  if (status && show) {
-    if (activeUser?.type === 'admin') status.textContent = 'صلاحية المدير — متاح في أي وقت';
-    else if (activeUser?.type === 'custom') status.textContent = 'صلاحية استثنائية مفعلة';
-    else status.textContent = 'مناوب اليوم · التسجيل متاح حتى 8:30 صباحاً';
-  }
+  if (status && show) status.textContent = 'صلاحية المدير العام — متاح في أي وقت';
   if (!morningAssemblyRefreshTimer) morningAssemblyRefreshTimer = setInterval(refreshMorningAssemblyLatenessCard, 30000);
 }
 function openMorningAssemblyLateness() {
-  if (!canUseMorningAssemblyLateness()) { showToast('لا تملك صلاحية التسجيل الآن أو لست مناوباً اليوم.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  if (!canUseMorningAssemblyLateness()) { showToast('هذا القسم متاح للمدير العام فقط.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
   ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
   document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · الحفظ فوري عند اختيار الطالب';
@@ -7974,7 +7965,7 @@ async function callMorningAssemblyLatenessApi(body) {
   return data;
 }
 async function recordMorningAssemblyLateness(className,studentName,button) {
-  if (!canUseMorningAssemblyLateness()) { showToast('انتهت فترة التسجيل أو لم تعد المناوبة مفعلة.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  if (!canUseMorningAssemblyLateness()) { showToast('هذا القسم متاح للمدير العام فقط.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
   if (button) { button.disabled = true; button.classList.add('opacity-60'); }
   try {
     const result = await callMorningAssemblyLatenessApi({action:'record',class_name:className,student_name:studentName});

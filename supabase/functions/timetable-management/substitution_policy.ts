@@ -181,6 +181,14 @@ export function calculateSubstitutionWorkloadScore(
   return total + last90*2 + last30*3 + last7*4 + sameDay*8 + adjacent*4;
 }
 
+/** A reserve-granted teacher may coordinate substitutions across departments. */
+export function canSeeAllAbsentTeachers(
+  principalType: "admin" | "teacher" | "custom",
+  hasReservePermission: boolean,
+): boolean {
+  return principalType === "admin" || (principalType === "teacher" && hasReservePermission === true);
+}
+
 /** List only absent teachers the current coordinator is allowed to see. */
 export function getVisibleAbsentTeachers(
   cells: Array<{ matchedTeacherName: string | null; status: string }>,
