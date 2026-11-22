@@ -6478,13 +6478,31 @@ async function persistOfflineStateWithTimeout(timeoutMs = 5000) {
 }
 
 async function fetchAppSyncManifest() {
-  const { data, error } = await withAppSyncTimeout(
-    sb.rpc('get_app_sync_manifest'),
+  // Use the PostgREST RPC endpoint directly. The browser client can stall before
+  // dispatching this metadata-only call in some mobile/WebView contexts; a direct
+  // fetch keeps the request observable and covered by the same hard deadline.
+  const response = await withAppSyncTimeout(
+    fetch(SUPABASE_URL + '/rest/v1/rpc/get_app_sync_manifest', {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: '{}',
+      cache: 'no-store'
+    }),
     8000,
     'تأخر التحقق من تحديثات الخادم.',
     'APP_SYNC_MANIFEST_TIMEOUT'
   );
-  if (error) throw error;
+  let data = null;
+  try { data = await response.json(); } catch (error) {}
+  if (!response.ok) {
+    const failure = new Error(data?.message || data?.error || 'تعذر التحقق من تحديثات الخادم.');
+    failure.status = response.status;
+    failure.code = data?.code || '';
+    throw failure;
+  }
   const manifest = normalizeAppSyncManifest(data);
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
   return manifest;
@@ -7137,7 +7155,7 @@ async function checkExistingSession() {
     let user = null;
     if (token.role === "admin") user = { type: "admin", name: "مدير النظام العام", permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } };
     else if (token.role === "custom") { const u = (db.customUsers || []).find(x => x.name === token.userName); if (u) user = { type: "custom", name: u.name, permissions: u.permissions || {} }; }
-    else if (token.role === "teacher") { const t = (db.teachers || []).find(x => x.name === token.userName); if (t) user = { type: "teacher", name: t.name, permissions: t.permissions || {} }; }
+    else if (token.role === "teacher") { const t = (db.teachers || []).find(x => x.name === token.userName); if (t) user = { type: t.permissions?.admin === true ? "admin" : "teacher", name: t.name, permissions: t.permissions || {} }; }
     if (!restoreIsCurrent()) return;
     if (!user) { clearSession(); return; }
     activeUser = user;
@@ -7316,7 +7334,7 @@ async function handleUserLogin(e) {
 async function findUserByPinWithRecord(pin) {
   if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) return { user: { type: 'admin', name: 'مدير النظام العام', permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true } }, record: db.adminPin };
   for (const u of (db.customUsers || [])) if (await verifyPinAgainstRecord(pin, { hash: u.pin_hash, salt: u.pin_salt })) return { user: { type: 'custom', name: u.name, permissions: u.permissions || {} }, record: u };
-  for (const t of (db.teachers || [])) if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) return { user: { type: 'teacher', name: t.name, permissions: t.permissions || {} }, record: t };
+  for (const t of (db.teachers || [])) if (await verifyPinAgainstRecord(pin, { hash: t.pin_hash, salt: t.pin_salt })) return { user: { type: t.permissions?.admin === true ? 'admin' : 'teacher', name: t.name, permissions: t.permissions || {} }, record: t };
   return null;
 }
 
@@ -8841,7 +8859,7 @@ function closeAdminModal() {
 async function verifyAdminPinAndOpen() {
   const pin = document.getElementById('adminPinInput').value.trim(); if (!pin) return;
   const b = document.querySelector('#adminAuthSection button'); const old = b.textContent; b.disabled = true; b.textContent = '...';
-  try { if (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin)) { document.getElementById('adminAuthError').classList.add('hidden'); grantTemporaryAdminAuth(); openControlPanelDirectly(); } else document.getElementById('adminAuthError').classList.remove('hidden'); }
+  try { if (activeUser?.type === 'admin' || (db.adminPin && await verifyPinAgainstRecord(pin, db.adminPin))) { document.getElementById('adminAuthError').classList.add('hidden'); grantTemporaryAdminAuth(); openControlPanelDirectly(); } else document.getElementById('adminAuthError').classList.remove('hidden'); }
   finally { b.disabled = false; b.textContent = old; }
 }
 function setupRolePermissions() {
