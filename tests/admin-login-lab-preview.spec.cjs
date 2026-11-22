@@ -4,7 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.resolve(__dirname, "..");
-const host = "diagnostics-admin-login-lab-20261122.abu-dujana-school-preview.pages.dev";
+const host = "abu-dujana-school-preview.localhost";
 const port = 4173;
 const baseUrl = `http://${host}:${port}/admin-login-lab.html`;
 let server;
@@ -36,8 +36,7 @@ test.beforeAll(async () => {
   browser = await chromium.launch({
     headless: true,
     args: [
-      "--no-sandbox",
-      `--host-resolver-rules=MAP ${host} 127.0.0.1`
+      "--no-sandbox"
     ]
   });
   const context = await browser.newContext({ serviceWorkers: "block" });
