@@ -45,7 +45,7 @@ async function prepareAdmin() {
   await page.goto(baseUrl,{waitUntil:"domcontentloaded",timeout:60000});
   await expect(page.locator("#uiReviewLauncher")).toHaveCount(1);
   await page.evaluate(() => {
-    uiReviewPrepare();
+    // Initialize only the app state needed for this isolated login test.
     localOnlySession = false;
     cloudDataLoadState = "ready";
     activeUser = {type:"admin",name:"مدير تجريبي",permissions:{admin:true,studentAffairs:true,duty:true,reports:true}};
