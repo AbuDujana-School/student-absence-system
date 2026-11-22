@@ -292,7 +292,7 @@ test("authenticated dashboard shell is rendered immediately and post-login initi
   assert.match(login.slice(finallyBlock), /dashboardSelectionView.*classList\.remove\('hidden'\)/);
   assert.match(login.slice(finallyBlock), /btn\.disabled = false/);
   const shell = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
-  assert.match(shell, /dashboardSelectionView.*classList\.remove\('hidden'\)/);
+  assert.match(shell, /dashboardSelectionView.*classList\.remove\(["']hidden["']\)/);
   assert.match(shell, /adminPanelBtn/);
   assert.match(shell, /studentAffairsBtn/);
 });
