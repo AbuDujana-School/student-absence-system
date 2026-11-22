@@ -87,6 +87,18 @@ Deno.test("general app principal resolution preserves admin-custom-teacher prece
   if (resolved?.type !== "admin" || resolved.name !== "Admin") throw new Error("Legacy admin-first precedence changed");
 });
 
+Deno.test("general app principal resolution supports a separately named second administrator", async () => {
+  const candidates = [
+    { type: "admin", name: "مدير النظام العام", hash: "legacy-admin-hash", salt: "legacy-admin-salt" },
+    { type: "teacher", name: "Teacher A", hash: "teacher-hash", salt: "teacher-salt" },
+    { type: "admin", name: "مدير النظام الثاني", hash: "secondary-admin-hash", salt: "secondary-admin-salt" },
+  ];
+  const resolved = await resolveAppPrincipal("9876543210", candidates, async (_pin, _salt, hash) => hash === "secondary-admin-hash");
+  if (resolved?.type !== "admin" || resolved.name !== "مدير النظام الثاني") {
+    throw new Error("Second administrator credential did not resolve to its own admin identity");
+  }
+});
+
 Deno.test("general app principal resolution skips invalid candidates and never exposes verifier fields", async () => {
   const candidates = [
     { type: "visitor", name: "Unsupported", hash: "h", salt: "s" },
