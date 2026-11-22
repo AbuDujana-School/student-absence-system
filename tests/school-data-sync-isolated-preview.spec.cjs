@@ -228,6 +228,25 @@ test("school sync projections and timetable access reads stay isolated and minim
   ]);
   expect(pageResponsive.nodeTimedOut, "The browser page must remain responsive before cloud loading").toBeFalsy();
 
+  const directFetchProbe = await page.evaluate(async () => {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 5_000);
+    try {
+      const response = await fetch("https://" + "ylsocrvwqibptuwfzbke.supabase.co" + "/rest/v1/rpc/get_app_sync_manifest", {
+        method: "POST",
+        headers: { "content-type": "application/json", "apikey": "qa-only" },
+        body: "{}",
+        signal: controller.signal,
+      });
+      return { status: response.status, body: await response.text() };
+    } catch (error) {
+      return { error: error?.name + ": " + (error?.message || String(error)) };
+    } finally {
+      clearTimeout(timeout);
+    }
+  });
+  browserConsole.push("QA_DIRECT_FETCH_PROBE " + JSON.stringify(directFetchProbe));
+
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
     console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, restorePromiseExists: !!offlineSnapshotRestorePromise, readyState: document.readyState }));
