@@ -165,6 +165,30 @@ Deno.test("administrator access requires the configured system administrator cre
   }
 });
 
+Deno.test("explicitly promoted teacher accounts receive full admin timetable authorization", async () => {
+  const secondaryAdminSession = {
+    principal_type: "admin",
+    principal_name: "Tester1",
+    expires_at: EXPIRY,
+  };
+  const allowed = storeWith(secondaryAdminSession, {
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: true } },
+    admin: false,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowed, NOW, "timetable_preview");
+  if (principal?.type !== "admin" || principal.name !== "Tester1") {
+    throw new Error("Explicit secondary administrator was not recognized");
+  }
+
+  const unapproved = storeWith(secondaryAdminSession, {
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false } },
+    admin: false,
+  });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, unapproved, NOW, "timetable_preview") !== null) {
+    throw new Error("Teacher without the explicit admin grant was accepted as administrator");
+  }
+});
+
 Deno.test("unknown principal types and empty teacher names are rejected", async () => {
   const unknown = storeWith({ principal_type: "visitor", principal_name: "Visitor", expires_at: EXPIRY });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, unknown, NOW) !== null) {

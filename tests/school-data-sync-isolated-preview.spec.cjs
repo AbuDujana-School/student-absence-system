@@ -1,5 +1,9 @@
 const { test, expect } = require("@playwright/test");
 
+// This test owns all backend traffic through Playwright routes; block the app
+// service worker so it cannot bypass the synthetic network interception.
+test.use({ serviceWorkers: "block" });
+
 const SUPABASE_HOST = "ylsocrvwqibptuwfzbke.supabase.co";
 const TABLES = [
   "classes",
@@ -137,7 +141,9 @@ test("school sync projections and timetable access reads stay isolated and minim
 
     if (url.pathname === "/rest/v1/rpc/get_app_sync_manifest" && method === "POST") {
       manifestCalls += 1;
+      console.log("QA_ROUTE manifest:start:" + manifestCalls);
       await route.fulfill({ status: 200, headers, body: JSON.stringify(manifest) });
+      console.log("QA_ROUTE manifest:fulfilled:" + manifestCalls);
       return;
     }
 
@@ -239,9 +245,26 @@ test("school sync projections and timetable access reads stay isolated and minim
       transaction.addEventListener("error", () => console.log("QA_IDB tx:error:" + (transaction.error?.message || "unknown")));
       return transaction;
     };
+    const originalFetch = window.fetch;
+    const originalSetTimeout = window.setTimeout;
+    window.setTimeout = function (callback, delay, ...args) {
+      if (delay === 8000) console.log("QA_SYNC timeout:scheduled");
+      return originalSetTimeout.call(window, function (...callbackArgs) {
+        if (delay === 8000) console.log("QA_SYNC timeout:fired");
+        return callback(...callbackArgs);
+      }, delay, ...args);
+    };
+    console.log("QA_SYNC fetchType:" + typeof originalFetch + ":" + String(originalFetch).slice(0, 240));
+    window.fetch = function (...args) {
+      console.log("QA_SYNC fetch:call:" + String(args[0]));
+      const pending = originalFetch.apply(this, args);
+      console.log("QA_SYNC fetch:return:" + String(pending));
+      return pending;
+    };
     const wrap = (name) => {
       const original = window[name];
       if (typeof original !== "function") { trace.push(name + ":missing"); console.log("QA_SYNC " + name + ":missing"); return; }
+      if (name === "fetchAppSyncManifest") console.log("QA_SYNC manifestSource:" + String(original).slice(0, 900));
       window[name] = async (...args) => {
         trace.push(name + ":start");
         console.log("QA_SYNC " + name + ":start");
@@ -257,7 +280,7 @@ test("school sync projections and timetable access reads stay isolated and minim
         }
       };
     };
-    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
+    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "withAppSyncTimeout", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
@@ -270,7 +293,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
   ]);
-  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, browserConsole, pageErrors })).toBeFalsy();
+  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, manifestCalls, unexpectedSupabaseTraffic, browserConsole, pageErrors })).toBeFalsy();
   expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({

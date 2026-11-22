@@ -2,6 +2,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { academicYearKey, canUseMorningLateness } from "./policy.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
+import { isSecondaryAdminTeacher, SYSTEM_ADMIN_NAME } from "../_shared/admin_identity_policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -50,15 +51,23 @@ async function authenticate(req:Request):Promise<Principal|null> {
     .select("principal_type,principal_name,expires_at")
     .eq("token_hash",tokenHash).gt("expires_at",nowIso).maybeSingle();
   if (sessionError || !session) return null;
-  if (session.principal_type === "admin") {
+  if (session.principal_type === "admin" && session.principal_name === SYSTEM_ADMIN_NAME) {
     const {data:setting,error} = await db.from("school_settings").select("value")
       .eq("key","admin_pin").maybeSingle();
     if (error || !setting?.value?.hash || !setting?.value?.salt) return null;
-    return {type:"admin",name:String(session.principal_name),permissions:{}};
+    return {type:"admin",name:SYSTEM_ADMIN_NAME,permissions:{}};
   }
   const {data:user,error} = await db.from("teachers").select("name,role,permissions")
     .eq("name",session.principal_name).maybeSingle();
-  if (error || !user || user.role !== session.principal_type) return null;
+  if (error || !user) return null;
+  if (session.principal_type === "admin") {
+    if (!isSecondaryAdminTeacher(user)) return null;
+    return {type:"admin",name:String(user.name),permissions:{}};
+  }
+  if (user.role !== session.principal_type) return null;
+  // A teacher bearer issued before promotion is stale; the app-session bridge
+  // requires a fresh login before this account receives administrator access.
+  if (session.principal_type === "teacher" && isSecondaryAdminTeacher(user)) return null;
   return {
     type:session.principal_type as "teacher"|"custom",
     name:String(user.name),

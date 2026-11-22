@@ -16,6 +16,7 @@ import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
+import { isSecondaryAdminTeacher, SYSTEM_ADMIN_NAME } from "../_shared/admin_identity_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -77,17 +78,21 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
   const adminRecord = adminSetting?.value;
   if (adminRecord?.hash && adminRecord?.salt) {
     candidates.push({
-      type: "admin", name: "مدير النظام العام",
+      type: "admin", credentialType: "admin", name: SYSTEM_ADMIN_NAME,
       hash: adminRecord.hash, salt: adminRecord.salt,
       permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
     });
   }
   for (const user of users || []) {
-    const type = user.role === "custom" ? "custom" : "teacher";
     if (!user.pin_hash || !user.pin_salt) continue;
+    const secondaryAdmin = isSecondaryAdminTeacher(user);
+    const type = secondaryAdmin ? "admin" : user.role === "custom" ? "custom" : "teacher";
+    const credentialType = user.role === "custom" ? "custom" : "teacher";
     candidates.push({
-      type, name: user.name, hash: user.pin_hash, salt: user.pin_salt,
-      permissions: user.permissions || {},
+      type, credentialType, name: user.name, hash: user.pin_hash, salt: user.pin_salt,
+      permissions: secondaryAdmin
+        ? { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true }
+        : user.permissions || {},
       mustChangePin: user.must_change_pin === true || user.permissions?.mustChangePin === true,
     });
   }
@@ -96,7 +101,7 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
   return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
-    const secure = secureMap.get(candidate.type + "|" + candidate.name) as any;
+    const secure = secureMap.get((candidate.credentialType || candidate.type) + "|" + candidate.name) as any;
     if (secure && secure.source_hash === hash && secure.source_salt === salt) {
       return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
     }
@@ -104,14 +109,26 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
   });
 }
 
+const FULL_ADMIN_PERMISSIONS = { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true };
 async function currentAppPrincipal(type: string, name: string): Promise<AppPrincipal | null> {
-  if (type === "admin") {
+  if (type === "admin" && name === SYSTEM_ADMIN_NAME) {
     const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
     if (error || !data?.value?.hash || !data?.value?.salt) return null;
-    return { type: "admin", name, permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true }, mustChangePin: false };
+    return { type: "admin", name, permissions: FULL_ADMIN_PERMISSIONS, mustChangePin: false };
   }
   const { data, error } = await db.from("teachers").select("name,role,permissions,must_change_pin").eq("name", name).maybeSingle();
-  if (error || !data || (type === "custom" ? data.role !== "custom" : data.role === "custom")) return null;
+  if (error || !data) return null;
+  if (type === "admin") {
+    if (!isSecondaryAdminTeacher(data)) return null;
+    return {
+      type: "admin", name: data.name, permissions: FULL_ADMIN_PERMISSIONS,
+      mustChangePin: data.must_change_pin === true || data.permissions?.mustChangePin === true,
+    };
+  }
+  if (type === "custom" ? data.role !== "custom" : data.role !== "teacher") return null;
+  // A teacher session created before promotion must sign in again to receive an
+  // administrator session type; never silently upgrade a stale bearer session.
+  if (type === "teacher" && isSecondaryAdminTeacher(data)) return null;
   return {
     type: type as "teacher" | "custom",
     name: data.name,
@@ -139,27 +156,30 @@ async function failedLogin(key: string) {
   await db.from("student_affairs_login_attempts").upsert({ client_key: key, window_started_at: data?.window_started_at || new Date().toISOString(), failed_attempts: count, blocked_until: count >= 6 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null });
 }
 async function clearFailedLogin(key: string) { await db.from("student_affairs_login_attempts").delete().eq("client_key", key); }
-type Principal = { type: "admin" | "teacher" | "custom"; name: string; hash: string; salt: string };
+type Principal = { type: "admin" | "teacher" | "custom"; credentialType?: "admin" | "teacher" | "custom"; name: string; hash: string; salt: string };
 async function findPrincipal(pin: string, pepper: string): Promise<Principal | null> {
   const candidates: Principal[] = [];
   const { data: adminSetting } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
   const adminRecord = adminSetting?.value;
-  if (adminRecord?.hash && adminRecord?.salt) candidates.push({ type: "admin", name: "مدير النظام العام", hash: adminRecord.hash, salt: adminRecord.salt });
-  const { data: users, error } = await db.from("teachers").select("name,role,pin_hash,pin_salt");
+  if (adminRecord?.hash && adminRecord?.salt) candidates.push({ type: "admin", credentialType: "admin", name: SYSTEM_ADMIN_NAME, hash: adminRecord.hash, salt: adminRecord.salt });
+  const { data: users, error } = await db.from("teachers").select("name,role,pin_hash,pin_salt,permissions");
   if (error) throw error;
-  for (const u of (users || []).filter((x: any) => x.role === "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "custom", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
-  for (const u of (users || []).filter((x: any) => x.role !== "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
+  for (const u of (users || []).filter((x: any) => x.role === "teacher" && isSecondaryAdminTeacher(x))) {
+    if (u.pin_hash && u.pin_salt) candidates.push({ type: "admin", credentialType: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
+  }
+  for (const u of (users || []).filter((x: any) => x.role === "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "custom", credentialType: "custom", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
+  for (const u of (users || []).filter((x: any) => x.role === "teacher" && !isSecondaryAdminTeacher(x))) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", credentialType: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   const { data: upgraded } = await db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt");
   const secureMap = new Map((upgraded || []).map((x: any) => [x.principal_type + "|" + x.principal_name, x]));
   let legacy: { pbkdf2: string; sha256: string } | null = null;
   for (const p of candidates) {
-    const stored = secureMap.get(p.type + "|" + p.name) as any;
+    const stored = secureMap.get((p.credentialType || p.type) + "|" + p.name) as any;
     if (stored && stored.source_hash === p.hash && stored.source_salt === p.salt) {
       if (await verifyNewPin(pin, stored.pin_salt, stored.pin_hash, pepper)) return p;
     } else if (await verifyExistingPin(pin, p.salt, p.hash, legacy || (legacy = await getLegacyPeppers()))) {
       const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
       const hash = await pbkdf2(pepper + ":" + salt + ":" + pin, salt, 310000);
-      const { error: saveError } = await db.from("student_affairs_credentials").upsert({ principal_type: p.type, principal_name: p.name, pin_salt: salt, pin_hash: hash, source_hash: p.hash, source_salt: p.salt, updated_at: new Date().toISOString() }, { onConflict: "principal_type,principal_name" });
+      const { error: saveError } = await db.from("student_affairs_credentials").upsert({ principal_type: p.credentialType || p.type, principal_name: p.name, pin_salt: salt, pin_hash: hash, source_hash: p.hash, source_salt: p.salt, updated_at: new Date().toISOString() }, { onConflict: "principal_type,principal_name" });
       if (saveError) throw saveError;
       return p;
     }

@@ -1,3 +1,5 @@
+import { isSecondaryAdminTeacher, SYSTEM_ADMIN_NAME } from "../_shared/admin_identity_policy.ts";
+
 export type TimetablePrincipalType = "admin" | "teacher" | "custom";
 
 export interface TimetablePrincipal {
@@ -73,10 +75,22 @@ export async function resolveTimetablePrincipal(
   const expiresAt = Date.parse(session.expires_at);
   if (!Number.isFinite(expiresAt) || expiresAt <= now) return null;
 
-  if (session.principal_type === "admin" && session.principal_name === "مدير النظام العام") {
-    return await store.hasAdminCredential()
-      ? { type: "admin", name: "مدير النظام العام" }
-      : null;
+  if (session.principal_type === "admin") {
+    if (session.principal_name === SYSTEM_ADMIN_NAME) {
+      return await store.hasAdminCredential()
+        ? { type: "admin", name: SYSTEM_ADMIN_NAME }
+        : null;
+    }
+    const name = typeof session.principal_name === "string" ? session.principal_name.trim() : "";
+    if (!name) return null;
+    const secondaryAdmin = await store.findTeacher(name, true);
+    if (!secondaryAdmin || secondaryAdmin.name !== name || !isSecondaryAdminTeacher(secondaryAdmin)) return null;
+    return {
+      type: "admin",
+      name,
+      permissions: secondaryAdmin.permissions && typeof secondaryAdmin.permissions === "object"
+        ? secondaryAdmin.permissions : {},
+    };
   }
 
   if (session.principal_type !== "teacher" && session.principal_type !== "custom") return null;
