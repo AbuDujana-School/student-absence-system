@@ -6368,10 +6368,11 @@ async function loadSystemDataFromCloud() {
   // restoration when boot could not obtain a usable local snapshot.
   const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot || await restoreOfflineState();
   loadDirtySetsFromLocal();
-  // A rollback snapshot is taken only if cloud tables actually need replacing.
-  // The unchanged-manifest path must not clone the full school database.
+  // Capture only dirty local records before any cloud request can yield.
+  // Recapture after the table requests as well, so edits made during the fetch
+  // window are protected before cloud datasets replace the in-memory records.
   let offlineSnapshot = null;
-  let pendingLocalState = null;
+  let pendingLocalState = captureDirtyLocalState();
   updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
 
   try {
@@ -6415,16 +6416,24 @@ async function loadSystemDataFromCloud() {
     if (nextManifest && changedTables.length === 0) {
       cloudWritesBlockedByManifestFailure = false;
       cloudDataLoadState = 'ready';
-      // Keep queued local deletions visible even when the cloud revision is unchanged.
+      // Keep queued local deletions visible and durable even when the cloud
+      // revision is unchanged. Persist only when there is a deletion overlay;
+      // ordinary no-change refreshes remain lightweight.
       applyPendingLocalDeletions();
-      // IndexedDB is the durable snapshot. Avoid a synchronous full-database
-      // localStorage serialization on the login path when IndexedDB is healthy.
+      let deletionOverlaySaved = true;
+      if (getPendingDeletes().length) {
+        deletionOverlaySaved = await persistOfflineStateWithTimeout();
+        if (!deletionOverlaySaved) deletionOverlaySaved = saveToLocalStorageSafe();
+      }
+      if (!deletionOverlaySaved) {
+        cloudDataLoadState = 'failed';
+        updateSyncStatus(false, "تعذر حفظ طلبات الحذف محلياً؛ بقيت البيانات الحالية كما هي ولم تُرفع أي تغييرات.");
+        return false;
+      }
       const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
         dirtySets.custom_categories || getPendingDeletes().length;
-      // The verified manifest is unchanged, so the restored IndexedDB snapshot
-      // is already authoritative. Do not serialize the entire database again.
       updateSyncStatus(!pendingSync, pendingSync
         ? "محفوظ محلياً - بانتظار المزامنة"
         : "متزامن");
@@ -13831,7 +13840,10 @@ async function timetableSaveOwner() {
       html+='</div></div>';
     });
     const existingHtml=existing.length?'<div class="overflow-hidden rounded-3xl border border-emerald-200 bg-white shadow-sm dark:border-emerald-900 dark:bg-slate-900"><div class="border-b border-emerald-100 bg-emerald-50 px-4 py-3 text-xs font-black text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><i class="fa-solid fa-circle-check ml-2"></i>تكليفات محفوظة مسبقاً</div><div class="divide-y divide-slate-100 dark:divide-slate-800">'+existing.map(function(item){const editable=item.canEdit!==false&&String(item.assignmentDate||'')===getOmanLocalDate()&&['assigned','confirmed'].includes(String(item.status||''));const actions=editable?'<div class="flex shrink-0 gap-1"><button type="button" data-subx-existing-edit="'+esc(item.id)+'" class="rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 text-[10px] font-black text-indigo-700 hover:bg-indigo-100">تعديل</button><button type="button" data-subx-existing-delete="'+esc(item.id)+'" class="rounded-lg border border-rose-200 bg-rose-50 px-2.5 py-1.5 text-[10px] font-black text-rose-700 hover:bg-rose-100">حذف</button></div>':'<span class="text-[10px] text-slate-400">'+(item.status==='completed'?'مكتمل':'سجل سابق · للعرض فقط')+'</span>';return '<div class="flex flex-wrap items-center justify-between gap-2 p-3 text-[11px]"><div class="min-w-0"><span class="block font-bold text-slate-700 dark:text-slate-200">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</span><span class="mt-1 block text-[10px] text-slate-500">السبب: '+esc(item.reason||'—')+' · البديل: <strong class="text-emerald-700 dark:text-emerald-300">'+esc(item.substituteTeacherName)+'</strong></span></div><div class="flex items-center gap-2">'+actions+'</div></div>';}).join('')+'</div></div>':'';
-    root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">لم يتم العثور على حصص جديدة يمكن تغطيتها وفق الجدول المعتمد.</div>'));
+    const noPlanMessage=unassignedRows.length
+      ? 'تم العثور على '+unassignedRows.length+' حصة تحتاج إلى تغطية، لكن لم يتوفر بديل مستوفٍ لشروط الجدول لهذه الحصص. راجع قائمة الحصص أدناه أو فعّل الاستعانة بقسم مساند.'
+      : 'لا توجد حصص جديدة للتوزيع في التاريخ المحدد. تحقق من التاريخ والمعلمين المختارين؛ قد تكون حصصهم موزعة مسبقاً أو لا توجد لهم حصص تدريس في ذلك اليوم.';
+    root.innerHTML=existingHtml+(html||(existing.length?'':'<div class="rounded-2xl bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:bg-amber-950/30 dark:text-amber-200">'+esc(noPlanMessage)+'</div>'));
     if(typeof window.timetableDailyRegisterExternalAssignments==='function')window.timetableDailyRegisterExternalAssignments(existing);
     root.querySelectorAll('[data-subx-existing-edit]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyOpenArchiveEdit==='function')window.timetableDailyOpenArchiveEdit(button.dataset.subxExistingEdit);else showToast('واجهة التعديل غير متاحة حالياً.','error');});});
     root.querySelectorAll('[data-subx-existing-delete]').forEach(function(button){button.addEventListener('click',function(){if(typeof window.timetableDailyCancelAssignment==='function')window.timetableDailyCancelAssignment(button.dataset.subxExistingDelete);else showToast('واجهة الحذف غير متاحة حالياً.','error');});});
