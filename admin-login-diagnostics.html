@@ -84,9 +84,9 @@ small{display:block;margin-top:20px;color:#738392;line-height:1.7}
     return status;
   }
 
-  async function post(url, body, token) {
+  async function post(url, body, token, timeoutMs = 12000) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 12000);
+    const timeout = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const headers = { "Content-Type": "application/json", "apikey": API_KEY };
       if (token) headers.Authorization = "Bearer " + token;
@@ -210,7 +210,7 @@ small{display:block;margin-top:20px;color:#738392;line-height:1.7}
       if (!token || login.principal?.type !== "admin" || login.principal?.name !== "مدير النظام العام") {
         throw new Error("يلزم الدخول بحساب مدير النظام العام الحالي لإنشاء الحساب الثاني.");
       }
-      const created = await post(SA_URL, { action: "admin_create_secondary_admin" }, token);
+      const created = await post(SA_URL, { action: "admin_create_secondary_admin" }, token, 30000);
       if (created.ok !== true || !/^\d{10}$/.test(String(created.pin || ""))) {
         throw new Error(created.error || "لم يؤكد الخادم إنشاء الحساب.");
       }
@@ -225,7 +225,7 @@ small{display:block;margin-top:20px;color:#738392;line-height:1.7}
       createResult.append(message, value, warning);
     } catch (error) {
       createResult.textContent = error?.name === "AbortError"
-        ? "انتهت مهلة الطلب بعد 12 ثانية. لم نتمكن من تأكيد إنشاء الحساب."
+        ? "انتهت مهلة الطلب بعد 30 ثانية. لم نتمكن من تأكيد إنشاء الحساب."
         : (error.message || "تعذر إنشاء الحساب الثاني.");
     } finally {
       if (token) {
