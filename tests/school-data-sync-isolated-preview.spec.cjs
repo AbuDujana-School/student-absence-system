@@ -356,7 +356,21 @@ test("school sync projections and timetable access reads stay isolated and minim
         bodyLength: typeof args[1]?.body === "string" ? args[1].body.length : null,
         signalAborted: args[1]?.signal?.aborted,
       };
-      console.log("QA_SYNC nativeFetch:call:" + JSON.stringify(requestInfo));
+      const signal = input instanceof Request ? input.signal : args[1]?.signal;
+      const signalInfo = {
+        type: signal?.constructor?.name || null,
+        aborted: signal?.aborted ?? null,
+        reasonName: signal?.reason?.name || null,
+        reasonText: signal?.reason?.message || null,
+        hasAbortListener: !!signal && typeof signal.addEventListener === "function",
+      };
+      console.log("QA_SYNC nativeFetch:call:" + JSON.stringify({ ...requestInfo, signalInfo }));
+      if (signal && typeof signal.addEventListener === "function") {
+        signal.addEventListener("abort", () => console.log("QA_SYNC nativeFetch:signal-abort:" + JSON.stringify({
+          reasonName: signal.reason?.name || null,
+          reasonText: signal.reason?.message || null
+        })), { once: true });
+      }
       try {
         const result = originalWindowFetch(...args);
         result.then(response => console.log("QA_SYNC nativeFetch:fulfilled:" + response.status))
