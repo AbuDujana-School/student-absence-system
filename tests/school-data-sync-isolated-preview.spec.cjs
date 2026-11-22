@@ -333,7 +333,19 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
     const originalWindowFetch = window.fetch.bind(window);
     window.fetch = (...args) => {
-      console.log("QA_SYNC nativeFetch:call:" + String(args[0] || "").slice(0, 500));
+      const input = args[0];
+      const requestInfo = input instanceof Request ? {
+        kind: "Request", url: input.url, method: input.method, mode: input.mode,
+        credentials: input.credentials, cache: input.cache, redirect: input.redirect,
+        headers: Array.from(input.headers.keys()), bodyUsed: input.bodyUsed,
+        signalAborted: input.signal?.aborted,
+      } : {
+        kind: typeof input, url: String(input || "").slice(0, 500),
+        initKeys: args[1] ? Object.keys(args[1]) : [], method: args[1]?.method || "GET",
+        headers: args[1]?.headers ? Object.keys(args[1].headers) : [],
+        signalAborted: args[1]?.signal?.aborted,
+      };
+      console.log("QA_SYNC nativeFetch:call:" + JSON.stringify(requestInfo));
       try {
         const result = originalWindowFetch(...args);
         result.then(response => console.log("QA_SYNC nativeFetch:fulfilled:" + response.status))
