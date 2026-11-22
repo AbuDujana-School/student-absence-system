@@ -4005,6 +4005,10 @@ async function appAuthRequest(body, token, signal) {
   return data;
 }
 
+// Keep the primary sign-in request on the core transport. Optional modules
+// (including reserve-workflow request decorators) must never intercept login.
+const appLoginAuthRequest = appAuthRequest;
+
 async function validateCanonicalAppAuthSession(token) {
   if (!token || !/^[a-f0-9]{64}$/i.test(token)) return null;
   const controller = new AbortController();
@@ -7101,15 +7105,21 @@ async function handleUserLogin(e) {
     let useLegacyLogin = !navigator.onLine;
     if (!useLegacyLogin) {
       try {
-        loginTimeoutId = setTimeout(() => {
-          loginTimedOut = true;
-          loginController.abort();
-        }, 15000);
-        serverLogin = await appAuthRequest(
+        const loginRequest = appLoginAuthRequest(
           { action: "app_login", pin },
           undefined,
           loginController.signal
         );
+        // Enforce a hard deadline even if an intermediary wrapper or browser
+        // transport fails to propagate AbortSignal while reading the response.
+        const loginDeadline = new Promise((_, reject) => {
+          loginTimeoutId = setTimeout(() => {
+            loginTimedOut = true;
+            loginController.abort();
+            reject(new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 15 ثانية."));
+          }, 15000);
+        });
+        serverLogin = await Promise.race([loginRequest, loginDeadline]);
       }
       catch (serverError) {
         if (loginTimedOut) {
