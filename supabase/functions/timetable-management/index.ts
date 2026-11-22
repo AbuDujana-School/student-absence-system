@@ -1417,9 +1417,9 @@ async function handle(req: Request) {
     const mode=String(body.mode||"");
     const date=String(body.assignmentDate||"").trim();
     const subject=String(body.subject||"").trim();
-    const isSystemAdmin=principal.type==="admin"&&principal.name==="مدير النظام العام";
+    const isSystemAdmin=principal.type==="admin";
     if(!isSystemAdmin && !(principal.type==="teacher"&&hasReservePermission&&mode==="subject_day")) {
-      return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل لمدير النظام العام."});
+      return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل متاح لحسابات المدير."});
     }
     if(mode==="subject_day" && (!/^\d{4}-\d{2}-\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
       return reply(400,{error:"حدد التاريخ والمادة المراد تفريغ احتياطها."});
