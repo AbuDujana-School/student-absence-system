@@ -3797,11 +3797,14 @@ async function hmacSha256Hex(key, message) { const enc = new TextEncoder(); cons
 async function deriveSessionSecret(pin, salt) { return await pbkdf2Hex(APP_PEPPER + ':session:' + pin, salt + ':session', 100000); }
 
 async function syncServerTime() {
+  // Do not send a HEAD request to the Supabase project root: that endpoint
+  // does not provide the browser CORS headers needed by this cross-origin app.
+  // Use the last known offset (already loaded during startup), or the device
+  // clock on a fresh browser. Failed optional time sync must not emit CORS noise.
   try {
-    const res = await fetch(SUPABASE_URL, { method: 'HEAD' });
-    const serverDateStr = res.headers.get('date');
-    if (serverDateStr) { serverTimeOffset = new Date(serverDateStr).getTime() - Date.now(); lastServerSyncSuccess = Date.now(); try { localStorage.setItem('abuDujana_timeOffset', String(serverTimeOffset)); } catch(e) {} }
-  } catch(e) { try { const saved = localStorage.getItem('abuDujana_timeOffset'); if (saved) serverTimeOffset = Number(saved) || 0; } catch(err) {} }
+    const saved = localStorage.getItem('abuDujana_timeOffset');
+    if (saved !== null) serverTimeOffset = Number(saved) || 0;
+  } catch (error) {}
 }
 function getTrustedDate() { return new Date(Date.now() + serverTimeOffset); }
 function getOmanLocalDate() { return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Muscat', year: 'numeric', month: '2-digit', day: '2-digit' }).format(getTrustedDate()); }
