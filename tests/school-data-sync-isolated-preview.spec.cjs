@@ -85,8 +85,26 @@ test("school sync projections and timetable access reads stay isolated and minim
   page.on("request", (request) => {
     if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ method: request.method(), url: request.url() });
   });
+  page.on("response", (response) => {
+    if (response.url().includes(SUPABASE_HOST)) browserConsole.push("QA_RESPONSE " + response.status() + " " + response.url());
+  });
+  page.on("requestfailed", (request) => {
+    if (request.url().includes(SUPABASE_HOST)) browserConsole.push("QA_REQUEST_FAILED " + request.failure()?.errorText + " " + request.url());
+  });
 
   await page.addInitScript(() => {
+    const nativeFetch = window.fetch.bind(window);
+    window.fetch = (...args) => {
+      const target = String(args[0]?.url || args[0] || "");
+      if (target.includes("supabase.co")) console.log("QA_FETCH start:" + target);
+      const pending = nativeFetch(...args);
+      pending.then(response => {
+        if (target.includes("supabase.co")) console.log("QA_FETCH response:" + response.status + ":" + target);
+      }, error => {
+        if (target.includes("supabase.co")) console.log("QA_FETCH error:" + (error?.message || String(error)) + ":" + target);
+      });
+      return pending;
+    };
     const originalGet = IDBObjectStore.prototype.get;
     IDBObjectStore.prototype.get = function (...args) {
       console.log("QA_BOOT_IDB get:start:" + this.name + ":" + String(args[0]));
