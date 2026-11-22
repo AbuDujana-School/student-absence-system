@@ -340,47 +340,9 @@ test("school sync projections and timetable access reads stay isolated and minim
         return result;
       };
     }
-    const originalWindowFetch = window.fetch.bind(window);
-    window.fetch = (...args) => {
-      const input = args[0];
-      const requestInfo = input instanceof Request ? {
-        kind: "Request", url: input.url, method: input.method, mode: input.mode,
-        credentials: input.credentials, cache: input.cache, redirect: input.redirect,
-        headers: Array.from(input.headers.keys()), bodyUsed: input.bodyUsed,
-        signalAborted: input.signal?.aborted,
-      } : {
-        kind: typeof input, url: String(input || "").slice(0, 500),
-        initKeys: args[1] ? Object.keys(args[1]) : [], method: args[1]?.method || "GET",
-        headers: args[1]?.headers ? Array.from(new Headers(args[1].headers).keys()) : [],
-        credentials: args[1]?.credentials || "same-origin", mode: args[1]?.mode || "cors",
-        bodyLength: typeof args[1]?.body === "string" ? args[1].body.length : null,
-        signalAborted: args[1]?.signal?.aborted,
-      };
-      const signal = input instanceof Request ? input.signal : args[1]?.signal;
-      const signalInfo = {
-        type: signal?.constructor?.name || null,
-        aborted: signal?.aborted ?? null,
-        reasonName: signal?.reason?.name || null,
-        reasonText: signal?.reason?.message || null,
-        hasAbortListener: !!signal && typeof signal.addEventListener === "function",
-      };
-      console.log("QA_SYNC nativeFetch:call:" + JSON.stringify({ ...requestInfo, signalInfo }));
-      if (signal && typeof signal.addEventListener === "function") {
-        signal.addEventListener("abort", () => console.log("QA_SYNC nativeFetch:signal-abort:" + JSON.stringify({
-          reasonName: signal.reason?.name || null,
-          reasonText: signal.reason?.message || null
-        })), { once: true });
-      }
-      try {
-        const result = originalWindowFetch(...args);
-        result.then(response => console.log("QA_SYNC nativeFetch:fulfilled:" + response.status))
-          .catch(error => console.log("QA_SYNC nativeFetch:rejected:" + (error?.stack || error?.message || String(error))));
-        return result;
-      } catch (error) {
-        console.log("QA_SYNC nativeFetch:throw:" + (error?.stack || error?.message || String(error)));
-        throw error;
-      }
-    };
+    // Do not monkeypatch the browser's native fetch in this test. Observe the
+    // Supabase REST fetch arguments and rely on Playwright's request events for
+    // network dispatch evidence; replacing window.fetch can perturb dispatch.
     if (typeof navigator?.locks?.request === "function") {
       const originalLockRequest = navigator.locks.request.bind(navigator.locks);
       navigator.locks.request = (...args) => {
@@ -405,7 +367,16 @@ test("school sync projections and timetable access reads stay isolated and minim
     if (typeof sb?.rest?.fetch === "function") {
       const originalRestFetch = sb.rest.fetch.bind(sb.rest);
       sb.rest.fetch = (...args) => {
-        console.log("QA_SYNC restFetch:call:" + String(args[0] || "").slice(0, 500));
+        const fetchSignal = args[1]?.signal;
+        console.log("QA_SYNC restFetch:call:" + JSON.stringify({
+          url: String(args[0] || "").slice(0, 500),
+          initKeys: args[1] ? Object.keys(args[1]) : [],
+          method: args[1]?.method || "GET",
+          signalType: fetchSignal?.constructor?.name || null,
+          signalAborted: fetchSignal?.aborted ?? null,
+          signalReason: fetchSignal?.reason?.name || null,
+          bodyLength: typeof args[1]?.body === "string" ? args[1].body.length : null
+        }));
         try {
           const result = originalRestFetch(...args);
           console.log("QA_SYNC restFetch:return:" + (result && typeof result.then === "function" ? "promise" : typeof result));
