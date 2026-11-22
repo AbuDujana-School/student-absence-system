@@ -8,7 +8,7 @@ import { canReadDutyReportPeriod, isDutyReportEligibleOnDay } from "./duty_repor
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
-import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
+import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canResetSubstitution, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -150,6 +150,14 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data, error } = await db.from("school_settings")
       .select("value").eq("key", "admin_pin").maybeSingle();
     return !error && !!data?.value?.hash && !!data?.value?.salt;
+  },
+  async hasManagedAdminCredential(name) {
+    if (!name || name === "مدير النظام العام") return false;
+    const { data, error } = await db.from("student_affairs_credentials")
+      .select("principal_name,pin_hash,pin_salt,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", name).maybeSingle();
+    return !error && data?.principal_name === name && !!data.pin_hash && !!data.pin_salt
+      && data.source_hash == null && data.source_salt == null;
   },
   async findTeacher(name, includePermissions = false) {
     let data: any = null;
@@ -1409,9 +1417,9 @@ async function handle(req: Request) {
     const mode=String(body.mode||"");
     const date=String(body.assignmentDate||"").trim();
     const subject=String(body.subject||"").trim();
-    const isSystemAdmin=principal.type==="admin"&&principal.name==="مدير النظام العام";
-    if(!isSystemAdmin && !(principal.type==="teacher"&&hasReservePermission&&mode==="subject_day")) {
-      return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل لمدير النظام العام."});
+    const isSystemAdmin=principal.type==="admin";
+    if(!canResetSubstitution(principal.type, mode, hasReservePermission)) {
+      return reply(403,{error:"منسق المادة يستطيع إلغاء احتياط مادته في يوم محدد فقط، والتفريغ الشامل متاح لحسابات المدير."});
     }
     if(mode==="subject_day" && (!/^\d{4}-\d{2}-\d{2}$/.test(date)||!isValidSubstitutionDate(date)||!subject||subject.length>160)) {
       return reply(400,{error:"حدد التاريخ والمادة المراد تفريغ احتياطها."});

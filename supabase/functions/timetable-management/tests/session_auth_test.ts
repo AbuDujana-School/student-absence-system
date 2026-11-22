@@ -17,6 +17,7 @@ function storeWith(
   session: TimetableSessionLookup | null,
   options: {
     admin?: boolean;
+    managedAdmin?: boolean;
     teacher?: { name: string; role: string; reserveAccess?: boolean; permissions?: Record<string, unknown> } | null;
     access?: boolean;
     reserve?: boolean;
@@ -35,6 +36,10 @@ function storeWith(
     async hasAdminCredential() {
       calls.push("admin");
       return options.admin === true;
+    },
+    async hasManagedAdminCredential(name) {
+      calls.push("managed-admin:" + name);
+      return options.managedAdmin === true;
     },
     async findTeacher(name, includePermissions = false) {
       calls.push("teacher:" + name);
@@ -165,6 +170,36 @@ Deno.test("administrator access requires the configured system administrator cre
   }
 });
 
+Deno.test("separately managed secondary administrator receives a full timetable admin principal", async () => {
+  const session = { principal_type: "admin", principal_name: "مدير النظام الثاني", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const allowed = storeWith(session, { managedAdmin: true, calls });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowed, NOW);
+  if (principal?.type !== "admin" || principal.name !== "مدير النظام الثاني") {
+    throw new Error("Verified secondary administrator was not resolved as an admin");
+  }
+  if (!calls.includes("managed-admin:مدير النظام الثاني")) {
+    throw new Error("Secondary administrator credential was not revalidated");
+  }
+
+  const missingCredential = storeWith(session, { managedAdmin: false });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, missingCredential, NOW) !== null) {
+    throw new Error("Secondary administrator session without a managed credential was accepted");
+  }
+});
+
+Deno.test("unknown admin identities cannot borrow the legacy admin credential", async () => {
+  const session = { principal_type: "admin", principal_name: "Unknown Admin", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, { admin: true, managedAdmin: false, calls });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW) !== null) {
+    throw new Error("Unknown administrator identity was accepted");
+  }
+  if (!calls.includes("managed-admin:Unknown Admin") || calls.includes("admin")) {
+    throw new Error("Unknown administrator incorrectly used the legacy credential check");
+  }
+});
+
 Deno.test("unknown principal types and empty teacher names are rejected", async () => {
   const unknown = storeWith({ principal_type: "visitor", principal_name: "Visitor", expires_at: EXPIRY });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, unknown, NOW) !== null) {
@@ -180,7 +215,28 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
 });
 
 
-import { canUseTimetableAction } from "../session_auth.ts";
+import { canResetSubstitution, canUseTimetableAction } from "../session_auth.ts";
+
+Deno.test("both legacy and separately managed admins can reset all active substitutions", () => {
+  for (const adminName of ["مدير النظام العام", "مدير النظام الثاني"]) {
+    // Both identities are resolved as the same verified admin principal type.
+    if (!canResetSubstitution("admin", "all_active")) {
+      throw new Error("Administrator was denied full reset: " + adminName);
+    }
+    if (!canResetSubstitution("admin", "subject_day")) {
+      throw new Error("Administrator was denied subject/day reset: " + adminName);
+    }
+  }
+  if (canResetSubstitution("teacher", "all_active", true)) {
+    throw new Error("Reserve coordinator gained full-school reset permission");
+  }
+  if (!canResetSubstitution("teacher", "subject_day", true)) {
+    throw new Error("Reserve coordinator lost subject/day reset permission");
+  }
+  if (canResetSubstitution("custom", "subject_day", true)) {
+    throw new Error("Custom account gained substitution reset permission");
+  }
+});
 
 Deno.test("non-admin substitution access requires the correct explicit authorization", () => {
   const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own"];

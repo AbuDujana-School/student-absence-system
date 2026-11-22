@@ -418,6 +418,7 @@ Deno.test("reserve permission grants substitution actions only", async () => {
   const principal=await resolveTimetablePrincipal("Bearer "+token,{
     async findSession(){return {principal_type:"teacher",principal_name:"معلم مخوّل",expires_at:"2026-11-16T00:00:00.000Z"};},
     async hasAdminCredential(){return false;},
+    async hasManagedAdminCredential(){return false;},
     async findTeacher(name){return {name,role:"teacher",reserveAccess:true};},
     async hasTimetableAccess(){return false;},
   },Date.parse("2026-11-15T12:00:00.000Z"),"timetable_substitution_batch_preview");

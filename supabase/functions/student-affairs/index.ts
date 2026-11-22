@@ -67,18 +67,47 @@ function validPin(pin: unknown): pin is string { return typeof pin === "string" 
 const appSessionStore = createSupabaseAppSessionStore(db as unknown as AppSessionDatabaseClient);
 
 async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincipal | null> {
-  const [{ data: adminSetting, error: adminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+  // Keep the production fast path: verify the legacy system administrator
+  // before reading the larger teacher/custom-user directory.
+  const [{ data: adminSetting, error: adminError }, { data: adminSecure, error: adminSecureError }] = await Promise.all([
     db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
-    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
-    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt"),
+    db.from("student_affairs_credentials").select("pin_salt,pin_hash,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", "مدير النظام العام").maybeSingle(),
   ]);
-  if (adminError || usersError || upgradedError) throw new Error("Unable to load login records");
-  const candidates: AppLoginCandidate[] = [];
+  if (adminError || adminSecureError) throw new Error("Unable to load administrator login record");
   const adminRecord = adminSetting?.value;
+  let legacy: { pbkdf2: string; sha256: string } | null = null;
   if (adminRecord?.hash && adminRecord?.salt) {
+    const secure = adminSecure as any;
+    const adminMatches = secure && secure.source_hash === adminRecord.hash && secure.source_salt === adminRecord.salt
+      ? await verifyNewPin(pin, secure.pin_salt, secure.pin_hash, pepper)
+      : await verifyExistingPin(pin, adminRecord.salt, adminRecord.hash, legacy || (legacy = await getLegacyPeppers()));
+    if (adminMatches) {
+      return {
+        type: "admin", name: "مدير النظام العام",
+        permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
+        mustChangePin: false,
+      };
+    }
+  }
+
+  // Only a non-primary-admin attempt reaches this path. Resolve the one
+  // separately managed administrator directly, before scanning staff records.
+  const [{ data: secondaryAdmin, error: secondaryAdminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+    db.from("student_affairs_credentials").select("principal_name,pin_salt,pin_hash,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", "مدير النظام الثاني").maybeSingle(),
+    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
+    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt")
+      .in("principal_type", ["custom", "teacher"]),
+  ]);
+  if (secondaryAdminError || usersError || upgradedError) throw new Error("Unable to load user login records");
+
+  const candidates: AppLoginCandidate[] = [];
+  if (secondaryAdmin && !secondaryAdmin.source_hash && !secondaryAdmin.source_salt
+    && secondaryAdmin.pin_hash && secondaryAdmin.pin_salt) {
     candidates.push({
-      type: "admin", name: "مدير النظام العام",
-      hash: adminRecord.hash, salt: adminRecord.salt,
+      type: "admin", name: "مدير النظام الثاني",
+      hash: secondaryAdmin.pin_hash, salt: secondaryAdmin.pin_salt,
       permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
     });
   }
@@ -92,10 +121,12 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     });
   }
   const secureMap = new Map((upgraded || []).map((item: any) => [item.principal_type + "|" + item.principal_name, item]));
-  let legacy: { pbkdf2: string; sha256: string } | null = null;
   return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
+    if (candidate.type === "admin") {
+      return await verifyNewPin(candidatePin, salt, hash, pepper);
+    }
     const secure = secureMap.get(candidate.type + "|" + candidate.name) as any;
     if (secure && secure.source_hash === hash && secure.source_salt === salt) {
       return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
@@ -106,8 +137,15 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
 
 async function currentAppPrincipal(type: string, name: string): Promise<AppPrincipal | null> {
   if (type === "admin") {
-    const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
-    if (error || !data?.value?.hash || !data?.value?.salt) return null;
+    if (name === "مدير النظام العام") {
+      const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
+      if (error || !data?.value?.hash || !data?.value?.salt) return null;
+    } else {
+      const { data, error } = await db.from("student_affairs_credentials")
+        .select("principal_name,source_hash,source_salt,pin_hash,pin_salt")
+        .eq("principal_type", "admin").eq("principal_name", name).maybeSingle();
+      if (error || !data?.pin_hash || !data?.pin_salt || data.source_hash || data.source_salt) return null;
+    }
     return { type: "admin", name, permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true }, mustChangePin: false };
   }
   const { data, error } = await db.from("teachers").select("name,role,permissions,must_change_pin").eq("name", name).maybeSingle();
@@ -150,11 +188,18 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   for (const u of (users || []).filter((x: any) => x.role === "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "custom", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   for (const u of (users || []).filter((x: any) => x.role !== "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   const { data: upgraded } = await db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt");
+  for (const item of upgraded || []) {
+    if (item.principal_type === "admin" && item.principal_name !== "مدير النظام العام"
+      && !item.source_hash && !item.source_salt && item.pin_hash && item.pin_salt) {
+      candidates.push({ type: "admin", name: item.principal_name, hash: item.pin_hash, salt: item.pin_salt });
+    }
+  }
   const secureMap = new Map((upgraded || []).map((x: any) => [x.principal_type + "|" + x.principal_name, x]));
   let legacy: { pbkdf2: string; sha256: string } | null = null;
   for (const p of candidates) {
     const stored = secureMap.get(p.type + "|" + p.name) as any;
-    if (stored && stored.source_hash === p.hash && stored.source_salt === p.salt) {
+    if (stored && ((stored.source_hash === p.hash && stored.source_salt === p.salt)
+      || (!stored.source_hash && !stored.source_salt))) {
       if (await verifyNewPin(pin, stored.pin_salt, stored.pin_hash, pepper)) return p;
     } else if (await verifyExistingPin(pin, p.salt, p.hash, legacy || (legacy = await getLegacyPeppers()))) {
       const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
@@ -802,6 +847,89 @@ async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any; try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
+  if (body?.action === "admin_create_secondary_admin") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const actor = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!actor || actor.type !== "admin" || actor.name !== "مدير النظام العام") return reply(403, { error: "إنشاء مدير إضافي متاح لحساب مدير النظام العام الحالي فقط." });
+
+      const secondaryName = "مدير النظام الثاني";
+      const { data: existing, error: existingError } = await db.from("student_affairs_credentials")
+        .select("principal_name").eq("principal_type", "admin").eq("principal_name", secondaryName).maybeSingle();
+      if (existingError) throw existingError;
+      if (existing) return reply(409, { error: "حساب مدير النظام الثاني موجود بالفعل." });
+
+      const pepper = await getPepper();
+      let pin = "";
+      let collision = true;
+      for (let attempt = 0; attempt < 8 && collision; attempt++) {
+        const bytes = crypto.getRandomValues(new Uint8Array(4));
+        const value = ((bytes[0] * 0x1000000) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3]) >>> 0;
+        pin = String(1000000000 + (value % 9000000000));
+        collision = (await findAppPrincipal(pin, pepper)) !== null;
+      }
+      if (collision) return reply(503, { error: "تعذر إنشاء رقم سري فريد حالياً. حاول مرة أخرى." });
+
+      const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
+      const hash = await pbkdf2(pepper + ":" + salt + ":" + pin, salt, 310000);
+      const { error: insertError } = await db.from("student_affairs_credentials").insert({
+        principal_type: "admin", principal_name: secondaryName,
+        pin_salt: salt, pin_hash: hash, source_hash: null, source_salt: null,
+        updated_at: new Date().toISOString()
+      });
+      if (insertError) throw insertError;
+      return reply(200, { ok: true, principal: { type: "admin", name: secondaryName }, pin });
+    } catch (error) {
+      console.error("Secondary administrator creation failed:", error);
+      return reply(500, { error: "تعذر إنشاء حساب المدير الثاني حالياً." });
+    }
+  }
+  if (body?.action === "admin_reset_secondary_admin_pin") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const actor = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!actor || actor.type !== "admin" || actor.name !== "مدير النظام العام") {
+        return reply(403, { error: "إعادة إصدار رقم المدير الثاني متاحة لحساب مدير النظام العام الحالي فقط." });
+      }
+
+      const secondaryName = "مدير النظام الثاني";
+      const { data: existing, error: existingError } = await db.from("student_affairs_credentials")
+        .select("principal_name,pin_hash,pin_salt,source_hash,source_salt")
+        .eq("principal_type", "admin").eq("principal_name", secondaryName).maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing || !existing.pin_hash || !existing.pin_salt || existing.source_hash || existing.source_salt) {
+        return reply(404, { error: "لم يُعثر على حساب المدير الثاني المُدار. أنشئ الحساب أولاً." });
+      }
+
+      const pepper = await getPepper();
+      let pin = "";
+      let collision = true;
+      for (let attempt = 0; attempt < 8 && collision; attempt++) {
+        const bytes = crypto.getRandomValues(new Uint8Array(4));
+        const value = ((bytes[0] * 0x1000000) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3]) >>> 0;
+        pin = String(1000000000 + (value % 9000000000));
+        collision = (await findAppPrincipal(pin, pepper)) !== null;
+      }
+      if (collision) return reply(503, { error: "تعذر إصدار رقم سري فريد حالياً. حاول مرة أخرى." });
+
+      const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
+      const hash = await pbkdf2(pepper + ":" + salt + ":" + pin, salt, 310000);
+      const { data: updated, error: updateError } = await db.from("student_affairs_credentials")
+        .update({ pin_salt: salt, pin_hash: hash, source_hash: null, source_salt: null, updated_at: new Date().toISOString() })
+        .eq("principal_type", "admin").eq("principal_name", secondaryName)
+        .eq("pin_hash", existing.pin_hash).eq("pin_salt", existing.pin_salt)
+        .is("source_hash", null).is("source_salt", null)
+        .select("principal_name").maybeSingle();
+      if (updateError) throw updateError;
+      if (!updated) return reply(409, { error: "تغير سجل حساب المدير الثاني أثناء العملية. لم يتم تأكيد تغيير الرقم." });
+      return reply(200, { ok: true, principal: { type: "admin", name: secondaryName }, pin });
+    } catch (error) {
+      console.error("Secondary administrator PIN reset failed:", error);
+      return reply(500, { error: "تعذر إعادة إصدار رقم المدير الثاني حالياً." });
+    }
+  }
   if (body?.action === "app_login") {
     if (!validPin(body.pin)) return reply(400, { error: "بيانات الدخول غير صحيحة" });
     const rate = await rateLimit(req);
