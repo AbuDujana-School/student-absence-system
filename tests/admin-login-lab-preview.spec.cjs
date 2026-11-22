@@ -74,9 +74,15 @@ async function prepareCase(buttonName, expectedLabel) {
   return log;
 }
 
-test("admin dashboard paints without starting Student Affairs or production calls", async () => {
-  const log = await prepareCase("1. تهيئة لوحة المدير", "طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي");
+test("admin post-login finalization completes without starting Student Affairs or production calls", async () => {
+  const log = await prepareCase("1. اختبار إنهاء تسجيل دخول المدير", "طلبات شؤون الطلبة أثناء تسجيل الدخول الرئيسي");
   expect(log).toContain('"appStudentAffairsSessionCalls":0');
+  expect(productionRequests).toEqual([]);
+  expect(browserErrors).toEqual([]);
+});
+
+test("administrator control panel opens independently after login", async () => {
+  const log = await prepareCase("2. فتح لوحة التحكم بعد الدخول", "فتح لوحة التحكم");
   expect(productionRequests).toEqual([]);
   expect(browserErrors).toEqual([]);
 });
