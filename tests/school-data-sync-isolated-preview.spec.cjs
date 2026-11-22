@@ -214,7 +214,7 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
-    console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, readyState: document.readyState }));
+    console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, restorePromiseExists: !!offlineSnapshotRestorePromise, readyState: document.readyState }));
     const originalGet = IDBObjectStore.prototype.get;
     IDBObjectStore.prototype.get = function (...args) {
       console.log("QA_IDB get:start:" + this.name + ":" + String(args[0]));
@@ -250,7 +250,7 @@ test("school sync projections and timetable access reads stay isolated and minim
         }
       };
     };
-    ["ensureAppAuthSession", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
+    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
