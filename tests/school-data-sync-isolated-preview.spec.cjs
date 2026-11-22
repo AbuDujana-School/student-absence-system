@@ -239,9 +239,18 @@ test("school sync projections and timetable access reads stay isolated and minim
       transaction.addEventListener("error", () => console.log("QA_IDB tx:error:" + (transaction.error?.message || "unknown")));
       return transaction;
     };
+    const originalFetch = window.fetch;
+    console.log("QA_SYNC fetchType:" + typeof originalFetch + ":" + String(originalFetch).slice(0, 240));
+    window.fetch = function (...args) {
+      console.log("QA_SYNC fetch:call:" + String(args[0]));
+      const pending = originalFetch.apply(this, args);
+      console.log("QA_SYNC fetch:return:" + String(pending));
+      return pending;
+    };
     const wrap = (name) => {
       const original = window[name];
       if (typeof original !== "function") { trace.push(name + ":missing"); console.log("QA_SYNC " + name + ":missing"); return; }
+      if (name === "fetchAppSyncManifest") console.log("QA_SYNC manifestSource:" + String(original).slice(0, 900));
       window[name] = async (...args) => {
         trace.push(name + ":start");
         console.log("QA_SYNC " + name + ":start");
