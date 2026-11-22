@@ -327,6 +327,21 @@ test("school sync projections and timetable access reads stay isolated and minim
     const value = await loadSystemDataFromCloud();
     return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
+  // While the full sync is stalled, issue a second independent RPC from the same page.
+  // If it succeeds concurrently, the Supabase client/network is still healthy and the
+  // stall is specific to the full-sync call path or its surrounding state.
+  await new Promise(resolve => setTimeout(resolve, 1_500));
+  requestPhase = "rpc-during-sync";
+  const rpcDuringSync = await page.evaluate(async () => Promise.race([
+    sb.rpc("get_app_sync_manifest").then(({ data, error }) => ({
+      settled: true, hasData: !!data,
+      error: error ? { message: error.message, code: error.code || null } : null,
+    })).catch(error => ({ settled: true, thrown: error?.message || String(error) })),
+    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 6_000 }), 6_000)),
+  ]));
+  browserConsole.push("QA_RPC_DURING_SYNC " + JSON.stringify(rpcDuringSync));
+  requestPhase = "sync-load";
+
   const initialLoad = await Promise.race([
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
