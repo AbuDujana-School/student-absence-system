@@ -159,7 +159,6 @@ async function failedLogin(key: string) {
   await db.from("student_affairs_login_attempts").upsert({ client_key: key, window_started_at: data?.window_started_at || new Date().toISOString(), failed_attempts: count, blocked_until: count >= 6 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null });
 }
 async function clearFailedLogin(key: string) { await db.from("student_affairs_login_attempts").delete().eq("client_key", key); }
-type Principal = { type: "admin" | "teacher" | "custom"; name: string; hash: string; salt: string };
 type Principal = { type: "admin" | "teacher" | "custom"; credentialType?: "admin" | "teacher" | "custom"; name: string; hash: string; salt: string };
 async function findPrincipal(pin: string, pepper: string): Promise<Principal | null> {
   const candidates: Principal[] = [];
