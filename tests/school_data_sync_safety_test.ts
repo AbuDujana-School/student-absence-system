@@ -29,7 +29,7 @@ Deno.test("robust upsert diagnostics never expose row payloads or raw database m
 Deno.test("cloud writes are blocked until a complete cloud load succeeds", () => {
   assert(html.includes("let cloudDataLoadState = 'not-started'"), "Load state must start closed");
   assert(html.includes("if (cloudDataLoadState !== 'ready')"), "Cloud save must fail closed before readiness");
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(load.includes("cloudDataLoadState = 'loading'"), "Load must enter loading state");
   assert(load.includes("cloudDataLoadState = 'failed'"), "Load errors must leave cloud writes blocked");
   assert(load.includes("cloudDataLoadState = 'ready'"), "Successful load must explicitly become ready");
@@ -37,7 +37,7 @@ Deno.test("cloud writes are blocked until a complete cloud load succeeds", () =>
 });
 
 Deno.test("loading does not rename classes or rewrite related school records", () => {
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(load.includes("db.classes = [...new Set(classesData.map(r => r.name))]"), "Server class names must be preserved exactly");
   assert(!load.includes("queueCloudDelete("), "Loading must not queue class/student/attendance/behavior deletions");
   assert(!load.includes("dirtySets.attendance.add("), "Loading must not create attendance key rewrites");
@@ -92,7 +92,7 @@ Deno.test("default PIN initialization and credential migration are not invoked a
   const migrationCalls = html.match(/(?<!function )migrateCredentialsIfNeeded\s*\(/g) || [];
   assert(initCalls.length === 0, "Default database initializer must have no automatic call sites");
   assert(migrationCalls.length === 0, "Credential migration must have no automatic call sites");
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(!load.includes("createPinRecord("), "Cloud loading must not create or replace PIN credentials");
 });
 
@@ -122,7 +122,7 @@ Deno.test("cloud writes stop if neither local persistence layer can confirm a sn
 
 Deno.test("queued deletions remain local and are reapplied after cloud data is merged", () => {
   const helper = section("function applyPendingLocalDeletions()", "function markOfflineDatabaseForUpload()");
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   for (const table of ["classes", "students", "attendance", "behaviors", "teachers", "duty_reports"]) {
     assert(helper.includes("item.table === '" + table + "'"), "Pending " + table + " deletions must be reflected in the local view");
   }
@@ -206,7 +206,7 @@ Deno.test("teacher deletion UI does not claim the server record was deleted", ()
 
 
 Deno.test("cloud loading never references removed legacy class-rename globals", () => {
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(!load.includes("classesFixed"), "Cloud loading must not read an undeclared legacy classesFixed flag");
   assert(!load.includes("oldClassesMap"), "Cloud loading must not remap student class names through a removed legacy map");
   assert(load.includes("const cn = r.class_name;") || load.includes("let cn = r.class_name;"), "Student class names must be copied verbatim from the server without renaming");
@@ -232,7 +232,7 @@ Deno.test("legacy PIN login does not rewrite stored credential hashes or trigger
 });
 
 Deno.test("offline fallback restores cached data but does not report a successful cloud refresh", () => {
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   const fallbackStart = load.indexOf("if (offlineSnapshotAvailable || saved)");
   assert(fallbackStart >= 0, "Offline fallback path must remain available");
   const fallback = load.slice(fallbackStart);
@@ -254,7 +254,7 @@ Deno.test("manual offline sync is explicit, scoped to dirty records, and never e
   const captureGuard = manual.indexOf("if (attendanceDirty || behaviorDirty)");
   assert(recovery >= 0 && captureGuard >= 0 && captureGuard < recovery, "Manual sync may recover cloud readiness only after protecting live capture");
   assert(recovery < manual.indexOf("await showConfirm("), "Manual sync must recover the cloud snapshot before asking permission to upload");
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(load.includes("mergeDirtyLocalState(pendingLocalState)"), "Recovery must merge pending local edits instead of replacing them");
 });
 
@@ -358,7 +358,7 @@ Deno.test("an empty successful permission-gateway response never falls back to d
 
 Deno.test("unauthenticated startup does not fetch protected school tables", () => {
   const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
   assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
   const sessionCheck = boot.indexOf("await checkExistingSession()");
@@ -448,7 +448,7 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
 
 
 Deno.test("cloud sync fetches only the columns consumed by the local school snapshot", () => {
-  const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
+  const load = section("async function loadSystemDataFromCloud(options = {})", "async function saveSystemDataToCloud(");
   const projections = [
     "shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null)",
     "shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
