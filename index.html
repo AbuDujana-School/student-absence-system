@@ -4544,6 +4544,18 @@ async function openStudentAffairsView(fromHome = false) {
     showToast("لا تملك صلاحية دخول شؤون الطلبة", "error");
     return;
   }
+  // A previously cached Student Affairs token may belong to the same person
+  // before promotion (teacher) or to another account. Never reuse it across
+  // authorization identities; the bridge will issue a fresh session.
+  if (saSession?.token &&
+      (saSession.principal?.name !== activeUser?.name ||
+       saSession.principal?.type !== activeUser?.type)) {
+    saSession = null;
+    try {
+      localStorage.removeItem("abuDujana_studentAffairsSession");
+      sessionStorage.removeItem("abuDujana_studentAffairsSession");
+    } catch (error) {}
+  }
 
   document.getElementById("adminModal")?.classList.add("hidden");
   ["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView",
