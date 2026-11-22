@@ -66,18 +66,14 @@ async function prepareCase(caseKey, buttonName, expectedLabel) {
   await page.goto(baseUrl, { waitUntil: "domcontentloaded", timeout: 60000 });
   const app = page.frameLocator("#app");
   await expect(app.locator("body")).toContainText("معاينة واجهات فقط", { timeout: 30000 });
-  // Invoke the async harness directly. Playwright's click action can time out
-  // while the preview's async cross-frame evaluation is still running, hiding
-  // the actual module result. A bounded evaluation reports the harness result.
-  const execution = await page.evaluate(async key => {
-    const runPromise = window.run(key);
-    return await Promise.race([
-      runPromise.then(() => ({ completed: true })),
-      new Promise(resolve => setTimeout(() => resolve({ completed: false, timeout: true }), 20000))
-    ]);
+  // Start the preview asynchronously and let Playwright poll the log.
+  // Awaiting window.run inside page.evaluate can hold the protocol call open
+  // while the iframe performs its own async work.
+  await page.evaluate(key => {
+    window.run(key);
+    return true;
   }, caseKey);
-  expect(execution.completed, `preview case did not finish: ${caseKey}`).toBe(true);
-  await expect(page.locator("#log")).toContainText(expectedLabel, { timeout: 5000 });
+  await expect(page.locator("#log")).toContainText(expectedLabel, { timeout: 60000 });
   const log = await page.locator("#log").innerText();
   expect(log, `case failed: ${expectedLabel}\n${log}`).not.toContain("تعثر |");
   expect(log, `case threw an exception: ${expectedLabel}\n${log}`).not.toContain("خطأ في تشغيل الاختبار");
