@@ -318,6 +318,20 @@ test("school sync projections and timetable access reads stay isolated and minim
     }));
     // Add transparent call-boundary probes without changing RPC results or auth behavior.
     // These distinguish a synchronous client stall from an auth-session lock wait.
+    const originalRestFetch = sb.rest.fetch.bind(sb.rest);
+    sb.rest.fetch = (...args) => {
+      const requestUrl = typeof args[0] === "string" ? args[0] : (args[0]?.url || String(args[0]));
+      console.log("QA_REST_FETCH start:" + requestUrl);
+      const result = originalRestFetch(...args);
+      console.log("QA_REST_FETCH returned:thenable=" + String(!!result && typeof result.then === "function"));
+      return Promise.resolve(result).then(response => {
+        console.log("QA_REST_FETCH fulfilled:status=" + String(response?.status));
+        return response;
+      }, error => {
+        console.log("QA_REST_FETCH rejected:" + (error?.message || String(error)));
+        throw error;
+      });
+    };
     const originalRpc = sb.rpc.bind(sb);
     sb.rpc = (...args) => {
       console.log("QA_RPC_CALL before:" + String(args[0]));
