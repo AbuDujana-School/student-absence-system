@@ -77,8 +77,14 @@ test("school sync projections and timetable access reads stay isolated and minim
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
+  const browserConsole = [];
+  const supabaseRequests = [];
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
+  page.on("console", (message) => browserConsole.push(message.text()));
+  page.on("request", (request) => {
+    if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ method: request.method(), url: request.url() });
+  });
 
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
@@ -181,14 +187,35 @@ test("school sync projections and timetable access reads stay isolated and minim
   );
 
   const initialLoad = await page.evaluate(async () => {
+    const trace = [];
+    const wrap = (name) => {
+      const original = window[name];
+      if (typeof original !== "function") { trace.push(name + ":missing"); return; }
+      window[name] = async (...args) => {
+        trace.push(name + ":start");
+        try {
+          const value = await original(...args);
+          trace.push(name + ":done");
+          return value;
+        } catch (error) {
+          trace.push(name + ":error:" + (error?.message || String(error)));
+          throw error;
+        }
+      };
+    };
+    ["ensureAppAuthSession", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     };
-    return await loadSystemDataFromCloud();
+    const outcome = await Promise.race([
+      loadSystemDataFromCloud().then(value => ({ value }), error => ({ error: error?.stack || error?.message || String(error) })),
+      new Promise(resolve => setTimeout(() => resolve({ timedOut: true }), 30000)),
+    ]);
+    return { outcome, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
-  expect(initialLoad, "Synthetic initial cloud snapshot must load").toBe(true);
+  expect(initialLoad.outcome, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toEqual({ value: true });
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,
