@@ -101,7 +101,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     window.fetch = (...args) => {
       const target = String(args[0]?.url || args[0] || "");
       if (target.includes("supabase.co")) console.log("QA_FETCH start:" + target);
-      if (target.includes(" + "ylsocrvwqibptuwfzbke.supabase.co" + ") && target.includes("/rest/v1/rpc/get_app_sync_manifest")) {
+      if (target.includes("ylsocrvwqibptuwfzbke.supabase.co") && target.includes("/rest/v1/rpc/get_app_sync_manifest")) {
         console.log("QA_FETCH_MOCK manifest " + target);
         return Promise.resolve(new Response(JSON.stringify(syntheticManifest), {
           status: 200,
