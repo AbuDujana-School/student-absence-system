@@ -10,6 +10,16 @@ on:
       - "admin-login-lab.html"
       - "tests/admin-login-lab-preview.spec.cjs"
       - ".github/workflows/admin-login-lab-tests.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "index.html"
+      - "reserve-workflow.js"
+      - "admin-login-lab.html"
+      - "tests/admin-login-lab-preview.spec.cjs"
+      - "tests/admin_login_secondary_modules_test.mjs"
+      - ".github/workflows/admin-login-lab-tests.yml"
   workflow_dispatch:
 
 permissions:
