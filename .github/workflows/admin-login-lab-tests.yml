@@ -1,0 +1,57 @@
+name: Isolated administrator login regression lab
+
+on:
+  push:
+    branches:
+      - diagnostics/admin-login-lab-20261122
+    paths:
+      - "index.html"
+      - "reserve-workflow.js"
+      - "admin-login-lab.html"
+      - "tests/admin-login-lab-preview.spec.cjs"
+      - ".github/workflows/admin-login-lab-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: admin-login-lab-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  isolated-admin-browser-test:
+    name: Exercise admin modules with mock data only
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out isolated diagnostic branch
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Playwright
+        run: npm install --no-save @playwright/test
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run isolated administrator browser tests
+        run: npx playwright test tests/admin-login-lab-preview.spec.cjs --reporter=line
+
+      - name: Run admin login source regression checks
+        run: node --test tests/admin_login_secondary_modules_test.mjs
+
+      - name: Upload diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: isolated-admin-login-diagnostic-evidence
+          path: |
+            test-results/
+            playwright-report/
+          if-no-files-found: warn
+          retention-days: 7
