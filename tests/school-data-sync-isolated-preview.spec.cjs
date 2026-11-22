@@ -77,8 +77,34 @@ test("school sync projections and timetable access reads stay isolated and minim
   const blockedWrites = [];
   const unexpectedSupabaseTraffic = [];
   const pageErrors = [];
+  const browserConsole = [];
+  const supabaseRequests = [];
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
+  page.on("console", (message) => browserConsole.push(message.text()));
+  page.on("request", (request) => {
+    if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ method: request.method(), url: request.url() });
+  });
+
+  await page.addInitScript(() => {
+    const originalGet = IDBObjectStore.prototype.get;
+    IDBObjectStore.prototype.get = function (...args) {
+      console.log("QA_BOOT_IDB get:start:" + this.name + ":" + String(args[0]));
+      const request = originalGet.apply(this, args);
+      request.addEventListener("success", () => console.log("QA_BOOT_IDB get:success:" + this.name));
+      request.addEventListener("error", () => console.log("QA_BOOT_IDB get:error:" + this.name + ":" + (request.error?.message || "unknown")));
+      return request;
+    };
+    const originalTransaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      console.log("QA_BOOT_IDB tx:start:" + JSON.stringify(args));
+      const transaction = originalTransaction.apply(this, args);
+      transaction.addEventListener("complete", () => console.log("QA_BOOT_IDB tx:complete"));
+      transaction.addEventListener("abort", () => console.log("QA_BOOT_IDB tx:abort:" + (transaction.error?.message || "unknown")));
+      transaction.addEventListener("error", () => console.log("QA_BOOT_IDB tx:error:" + (transaction.error?.message || "unknown")));
+      return transaction;
+    };
+  });
 
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
@@ -180,15 +206,72 @@ test("school sync projections and timetable access reads stay isolated and minim
     { timeout: 30_000 },
   );
 
-  const initialLoad = await page.evaluate(async () => {
+  const pageResponsive = await Promise.race([
+    page.evaluate(() => ({ readyState: document.readyState, title: document.title })),
+    new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 15_000)),
+  ]);
+  expect(pageResponsive.nodeTimedOut, "The browser page must remain responsive before cloud loading").toBeFalsy();
+
+  const loadEvaluation = page.evaluate(async () => {
+    const trace = [];
+    console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, restorePromiseExists: !!offlineSnapshotRestorePromise, readyState: document.readyState }));
+    const originalEnsureRestore = window.ensureOfflineSnapshotRestored;
+    window.ensureOfflineSnapshotRestored = function (...args) {
+      console.log("QA_SYNC ensureRestore:call:" + JSON.stringify({ promiseExists: !!offlineSnapshotRestorePromise, bootRestored: offlineSnapshotRestoredAtBoot }));
+      const result = originalEnsureRestore.apply(this, args);
+      console.log("QA_SYNC ensureRestore:return:" + JSON.stringify({ promiseExists: !!offlineSnapshotRestorePromise }));
+      return result;
+    };
+    const originalGet = IDBObjectStore.prototype.get;
+    IDBObjectStore.prototype.get = function (...args) {
+      console.log("QA_IDB get:start:" + this.name + ":" + String(args[0]));
+      const request = originalGet.apply(this, args);
+      request.addEventListener("success", () => console.log("QA_IDB get:success:" + this.name));
+      request.addEventListener("error", () => console.log("QA_IDB get:error:" + this.name + ":" + (request.error?.message || "unknown")));
+      return request;
+    };
+    const originalTransaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      console.log("QA_IDB tx:start:" + JSON.stringify(args));
+      const transaction = originalTransaction.apply(this, args);
+      transaction.addEventListener("complete", () => console.log("QA_IDB tx:complete"));
+      transaction.addEventListener("abort", () => console.log("QA_IDB tx:abort:" + (transaction.error?.message || "unknown")));
+      transaction.addEventListener("error", () => console.log("QA_IDB tx:error:" + (transaction.error?.message || "unknown")));
+      return transaction;
+    };
+    const wrap = (name) => {
+      const original = window[name];
+      if (typeof original !== "function") { trace.push(name + ":missing"); console.log("QA_SYNC " + name + ":missing"); return; }
+      window[name] = async (...args) => {
+        trace.push(name + ":start");
+        console.log("QA_SYNC " + name + ":start");
+        try {
+          const value = await original(...args);
+          trace.push(name + ":done");
+          console.log("QA_SYNC " + name + ":done");
+          return value;
+        } catch (error) {
+          trace.push(name + ":error:" + (error?.message || String(error)));
+          console.log("QA_SYNC " + name + ":error:" + (error?.message || String(error)));
+          throw error;
+        }
+      };
+    };
+    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     };
-    return await loadSystemDataFromCloud();
+    const value = await loadSystemDataFromCloud();
+    return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
-  expect(initialLoad, "Synthetic initial cloud snapshot must load").toBe(true);
+  const initialLoad = await Promise.race([
+    loadEvaluation,
+    new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
+  ]);
+  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, browserConsole, pageErrors })).toBeFalsy();
+  expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,
