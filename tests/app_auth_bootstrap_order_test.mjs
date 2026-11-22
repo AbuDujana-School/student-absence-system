@@ -155,3 +155,13 @@ test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cann
   assert.doesNotMatch(loader, /await persistOfflineState\(\)/);
   assert.match(loader, /تعذر تحديث النسخة المحلية الدائمة/);
 });
+
+test("IndexedDB restore is bounded and falls back without blocking authenticated cloud bootstrap", () => {
+  const restore = section("async function restoreOfflineState()", "function cloneOfflineValue");
+  assert.match(restore, /withAppSyncTimeout\(/);
+  assert.match(restore, /APP_OFFLINE_RESTORE_TIMEOUT/);
+  assert.match(restore, /offlineDbPromise = null/);
+  assert.match(restore, /restoreLocalStorageOfflineSnapshot\(\)/);
+  assert.match(restore, /6000/);
+  assert.match(restore, /database\.transaction\('state', 'readonly'\)/);
+});
