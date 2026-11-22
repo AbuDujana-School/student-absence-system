@@ -5766,20 +5766,43 @@ async function restoreOfflineState() {
   lastLoadedCloudManifest = null;
   localStorageFallbackSnapshot = false;
   try {
-    const database=await openOfflineDatabase();
-    const snapshot=await new Promise((resolve,reject)=>{const tx=database.transaction('state','readonly');const req=tx.objectStore('state').get('snapshot');req.onsuccess=()=>resolve(req.result||null);req.onerror=()=>reject(req.error||new Error('فشل قراءة النسخة المحلية'));});
-    if(!snapshot?.db||typeof snapshot.db!=='object') {
+    // IndexedDB open/read can remain pending on some Android WebViews when an
+    // older app window still owns the database. Never let that stall login or
+    // hold the shared cloud-refresh lock indefinitely.
+    const snapshot = await withAppSyncTimeout((async () => {
+      const database = await openOfflineDatabase();
+      return await new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readonly');
+        const req = tx.objectStore('state').get('snapshot');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error || new Error('فشل قراءة النسخة المحلية'));
+        tx.onabort = () => reject(tx.error || new Error('أُلغيت قراءة النسخة المحلية'));
+      });
+    })(), 6000, 'تأخرت استعادة النسخة المحلية؛ سيتم استخدام النسخة الاحتياطية الآمنة.', 'APP_OFFLINE_RESTORE_TIMEOUT');
+    if (!snapshot?.db || typeof snapshot.db !== 'object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
       return restoreLocalStorageOfflineSnapshot();
     }
     lastLoadedCloudManifest = normalizeAppSyncManifest(snapshot.cloudSyncManifest);
-    db={...db,...snapshot.db}; if(!db.customUsers)db.customUsers=[];if(!db.customCategories)db.customCategories=[];if(!db.behaviors)db.behaviors={};
-    db.dutyModule=normalizeDutyModule(db.dutyModule);Object.keys(db.students||{}).forEach(k=>db.students[k]=arabicSort(db.students[k]||[]));
-    restoreDirtySetsObject(snapshot.dirtySets);if(Array.isArray(snapshot.pendingDeletes))setPendingDeletes(snapshot.pendingDeletes);
+    db = { ...db, ...snapshot.db };
+    if (!db.customUsers) db.customUsers = [];
+    if (!db.customCategories) db.customCategories = [];
+    if (!db.behaviors) db.behaviors = {};
+    db.dutyModule = normalizeDutyModule(db.dutyModule);
+    Object.keys(db.students || {}).forEach(k => db.students[k] = arabicSort(db.students[k] || []));
+    restoreDirtySetsObject(snapshot.dirtySets);
+    if (Array.isArray(snapshot.pendingDeletes)) setPendingDeletes(snapshot.pendingDeletes);
     return true;
-  } catch(error) {
-    console.warn('IndexedDB restore unavailable; attempting the localStorage fallback.', error);
+  } catch (error) {
+    // A rejected IndexedDB open promise must not poison every later retry.
+    // The timed-out read is read-only and cannot overwrite a later cloud snapshot.
+    offlineDbPromise = null;
+    if (error?.code === 'APP_OFFLINE_RESTORE_TIMEOUT') {
+      console.warn('IndexedDB restore timed out; using the localStorage fallback.', error);
+    } else {
+      console.warn('IndexedDB restore unavailable; attempting the localStorage fallback.', error);
+    }
     return restoreLocalStorageOfflineSnapshot();
   }
 }
