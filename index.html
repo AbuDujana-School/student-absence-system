@@ -3688,7 +3688,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <label class="text-xs font-bold text-slate-600 dark:text-slate-300">اليوم الدراسي<input id="timetableSubstitutionWeekday" type="text" readonly class="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-100 dark:bg-slate-900 p-3 text-xs text-slate-800 dark:text-white"></label>
             <label class="hidden">المعلم الغائب<select id="timetableSubstitutionAbsentTeacher" onchange="timetablePreviewSubstitutions()"><option value="">اختر المعلم الغائب</option></select></label>
           </div>
-          <div class="space-y-2"><label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetableToggleOtherDepartments('timetableSubstitutionOtherDepartments','timetableSubstitutionOtherDepartmentSelect')" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label><select id="timetableSubstitutionOtherDepartmentSelect" class="hidden w-full rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs font-bold text-slate-800 dark:border-indigo-900 dark:bg-slate-900 dark:text-white" onchange="timetablePreviewSubstitutions()" disabled><option value="">اختر القسم المطلوب</option></select></div>
+          <div class="space-y-2"><label class="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300"><input id="timetableSubstitutionOtherDepartments" type="checkbox" onchange="timetableToggleOtherDepartments('timetableSubstitutionOtherDepartments','timetableSubstitutionOtherDepartmentSelect')" class="rounded"> إظهار المعلمين المتاحين من الأقسام الأخرى</label><select id="timetableSubstitutionOtherDepartmentSelect" class="hidden w-full rounded-xl border border-indigo-200 bg-indigo-50 p-3 text-xs font-bold text-slate-800 dark:border-indigo-900 dark:bg-slate-900 dark:text-white" onchange="timetableSubstitutionOtherDepartmentChanged()" disabled><option value="">اختر القسم المطلوب</option></select></div>
           <div id="timetableSubstitutionStatus" class="hidden rounded-xl border px-4 py-3 text-xs font-bold" role="status" aria-live="polite"></div>
           <div id="timetableSubstitutionResults" class="space-y-3"></div>
         </div>
@@ -12641,6 +12641,9 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
       window.substitutionRenderedOtherDepartmentId="";
       document.getElementById("substitutionOtherTeacherChoices")?.classList.add("hidden");
     }
+    if(checkboxId==="timetableSubstitutionOtherDepartments"){
+      window.timetableSubstitutionOtherDepartmentsData=[];
+    }
     return [];
   }
   const previous=String(select.value||"");
@@ -12662,12 +12665,27 @@ async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
     window.substitutionSelectedOtherDepartmentId=selectedDepartment?previous:"";
     window.substitutionSelectedOtherTeacherNames=new Set([...previousNames].filter(name=>allowedNames.has(name)));
   }
+  if(checkboxId==="timetableSubstitutionOtherDepartments"){
+    window.timetableSubstitutionOtherDepartmentsData=departments;
+  }
   select.innerHTML='<option value="">اختر القسم المطلوب</option>'+departments.map(item=>'<option value="'+timetableEsc(item.id)+'">'+timetableEsc(item.name)+'</option>').join("");
   if(departments.some(item=>String(item.id)===previous))select.value=previous;
   select.disabled=departments.length===0;
   if(!departments.length)select.innerHTML='<option value="">لا توجد أقسام أخرى لها معلمون في الجدول النشط</option>';
   return departments;
 }
+function timetableGetOtherDepartmentTeacherNames(){
+  const departmentId=String(document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value||"");
+  const departments=Array.isArray(window.timetableSubstitutionOtherDepartmentsData)?window.timetableSubstitutionOtherDepartmentsData:[];
+  const department=departments.find(item=>String(item.id)===departmentId);
+  return Array.from(new Set((department?.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean)));
+}
+function timetableSubstitutionOtherDepartmentChanged(){
+  timetableDailyPreviewByAbsent.clear();
+  if(timetableDailyAbsentTeachers.length)void timetableDailyRefreshAll();
+  else void timetablePreviewSubstitutions();
+}
+window.timetableSubstitutionOtherDepartmentsData=Array.isArray(window.timetableSubstitutionOtherDepartmentsData)?window.timetableSubstitutionOtherDepartmentsData:[];
 window.substitutionOtherDepartmentsData=window.substitutionOtherDepartmentsData||[];
 window.substitutionSelectedOtherTeacherNames=window.substitutionSelectedOtherTeacherNames instanceof Set?window.substitutionSelectedOtherTeacherNames:new Set();
 window.substitutionSelectedOtherDepartmentId=String(window.substitutionSelectedOtherDepartmentId||"");
@@ -12761,8 +12779,9 @@ async function timetablePreviewSubstitutions() {
     const token=appAuthSession?.token||readAppAuthToken();
     const includeOtherDepartments=document.getElementById("timetableSubstitutionOtherDepartments")?.checked===true;
     const otherDepartmentId=includeOtherDepartments?document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value||"":"";
-    if(includeOtherDepartments&&!otherDepartmentId)throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
-    const response=await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName:absent,includeOtherDepartments,otherDepartmentId},token);
+    const otherTeacherNames=includeOtherDepartments?timetableGetOtherDepartmentTeacherNames():[];
+    if(includeOtherDepartments&&(!otherDepartmentId||!otherTeacherNames.length))throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
+    const response=await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName:absent,includeOtherDepartments,otherDepartmentId,otherTeacherNames},token);
     timetableSubstitutionContext={date,weekday,absentTeacherName:absent,version:response.version};
     timetableRenderSubstitutionLessons(response);
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر تحميل حصص المعلم الغائب.","error");}
@@ -12812,9 +12831,10 @@ async function timetableSaveSubstitution(period,substituteTeacherName) {
     const token=appAuthSession?.token||readAppAuthToken();
     const includeOtherDepartments=document.getElementById("timetableSubstitutionOtherDepartments")?.checked===true;
     const otherDepartmentId=includeOtherDepartments?document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value||"":"";
+    const otherTeacherNames=includeOtherDepartments?[substituteTeacherName]:[];
     if(includeOtherDepartments&&!otherDepartmentId)throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
     await appAuthRequest({action:"timetable_substitution_save",weekday:context.weekday,assignmentDate:context.date,
-      absentTeacherName:context.absentTeacherName,substituteTeacherName,period,includeOtherDepartments,otherDepartmentId},token);
+      absentTeacherName:context.absentTeacherName,substituteTeacherName,period,includeOtherDepartments,otherDepartmentId,otherTeacherNames},token);
     timetableSubstitutionSetStatus("تم تعيين "+substituteTeacherName+" بديلاً في الحصة "+period+".","success");
     await timetablePreviewSubstitutions();
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
@@ -12957,9 +12977,10 @@ async function timetableDailyFetchPreview(absentTeacherName) {
   if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
   const includeOtherDepartments = document.getElementById("timetableSubstitutionOtherDepartments")?.checked === true;
   const otherDepartmentId = includeOtherDepartments ? document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value || "" : "";
-  if (includeOtherDepartments && !otherDepartmentId) throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
+  const otherTeacherNames = includeOtherDepartments ? timetableGetOtherDepartmentTeacherNames() : [];
+  if (includeOtherDepartments && (!otherDepartmentId || !otherTeacherNames.length)) throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
   return await appAuthRequest({
-    action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName,includeOtherDepartments,otherDepartmentId
+    action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName,includeOtherDepartments,otherDepartmentId,otherTeacherNames
   },token);
 }
 
