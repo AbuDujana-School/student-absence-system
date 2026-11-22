@@ -235,6 +235,16 @@ export function canUseTimetableAction(
   ]).has(action);
 }
 
+/** Full admins may reset any active substitution set; reserve coordinators remain limited to their own subject/day. */
+export function canResetSubstitution(
+  principalType: TimetablePrincipalType,
+  mode: string,
+  hasReservePermission = false,
+): boolean {
+  return principalType === "admin" ||
+    (principalType === "teacher" && hasReservePermission && mode === "subject_day");
+}
+
 /** The administrator or a teacher explicitly granted reserve-distribution permission may broaden substitute candidates. */
 export function canIncludeOtherDepartments(
   principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
