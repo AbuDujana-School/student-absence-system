@@ -33,7 +33,7 @@ Deno.test("student transfer UI requires admin authorization and uses the server 
 
 Deno.test("Edge Function accepts transfers only from the active general admin session", () => {
   const action = section(edge, 'if (body?.action === "admin_transfer_student")', 'if (body?.action === "app_student_affairs_session")');
-  assert(action.includes("readAppSession"), "Transfer must validate the general app session");
+  assert(action.includes("readAuthorizedAppSession"), "Transfer must validate and revalidate the general app session");
   assert(action.includes('principal.type !== "admin"'), "Only the general admin may transfer students");
   assert(action.includes('db.rpc("admin_transfer_student"'), "Transfer must run in the database transaction");
 });
@@ -83,7 +83,7 @@ Deno.test("old student deletion intents are pruned only after a successful cloud
 
 Deno.test("Edge Function roster save requires the active general-admin session and uses its database transaction", () => {
   const action = section(edge, 'if (body?.action === "admin_save_student_roster")', 'if (body?.action === "admin_transfer_student")');
-  assert(action.includes("readAppSession"), "Roster save must validate the active app session");
+  assert(action.includes("readAuthorizedAppSession"), "Roster save must validate and revalidate the active app session");
   assert(action.includes('principal.type !== "admin"'), "Roster save must reject non-admin principals");
   assert(action.includes('db.rpc("admin_save_student_roster"'), "Roster save must use the atomic database function");
 });
