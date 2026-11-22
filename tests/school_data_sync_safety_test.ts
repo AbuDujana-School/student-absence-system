@@ -359,15 +359,15 @@ Deno.test("an empty successful permission-gateway response never falls back to d
 Deno.test("unauthenticated startup does not fetch protected school tables", () => {
   const boot = section("window.addEventListener('DOMContentLoaded', async () => {", "function initDarkMode()");
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
-  assert(boot.includes("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Startup may restore only the local snapshot before login");
-  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await restoreOfflineState()"), "Session validation must follow local-only restoration");
+  assert(boot.includes("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()"), "Startup may restore only the local snapshot before login");
+  assert(boot.indexOf("await checkExistingSession()") > boot.indexOf("offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored()"), "Session validation must follow local-only restoration");
   const sessionCheck = boot.indexOf("await checkExistingSession()");
   const startupBeforeSession = sessionCheck >= 0 ? boot.slice(0, sessionCheck) : boot;
   assert(!startupBeforeSession.includes("loadSystemDataFromCloud("), "Startup must not directly download school tables before session validation");
   const noUserGuard = load.indexOf("if (!activeUser)");
   const localOnlyGuard = load.indexOf("if (localOnlySession)", noUserGuard);
   const secureSessionGuard = load.indexOf("if (navigator.onLine && !await ensureAppAuthSession())", localOnlyGuard);
-  const localRestore = load.indexOf("const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot || await restoreOfflineState()");
+  const localRestore = load.indexOf("const offlineSnapshotAvailable = await ensureOfflineSnapshotRestored()");
   const manifestFetch = load.indexOf("fetchAppSyncManifest()");
   assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
   assert(localOnlyGuard > noUserGuard && localOnlyGuard < localRestore, "Local-only sessions must not reach protected cloud reads");
