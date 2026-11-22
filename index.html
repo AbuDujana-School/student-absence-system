@@ -4536,7 +4536,79 @@ function closeStudentAffairsAssignments(){
   });
 }
 let studentAffairsOpenedFromHome = false;
-async function openStudentAffairsView(fromHome = false){studentAffairsOpenedFromHome=fromHome===true;const allowed=activeUser?.type==="admin"||activeUser?.permissions?.admin||activeUser?.permissions?.studentAffairs===true;if(!allowed){showToast("لا تملك صلاحية دخول شؤون الطلبة","error");return;}document.getElementById("adminModal")?.classList.add("hidden");["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView","behaviorClassesView","behaviorSessionView","teacherTimetableView"].forEach(x=>document.getElementById(x)?.classList.add("hidden"));document.getElementById("studentAffairsView").classList.remove("hidden");const todayStr=getOmanLocalDate();const firstOfMonth=todayStr.slice(0,8)+"01";const fromInput=document.getElementById("saFrom");const toInput=document.getElementById("saTo");if(fromInput&&!fromInput.value)fromInput.value=firstOfMonth;if(toInput&&!toInput.value)toInput.value=todayStr;saInitReportDateInputs("sa");if(!saSession?.token){document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="تعذر استعادة جلسة شؤون الطلبة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.";window.refreshCombinedReportTabs?.();return;}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=saSession.principal?.name||activeUser.name;try{const d=await saRequest({action:"get_my_permissions"});saReportPermissions=d.permissions||{};const isAdmin=saSession.principal?.type==="admin";saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();await saSetupCompetitionPanel();await saSetupSupervisionPanel();}catch(e){const expired=Number(e?.status)===401;if(expired){saSession=null;try{localStorage.removeItem("abuDujana_studentAffairsSession");sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(ignore){}document.getElementById("saContent").classList.add("hidden");document.getElementById("saLogin").classList.remove("hidden");document.getElementById("saLoginError").textContent="انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";}else{document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");const box=document.getElementById("saResults");if(box)box.innerHTML='<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">'+escapeHtml(e?.message||"تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.")+'<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';}showToast(e?.message||"تعذر تحميل شؤون الطلبة","error");}}
+async function openStudentAffairsView(fromHome = false) {
+  studentAffairsOpenedFromHome = fromHome === true;
+  const allowed = activeUser?.type === "admin" || activeUser?.permissions?.admin ||
+    activeUser?.permissions?.studentAffairs === true;
+  if (!allowed) {
+    showToast("لا تملك صلاحية دخول شؤون الطلبة", "error");
+    return;
+  }
+
+  document.getElementById("adminModal")?.classList.add("hidden");
+  ["dashboardSelectionView","dutyView","dutyClassesView","classesView","attendanceView",
+    "behaviorClassesView","behaviorSessionView","teacherTimetableView"]
+    .forEach(id => document.getElementById(id)?.classList.add("hidden"));
+  document.getElementById("studentAffairsView").classList.remove("hidden");
+
+  const todayStr = getOmanLocalDate();
+  const firstOfMonth = todayStr.slice(0, 8) + "01";
+  const fromInput = document.getElementById("saFrom");
+  const toInput = document.getElementById("saTo");
+  if (fromInput && !fromInput.value) fromInput.value = firstOfMonth;
+  if (toInput && !toInput.value) toInput.value = todayStr;
+  saInitReportDateInputs("sa");
+
+  // Create the optional module session only after the user opens this module.
+  // The primary app session remains valid if this secondary service is slow.
+  if (!saSession?.token) {
+    try {
+      await saLogin();
+      return; // saLogin initializes the module screen and its own permissions.
+    } catch (loginError) {
+      document.getElementById("saContent").classList.add("hidden");
+      document.getElementById("saLogin").classList.remove("hidden");
+      document.getElementById("saLoginError").textContent =
+        loginError?.message || "تعذر إنشاء جلسة شؤون الطلبة. أعد المحاولة.";
+      window.refreshCombinedReportTabs?.();
+      return;
+    }
+  }
+
+  document.getElementById("saLogin").classList.add("hidden");
+  document.getElementById("saContent").classList.remove("hidden");
+  document.getElementById("saBadge").textContent = saSession.principal?.name || activeUser.name;
+  try {
+    const d = await saRequest({ action: "get_my_permissions" });
+    saReportPermissions = d.permissions || {};
+    saSetDomain(saReportPermissions.can_read_attendance ? "attendance" : "behavior");
+    window.refreshCombinedReportTabs?.();
+    await saSetupCompetitionPanel();
+    await saSetupSupervisionPanel();
+  } catch (error) {
+    const expired = Number(error?.status) === 401;
+    if (expired) {
+      saSession = null;
+      try {
+        localStorage.removeItem("abuDujana_studentAffairsSession");
+        sessionStorage.removeItem("abuDujana_studentAffairsSession");
+      } catch (ignore) {}
+      document.getElementById("saContent").classList.add("hidden");
+      document.getElementById("saLogin").classList.remove("hidden");
+      document.getElementById("saLoginError").textContent =
+        "انتهت صلاحية جلسة شؤون الطلبة. سجّل الدخول مجدداً لإنشاء جلسة جديدة.";
+    } else {
+      document.getElementById("saLogin").classList.add("hidden");
+      document.getElementById("saContent").classList.remove("hidden");
+      const box = document.getElementById("saResults");
+      if (box) box.innerHTML =
+        '<div class="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">' +
+        escapeHtml(error?.message || "تعذر تحميل شؤون الطلبة مؤقتاً. أعد المحاولة.") +
+        '<br>تم الاحتفاظ بالجلسة؛ لا حاجة إلى تسجيل الخروج.</div>';
+    }
+    showToast(error?.message || "تعذر تحميل شؤون الطلبة", "error");
+  }
+}
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(studentAffairsOpenedFromHome){studentAffairsOpenedFromHome=false;document.getElementById("dashboardSelectionView")?.classList.remove("hidden");return;}if(isSinglePermissionMode()&&getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
 async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
@@ -7197,18 +7269,9 @@ async function handleUserLogin(e) {
         updateSyncStatus(false, 'تم تسجيل الدخول؛ تعذر تحديث المزامنة، انقر لإعادة المحاولة');
       });
     }
-    if (!localOnlySession && (activeUser.type === "admin" || activeUser.permissions?.admin || activeUser.permissions?.studentAffairs === true)) {
-      // Student Affairs is an optional module after the main app session. Load it
-      // separately so its reports/permissions queries cannot block the main login.
-      void Promise.race([
-        saLogin(pin),
-        new Promise((_, reject) => setTimeout(() => reject(new Error('تأخر تحميل قسم شؤون الطلبة.')), 8000))
-      ]).catch(saError => {
-        console.warn("Student Affairs initialization deferred; main login remains active:", saError);
-        saSession = null;
-        try { sessionStorage.removeItem("abuDujana_studentAffairsSession"); } catch(error) {}
-      });
-    }
+    // Student Affairs is deliberately lazy-loaded when its screen is opened.
+    // Its reports, competition and supervision queries must never run during
+    // the primary app login or compete with the first dashboard paint.
     showToast("أهلاً بك: " + activeUser.name, "success");
     document.getElementById("userPinInput").value = "";
   } catch(error) {
