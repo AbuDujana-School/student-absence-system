@@ -1,5 +1,9 @@
 const { test, expect } = require("@playwright/test");
 
+// This test owns all backend traffic through Playwright routes; block the app
+// service worker so it cannot bypass the synthetic network interception.
+test.use({ serviceWorkers: "block" });
+
 const SUPABASE_HOST = "ylsocrvwqibptuwfzbke.supabase.co";
 const TABLES = [
   "classes",
@@ -279,7 +283,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
   ]);
-  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, browserConsole, pageErrors })).toBeFalsy();
+  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, manifestCalls, unexpectedSupabaseTraffic, browserConsole, pageErrors })).toBeFalsy();
   expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({
