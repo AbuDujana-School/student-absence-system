@@ -230,3 +230,17 @@ test("mobile PIN input normalizes Arabic, Persian, and full-width numerals befor
   assert.ok(login.includes('normalizeAppPinDigits(pinInput?.value?.trim() || "")'));
   assert.ok(login.includes("pinInput.value = pin"));
 });
+
+
+test("authenticated login refreshes all independent report panel visibility after role initialization", () => {
+  const reports = section("function canAccessReport(key, user = activeUser)", "function switchAdminTab(tab)");
+  assert.match(reports, /user\?\.type === 'admin'/);
+  assert.match(reports, /reportMorningAssemblyLateness/);
+  assert.match(reports, /reportStudentAffairs/);
+  assert.match(reports, /reportComprehensiveAbsence/);
+  assert.match(reports, /reportClassLatenessFollowup/);
+  assert.match(reports, /reportSubstitutionDistribution/);
+
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess");
+  assert.ok(finalize.includes("refreshReportPanelsVisibility();"));
+});

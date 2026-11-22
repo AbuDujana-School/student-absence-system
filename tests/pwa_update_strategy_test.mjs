@@ -10,8 +10,16 @@ test('installed PWA checks for a fresh service worker on startup', () => {
   assert.match(html, /registration\.update\(\)/);
 });
 
-test('PWA navigation bypasses the browser HTTP cache and rotates app caches', () => {
+test('service worker updates rotate both application caches', () => {
+  assert.match(sw, /abudujana-app-v43/);
+  assert.match(sw, /abudujana-static-v50/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'\s*\}\)/);
-  assert.match(sw, /abudujana-app-v40/);
-  assert.match(sw, /abudujana-static-v47/);
+});
+
+test('installed pages refresh after a new worker controls the login page', () => {
+  assert.match(html, /hadControllerAtStartup = Boolean\(navigator\.serviceWorker\.controller\)/);
+  assert.match(html, /navigator\.serviceWorker\.addEventListener\("controllerchange"/);
+  assert.match(html, /if \(loginIsVisible\)\s*\{\s*window\.location\.reload\(\)/);
+  assert.match(html, /pwaUpdateNotice/);
+  assert.match(html, /تحديث الآن/);
 });

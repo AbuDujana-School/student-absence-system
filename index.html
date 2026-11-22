@@ -7355,6 +7355,8 @@ async function finalizeLoginState() {
     try { await bounded(checkAndEnforcePinChange(), 5000, 'تعذر فحص تغيير الرقم السري الآن.'); } catch (error) { console.warn('PIN policy check deferred:', error); }
     try { await bounded(checkAndEnforceAdminPinChange(), 5000, 'تعذر فحص رقم المدير الآن.'); } catch (error) { console.warn('Admin PIN policy check deferred:', error); }
   }
+  // Re-apply each report's visibility after the authenticated principal is finalized.
+  refreshReportPanelsVisibility();
   window.refreshCombinedReportTabs?.();
 }
 function hasAdminPanelAccess(user = activeUser) {
@@ -10820,12 +10822,43 @@ function exportDutyReportsCSV() {
 })();
 </script>
 <script>
-// PWA shell registration. Offline data persistence is implemented in a separate stage.
+// PWA shell registration and controlled refresh after an installed-app update.
 if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
+  const hadControllerAtStartup = Boolean(navigator.serviceWorker.controller);
+  let updateNoticeShown = false;
+
+  function showPwaUpdateNotice() {
+    if (updateNoticeShown || document.getElementById("pwaUpdateNotice")) return;
+    updateNoticeShown = true;
+    const notice = document.createElement("div");
+    notice.id = "pwaUpdateNotice";
+    notice.dir = "rtl";
+    notice.setAttribute("role", "status");
+    notice.style.cssText = "position:fixed;inset-inline:16px;bottom:16px;z-index:12000;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:14px 16px;border:1px solid #99d5cf;border-radius:18px;background:#f0fdfa;color:#134e4a;box-shadow:0 16px 40px rgba(15,23,42,.22);font:700 13px Tajawal,Arial,sans-serif";
+    notice.innerHTML = '<span>توجد نسخة أحدث من نظام أبو دجانة. حدّث الصفحة لإظهار آخر الإضافات والإصلاحات.</span><span style="display:flex;gap:8px"><button type="button" data-pwa-refresh style="border:0;border-radius:11px;background:#0f766e;color:white;padding:9px 13px;font-weight:800">تحديث الآن</button><button type="button" data-pwa-dismiss style="border:1px solid #99d5cf;border-radius:11px;background:white;color:#134e4a;padding:9px 13px;font-weight:800">لاحقاً</button></span>';
+    notice.querySelector("[data-pwa-refresh]")?.addEventListener("click", () => window.location.reload());
+    notice.querySelector("[data-pwa-dismiss]")?.addEventListener("click", () => notice.remove());
+    document.body.appendChild(notice);
+  }
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    // The very first installation has no old page to replace.
+    if (!hadControllerAtStartup) return;
+    const loginView = document.getElementById("loginView");
+    const loginIsVisible = loginView && !loginView.classList.contains("hidden");
+    if (loginIsVisible) {
+      // A login screen has no unsaved school form data. Replace stale code now,
+      // so an old authentication handler cannot remain stuck on the spinner.
+      window.location.reload();
+      return;
+    }
+    // Do not discard an active school form without telling the signed-in user.
+    showPwaUpdateNotice();
+  });
+
   window.addEventListener("load", () => {
     navigator.serviceWorker.register("./sw.js", { updateViaCache: "none" }).then(registration => {
-      // Installed PWA windows may keep an older worker longer than a normal
-      // browser tab. Check for an update whenever the app starts.
+      // Check for a newer worker on every application start, including PWA windows.
       return registration.update();
     }).catch(error => {
       console.warn("تعذر تحديث خدمة التطبيق:", error);
