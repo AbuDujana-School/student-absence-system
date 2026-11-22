@@ -32,3 +32,11 @@ test("report loading remains inside the Student Affairs module entry path, not p
   assert.match(entry, /saSetupSupervisionPanel\(\)/);
   assert.doesNotMatch(login, /saSetDomain\(|saSetupCompetitionPanel\(|saSetupSupervisionPanel\(/);
 });
+
+test("administrator-only morning assembly card is restored immediately after login", () => {
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess(");
+  assert.match(finalize, /dashboardSelectionView'\)\?\.classList\.remove\('hidden'\);[\s\S]*refreshMorningAssemblyLatenessCard\(\)/);
+  const policy = section("function canUseMorningAssemblyLateness()", "function refreshMorningAssemblyLatenessCard()");
+  assert.match(policy, /return activeUser\?\.type === 'admin';/);
+  assert.doesNotMatch(policy, /permissions\?\.morningAssemblyLateness|isTeacherOnDutyToday/);
+});

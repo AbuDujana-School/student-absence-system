@@ -7,7 +7,7 @@ import { buildDutyReportContext } from "./duty_report_context.ts";
 import { canReadDutyReportPeriod, isDutyReportEligibleOnDay } from "./duty_report_access.ts";
 import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
-import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
+import { buildBatchSubstitutionPlan, canSeeAllAbsentTeachers, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
@@ -1553,7 +1553,7 @@ async function handle(req: Request) {
       }
       const date=String(body.assignmentDate||"");
       if(date&&!/^\d{4}-\d{2}-\d{2}$/.test(date))return reply(400,{error:"تاريخ الغياب غير صالح."});
-      const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin");
+      const absentTeachers=getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,canSeeAllAbsentTeachers(principal.type,hasReservePermission));
       if(!absentTeacherName && !["timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_stats","timetable_substitution_archive","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action||"")))return reply(200,{ok:true,active:true,version:activeVersion,absentTeachers});
       const timetable:TimetableEntry[]=dayCells.filter((c:any)=>c.matched_teacher_name).map((c:any)=>({teacherId:String(c.matched_teacher_name),weekday:String(c.weekday),period:Number(c.period),className:Array.isArray(c.class_sections)?c.class_sections.join("، "):"",subject:String(c.subject||""),status:c.cell_status}));
       const assignmentRows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")

@@ -30,11 +30,9 @@ Deno.test("four lateness events equal one separate absence day", () => {
   }
 });
 
-Deno.test("admin and explicitly authorized custom users have independent access", () => {
-  const common = { permission:false, dutyToday:false, weekday:"الجمعة", assignedDutyDay:"الأحد", minutes:100 };
-  if (!canUseMorningLateness({ principalType:"admin", ...common })) throw new Error("Admin must bypass duty and time gates");
-  if (canUseMorningLateness({ principalType:"custom", ...common, permission:true })) {
-    // custom access does not depend on weekday, duty day, or registration time.
-  } else throw new Error("Authorized custom user must bypass duty and time gates");
-  if (canUseMorningLateness({ principalType:"custom", ...common, permission:false })) throw new Error("Custom permission must remain explicit");
+Deno.test("only the general administrator can access morning assembly lateness", () => {
+  const common = { permission:true, dutyToday:true, weekday:"الأحد", assignedDutyDay:"الأحد", minutes:480 };
+  if (!canUseMorningLateness({ principalType:"admin", ...common })) throw new Error("General administrator must always have access");
+  if (canUseMorningLateness({ principalType:"custom", ...common })) throw new Error("Custom users must not access the morning assembly module");
+  if (canUseMorningLateness({ principalType:"teacher", ...common })) throw new Error("Teachers must not access the morning assembly module");
 });

@@ -28,14 +28,6 @@ export function canUseMorningLateness(input: {
   assignedDutyDay: string;
   minutes: number;
 }): boolean {
-  if (input.principalType === "admin") return true;
-  if (input.permission !== true) return false;
-  if (input.principalType === "custom") return true;
-  return input.principalType === "teacher" && isTeacherEligibleForMorningLateness({
-    permission: input.permission,
-    dutyToday: input.dutyToday,
-    weekday: input.weekday,
-    assignedDutyDay: input.assignedDutyDay,
-    minutes: input.minutes,
-  });
+  // This module is restricted to the general administrator at both UI and API layers.
+  return input.principalType === "admin";
 }
