@@ -165,3 +165,18 @@ test("IndexedDB restore is bounded and falls back without blocking authenticated
   assert.match(restore, /6000/);
   assert.match(restore, /database\.transaction\('state', 'readonly'\)/);
 });
+
+test("cloud bootstrap avoids synchronous localStorage serialization when IndexedDB persistence succeeds", () => {
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  const noChangeStart = loader.indexOf("if (nextManifest && changedTables.length === 0)");
+  const noChangeEnd = loader.indexOf("const shouldLoad =", noChangeStart);
+  assert.ok(noChangeStart >= 0 && noChangeEnd > noChangeStart);
+  const noChange = loader.slice(noChangeStart, noChangeEnd);
+  assert.ok(noChange.indexOf("await persistOfflineStateWithTimeout()") < noChange.indexOf("saveToLocalStorageSafe()"));
+  assert.match(noChange, /if \(!localSnapshotSaved && \(hasPendingOfflineChanges\(\) \|\| getPendingDeletes\(\)\.length\)\)/);
+
+  const manifestSave = loader.lastIndexOf("if (nextManifest) lastLoadedCloudManifest = nextManifest");
+  const finalPersist = loader.indexOf("await persistOfflineStateWithTimeout()", manifestSave);
+  const fallbackSave = loader.indexOf("if (!localSnapshotSaved) saveToLocalStorageSafe()", manifestSave);
+  assert.ok(manifestSave >= 0 && finalPersist > manifestSave && fallbackSave > finalPersist);
+});
