@@ -41,7 +41,7 @@ async function run(name){
  const testCase="@@CASE@@";
  const started=performance.now();
  if(!window.__adminLabReady){
-   uiReviewPrepare();
+   // The preview boot already configured its isolated UI; do not rerun the full preview renderer here.
    localOnlySession=true;
    activeUser={type:"admin",name:"مدير تجريبي",permissions:{admin:true,studentAffairs:true,duty:true,reports:true}};
    db.classes=(DEFAULT_CLASSES||[]).slice();
@@ -52,6 +52,7 @@ async function run(name){
    db.dutyModule.records=[];
    saSession={token:"preview-session",expires_at:new Date(Date.now()+3600000).toISOString(),principal:{type:"admin",name:"مدير تجريبي"}};
    saReportPermissions={can_read_attendance:true,can_read_behavior:true,can_view_competition:true,can_view_analytics:true,role:"admin"};
+   saCompetitionSettingsLoaded=true;
    saAdminData={teachers:db.teachers,permissions:[],classes:db.classes.map(name=>({name}))};
    window.__adminLabReady=true;
  }
