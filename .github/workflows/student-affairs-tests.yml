@@ -24,6 +24,7 @@ on:
       - "feature/morning-assembly-lateness"
       - "feat/session-protected-data-gateway-20261119"
       - "test/app-data-gateway-handler-20261119"
+      - "diagnostics/admin-student-affairs-disable-20261122"
     paths:
       - "supabase/functions/student-affairs/**"
       - "supabase/functions/timetable-management/**"
@@ -825,6 +826,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts supabase/functions/student-affairs/notice_policy.ts
       - name: Run general app auth policy tests
         run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
+      - name: Type-check temporary admin Student Affairs access policy
+        run: deno check supabase/functions/student-affairs/admin_student_affairs_access_policy.ts
+      - name: Test reversible temporary admin Student Affairs access policy
+        run: deno test supabase/functions/student-affairs/admin_student_affairs_access_policy_test.ts
       - name: Type-check app data gateway authorization policy
         run: deno check supabase/functions/student-affairs/app_data_gateway_policy.ts
       - name: Run app data gateway authorization and privacy tests
