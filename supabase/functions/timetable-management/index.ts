@@ -44,13 +44,13 @@ async function fetchAllSubstitutionRows(queryForRange: (from:number,to:number)=>
 }
 
 function parseSubstitutionClockMinutes(value: unknown): number | null {
-  const match = /^([01]?\\d|2[0-3]):([0-5]\\d)$/.exec(String(value ?? "").trim());
+  const match = /^([01]?\d|2[0-3]):([0-5]\d)$/.exec(String(value ?? "").trim());
   return match ? Number(match[1]) * 60 + Number(match[2]) : null;
 }
 function substitutionPeriodDeadlineMs(assignmentDate: unknown, period: unknown, timings: Record<string, unknown>): number | null {
   const date = String(assignmentDate ?? "").trim();
   const periodNumber = Number(period);
-  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(date) || !Number.isInteger(periodNumber) || periodNumber < 1 || periodNumber > 8) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isInteger(periodNumber) || periodNumber < 1 || periodNumber > 8) return null;
   const item = timings?.[String(periodNumber)];
   const objectItem = item && typeof item === "object" ? item as Record<string, unknown> : null;
   const startMinutes = parseSubstitutionClockMinutes(typeof item === "string" ? item : objectItem?.start);
