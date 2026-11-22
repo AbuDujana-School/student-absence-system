@@ -269,3 +269,21 @@ test("secure login remains available after a local-only session and stale 401 ca
   assert.match(request, /localOnlySession && action !== "app_login"/);
   assert.match(request, /if \(token && currentToken === token\) clearAppAuthSession\(\)/);
 });
+
+
+test("authenticated login paints the dashboard before secondary initialization and restores the UI in finally", () => {
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
+  const committed = login.indexOf("authenticatedLoginCommitted = true", saveSession);
+  const shell = login.indexOf("dashboardSelectionView", committed);
+  const deferred = login.indexOf("const startPostLoginInitialization", shell);
+  const frame = login.indexOf("requestAnimationFrame", deferred);
+  const finalizer = login.indexOf("finalizeLoginState()", frame);
+  const finallyBlock = login.indexOf("} finally {", finalizer);
+  assert.ok(saveSession >= 0 && committed > saveSession && shell > committed);
+  assert.ok(deferred > shell && frame > deferred && finalizer > frame);
+  assert.match(login.slice(finallyBlock), /if \(authenticatedLoginCommitted\)/);
+  assert.match(login.slice(finallyBlock), /loginView.*classList\.add\('hidden'\)/);
+  assert.match(login.slice(finallyBlock), /dashboardSelectionView.*classList\.remove\('hidden'\)/);
+  assert.match(login.slice(finallyBlock), /btn\.disabled = false/);
+});

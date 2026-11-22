@@ -7168,6 +7168,7 @@ async function handleUserLogin(e) {
   const loginController = new AbortController();
   let loginTimeoutId = null;
   let loginTimedOut = false;
+  let authenticatedLoginCommitted = false;
   if (pinInput) pinInput.value = pin;
   const btn = document.getElementById("loginSubmitBtn");
   btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جارِ التحقق...</span>';
@@ -7214,15 +7215,26 @@ async function handleUserLogin(e) {
       cloudDataLoadState = 'not-started';
       cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
+      authenticatedLoginCommitted = true;
       loginAttempts = 0; loginLockedUntil = 0;
       // Authentication is already complete and the server session is stored.
       // Never keep the login form waiting for secondary dashboard initialization.
       document.getElementById('loginView')?.classList.add('hidden');
       document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
-      void finalizeLoginState().catch(finalizeError => {
-        console.error('Post-login dashboard initialization failed; authenticated session remains active.', finalizeError);
-        showToast('تم تسجيل الدخول، لكن بعض عناصر لوحة النظام تأخر تجهيزها.', 'error');
-      });
+      const startPostLoginInitialization = () => {
+        void finalizeLoginState().catch(finalizeError => {
+          console.error('Post-login dashboard initialization failed; authenticated session remains active.', finalizeError);
+          showToast('تم تسجيل الدخول، لكن بعض عناصر لوحة النظام تأخر تجهيزها.', 'error');
+        });
+      };
+      // Defer all secondary initialization until after the browser has painted
+      // the authenticated dashboard. This prevents mobile WebViews from leaving
+      // the login screen visually stuck while synchronous bootstrap work runs.
+      if (typeof window.requestAnimationFrame === 'function') {
+        window.requestAnimationFrame(() => window.setTimeout(startPostLoginInitialization, 0));
+      } else {
+        window.setTimeout(startPostLoginInitialization, 0);
+      }
     } else if (useLegacyLogin) {
       clearAppAuthSession();
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -7282,6 +7294,12 @@ async function handleUserLogin(e) {
   } finally {
     if (loginTimeoutId !== null) clearTimeout(loginTimeoutId);
     if (appLoginGeneration === loginGeneration) appLoginInProgress = false;
+    // A server-issued session is authoritative: never leave an authenticated
+    // principal visually trapped on the login form if a later UI step fails.
+    if (authenticatedLoginCommitted) {
+      document.getElementById('loginView')?.classList.add('hidden');
+      document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+    }
     btn.disabled = false;
     btn.innerHTML = '<span>دخول للنظام</span> <i class="fa-solid fa-arrow-left"></i>';
   }
@@ -11000,7 +11018,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261122-admin-login-refresh-3", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261122-admin-login-paint-5", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
