@@ -101,7 +101,7 @@ async function run(name){
 })()`;
  try{
    const results=await w.eval(script.replace("@@CASE@@",name));
-   results.forEach(r=>write((r.ok?"نجح":"تعثر")+" | "+r.label+" | "+r.ms+" ms"+(r.error?"\n"+r.error:"")));
+   results.forEach(r=>write((r.ok?"نجح":"تعثر")+" | "+r.label+" | "+r.ms+" ms"+(r.result!==null&&r.result!==undefined?" | "+JSON.stringify(r.result):"")+(r.error?"\n"+r.error:"")));
  }catch(e){write("خطأ في تشغيل الاختبار: "+String(e?.stack||e));}
  finally{buttons.forEach(b=>b.disabled=false);}
 }
