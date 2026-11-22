@@ -919,6 +919,7 @@ async function handle(req: Request) {
       const { data: updated, error: updateError } = await db.from("student_affairs_credentials")
         .update({ pin_salt: salt, pin_hash: hash, source_hash: null, source_salt: null, updated_at: new Date().toISOString() })
         .eq("principal_type", "admin").eq("principal_name", secondaryName)
+        .eq("pin_hash", existing.pin_hash).eq("pin_salt", existing.pin_salt)
         .is("source_hash", null).is("source_salt", null)
         .select("principal_name").maybeSingle();
       if (updateError) throw updateError;
