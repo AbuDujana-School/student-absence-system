@@ -367,7 +367,7 @@ Deno.test("unauthenticated startup does not fetch protected school tables", () =
   const noUserGuard = load.indexOf("if (!activeUser)");
   const localOnlyGuard = load.indexOf("if (localOnlySession)", noUserGuard);
   const secureSessionGuard = load.indexOf("if (navigator.onLine && !await ensureAppAuthSession())", localOnlyGuard);
-  const localRestore = load.indexOf("const offlineSnapshotAvailable = await restoreOfflineState()");
+  const localRestore = load.indexOf("const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot || await restoreOfflineState()");
   const manifestFetch = load.indexOf("fetchAppSyncManifest()");
   assert(noUserGuard >= 0 && noUserGuard < localRestore, "No active principal must stop cloud loading before any snapshot or table fetch");
   assert(localOnlyGuard > noUserGuard && localOnlyGuard < localRestore, "Local-only sessions must not reach protected cloud reads");
