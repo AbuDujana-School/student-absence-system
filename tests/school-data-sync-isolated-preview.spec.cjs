@@ -83,6 +83,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   const pageErrors = [];
   const browserConsole = [];
   const supabaseRequests = [];
+  const routeEvents = [];
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
   page.on("console", (message) => {
@@ -124,6 +125,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   // Only synthetic QA rows are returned; no real credentials or school data are used.
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
     const request = route.request();
+    routeEvents.push({ stage: "handler-enter", method: request.method(), url: request.url() });
     const url = new URL(request.url());
     if (url.hostname !== SUPABASE_HOST) {
       unexpectedSupabaseTraffic.push({ method: request.method(), url: request.url() });
@@ -375,8 +377,8 @@ test("school sync projections and timetable access reads stay isolated and minim
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
   ]);
-  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, browserConsole, pageErrors })).toBeFalsy();
-  expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, browserConsole, pageErrors })).toBe(true);
+  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, routeEvents, browserConsole, pageErrors })).toBeFalsy();
+  expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, routeEvents, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({
     classes: db.classes,
