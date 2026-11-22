@@ -151,7 +151,7 @@ test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cann
   assert.match(persistence, /withAppSyncTimeout\(/);
   assert.match(persistence, /APP_SYNC_LOCAL_SNAPSHOT_TIMEOUT/);
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 2);
+  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
   assert.doesNotMatch(loader, /await persistOfflineState\(\)/);
   assert.match(loader, /تعذر تحديث النسخة المحلية الدائمة/);
 });
@@ -166,14 +166,16 @@ test("IndexedDB restore is bounded and falls back without blocking authenticated
   assert.match(restore, /database\.transaction\('state', 'readonly'\)/);
 });
 
-test("unchanged cloud manifests do not reserialize the full offline database", () => {
+test("unchanged cloud manifests persist only queued deletion overlays", () => {
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
   const noChangeStart = loader.indexOf("if (nextManifest && changedTables.length === 0)");
   const noChangeEnd = loader.indexOf("const shouldLoad =", noChangeStart);
   assert.ok(noChangeStart >= 0 && noChangeEnd > noChangeStart);
   const noChange = loader.slice(noChangeStart, noChangeEnd);
-  assert.doesNotMatch(noChange, /persistOfflineStateWithTimeout|saveToLocalStorageSafe/);
   assert.match(noChange, /applyPendingLocalDeletions\(\)/);
+  assert.match(noChange, /if \(getPendingDeletes\(\)\.length\)/);
+  assert.match(noChange, /deletionOverlaySaved = await persistOfflineStateWithTimeout\(\)/);
+  assert.match(noChange, /if \(!deletionOverlaySaved\) deletionOverlaySaved = saveToLocalStorageSafe\(\)/);
   assert.match(noChange, /updateSyncStatus\(!pendingSync, pendingSync/);
 
   const capture = section("function captureDirtyLocalState()", "function mergeDirtyLocalState");
@@ -186,5 +188,5 @@ test("unchanged cloud manifests do not reserialize the full offline database", (
   const finalPersist = loader.indexOf("await persistOfflineStateWithTimeout()", manifestSave);
   const fallbackSave = loader.indexOf("if (!localSnapshotSaved) saveToLocalStorageSafe()", manifestSave);
   assert.ok(manifestSave >= 0 && finalPersist > manifestSave && fallbackSave > finalPersist);
-  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 2);
+  assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
 });
