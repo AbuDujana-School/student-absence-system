@@ -142,9 +142,11 @@ test("admin login defers full timetable portal status loading until the settings
 
 test("authenticated cloud bootstrap reuses the offline snapshot already restored during app boot", () => {
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
-  assert.match(loader, /const offlineSnapshotAvailable = offlineSnapshotRestoredAtBoot \|\| await restoreOfflineState\(\)/);
+  assert.match(loader, /const offlineSnapshotAvailable = await ensureOfflineSnapshotRestored\(\)/);
+  assert.match(html, /let offlineSnapshotRestorePromise = null/);
+  assert.match(html, /function ensureOfflineSnapshotRestored\(\)/);
   const boot = section("window.addEventListener('DOMContentLoaded'", "function ");
-  assert.match(boot, /offlineSnapshotRestoredAtBoot = await restoreOfflineState\(\)/);
+  assert.match(boot, /offlineSnapshotRestoredAtBoot = await ensureOfflineSnapshotRestored\(\)/);
 });
 
 test("cloud bootstrap bounds IndexedDB snapshot persistence so verification cannot hang", () => {
