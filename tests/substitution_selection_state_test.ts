@@ -43,3 +43,14 @@ Deno.test("a checked support teacher is not discarded by a stale department trac
   assert(getter.includes("window.substitutionSelectedOtherDepartmentId=departmentId"), "The current department tracker must be reconciled before returning");
   assert(render.includes("host.dataset.departmentId=departmentKey"), "The picker must tag its DOM with the department it displays");
 });
+
+
+Deno.test("renderPlan initializes unassigned rows before composing the empty-plan message", () => {
+  const render = section("  function renderPlan(){", "\n  window.substitutionSavePlan");
+  const declaration = render.indexOf("const unassignedRows=Array.isArray(currentPlan.unassigned)?currentPlan.unassigned:[];");
+  const firstUse = render.indexOf("const noPlanMessage=unassignedRows.length");
+  assert(declaration >= 0 && firstUse >= 0 && declaration < firstUse,
+    "unassignedRows must be initialized before noPlanMessage reads its length");
+  assert(render.indexOf("const unassignedRows=", declaration + 1) === -1,
+    "renderPlan must declare unassignedRows only once");
+});

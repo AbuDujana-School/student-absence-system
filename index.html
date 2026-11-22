@@ -13989,6 +13989,7 @@ async function timetableSaveOwner() {
     panel.classList.remove('hidden');
     const assignments=Array.isArray(currentPlan.assignments)?currentPlan.assignments:[];
     const existing=Array.isArray(currentPlan.existingAssignments)?currentPlan.existingAssignments:[];
+    const unassignedRows=Array.isArray(currentPlan.unassigned)?currentPlan.unassigned:[];
     const groups=new Map();
     assignments.forEach(function(item,index){
       if(!groups.has(item.absentTeacherName))groups.set(item.absentTeacherName,[]);
@@ -14035,7 +14036,6 @@ async function timetableSaveOwner() {
     });
     const summary=document.getElementById('substitutionPlanSummary');
     if(summary)summary.textContent=assignments.length+' جديدة · '+existing.length+' محفوظة · '+(currentPlan.unassignedCount||0)+' دون بديل';
-    const unassignedRows=Array.isArray(currentPlan.unassigned)?currentPlan.unassigned:[];
     if(unassignedRows.length){
       unassigned.classList.remove('hidden');
       unassigned.innerHTML='<div class="mb-2 font-black"><i class="fa-solid fa-triangle-exclamation ml-2"></i>حصص لم يتوفر لها بديل</div>'+
