@@ -81,7 +81,11 @@ test("school sync projections and timetable access reads stay isolated and minim
   const supabaseRequests = [];
 
   page.on("pageerror", (error) => pageErrors.push(error.stack || error.message));
-  page.on("console", (message) => browserConsole.push(message.text()));
+  page.on("console", (message) => {
+    const line = message.text();
+    browserConsole.push(line);
+    if (line.startsWith("QA_FETCH_MOCK manifest")) manifestCalls += 1;
+  });
   page.on("request", (request) => {
     if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ method: request.method(), url: request.url() });
   });
@@ -92,11 +96,18 @@ test("school sync projections and timetable access reads stay isolated and minim
     if (request.url().includes(SUPABASE_HOST)) browserConsole.push("QA_REQUEST_FAILED " + request.failure()?.errorText + " " + request.url());
   });
 
-  await page.addInitScript(() => {
+  await page.addInitScript(({ syntheticManifest }) => {
     const nativeFetch = window.fetch.bind(window);
     window.fetch = (...args) => {
       const target = String(args[0]?.url || args[0] || "");
       if (target.includes("supabase.co")) console.log("QA_FETCH start:" + target);
+      if (target.includes(" + "ylsocrvwqibptuwfzbke.supabase.co" + ") && target.includes("/rest/v1/rpc/get_app_sync_manifest")) {
+        console.log("QA_FETCH_MOCK manifest " + target);
+        return Promise.resolve(new Response(JSON.stringify(syntheticManifest), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }));
+      }
       const pending = nativeFetch(...args);
       pending.then(response => {
         if (target.includes("supabase.co")) console.log("QA_FETCH response:" + response.status + ":" + target);
@@ -122,7 +133,7 @@ test("school sync projections and timetable access reads stay isolated and minim
       transaction.addEventListener("error", () => console.log("QA_BOOT_IDB tx:error:" + (transaction.error?.message || "unknown")));
       return transaction;
     };
-  });
+  }, { syntheticManifest: manifest });
 
   // Every Supabase request is intercepted before it can leave the browser.
   // Only synthetic QA rows are returned; no real credentials or school data are used.
