@@ -868,6 +868,50 @@ async function handle(req: Request) {
       return reply(500, { error: "تعذر إنشاء حساب المدير الثاني حالياً." });
     }
   }
+  if (body?.action === "admin_reset_secondary_admin_pin") {
+    try {
+      const appSession = await readAppSession(appSessionStore, req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
+      const actor = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!actor || actor.type !== "admin" || actor.name !== "مدير النظام العام") {
+        return reply(403, { error: "إعادة إصدار رقم المدير الثاني متاحة لحساب مدير النظام العام الحالي فقط." });
+      }
+
+      const secondaryName = "مدير النظام الثاني";
+      const { data: existing, error: existingError } = await db.from("student_affairs_credentials")
+        .select("principal_name,pin_hash,pin_salt,source_hash,source_salt")
+        .eq("principal_type", "admin").eq("principal_name", secondaryName).maybeSingle();
+      if (existingError) throw existingError;
+      if (!existing || !existing.pin_hash || !existing.pin_salt || existing.source_hash || existing.source_salt) {
+        return reply(404, { error: "لم يُعثر على حساب المدير الثاني المُدار. أنشئ الحساب أولاً." });
+      }
+
+      const pepper = await getPepper();
+      let pin = "";
+      let collision = true;
+      for (let attempt = 0; attempt < 8 && collision; attempt++) {
+        const bytes = crypto.getRandomValues(new Uint8Array(4));
+        const value = ((bytes[0] * 0x1000000) + (bytes[1] << 16) + (bytes[2] << 8) + bytes[3]) >>> 0;
+        pin = String(1000000000 + (value % 9000000000));
+        collision = (await findAppPrincipal(pin, pepper)) !== null;
+      }
+      if (collision) return reply(503, { error: "تعذر إصدار رقم سري فريد حالياً. حاول مرة أخرى." });
+
+      const salt = hex(crypto.getRandomValues(new Uint8Array(16)));
+      const hash = await pbkdf2(pepper + ":" + salt + ":" + pin, salt, 310000);
+      const { data: updated, error: updateError } = await db.from("student_affairs_credentials")
+        .update({ pin_salt: salt, pin_hash: hash, source_hash: null, source_salt: null, updated_at: new Date().toISOString() })
+        .eq("principal_type", "admin").eq("principal_name", secondaryName)
+        .is("source_hash", null).is("source_salt", null)
+        .select("principal_name").maybeSingle();
+      if (updateError) throw updateError;
+      if (!updated) return reply(409, { error: "تغير سجل حساب المدير الثاني أثناء العملية. لم يتم تأكيد تغيير الرقم." });
+      return reply(200, { ok: true, principal: { type: "admin", name: secondaryName }, pin });
+    } catch (error) {
+      console.error("Secondary administrator PIN reset failed:", error);
+      return reply(500, { error: "تعذر إعادة إصدار رقم المدير الثاني حالياً." });
+    }
+  }
   if (body?.action === "app_login") {
     if (!validPin(body.pin)) return reply(400, { error: "بيانات الدخول غير صحيحة" });
     const rate = await rateLimit(req);
