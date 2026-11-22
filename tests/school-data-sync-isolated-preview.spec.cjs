@@ -194,6 +194,24 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
+    console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, readyState: document.readyState }));
+    const originalGet = IDBObjectStore.prototype.get;
+    IDBObjectStore.prototype.get = function (...args) {
+      console.log("QA_IDB get:start:" + this.name + ":" + String(args[0]));
+      const request = originalGet.apply(this, args);
+      request.addEventListener("success", () => console.log("QA_IDB get:success:" + this.name));
+      request.addEventListener("error", () => console.log("QA_IDB get:error:" + this.name + ":" + (request.error?.message || "unknown")));
+      return request;
+    };
+    const originalTransaction = IDBDatabase.prototype.transaction;
+    IDBDatabase.prototype.transaction = function (...args) {
+      console.log("QA_IDB tx:start:" + JSON.stringify(args));
+      const transaction = originalTransaction.apply(this, args);
+      transaction.addEventListener("complete", () => console.log("QA_IDB tx:complete"));
+      transaction.addEventListener("abort", () => console.log("QA_IDB tx:abort:" + (transaction.error?.message || "unknown")));
+      transaction.addEventListener("error", () => console.log("QA_IDB tx:error:" + (transaction.error?.message || "unknown")));
+      return transaction;
+    };
     const wrap = (name) => {
       const original = window[name];
       if (typeof original !== "function") { trace.push(name + ":missing"); console.log("QA_SYNC " + name + ":missing"); return; }
