@@ -267,6 +267,27 @@ test("school sync projections and timetable access reads stay isolated and minim
         }
       };
     };
+    console.log("QA_SYNC manifestDiagnostics:" + JSON.stringify({
+      sbType: typeof sb,
+      rpcType: typeof sb?.rpc,
+      fetchType: typeof fetch,
+      manifestFunctionType: typeof fetchAppSyncManifest,
+      manifestFunctionSource: typeof fetchAppSyncManifest === "function" ? fetchAppSyncManifest.toString().slice(0, 1600) : null
+    }));
+    if (typeof sb?.rpc === "function") {
+      const originalRpc = sb.rpc.bind(sb);
+      sb.rpc = (...args) => {
+        console.log("QA_SYNC rpc:call:" + JSON.stringify(args.slice(0, 2)));
+        try {
+          const result = originalRpc(...args);
+          console.log("QA_SYNC rpc:return:" + (result && typeof result.then === "function" ? "promise" : typeof result));
+          return result;
+        } catch (error) {
+          console.log("QA_SYNC rpc:throw:" + (error?.stack || error?.message || String(error)));
+          throw error;
+        }
+      };
+    }
     ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
