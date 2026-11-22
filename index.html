@@ -3970,9 +3970,64 @@ async function appAuthRequest(body, token) { if (localOnlySession) throw new Err
   try { response = await fetch(requestUrl, { method: "POST", headers, body: JSON.stringify(body), cache: "no-store" }); }
   catch (networkError) { const error = new Error("تعذر الاتصال بخدمة تسجيل الدخول الآمن."); error.status = 0; error.networkFailure = networkError instanceof TypeError || networkError?.name === "NetworkError"; throw error; }
   let data = {}; try { data = await response.json(); } catch (error) {}
-  if (!response.ok) { const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن."); error.status = response.status; if (response.status === 401 && action !== "app_login") clearAppAuthSession(); throw error; }
+  if (!response.ok) {
+    const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن.");
+    error.status = response.status;
+    if (response.status === 401 && action !== "app_login") {
+      if (action === "app_session") clearAppAuthSession();
+      else await validateCanonicalAppAuthSession(token || readAppAuthToken());
+    }
+    throw error;
+  }
   return data;
 }
+
+async function validateCanonicalAppAuthSession(token) {
+  if (!token || !/^[a-f0-9]{64}$/i.test(token)) return null;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3500);
+  let response;
+  try {
+    response = await fetch(SA_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: SA_API_KEY,
+        Authorization: "Bearer " + token
+      },
+      body: JSON.stringify({ action: "app_session" }),
+      cache: "no-store",
+      signal: controller.signal
+    });
+  } catch (error) {
+    // A network or timeout failure does not prove that the server session is invalid.
+    return null;
+  } finally {
+    clearTimeout(timeout);
+  }
+
+  if (response.status === 401) {
+    const currentToken = appAuthSession?.token || readAppAuthToken();
+    if (currentToken === token) clearAppAuthSession();
+    return false;
+  }
+  if (!response.ok) return null;
+
+  let result = {};
+  try { result = await response.json(); } catch (error) { return null; }
+  const principal = result?.principal;
+  const expiresAt = result?.expires_at;
+  if (!principal?.type || !principal?.name ||
+      typeof expiresAt !== "string" ||
+      !Number.isFinite(Date.parse(expiresAt)) || Date.parse(expiresAt) <= Date.now()) {
+    return null;
+  }
+
+  const currentToken = appAuthSession?.token || readAppAuthToken();
+  if (currentToken === token) appAuthSession = { token, expires_at: expiresAt, principal };
+  return true;
+}
+
 function isLegacyAuthEndpointUnavailable(error) { return error?.status === 404 || (error?.status === 400 && /unknown action/i.test(String(error?.message || ""))); }
 function isNetworkFailureForOfflineFallback(error) { return error?.status === 0 && error?.networkFailure === true; }
 function hasUsableOfflineLoginSnapshot() {
@@ -3985,12 +4040,19 @@ function hasUsableOfflineLoginSnapshot() {
 }
 function saveAppAuthSession(session) {
   if (!session?.token || !/^[a-f0-9]{64}$/i.test(session.token)) throw new Error("استجابة جلسة الدخول غير صالحة.");
-  try { sessionStorage.setItem(APP_AUTH_SESSION_KEY, session.token); } catch (error) { throw new Error("تعذر حفظ جلسة الدخول الآمنة في هذا المتصفح."); }
+  // Keep the server-issued session in memory first. Some mobile webviews or
+  // privacy-restricted browser contexts can deny sessionStorage access.
+  // The current authenticated page can still operate securely in memory.
   appAuthSession = session;
+  try { sessionStorage.setItem(APP_AUTH_SESSION_KEY, session.token); }
+  catch (error) { console.warn("Secure session is memory-only in this browser context.", error); }
   if (localOnlySession) cloudDataLoadState = "not-started";
   localOnlySession = false;
 }
-function readAppAuthToken() { try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; } }
+function readAppAuthToken() {
+  if (appAuthSession?.token) return appAuthSession.token;
+  try { return sessionStorage.getItem(APP_AUTH_SESSION_KEY) || ""; } catch (error) { return ""; }
+}
 function clearAppAuthSession() { appAuthSession = null; try { sessionStorage.removeItem(APP_AUTH_SESSION_KEY); } catch (error) {} }
 function hasUnexpiredAppAuthSession() {
   const session = appAuthSession;
