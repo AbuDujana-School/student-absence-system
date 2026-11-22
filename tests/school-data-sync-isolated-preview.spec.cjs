@@ -300,6 +300,50 @@ test("school sync projections and timetable access reads stay isolated and minim
       locksType: typeof navigator?.locks,
       serviceWorkerController: !!navigator?.serviceWorker?.controller
     }));
+    if (typeof sb?.auth?.getSession === "function") {
+      const originalGetSession = sb.auth.getSession.bind(sb.auth);
+      sb.auth.getSession = (...args) => {
+        console.log("QA_SYNC authGetSession:call");
+        const result = originalGetSession(...args);
+        result.then(value => console.log("QA_SYNC authGetSession:fulfilled:" + (!!value?.data?.session)))
+          .catch(error => console.log("QA_SYNC authGetSession:rejected:" + (error?.stack || error?.message || String(error))));
+        return result;
+      };
+    }
+    const originalWindowFetch = window.fetch.bind(window);
+    window.fetch = (...args) => {
+      console.log("QA_SYNC nativeFetch:call:" + String(args[0] || "").slice(0, 500));
+      try {
+        const result = originalWindowFetch(...args);
+        result.then(response => console.log("QA_SYNC nativeFetch:fulfilled:" + response.status))
+          .catch(error => console.log("QA_SYNC nativeFetch:rejected:" + (error?.stack || error?.message || String(error))));
+        return result;
+      } catch (error) {
+        console.log("QA_SYNC nativeFetch:throw:" + (error?.stack || error?.message || String(error)));
+        throw error;
+      }
+    };
+    if (typeof navigator?.locks?.request === "function") {
+      const originalLockRequest = navigator.locks.request.bind(navigator.locks);
+      navigator.locks.request = (...args) => {
+        const callbackIndex = args.length - 1;
+        const originalCallback = args[callbackIndex];
+        if (typeof originalCallback === "function") {
+          args[callbackIndex] = (...callbackArgs) => {
+            console.log("QA_SYNC lock:acquired:" + String(args[0]));
+            try {
+              const value = originalCallback(...callbackArgs);
+              return Promise.resolve(value).finally(() => console.log("QA_SYNC lock:released:" + String(args[0])));
+            } catch (error) {
+              console.log("QA_SYNC lock:callback-throw:" + (error?.message || String(error)));
+              throw error;
+            }
+          };
+        }
+        console.log("QA_SYNC lock:request:" + String(args[0]));
+        return originalLockRequest(...args);
+      };
+    }
     if (typeof sb?.rest?.fetch === "function") {
       const originalRestFetch = sb.rest.fetch.bind(sb.rest);
       sb.rest.fetch = (...args) => {
