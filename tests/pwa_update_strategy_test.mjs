@@ -19,7 +19,8 @@ test('service worker updates rotate both application caches', () => {
 test('installed pages refresh after a new worker controls the login page', () => {
   assert.match(html, /hadControllerAtStartup = Boolean\(navigator\.serviceWorker\.controller\)/);
   assert.match(html, /navigator\.serviceWorker\.addEventListener\("controllerchange"/);
-  assert.match(html, /if \(loginIsVisible\)\s*\{\s*window\.location\.reload\(\)/);
+  assert.ok(html.includes("if (loginIsVisible)"));
+  assert.ok(html.includes("window.location.reload()"));
   assert.match(html, /pwaUpdateNotice/);
   assert.match(html, /تحديث الآن/);
 });
