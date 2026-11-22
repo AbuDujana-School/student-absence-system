@@ -67,33 +67,49 @@ function validPin(pin: unknown): pin is string { return typeof pin === "string" 
 const appSessionStore = createSupabaseAppSessionStore(db as unknown as AppSessionDatabaseClient);
 
 async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincipal | null> {
-  const [{ data: adminSetting, error: adminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+  // Keep the production fast path: verify the legacy system administrator
+  // before reading the larger teacher/custom-user directory.
+  const [{ data: adminSetting, error: adminError }, { data: adminSecure, error: adminSecureError }] = await Promise.all([
     db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle(),
-    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
-    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt"),
+    db.from("student_affairs_credentials").select("pin_salt,pin_hash,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", "مدير النظام العام").maybeSingle(),
   ]);
-  if (adminError || usersError || upgradedError) throw new Error("Unable to load login records");
-  const candidates: AppLoginCandidate[] = [];
+  if (adminError || adminSecureError) throw new Error("Unable to load administrator login record");
   const adminRecord = adminSetting?.value;
+  let legacy: { pbkdf2: string; sha256: string } | null = null;
   if (adminRecord?.hash && adminRecord?.salt) {
+    const secure = adminSecure as any;
+    const adminMatches = secure && secure.source_hash === adminRecord.hash && secure.source_salt === adminRecord.salt
+      ? await verifyNewPin(pin, secure.pin_salt, secure.pin_hash, pepper)
+      : await verifyExistingPin(pin, adminRecord.salt, adminRecord.hash, legacy || (legacy = await getLegacyPeppers()));
+    if (adminMatches) {
+      return {
+        type: "admin", name: "مدير النظام العام",
+        permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
+        mustChangePin: false,
+      };
+    }
+  }
+
+  // Only a non-primary-admin attempt reaches this path. Resolve the one
+  // separately managed administrator directly, before scanning staff records.
+  const [{ data: secondaryAdmin, error: secondaryAdminError }, { data: users, error: usersError }, { data: upgraded, error: upgradedError }] = await Promise.all([
+    db.from("student_affairs_credentials").select("principal_name,pin_salt,pin_hash,source_hash,source_salt")
+      .eq("principal_type", "admin").eq("principal_name", "مدير النظام الثاني").maybeSingle(),
+    db.from("teachers").select("name,role,pin_hash,pin_salt,permissions,must_change_pin"),
+    db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt")
+      .in("principal_type", ["custom", "teacher"]),
+  ]);
+  if (secondaryAdminError || usersError || upgradedError) throw new Error("Unable to load user login records");
+
+  const candidates: AppLoginCandidate[] = [];
+  if (secondaryAdmin && !secondaryAdmin.source_hash && !secondaryAdmin.source_salt
+    && secondaryAdmin.pin_hash && secondaryAdmin.pin_salt) {
     candidates.push({
-      type: "admin", name: "مدير النظام العام",
-      hash: adminRecord.hash, salt: adminRecord.salt,
+      type: "admin", name: "مدير النظام الثاني",
+      hash: secondaryAdmin.pin_hash, salt: secondaryAdmin.pin_salt,
       permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
     });
-  }
-  // Additional administrators are stored as independently salted credentials.
-  // A null source_hash/source_salt pair marks a managed admin credential rather
-  // than a legacy credential upgraded from school_settings.admin_pin.
-  for (const item of upgraded || []) {
-    if (item.principal_type === "admin" && item.principal_name !== "مدير النظام العام"
-      && !item.source_hash && !item.source_salt && item.pin_hash && item.pin_salt) {
-      candidates.push({
-        type: "admin", name: item.principal_name,
-        hash: item.pin_hash, salt: item.pin_salt,
-        permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true },
-      });
-    }
   }
   for (const user of users || []) {
     const type = user.role === "custom" ? "custom" : "teacher";
@@ -105,13 +121,14 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     });
   }
   const secureMap = new Map((upgraded || []).map((item: any) => [item.principal_type + "|" + item.principal_name, item]));
-  let legacy: { pbkdf2: string; sha256: string } | null = null;
   return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
+    if (candidate.type === "admin") {
+      return await verifyNewPin(candidatePin, salt, hash, pepper);
+    }
     const secure = secureMap.get(candidate.type + "|" + candidate.name) as any;
-    if (secure && ((secure.source_hash === hash && secure.source_salt === salt)
-      || (!secure.source_hash && !secure.source_salt))) {
+    if (secure && secure.source_hash === hash && secure.source_salt === salt) {
       return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
     }
     return await verifyExistingPin(candidatePin, salt, hash, legacy || (legacy = await getLegacyPeppers()));
