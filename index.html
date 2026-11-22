@@ -6386,8 +6386,12 @@ async function loadSystemDataFromCloud() {
       cloudDataLoadState = 'ready';
       // Keep queued local deletions visible even when the cloud revision is unchanged.
       applyPendingLocalDeletions();
-      saveToLocalStorageSafe();
+      // IndexedDB is the durable snapshot. Avoid a synchronous full-database
+      // localStorage serialization on the login path when IndexedDB is healthy.
       const localSnapshotSaved = await persistOfflineStateWithTimeout();
+      if (!localSnapshotSaved && (hasPendingOfflineChanges() || getPendingDeletes().length)) {
+        saveToLocalStorageSafe();
+      }
       const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
@@ -6547,8 +6551,10 @@ async function loadSystemDataFromCloud() {
     // Persist the manifest in the same IndexedDB snapshot as its data. This avoids
     // cross-tab races where one tab could mark a newer manifest against an older cache.
     if (nextManifest) lastLoadedCloudManifest = nextManifest;
-    saveToLocalStorageSafe();
+    // Persist the complete cloud snapshot to IndexedDB first. localStorage writes
+    // are synchronous and can freeze Android WebViews with a large school dataset.
     const localSnapshotSaved = await persistOfflineStateWithTimeout();
+    if (!localSnapshotSaved) saveToLocalStorageSafe();
 
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
       dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
