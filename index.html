@@ -7426,7 +7426,7 @@ function renderAuthenticatedDashboardShell() {
   const name = document.getElementById("activeUserName");
   if (name) name.textContent = user.name || "";
   const adminBtn = document.getElementById("adminPanelBtn");
-  const showAdminPanel = hasAdminPanelAccess(user) || isAdmin;
+  const showAdminPanel = isAdmin || hasAdminPanelAccess(user);
   if (adminBtn) {
     adminBtn.classList.toggle("hidden", !showAdminPanel);
     adminBtn.classList.toggle("flex", showAdminPanel);
