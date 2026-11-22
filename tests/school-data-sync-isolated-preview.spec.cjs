@@ -332,13 +332,19 @@ test("school sync projections and timetable access reads stay isolated and minim
   // stall is specific to the full-sync call path or its surrounding state.
   await new Promise(resolve => setTimeout(resolve, 1_500));
   requestPhase = "rpc-during-sync";
-  const rpcDuringSync = await page.evaluate(async () => Promise.race([
-    sb.rpc("get_app_sync_manifest").then(({ data, error }) => ({
-      settled: true, hasData: !!data,
-      error: error ? { message: error.message, code: error.code || null } : null,
-    })).catch(error => ({ settled: true, thrown: error?.message || String(error) })),
-    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 6_000 }), 6_000)),
-  ]));
+  // A page.evaluate issued while the main thread is blocked can itself hang,
+  // preventing the diagnostic timeout from running. Bound the Node-side wait
+  // independently so the original sync evaluation can still return evidence.
+  const rpcDuringSync = await Promise.race([
+    page.evaluate(async () => Promise.race([
+      sb.rpc("get_app_sync_manifest").then(({ data, error }) => ({
+        settled: true, hasData: !!data,
+        error: error ? { message: error.message, code: error.code || null } : null,
+      })).catch(error => ({ settled: true, thrown: error?.message || String(error) })),
+      new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 6_000 }), 6_000)),
+    ])),
+    new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true, timeoutMs: 8_000 }), 8_000)),
+  ]);
   browserConsole.push("QA_RPC_DURING_SYNC " + JSON.stringify(rpcDuringSync));
   requestPhase = "sync-load";
 
