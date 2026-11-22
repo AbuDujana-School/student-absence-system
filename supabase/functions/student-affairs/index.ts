@@ -16,6 +16,7 @@ import { type AppDataScope } from "./app_data_gateway_policy.ts";
 import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
+import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -289,12 +290,28 @@ async function hasStudentAffairsAccess(p: { type: string; name: string; permissi
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
     && (data.permissions?.studentAffairs === true || data.permissions?.admin === true);
 }
+async function adminStudentAffairsAccessEnabled(): Promise<boolean> {
+  try {
+    const { data, error } = await db.from("school_settings")
+      .select("value")
+      .eq("key", "admin_student_affairs_access")
+      .maybeSingle();
+    if (error) throw error;
+    return isAdminStudentAffairsAccessEnabled(data?.value);
+  } catch (error) {
+    // Fail closed for this optional module only; the general application login
+    // and all unrelated school permissions remain unaffected.
+    console.error("Admin Student Affairs access setting unavailable; denying this module only.", error);
+    return false;
+  }
+}
 async function getSession(req: Request) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "").trim();
   if (!/^[a-f0-9]{64}$/i.test(token)) return null;
   const tokenHash = await sha256(token);
   const { data } = await db.from("student_affairs_sessions").select("*").eq("token_hash", tokenHash).gt("expires_at", new Date().toISOString()).maybeSingle();
   if (!data) return null;
+  if (data.principal_type === "admin" && !(await adminStudentAffairsAccessEnabled())) return null;
   return { tokenHash, principal: { type: data.principal_type, name: data.principal_name } };
 }
 function asBool(v: unknown) { return v === true; }
@@ -912,6 +929,9 @@ async function handle(req: Request) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
       }
+      if (principal.type === "admin" && !(await adminStudentAffairsAccessEnabled())) {
+        return reply(403, { error: "تم تعليق دخول مدير النظام إلى شؤون الطلبة مؤقتاً للاختبار؛ يمكن إعادة الصلاحية دون تغيير الحساب." });
+      }
       if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) {
         return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة." });
       }
@@ -967,6 +987,9 @@ async function handle(req: Request) {
     try {
       const principal = await findPrincipal(body.pin, await getPepper());
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
+      if (principal.type === "admin" && !(await adminStudentAffairsAccessEnabled())) {
+        return reply(403, { error: "تم تعليق دخول مدير النظام إلى شؤون الطلبة مؤقتاً للاختبار؛ يمكن إعادة الصلاحية دون تغيير الحساب." });
+      }
       if (principal.type !== "admin" && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة" }); }
       await clearFailedLogin(rate.key);
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
@@ -1575,6 +1598,9 @@ async function handle(req: Request) {
       if (!appPrincipal) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      }
+      if (appPrincipal.type === "admin" && !(await adminStudentAffairsAccessEnabled())) {
+        return reply(403, { error: "تم تعليق دخول مدير النظام إلى تقارير شؤون الطلبة مؤقتاً للاختبار." });
       }
       if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs")) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
