@@ -205,7 +205,8 @@ test("mobile session storage failure keeps the authenticated page session in mem
 
 test("a secondary service 401 cannot clear a valid app session without canonical validation", () => {
   const request = section("async function appAuthRequest(body, token, signal)", "function isLegacyAuthEndpointUnavailable(error)");
-  assert.ok(request.includes('if (action === "app_session") {'));\n  assert.ok(request.includes("currentToken === token"));
+  assert.ok(request.includes('if (action === "app_session") {'));
+  assert.ok(request.includes("currentToken === token"));
   assert.ok(request.includes("await validateCanonicalAppAuthSession(token || readAppAuthToken())"));
   assert.equal(request.includes('if (response.status === 401 && action !== "app_login") clearAppAuthSession();'), false);
 

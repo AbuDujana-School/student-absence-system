@@ -31,8 +31,8 @@ test("local-only mode blocks cloud reads, writes, and sync entry points", () => 
   assert.match(section("async function retryOfflineSyncSilently()", "async function refreshCloudDataSilently()"), /if \(localOnlySession \|\|/);
   assert.match(section("async function syncPendingLocalChanges()", "/* ============ LocalStorage ============ */"), /if \(localOnlySession\)/);
   assert.match(section("async function finalizeLoginState()", "function hasAdminPanelAccess"), /if \(localOnlySession\)/);
-  assert.match(section("async function appAuthRequest(body, token)", "function isLegacyAuthEndpointUnavailable(error)"), /if \(localOnlySession\) throw/);
-  assert.match(section("async function saRequest(body)", "async function appAuthRequest(body, token)"), /if \(localOnlySession\) throw/);
+  assert.match(section("async function appAuthRequest(body, token, signal)", "function isLegacyAuthEndpointUnavailable(error)"), /if \(localOnlySession && action !== "app_login"\) throw/);
+  assert.match(section("async function saRequest(body)", "async function appAuthRequest(body, token, signal)"), /if \(localOnlySession\) throw/);
 });
 test("reconnection requires secure authentication before sync", () => {
   const init = section("window.addEventListener('offline'", "function initDarkMode()");
@@ -42,7 +42,7 @@ test("reconnection requires secure authentication before sync", () => {
   assert.match(section("function _performLogout()", "function openChangePinModal()"), /localOnlySession = false/);
 });
 test("explicit HTTP auth and rate-limit denials are not converted to offline login", () => {
-  const request = section("async function appAuthRequest(body, token)", "function isLegacyAuthEndpointUnavailable(error)");
+  const request = section("async function appAuthRequest(body, token, signal)", "function isLegacyAuthEndpointUnavailable(error)");
   assert.match(request, /if \(!response\.ok\)[\s\S]*?error\.status = response\.status/);
   assert.doesNotMatch(request, /response\.status === (401|403|429)[\s\S]*?useLegacyLogin/);
 });
