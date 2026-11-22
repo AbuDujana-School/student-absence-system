@@ -248,6 +248,20 @@ test("school sync projections and timetable access reads stay isolated and minim
     }
   });
   browserConsole.push("QA_DIRECT_FETCH_PROBE " + JSON.stringify(directFetchProbe));
+
+  // Probe the real Supabase client's RPC path independently from application sync.
+  // This separates client auth/REST transport from loadSystemDataFromCloud orchestration.
+  requestPhase = "direct-rpc";
+  const directRpcProbe = await page.evaluate(async () => Promise.race([
+    sb.rpc("get_app_sync_manifest").then(({ data, error }) => ({
+      settled: true,
+      hasData: !!data,
+      error: error ? { message: error.message, code: error.code || null } : null,
+    })).catch(error => ({ settled: true, thrown: error?.message || String(error) })),
+    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 8_000 }), 8_000)),
+  ]));
+  browserConsole.push("QA_DIRECT_RPC_PROBE " + JSON.stringify(directRpcProbe));
+  manifestCalls = 0;
   requestPhase = "sync-load";
 
   const loadEvaluation = page.evaluate(async () => {
