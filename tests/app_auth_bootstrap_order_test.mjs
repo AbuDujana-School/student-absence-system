@@ -76,14 +76,30 @@ test("automatic and manual offline uploads stop before approval when secure sess
   assert.ok(manualGuard >= 0 && manualApproval > manualGuard);
 });
 
-test("a successful server login stores its verified session before detached cloud bootstrap", () => {
+test("a successful server login stores its verified session and paints the dashboard before detached cloud bootstrap", () => {
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
-  const finalize = login.indexOf("void finalizeLoginState().catch", saveSession);
-  const dashboard = login.indexOf("dashboardSelectionView", saveSession);
-  assert.ok(saveSession >= 0 && finalize > saveSession);
-  assert.ok(dashboard > saveSession);
-  assert.match(login.slice(saveSession, finalize), /loginView.*classList\.add\('hidden'\)/);
+  const committed = login.indexOf("authenticatedLoginCommitted = true", saveSession);
+  const shell = login.indexOf("renderAuthenticatedDashboardShell()", committed);
+  const deferred = login.indexOf("const startPostLoginInitialization", shell);
+  const finalize = login.indexOf("finalizeLoginState()", deferred);
+  assert.ok(saveSession >= 0 && committed > saveSession);
+  assert.ok(shell > committed && deferred > shell && finalize > deferred);
+  assert.match(login.slice(saveSession, shell), /activeUser = serverLogin.principal/);
+  assert.match(login.slice(shell, deferred), /AUTH_TRACE.*login:authenticated-shell-shown/);
+  assert.match(login.slice(deferred), /window.setTimeout\\(startPostLoginInitialization, 50\\)/);
+  const shellHelper = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
+  assert.match(shellHelper, /dashboardSelectionView.*classList.remove\\('hidden'\\)/);
+  assert.match(shellHelper, /hasAdminPanelAccess\\(user\\) \\|\\| isAdmin/);
+});
+
+test("admin cloud bootstrap has a five-minute manifest and table timeout without extending credential verification", () => {
+  assert.match(html, /APP_SYNC_MANIFEST_TIMEOUT_MS = 300000/);
+  assert.match(html, /APP_SYNC_TABLES_TIMEOUT_MS = 300000/);
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  assert.match(login, /setTimeout\\(\\(\\) => \\{/);
+  assert.match(login, /\\}, 15000\\)/);
+  assert.doesNotMatch(login, /300000/);
 });
 
 test("cloud bootstrap requests have bounded waits and preserve local data on timeout", () => {
