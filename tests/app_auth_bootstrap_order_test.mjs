@@ -219,7 +219,7 @@ test("a secondary service 401 cannot clear a valid app session without canonical
 
 test("mobile PIN input normalizes Arabic, Persian, and full-width numerals before login", () => {
   const helper = section("function normalizeAppPinDigits(value)", "async function handleUserLogin(e)");
-  const normalize = runInNewContext(helper + "\\nnormalizeAppPinDigits");
+  const normalize = runInNewContext(helper + "\nnormalizeAppPinDigits");
   assert.equal(normalize("١٢٣٤"), "1234");
   assert.equal(normalize("۱۲۳۴"), "1234");
   assert.equal(normalize("１２３４"), "1234");
