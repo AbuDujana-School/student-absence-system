@@ -1367,7 +1367,7 @@
     const originalRequest=window.appAuthRequest;
     if(typeof originalRequest==="function"&&!window.__legacyOtherTeacherRequestGuard){
       window.__legacyOtherTeacherRequestGuard=true;
-      window.appAuthRequest=async function(body,token){
+      window.appAuthRequest=async function(body,token,signal){
         const action=String(body?.action||"");
         const legacyActions=["timetable_substitution_batch_preview","timetable_substitution_batch_save"];
         if(legacyActions.includes(action)&&body?.includeOtherDepartments===true){
@@ -1378,7 +1378,7 @@
             body={...body,otherTeacherNames:names};
           }
         }
-        const result=await originalRequest.call(this,body,token);
+        const result=await originalRequest.call(this,body,token,signal);
         return result;
       };
     }
@@ -1593,9 +1593,9 @@
     if(typeof originalRequest!=="function")return;
     window.__reserveArchiveAutoRefreshInstalled=true;
     let loadedActorDateKey="",dailyArchiveLoadPromise=null;
-    window.appAuthRequest=async function(body,token) {
+    window.appAuthRequest=async function(body,token,signal) {
       const action=String(body?.action||"");
-      const result=await originalRequest.call(this,body,token);
+      const result=await originalRequest.call(this,body,token,signal);
       const accessGranted=action==="timetable_substitution_archive_access"&&result?.canView===true;
       const reserveMutationActions=new Set([
         "timetable_substitution_batch_save","timetable_substitution_save",
@@ -1690,14 +1690,14 @@
     }
     if(typeof window.appAuthRequest==="function"&&!window.appAuthRequest.__mainReserveReasonPayloadWrapped){
       const originalRequest=window.appAuthRequest;
-      const wrappedRequest=async function(body,token){
+      const wrappedRequest=async function(body,token,signal){
         if(body?.action==="timetable_substitution_batch_save"&&Array.isArray(body.assignments)){
           body={...body,assignments:body.assignments.map(item=>({
             ...item,
             absenceReason:String(item?.absenceReason||reasons[reasonKey(item?.absentTeacherName)]||"-").trim()
           }))};
         }
-        return originalRequest.call(this,body,token);
+        return originalRequest.call(this,body,token,signal);
       };
       wrappedRequest.__mainReserveReasonPayloadWrapped=true;
       wrappedRequest.__original=originalRequest;
