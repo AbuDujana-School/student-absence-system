@@ -79,6 +79,8 @@ export function extractAppBearerToken(header: unknown): string | null {
 export interface AppLoginCandidate extends AppPrincipalInput {
   hash: unknown;
   salt: unknown;
+  /** Credential record type may differ from the resolved authorization type. */
+  credentialType?: AppPrincipalType;
 }
 
 /**
