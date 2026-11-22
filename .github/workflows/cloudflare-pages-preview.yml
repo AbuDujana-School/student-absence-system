@@ -6,8 +6,10 @@ on:
       - feature/smart-substitution-system
       - fix/revision-sync-optimization-20261119
       - fix/integrated-school-sync-hardening-final-20261120
+      - diagnostics/admin-login-lab-20261122
     paths:
       - "index.html"
+      - "admin-login-lab.html"
       - "manifest.webmanifest"
       - "sw.js"
       - "icons/**"
@@ -59,9 +61,10 @@ jobs:
           set -euo pipefail
           rm -rf .cloudflare-pages-dist
           mkdir -p .cloudflare-pages-dist/icons
-          cp index.html manifest.webmanifest sw.js .cloudflare-pages-dist/
+          cp index.html manifest.webmanifest sw.js admin-login-lab.html .cloudflare-pages-dist/
           cp icons/icon-192.png icons/icon-512.png icons/icon-512-maskable.png .cloudflare-pages-dist/icons/
           test -s .cloudflare-pages-dist/index.html
+          test -s .cloudflare-pages-dist/admin-login-lab.html
           test -s .cloudflare-pages-dist/manifest.webmanifest
           test -s .cloudflare-pages-dist/sw.js
           test -s .cloudflare-pages-dist/icons/icon-192.png
