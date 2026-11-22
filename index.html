@@ -6541,7 +6541,7 @@ async function loadSystemDataFromCloud() {
     // when no server-side change has occurred since this device's last snapshot.
     let nextManifest = null;
     try {
-      nextManifest = await fetchAppSyncManifest();
+      nextManifest = null; // TEMP DIAGNOSTIC: bypass revision manifest and force a full authenticated sync.
     } catch (manifestError) {
       // A transient manifest/network failure must not fan out into seven full-table
       // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
