@@ -1041,7 +1041,8 @@ async function handle(req: Request) {
       const { startInclusive, endExclusive } = omanActivityDateRange(from, to);
       const [{ data: teacherRows, error: teacherError }, { data: events, error: eventsError }] = await Promise.all([
         db.from("teachers").select("name,role,permissions").eq("role", "teacher").order("name", { ascending: true }),
-        db.from("student_affairs_activity_events").select("id,event_type,actor_type,actor_name,created_at,metadata")
+        db.from("student_affairs_activity_events").select("id,event_type,actor_type,actor_name,session_hash,created_at,metadata")
+          .not("session_hash", "is", null)
           .gte("created_at", startInclusive).lt("created_at", endExclusive)
           .order("created_at", { ascending: false }).limit(10000),
       ]);
