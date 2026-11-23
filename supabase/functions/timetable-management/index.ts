@@ -202,7 +202,7 @@ const timetableAuthStore: TimetableAuthStore = {
   async canReadDutyReportContext(type, _name, date, weekday, period, teacherPermissions) {
     const permissions = teacherPermissions && typeof teacherPermissions === "object"
       ? teacherPermissions : {};
-    if (permissions.duty === true || permissions.admin === true) return true;
+    if (permissions.duty === true) return true;
     if (type !== "teacher" || permissions.dutyToday === false) return false;
     const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
       .select("value").eq("key", "duty_module").maybeSingle();
