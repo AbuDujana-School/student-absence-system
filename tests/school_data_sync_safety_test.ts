@@ -180,7 +180,7 @@ Deno.test("queued deletion review is visible only to administrators and never ru
   assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only authorized admins may see the pending deletion count");
   assert(status.includes("const effectiveSynced = isSynced || reviewQueueOnlyForTeacher"), "Teacher status must ignore a delete-review-only queue");
   const force = section("function forceSyncWithCloud()", "function doForceSync()");
-  assert(force.includes("pendingDeletes && isAdminAuthorized()"), "Only admins receive the pending-delete review prompt");
+  assert(force.includes("pendingDeletes && canReviewPendingDeletes()"), "Only admins receive the pending-delete review prompt");
   assert(force.includes("if (hasPendingOfflineRecordChanges())"), "Real dirty records must still enter the protected upload workflow");
 });
 
@@ -533,7 +533,7 @@ Deno.test("pending deletion review is visible only to authenticated administrato
   assert(auth.includes("user?.type === 'admin' && user?.adminScope === 'additional'"), "Only the canonical additional-admin principal may use the additional-admin path");
   assert(auth.includes("isGeneralAdminUser() || isAdditionalAdminUser()"), "General and additional administrators may review pending deletions");
   const status = section("function updateSyncStatus(", "async function initDefaults()");
-  assert(status.includes("const canReviewDeletes = isAdminAuthorized()"), "Pending-delete visibility must be gated by administrator authorization");
+  assert(status.includes("const canReviewDeletes = canReviewPendingDeletes()"), "Pending-delete visibility must be gated by administrator authorization");
   assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only admins may display pending-delete counts or review actions");
 });
 
@@ -544,9 +544,30 @@ Deno.test("pending deletion review and counts are administrator-only", () => {
   assert(auth.includes("user?.type === 'admin' && user?.adminScope === 'additional'"), "Additional-admin access must use the canonical principal scope");
   assert(auth.includes("isGeneralAdminUser() || isAdditionalAdminUser()"), "General and additional administrators may review pending deletions");
   const status = section("function updateSyncStatus(", "async function initDefaults()");
-  assert(status.includes("const canReviewDeletes = isAdminAuthorized()"), "Pending-delete visibility must be gated by administrator authorization");
+  assert(status.includes("const canReviewDeletes = canReviewPendingDeletes()"), "Pending-delete visibility must be gated by administrator authorization");
   assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only admins may display the pending-delete count");
   assert(status.includes("if (!canReviewDeletes)"), "Pre-composed deletion counts from callers must be removed for teachers");
   assert(status.includes("else if (canReviewDeletes && getPendingDeletes().length) openPendingDeleteReview()"), "Only administrators may open the deletion review from the sync indicator");
   assert(status.includes("const effectiveSynced = isSynced || reviewQueueOnlyForTeacher"), "A deletion-review-only queue must not make ordinary teachers appear unsynced");
+});
+
+
+Deno.test("ordinary teachers see only neutral sync labels while admins retain deletion review", () => {
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes('displayText = effectiveSynced && !pendingRecords && cloudDataLoadState === \'ready\' && navigator.onLine'), "Teachers must see synced only after a ready online load with no dirty records");
+  assert(status.includes('? "متزامن"\n      : "جار الاتصال"'), "Teacher status must be limited to synced or connecting labels");
+  assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only authorized admins may see the pending deletion count");
+  assert(status.includes("ind.onclick = openPendingDeleteReview"), "Admins must retain access to the deletion review workflow");
+  assert(status.includes("reviewOnly"), "Admin-only deletion review status must remain available");
+});
+
+
+Deno.test("explicit admin permission authorizes pending deletion review without changing the teacher role", () => {
+  const auth = section("function canReviewPendingDeletes(", "/* ============ Cloud helpers ============ */");
+  assert(auth.includes("activeUser?.type === 'teacher' && activeUser?.permissions?.admin === true"), "A legacy teacher with explicit admin permission may review pending deletes");
+  assert(auth.includes("isAdminAuthorized()"), "General and additional admins must remain authorized");
+  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  assert(!identity.includes("permissions?.admin"), "The queue-only privilege must not grant the general-admin bypass");
+  const review = section("function openPendingDeleteReview()", "async function initDefaults()");
+  assert(review.includes("if (!canReviewPendingDeletes())"), "The review modal must enforce the scoped deletion-review authorization");
 });
