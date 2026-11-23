@@ -17,6 +17,7 @@ import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
 import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
+import { canReadStudentAffairsActivityReport, isStudentAffairsActivityTeacher, validActivityEventType } from "./activity_monitor_policy.ts";
 import { isAdditionalAdminTeacher, buildAdditionalAdminPermissions } from "../_shared/admin_principal_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
@@ -875,6 +876,76 @@ async function handle(req: Request) {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any; try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
+
+  if (body?.action === "student_affairs_activity_report") {
+    try {
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      if (!canReadStudentAffairsActivityReport(principal)) return reply(403, { error: "عرض مراقبة أداء شؤون الطلبة يتطلب صلاحية الإحصائيات." });
+      const from = String(body.from || ""), to = String(body.to || "");
+      if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "فترة التقرير غير صالحة." });
+      const startAt = new Date(from + "T00:00:00+04:00").toISOString();
+      const endAt = new Date(new Date(to + "T00:00:00+04:00").getTime() + 86400000).toISOString();
+      const [teacherResult, eventResult, noticeResult] = await Promise.all([
+        db.from("teachers").select("name,role,permissions").neq("role", "custom").order("name"),
+        db.from("student_affairs_activity_events").select("actor_type,actor_name,event_type,occurred_at,quantity,details").gte("occurred_at", startAt).lt("occurred_at", endAt).order("occurred_at", { ascending: false }).limit(20000),
+        db.from("student_affairs_notice_issues").select("issued_by_type,issued_by_name,issued_at,class_name,issue_number,delivered").gte("issued_at", startAt).lt("issued_at", endAt).order("issued_at", { ascending: false }).limit(20000)
+      ]);
+      if (teacherResult.error || eventResult.error || noticeResult.error) throw new Error("تعذر تحميل سجل مراقبة الأداء.");
+      const teachers = (teacherResult.data || []).filter(isStudentAffairsActivityTeacher)
+        .map((teacher: any) => ({ name: String(teacher.name || "") }))
+        .filter((teacher: any) => teacher.name)
+        .sort((a: any, b: any) => a.name.localeCompare(b.name, "ar"));
+      const teacherNames = new Set(teachers.map((teacher: any) => teacher.name));
+      const events = (eventResult.data || []).filter((event: any) => teacherNames.has(String(event.actor_name || "")));
+      const issued = (noticeResult.data || []).filter((notice: any) => teacherNames.has(String(notice.issued_by_name || ""))).map((notice: any) => ({
+        actor_type: notice.issued_by_type,
+        actor_name: notice.issued_by_name,
+        event_type: "official_warning_issued",
+        occurred_at: notice.issued_at,
+        quantity: 1,
+        details: { class_name: notice.class_name, issue_number: notice.issue_number, delivered: notice.delivered === true }
+      }));
+      return reply(200, { teachers, events: [...events, ...issued], from, to });
+    } catch (error) {
+      console.error("Student Affairs activity report failed:", error);
+      return reply(500, { error: error instanceof Error ? error.message : "تعذر تحميل سجل مراقبة الأداء." });
+    }
+  }
+  if (body?.action === "student_affairs_activity_event") {
+    const saSession = await getSession(req);
+    if (!saSession) return reply(401, { error: "انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول." });
+    const { data: actor, error: actorError } = await db.from("teachers").select("name,role,permissions").eq("name", saSession.principal.name).maybeSingle();
+    if (actorError || !actor || actor.role === "custom" || actor.permissions?.studentAffairs !== true) {
+      return reply(403, { error: "تسجيل نشاط شؤون الطلبة متاح لأعضاء القسم المعتمدين فقط." });
+    }
+    const eventType = body.event_type;
+    if (!validActivityEventType(eventType) || eventType === "absence_report_view" || eventType === "behavior_report_view") {
+      return reply(400, { error: "نوع النشاط المطلوب تسجيله غير صالح." });
+    }
+    let rows: any[] = [];
+    if (eventType === "section_access") {
+      rows = [{ actor_type: saSession.principal.type, actor_name: saSession.principal.name, event_type: eventType, details: {} }];
+    } else if (eventType === "official_warning_print") {
+      if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 1000) return reply(400, { error: "قائمة الإنذارات المطلوب توثيق طباعتها غير صالحة." });
+      rows = body.items.map((item: any) => {
+        const className = String(item?.class_name || "").trim();
+        const issueNumber = Number(item?.issue_number);
+        if (!className || className.length > 120 || !Number.isInteger(issueNumber) || issueNumber < 1) return null;
+        return { actor_type: saSession.principal.type, actor_name: saSession.principal.name, event_type: eventType, quantity: 1, details: { class_name: className, issue_number: issueNumber } };
+      });
+      if (rows.some(row => row === null)) return reply(400, { error: "توجد بيانات إنذار غير صالحة ضمن طلب الطباعة." });
+    }
+    const { error } = await db.from("student_affairs_activity_events").insert(rows);
+    if (error) {
+      console.error("Student Affairs activity event insert failed:", error);
+      return reply(500, { error: "تعذر حفظ سجل النشاط." });
+    }
+    return reply(200, { ok: true, recorded: rows.length });
+  }
+
   if (body?.action === "app_login") {
     if (!validPin(body.pin)) return reply(400, { error: "بيانات الدخول غير صحيحة" });
     const rate = await rateLimit(req);
@@ -2289,6 +2360,18 @@ async function handle(req: Request) {
         : Promise.resolve({ data: [], error: null } as any)
     ]);
     if (attendance.error || behaviors.error) return reply(500, { error: "تعذر تحميل التقارير" });
+    if (mode === "view") {
+      const { data: activityActor } = await db.from("teachers").select("permissions").eq("name", p.name).maybeSingle();
+      if (activityActor?.permissions?.studentAffairs === true) {
+        const activityRows: any[] = [];
+        if (requestedAttendance.length) activityRows.push({ actor_type: p.type, actor_name: p.name, event_type: "absence_report_view", quantity: 1, details: { from, to, class_count: requestedAttendance.length } });
+        if (requestedBehavior.length) activityRows.push({ actor_type: p.type, actor_name: p.name, event_type: "behavior_report_view", quantity: 1, details: { from, to, class_count: requestedBehavior.length } });
+        if (activityRows.length) {
+          const { error: activityError } = await db.from("student_affairs_activity_events").insert(activityRows);
+          if (activityError) console.error("Student Affairs report-view audit insert failed:", activityError);
+        }
+      }
+    }
     return reply(200, { attendance: filterAttendance(attendance.data || []), behaviors: filterBehavior(behaviors.data || []), students: [], analytics: {}, permissions });
   }
   return reply(400, { error: "Unknown action" });

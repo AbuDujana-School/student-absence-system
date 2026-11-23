@@ -3263,6 +3263,30 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
             <div id="behaviorTopStudentsContainer" class="overflow-x-auto custom-scrollbar"><div class="text-center py-8 text-slate-400 text-xs font-bold">لا توجد سجلات.</div></div>
           </div>
         </div>
+
+      <section id="studentAffairsActivityMonitor" class="mt-8 space-y-4 rounded-3xl border border-indigo-200 bg-gradient-to-br from-white to-indigo-50/70 p-4 shadow-sm dark:border-indigo-900 dark:from-slate-900 dark:to-indigo-950/20 sm:p-6" dir="rtl">
+        <div class="flex flex-wrap items-start justify-between gap-3 border-b border-indigo-100 pb-4 dark:border-indigo-900">
+          <div><div class="mb-1 text-[10px] font-black tracking-wide text-indigo-600 dark:text-indigo-300">متابعة إدارية موثقة</div><h3 class="flex items-center gap-2 text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-user-clock text-indigo-600"></i> مراقبة أداء معلمي شؤون الطلبة</h3><p class="mt-1 text-[11px] leading-6 text-slate-500 dark:text-slate-400">عدد مرات الدخول، والاطلاع على تقارير الغياب والسلوكيات، والإنذارات الرسمية المعتمدة والمطبوعة.</p></div>
+          <button type="button" onclick="loadStudentAffairsActivityReport()" class="rounded-xl border border-indigo-200 bg-white px-3 py-2 text-[11px] font-black text-indigo-800 hover:bg-indigo-50 dark:border-indigo-800 dark:bg-slate-900 dark:text-indigo-200"><i class="fa-solid fa-rotate ml-1"></i> تحديث البيانات</button>
+        </div>
+        <div class="grid grid-cols-1 items-end gap-3 sm:grid-cols-3">
+          <label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">من تاريخ<input id="saActivityFrom" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-white"></label>
+          <label class="text-[11px] font-bold text-slate-600 dark:text-slate-300">إلى تاريخ<input id="saActivityTo" type="date" class="mt-1 w-full rounded-xl border border-slate-200 bg-white p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-white"></label>
+          <button type="button" onclick="loadStudentAffairsActivityReport()" class="rounded-xl bg-indigo-700 px-4 py-3 text-xs font-black text-white shadow hover:bg-indigo-800"><i class="fa-solid fa-filter ml-1"></i> عرض الفترة المحددة</button>
+        </div>
+        <p id="saActivityTrackingNote" class="rounded-xl border border-amber-200 bg-amber-50 p-3 text-[10px] font-bold leading-6 text-amber-900 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">يبدأ التوثيق من تاريخ تفعيل الميزة؛ لا تُنسب أي أنشطة سابقة لم تُسجل فعلياً إلى المعلمين.</p>
+        <div id="saActivityStatus" class="text-xs font-bold text-slate-500 dark:text-slate-400" aria-live="polite">حدد الفترة ثم اعرض التقرير.</div>
+        <div id="saActivitySummary" class="grid grid-cols-2 gap-2 sm:grid-cols-5"></div>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
+          <div class="border-b border-slate-100 px-4 py-3 text-xs font-black text-slate-800 dark:border-slate-800 dark:text-white">مقارنة أداء جميع معلمي شؤون الطلبة</div>
+          <div id="saActivityTeacherTable" class="min-w-[760px] p-3 text-xs text-slate-500">لم يتم تحميل البيانات بعد.</div>
+        </div>
+        <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-950">
+          <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 px-4 py-3 dark:border-slate-800"><div class="text-xs font-black text-slate-800 dark:text-white">السجل التفصيلي للعمليات وتوقيتها</div><button type="button" onclick="printStudentAffairsActivityReport()" class="rounded-xl bg-slate-800 px-3 py-2 text-[10px] font-black text-white hover:bg-slate-900 dark:bg-indigo-700 dark:hover:bg-indigo-600"><i class="fa-solid fa-file-pdf ml-1"></i> تصدير PDF / طباعة</button></div>
+          <div id="saActivityTimeline" class="min-w-[650px] p-3 text-xs text-slate-500">سيظهر هنا وقت كل عملية مسجلة.</div>
+        </div>
+      </section>
+
       </div>
 
       <div id="sec-behaviorstats" class="hidden space-y-6">
@@ -4641,6 +4665,7 @@ async function openStudentAffairsView(fromHome = false) {
   if (!saSession?.token) {
     try {
       await saLogin();
+      try { await saRequest({ action: 'student_affairs_activity_event', event_type: 'section_access' }); } catch (activityError) { console.warn('Student Affairs access event was not recorded.', activityError); }
       return; // saLogin initializes the module screen and its own permissions.
     } catch (loginError) {
       document.getElementById("saContent").classList.add("hidden");
@@ -4658,6 +4683,7 @@ async function openStudentAffairsView(fromHome = false) {
   try {
     const d = await saRequest({ action: "get_my_permissions" });
     saReportPermissions = d.permissions || {};
+    try { await saRequest({ action: 'student_affairs_activity_event', event_type: 'section_access' }); } catch (activityError) { console.warn('Student Affairs access event was not recorded.', activityError); }
     saSetDomain(saReportPermissions.can_read_attendance ? "attendance" : "behavior");
     window.refreshCombinedReportTabs?.();
     await saSetupCompetitionPanel();
@@ -5612,7 +5638,7 @@ async function saPrintAutomaticNotices(){
       return;
     }
     document.body.classList.add("sa-notice-print-mode");
-    try{window.focus();window.print();}
+    try{window.focus();window.print();if(saNoticeOfficialCommitted){const items=saNoticeLastGenerated.map(item=>({class_name:String(item.className||''),issue_number:Number(item.issue_number)||0})).filter(item=>item.class_name&&item.issue_number>0);if(items.length){try{await saRequest({action:'student_affairs_activity_event',event_type:'official_warning_print',items});}catch(activityError){console.warn('Official warning print event was not recorded.',activityError);}}}}
     catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}
   }catch(error){saNoticeSetStatus(error?.message||"تعذر تجهيز معاينة الطباعة.",true);}
 }
@@ -10015,6 +10041,83 @@ function refreshReportPanelsVisibility() {
   Object.entries(visibility).forEach(([id, show]) => document.getElementById(id)?.classList.toggle('hidden', !show));
   document.getElementById('tab-reports')?.classList.toggle('hidden', !canAccessAnyReport());
 }
+
+/* ============ Student Affairs activity monitoring ============ */
+let studentAffairsActivitySnapshot = null;
+function saActivityEscape(value){
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[ch]));
+}
+function saActivityEventLabel(type){
+  return ({section_access:"دخول قسم شؤون الطلبة",absence_report_view:"الاطلاع على تقرير الغياب",behavior_report_view:"الاطلاع على تقرير السلوكيات",official_warning_issued:"اعتماد إنذار رسمي",official_warning_print:"إرسال إنذار رسمي إلى الطباعة"})[type] || "عملية أخرى";
+}
+function saActivityDateTime(value){
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("ar-OM",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:true}).format(date);
+}
+function saActivityCount(events,name,type){
+  return events.filter(item=>item.actor_name===name&&item.event_type===type).reduce((sum,item)=>sum+(Number(item.quantity)||1),0);
+}
+function saActivityBuildTeacherStats(teachers,events,from,to){
+  const start = new Date(from+"T00:00:00+04:00").getTime();
+  const end = new Date(to+"T00:00:00+04:00").getTime()+86400000;
+  const days = Math.max(1,Math.ceil((end-start)/86400000));
+  return teachers.map(teacher=>{
+    const name=teacher.name;
+    const visits=saActivityCount(events,name,"section_access");
+    const absence=saActivityCount(events,name,"absence_report_view");
+    const behavior=saActivityCount(events,name,"behavior_report_view");
+    const issued=saActivityCount(events,name,"official_warning_issued");
+    const printed=saActivityCount(events,name,"official_warning_print");
+    return {name,visits,absence,behavior,issued,printed,daily:visits/days,weekly:visits*7/days,total:visits+absence+behavior+issued+printed};
+  }).sort((a,b)=>b.total-a.total||a.name.localeCompare(b.name,"ar"));
+}
+function renderStudentAffairsActivityReport(){
+  const snapshot=studentAffairsActivitySnapshot;
+  if(!snapshot)return;
+  const {teachers,events,from,to}=snapshot;
+  const rows=saActivityBuildTeacherStats(teachers,events,from,to);
+  const totals=rows.reduce((a,r)=>{for(const key of ["visits","absence","behavior","issued","printed"])a[key]+=r[key];return a;},{visits:0,absence:0,behavior:0,issued:0,printed:0});
+  const cards=[["الدخول إلى شؤون الطلبة",totals.visits,"fa-door-open"],["مشاهدات تقارير الغياب",totals.absence,"fa-calendar-xmark"],["مشاهدات تقارير السلوك",totals.behavior,"fa-scale-balanced"],["الإنذارات الرسمية المعتمدة",totals.issued,"fa-file-circle-check"],["عمليات إرسال الإنذارات للطباعة",totals.printed,"fa-print"]];
+  const summary=document.getElementById("saActivitySummary");
+  if(summary)summary.innerHTML=cards.map(([label,value,icon])=>'<div class="rounded-xl border border-indigo-100 bg-white p-3 dark:border-indigo-900 dark:bg-slate-900"><div class="flex items-center gap-1 text-[9px] font-bold text-slate-500"><i class="fa-solid '+icon+' text-indigo-500"></i>'+label+'</div><strong class="mt-1 block text-xl font-black tabular-nums text-slate-900 dark:text-white">'+value+'</strong></div>').join("");
+  const table=document.getElementById("saActivityTeacherTable");
+  if(table)table.innerHTML=rows.length?'<table class="w-full border-collapse text-right text-[11px]"><thead><tr class="bg-slate-50 text-slate-600 dark:bg-slate-900 dark:text-slate-300"><th class="p-2">المعلم</th><th class="p-2">الدخول</th><th class="p-2">تقارير الغياب</th><th class="p-2">تقارير السلوك</th><th class="p-2">إنذارات معتمدة</th><th class="p-2">عمليات الطباعة</th><th class="p-2">متوسط الدخول اليومي</th><th class="p-2">معدل الدخول الأسبوعي</th></tr></thead><tbody>'+rows.map(r=>'<tr class="border-t border-slate-100 dark:border-slate-800"><td class="p-2 font-black text-slate-800 dark:text-white">'+saActivityEscape(r.name)+'</td><td class="p-2 font-bold">'+r.visits+'</td><td class="p-2">'+r.absence+'</td><td class="p-2">'+r.behavior+'</td><td class="p-2">'+r.issued+'</td><td class="p-2">'+r.printed+'</td><td class="p-2">'+r.daily.toFixed(2)+'</td><td class="p-2">'+r.weekly.toFixed(2)+'</td></tr>').join("")+'</tbody></table>':'<div class="p-5 text-center">لا يوجد معلمون مسجلون حالياً ضمن شؤون الطلبة.</div>';
+  const timeline=document.getElementById("saActivityTimeline");
+  const sorted=[...events].sort((a,b)=>String(b.occurred_at).localeCompare(String(a.occurred_at)));
+  if(timeline)timeline.innerHTML=sorted.length?'<table class="w-full border-collapse text-right text-[11px]"><thead><tr class="bg-slate-50 text-slate-600 dark:bg-slate-900 dark:text-slate-300"><th class="p-2">التاريخ والوقت (توقيت عُمان)</th><th class="p-2">المعلم</th><th class="p-2">العملية</th><th class="p-2">التفاصيل</th></tr></thead><tbody>'+sorted.map(e=>{const d=e.details||{};const extra=e.event_type==="official_warning_issued"||e.event_type==="official_warning_print"?("الصف: "+(d.class_name||"—")+" · رقم الإنذار: "+(d.issue_number||"—")):e.event_type==="absence_report_view"||e.event_type==="behavior_report_view"?("عدد الصفوف: "+(d.class_count??"—")+" · الفترة: "+(d.from||"—")+" إلى "+(d.to||"—")):"—";return '<tr class="border-t border-slate-100 dark:border-slate-800"><td class="whitespace-nowrap p-2">'+saActivityDateTime(e.occurred_at)+'</td><td class="p-2 font-bold">'+saActivityEscape(e.actor_name)+'</td><td class="p-2">'+saActivityEscape(saActivityEventLabel(e.event_type))+'</td><td class="p-2">'+saActivityEscape(extra)+'</td></tr>';}).join("")+'</tbody></table>':'<div class="p-5 text-center">لا توجد عمليات مسجلة خلال الفترة المحددة.</div>';
+  const status=document.getElementById("saActivityStatus");
+  if(status)status.textContent="الفترة: "+from+" إلى "+to+" · عدد المعلمين: "+rows.length+" · عدد العمليات المسجلة: "+events.length;
+}
+async function loadStudentAffairsActivityReport(){
+  const status=document.getElementById("saActivityStatus");
+  const fromInput=document.getElementById("saActivityFrom"),toInput=document.getElementById("saActivityTo");
+  if(!fromInput||!toInput)return;
+  const today=getOmanLocalDate();
+  if(!fromInput.value)fromInput.value=today.slice(0,8)+"01";
+  if(!toInput.value)toInput.value=today;
+  const from=fromInput.value,to=toInput.value;
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^d{4}-d{2}-d{2}$/.test(to)||from>to){if(status)status.textContent="يرجى تحديد فترة تاريخ صحيحة.";return;}
+  if(status)status.textContent="جارٍ تحميل سجل الأنشطة الموثق...";
+  try{
+    const token=appAuthSession?.token||readAppAuthToken()||getToken();
+    const data=await appAuthRequest({action:"student_affairs_activity_report",from,to},token);
+    studentAffairsActivitySnapshot={teachers:Array.isArray(data.teachers)?data.teachers:[],events:Array.isArray(data.events)?data.events:[],from,to};
+    renderStudentAffairsActivityReport();
+  }catch(error){if(status)status.textContent=error?.message||"تعذر تحميل سجل الأنشطة.";const table=document.getElementById("saActivityTeacherTable");if(table)table.textContent=error?.message||"تعذر تحميل التقرير.";}
+}
+function printStudentAffairsActivityReport(){
+  if(!studentAffairsActivitySnapshot){showToast("اعرض التقرير أولاً قبل تصدير PDF.","error");return;}
+  const snap=studentAffairsActivitySnapshot,rows=saActivityBuildTeacherStats(snap.teachers,snap.events,snap.from,snap.to);
+  const timeline=[...snap.events].sort((a,b)=>String(a.occurred_at).localeCompare(String(b.occurred_at)));
+  const w=window.open("about:blank","_blank");
+  if(!w){showToast("يرجى السماح بالنوافذ المنبثقة لتصدير PDF.","error");return;}
+  const tableRows=rows.map(r=>'<tr><td>'+saActivityEscape(r.name)+'</td><td>'+r.visits+'</td><td>'+r.absence+'</td><td>'+r.behavior+'</td><td>'+r.issued+'</td><td>'+r.printed+'</td><td>'+r.daily.toFixed(2)+'</td><td>'+r.weekly.toFixed(2)+'</td></tr>').join("");
+  const logRows=timeline.map(e=>'<tr><td>'+saActivityEscape(saActivityDateTime(e.occurred_at))+'</td><td>'+saActivityEscape(e.actor_name)+'</td><td>'+saActivityEscape(saActivityEventLabel(e.event_type))+'</td><td>'+saActivityEscape((e.details?.class_name?"الصف: "+e.details.class_name+" · ":"")+(e.details?.issue_number?"رقم الإنذار: "+e.details.issue_number:""))+'</td></tr>').join("");
+  const html='<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>مراقبة أداء معلمي شؤون الطلبة</title><style>body{font-family:Tahoma,Arial,sans-serif;color:#172033;padding:18px}h1{text-align:center;font-size:21px;margin:8px 0}h2{font-size:15px;margin:24px 0 8px;color:#183653}.meta{text-align:center;color:#475569;font-size:11px;margin:10px 0 20px}table{width:100%;border-collapse:collapse;font-size:10px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:right;vertical-align:top}th{background:#e8eef7;color:#183653}tr:nth-child(even){background:#f8fafc}.note{margin-top:18px;padding:10px;background:#fff7ed;border:1px solid #fed7aa;font-size:10px;line-height:1.8}@page{size:A4 landscape;margin:12mm}@media print{body{padding:0}}</style></head><body><h1>مدرسة أبو دجانة الأنصاري</h1><h1>تقرير مراقبة أداء معلمي شؤون الطلبة</h1><div class="meta">الفترة من '+saActivityEscape(snap.from)+' إلى '+saActivityEscape(snap.to)+' · تاريخ الاستخراج: '+saActivityEscape(saActivityDateTime(new Date().toISOString()))+'</div><h2>ملخص ومقارنة الأداء</h2><table><thead><tr><th>المعلم</th><th>الدخول</th><th>مشاهدات الغياب</th><th>مشاهدات السلوك</th><th>إنذارات معتمدة</th><th>عمليات الطباعة</th><th>متوسط يومي</th><th>معدل أسبوعي</th></tr></thead><tbody>'+tableRows+'</tbody></table><h2>السجل الزمني التفصيلي</h2><table><thead><tr><th>التاريخ والوقت</th><th>المعلم</th><th>العملية</th><th>التفاصيل</th></tr></thead><tbody>'+logRows+'</tbody></table><div class="note">ملاحظة توثيقية: لا تشمل هذه الإحصاءات أي نشاط وقع قبل تفعيل التسجيل المركزي. وتُحتسب الإنذارات الرسمية من سجل الاعتماد الرسمي، ولا تدخل المعاينات أو المسودات ضمنها. عمليات الطباعة تعني فتح طلب الطباعة من النظام ولا تثبت خروج الورق أو حفظ ملف PDF فعلياً.</div><script>window.onload=()=>setTimeout(()=>window.print(),300);<\/script></body></html>';
+  w.document.open();w.document.write(html);w.document.close();
+}
+
 function switchAdminTab(tab) {
   refreshReportPanelsVisibility();
   const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
@@ -10046,6 +10149,7 @@ function switchAdminTab(tab) {
   if (tab === 'dashboard') renderAdminOverview();
   if (tab === 'studstats') switchStatsSubTab('absence');
   if (tab === 'studstats') { updateAdvancedAnalytics(); requestAnimationFrame(() => Object.values(chartInstances).forEach(chart => chart && chart.resize())); }
+  if (tab === 'studstats') { void loadStudentAffairsActivityReport(); }
   if (tab === 'behaviorstats') renderBehaviorReportsSection();
   if (tab === 'users') renderCustomUsersList();
   if (tab === 'teachers') { renderTeachersList(); renderSubjectDutyDays(); }
