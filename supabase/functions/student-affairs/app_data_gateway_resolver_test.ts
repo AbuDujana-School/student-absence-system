@@ -20,6 +20,7 @@ function fixture(options: FixtureOptions = {}) {
       { matched_teacher_name: "Teacher A", match_status: "matched", cell_status: "teaching", class_sections: ["6/1"] },
     ],
     student_affairs_permissions: options.grants ?? null,
+    classes: [{ name: "5/1" }, { name: "6/1" }, { name: "7/1" }],
   };
   const db = {
     from(table: string) {
@@ -121,4 +122,19 @@ Deno.test("resolver fails closed when active timetable lookup fails", async () =
     Error,
     "Unable to resolve active timetable version",
   );
+});
+
+
+Deno.test("additional administrator data scope uses teacher grants and explicit student permission", async () => {
+  const { db, calls } = fixture({
+    grants: { allowed_classes: ["10/1"], allowed_attendance_classes: ["11/1"], allowed_behavior_classes: ["12/1"], can_read_attendance: true, can_read_behavior: true },
+  });
+  const scope = await resolveAppDataScope({
+    type: "admin", adminScope: "additional", name: "Tester1",
+    permissions: { students: true, studentAffairs: true },
+  }, db);
+  assertEquals(scope.allowedClasses, ["10/1", "5/1", "6/1", "7/1"]);
+  assertEquals(scope.allowedAttendanceClasses, ["11/1", "5/1", "6/1", "7/1"]);
+  assertEquals(scope.allowedBehaviorClasses, ["12/1", "5/1", "6/1", "7/1"]);
+  assert(calls.some(([kind, table, column, value]) => kind === "eq" && table === "student_affairs_permissions" && column === "principal_type" && value === "teacher"));
 });
