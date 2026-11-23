@@ -7466,6 +7466,7 @@ function startTesterOneDashboardStages() {
   schedule(5000, () => refreshMorningAssemblyLatenessCard(), 'morning-assembly');
   schedule(10000, () => {
     refreshDutyDashboardCard();
+    renderDutyTodayRecords();
     void timetableRefreshAccess({ deferAdminPortalStatus: true }).catch(error => {
       console.warn('Tester1 timetable access refresh deferred:', error);
     });
@@ -7648,7 +7649,11 @@ async function finalizeLoginState() {
   const attCard = document.getElementById('attendanceDashboardCard'), behCard = document.getElementById('behaviorDashboardCard');
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
   if (behCard) behCard.classList.toggle('hidden', !canAccessBehavior());
-  refreshDutyDashboardCard(); refreshSubstitutionDashboardCard(); renderDutyTodayRecords();
+  refreshSubstitutionDashboardCard();
+  if (!isTesterOneStagedPilot()) {
+    refreshDutyDashboardCard();
+    renderDutyTodayRecords();
+  }
   if (!localOnlySession) {
     try { await bounded(checkAndEnforcePinChange(), 5000, 'تعذر فحص تغيير الرقم السري الآن.'); } catch (error) { console.warn('PIN policy check deferred:', error); }
     try { await bounded(checkAndEnforceAdminPinChange(), 5000, 'تعذر فحص رقم المدير الآن.'); } catch (error) { console.warn('Admin PIN policy check deferred:', error); }
