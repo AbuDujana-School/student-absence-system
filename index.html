@@ -11781,7 +11781,13 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
     const requestVersion=++loadVersions[prefix];
     const c=cfg[prefix],box=document.getElementById(c.results);
     box.innerHTML='<div class="rounded-xl border p-8 text-center">جارٍ جلب بيانات الجهتين والتحقق منها...</div>';
-    try{const data=await getData(prefix);if(requestVersion!==loadVersions[prefix]||!modes[prefix])return;const rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);}
+    try{
+      const data=await getData(prefix);
+      if(requestVersion!==loadVersions[prefix]||!modes[prefix])return;
+      try{await c.request({action:"reports",report_mode:"activity_event",activity_type:"combined_report_view",attendance_classes:data.cls,behavior_classes:data.cls});}
+      catch(auditError){console.warn("Combined Student Affairs report-view audit unavailable",auditError);}
+      const rows=merge(data);window[prefix+"CombinedReport"]={...data,rows};render(prefix,rows);
+    }
     catch(e){if(requestVersion!==loadVersions[prefix]||!modes[prefix])return;box.innerHTML='<div class="rounded-xl border border-red-200 bg-red-50 p-4 text-red-700">'+esc(e.message)+'</div>';showToast(e.message,"error");}
   }
   function printHtml(data){
