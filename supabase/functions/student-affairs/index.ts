@@ -184,7 +184,7 @@ async function failedLogin(key: string) {
   await db.from("student_affairs_login_attempts").upsert({ client_key: key, window_started_at: data?.window_started_at || new Date().toISOString(), failed_attempts: count, blocked_until: count >= 6 ? new Date(Date.now() + 15 * 60 * 1000).toISOString() : null });
 }
 async function clearFailedLogin(key: string) { await db.from("student_affairs_login_attempts").delete().eq("client_key", key); }
-type Principal = { type: "admin" | "teacher" | "custom"; name: string; hash: string; salt: string };
+type Principal = { type: "admin" | "teacher" | "custom"; name: string; hash: string; salt: string; adminScope?: "general" | "additional" };
 async function findPrincipal(pin: string, pepper: string): Promise<Principal | null> {
   const candidates: Principal[] = [];
   const { data: adminSetting } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
@@ -192,7 +192,7 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   if (adminRecord?.hash && adminRecord?.salt) candidates.push({ type: "admin", adminScope: "general", name: "مدير النظام العام", hash: adminRecord.hash, salt: adminRecord.salt });
   const { data: users, error } = await db.from("teachers").select("name,role,pin_hash,pin_salt,permissions");
   if (error) throw error;
-  for (const u of (users || []).filter((x: any) => isAdditionalAdminTeacher(x))) if (u.pin_hash && u.pin_salt) candidates.push({ type: "admin", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
+  for (const u of (users || []).filter((x: any) => isAdditionalAdminTeacher(x))) if (u.pin_hash && u.pin_salt) candidates.push({ type: "admin", adminScope: "additional", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   for (const u of (users || []).filter((x: any) => x.role === "custom")) if (u.pin_hash && u.pin_salt) candidates.push({ type: "custom", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   for (const u of (users || []).filter((x: any) => x.role === "teacher" && !isAdditionalAdminTeacher(x))) if (u.pin_hash && u.pin_salt) candidates.push({ type: "teacher", name: u.name, hash: u.pin_hash, salt: u.pin_salt });
   const { data: upgraded } = await db.from("student_affairs_credentials").select("principal_type,principal_name,pin_salt,pin_hash,source_hash,source_salt");
