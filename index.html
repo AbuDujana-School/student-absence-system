@@ -3764,7 +3764,8 @@ const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // Legacy anon keys are JWTs and may also be forwarded as a Bearer token.
 function getSupabasePublicDataHeaders(extraHeaders = {}) {
   const headers = { ...extraHeaders, apikey: SUPABASE_ANON_KEY };
-  const isLegacyJwtAnonKey = /^eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(SUPABASE_ANON_KEY);
+  const keyParts = SUPABASE_ANON_KEY.split('.');
+  const isLegacyJwtAnonKey = SUPABASE_ANON_KEY.startsWith('eyJ') && keyParts.length === 3 && keyParts.every(Boolean);
   if (isLegacyJwtAnonKey) headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
   return headers;
 }
