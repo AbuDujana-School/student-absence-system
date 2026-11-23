@@ -457,6 +457,8 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
       permissions: { admin: true, duty: true, morningAssemblyLateness: true, studentAffairs: true },
     };
     localOnlySession = false;
+    document.getElementById("loginView")?.classList.add("hidden");
+    document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
     timetableRefreshAccess = async () => true;
     canUseMorningAssemblyLateness = () => true;
     isAdminAuthorized = () => true;
