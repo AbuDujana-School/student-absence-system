@@ -613,13 +613,21 @@ test("school sync projections and timetable access reads stay isolated and minim
     }, 500);
     // Keep visible status text, but avoid changing class attributes or click handlers.
     // This isolates whether the dynamic Tailwind class rewrite is what stalls sync.
-    updateSyncStatus = (isSynced, statusText) => {
-      const txt = document.getElementById("syncText");
-      if (txt) txt.textContent = statusText || (isSynced ? "متزامن" : "محلي");
-      console.log("QA_TEST updateSyncStatus text-only");
+    // This regression is about the sync promise, not DOM status rendering.
+    // A no-op prevents UI observers/Tailwind mutations from contaminating the test.
+    updateSyncStatus = () => {
+      console.log("QA_TEST updateSyncStatus no-op");
     };
-    const value = await loadSystemDataFromCloud();
+    const loadPromise = loadSystemDataFromCloud();
+    console.log("QA_TEST load-promise-created", { thenable: !!loadPromise && typeof loadPromise.then === "function" });
+    loadPromise.then(
+      value => console.log("QA_TEST load-promise-resolved", { value }),
+      error => console.log("QA_TEST load-promise-rejected", { message: error?.message || String(error) })
+    );
+    const value = await loadPromise;
+    console.log("QA_TEST load-await-resolved", { value });
     window.clearInterval(heartbeatTimer);
+    console.log("QA_TEST heartbeat-cleared");
     return { value, trace, heartbeatCount, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
   // Do not execute another Supabase RPC while the full table sequence is in flight.
