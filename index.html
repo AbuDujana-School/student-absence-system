@@ -7484,6 +7484,7 @@ function startTesterOneDashboardStages() {
 }
 
 function renderAuthenticatedDashboardShell() {
+  startTesterOneDashboardStages();
   const user = activeUser;
   if (!user) return;
   const isAdmin = user.type === "admin" || user.permissions?.admin === true || isAdminAuthorized();
@@ -7516,7 +7517,6 @@ async function finalizeLoginState() {
   console.info("[AUTH_TRACE] finalizeLoginState:start", {
     principalType: activeUser?.type || null
   });
-  startTesterOneDashboardStages();
   // Make the authenticated shell visible immediately. Cloud synchronization and
   // optional permission checks must never hold the user on the login screen.
   document.getElementById('loginView')?.classList.add('hidden');
