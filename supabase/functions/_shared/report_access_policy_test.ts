@@ -35,7 +35,7 @@ Deno.test("explicit false flags override legacy broad access", () => {
 });
 
 Deno.test("administrator bypasses report flags while ordinary accounts without grants are denied", () => {
-  assert(canAccessReportPermission("admin", {}, "reportStudentAffairs"), "general administrator should retain full access");
+  assert(canAccessReportPermission("admin", {}, "reportStudentAffairs", true), "general administrator should retain full access");
   assert(!canAccessReportPermission("admin", {}, "reportSubstitutionDistribution", false), "additional administrator must not inherit general-admin bypass");
   assert(canAccessReportPermission("admin", { reportSubstitutionDistribution: true }, "reportSubstitutionDistribution", false), "explicit additional-admin grant should allow the reserve report");
   assert(!canAccessReportPermission("teacher", {}, "reportStudentAffairs"), "no report grant should be denied");
