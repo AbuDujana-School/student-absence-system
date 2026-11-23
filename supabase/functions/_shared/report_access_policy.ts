@@ -3,6 +3,7 @@ export const REPORT_PERMISSION_KEYS = [
   "reportStudentAffairs",
   "reportComprehensiveAbsence",
   "reportClassLatenessFollowup",
+  "reportSubstitutionDistribution",
 ] as const;
 
 export type ReportPermissionKey = typeof REPORT_PERMISSION_KEYS[number];
@@ -17,8 +18,9 @@ export function canAccessReportPermission(
   principalType: string,
   permissions: Record<string, unknown> | null | undefined,
   report: ReportPermissionKey,
+  isGeneralAdmin = principalType === "admin",
 ): boolean {
-  if (principalType === "admin") return true;
+  if (principalType === "admin" && isGeneralAdmin) return true;
   const value = permissions && typeof permissions === "object" ? permissions : {};
   // A legacy broad flag cannot identify which report was approved.
   // Require an explicit grant for each report; admins retain the bypass above.
