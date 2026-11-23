@@ -326,11 +326,12 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
 async function hasStudentAffairsAccess(p: { type: string; name: string; permissions?: Record<string, unknown> }) {
   if (isGeneralAdminPrincipal(p)) return true;
   if (p.permissions && typeof p.permissions === "object") {
-    if (p.type !== "teacher" && p.type !== "custom") return false;
+    if (p.type !== "teacher" && p.type !== "custom" && p.type !== "admin") return false;
     return p.permissions.studentAffairs === true;
   }
-  const { data, error } = await db.from("teachers").select("role,permissions").eq("name", p.name).maybeSingle();
+  const { data, error } = await db.from("teachers").select("name,role,permissions").eq("name", p.name).maybeSingle();
   if (error || !data) return false;
+  if (p.type === "admin") return isAdditionalAdminTeacher(data) && data.permissions?.studentAffairs === true;
   const expectedRole = p.type === "custom" ? "custom" : "teacher";
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
     && data.permissions?.studentAffairs === true;
@@ -859,9 +860,10 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
 
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
   if (isGeneralAdminPrincipal(principal)) return true;
+  const principalType = principal.type === "admin" ? "teacher" : principal.type;
   const { data, error } = await db.from("timetable_access_permissions")
     .select("can_access")
-    .eq("principal_type", principal.type)
+    .eq("principal_type", principalType)
     .eq("principal_name", principal.name)
     .maybeSingle();
   if (error) throw error;
