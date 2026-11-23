@@ -110,7 +110,7 @@
     const dayCount = Math.max(1, Math.round((new Date(to + "T12:00:00Z") - new Date(from + "T12:00:00Z")) / 86400000) + 1);
     const weeklyFactor = 7 / dayCount;
     const head = '<div class="min-w-[950px]"><table class="w-full text-right text-xs"><thead class="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"><tr>' +
-      '<th class="p-3">المعلم</th><th class="p-3 text-center">زيارات شؤون الطلبة</th><th class="p-3 text-center">تقارير الغياب</th><th class="p-3 text-center">تقارير السلوكيات</th><th class="p-3 text-center">الإنذارات الرسمية</th><th class="p-3 text-center">إجمالي النشاط</th><th class="p-3 text-center">متوسط يومي</th><th class="p-3 text-center">متوسط أسبوعي</th><th class="p-3">آخر نشاط</th><th class="p-3">التفاصيل</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">';
+      '<th class="p-3">المعلم</th><th class="p-3 text-center">زيارات شؤون الطلبة</th><th class="p-3 text-center">تقارير الغياب</th><th class="p-3 text-center">تقارير السلوكيات</th><th class="p-3 text-center">الإنذارات الرسمية</th><th class="p-3 text-center">إجمالي النشاط</th><th class="p-3 text-center">متوسط زيارات يومي</th><th class="p-3 text-center">متوسط زيارات أسبوعي</th><th class="p-3">آخر نشاط</th><th class="p-3">التفاصيل</th></tr></thead><tbody class="divide-y divide-slate-100 dark:divide-slate-800">';
     const body = rows.map(row => {
       const details = row.events.slice().sort((a,b) => String(b.occurred_at).localeCompare(String(a.occurred_at))).map(event =>
         '<div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 py-2 last:border-0 dark:border-slate-800"><span class="font-bold">' + escapeHtml(EVENT_LABELS[event.event_type] || event.event_type) + '</span><time class="text-slate-500">' + escapeHtml(formatDateTime(event.occurred_at)) + '</time></div>'
@@ -118,7 +118,7 @@
       return '<tr class="align-top hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20"><td class="p-3 font-black">' + escapeHtml(row.name) + '</td>' +
         '<td class="p-3 text-center font-bold">' + row.student_affairs_open + '</td><td class="p-3 text-center font-bold text-emerald-700">' + row.absence_report_view + '</td>' +
         '<td class="p-3 text-center font-bold text-teal-700">' + row.behavior_report_view + '</td><td class="p-3 text-center font-bold text-rose-700">' + row.formal_warning_issued + '</td>' +
-        '<td class="p-3 text-center font-black">' + row.total + '</td><td class="p-3 text-center">' + (row.total / dayCount).toFixed(2) + '</td><td class="p-3 text-center">' + (row.total * weeklyFactor).toFixed(2) + '</td>' +
+        '<td class="p-3 text-center font-black">' + row.total + '</td><td class="p-3 text-center">' + (row.student_affairs_open / dayCount).toFixed(2) + '</td><td class="p-3 text-center">' + (row.student_affairs_open * weeklyFactor).toFixed(2) + '</td>' +
         '<td class="p-3 whitespace-nowrap">' + escapeHtml(row.last ? formatDateTime(row.last) : "—") + '</td><td class="p-3"><details class="min-w-48"><summary class="cursor-pointer rounded-lg bg-indigo-50 px-3 py-2 font-black text-indigo-700 dark:bg-indigo-950/40 dark:text-indigo-200">عرض ' + row.events.length + ' سجل</summary><div class="mt-2 max-h-64 overflow-y-auto rounded-lg border border-slate-200 px-2 dark:border-slate-700">' + details + '</div></details></td></tr>';
     }).join("");
     table.innerHTML = head + (body || '<tr><td colspan="10" class="p-6 text-center text-slate-400">لا يوجد معلمون مستوفون لصلاحية شؤون الطلبة في دليل المستخدمين.</td></tr>') + '</tbody></table></div>';
@@ -151,7 +151,7 @@
       const details = row.events.slice().sort((a,b)=>String(a.occurred_at).localeCompare(String(b.occurred_at))).map(event =>
         '<tr><td>' + escapeHtml(EVENT_LABELS[event.event_type] || event.event_type) + '</td><td>' + escapeHtml(formatDateTime(event.occurred_at)) + '</td></tr>'
       ).join("");
-      return '<tr><td>' + escapeHtml(row.name) + '</td><td>' + row.student_affairs_open + '</td><td>' + row.absence_report_view + '</td><td>' + row.behavior_report_view + '</td><td>' + row.formal_warning_issued + '</td><td>' + row.total + '</td><td>' + (row.total / Math.max(1, Math.round((new Date(to+"T12:00:00Z")-new Date(from+"T12:00:00Z"))/86400000)+1)).toFixed(2) + '</td></tr>' +
+      return '<tr><td>' + escapeHtml(row.name) + '</td><td>' + row.student_affairs_open + '</td><td>' + row.absence_report_view + '</td><td>' + row.behavior_report_view + '</td><td>' + row.formal_warning_issued + '</td><td>' + row.total + '</td><td>' + (row.student_affairs_open / Math.max(1, Math.round((new Date(to+"T12:00:00Z")-new Date(from+"T12:00:00Z"))/86400000)+1)).toFixed(2) + '</td></tr>' +
         (details ? '<tr><td colspan="7"><table class="details"><thead><tr><th>نوع النشاط</th><th>التاريخ والوقت</th></tr></thead><tbody>' + details + '</tbody></table></td></tr>' : '');
     }).join("");
     const w = window.open("", "_blank");
