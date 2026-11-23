@@ -804,12 +804,10 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     window.timetableRefreshAccess = async () => true;
     window.refreshActiveUserPermissions = async () => true;
     window.checkAndEnforceAdminPinChange = async () => false;
-    const originalShowToast = window.showToast;
-    window.showToast = function (...args) {
-      console.log("QA_LOGIN_TOAST start:" + String(args[0] || ""));
-      const result = originalShowToast.apply(this, args);
-      console.log("QA_LOGIN_TOAST done");
-      return result;
+    // Toast rendering is not part of the authentication/sync contract.
+    // Keep the synthetic browser harness free of CSS animation/layout effects.
+    window.showToast = (...args) => {
+      console.log("QA_LOGIN_TOAST suppressed:" + String(args[0] || ""));
     };
 
     const nativeSetTimeout = window.setTimeout.bind(window);
@@ -879,6 +877,7 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     console.warn = (...args) => { consoleLines.push(args.join(" ")); originalWarn.apply(console, args); };
     try {
       await handleUserLogin({ preventDefault() {} });
+      console.log("QA_LOGIN_TEST handleUserLogin resolved");
     } finally {
       console.info = originalInfo;
       console.warn = originalWarn;
