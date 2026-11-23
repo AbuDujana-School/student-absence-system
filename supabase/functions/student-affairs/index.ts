@@ -2129,10 +2129,19 @@ async function handle(req: Request) {
       const eventType = String(body.activity_type || "");
       if (eventType === "module_access") {
         if (!isGeneralAdminPrincipal(p) && !(await hasStudentAffairsAccess(p))) return reply(403, { error: "غير مصرح بتسجيل دخول شؤون الطلبة." });
-        const { error } = await db.from("student_affairs_activity_events").insert({
-          event_type: "module_access", actor_type: p.type, actor_name: p.name, metadata: { source: "student_affairs_module" }
-        });
-        if (error) throw error;
+        // The UI may invoke this audit hook during both module initialization and session setup.
+        // Collapse those duplicate hooks into one real access event within a short debounce window.
+        const { data: recentAccess, error: recentAccessError } = await db.from("student_affairs_activity_events")
+          .select("id").eq("event_type", "module_access").eq("actor_type", p.type).eq("actor_name", p.name)
+          .gte("created_at", new Date(Date.now() - 3000).toISOString()).limit(1);
+        if (recentAccessError) throw recentAccessError;
+        if (!recentAccess?.length) {
+          const { error } = await db.from("student_affairs_activity_events").insert({
+            event_type: "module_access", actor_type: p.type, actor_name: p.name,
+            metadata: { source: "student_affairs_module", audit_version: 2 }
+          });
+          if (error) throw error;
+        }
         return reply(200, { ok: true });
       }
       if (eventType === "formal_warning_print") {
@@ -2142,16 +2151,18 @@ async function handle(req: Request) {
           .order("issued_at", { ascending: false }).limit(1000);
         if (issueReadError) throw issueReadError;
         const latestIssueAt = recentIssues?.[0]?.issued_at;
-        const warningCount = latestIssueAt
-          ? (recentIssues || []).filter((row: any) => row.issued_at === latestIssueAt).length
-          : 0;
-        if (!warningCount) return reply(409, { error: "لا يوجد إصدار رسمي حديث مرتبط بحسابك لتسجيل طباعته." });
+        const batchRows = latestIssueAt ? (recentIssues || []).filter((row: any) => row.issued_at === latestIssueAt) : [];
+        if (!batchRows.length) return reply(409, { error: "لا يوجد إصدار رسمي حديث مرتبط بحسابك لتسجيل طباعته." });
         const { error } = await db.from("student_affairs_activity_events").insert({
           event_type: "formal_warning_print", actor_type: p.type, actor_name: p.name,
-          metadata: { warning_count: warningCount, source: "official_notice_print" }
+          metadata: {
+            // One row is one print operation; keep the committed notice IDs for audit traceability.
+            warning_count: 1, notice_count: batchRows.length, notice_ids: batchRows.map((row: any) => row.id),
+            issue_timestamp: latestIssueAt, source: "official_notice_print", audit_version: 2
+          }
         });
         if (error) throw error;
-        return reply(200, { ok: true, warning_count: warningCount });
+        return reply(200, { ok: true, warning_count: 1, notice_count: batchRows.length });
       }
       return reply(400, { error: "نوع سجل النشاط غير صالح." });
     }
@@ -2354,12 +2365,24 @@ async function handle(req: Request) {
     ]);
     if (attendance.error || behaviors.error) return reply(500, { error: "تعذر تحميل التقارير" });
     if (mode === "view") {
+      const hasAttendanceView = wantsAttendance && requestedAttendance.length > 0;
+      const hasBehaviorView = wantsBehavior && requestedBehavior.length > 0;
       const activityRows: any[] = [];
-      if (wantsAttendance && requestedAttendance.length) activityRows.push({ event_type: "absence_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedAttendance.length, from, to } });
-      if (wantsBehavior && requestedBehavior.length) activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedBehavior.length, from, to } });
+      const auditMetadata = { from, to, attendance_classes_count: requestedAttendance.length, behavior_classes_count: requestedBehavior.length };
+      if (hasAttendanceView && hasBehaviorView) {
+        // A combined report selection is one distinct action, not two independent report views.
+        activityRows.push({ event_type: "combined_report_view", actor_type: p.type, actor_name: p.name, metadata: { ...auditMetadata, source: "combined_report_selection", audit_version: 2 } });
+      } else if (hasAttendanceView) {
+        activityRows.push({ event_type: "absence_report_view", actor_type: p.type, actor_name: p.name, metadata: { ...auditMetadata, source: "absence_report_selection", audit_version: 2 } });
+      } else if (hasBehaviorView) {
+        activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { ...auditMetadata, source: "behavior_report_selection", audit_version: 2 } });
+      }
       if (activityRows.length) {
         const { error: activityError } = await db.from("student_affairs_activity_events").insert(activityRows);
-        if (activityError) console.error("Student Affairs report-view audit insert failed:", activityError);
+        if (activityError) {
+          console.error("Student Affairs report-view audit insert failed:", activityError);
+          return reply(500, { error: "تعذر توثيق عملية الاطلاع؛ لم يتم اعتماد عرض التقرير. حاول مرة أخرى." });
+        }
       }
     }
     return reply(200, { attendance: filterAttendance(attendance.data || []), behaviors: filterBehavior(behaviors.data || []), students: [], analytics: {}, permissions });
