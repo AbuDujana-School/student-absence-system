@@ -2365,7 +2365,7 @@ async function handle(req: Request) {
         : Promise.resolve({ data: [], error: null } as any)
     ]);
     if (attendance.error || behaviors.error) return reply(500, { error: "تعذر تحميل التقارير" });
-    if (mode === "view") {
+    if (mode === "view" && body.activity_source === "student_affairs_module") {
       const activityRows: any[] = [];
       if (wantsAttendance && requestedAttendance.length) activityRows.push({ event_type: "absence_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedAttendance.length, from, to } });
       if (wantsBehavior && requestedBehavior.length) activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedBehavior.length, from, to } });
