@@ -612,13 +612,13 @@ Deno.test("reserve distribution report grant is read-only and does not grant arc
 Deno.test("additional administrator sessions are downgraded to scoped teacher principals", async () => {
   const session = { principal_type: "admin", principal_name: "Tester1", expires_at: EXPIRY };
   const noReportGrant = storeWith(session, {
-    teacher: { name: "Tester1", role: "teacher", permissions: { admin: true, additionalAdmin: true, reportSubstitutionDistribution: false } },
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false, additionalAdmin: true, reportSubstitutionDistribution: false } },
   });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, noReportGrant, NOW, "timetable_substitution_report") !== null) {
     throw new Error("Additional administrator bypassed the explicit reserve-report grant");
   }
   const timetableGrant = storeWith(session, {
-    teacher: { name: "Tester1", role: "teacher", permissions: { admin: true, additionalAdmin: true } },
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false, additionalAdmin: true } },
     access: true,
   });
   const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, timetableGrant, NOW, "timetable_class_weekly_get");
@@ -637,7 +637,7 @@ Deno.test("additional administrator sessions are downgraded to scoped teacher pr
 Deno.test("additional administrator may read the reserve distribution report only with its explicit grant", async () => {
   const session = { principal_type: "admin", principal_name: "Tester1", expires_at: EXPIRY };
   const store = storeWith(session, {
-    teacher: { name: "Tester1", role: "teacher", permissions: { admin: true, additionalAdmin: true, reportSubstitutionDistribution: true } },
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false, additionalAdmin: true, reportSubstitutionDistribution: true } },
   });
   const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, "timetable_substitution_report");
   if (principal?.type !== "teacher" || principal.permissions?.reportSubstitutionDistribution !== true) {
