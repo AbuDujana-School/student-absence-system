@@ -46,7 +46,7 @@ insert into public.student_affairs_notice_issues (
   null,
   current_date,
   '["late"]'::jsonb,
-  '[{"type":"late","date":"2026-11-23","period":"1","note":"isolated audit test"}]'::jsonb
+  jsonb_build_array(jsonb_build_object('type','late','date',to_char(current_date,'YYYY-MM-DD'),'period','1','note','isolated audit test'))
 );
 
 do $$
