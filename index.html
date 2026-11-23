@@ -6849,7 +6849,8 @@ async function loadSystemDataFromCloud() {
         updateSyncStatus(false, "تعذر حفظ طلبات الحذف محلياً؛ بقيت البيانات الحالية كما هي ولم تُرفع أي تغييرات.");
         return false;
       }
-      const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
+      console.info('[AUTH_TRACE] sync:pending-state:start');
+    const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
         dirtySets.custom_categories || getPendingDeletes().length;
@@ -6874,6 +6875,8 @@ async function loadSystemDataFromCloud() {
       return [classes, students, teachers, attendance, behaviors, settings, dutyReports];
     })(), APP_SYNC_TABLES_TIMEOUT_MS, 'تأخر تحميل بيانات المدرسة من الخادم.', 'APP_SYNC_TABLES_TIMEOUT');
 
+    console.info('[AUTH_TRACE] sync:tables-loaded', { changedTables, fullSync });
+
     if (fullSync) {
       const empty = classesData.length === 0 && studentsData.length === 0 &&
         teachersData.length === 0 && attendanceData.length === 0 &&
@@ -6894,21 +6897,27 @@ async function loadSystemDataFromCloud() {
     };
 
     if (shouldLoad('students')) {
+      console.info('[AUTH_TRACE] sync:student-delete-intents:start');
       await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
+      console.info('[AUTH_TRACE] sync:student-delete-intents:done');
     }
 
     // Re-capture only dirty local records after network awaits so edits made
     // while tables were loading are merged instead of being overwritten.
     pendingLocalState = captureDirtyLocalState();
+    console.info('[AUTH_TRACE] sync:dirty-state-recaptured');
 
     // Replace only the datasets whose revision changed. Unchanged datasets remain
     // intact in the local snapshot; deletes are reflected by the changed table's
     // complete refresh, not inferred from updated_at timestamps.
     if (shouldLoad('classes')) {
+      console.info('[AUTH_TRACE] sync:map-classes:start');
       db.classes = [...new Set(classesData.map(r => r.name))];
+      console.info('[AUTH_TRACE] sync:map-classes:done', { count: db.classes.length });
     }
 
     if (shouldLoad('students')) {
+      console.info('[AUTH_TRACE] sync:map-students:start');
       db.students = {};
       studentsData.forEach(r => {
         const cn = r.class_name;
@@ -6917,11 +6926,13 @@ async function loadSystemDataFromCloud() {
       });
       sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
       Object.keys(db.students).forEach(k => db.students[k] = arabicSort(db.students[k]));
+      console.info('[AUTH_TRACE] sync:map-students:done', { classes: Object.keys(db.students).length });
     } else if (shouldLoad('classes')) {
       sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
     }
 
     if (shouldLoad('teachers')) {
+      console.info('[AUTH_TRACE] sync:map-teachers:start');
       db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
         const p = t.permissions || {};
         const mustChange = p.mustChangePin === true || t.must_change_pin === true;
@@ -6939,6 +6950,7 @@ async function loadSystemDataFromCloud() {
         pin_salt: t.pin_salt || null,
         permissions: t.permissions || {}
       }));
+      console.info('[AUTH_TRACE] sync:map-teachers:done', { teachers: db.teachers.length, customUsers: db.customUsers.length });
     }
 
     if (shouldLoad('school_settings')) {
@@ -7010,8 +7022,11 @@ async function loadSystemDataFromCloud() {
       }
     }
 
+    console.info('[AUTH_TRACE] sync:merge-dirty:start');
     mergeDirtyLocalState(pendingLocalState);
+    console.info('[AUTH_TRACE] sync:merge-dirty:done');
     applyPendingLocalDeletions();
+    console.info('[AUTH_TRACE] sync:apply-pending-deletes:done');
     cloudWritesBlockedByManifestFailure = false;
     cloudDataLoadState = 'ready';
 
@@ -7020,20 +7035,25 @@ async function loadSystemDataFromCloud() {
     if (nextManifest) lastLoadedCloudManifest = nextManifest;
     // Persist the complete cloud snapshot to IndexedDB first. localStorage writes
     // are synchronous and can freeze Android WebViews with a large school dataset.
+    console.info('[AUTH_TRACE] sync:persist-snapshot:start');
     const localSnapshotSaved = await persistOfflineStateWithTimeout();
+    console.info('[AUTH_TRACE] sync:persist-snapshot:done', { localSnapshotSaved });
     if (!localSnapshotSaved) saveToLocalStorageSafe();
 
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
       dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
       dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
       dirtySets.custom_categories || getPendingDeletes().length;
+    console.info('[AUTH_TRACE] sync:pending-state:done', { pendingSync: !!pendingSync });
     updateSyncStatus(!pendingSync && localSnapshotSaved, !localSnapshotSaved
       ? (pendingSync
         ? "تم تحميل بيانات الخادم؛ التعديلات المحلية بانتظار المزامنة وتعذر تحديث النسخة المحلية الدائمة."
         : "تم تحميل بيانات الخادم؛ تعذر تحديث النسخة المحلية الدائمة الآن.")
       : pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+    console.info('[AUTH_TRACE] sync:return-success');
     return true;
   } catch(e) {
+    console.warn('[AUTH_TRACE] sync:caught-error', { message: e?.message || String(e), code: e?.code || null });
     cloudDataLoadState = 'failed';
     console.error('Cloud load failed:', e);
     const saved = localStorage.getItem('abuDujana_db_v30');
