@@ -33,8 +33,8 @@ Deno.test("admin principal projection distinguishes general and additional admin
   const additional = projectAppPrincipal({ type: "admin", name: "Tester1" });
   if (general?.adminScope !== "general") throw new Error("General administrator scope was not inferred");
   if (additional?.adminScope !== "additional") throw new Error("Additional administrator scope was not inferred");
-  const explicit = projectAppPrincipal({ type: "admin", name: "Tester1", adminScope: "general" });
-  if (explicit?.adminScope !== "general") throw new Error("Explicit server-side scope was not preserved");
+  const forged = projectAppPrincipal({ type: "admin", name: "Tester1", adminScope: "general" });
+  if (forged?.adminScope !== "additional") throw new Error("Caller-supplied scope must not elevate an additional administrator");
 });
 
 Deno.test("principal projection excludes credential-shaped permission fields", () => {
