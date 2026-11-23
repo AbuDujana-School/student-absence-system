@@ -465,8 +465,6 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
       .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
     startTesterOneDashboardStages();
-    refreshMorningAssemblyLatenessCard();
-    refreshDutyDashboardCard();
     return {
       morning: !document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
       duty: !document.getElementById("dutyDashboardCard")?.classList.contains("hidden"),
