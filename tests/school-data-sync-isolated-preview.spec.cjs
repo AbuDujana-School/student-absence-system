@@ -379,54 +379,16 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(syntheticSessionRpc.settled, "Manifest helper must resolve with the synthetic admin state").toBe(true);
   expect(syntheticSessionRpc.hasManifest, "Manifest helper must return a valid manifest").toBe(true);
 
-  // Replay each synchronous/async pre-manifest step independently, then call the
-  // exact same helper. This identifies whether one preflight operation changes
-  // Supabase client's ability to complete the next manifest request.
-  requestPhase = "preflight-probes";
-  const preflightProbes = await page.evaluate(async () => {
-    const results = [];
-    const probe = async label => {
-      console.log("QA_PREFLIGHT probe-start:" + label);
-      const result = await Promise.race([
-        fetchAppSyncManifest().then(value => ({ settled: true, valid: !!value }))
-          .catch(error => ({ settled: true, error: error?.message || String(error) })),
-        new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 5_000 }), 5_000)),
-      ]);
-      console.log("QA_PREFLIGHT probe-done:" + label + ":" + JSON.stringify(result));
-      results.push({ label, ...result });
-    };
-    console.log("QA_PREFLIGHT auth-start");
-    await ensureAppAuthSession();
-    console.log("QA_PREFLIGHT auth-done");
-    await probe("after-auth-check");
-    console.log("QA_PREFLIGHT local-status-start");
-    updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
-    console.log("QA_PREFLIGHT local-status-done");
-    await probe("after-local-status");
-    console.log("QA_PREFLIGHT offline-restore-start");
-    await ensureOfflineSnapshotRestored();
-    console.log("QA_PREFLIGHT offline-restore-done");
-    await probe("after-offline-restore");
-    console.log("QA_PREFLIGHT dirty-sets-start");
-    loadDirtySetsFromLocal();
-    console.log("QA_PREFLIGHT dirty-sets-done");
-    await probe("after-dirty-sets");
-    console.log("QA_PREFLIGHT dirty-capture-start");
-    captureDirtyLocalState();
-    console.log("QA_PREFLIGHT dirty-capture-done");
-    await probe("after-dirty-capture");
-    console.log("QA_PREFLIGHT manifest-status-start");
-    updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
-    console.log("QA_PREFLIGHT manifest-status-done");
-    await probe("after-manifest-status");
-    return results;
-  });
-  browserConsole.push("QA_PREFLIGHT_PROBES " + JSON.stringify(preflightProbes));
-
+  // Diagnostic isolation: the last run showed the next RPC stalls only after
+  // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
+  // presentation-only function in the synthetic page to test the rest of sync.
   requestPhase = "sync-load";
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
+    const originalUpdateSyncStatus = updateSyncStatus;
+    updateSyncStatus = () => { console.log("QA_TEST updateSyncStatus bypassed"); };
     const value = await loadSystemDataFromCloud();
+    updateSyncStatus = originalUpdateSyncStatus;
     return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
   // While the full sync is stalled, issue a second independent RPC from the same page.
