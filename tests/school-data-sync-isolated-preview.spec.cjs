@@ -94,13 +94,25 @@ test("school sync projections and timetable access reads stay isolated and minim
     if (line.startsWith("QA_") || line.startsWith("[AUTH_TRACE]")) console.log("[BROWSER_TRACE] " + line);
   });
   page.on("request", (request) => {
-    if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length });
+    if (request.url().includes(SUPABASE_HOST)) {
+      const entry = { phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length };
+      supabaseRequests.push(entry);
+      console.log("[QA_NET] request " + JSON.stringify(entry));
+    }
   });
   page.on("response", (response) => {
-    if (response.url().includes(SUPABASE_HOST)) browserConsole.push("QA_RESPONSE " + requestPhase + " " + response.status() + " " + response.url());
+    if (response.url().includes(SUPABASE_HOST)) {
+      const entry = { phase: requestPhase, status: response.status(), url: response.url() };
+      browserConsole.push("QA_RESPONSE " + requestPhase + " " + response.status() + " " + response.url());
+      console.log("[QA_NET] response " + JSON.stringify(entry));
+    }
   });
   page.on("requestfailed", (request) => {
-    if (request.url().includes(SUPABASE_HOST)) browserConsole.push("QA_REQUEST_FAILED " + request.failure()?.errorText + " " + request.url());
+    if (request.url().includes(SUPABASE_HOST)) {
+      const entry = { phase: requestPhase, failure: request.failure()?.errorText, url: request.url() };
+      browserConsole.push("QA_REQUEST_FAILED " + entry.failure + " " + request.url());
+      console.log("[QA_NET] failed " + JSON.stringify(entry));
+    }
   });
 
   await page.addInitScript(() => {
@@ -181,7 +193,9 @@ test("school sync projections and timetable access reads stay isolated and minim
   // Only synthetic QA rows are returned; no real credentials or school data are used.
   await page.route(/https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
     const request = route.request();
-    routeEvents.push({ stage: "handler-enter", phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length });
+    const routeStart = { phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length, origin: request.headers().origin || null, authorization: !!request.headers().authorization, requestedHeaders: request.headers()["access-control-request-headers"] || null };
+    routeEvents.push({ stage: "handler-enter", ...routeStart });
+    console.log("[QA_ROUTE_NODE] enter " + JSON.stringify(routeStart));
     const url = new URL(request.url());
     if (url.hostname !== SUPABASE_HOST) {
       unexpectedSupabaseTraffic.push({ method: request.method(), url: request.url() });
@@ -232,9 +246,11 @@ test("school sync projections and timetable access reads stay isolated and minim
       manifestCalls += 1;
       routeEvents.push({ stage: "manifest-fulfill-start", phase: requestPhase });
       browserConsole.push("QA_ROUTE manifest-fulfill-start:" + requestPhase);
+      console.log("[QA_ROUTE_NODE] fulfill-start phase=" + requestPhase);
       await route.fulfill({ status: 200, headers, body: JSON.stringify(manifest) });
       routeEvents.push({ stage: "manifest-fulfill-done", phase: requestPhase });
       browserConsole.push("QA_ROUTE manifest-fulfill-done:" + requestPhase);
+      console.log("[QA_ROUTE_NODE] fulfill-done phase=" + requestPhase);
       return;
     }
 
