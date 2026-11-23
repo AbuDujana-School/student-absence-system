@@ -523,7 +523,7 @@ Deno.test("duty-only permission is checked only for duty report and its narrow b
 });
 
 
-Deno.test("ordinary timetable actions load teacher identity without the permission JSON", async () => {
+Deno.test("ordinary timetable actions load current permissions to detect delegated administrator capability", async () => {
   const session = { principal_type: "teacher", principal_name: "Teacher A", expires_at: EXPIRY };
   const calls: string[] = [];
   const store = storeWith(session, {
@@ -535,8 +535,8 @@ Deno.test("ordinary timetable actions load teacher identity without the permissi
     "Bearer " + TOKEN, store, NOW, "timetable_class_weekly_get",
   );
   if (principal?.type !== "teacher") throw new Error("Teacher with timetable access was not authenticated");
-  if (calls.includes("teacher-permissions:Teacher A")) {
-    throw new Error("An unrelated timetable read loaded the teacher permission JSON");
+  if (!calls.includes("teacher-permissions:Teacher A")) {
+    throw new Error("An unrelated timetable read did not load the admin capability from the live permission snapshot");
   }
 });
 
@@ -645,5 +645,27 @@ Deno.test("additional administrator may read the reserve distribution report onl
   }
   if (canUseTimetableAction("teacher", "timetable_substitution_report")) {
     throw new Error("Report-only permission must not become a general timetable action bypass");
+  }
+});
+
+
+Deno.test("delegated full administrator is elevated only inside timetable authorization while Additional Admin stays off", async () => {
+  const session = { principal_type: "teacher", principal_name: "Tester1", expires_at: EXPIRY };
+  const calls: string[] = [];
+  const store = storeWith(session, {
+    teacher: {
+      name: "Tester1", role: "teacher",
+      permissions: { admin: true, additionalAdmin: false, reserve: true },
+    },
+    calls,
+  });
+  const principal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, store, NOW, "timetable_portal_set_enabled",
+  );
+  if (principal?.type !== "admin" || principal.name !== "Tester1" || principal.permissions?.admin !== true) {
+    throw new Error("Delegated administrator did not receive timetable administrator authority");
+  }
+  if (!calls.includes("teacher-permissions:Tester1")) {
+    throw new Error("Delegated administrator capability was not read from the live teacher profile");
   }
 });
