@@ -457,6 +457,7 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
       permissions: { admin: true, duty: true, morningAssemblyLateness: true, studentAffairs: true },
     };
     localOnlySession = false;
+    timetableRefreshAccess = async () => true;
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
       .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
     startTesterOneDashboardStages();
