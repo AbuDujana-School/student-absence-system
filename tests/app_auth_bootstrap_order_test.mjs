@@ -93,11 +93,13 @@ test("a successful server login stores its verified session and paints the dashb
   assert.ok(shellHelper.includes("hasAdminPanelAccess(user)") && shellHelper.includes("isAdmin"));
 });
 
-test("admin cloud bootstrap has a five-minute manifest and table timeout without extending credential verification", () => {
+test("admin cloud bootstrap and credential verification have separate bounded timeouts", () => {
+  assert.ok(html.includes("APP_LOGIN_TIMEOUT_MS = 120000"));
   assert.ok(html.includes("APP_SYNC_MANIFEST_TIMEOUT_MS = 300000"));
   assert.ok(html.includes("APP_SYNC_TABLES_TIMEOUT_MS = 300000"));
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
-  assert.ok(login.includes("}, 15000)"));
+  assert.ok(login.includes("}, APP_LOGIN_TIMEOUT_MS)"));
+  assert.ok(login.includes("بعد 120 ثانية"));
   assert.equal(login.includes("300000"), false);
 });
 

@@ -6657,6 +6657,7 @@ function normalizeAppSyncManifest(value) {
   return normalized;
 }
 
+const APP_LOGIN_TIMEOUT_MS = 120000;
 const APP_SYNC_MANIFEST_TIMEOUT_MS = 300000;
 const APP_SYNC_TABLES_TIMEOUT_MS = 300000;
 
@@ -7503,14 +7504,14 @@ async function handleUserLogin(e) {
           loginTimeoutId = setTimeout(() => {
             loginTimedOut = true;
             loginController.abort();
-            reject(new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 15 ثانية."));
-          }, 15000);
+            reject(new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 120 ثانية."));
+          }, APP_LOGIN_TIMEOUT_MS);
         });
         serverLogin = await Promise.race([loginRequest, loginDeadline]);
       }
       catch (serverError) {
         if (loginTimedOut) {
-          throw new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 15 ثانية. أعد المحاولة؛ لم يتم تغيير بيانات الحساب.");
+          throw new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 120 ثانية. أعد المحاولة؛ لم يتم تغيير بيانات الحساب.");
         }
         if (isLegacyAuthEndpointUnavailable(serverError) || isNetworkFailureForOfflineFallback(serverError)) useLegacyLogin = true;
         else throw serverError;
