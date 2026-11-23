@@ -34,7 +34,7 @@ Deno.test("student transfer UI requires admin authorization and uses the server 
 Deno.test("Edge Function accepts transfers only from the active general admin session", () => {
   const action = section(edge, 'if (body?.action === "admin_transfer_student")', 'if (body?.action === "app_student_affairs_session")');
   assert(action.includes("readAuthorizedAppSession"), "Transfer must validate and revalidate the general app session");
-  assert(action.includes('principal.type !== "admin"'), "Only the general admin may transfer students");
+  assert(action.includes("!isGeneralAdminPrincipal(principal)"), "Only the general admin may transfer students");
   assert(action.includes('db.rpc("admin_transfer_student"'), "Transfer must run in the database transaction");
 });
 
