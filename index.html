@@ -8697,12 +8697,10 @@ async function loadStudentAffairsActivityStats() {
     const dayKey=stamp=>new Date(Date.parse(stamp)+4*60*60*1000).toISOString().slice(0,10);
     const weekStart=date=>{const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-d.getUTCDay());return d.toISOString().slice(0,10);};
     const weekEnd=start=>{const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+6);return d.toISOString().slice(0,10);};
-    const dailyDates=[];for(let d=new Date(from+'T00:00:00Z'),end=new Date(to+'T00:00:00Z');d<=end;d.setUTCDate(d.getUTCDate()+1))dailyDates.push(d.toISOString().slice(0,10));
-    const weeklyStarts=[...new Set(dailyDates.map(weekStart))];
-    const byName=new Map(teachers.map(t=>[t.name,{name:t.name,access:0,absence:0,behavior:0,combined:0,printed:0,events:[],daily:Object.fromEntries(dailyDates.map(d=>[d,0])),weekly:Object.fromEntries(weeklyStarts.map(d=>[d,0])),printDates:[]}]));
+    const byName=new Map(teachers.map(t=>[t.name,{name:t.name,access:0,absence:0,behavior:0,combined:0,printed:0,events:[],daily:{},weekly:{},printDates:[]}]));
     events.forEach(ev=>{
       const row=byName.get(ev.actor_name);if(!row)return;row.events.push(ev);
-      if(ev.event_type==='module_access'){row.access++;const day=dayKey(ev.created_at);if(day in row.daily)row.daily[day]++;const week=weekStart(day);if(week in row.weekly)row.weekly[week]++;}
+      if(ev.event_type==='module_access'){row.access++;const day=dayKey(ev.created_at);row.daily[day]=(row.daily[day]||0)+1;const week=weekStart(day);row.weekly[week]=(row.weekly[week]||0)+1;}
       if(ev.event_type==='absence_report_view')row.absence++;
       if(ev.event_type==='behavior_report_view')row.behavior++;
       if(ev.event_type==='combined_report_view')row.combined++;
@@ -8712,7 +8710,7 @@ async function loadStudentAffairsActivityStats() {
     const total=key=>rows.reduce((sum,r)=>sum+r[key],0);
     const metric=(label,value,icon)=>'<div class="rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-700 dark:bg-slate-900"><div class="flex items-center gap-2 text-[10px] font-bold text-slate-500"><i class="fa-solid '+icon+'"></i>'+label+'</div><strong class="mt-1 block text-2xl font-black text-slate-900 dark:text-white">'+value+'</strong></div>';
     if(summary)summary.innerHTML=metric('إجمالي مرات الدخول',total('access'),'fa-door-open')+metric('اطلاع تقارير الغياب',total('absence'),'fa-user-slash')+metric('اطلاع تقارير السلوك',total('behavior'),'fa-scale-balanced')+metric('اطلاع التقريرين معاً',total('combined'),'fa-layer-group')+metric('مرات طباعة التنبيهات المعتمدة',total('printed'),'fa-print');
-    const breakdown=(map,kind)=>'<details class="text-right"><summary class="cursor-pointer font-bold text-indigo-700 dark:text-indigo-300">عرض '+(kind==='day'?'الأيام':'الأسابيع')+' ('+Object.keys(map).length+')</summary><div class="mt-2 max-h-44 overflow-auto space-y-1">'+Object.entries(map).map(([period,count])=>'<div class="flex justify-between gap-3 border-b border-slate-100 py-1 dark:border-slate-700"><span dir="ltr">'+(kind==='day'?period:period+' — '+weekEnd(period))+'</span><strong>'+count+'</strong></div>').join('')+'</div></details>';
+    const breakdown=(map,kind)=>{const entries=Object.entries(map).sort((a,b)=>a[0].localeCompare(b[0]));if(!entries.length)return '<span class="text-slate-400">لا توجد مرات دخول</span>';return '<details class="text-right"><summary class="cursor-pointer font-bold text-indigo-700 dark:text-indigo-300">عرض '+(kind==='day'?'الأيام':'الأسابيع')+' ('+entries.length+')</summary><div class="mt-2 max-h-44 overflow-auto space-y-1">'+entries.map(([period,count])=>'<div class="flex justify-between gap-3 border-b border-slate-100 py-1 dark:border-slate-700"><span dir="ltr">'+(kind==='day'?period:period+' — '+weekEnd(period))+'</span><strong>'+count+'</strong></div>').join('')+'</div></details>';};
     const printDates=r=>r.printDates.length?r.printDates.map(x=>new Date(x).toLocaleString('ar-OM',{timeZone:'Asia/Muscat'})).map(esc).join('<br>'):'—';
     const tableRows=rows.map(r=>'<tr class="border-t border-slate-100 dark:border-slate-800"><td class="p-3 text-right font-bold">'+esc(r.name)+'</td><td class="p-3">'+r.access+'</td><td class="p-3">'+breakdown(r.daily,'day')+'</td><td class="p-3">'+breakdown(r.weekly,'week')+'</td><td class="p-3">'+r.absence+'</td><td class="p-3">'+r.behavior+'</td><td class="p-3">'+r.combined+'</td><td class="p-3">'+r.printed+'</td><td class="p-3 text-right leading-6">'+printDates(r)+'</td></tr>').join('');
     if(teacherBox)teacherBox.innerHTML='<table class="w-full min-w-[1120px] text-center text-xs"><thead class="bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-200"><tr><th class="p-3 text-right">اسم المعلم</th><th class="p-3">مرات الدخول</th><th class="p-3">عدد مرات الدخول يومياً</th><th class="p-3">عدد مرات الدخول أسبوعياً</th><th class="p-3">تقارير الغياب</th><th class="p-3">تقارير السلوك</th><th class="p-3">كلاهما</th><th class="p-3">مرات طباعة التنبيهات المعتمدة</th><th class="p-3">تاريخ ووقت كل طباعة</th></tr></thead><tbody>'+(tableRows||'<tr><td colspan="9" class="p-4 text-slate-400">لا يوجد معلمون مضافون إلى شؤون الطلبة.</td></tr>')+'</tbody></table>';
@@ -8725,8 +8723,8 @@ function printStudentAffairsActivityPdf(){
   const data=window.studentAffairsActivitySnapshot;
   if(!data){showToast('حدّث التقرير أولاً قبل تصدير PDF.','error');return;}
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-  const dailyText=r=>Object.entries(r.daily||{}).map(([d,n])=>d+': '+n).join(' | ');
-  const weeklyText=r=>Object.entries(r.weekly||{}).map(([d,n])=>d+' إلى '+new Date(new Date(d+'T00:00:00Z').getTime()+6*86400000).toISOString().slice(0,10)+': '+n).join(' | ');
+  const dailyText=r=>Object.entries(r.daily||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,n])=>d+': '+n).join(' | ')||'—';
+  const weeklyText=r=>Object.entries(r.weekly||{}).sort((a,b)=>a[0].localeCompare(b[0])).map(([d,n])=>d+' إلى '+new Date(new Date(d+'T00:00:00Z').getTime()+6*86400000).toISOString().slice(0,10)+': '+n).join(' | ')||'—';
   const rows=data.teachers.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+r.access+'</td><td>'+esc(dailyText(r))+'</td><td>'+esc(weeklyText(r))+'</td><td>'+r.absence+'</td><td>'+r.behavior+'</td><td>'+r.combined+'</td><td>'+r.printed+'</td><td>'+esc((r.printDates||[]).map(x=>new Date(x).toLocaleString('ar-OM',{timeZone:'Asia/Muscat'})).join('، ')||'—')+'</td></tr>').join('');
   const details=data.events.filter(ev=>data.labels[ev.event_type]).map(ev=>'<tr><td>'+esc(new Date(ev.created_at).toLocaleString('ar-OM',{timeZone:'Asia/Muscat'}))+'</td><td>'+esc(ev.actor_name)+'</td><td>'+esc(data.labels[ev.event_type])+'</td></tr>').join('');
   const w=window.open('','_blank');if(!w){showToast('اسمح بفتح نافذة التقرير لطباعة PDF.','error');return;}
