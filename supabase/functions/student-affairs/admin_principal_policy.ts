@@ -11,6 +11,9 @@ const ADDITIONAL_ADMIN_PERMISSION_DEFAULTS: Record<string, boolean> = {
   studstats: true, behaviorstats: true, users: true, students: true, teachers: true,
   duty: true, alerts: true, reports: true, sync: true, security: true, admin: true,
   studentAffairs: true, morningAssemblyLateness: true,
+  reserve: false, reportSubstitutionDistribution: false,
+  reportClassLatenessFollowup: false, reportComprehensiveAbsence: false,
+  reportMorningAssemblyLateness: false, reportStudentAffairs: false,
 };
 
 /** Apply explicit per-account overrides without mixing them with ordinary teacher permissions. */
