@@ -8651,7 +8651,16 @@ function filterStudentList(containerId) {
 /* ============ Stats with Chart.js ============ */
 function onStatsFilterChanged() { updateCustomRangeVisibility(); if (!document.getElementById('statsSubSec-absence').classList.contains('hidden')) renderStudentStatsDashboard(); else if (!document.getElementById('statsSubSec-behaviors').classList.contains('hidden')) renderBehaviorStatsDashboard(); }
 function updateCustomRangeVisibility() { const pt = document.getElementById('statsPeriodFilter').value; const el = document.getElementById('customDateRangeContainer'); if (!el) return; if (pt === 'custom') { el.classList.remove('hidden'); el.classList.add('flex'); } else { el.classList.add('hidden'); el.classList.remove('flex'); } }
+function logStudentAffairsStatsView(st) {
+  const eventType = st === 'absence' ? 'absence_report_view' : st === 'behaviors' ? 'behavior_report_view' : '';
+  if (!eventType) return;
+  const token = appAuthSession?.token || readAppAuthToken();
+  if (!token) return;
+  appAuthRequest({ action: 'student_affairs_activity_stats_view', event_type: eventType }, token)
+    .catch(error => console.warn('Statistics report view was not recorded.', error?.message || error));
+}
 function switchStatsSubTab(st) {
+  logStudentAffairsStatsView(st);
   const a = document.getElementById('statsSubSec-absence'), b = document.getElementById('statsSubSec-behaviors');
   const ab = document.getElementById('statsTab-absence'), bb = document.getElementById('statsTab-behaviors');
   if (st === 'absence') { a.classList.remove('hidden'); b.classList.add('hidden'); ab.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs bg-emerald-700 text-white shadow-md flex items-center justify-center gap-2"; bb.className = "flex-1 py-3 px-4 rounded-xl font-extrabold text-xs bg-transparent text-slate-600 dark:text-slate-300 flex items-center justify-center gap-2"; setTimeout(() => renderStudentStatsDashboard(), 50); }
