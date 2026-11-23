@@ -728,8 +728,15 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   const requests = [];
   const errors = [];
   const browserMessages = [];
-  page.on("pageerror", error => errors.push(error.stack || error.message));
-  page.on("console", message => browserMessages.push(message.type() + ": " + message.text()));
+  page.on("pageerror", error => {
+    errors.push(error.stack || error.message);
+    console.log("[QA_LOGIN_BROWSER_ERROR] " + (error.stack || error.message));
+  });
+  page.on("console", message => {
+    const line = message.type() + ": " + message.text();
+    browserMessages.push(line);
+    console.log("[QA_LOGIN_BROWSER] " + line);
+  });
   await page.addInitScript(() => {
     if (!window.tailwind) window.tailwind = { config: {} };
   });
@@ -797,6 +804,44 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     window.timetableRefreshAccess = async () => true;
     window.refreshActiveUserPermissions = async () => true;
     window.checkAndEnforceAdminPinChange = async () => false;
+
+    // Trace each synchronous dashboard-finalization stage in the Node job log.
+    // This remains test-only and does not change deployed application code.
+    const watched = [
+      "loadSystemDataFromCloud",
+      "refreshActiveUserPermissions",
+      "timetableRefreshAccess",
+      "refreshSubstitutionDashboardCard",
+      "refreshDutyDashboardCard",
+      "renderDutyTodayRecords",
+      "checkAndEnforcePinChange",
+      "checkAndEnforceAdminPinChange",
+      "refreshReportPanelsVisibility",
+    ];
+    for (const name of watched) {
+      const original = window[name];
+      if (typeof original !== "function") continue;
+      window[name] = function (...args) {
+        console.log("QA_LOGIN_STAGE " + name + ":start");
+        try {
+          const result = original.apply(this, args);
+          if (result && typeof result.then === "function") {
+            return result.then(value => {
+              console.log("QA_LOGIN_STAGE " + name + ":done");
+              return value;
+            }, error => {
+              console.log("QA_LOGIN_STAGE " + name + ":error:" + (error?.message || String(error)));
+              throw error;
+            });
+          }
+          console.log("QA_LOGIN_STAGE " + name + ":done");
+          return result;
+        } catch (error) {
+          console.log("QA_LOGIN_STAGE " + name + ":throw:" + (error?.message || String(error)));
+          throw error;
+        }
+      };
+    }
   });
 
   await page.locator("#userPinInput").fill("7777");
@@ -834,19 +879,8 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   try {
     await page.waitForFunction(() => window.__qaCloudSyncStarted === true && cloudDataLoadState === "loading", undefined, { timeout: 5_000 });
   } catch (waitError) {
-    const diagnosticState = await page.evaluate(() => ({
-      activeName: activeUser?.name || null,
-      activeType: activeUser?.type || null,
-      localOnlySession,
-      online: navigator.onLine,
-      cloudState: cloudDataLoadState,
-      previousRefreshInProgress: cloudRefreshInProgress,
-      cloudSyncStarted: window.__qaCloudSyncStarted === true,
-      finalizeType: typeof finalizeLoginState,
-      loadType: typeof loadSystemDataFromCloud,
-    }));
     throw new Error("Post-login cloud bootstrap did not reach the controlled pending state: " +
-      JSON.stringify({ diagnosticState, browserMessages, errors, waitError: waitError.message }));
+      JSON.stringify({ lastBrowserMessages: browserMessages.slice(-100), errors, waitError: waitError.message }));
   }
   await expect(page.locator("#loginSubmitBtn")).not.toBeDisabled();
   await expect(page.locator("#loginSubmitBtn")).toContainText("دخول للنظام");
