@@ -250,7 +250,8 @@ test("school sync projections and timetable access reads stay isolated and minim
       const responseHeaders = {
         ...headers,
         "access-control-allow-origin": request.headers().origin || "*",
-        "content-range": rows.length ? "0-" + (rows.length - 1) + "/" + rows.length : "*/0",
+        "access-control-allow-credentials": "true",
+        "access-control-allow-headers": "authorization, apikey, accept, content-type, x-client-info",
       };
       console.log("[QA_ROUTE_NODE] table-fulfill-start " + JSON.stringify({
         table, method, rowCount: rows.length, bodyLength: body.length,
