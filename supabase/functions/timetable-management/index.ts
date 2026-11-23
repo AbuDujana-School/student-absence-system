@@ -155,7 +155,7 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data, error } = await db.from("teachers")
       .select("name,role,permissions").eq("name", name).maybeSingle();
     return !error && data?.name === name && data.role === "teacher"
-      && data.permissions?.admin === true && data.permissions?.additionalAdmin === true;
+      && data.permissions?.additionalAdmin === true;
   },
   async findTeacher(name, includePermissions = false) {
     let data: any = null;
