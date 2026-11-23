@@ -7362,7 +7362,7 @@ function updateSyncStatus(isSynced, text) {
   let displayText = text || (isSynced ? "متزامن" : "محلي");
   if (!canReviewDeletes) {
     // Some callers pass a pre-composed status containing the queue count. Strip it for non-admin sessions.
-    displayText = String(displayText).replace(/[؛;،]?\\s*\\d+\\s*طلب(?:ات)?\\s*حذف(?:\\s*(?:للمراجعة|بانتظار\\s*المراجعة))?/g, '').trim();
+    displayText = String(displayText).replace(/[؛;،]?\s*\d+\s*طلب(?:ات)?\s*حذف(?:\s*(?:للمراجعة|بانتظار\s*المراجعة))?/g, '').trim();
     if (!displayText) displayText = isSynced ? "متزامن" : "محلي";
   }
   if (reviewOnly) displayText = `المزامنة مكتملة؛ ${pendingDeletes} طلب حذف للمراجعة`;
