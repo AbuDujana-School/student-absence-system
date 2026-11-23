@@ -359,30 +359,6 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(directXhrProbe.settled, "Synthetic async XHR must complete before app sync; diagnostics: " + JSON.stringify({ directXhrProbe, supabaseRequests, routeEvents, browserConsole })).toBe(true);
   expect(directXhrProbe.status, "Synthetic XHR fixture must return HTTP 200").toBe(200);
 
-  // Call the production table-reader helper without the full sync orchestrator.
-  // This isolates helper/transport behavior from the state and merge stages.
-  requestPhase = "direct-table-helper";
-  const directTableHelperProbe = await page.evaluate(async () => Promise.race([
-    fetchAllPaginated("classes", "name").then(rows => ({
-      settled: true,
-      rowCount: rows.length,
-      firstRow: rows[0] || null,
-    })).catch(error => ({
-      settled: true,
-      error: error?.message || String(error),
-      status: error?.status || null,
-      code: error?.code || null,
-    })),
-    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 12000 }), 12000)),
-  ]));
-  browserConsole.push("QA_DIRECT_TABLE_HELPER_PROBE " + JSON.stringify(directTableHelperProbe));
-  expect(
-    directTableHelperProbe.settled,
-    "Production table-reader helper must resolve independently; diagnostics: " +
-      JSON.stringify({ directTableHelperProbe, supabaseRequests, routeEvents, browserConsole, pageErrors }),
-  ).toBe(true);
-  expect(directTableHelperProbe.rowCount).toBe(1);
-  expect(directTableHelperProbe.firstRow?.name).toBe("QA_ONLY_CLASS");
   reads.clear();
   projections.clear();
 
@@ -420,6 +396,34 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(syntheticSessionRpc.settled, "Manifest helper must resolve with the synthetic admin state").toBe(true);
   expect(syntheticSessionRpc.hasManifest, "Manifest helper must return a valid manifest").toBe(true);
   manifestCalls = 0;
+
+  // Call the production table-reader helper without the full sync orchestrator.
+  // This checks whether the table reader still works after the same manifest
+  // and authenticated-session setup used by the full load.
+  requestPhase = "direct-table-helper";
+  const directTableHelperProbe = await page.evaluate(async () => Promise.race([
+    fetchAllPaginated("classes", "name").then(rows => ({
+      settled: true,
+      rowCount: rows.length,
+      firstRow: rows[0] || null,
+    })).catch(error => ({
+      settled: true,
+      error: error?.message || String(error),
+      status: error?.status || null,
+      code: error?.code || null,
+    })),
+    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 12000 }), 12000)),
+  ]));
+  browserConsole.push("QA_DIRECT_TABLE_HELPER_PROBE " + JSON.stringify(directTableHelperProbe));
+  expect(
+    directTableHelperProbe.settled,
+    "Production table-reader helper must resolve independently; diagnostics: " +
+      JSON.stringify({ directTableHelperProbe, supabaseRequests, routeEvents, browserConsole, pageErrors }),
+  ).toBe(true);
+  expect(directTableHelperProbe.rowCount).toBe(1);
+  expect(directTableHelperProbe.firstRow?.name).toBe("QA_ONLY_CLASS");
+  reads.clear();
+  projections.clear();
 
   // Diagnostic isolation: the last run showed the next RPC stalls only after
   // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
