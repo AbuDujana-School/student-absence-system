@@ -314,7 +314,7 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
     can_print_attendance: data?.can_print_attendance === true, can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
   };
-  const reportsAccess = canAccessReportPermission(p.type, tp, "reportStudentAffairs");
+  const reportsAccess = canAccessReportPermission(p.type, tp, "reportStudentAffairs", isGeneralAdminPrincipal(p));
   let reportClasses: string[] = [];
   if (reportsAccess) {
     const { data: classes, error: classesError } = await db.from("classes").select("name");
@@ -1664,7 +1664,7 @@ async function handle(req: Request) {
       if (isGeneralAdminPrincipal(appPrincipal) && !(await adminStudentAffairsAccessEnabled())) {
         return reply(403, { error: "تم تعليق دخول مدير النظام إلى تقارير شؤون الطلبة مؤقتاً للاختبار." });
       }
-      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs")) {
+      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs", isGeneralAdminPrincipal(appPrincipal))) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
       }
       p = appPrincipal;
