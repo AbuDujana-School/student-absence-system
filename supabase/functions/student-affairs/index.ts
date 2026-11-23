@@ -1660,12 +1660,14 @@ async function handle(req: Request) {
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = appSession.principal;
       const isAdminPrincipal = principal.type === "admin";
-      const canViewActivity = isAdminPrincipal || principal.permissions?.studstats === true;
+      const eventType = body.action === "activity_log" ? String(body.event_type || "") : "";
+      const isStudentAffairsEntry = eventType === "student_affairs_open";
+      const canViewActivity = isAdminPrincipal || (isStudentAffairsEntry
+        ? principal.permissions?.studentAffairs === true
+        : principal.permissions?.studstats === true);
       if (!canViewActivity) return reply(403, { error: "لا تملك صلاحية الإحصائيات ومراقبة الأداء." });
 
       if (body.action === "activity_log") {
-        const eventType = String(body.event_type || "");
-        const isStudentAffairsEntry = eventType === "student_affairs_open";
         if (isStudentAffairsEntry) {
           if (!isAdminPrincipal && principal.permissions?.studentAffairs !== true) {
             return reply(403, { error: "لا تملك صلاحية دخول شؤون الطلبة." });
