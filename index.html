@@ -6543,11 +6543,15 @@ async function fetchAppSyncManifest() {
   // EXECUTE to anon/authenticated, so it does not need the Supabase Auth client.
   // Use native fetch here to avoid the SDK auth-session/lock queue that can
   // leave repeated PostgREST thenables pending during the full sync bootstrap.
+  console.info('[AUTH_TRACE] manifest-controller:start');
   const controller = new AbortController();
+  console.info('[AUTH_TRACE] manifest-controller:ready');
   const timeout = setTimeout(() => controller.abort(), APP_SYNC_MANIFEST_TIMEOUT_MS);
+  console.info('[AUTH_TRACE] manifest-timeout:scheduled');
   try {
     return await withAppSyncTimeout((async () => {
-      const response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_app_sync_manifest`, {
+      console.info('[AUTH_TRACE] manifest-native-fetch:start');
+      const fetchPromise = fetch(`${SUPABASE_URL}/rest/v1/rpc/get_app_sync_manifest`, {
         method: 'POST',
         headers: {
           apikey: SUPABASE_ANON_KEY,
@@ -6557,6 +6561,9 @@ async function fetchAppSyncManifest() {
         body: '{}',
         signal: controller.signal
       });
+      console.info('[AUTH_TRACE] manifest-native-fetch:created');
+      const response = await fetchPromise;
+      console.info('[AUTH_TRACE] manifest-native-fetch:headers', { status: response.status });
       if (!response.ok) {
         const body = await response.text().catch(() => '');
         const error = new Error(body || `Sync manifest request failed: HTTP ${response.status}`);
