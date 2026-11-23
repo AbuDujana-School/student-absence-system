@@ -6549,13 +6549,13 @@ async function loadSystemDataFromCloud() {
     return false;
   }
   console.info("[AUTH_TRACE] cloud-sync:auth-check-start");
-  const cloudAuthReady = !navigator.onLine || await ensureAppAuthSession();
-  console.info("[AUTH_TRACE] cloud-sync:auth-check-done", { cloudAuthReady });
-  if (!cloudAuthReady) {
+  if (navigator.onLine && !await ensureAppAuthSession()) {
+    console.info("[AUTH_TRACE] cloud-sync:auth-check-done", { cloudAuthReady: false });
     cloudDataLoadState = 'failed';
     updateSyncStatus(false, 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
     return false;
   }
+  console.info("[AUTH_TRACE] cloud-sync:auth-check-done", { cloudAuthReady: true });
   cloudDataLoadState = 'loading';
   console.info("[AUTH_TRACE] cloud-sync:status-local-start");
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
