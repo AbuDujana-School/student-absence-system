@@ -470,8 +470,24 @@ test("Distron dashboard pilot reveals secondary sections in staged order without
     };
     canUseMorningAssemblyLateness = () => true;
     isAdminAuthorized = () => true;
-    ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
-      .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
+    const pilotNodeIds = ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"];
+    const pilotNodes = Object.fromEntries(pilotNodeIds.map((id) => {
+      const classes = new Set(["hidden"]);
+      return [id, {
+        classList: {
+          contains: (name) => classes.has(name),
+          toggle: (name, force) => {
+            const next = force === undefined ? !classes.has(name) : !!force;
+            if (next) classes.add(name); else classes.delete(name);
+            return next;
+          },
+        },
+        textContent: "",
+      }];
+    }));
+    window.__distronPilotNodes = pilotNodes;
+    const nativeGetElementById = document.getElementById.bind(document);
+    document.getElementById = (id) => pilotNodes[id] || nativeGetElementById(id);
     const nativeSetTimeout = window.setTimeout;
     window.__distronScheduledTimers = [];
     window.setTimeout = (callback, delay, ...args) => {
@@ -500,18 +516,30 @@ test("Distron dashboard pilot reveals secondary sections in staged order without
   });
 
   await page.evaluate(() => window.__distronScheduledTimers[0].callback());
-  await expect(page.locator("#morningAssemblyLatenessDashboardCard")).toBeVisible();
-  await expect(page.locator("#dutyDashboardCard")).toBeHidden();
-  await expect(page.locator("#studentAffairsBtn")).toBeHidden();
+  let visibility = await page.evaluate(() => ({
+    morning: !window.__distronPilotNodes.morningAssemblyLatenessDashboardCard.classList.contains("hidden"),
+    duty: !window.__distronPilotNodes.dutyDashboardCard.classList.contains("hidden"),
+    affairs: !window.__distronPilotNodes.studentAffairsBtn.classList.contains("hidden"),
+  }));
+  expect(visibility).toEqual({ morning: true, duty: false, affairs: false });
   expect(await page.evaluate(() => window.timetablePilotCalls.slice())).toEqual([]);
 
   await page.evaluate(() => window.__distronScheduledTimers[1].callback());
-  await expect(page.locator("#dutyDashboardCard")).toBeVisible();
-  await expect(page.locator("#studentAffairsBtn")).toBeHidden();
+  visibility = await page.evaluate(() => ({
+    morning: !window.__distronPilotNodes.morningAssemblyLatenessDashboardCard.classList.contains("hidden"),
+    duty: !window.__distronPilotNodes.dutyDashboardCard.classList.contains("hidden"),
+    affairs: !window.__distronPilotNodes.studentAffairsBtn.classList.contains("hidden"),
+  }));
+  expect(visibility).toEqual({ morning: true, duty: true, affairs: false });
   expect((await page.evaluate(() => window.timetablePilotCalls)).length).toBe(1);
 
   await page.evaluate(() => window.__distronScheduledTimers[2].callback());
-  await expect(page.locator("#studentAffairsBtn")).toBeVisible();
+  visibility = await page.evaluate(() => ({
+    morning: !window.__distronPilotNodes.morningAssemblyLatenessDashboardCard.classList.contains("hidden"),
+    duty: !window.__distronPilotNodes.dutyDashboardCard.classList.contains("hidden"),
+    affairs: !window.__distronPilotNodes.studentAffairsBtn.classList.contains("hidden"),
+  }));
+  expect(visibility).toEqual({ morning: true, duty: true, affairs: true });
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
   expect(traffic.pageErrors).toEqual([]);
