@@ -72,6 +72,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261120120000_fix_notice_period_end_validation.sql
       - name: Verify official notice period date handling
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/notice_period_validation.sql
+      - name: Apply Student Affairs activity monitoring migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261123160000_student_affairs_activity_monitor.sql
+      - name: Verify append-only activity ledger and official notice audit trigger
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/activity_monitor_ledger.sql
       - name: Prepare isolated school data tables for student transfer integration
         run: |
           psql -v ON_ERROR_STOP=1 <<'SQL'
