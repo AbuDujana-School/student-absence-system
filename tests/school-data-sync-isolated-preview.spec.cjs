@@ -361,6 +361,13 @@ test("school sync projections and timetable access reads stay isolated and minim
   // presentation-only function in the synthetic page to test the rest of sync.
   requestPhase = "sync-load";
   const loadEvaluation = page.evaluate(async () => {
+    // The native manifest transport is verified independently above. Stub only
+    // this orchestration boundary so this test can focus on table fan-out,
+    // projections, local preservation, and revision-based refresh behavior.
+    fetchAppSyncManifest = async () => ({
+      classes: 1, students: 1, teachers: 1, attendance: 1,
+      behaviors: 1, school_settings: 1, duty_reports: 1,
+    });
     const trace = [];
     // A page-level heartbeat distinguishes a blocked renderer from a fetch
     // promise that remains pending while the event loop continues to run.
