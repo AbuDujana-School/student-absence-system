@@ -794,14 +794,38 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   });
 
   await page.locator("#userPinInput").fill("7777");
-  await page.locator("#loginSubmitBtn").click();
-  await page.waitForFunction(() =>
-    document.getElementById("loginView")?.classList.contains("hidden") === true &&
-    document.getElementById("dashboardSelectionView")?.classList.contains("hidden") === false &&
-    cloudDataLoadState === "loading",
-    undefined,
-    { timeout: 10_000 },
-  );
+  const loginOutcome = await page.evaluate(async () => {
+    const consoleLines = [];
+    const originalInfo = console.info;
+    const originalWarn = console.warn;
+    console.info = (...args) => { consoleLines.push(args.join(" ")); originalInfo.apply(console, args); };
+    console.warn = (...args) => { consoleLines.push(args.join(" ")); originalWarn.apply(console, args); };
+    try {
+      await handleUserLogin({ preventDefault() {} });
+    } finally {
+      console.info = originalInfo;
+      console.warn = originalWarn;
+    }
+    return {
+      consoleLines,
+      activeName: activeUser?.name || null,
+      activeType: activeUser?.type || null,
+      sessionReady: hasUnexpiredAppAuthSession(),
+      loginHidden: document.getElementById("loginView")?.classList.contains("hidden") === true,
+      dashboardVisible: document.getElementById("dashboardSelectionView")?.classList.contains("hidden") === false,
+      cloudState: cloudDataLoadState,
+      buttonDisabled: document.getElementById("loginSubmitBtn")?.disabled === true,
+    };
+  });
+  expect(loginOutcome.activeName, JSON.stringify(loginOutcome.consoleLines)).toBe(principal.name);
+  expect(loginOutcome.activeType).toBe("admin");
+  expect(loginOutcome.sessionReady).toBe(true);
+  expect(loginOutcome.loginHidden).toBe(true);
+  expect(loginOutcome.dashboardVisible).toBe(true);
+  expect(loginOutcome.buttonDisabled).toBe(false);
+  // The primary login handler returns without awaiting the delayed bootstrap.
+  // Allow its detached finalizer to start so the intentionally stalled sync is active.
+  await page.waitForFunction(() => cloudDataLoadState === "loading", undefined, { timeout: 10_000 });
   await expect(page.locator("#loginSubmitBtn")).not.toBeDisabled();
   await expect(page.locator("#loginSubmitBtn")).toContainText("دخول للنظام");
   const state = await page.evaluate(() => ({
