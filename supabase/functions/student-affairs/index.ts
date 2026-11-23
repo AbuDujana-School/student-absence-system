@@ -17,7 +17,7 @@ import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
 import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
-import { isAdditionalAdminTeacher } from "./admin_principal_policy.ts";
+import { isAdditionalAdminTeacher, buildAdditionalAdminPermissions } from "./admin_principal_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
@@ -108,7 +108,7 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     candidates.push({
       type, name: user.name, hash: user.pin_hash, salt: user.pin_salt,
       permissions: designatedAdmin
-        ? { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true, admin: true, studentAffairs: true, morningAssemblyLateness: true }
+        ? buildAdditionalAdminPermissions(user)
         : user.permissions || {},
       mustChangePin: user.must_change_pin === true || user.permissions?.mustChangePin === true,
     });
@@ -127,14 +127,17 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
 
 async function currentAppPrincipal(type: string, name: string): Promise<AppPrincipal | null> {
   if (type === "admin") {
+    let effectivePermissions: Record<string, boolean>;
     if (name === "مدير النظام العام") {
       const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
       if (error || !data?.value?.hash || !data?.value?.salt) return null;
+      effectivePermissions = { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true };
     } else {
       const { data, error } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
       if (error || !data || !isAdditionalAdminTeacher(data)) return null;
+      effectivePermissions = buildAdditionalAdminPermissions(data);
     }
-    return { type: "admin", name, permissions: { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true, admin: true, studentAffairs: true, morningAssemblyLateness: true }, mustChangePin: false };
+    return { type: "admin", name, permissions: effectivePermissions, mustChangePin: false };
   }
   const { data, error } = await db.from("teachers").select("name,role,permissions,must_change_pin").eq("name", name).maybeSingle();
   if (error || !data || (type === "custom" ? data.role !== "custom" : data.role === "custom")) return null;

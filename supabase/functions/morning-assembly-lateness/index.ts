@@ -1,6 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { academicYearKey, canUseMorningLateness } from "./policy.ts";
+import { buildAdditionalAdminPermissions, isAdditionalAdminTeacher } from "../student-affairs/admin_principal_policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -55,13 +56,12 @@ async function authenticate(req:Request):Promise<Principal|null> {
       const {data:setting,error} = await db.from("school_settings").select("value")
         .eq("key","admin_pin").maybeSingle();
       if (error || !setting?.value?.hash || !setting?.value?.salt) return null;
-    } else {
-      const {data:user,error} = await db.from("teachers").select("name,role,permissions")
-        .eq("name",principalName).maybeSingle();
-      if (error || !user || user.role !== "teacher"
-        || user.permissions?.admin !== true || user.permissions?.additionalAdmin !== true) return null;
+      return {type:"admin",name:principalName,permissions:{admin:true,reports:true,morningAssemblyLateness:true}};
     }
-    return {type:"admin",name:principalName,permissions:{admin:true,reports:true}};
+    const {data:user,error} = await db.from("teachers").select("name,role,permissions")
+      .eq("name",principalName).maybeSingle();
+    if (error || !user || !isAdditionalAdminTeacher(user)) return null;
+    return {type:"admin",name:principalName,permissions:buildAdditionalAdminPermissions(user)};
   }
   const {data:user,error} = await db.from("teachers").select("name,role,permissions")
     .eq("name",session.principal_name).maybeSingle();
@@ -73,6 +73,8 @@ async function authenticate(req:Request):Promise<Principal|null> {
   };
 }
 function canUse(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
+  if (principal.type === "admin" && principal.name !== "مدير النظام العام"
+    && principal.permissions.morningAssemblyLateness !== true) return false;
   const personal = principal.permissions.dutyDay;
   const category = String(principal.permissions.category || "");
   const assignedDay = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].includes(personal)
@@ -102,6 +104,10 @@ async function handle(req:Request) {
   const ctx=omanNow();
   const action=String(body?.action || "");
   if (action === "report") {
+    if (principal.type === "admin" && principal.name !== "مدير النظام العام"
+      && principal.permissions.morningAssemblyLateness !== true) {
+      return reply(403,{error:"تم إيقاف صلاحية إدارة تأخر الطابور الصباحي لهذا الحساب."});
+    }
     if (principal.type !== "admin" && principal.permissions.reports !== true) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
