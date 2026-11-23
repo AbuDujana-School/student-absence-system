@@ -76,6 +76,8 @@ export function authorizeAppDataOperation(
     !ALLOWED_TABLES.has(String(tableValue))) return false;
   const table = tableValue as AppDataTable;
   const isGeneralAdmin = principal.type === "admin" && principal.adminScope === "general";
+  const isDelegatedAdmin = principal.type === "teacher" && principal.permissions?.admin === true;
+  const isFullAdmin = isGeneralAdmin || isDelegatedAdmin;
   const isAdditionalAdmin = principal.type === "admin" && principal.adminScope === "additional";
 
   // Deletes are deliberately held back for the existing tombstone/transfer workflows.
@@ -90,7 +92,7 @@ export function authorizeAppDataOperation(
     return true;
   }
 
-  if (isGeneralAdmin) return true;
+  if (isFullAdmin) return true;
 
   const permissions = principal.permissions || {};
   const classes = normalizeClasses(scope?.allowedClasses);
