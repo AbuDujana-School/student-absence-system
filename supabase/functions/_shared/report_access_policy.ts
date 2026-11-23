@@ -18,11 +18,11 @@ export function canAccessReportPermission(
   principalType: string,
   permissions: Record<string, unknown> | null | undefined,
   report: ReportPermissionKey,
-  isGeneralAdmin = principalType === "admin",
+  isGeneralAdmin = false,
 ): boolean {
   if (principalType === "admin" && isGeneralAdmin) return true;
   const value = permissions && typeof permissions === "object" ? permissions : {};
   // A legacy broad flag cannot identify which report was approved.
-  // Require an explicit grant for each report; admins retain the bypass above.
+  // Require an explicit grant for each report; only the explicitly identified general administrator retains the bypass above.
   return value[report] === true;
 }
