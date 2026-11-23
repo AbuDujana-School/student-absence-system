@@ -2135,6 +2135,18 @@ async function handle(req: Request) {
         if (error) throw error;
         return reply(200, { ok: true });
       }
+      if (eventType === "combined_report_view") {
+        if (permissions.can_read_attendance !== true || permissions.can_read_behavior !== true ||
+            requestedAttendance.length === 0 || requestedBehavior.length === 0) {
+          return reply(403, { error: "تسجيل الاطلاع على التقرير الموحّد يتطلب صلاحية قراءة الغياب والسلوك معاً." });
+        }
+        const { error } = await db.from("student_affairs_activity_events").insert({
+          event_type: "combined_report_view", actor_type: p.type, actor_name: p.name,
+          metadata: { attendance_classes_count: requestedAttendance.length, behavior_classes_count: requestedBehavior.length, source: "student_affairs_combined_report" }
+        });
+        if (error) throw error;
+        return reply(200, { ok: true });
+      }
       if (eventType === "formal_warning_print") {
         if (permissions.can_print_attendance !== true && permissions.can_print_behavior !== true) return reply(403, { error: "لا تملك صلاحية طباعة الإنذارات الرسمية." });
         const { data: recentIssues, error: issueReadError } = await db.from("student_affairs_notice_issues")
@@ -2357,6 +2369,10 @@ async function handle(req: Request) {
       const activityRows: any[] = [];
       if (wantsAttendance && requestedAttendance.length) activityRows.push({ event_type: "absence_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedAttendance.length, from, to } });
       if (wantsBehavior && requestedBehavior.length) activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedBehavior.length, from, to } });
+      if (wantsAttendance && requestedAttendance.length && wantsBehavior && requestedBehavior.length) activityRows.push({
+        event_type: "combined_report_view", actor_type: p.type, actor_name: p.name,
+        metadata: { attendance_classes_count: requestedAttendance.length, behavior_classes_count: requestedBehavior.length, from, to, source: "student_affairs_combined_view" }
+      });
       if (activityRows.length) {
         const { error: activityError } = await db.from("student_affairs_activity_events").insert(activityRows);
         if (activityError) console.error("Student Affairs report-view audit insert failed:", activityError);
