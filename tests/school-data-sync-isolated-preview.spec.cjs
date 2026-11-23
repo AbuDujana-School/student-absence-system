@@ -424,6 +424,39 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(directTableHelperProbe.behaviors.rowCount).toBe(1);
   expect(directTableHelperProbe.school_settings.rowCount).toBe(1);
   expect(directTableHelperProbe.duty_reports.rowCount).toBe(1);
+  const idbWriteProbe = await page.evaluate(async () => {
+    const database = await openOfflineDatabase();
+    const result = await Promise.race([
+      new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        const request = tx.objectStore('state').put({
+          key: '__qa_write_probe__',
+          value: 'isolated-only',
+          savedAt: new Date().toISOString(),
+        });
+        request.onerror = () => reject(request.error || new Error('Synthetic IDB write request failed'));
+        tx.oncomplete = () => resolve({ settled: true, transactionComplete: true });
+        tx.onerror = () => reject(tx.error || new Error('Synthetic IDB write transaction failed'));
+        tx.onabort = () => reject(tx.error || new Error('Synthetic IDB write transaction aborted'));
+      }),
+      new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 5000 }), 5000)),
+    ]);
+    return result;
+  });
+  browserConsole.push("QA_IDB_WRITE_PROBE " + JSON.stringify(idbWriteProbe));
+  expect(idbWriteProbe.settled && idbWriteProbe.transactionComplete,
+    "A small synthetic IndexedDB write must complete independently; diagnostics: " +
+      JSON.stringify({ idbWriteProbe, browserConsole, pageErrors })).toBe(true);
+  await page.evaluate(async () => {
+    const database = await openOfflineDatabase();
+    await new Promise((resolve, reject) => {
+      const tx = database.transaction('state', 'readwrite');
+      tx.objectStore('state').delete('__qa_write_probe__');
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error || new Error('Synthetic IDB cleanup failed'));
+      tx.onabort = () => reject(tx.error || new Error('Synthetic IDB cleanup aborted'));
+    });
+  });
 
   // Diagnostic isolation: the last run showed the next RPC stalls only after
   // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
