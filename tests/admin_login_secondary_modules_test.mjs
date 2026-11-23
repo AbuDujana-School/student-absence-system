@@ -106,7 +106,10 @@ test("additional administrators use teacher-scoped morning lateness permissions"
 
 
 test("reserve workflow controls distinguish the general administrator from additional admins", () => {
-  const identity = section("function schoolwideReserveReportIsAdmin()", "function schoolwideReserveReportAllowed()");
+  const start = reserveWorkflow.indexOf("function schoolwideReserveReportIsAdmin()");
+  const end = reserveWorkflow.indexOf("function schoolwideReserveReportAllowed()", start);
+  assert.ok(start >= 0 && end > start);
+  const identity = reserveWorkflow.slice(start, end);
   assert.match(identity, /active\?\.adminScope === \"general\"/);
   assert.match(identity, /active\?\.name === \"مدير النظام العام\"/);
   assert.match(identity, /session\?\.adminScope === \"general\"/);
