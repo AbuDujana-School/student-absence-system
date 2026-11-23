@@ -5598,7 +5598,7 @@ function saNoticeBuildAuthoritativeStudent(row){
     if(!groups.has(key))groups.set(key,{type,note,events:[]});
     groups.get(key).events.push({date:saNoticeDateLabel(event.date),period:String(event.period||"غير محددة")});
   });
-  return {className:String(row.class_name||""),name:String(row.student_name||""),issue_number:Number(row.issue_number)||1,events,groups};
+  return {noticeId:String(row.id||""),className:String(row.class_name||""),name:String(row.student_name||""),issue_number:Number(row.issue_number)||1,events,groups};
 }
 async function saNoticeHandlePrint(){
   if(!saNoticeLastGenerated.length){showToast("لا توجد إشعارات مستحقة للطباعة.","error");return;}
@@ -5638,7 +5638,7 @@ async function saPrintAutomaticNotices(){
       return;
     }
     document.body.classList.add("sa-notice-print-mode");
-    try{window.focus();window.print();if(saNoticeOfficialCommitted){const items=saNoticeLastGenerated.map(item=>({class_name:String(item.className||''),issue_number:Number(item.issue_number)||0})).filter(item=>item.class_name&&item.issue_number>0);if(items.length){try{await saRequest({action:'student_affairs_activity_event',event_type:'official_warning_print',items});}catch(activityError){console.warn('Official warning print event was not recorded.',activityError);}}}}
+    try{window.focus();window.print();if(saNoticeOfficialCommitted){const items=saNoticeLastGenerated.map(item=>({notice_id:String(item.noticeId||'')})).filter(item=>item.notice_id);if(items.length){try{await saRequest({action:'student_affairs_activity_event',event_type:'official_warning_print',items});}catch(activityError){console.warn('Official warning print event was not recorded.',activityError);}}}}
     catch(error){document.body.classList.remove("sa-notice-print-mode");showToast("تعذرت طباعة الإشعارات.","error");}
   }catch(error){saNoticeSetStatus(error?.message||"تعذر تجهيز معاينة الطباعة.",true);}
 }

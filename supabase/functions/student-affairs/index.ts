@@ -930,13 +930,25 @@ async function handle(req: Request) {
       rows = [{ actor_type: saSession.principal.type, actor_name: saSession.principal.name, event_type: eventType, details: {} }];
     } else if (eventType === "official_warning_print") {
       if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 1000) return reply(400, { error: "قائمة الإنذارات المطلوب توثيق طباعتها غير صالحة." });
-      rows = body.items.map((item: any) => {
-        const className = String(item?.class_name || "").trim();
-        const issueNumber = Number(item?.issue_number);
-        if (!className || className.length > 120 || !Number.isInteger(issueNumber) || issueNumber < 1) return null;
-        return { actor_type: saSession.principal.type, actor_name: saSession.principal.name, event_type: eventType, quantity: 1, details: { class_name: className, issue_number: issueNumber } };
-      });
-      if (rows.some(row => row === null)) return reply(400, { error: "توجد بيانات إنذار غير صالحة ضمن طلب الطباعة." });
+      const ids = Array.from(new Set(body.items.map((item: any) => String(item?.notice_id || "").trim())));
+      if (ids.length !== body.items.length || ids.some((id: string) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
+        return reply(400, { error: "معرّفات الإنذارات الرسمية غير صالحة." });
+      }
+      const { data: officialRows, error: officialRowsError } = await db.from("student_affairs_notice_issues")
+        .select("id,class_name,issue_number,issued_by_name")
+        .eq("issued_by_name", saSession.principal.name)
+        .in("id", ids);
+      if (officialRowsError) return reply(500, { error: "تعذر التحقق من سجل الإنذارات الرسمية." });
+      if (!Array.isArray(officialRows) || officialRows.length !== ids.length) {
+        return reply(403, { error: "لا يمكن توثيق طباعة إنذار غير معتمد باسم حسابك." });
+      }
+      rows = officialRows.map((item: any) => ({
+        actor_type: saSession.principal.type,
+        actor_name: saSession.principal.name,
+        event_type: eventType,
+        quantity: 1,
+        details: { notice_id: item.id, class_name: item.class_name, issue_number: item.issue_number }
+      }));
     }
     const { error } = await db.from("student_affairs_activity_events").insert(rows);
     if (error) {
