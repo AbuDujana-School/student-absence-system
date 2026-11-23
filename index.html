@@ -7354,14 +7354,19 @@ function updateSyncStatus(isSynced, text) {
   const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
   if (!ind || !txt) return;
   const pendingRecords = hasPendingOfflineRecordChanges();
-  // Deletion review is an administrator-only workflow; ordinary teachers must not see its count.
+  // Deletion review is an administrator-only workflow; ordinary teachers must not see its count or action.
   const canReviewDeletes = isAdminAuthorized();
   const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0;
   const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل|جارِ التحقق|جاري الاتصال)/.test(String(text || ''));
-  const reviewOnly = !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
+  const reviewOnly = canReviewDeletes && !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
   let displayText = text || (isSynced ? "متزامن" : "محلي");
+  if (!canReviewDeletes) {
+    // Some callers pass a pre-composed status containing the queue count. Strip it for non-admin sessions.
+    displayText = String(displayText).replace(/[؛;،]?\\s*\\d+\\s*طلب(?:ات)?\\s*حذف(?:\\s*(?:للمراجعة|بانتظار\\s*المراجعة))?/g, '').trim();
+    if (!displayText) displayText = isSynced ? "متزامن" : "محلي";
+  }
   if (reviewOnly) displayText = `المزامنة مكتملة؛ ${pendingDeletes} طلب حذف للمراجعة`;
-  else if (pendingRecords && pendingDeletes) displayText = `${displayText}؛ ${pendingDeletes} طلب حذف للمراجعة`;
+  else if (canReviewDeletes && pendingRecords && pendingDeletes) displayText = `${displayText}؛ ${pendingDeletes} طلب حذف للمراجعة`;
   txt.textContent = displayText;
   if (isWorking) {
     ind.className = "bg-amber-800/90 text-amber-100 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-amber-600/70";
@@ -7383,12 +7388,12 @@ function updateSyncStatus(isSynced, text) {
     ind.className = "bg-red-900/80 text-red-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-red-700/60 cursor-pointer";
     ind.onclick = () => {
       if (hasPendingOfflineRecordChanges()) void syncPendingLocalChanges();
-      else if (getPendingDeletes().length) openPendingDeleteReview();
+      else if (canReviewDeletes && getPendingDeletes().length) openPendingDeleteReview();
       else forceSyncWithCloud();
     };
     ind.title = pendingRecords
       ? "انقر لمراجعة ورفع التغييرات المحلية المعلّمة"
-      : pendingDeletes
+      : canReviewDeletes && pendingDeletes
         ? "انقر لمراجعة طلبات الحذف المحلية؛ لن يُحذف أي سجل تلقائياً"
         : "انقر لتحديث بيانات الخادم";
   }
