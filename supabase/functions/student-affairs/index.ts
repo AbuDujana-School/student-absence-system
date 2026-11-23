@@ -357,8 +357,9 @@ async function getSession(req: Request) {
   const { data } = await db.from("student_affairs_sessions").select("*").eq("token_hash", tokenHash).gt("expires_at", new Date().toISOString()).maybeSingle();
   if (!data) return null;
   if (data.principal_type === "admin") {
-    if (!(await adminStudentAffairsAccessEnabled())) return null;
-    if (data.principal_name !== "مدير النظام العام") {
+    if (data.principal_name === "مدير النظام العام") {
+      if (!(await adminStudentAffairsAccessEnabled())) return null;
+    } else {
       const { data: teacher, error: teacherError } = await db.from("teachers")
         .select("name,role,permissions").eq("name", data.principal_name).maybeSingle();
       if (teacherError || !teacher || !isAdditionalAdminTeacher(teacher)) return null;
@@ -2018,11 +2019,11 @@ async function handle(req: Request) {
       if (error) throw error;
     }
     const settings = await readCompetitionTermSettings();
-    const visibleTerms = p.type === "admin" || settings.showBothTerms ? settings.terms : [settings.currentTerm];
+    const visibleTerms = isGeneralAdminPrincipal(p) || settings.showBothTerms ? settings.terms : [settings.currentTerm];
     return reply(200, {
       terms: visibleTerms, currentTermId: settings.currentTerm.id,
       selectedTermId: settings.currentTerm.id, showBothTerms: settings.showBothTerms,
-      canManage: p.type === "admin"
+      canManage: isGeneralAdminPrincipal(p)
     });
   }
   if (body?.action === "competition") {
