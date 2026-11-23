@@ -362,6 +362,36 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(syntheticSessionRpc.settled, "Manifest helper must resolve with the synthetic admin state").toBe(true);
   expect(syntheticSessionRpc.hasManifest, "Manifest helper must return a valid manifest").toBe(true);
 
+  // Replay each synchronous/async pre-manifest step independently, then call the
+  // exact same helper. This identifies whether one preflight operation changes
+  // Supabase client's ability to complete the next manifest request.
+  requestPhase = "preflight-probes";
+  const preflightProbes = await page.evaluate(async () => {
+    const results = [];
+    const probe = async label => {
+      const result = await Promise.race([
+        fetchAppSyncManifest().then(value => ({ settled: true, valid: !!value }))
+          .catch(error => ({ settled: true, error: error?.message || String(error) })),
+        new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 5_000 }), 5_000)),
+      ]);
+      results.push({ label, ...result });
+    };
+    await ensureAppAuthSession();
+    await probe("after-auth-check");
+    updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
+    await probe("after-local-status");
+    await ensureOfflineSnapshotRestored();
+    await probe("after-offline-restore");
+    loadDirtySetsFromLocal();
+    await probe("after-dirty-sets");
+    captureDirtyLocalState();
+    await probe("after-dirty-capture");
+    updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
+    await probe("after-manifest-status");
+    return results;
+  });
+  browserConsole.push("QA_PREFLIGHT_PROBES " + JSON.stringify(preflightProbes));
+
   requestPhase = "sync-load";
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
