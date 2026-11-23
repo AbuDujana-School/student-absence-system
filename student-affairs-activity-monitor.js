@@ -11,9 +11,10 @@
   let loading = false;
 
   function canMonitor() {
-    return !!(window.activeUser && (
-      window.activeUser.type === "admin" ||
-      window.activeUser.permissions?.studstats === true
+    const user = typeof activeUser !== "undefined" ? activeUser : null;
+    return !!(user && (
+      user.type === "admin" ||
+      user.permissions?.studstats === true
     ));
   }
   function token() {
@@ -55,9 +56,12 @@
     el.classList.toggle("hidden", !canMonitor());
   }
   async function logReportView(type) {
-    if (!canMonitor()) return;
+    const user = typeof activeUser !== "undefined" ? activeUser : null;
+    if (!user) return;
+    if (type === "student_affairs_open" && user.type !== "admin" && user.permissions?.studentAffairs !== true) return;
+    if (type !== "student_affairs_open" && !canMonitor()) return;
     try {
-      await request({ action: "activity_log", event_type: type, metadata: { source: "statistics_dashboard" } });
+      await request({ action: "activity_log", event_type: type, metadata: { source: type === "student_affairs_open" ? "student_affairs_module" : "statistics_dashboard" } });
     } catch (error) {
       console.warn("Student Affairs activity event was not recorded:", error?.message || error);
     }
@@ -162,6 +166,13 @@
   window.saActivityPrint = printReport;
   window.saActivityRefreshVisibility = showForAuthorizedUser;
 
+  const originalOpenStudentAffairs = window.openStudentAffairsView;
+  if (typeof originalOpenStudentAffairs === "function") {
+    window.openStudentAffairsView = function () {
+      void logReportView("student_affairs_open");
+      return originalOpenStudentAffairs.apply(this, arguments);
+    };
+  }
   const originalSwitch = window.switchStatsSubTab;
   if (typeof originalSwitch === "function") {
     window.switchStatsSubTab = function (tab) {
