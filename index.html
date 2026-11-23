@@ -7915,9 +7915,9 @@ async function finalizeLoginState() {
     try { await bounded(checkAndEnforcePinChange(), 5000, 'تعذر فحص تغيير الرقم السري الآن.'); } catch (error) { console.warn('PIN policy check deferred:', error); }
     try { await bounded(checkAndEnforceAdminPinChange(), 5000, 'تعذر فحص رقم المدير الآن.'); } catch (error) { console.warn('Admin PIN policy check deferred:', error); }
   }
-  // Re-apply each report's visibility after the authenticated principal is finalized.
+  // Re-apply report visibility after authentication. Combined report tabs are
+  // mounted lazily when the reports section is opened, not during login.
   refreshReportPanelsVisibility();
-  window.refreshCombinedReportTabs?.();
 }
 function hasAdminPanelAccess(user = activeUser) {
   return user?.type === 'admin' || user?.permissions?.admin === true || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
@@ -10017,6 +10017,7 @@ function switchAdminTab(tab) {
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') {
     refreshReportPanelsVisibility();
+    window.refreshCombinedReportTabs?.();
     if (canAccessReport('reportComprehensiveAbsence')) renderReportsSection();
     if (canAccessReport('reportClassLatenessFollowup')) renderLateFollowupReport();
     if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
@@ -11471,7 +11472,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const validStatus=["absent","late","escape","outside"];
   const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
-  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=saSession?.principal?.type==="admin"||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
+  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=saSession?.principal?.type==="admin"||activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
   function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
