@@ -3750,6 +3750,49 @@ const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
   ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA"
   : "sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Observe Supabase Auth internals used by PostgREST without changing their
+// promise chain. The school app uses its own app_login/app_session flow; these
+// traces help identify whether the SDK's implicit getSession/lock path stalls.
+function installSupabaseAuthDiagnostics() {
+  const auth = sb?.auth;
+  if (!auth) return;
+  for (const method of ["getSession", "_acquireLock"]) {
+    const original = auth[method];
+    if (typeof original !== "function" || original.__appAuthTraceWrapped) continue;
+    const wrapped = function (...args) {
+      const startedAt = performance.now();
+      console.info(`[AUTH_TRACE] supabase-auth:${method}:start`);
+      let result;
+      try {
+        result = original.apply(this, args);
+      } catch (error) {
+        console.warn(`[AUTH_TRACE] supabase-auth:${method}:throw`, {
+          elapsedMs: Math.round(performance.now() - startedAt),
+          message: error?.message || String(error)
+        });
+        throw error;
+      }
+      if (result && typeof result.then === "function") {
+        result.then(
+          () => console.info(`[AUTH_TRACE] supabase-auth:${method}:settled`, {
+            elapsedMs: Math.round(performance.now() - startedAt)
+          }),
+          error => console.warn(`[AUTH_TRACE] supabase-auth:${method}:rejected`, {
+            elapsedMs: Math.round(performance.now() - startedAt),
+            message: error?.message || String(error)
+          })
+        );
+      }
+      return result;
+    };
+    wrapped.__appAuthTraceWrapped = true;
+    try { auth[method] = wrapped; } catch (error) {
+      console.warn(`[AUTH_TRACE] supabase-auth:${method}:instrumentation-unavailable`);
+    }
+  }
+}
+installSupabaseAuthDiagnostics();
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
 const SESSION_TTL_MS = 8*60*60*1000;
@@ -7440,27 +7483,27 @@ async function refreshActiveUserPermissions() {
   }
 }
 
-let testerOneDashboardStageStartedAt = 0;
-let testerOneDashboardStageRunId = 0;
-function isTesterOneStagedPilot(user = activeUser) {
+let distronDashboardStageStartedAt = 0;
+let distronDashboardStageRunId = 0;
+function isDistronStagedPilot(user = activeUser) {
   const normalizedName = String(user?.name || '').replace(/[\s_-]/g, '').toLowerCase();
-  return !!user && user.type !== 'admin' && normalizedName === 'tester1';
+  return !!user && user.type !== 'admin' && normalizedName === 'distron';
 }
-function testerOneDashboardStagePending(delayMs) {
-  return isTesterOneStagedPilot() && testerOneDashboardStageStartedAt > 0 &&
-    Date.now() - testerOneDashboardStageStartedAt < delayMs;
+function distronDashboardStagePending(delayMs) {
+  return isDistronStagedPilot() && distronDashboardStageStartedAt > 0 &&
+    Date.now() - distronDashboardStageStartedAt < delayMs;
 }
-function startTesterOneDashboardStages() {
-  if (!isTesterOneStagedPilot()) return false;
-  testerOneDashboardStageStartedAt = Date.now();
-  const runId = ++testerOneDashboardStageRunId;
+function startDistronDashboardStages() {
+  if (!isDistronStagedPilot()) return false;
+  distronDashboardStageStartedAt = Date.now();
+  const runId = ++distronDashboardStageRunId;
   const schedule = (delayMs, callback, label) => setTimeout(() => {
-    if (runId !== testerOneDashboardStageRunId || !isTesterOneStagedPilot()) return;
+    if (runId !== distronDashboardStageRunId || !isDistronStagedPilot()) return;
     try {
       callback();
-      console.info('[AUTH_TRACE] tester1-dashboard-stage-ready', { stage: label, delayMs });
+      console.info('[AUTH_TRACE] distron-dashboard-stage-ready', { stage: label, delayMs });
     } catch (error) {
-      console.warn('[AUTH_TRACE] tester1-dashboard-stage-failed', { stage: label, message: error?.message || String(error) });
+      console.warn('[AUTH_TRACE] distron-dashboard-stage-failed', { stage: label, message: error?.message || String(error) });
     }
   }, delayMs);
   schedule(5000, () => {
@@ -7480,7 +7523,7 @@ function startTesterOneDashboardStages() {
       if (label) label.textContent = 'صلاحية المناوبة مفعلة — اضغط للفتح';
     }
     void timetableRefreshAccess({ deferAdminPortalStatus: true }).catch(error => {
-      console.warn('Tester1 timetable access refresh deferred:', error);
+      console.warn('Distron timetable access refresh deferred:', error);
     });
   }, 'duty-and-timetable-access');
   schedule(15000, () => {
@@ -7497,7 +7540,7 @@ function startTesterOneDashboardStages() {
 }
 
 function renderAuthenticatedDashboardShell() {
-  startTesterOneDashboardStages();
+  startDistronDashboardStages();
   const user = activeUser;
   if (!user) return;
   const isAdmin = user.type === "admin" || user.permissions?.admin === true || isAdminAuthorized();
@@ -7512,7 +7555,7 @@ function renderAuthenticatedDashboardShell() {
     adminBtn.classList.toggle("flex", showAdminPanel);
   }
   const studentAffairsBtn = document.getElementById("studentAffairsBtn");
-  const showStudentAffairs = !localOnlySession && (isAdmin || user.permissions?.studentAffairs === true) && !testerOneDashboardStagePending(15000);
+  const showStudentAffairs = !localOnlySession && (isAdmin || user.permissions?.studentAffairs === true) && !distronDashboardStagePending(15000);
   if (studentAffairsBtn) {
     studentAffairsBtn.classList.toggle("hidden", !showStudentAffairs);
     studentAffairsBtn.classList.toggle("flex", showStudentAffairs);
@@ -7594,7 +7637,7 @@ async function finalizeLoginState() {
     } catch (permissionError) {
       console.warn('Permission refresh deferred after successful login.', permissionError);
     }
-    if (!isTesterOneStagedPilot()) {
+    if (!isDistronStagedPilot()) {
       try {
         await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
       } catch (timetableError) {
@@ -7632,7 +7675,7 @@ async function finalizeLoginState() {
   const studentAffairsBtn = document.getElementById('studentAffairsBtn');
   const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
   const showAdminPanel = hasAdminPanelAccess(activeUser) || isAdmin;
-  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true) && !testerOneDashboardStagePending(15000);
+  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true) && !distronDashboardStagePending(15000);
   if (adminBtn) {
     adminBtn.classList.toggle('hidden', !showAdminPanel);
     adminBtn.classList.toggle('flex', showAdminPanel);
@@ -7662,7 +7705,7 @@ async function finalizeLoginState() {
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
   if (behCard) behCard.classList.toggle('hidden', !canAccessBehavior());
   refreshSubstitutionDashboardCard();
-  if (!isTesterOneStagedPilot()) {
+  if (!isDistronStagedPilot()) {
     refreshDutyDashboardCard();
     renderDutyTodayRecords();
   }
@@ -8052,7 +8095,7 @@ function canUseMorningAssemblyLateness() {
 function refreshMorningAssemblyLatenessCard() {
   const card = document.getElementById('morningAssemblyLatenessDashboardCard');
   if (!card) return;
-  const show = canUseMorningAssemblyLateness() && !testerOneDashboardStagePending(5000);
+  const show = canUseMorningAssemblyLateness() && !distronDashboardStagePending(5000);
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
   if (status && show) {
@@ -10740,7 +10783,7 @@ function refreshDutyDashboardCard() {
   };
 
   const isTE = activeUser?.type === 'teacher' && activeUser?.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
-  const show = (isA || hasDutyPerm || isTE) && !testerOneDashboardStagePending(10000);
+  const show = (isA || hasDutyPerm || isTE) && !distronDashboardStagePending(10000);
   
   card.classList.toggle('hidden', !show);
   
