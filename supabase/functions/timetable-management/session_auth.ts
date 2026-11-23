@@ -74,28 +74,29 @@ export async function resolveTimetablePrincipal(
   const expiresAt = Date.parse(session.expires_at);
   if (!Number.isFinite(expiresAt) || expiresAt <= now) return null;
 
-  if (session.principal_type === "admin" && typeof session.principal_name === "string" && session.principal_name.trim()) {
+  let type: TimetablePrincipalType;
+  let name: string;
+  let preloadedTeacher: TimetableTeacherLookup | null = null;
+  if (session.principal_type === "admin") {
+    if (typeof session.principal_name !== "string" || !session.principal_name.trim()) return null;
     if (session.principal_name === "مدير النظام العام") {
       return await store.hasAdminCredential()
         ? { type: "admin", name: "مدير النظام العام" }
         : null;
     }
-    const additionalAdmin = await store.findTeacher(session.principal_name, true);
-    if (!additionalAdmin || additionalAdmin.name !== session.principal_name || additionalAdmin.role !== "teacher" ||
-        additionalAdmin.permissions?.admin !== true || additionalAdmin.permissions?.additionalAdmin !== true) return null;
-    return {
-      type: "teacher",
-      name: additionalAdmin.name,
-      permissions: additionalAdmin.permissions,
-      reserveAccess: additionalAdmin.reserveAccess === true,
-    };
+    // A legacy admin session for an additional administrator is normalized
+    // to its original teacher identity before any authorization checks.
+    name = session.principal_name;
+    preloadedTeacher = await store.findTeacher(name, true);
+    if (!preloadedTeacher || preloadedTeacher.name !== name || preloadedTeacher.role !== "teacher" ||
+        preloadedTeacher.permissions?.admin !== true || preloadedTeacher.permissions?.additionalAdmin !== true) return null;
+    type = "teacher";
+  } else {
+    if (session.principal_type !== "teacher" && session.principal_type !== "custom") return null;
+    if (typeof session.principal_name !== "string" || !session.principal_name.trim()) return null;
+    type = session.principal_type;
+    name = session.principal_name;
   }
-
-  if (session.principal_type !== "teacher" && session.principal_type !== "custom") return null;
-  if (typeof session.principal_name !== "string" || !session.principal_name.trim()) return null;
-
-  const type = session.principal_type;
-  const name = session.principal_name;
   const needsTeacherPermissions = requestedAction.startsWith("timetable_substitution_") ||
     new Set([
       "health",
@@ -103,7 +104,7 @@ export async function resolveTimetablePrincipal(
       "timetable_duty_report_context",
       "timetable_activity_report_data",
     ]).has(requestedAction);
-  const teacher = await store.findTeacher(name, needsTeacherPermissions);
+  const teacher = preloadedTeacher || await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
