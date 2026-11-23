@@ -6548,27 +6548,40 @@ async function loadSystemDataFromCloud() {
     updateSyncStatus(false, 'وضع محلي فقط؛ أعد تسجيل الدخول الآمن قبل الاتصال ببيانات المدرسة');
     return false;
   }
-  if (navigator.onLine && !await ensureAppAuthSession()) {
+  console.info("[AUTH_TRACE] cloud-sync:auth-check-start");
+  const cloudAuthReady = !navigator.onLine || await ensureAppAuthSession();
+  console.info("[AUTH_TRACE] cloud-sync:auth-check-done", { cloudAuthReady });
+  if (!cloudAuthReady) {
     cloudDataLoadState = 'failed';
     updateSyncStatus(false, 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
     return false;
   }
   cloudDataLoadState = 'loading';
+  console.info("[AUTH_TRACE] cloud-sync:status-local-start");
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
+  console.info("[AUTH_TRACE] cloud-sync:status-local-done");
   // The boot sequence already restored IndexedDB before presenting the login form.
   // Re-reading it here is redundant and can stall account activation on mobile
   // browsers while an IndexedDB transaction is still settling. Reuse that trusted
   // in-memory snapshot for the first authenticated cloud bootstrap; only retry
   // restoration when boot could not obtain a usable local snapshot.
+  console.info("[AUTH_TRACE] cloud-sync:offline-restore-start");
   const offlineSnapshotAvailable = await ensureOfflineSnapshotRestored();
+  console.info("[AUTH_TRACE] cloud-sync:offline-restore-done", { offlineSnapshotAvailable });
   offlineSnapshotRestoredAtBoot = offlineSnapshotAvailable;
+  console.info("[AUTH_TRACE] cloud-sync:dirty-sets-start");
   loadDirtySetsFromLocal();
+  console.info("[AUTH_TRACE] cloud-sync:dirty-sets-done");
   // Capture only dirty local records before any cloud request can yield.
   // Recapture after the table requests as well, so edits made during the fetch
   // window are protected before cloud datasets replace the in-memory records.
   let offlineSnapshot = null;
+  console.info("[AUTH_TRACE] cloud-sync:capture-dirty-start");
   let pendingLocalState = captureDirtyLocalState();
+  console.info("[AUTH_TRACE] cloud-sync:capture-dirty-done");
+  console.info("[AUTH_TRACE] cloud-sync:status-manifest-start");
   updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
+  console.info("[AUTH_TRACE] cloud-sync:status-manifest-done");
   console.info("[AUTH_TRACE] cloud-sync:manifest-stage-start", {
     principalType: activeUser?.type || null
   });
