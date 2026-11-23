@@ -76,6 +76,7 @@ export function authorizeAppDataOperation(
     !ALLOWED_TABLES.has(String(tableValue))) return false;
   const table = tableValue as AppDataTable;
   const isGeneralAdmin = principal.type === "admin" && principal.adminScope === "general";
+  const isAdditionalAdmin = principal.type === "admin" && principal.adminScope === "additional";
 
   // Deletes are deliberately held back for the existing tombstone/transfer workflows.
   if (operation === "delete") return false;
@@ -98,15 +99,16 @@ export function authorizeAppDataOperation(
   const className = isRecord(row) ? String(row.class_name || "") : "";
 
   if (table === "classes" || table === "students") {
-    if (operation !== "read" || permissions.students !== true) return false;
+    if (operation !== "read" || (isAdditionalAdmin && permissions.students !== true)) return false;
     return classes.size > 0 && (table === "classes"
       ? (row === null || (isRecord(row) && classes.has(String(row.name || ""))))
       : (row === null || classes.has(className)));
   }
 
   if (table === "teachers") {
-    return operation === "read" && (permissions.teachers === true || permissions.users === true ||
-      (isRecord(row) && String(row.name || "") === principal.name));
+    return operation === "read" && (isAdditionalAdmin
+      ? permissions.teachers === true || permissions.users === true
+      : isRecord(row) && String(row.name || "") === principal.name);
   }
 
   if (table === "attendance" || table === "behaviors") {
