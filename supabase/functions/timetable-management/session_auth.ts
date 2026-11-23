@@ -80,9 +80,15 @@ export async function resolveTimetablePrincipal(
         ? { type: "admin", name: "مدير النظام العام" }
         : null;
     }
-    return store.findAdminTeacher && await store.findAdminTeacher(session.principal_name)
-      ? { type: "admin", name: session.principal_name }
-      : null;
+    const additionalAdmin = await store.findTeacher(session.principal_name, true);
+    if (!additionalAdmin || additionalAdmin.name !== session.principal_name || additionalAdmin.role !== "teacher" ||
+        additionalAdmin.permissions?.admin !== true || additionalAdmin.permissions?.additionalAdmin !== true) return null;
+    return {
+      type: "teacher",
+      name: additionalAdmin.name,
+      permissions: additionalAdmin.permissions,
+      reserveAccess: additionalAdmin.reserveAccess === true,
+    };
   }
 
   if (session.principal_type !== "teacher" && session.principal_type !== "custom") return null;
