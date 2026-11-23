@@ -127,14 +127,17 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
 
 async function currentAppPrincipal(type: string, name: string): Promise<AppPrincipal | null> {
   if (type === "admin") {
+    let effectivePermissions: Record<string, boolean>;
     if (name === "مدير النظام العام") {
       const { data, error } = await db.from("school_settings").select("value").eq("key", "admin_pin").maybeSingle();
       if (error || !data?.value?.hash || !data?.value?.salt) return null;
+      effectivePermissions = { studstats: true, behaviorstats: true, users: true, students: true, teachers: true, duty: true, alerts: true, reports: true, sync: true, security: true };
     } else {
       const { data, error } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
       if (error || !data || !isAdditionalAdminTeacher(data)) return null;
+      effectivePermissions = buildAdditionalAdminPermissions(data);
     }
-    return { type: "admin", name, permissions: buildAdditionalAdminPermissions({ role: data?.role, permissions: data?.permissions }), mustChangePin: false };
+    return { type: "admin", name, permissions: effectivePermissions, mustChangePin: false };
   }
   const { data, error } = await db.from("teachers").select("name,role,permissions,must_change_pin").eq("name", name).maybeSingle();
   if (error || !data || (type === "custom" ? data.role !== "custom" : data.role === "custom")) return null;
