@@ -20,7 +20,7 @@ create index if not exists student_affairs_activity_events_type_created_idx
   on public.student_affairs_activity_events (event_type, created_at desc);
 
 alter table public.student_affairs_activity_events enable row level security;
-revoke all on public.student_affairs_activity_events from anon, authenticated;
+revoke all on public.student_affairs_activity_events from public, anon, authenticated;
 grant select, insert on public.student_affairs_activity_events to service_role;
 
 comment on table public.student_affairs_activity_events is
