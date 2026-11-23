@@ -6022,18 +6022,25 @@ function restoreDirtySetsObject(obj) {
 async function persistOfflineState() {
   try {
     const database = await openOfflineDatabase();
-    // IndexedDB performs its own structured clone when put() is called.
-    // Avoid JSON stringify/parse here: that duplicates a potentially large
-    // school snapshot on the UI thread immediately before IndexedDB clones it.
+    const serializedDb = JSON.stringify(db);
+    const dbSnapshot = JSON.parse(serializedDb);
     const payload = {
       key: 'snapshot',
       savedAt: new Date().toISOString(),
-      db: JSON.parse(JSON.stringify(db)),
+      db: dbSnapshot,
       dirtySets: serializeDirtySets(),
       pendingDeletes: getPendingDeletes(),
       cloudSyncManifest: lastLoadedCloudManifest
     };
+    const serializedPayloadLength = JSON.stringify(payload).length;
+    const fieldSizes = Object.fromEntries(Object.entries(db).map(([key, value]) => {
+      try { return [key, JSON.stringify(value)?.length || 0]; }
+      catch (_) { return [key, -1]; }
+    }));
     console.info('[AUTH_TRACE] offline-snapshot:payload-ready', {
+      jsonChars: serializedDb.length,
+      payloadJsonChars: serializedPayloadLength,
+      fieldSizes,
       classes: Array.isArray(db.classes) ? db.classes.length : 0,
       teachers: Array.isArray(db.teachers) ? db.teachers.length : 0,
       students: Object.values(db.students || {}).reduce((total, rows) => total + (Array.isArray(rows) ? rows.length : 0), 0),
