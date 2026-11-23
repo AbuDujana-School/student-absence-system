@@ -355,6 +355,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   browserConsole.push("QA_SYNTHETIC_SESSION_RPC " + JSON.stringify(syntheticSessionRpc));
   expect(syntheticSessionRpc.settled, "Manifest helper must resolve with the synthetic admin state").toBe(true);
   expect(syntheticSessionRpc.hasManifest, "Manifest helper must return a valid manifest").toBe(true);
+  manifestCalls = 0;
 
   // Diagnostic isolation: the last run showed the next RPC stalls only after
   // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
@@ -364,10 +365,11 @@ test("school sync projections and timetable access reads stay isolated and minim
     // The native manifest transport is verified independently above. Stub only
     // this orchestration boundary so this test can focus on table fan-out,
     // projections, local preservation, and revision-based refresh behavior.
-    fetchAppSyncManifest = async () => ({
+    window.__qaSyncManifest = {
       classes: 1, students: 1, teachers: 1, attendance: 1,
       behaviors: 1, school_settings: 1, duty_reports: 1,
-    });
+    };
+    fetchAppSyncManifest = async () => ({ ...window.__qaSyncManifest });
     const trace = [];
     // A page-level heartbeat distinguishes a blocked renderer from a fetch
     // promise that remains pending while the event loop continues to run.
@@ -456,6 +458,7 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   manifest.teachers = 2;
   manifest.school_settings = 2;
+  await page.evaluate((nextManifest) => { window.__qaSyncManifest = nextManifest; }, manifest);
   const changedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(changedRefresh, "Changed manifest refresh must complete").toBe(true);
   expect(reads.get("teachers") || 0).toBe(2);
