@@ -89,7 +89,7 @@ export async function resolveTimetablePrincipal(
     name = session.principal_name;
     preloadedTeacher = await store.findTeacher(name, true);
     if (!preloadedTeacher || preloadedTeacher.name !== name || preloadedTeacher.role !== "teacher" ||
-        preloadedTeacher.permissions?.admin !== true || preloadedTeacher.permissions?.additionalAdmin !== true) return null;
+        preloadedTeacher.permissions?.additionalAdmin !== true) return null;
     type = "teacher";
   } else {
     if (session.principal_type !== "teacher" && session.principal_type !== "custom") return null;
