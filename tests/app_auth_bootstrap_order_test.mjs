@@ -76,20 +76,35 @@ test("automatic and manual offline uploads stop before approval when secure sess
   assert.ok(manualGuard >= 0 && manualApproval > manualGuard);
 });
 
-test("a successful server login stores its verified session before detached cloud bootstrap", () => {
+test("a successful server login stores its verified session and paints the dashboard before detached cloud bootstrap", () => {
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
-  const finalize = login.indexOf("void finalizeLoginState().catch", saveSession);
-  const dashboard = login.indexOf("dashboardSelectionView", saveSession);
-  assert.ok(saveSession >= 0 && finalize > saveSession);
-  assert.ok(dashboard > saveSession);
-  assert.match(login.slice(saveSession, finalize), /loginView.*classList\.add\('hidden'\)/);
+  const committed = login.indexOf("authenticatedLoginCommitted = true", saveSession);
+  const shell = login.indexOf("renderAuthenticatedDashboardShell()", committed);
+  const deferred = login.indexOf("const startPostLoginInitialization", shell);
+  const finalize = login.indexOf("finalizeLoginState()", deferred);
+  assert.ok(saveSession >= 0 && committed > saveSession);
+  assert.ok(shell > committed && deferred > shell && finalize > deferred);
+  assert.ok(login.slice(saveSession, shell).includes("activeUser = serverLogin.principal"));
+  assert.ok(login.slice(shell, deferred).includes("login:authenticated-shell-shown"));
+  assert.ok(login.slice(deferred).includes("window.setTimeout(startPostLoginInitialization, 50)"));
+  const shellHelper = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
+  assert.ok(shellHelper.includes("dashboardSelectionView") && shellHelper.includes("classList.remove"));
+  assert.ok(shellHelper.includes("hasAdminPanelAccess(user)") && shellHelper.includes("isAdmin"));
+});
+
+test("admin cloud bootstrap has a five-minute manifest and table timeout without extending credential verification", () => {
+  assert.ok(html.includes("APP_SYNC_MANIFEST_TIMEOUT_MS = 300000"));
+  assert.ok(html.includes("APP_SYNC_TABLES_TIMEOUT_MS = 300000"));
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
+  assert.ok(login.includes("}, 15000)"));
+  assert.equal(login.includes("300000"), false);
 });
 
 test("cloud bootstrap requests have bounded waits and preserve local data on timeout", () => {
   const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
-  assert.match(manifest, /withAppSyncTimeout\(/);
-  assert.match(manifest, /APP_SYNC_MANIFEST_TIMEOUT/);
+  assert.ok(manifest.includes("headers: getSupabasePublicDataHeaders("));
+  assert.ok(manifest.includes("headers: getSupabasePublicDataHeaders("));
   const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
   assert.match(loader, /APP_SYNC_MANIFEST_TIMEOUT/);
   assert.match(loader, /APP_SYNC_TABLES_TIMEOUT/);
@@ -188,9 +203,16 @@ test("unchanged cloud manifests persist only queued deletion overlays", () => {
   assert.doesNotMatch(capture, /cloneOfflineValue\(db\)/);
 
   const manifestSave = loader.lastIndexOf("if (nextManifest) lastLoadedCloudManifest = nextManifest");
-  const finalPersist = loader.indexOf("await persistOfflineStateWithTimeout()", manifestSave);
-  const fallbackSave = loader.indexOf("if (!localSnapshotSaved) saveToLocalStorageSafe()", manifestSave);
+  const finalPersist = loader.indexOf("const localSnapshotSaved = await persistOfflineStateWithTimeout()", manifestSave);
+  const fallbackSave = loader.indexOf("saveToLocalStorageSafe()", finalPersist);
   assert.ok(manifestSave >= 0 && finalPersist > manifestSave && fallbackSave > finalPersist);
+  const snapshotStateEnd = loader.indexOf("offlineSnapshotRestorePromise = null", fallbackSave);
+  const snapshotStateUpdate = loader.slice(finalPersist, snapshotStateEnd + "offlineSnapshotRestorePromise = null".length);
+  assert.match(snapshotStateUpdate, /if \(localSnapshotSaved\)/);
+  assert.match(snapshotStateUpdate, /offlineSnapshotRestorePromise = Promise\.resolve\(true\)/);
+  assert.match(snapshotStateUpdate, /offlineSnapshotRestoredAtBoot = true/);
+  assert.match(snapshotStateUpdate, /else/);
+  assert.match(snapshotStateUpdate, /offlineSnapshotRestorePromise = null/);
   assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
 });
 
@@ -273,19 +295,70 @@ test("secure login remains available after a local-only session and stale 401 ca
 });
 
 
-test("authenticated login paints the dashboard before secondary initialization and restores the UI in finally", () => {
+test("authenticated dashboard shell is rendered immediately and post-login initialization has a timer fallback", () => {
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord");
   const saveSession = login.indexOf("saveAppAuthSession(serverLogin)");
   const committed = login.indexOf("authenticatedLoginCommitted = true", saveSession);
-  const shell = login.indexOf("dashboardSelectionView", committed);
-  const deferred = login.indexOf("const startPostLoginInitialization", shell);
+  const shellCall = login.indexOf("renderAuthenticatedDashboardShell()", committed);
+  const deferred = login.indexOf("const startPostLoginInitialization", shellCall);
   const frame = login.indexOf("requestAnimationFrame", deferred);
-  const finalizer = login.indexOf("finalizeLoginState()", frame);
+  const fallback = login.indexOf("window.setTimeout(startPostLoginInitialization, 50)", frame);
+  const finalizer = login.indexOf("void finalizeLoginState().catch", deferred);
   const finallyBlock = login.indexOf("} finally {", finalizer);
-  assert.ok(saveSession >= 0 && committed > saveSession && shell > committed);
-  assert.ok(deferred > shell && frame > deferred && finalizer > frame);
+  assert.ok(saveSession >= 0 && committed > saveSession && shellCall > committed);
+  assert.ok(deferred > shellCall && frame > deferred && fallback > frame);
+  assert.ok(finalizer > deferred && finallyBlock > finalizer);
+  assert.match(login.slice(deferred, fallback), /postLoginInitializationStarted/);
   assert.match(login.slice(finallyBlock), /if \(authenticatedLoginCommitted\)/);
   assert.match(login.slice(finallyBlock), /loginView.*classList\.add\('hidden'\)/);
   assert.match(login.slice(finallyBlock), /dashboardSelectionView.*classList\.remove\('hidden'\)/);
   assert.match(login.slice(finallyBlock), /btn\.disabled = false/);
+  const shell = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
+  assert.match(shell, /dashboardSelectionView.*classList\.remove\(["']hidden["']\)/);
+  assert.match(shell, /adminPanelBtn/);
+  assert.match(shell, /studentAffairsBtn/);
+});
+
+test("first cloud manifest and table reads have explicit five-minute deadlines", () => {
+  assert.match(html, /const APP_SYNC_MANIFEST_TIMEOUT_MS = 300000/);
+  assert.match(html, /const APP_SYNC_TABLES_TIMEOUT_MS = 300000/);
+  const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
+  assert.ok(manifest.includes("headers: getSupabasePublicDataHeaders("));
+  const loader = section("async function loadSystemDataFromCloud()", "function syncValuesEqual");
+  assert.match(loader, /APP_SYNC_TABLES_TIMEOUT_MS/);
+  assert.match(loader, /APP_SYNC_MANIFEST_TIMEOUT/);
+  assert.match(loader, /APP_SYNC_TABLES_TIMEOUT/);
+});
+
+
+test("publishable API keys are sent only as apikey while legacy JWT anon keys retain Bearer compatibility", () => {
+  const helper = section("function getSupabasePublicDataHeaders(", "function installSupabaseAuthDiagnostics()");
+  const publishableHeaders = runInNewContext(
+    `${helper}
+getSupabasePublicDataHeaders({ "Content-Type": "application/json" })`,
+    { SUPABASE_ANON_KEY: "sb_publishable_test-key" },
+  );
+  assert.equal(
+    JSON.stringify(publishableHeaders),
+    JSON.stringify({ "Content-Type": "application/json", apikey: "sb_publishable_test-key" }),
+  );
+
+  const legacyKey = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature";
+  const legacyHeaders = runInNewContext(
+    `${helper}
+getSupabasePublicDataHeaders()`,
+    { SUPABASE_ANON_KEY: legacyKey },
+  );
+  assert.equal(
+    JSON.stringify(legacyHeaders),
+    JSON.stringify({ apikey: legacyKey, Authorization: `Bearer ${legacyKey}` }),
+  );
+
+  const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
+  assert.ok(manifest.includes("headers: getSupabasePublicDataHeaders("));
+  assert.ok(!manifest.includes("Authorization: `Bearer ${SUPABASE_ANON_KEY}`"));
+
+  const tableReader = section("async function fetchAllPaginated(", "async function persistOfflineState()");
+  assert.ok(tableReader.includes("Object.entries(getSupabasePublicDataHeaders())"));
+  assert.ok(!tableReader.includes("request.setRequestHeader('Authorization'"));
 });

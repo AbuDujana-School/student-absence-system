@@ -126,7 +126,7 @@ Deno.test("cloud refresh uses a manifest gate and guards every full-table reques
   assert(noChangeStart >= 0 && noChangeEnd > noChangeStart, "No-change branch must return before table fetch setup");
   assert(!load.slice(noChangeStart, noChangeEnd).includes("fetchAllPaginated("), "No-change refresh must not download any school table");
   for (const table of logic.tables) {
-    assert(load.includes(`shouldLoad('${table}') ? fetchAllPaginated('${table}'`), `${table} download must be guarded by its revision`);
+    assert(load.includes(`shouldLoad('${table}') ? await fetchAllPaginated('${table}'`), `${table} download must be guarded by its revision and awaited sequentially`);
   }
 });
 

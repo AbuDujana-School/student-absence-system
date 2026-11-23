@@ -450,11 +450,11 @@ Deno.test("reconnect restores cloud readiness before retrying or manually upload
 Deno.test("cloud sync fetches only the columns consumed by the local school snapshot", () => {
   const load = section("async function loadSystemDataFromCloud()", "async function saveSystemDataToCloud(");
   const projections = [
-    "shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null)",
-    "shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
-    "shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null)",
-    "shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null)",
-    "shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)",
+    "const teachers = shouldLoad('teachers') ? await fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : null",
+    "const attendance = shouldLoad('attendance') ? await fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : null",
+    "const behaviors = shouldLoad('behaviors') ? await fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : null",
+    "const settings = shouldLoad('school_settings') ? await fetchAllPaginated('school_settings', 'key,value') : null",
+    "const dutyReports = shouldLoad('duty_reports') ? await fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : null",
   ];
   for (const projection of projections) assert(load.includes(projection), "Missing narrow cloud projection: " + projection);
   const recordMappings = load.slice(load.indexOf("if (shouldLoad('attendance'))"), load.indexOf("mergeDirtyLocalState"));

@@ -2006,6 +2006,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
   <div id="loginView" class="max-w-md mx-auto my-12 glass-card p-8 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/80">
+    <div id="isolatedPreviewNotice" class="hidden mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-right text-xs leading-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100" dir="rtl">
+      <strong class="block text-sm font-black">هذه نسخة اختبار معزولة</strong>
+      <p class="mt-1">هذه الصفحة تستخدم قاعدة بيانات تجريبية منفصلة؛ حسابات المدرسة وأرقامها السرية الفعلية غير متاحة هنا. لا يعني رفض الرقم أن رقمك السري في النظام الأساسي قد تغيّر.</p>
+      <a class="mt-2 inline-block font-black underline" href="https://student-absence-system.pages.dev/" target="_blank" rel="noopener noreferrer">افتح النظام الأساسي لتسجيل الدخول الفعلي</a>
+      <p class="mt-1 text-[10px]">ملاحظة: النظام الأساسي يعرض الإصدار المنشور حاليًا، وليس إصلاحات هذا الفرع التجريبي.</p>
+    </div>
     <div class="text-center mb-6">
       <div class="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg"><i class="fa-solid fa-user-lock"></i></div>
       <h2 class="text-2xl font-black text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
@@ -3745,11 +3751,67 @@ const IS_CLOUDFLARE_BRANCH_PREVIEW =
     location.hostname.endsWith(".student-absence-system.pages.dev")) ||
   location.hostname === "abu-dujana-school-preview.pages.dev" ||
   location.hostname.endsWith(".abu-dujana-school-preview.pages.dev");
+if (IS_CLOUDFLARE_BRANCH_PREVIEW && typeof document !== "undefined") {
+  document.getElementById("isolatedPreviewNotice")?.classList.remove("hidden");
+}
 const SUPABASE_URL = IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co" : "https://ylsocrvwqibptuwfzbke.supabase.co";
 const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
   ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA"
   : "sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// Keep the modern Supabase publishable key in the apikey header only.
+// Legacy anon keys are JWTs and may also be forwarded as a Bearer token.
+function getSupabasePublicDataHeaders(extraHeaders = {}) {
+  const headers = { ...extraHeaders, apikey: SUPABASE_ANON_KEY };
+  const keyParts = SUPABASE_ANON_KEY.split('.');
+  const isLegacyJwtAnonKey = SUPABASE_ANON_KEY.startsWith('eyJ') && keyParts.length === 3 && keyParts.every(Boolean);
+  if (isLegacyJwtAnonKey) headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+  return headers;
+}
+
+// Observe Supabase Auth internals used by PostgREST without changing their
+// promise chain. The school app uses its own app_login/app_session flow; these
+// traces help identify whether the SDK's implicit getSession/lock path stalls.
+function installSupabaseAuthDiagnostics() {
+  const auth = sb?.auth;
+  if (!auth) return;
+  for (const method of ["getSession", "_acquireLock"]) {
+    const original = auth[method];
+    if (typeof original !== "function" || original.__appAuthTraceWrapped) continue;
+    const wrapped = function (...args) {
+      const startedAt = performance.now();
+      console.info(`[AUTH_TRACE] supabase-auth:${method}:start`);
+      let result;
+      try {
+        result = original.apply(this, args);
+      } catch (error) {
+        console.warn(`[AUTH_TRACE] supabase-auth:${method}:throw`, {
+          elapsedMs: Math.round(performance.now() - startedAt),
+          message: error?.message || String(error)
+        });
+        throw error;
+      }
+      if (result && typeof result.then === "function") {
+        result.then(
+          () => console.info(`[AUTH_TRACE] supabase-auth:${method}:settled`, {
+            elapsedMs: Math.round(performance.now() - startedAt)
+          }),
+          error => console.warn(`[AUTH_TRACE] supabase-auth:${method}:rejected`, {
+            elapsedMs: Math.round(performance.now() - startedAt),
+            message: error?.message || String(error)
+          })
+        );
+      }
+      return result;
+    };
+    wrapped.__appAuthTraceWrapped = true;
+    try { auth[method] = wrapped; } catch (error) {
+      console.warn(`[AUTH_TRACE] supabase-auth:${method}:instrumentation-unavailable`);
+    }
+  }
+}
+installSupabaseAuthDiagnostics();
 const APP_PEPPER = 'AbuDujana_School_v3_2024_#Sec!PBKDF2';
 const LEGACY_APP_PEPPER = 'AbuDujana_School_v2_2024_#Sec!';
 const SESSION_TTL_MS = 8*60*60*1000;
@@ -3973,6 +4035,9 @@ async function appAuthRequest(body, token, signal) {
   const headers = { "Content-Type": "application/json", apikey: SA_API_KEY };
   if (token) headers.Authorization = "Bearer " + token;
   const requestUrl = action.startsWith("timetable_") || action === "teacher_timetable_get_own" || action === "teacher_substitution_get_today" ? TIMETABLE_API_URL : SA_API_URL;
+  const traceLogin = action === "app_login";
+  const requestStartedAt = performance.now();
+  if (traceLogin) console.info("[AUTH_TRACE] app_login:request-start");
   let response;
   try {
     response = await fetch(requestUrl, {
@@ -3988,7 +4053,18 @@ async function appAuthRequest(body, token, signal) {
     error.aborted = networkError?.name === "AbortError";
     throw error;
   }
-  let data = {}; try { data = await response.json(); } catch (error) {}
+  if (traceLogin) console.info("[AUTH_TRACE] app_login:response-headers", {
+    status: response.status,
+    elapsedMs: Math.round(performance.now() - requestStartedAt)
+  });
+  let data = {}; try { data = await response.json(); } catch (error) {
+    if (traceLogin) console.warn("[AUTH_TRACE] app_login:response-json-failed", error);
+  }
+  if (traceLogin) console.info("[AUTH_TRACE] app_login:response-parsed", {
+    hasToken: !!data?.token,
+    principalType: data?.principal?.type || null,
+    elapsedMs: Math.round(performance.now() - requestStartedAt)
+  });
   if (!response.ok) {
     const error = new Error(data.error || "تعذر تنفيذ تسجيل الدخول الآمن.");
     error.status = response.status;
@@ -5842,8 +5918,80 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   }
 }
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
-  const all = []; let from = 0;
-  while (true) { const { data, error } = await sb.from(tableName).select(selectCols).range(from, from + pageSize - 1); if (error) throw error; if (!data || data.length === 0) break; all.push(...data); if (data.length < pageSize) break; from += pageSize; }
+  // Use asynchronous XHR for school-table reads. The verified app_login/app_session
+  // flow is separate from Supabase Auth; the Supabase JS query thenable and the
+  // native fetch path both stalled during the isolated bootstrap before issuing
+  // a table request. XHR keeps the request asynchronous and observable.
+  if (!APP_SYNC_TABLES.includes(tableName)) throw new Error(`Unsupported cloud table: ${tableName}`);
+  const all = [];
+  let from = 0;
+  while (true) {
+    const url = new URL(`${SUPABASE_URL}/rest/v1/${encodeURIComponent(tableName)}`);
+    url.searchParams.set('select', selectCols);
+    url.searchParams.set('limit', String(pageSize));
+    url.searchParams.set('offset', String(from));
+    console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-start`, { from, pageSize });
+    try {
+      const data = await new Promise((resolve, reject) => {
+        const request = new XMLHttpRequest();
+        request.open('GET', url.toString(), true);
+        request.timeout = 60000;
+        for (const [name, value] of Object.entries(getSupabasePublicDataHeaders())) {
+          request.setRequestHeader(name, value);
+        }
+        request.setRequestHeader('Accept', 'application/json');
+        request.onreadystatechange = () => {
+          console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-ready-state`, {
+            readyState: request.readyState,
+            status: request.status
+          });
+        };
+        request.onloadend = () => {
+          console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-loadend`, {
+            readyState: request.readyState,
+            status: request.status
+          });
+        };
+        request.onload = () => {
+          console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-response`, { status: request.status });
+          if (request.status < 200 || request.status >= 300) {
+            const error = new Error(request.responseText || `Cloud read failed for ${tableName}: HTTP ${request.status}`);
+            error.status = request.status;
+            reject(error);
+            return;
+          }
+          try {
+            const parsed = JSON.parse(request.responseText || 'null');
+            if (!Array.isArray(parsed)) throw new Error(`Invalid cloud response for ${tableName}.`);
+            resolve(parsed);
+          } catch (error) {
+            reject(error);
+          }
+        };
+        request.onerror = () => reject(new Error(`Network error while reading cloud table ${tableName}.`));
+        request.ontimeout = () => {
+          const error = new Error(`Cloud read timed out for ${tableName}.`);
+          error.code = 'APP_SYNC_TABLE_READ_TIMEOUT';
+          reject(error);
+        };
+        request.onabort = () => reject(new Error(`Cloud read aborted for ${tableName}.`));
+        request.send();
+        console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-sent`, { from });
+      });
+      console.info(`[AUTH_TRACE] table-read:${tableName}:response-parsed`, { rowCount: data.length });
+      if (data.length === 0) break;
+      all.push(...data);
+      if (data.length < pageSize) break;
+      from += pageSize;
+    } catch (error) {
+      console.warn(`[AUTH_TRACE] table-read:${tableName}:fetch-failed`, {
+        message: error?.message || String(error),
+        status: error?.status || null,
+        code: error?.code || null
+      });
+      throw error;
+    }
+  }
   return all;
 }
 
@@ -5893,12 +6041,69 @@ function restoreDirtySetsObject(obj) {
 }
 async function persistOfflineState() {
   try {
-    const database=await openOfflineDatabase();
-    const payload={key:'snapshot',savedAt:new Date().toISOString(),db:JSON.parse(JSON.stringify(db)),dirtySets:serializeDirtySets(),pendingDeletes:getPendingDeletes(),cloudSyncManifest:lastLoadedCloudManifest};
-    await new Promise((resolve,reject)=>{const tx=database.transaction('state','readwrite');tx.objectStore('state').put(payload);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error||new Error('فشل الحفظ المحلي'));tx.onabort=()=>reject(tx.error||new Error('ألغي الحفظ المحلي'));});
-    try { if(navigator.storage?.persist) navigator.storage.persist().catch(()=>{}); } catch(e) {}
+    const database = await openOfflineDatabase();
+    const snapshotData = {
+      savedAt: new Date().toISOString(),
+      db: JSON.parse(JSON.stringify(db)),
+      dirtySets: serializeDirtySets(),
+      pendingDeletes: getPendingDeletes(),
+      cloudSyncManifest: lastLoadedCloudManifest
+    };
+    // Store one compact JSON string instead of a nested object graph. Some
+    // mobile WebViews stall while IndexedDB clones nested school snapshots,
+    // even when the JSON representation is small. The restore path below
+    // remains compatible with existing object-form snapshots.
+    const snapshotJson = JSON.stringify(snapshotData);
+    console.info('[AUTH_TRACE] offline-snapshot:payload-ready', {
+      jsonChars: snapshotJson.length,
+      classes: Array.isArray(db.classes) ? db.classes.length : 0,
+      teachers: Array.isArray(db.teachers) ? db.teachers.length : 0,
+      students: Object.values(db.students || {}).reduce((total, rows) => total + (Array.isArray(rows) ? rows.length : 0), 0),
+      attendance: Object.keys(db.attendance || {}).length,
+      behaviors: Object.keys(db.behaviors || {}).length,
+      dutyReports: Array.isArray(db.dutyModule?.records) ? db.dutyModule.records.length : 0
+    });
+    await new Promise((resolve, reject) => {
+      let transaction;
+      try {
+        transaction = database.transaction('state', 'readwrite');
+      } catch (error) {
+        reject(error);
+        return;
+      }
+      transaction.oncomplete = () => {
+        console.info('[AUTH_TRACE] offline-snapshot:transaction-complete');
+        resolve();
+      };
+      transaction.onerror = () => {
+        const error = transaction.error || new Error('فشل الحفظ المحلي');
+        console.warn('[AUTH_TRACE] offline-snapshot:transaction-error', error?.name || error?.message || String(error));
+        reject(error);
+      };
+      transaction.onabort = () => {
+        const error = transaction.error || new Error('ألغي الحفظ المحلي');
+        console.warn('[AUTH_TRACE] offline-snapshot:transaction-abort', error?.name || error?.message || String(error));
+        reject(error);
+      };
+      try {
+        const request = transaction.objectStore('state').put({
+          key: 'snapshot',
+          snapshotJson
+        });
+        request.onsuccess = () => console.info('[AUTH_TRACE] offline-snapshot:put-success');
+        request.onerror = () => console.warn('[AUTH_TRACE] offline-snapshot:put-error', request.error?.name || request.error?.message || 'unknown');
+        console.info('[AUTH_TRACE] offline-snapshot:put-issued');
+      } catch (error) {
+        try { transaction.abort(); } catch (_) {}
+        reject(error);
+      }
+    });
+    try { if (navigator.storage?.persist) navigator.storage.persist().catch(() => {}); } catch (error) {}
     return true;
-  } catch(error) { console.error('IndexedDB save failed:',error); return false; }
+  } catch (error) {
+    console.error('IndexedDB save failed:', error);
+    return false;
+  }
 }
 function restoreLocalStorageOfflineSnapshot() {
   try {
@@ -5930,7 +6135,7 @@ async function restoreOfflineState() {
     // IndexedDB open/read can remain pending on some Android WebViews when an
     // older app window still owns the database. Never let that stall login or
     // hold the shared cloud-refresh lock indefinitely.
-    const snapshot = await withAppSyncTimeout((async () => {
+    const storedSnapshot = await withAppSyncTimeout((async () => {
       const database = await openOfflineDatabase();
       return await new Promise((resolve, reject) => {
         const tx = database.transaction('state', 'readonly');
@@ -5940,6 +6145,11 @@ async function restoreOfflineState() {
         tx.onabort = () => reject(tx.error || new Error('أُلغيت قراءة النسخة المحلية'));
       });
     })(), 6000, 'تأخرت استعادة النسخة المحلية؛ سيتم استخدام النسخة الاحتياطية الآمنة.', 'APP_OFFLINE_RESTORE_TIMEOUT');
+    // New snapshots are stored as a single JSON string to avoid nested-object
+    // structured-clone stalls; continue accepting the legacy object format.
+    const snapshot = typeof storedSnapshot?.snapshotJson === 'string'
+      ? JSON.parse(storedSnapshot.snapshotJson)
+      : storedSnapshot;
     if (!snapshot?.db || typeof snapshot.db !== 'object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
@@ -6447,6 +6657,9 @@ function normalizeAppSyncManifest(value) {
   return normalized;
 }
 
+const APP_SYNC_MANIFEST_TIMEOUT_MS = 300000;
+const APP_SYNC_TABLES_TIMEOUT_MS = 300000;
+
 function withAppSyncTimeout(promise, timeoutMs, message, code) {
   let timer = null;
   return Promise.race([
@@ -6478,16 +6691,52 @@ async function persistOfflineStateWithTimeout(timeoutMs = 5000) {
 }
 
 async function fetchAppSyncManifest() {
-  const { data, error } = await withAppSyncTimeout(
-    sb.rpc('get_app_sync_manifest'),
-    8000,
-    'تأخر التحقق من تحديثات الخادم.',
-    'APP_SYNC_MANIFEST_TIMEOUT'
-  );
-  if (error) throw error;
-  const manifest = normalizeAppSyncManifest(data);
-  if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
-  return manifest;
+  console.info('[AUTH_TRACE] manifest-rpc:before-fetch');
+  // This RPC exposes revision counters only. Its migration explicitly grants
+  // EXECUTE to anon/authenticated, so it does not need the Supabase Auth client.
+  // Use native fetch here to avoid the SDK auth-session/lock queue that can
+  // leave repeated PostgREST thenables pending during the full sync bootstrap.
+  console.info('[AUTH_TRACE] manifest-controller:start');
+  const controller = new AbortController();
+  console.info('[AUTH_TRACE] manifest-controller:ready');
+  const timeout = setTimeout(() => controller.abort(), APP_SYNC_MANIFEST_TIMEOUT_MS);
+  console.info('[AUTH_TRACE] manifest-timeout:scheduled');
+  try {
+    return await withAppSyncTimeout((async () => {
+      console.info('[AUTH_TRACE] manifest-native-fetch:start');
+      const fetchPromise = fetch(`${SUPABASE_URL}/rest/v1/rpc/get_app_sync_manifest`, {
+        method: 'POST',
+        headers: getSupabasePublicDataHeaders({
+          'Content-Type': 'application/json'
+        }),
+        body: '{}',
+        signal: controller.signal
+      });
+      console.info('[AUTH_TRACE] manifest-native-fetch:created');
+      const response = await fetchPromise;
+      console.info('[AUTH_TRACE] manifest-native-fetch:headers', { status: response.status });
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        const error = new Error(body || `Sync manifest request failed: HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      const data = await response.json();
+      const manifest = normalizeAppSyncManifest(data);
+      if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
+      console.info('[AUTH_TRACE] manifest-rpc:fetch-settled', { hasManifest: true });
+      return manifest;
+    })(), APP_SYNC_MANIFEST_TIMEOUT_MS, 'تأخر التحقق من تحديثات الخادم.', 'APP_SYNC_MANIFEST_TIMEOUT');
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error('تأخر التحقق من تحديثات الخادم.');
+      timeoutError.code = 'APP_SYNC_MANIFEST_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 function getChangedAppSyncTables(nextManifest, hasSnapshot, localStorageFallback = localStorageFallbackSnapshot) {
@@ -6521,34 +6770,54 @@ async function loadSystemDataFromCloud() {
     updateSyncStatus(false, 'وضع محلي فقط؛ أعد تسجيل الدخول الآمن قبل الاتصال ببيانات المدرسة');
     return false;
   }
+  console.info("[AUTH_TRACE] cloud-sync:auth-check-start");
   if (navigator.onLine && !await ensureAppAuthSession()) {
+    console.info("[AUTH_TRACE] cloud-sync:auth-check-done", { cloudAuthReady: false });
     cloudDataLoadState = 'failed';
     updateSyncStatus(false, 'انتهت جلسة الدخول الآمنة أو لم تُوثّق؛ أعد تسجيل الدخول لمزامنة بيانات المدرسة');
     return false;
   }
+  console.info("[AUTH_TRACE] cloud-sync:auth-check-done", { cloudAuthReady: true });
   cloudDataLoadState = 'loading';
+  console.info("[AUTH_TRACE] cloud-sync:status-local-start");
   updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
+  console.info("[AUTH_TRACE] cloud-sync:status-local-done");
   // The boot sequence already restored IndexedDB before presenting the login form.
   // Re-reading it here is redundant and can stall account activation on mobile
   // browsers while an IndexedDB transaction is still settling. Reuse that trusted
   // in-memory snapshot for the first authenticated cloud bootstrap; only retry
   // restoration when boot could not obtain a usable local snapshot.
+  console.info("[AUTH_TRACE] cloud-sync:offline-restore-start");
   const offlineSnapshotAvailable = await ensureOfflineSnapshotRestored();
+  console.info("[AUTH_TRACE] cloud-sync:offline-restore-done", { offlineSnapshotAvailable });
   offlineSnapshotRestoredAtBoot = offlineSnapshotAvailable;
+  console.info("[AUTH_TRACE] cloud-sync:dirty-sets-start");
   loadDirtySetsFromLocal();
+  console.info("[AUTH_TRACE] cloud-sync:dirty-sets-done");
   // Capture only dirty local records before any cloud request can yield.
   // Recapture after the table requests as well, so edits made during the fetch
   // window are protected before cloud datasets replace the in-memory records.
   let offlineSnapshot = null;
+  console.info("[AUTH_TRACE] cloud-sync:capture-dirty-start");
   let pendingLocalState = captureDirtyLocalState();
+  console.info("[AUTH_TRACE] cloud-sync:capture-dirty-done");
+  console.info("[AUTH_TRACE] cloud-sync:status-manifest-start");
   updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
+  console.info("[AUTH_TRACE] cloud-sync:status-manifest-done");
+  console.info("[AUTH_TRACE] cloud-sync:manifest-stage-start", {
+    principalType: activeUser?.type || null
+  });
 
   try {
     // The manifest is metadata-only. It avoids downloading the seven school tables
     // when no server-side change has occurred since this device's last snapshot.
     let nextManifest = null;
     try {
+      const manifestStartedAt = performance.now();
       nextManifest = await fetchAppSyncManifest();
+      console.info("[AUTH_TRACE] cloud-sync:manifest-stage-done", {
+        elapsedMs: Math.round(performance.now() - manifestStartedAt)
+      });
     } catch (manifestError) {
       // A transient manifest/network failure must not fan out into seven full-table
       // downloads on every 60-second refresh. Keep a trusted local snapshot and retry
@@ -6598,7 +6867,8 @@ async function loadSystemDataFromCloud() {
         updateSyncStatus(false, "تعذر حفظ طلبات الحذف محلياً؛ بقيت البيانات الحالية كما هي ولم تُرفع أي تغييرات.");
         return false;
       }
-      const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
+      console.info('[AUTH_TRACE] sync:pending-state:start');
+    const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
         dirtySets.custom_categories || getPendingDeletes().length;
@@ -6609,15 +6879,21 @@ async function loadSystemDataFromCloud() {
     }
 
     const shouldLoad = table => changedTables.includes(table);
-    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await withAppSyncTimeout(Promise.all([
-      shouldLoad('classes') ? fetchAllPaginated('classes', 'name') : Promise.resolve(null),
-      shouldLoad('students') ? fetchAllPaginated('students', 'class_name, student_name') : Promise.resolve(null),
-      shouldLoad('teachers') ? fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : Promise.resolve(null),
-      shouldLoad('attendance') ? fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
-      shouldLoad('behaviors') ? fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : Promise.resolve(null),
-      shouldLoad('school_settings') ? fetchAllPaginated('school_settings', 'key,value') : Promise.resolve(null),
-      shouldLoad('duty_reports') ? fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : Promise.resolve(null)
-    ]), 20000, 'تأخر تحميل بيانات المدرسة من الخادم.', 'APP_SYNC_TABLES_TIMEOUT');
+    // Avoid seven concurrent Supabase JS requests competing for the same auth
+    // session/lock queue. Each read remains independently paginated and the
+    // complete sequence is still bounded by the shared sync timeout.
+    const [classesData, studentsData, teachersData, attendanceData, behaviorsData, settingsData, drData] = await withAppSyncTimeout((async () => {
+      const classes = shouldLoad('classes') ? await fetchAllPaginated('classes', 'name') : null;
+      const students = shouldLoad('students') ? await fetchAllPaginated('students', 'class_name, student_name') : null;
+      const teachers = shouldLoad('teachers') ? await fetchAllPaginated('teachers', 'name,role,pin_hash,pin_salt,permissions,must_change_pin') : null;
+      const attendance = shouldLoad('attendance') ? await fetchAllPaginated('attendance', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : null;
+      const behaviors = shouldLoad('behaviors') ? await fetchAllPaginated('behaviors', 'record_key,date_str,class_name,teacher_name,period,records,updated_at') : null;
+      const settings = shouldLoad('school_settings') ? await fetchAllPaginated('school_settings', 'key,value') : null;
+      const dutyReports = shouldLoad('duty_reports') ? await fetchAllPaginated('duty_reports', 'id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at') : null;
+      return [classes, students, teachers, attendance, behaviors, settings, dutyReports];
+    })(), APP_SYNC_TABLES_TIMEOUT_MS, 'تأخر تحميل بيانات المدرسة من الخادم.', 'APP_SYNC_TABLES_TIMEOUT');
+
+    console.info('[AUTH_TRACE] sync:tables-loaded', { changedTables, fullSync });
 
     if (fullSync) {
       const empty = classesData.length === 0 && studentsData.length === 0 &&
@@ -6639,21 +6915,27 @@ async function loadSystemDataFromCloud() {
     };
 
     if (shouldLoad('students')) {
+      console.info('[AUTH_TRACE] sync:student-delete-intents:start');
       await clearCompletedStudentDeleteIntentsFromCloud(studentsData);
+      console.info('[AUTH_TRACE] sync:student-delete-intents:done');
     }
 
     // Re-capture only dirty local records after network awaits so edits made
     // while tables were loading are merged instead of being overwritten.
     pendingLocalState = captureDirtyLocalState();
+    console.info('[AUTH_TRACE] sync:dirty-state-recaptured');
 
     // Replace only the datasets whose revision changed. Unchanged datasets remain
     // intact in the local snapshot; deletes are reflected by the changed table's
     // complete refresh, not inferred from updated_at timestamps.
     if (shouldLoad('classes')) {
+      console.info('[AUTH_TRACE] sync:map-classes:start');
       db.classes = [...new Set(classesData.map(r => r.name))];
+      console.info('[AUTH_TRACE] sync:map-classes:done', { count: db.classes.length });
     }
 
     if (shouldLoad('students')) {
+      console.info('[AUTH_TRACE] sync:map-students:start');
       db.students = {};
       studentsData.forEach(r => {
         const cn = r.class_name;
@@ -6662,11 +6944,13 @@ async function loadSystemDataFromCloud() {
       });
       sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
       Object.keys(db.students).forEach(k => db.students[k] = arabicSort(db.students[k]));
+      console.info('[AUTH_TRACE] sync:map-students:done', { classes: Object.keys(db.students).length });
     } else if (shouldLoad('classes')) {
       sortClassesList(db.classes).forEach(c => { if (!db.students[c]) db.students[c] = []; });
     }
 
     if (shouldLoad('teachers')) {
+      console.info('[AUTH_TRACE] sync:map-teachers:start');
       db.teachers = teachersData.filter(t => (t.role || 'teacher') === 'teacher').map(t => {
         const p = t.permissions || {};
         const mustChange = p.mustChangePin === true || t.must_change_pin === true;
@@ -6684,6 +6968,7 @@ async function loadSystemDataFromCloud() {
         pin_salt: t.pin_salt || null,
         permissions: t.permissions || {}
       }));
+      console.info('[AUTH_TRACE] sync:map-teachers:done', { teachers: db.teachers.length, customUsers: db.customUsers.length });
     }
 
     if (shouldLoad('school_settings')) {
@@ -6755,8 +7040,11 @@ async function loadSystemDataFromCloud() {
       }
     }
 
+    console.info('[AUTH_TRACE] sync:merge-dirty:start');
     mergeDirtyLocalState(pendingLocalState);
+    console.info('[AUTH_TRACE] sync:merge-dirty:done');
     applyPendingLocalDeletions();
+    console.info('[AUTH_TRACE] sync:apply-pending-deletes:done');
     cloudWritesBlockedByManifestFailure = false;
     cloudDataLoadState = 'ready';
 
@@ -6765,20 +7053,39 @@ async function loadSystemDataFromCloud() {
     if (nextManifest) lastLoadedCloudManifest = nextManifest;
     // Persist the complete cloud snapshot to IndexedDB first. localStorage writes
     // are synchronous and can freeze Android WebViews with a large school dataset.
+    console.info('[AUTH_TRACE] sync:persist-snapshot:start');
     const localSnapshotSaved = await persistOfflineStateWithTimeout();
-    if (!localSnapshotSaved) saveToLocalStorageSafe();
+    console.info('[AUTH_TRACE] sync:persist-snapshot:done', { localSnapshotSaved });
+    if (localSnapshotSaved) {
+      // The boot-time restore promise may have resolved to false before the first
+      // successful online sync. Promote that memoized result only after the new
+      // full snapshot and manifest have actually committed to IndexedDB; otherwise
+      // every later refresh would keep believing there is no local snapshot and
+      // download all seven tables again.
+      offlineSnapshotRestorePromise = Promise.resolve(true);
+      offlineSnapshotRestoredAtBoot = true;
+      localStorageFallbackSnapshot = false;
+    } else {
+      saveToLocalStorageSafe();
+      // Allow the next refresh to re-check IndexedDB/localStorage after a failed
+      // durable write rather than pinning a stale boot-time false result.
+      offlineSnapshotRestorePromise = null;
+    }
 
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
       dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
       dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
       dirtySets.custom_categories || getPendingDeletes().length;
+    console.info('[AUTH_TRACE] sync:pending-state:done', { pendingSync: !!pendingSync });
     updateSyncStatus(!pendingSync && localSnapshotSaved, !localSnapshotSaved
       ? (pendingSync
         ? "تم تحميل بيانات الخادم؛ التعديلات المحلية بانتظار المزامنة وتعذر تحديث النسخة المحلية الدائمة."
         : "تم تحميل بيانات الخادم؛ تعذر تحديث النسخة المحلية الدائمة الآن.")
       : pendingSync ? "محفوظ محلياً - بانتظار المزامنة" : "متزامن");
+    console.info('[AUTH_TRACE] sync:return-success');
     return true;
   } catch(e) {
+    console.warn('[AUTH_TRACE] sync:caught-error', { message: e?.message || String(e), code: e?.code || null });
     cloudDataLoadState = 'failed';
     console.error('Cloud load failed:', e);
     const saved = localStorage.getItem('abuDujana_db_v30');
@@ -7223,25 +7530,34 @@ async function handleUserLogin(e) {
       cloudWritesBlockedByManifestFailure = false;
       activeUser = serverLogin.principal;
       authenticatedLoginCommitted = true;
+      renderAuthenticatedDashboardShell();
+      console.info("[AUTH_TRACE] login:authenticated-shell-shown", {
+        principalType: activeUser?.type || null
+      });
       loginAttempts = 0; loginLockedUntil = 0;
       // Authentication is already complete and the server session is stored.
       // Never keep the login form waiting for secondary dashboard initialization.
       document.getElementById('loginView')?.classList.add('hidden');
       document.getElementById('dashboardSelectionView')?.classList.remove('hidden');
+      let postLoginInitializationStarted = false;
       const startPostLoginInitialization = () => {
+        if (postLoginInitializationStarted) return;
+        postLoginInitializationStarted = true;
+        console.info("[AUTH_TRACE] post-login-initialization:start");
         void finalizeLoginState().catch(finalizeError => {
           console.error('Post-login dashboard initialization failed; authenticated session remains active.', finalizeError);
           showToast('تم تسجيل الدخول، لكن بعض عناصر لوحة النظام تأخر تجهيزها.', 'error');
         });
       };
-      // Defer all secondary initialization until after the browser has painted
-      // the authenticated dashboard. This prevents mobile WebViews from leaving
-      // the login screen visually stuck while synchronous bootstrap work runs.
+      // Start at the next microtask checkpoint as the primary path. Some embedded
+      // browsers can suspend RAF and timer callbacks after an admin shell repaint;
+      // a microtask does not depend on either scheduler. The guarded RAF/timer
+      // paths remain as extra fallbacks and can never run finalization twice.
+      Promise.resolve().then(startPostLoginInitialization);
       if (typeof window.requestAnimationFrame === 'function') {
         window.requestAnimationFrame(() => window.setTimeout(startPostLoginInitialization, 0));
-      } else {
-        window.setTimeout(startPostLoginInitialization, 0);
       }
+      window.setTimeout(startPostLoginInitialization, 50);
     } else if (useLegacyLogin) {
       clearAppAuthSession();
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -7387,7 +7703,96 @@ async function refreshActiveUserPermissions() {
   }
 }
 
+let distronDashboardStageStartedAt = 0;
+let distronDashboardStageRunId = 0;
+function isDistronStagedPilot(user = activeUser) {
+  const normalizedName = String(user?.name || '').replace(/[\s_-]/g, '').toLowerCase();
+  return !!user && user.type !== 'admin' && normalizedName === 'distron';
+}
+function distronDashboardStagePending(delayMs) {
+  return isDistronStagedPilot() && distronDashboardStageStartedAt > 0 &&
+    Date.now() - distronDashboardStageStartedAt < delayMs;
+}
+function startDistronDashboardStages() {
+  if (!isDistronStagedPilot()) return false;
+  distronDashboardStageStartedAt = Date.now();
+  const runId = ++distronDashboardStageRunId;
+  const schedule = (delayMs, callback, label) => setTimeout(() => {
+    if (runId !== distronDashboardStageRunId || !isDistronStagedPilot()) return;
+    try {
+      callback();
+      console.info('[AUTH_TRACE] distron-dashboard-stage-ready', { stage: label, delayMs });
+    } catch (error) {
+      console.warn('[AUTH_TRACE] distron-dashboard-stage-failed', { stage: label, message: error?.message || String(error) });
+    }
+  }, delayMs);
+  schedule(5000, () => {
+    const card = document.getElementById('morningAssemblyLatenessDashboardCard');
+    const allowed = canUseMorningAssemblyLateness();
+    if (card) card.classList.toggle('hidden', !allowed);
+    const status = document.getElementById('morningAssemblyLatenessCardStatus');
+    if (status && allowed) status.textContent = 'صلاحية استثنائية مفعلة';
+  }, 'morning-assembly');
+  schedule(10000, () => {
+    const card = document.getElementById('dutyDashboardCard');
+    const allowed = activeUser?.permissions?.admin === true ||
+      activeUser?.permissions?.duty === true || isAdminAuthorized();
+    if (card) card.classList.toggle('hidden', !allowed);
+    if (allowed) {
+      const label = document.getElementById('dutyDashboardTime');
+      if (label) label.textContent = 'صلاحية المناوبة مفعلة — اضغط للفتح';
+    }
+    void timetableRefreshAccess({ deferAdminPortalStatus: true }).catch(error => {
+      console.warn('Distron timetable access refresh deferred:', error);
+    });
+  }, 'duty-and-timetable-access');
+  schedule(15000, () => {
+    const button = document.getElementById('studentAffairsBtn');
+    const allowed = !localOnlySession && (activeUser?.type === 'admin' ||
+      activeUser?.permissions?.admin === true || isAdminAuthorized() ||
+      activeUser?.permissions?.studentAffairs === true);
+    if (button) {
+      button.classList.toggle('hidden', !allowed);
+      button.classList.toggle('flex', allowed);
+    }
+  }, 'student-affairs');
+  return true;
+}
+
+function renderAuthenticatedDashboardShell() {
+  startDistronDashboardStages();
+  const user = activeUser;
+  if (!user) return;
+  const isAdmin = user.type === "admin" || user.permissions?.admin === true || isAdminAuthorized();
+  document.getElementById("loginView")?.classList.add("hidden");
+  document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
+  const name = document.getElementById("activeUserName");
+  if (name) name.textContent = user.name || "";
+  const adminBtn = document.getElementById("adminPanelBtn");
+  const showAdminPanel = isAdmin || hasAdminPanelAccess(user);
+  if (adminBtn) {
+    adminBtn.classList.toggle("hidden", !showAdminPanel);
+    adminBtn.classList.toggle("flex", showAdminPanel);
+  }
+  const studentAffairsBtn = document.getElementById("studentAffairsBtn");
+  const showStudentAffairs = !localOnlySession && (isAdmin || user.permissions?.studentAffairs === true) && !distronDashboardStagePending(15000);
+  if (studentAffairsBtn) {
+    studentAffairsBtn.classList.toggle("hidden", !showStudentAffairs);
+    studentAffairsBtn.classList.toggle("flex", showStudentAffairs);
+  }
+  const teacherTimetableBtn = document.getElementById("teacherTimetableBtn");
+  if (teacherTimetableBtn) {
+    teacherTimetableBtn.classList.add("hidden");
+    teacherTimetableBtn.classList.remove("flex");
+  }
+  const changePin = document.getElementById("changeTeacherPinBtn");
+  if (changePin) changePin.classList.toggle("hidden", user.type !== "teacher");
+}
+
 async function finalizeLoginState() {
+  console.info("[AUTH_TRACE] finalizeLoginState:start", {
+    principalType: activeUser?.type || null
+  });
   // Make the authenticated shell visible immediately. Cloud synchronization and
   // optional permission checks must never hold the user on the login screen.
   document.getElementById('loginView')?.classList.add('hidden');
@@ -7452,13 +7857,15 @@ async function finalizeLoginState() {
     } catch (permissionError) {
       console.warn('Permission refresh deferred after successful login.', permissionError);
     }
-    try {
-      await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
-    } catch (timetableError) {
-      timetableCanAccess = activeUser?.type === 'admin';
-      teacherPortalCanAccess = false;
-      teacherPortalEnabled = false;
-      console.warn('Timetable access refresh deferred after successful login.', timetableError);
+    if (!isDistronStagedPilot()) {
+      try {
+        await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
+      } catch (timetableError) {
+        timetableCanAccess = activeUser?.type === 'admin';
+        teacherPortalCanAccess = false;
+        teacherPortalEnabled = false;
+        console.warn('Timetable access refresh deferred after successful login.', timetableError);
+      }
     }
   } else {
     timetableCanAccess = false;
@@ -7488,7 +7895,7 @@ async function finalizeLoginState() {
   const studentAffairsBtn = document.getElementById('studentAffairsBtn');
   const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
   const showAdminPanel = hasAdminPanelAccess(activeUser) || isAdmin;
-  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true);
+  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true) && !distronDashboardStagePending(15000);
   if (adminBtn) {
     adminBtn.classList.toggle('hidden', !showAdminPanel);
     adminBtn.classList.toggle('flex', showAdminPanel);
@@ -7517,14 +7924,18 @@ async function finalizeLoginState() {
   const attCard = document.getElementById('attendanceDashboardCard'), behCard = document.getElementById('behaviorDashboardCard');
   if (attCard) attCard.classList.toggle('hidden', !canAccessAttendance());
   if (behCard) behCard.classList.toggle('hidden', !canAccessBehavior());
-  refreshDutyDashboardCard(); refreshSubstitutionDashboardCard(); renderDutyTodayRecords();
+  refreshSubstitutionDashboardCard();
+  if (!isDistronStagedPilot()) {
+    refreshDutyDashboardCard();
+    renderDutyTodayRecords();
+  }
   if (!localOnlySession) {
     try { await bounded(checkAndEnforcePinChange(), 5000, 'تعذر فحص تغيير الرقم السري الآن.'); } catch (error) { console.warn('PIN policy check deferred:', error); }
     try { await bounded(checkAndEnforceAdminPinChange(), 5000, 'تعذر فحص رقم المدير الآن.'); } catch (error) { console.warn('Admin PIN policy check deferred:', error); }
   }
-  // Re-apply each report's visibility after the authenticated principal is finalized.
+  // Re-apply report visibility after authentication. Combined report tabs are
+  // mounted lazily when the reports section is opened, not during login.
   refreshReportPanelsVisibility();
-  window.refreshCombinedReportTabs?.();
 }
 function hasAdminPanelAccess(user = activeUser) {
   return user?.type === 'admin' || user?.permissions?.admin === true || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
@@ -7904,7 +8315,7 @@ function canUseMorningAssemblyLateness() {
 function refreshMorningAssemblyLatenessCard() {
   const card = document.getElementById('morningAssemblyLatenessDashboardCard');
   if (!card) return;
-  const show = canUseMorningAssemblyLateness();
+  const show = canUseMorningAssemblyLateness() && !distronDashboardStagePending(5000);
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
   if (status && show) {
@@ -9624,6 +10035,7 @@ function switchAdminTab(tab) {
   if (tab === 'alerts') generateSmartAlerts();
   if (tab === 'reports') {
     refreshReportPanelsVisibility();
+    window.refreshCombinedReportTabs?.();
     if (canAccessReport('reportComprehensiveAbsence')) renderReportsSection();
     if (canAccessReport('reportClassLatenessFollowup')) renderLateFollowupReport();
     if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
@@ -10592,7 +11004,7 @@ function refreshDutyDashboardCard() {
   };
 
   const isTE = activeUser?.type === 'teacher' && activeUser?.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
-  const show = isA || hasDutyPerm || isTE;
+  const show = (isA || hasDutyPerm || isTE) && !distronDashboardStagePending(10000);
   
   card.classList.toggle('hidden', !show);
   
@@ -11078,7 +11490,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const validStatus=["absent","late","escape","outside"];
   const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
-  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=saSession?.principal?.type==="admin"||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
+  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=saSession?.principal?.type==="admin"||activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
   function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;

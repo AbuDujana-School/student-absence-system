@@ -5,6 +5,12 @@ const BASE_URL = process.env.APP_PREVIEW_URL || "http://127.0.0.1:4173/index.htm
 
 async function openIsolatedApp(page) {
   const traffic = { functionCalls: [], blockedWrites: [], unexpected: [], pageErrors: [] };
+  // The isolated pilot blocks Tailwind's remote runtime to avoid mutation observers
+  // in the large page. Keep its config bootstrap defined so the inline config
+  // statement remains valid when the CDN script is intentionally unavailable.
+  await page.addInitScript(() => {
+    if (!window.tailwind) window.tailwind = { config: {} };
+  });
   page.on("pageerror", (error) => traffic.pageErrors.push(error.stack || error.message));
 
   await page.route(/^https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
@@ -447,4 +453,100 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
   expect(result.hasSignatures).toBe(true);
   expect(result.failed).toBe(false);
   expect(result.fontSize).toBeGreaterThanOrEqual(14);
+});
+
+test("Distron dashboard pilot reveals secondary sections in staged order without affecting admin principals", async ({ page }) => {
+  // Tailwind's CDN runtime observes every class mutation and can stall this
+  // large page during isolated DOM visibility assertions. The app's own
+  // stylesheet defines .hidden, so the runtime is not needed for this test.
+  await page.route("**/*", (route) => new URL(route.request().url()).hostname === "cdn.tailwindcss.com" ? route.abort() : route.continue());
+  const traffic = await openIsolatedApp(page);
+  const initial = await page.evaluate(() => {
+    activeUser = {
+      type: "custom", name: "Distron",
+      permissions: { admin: true, duty: true, morningAssemblyLateness: true, studentAffairs: true },
+    };
+    localOnlySession = false;
+    document.getElementById("loginView")?.classList.add("hidden");
+    document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
+    window.timetablePilotCalls = [];
+    timetableRefreshAccess = async () => {
+      window.timetablePilotCalls.push(Date.now() - distronDashboardStageStartedAt);
+      return true;
+    };
+    canUseMorningAssemblyLateness = () => true;
+    isAdminAuthorized = () => true;
+    const pilotNodeIds = ["morningAssemblyLatenessDashboardCard", "morningAssemblyLatenessCardStatus", "dutyDashboardCard", "dutyDashboardTime", "studentAffairsBtn"];
+    const pilotNodes = Object.fromEntries(pilotNodeIds.map((id) => {
+      const classes = new Set(["hidden"]);
+      return [id, {
+        classList: {
+          contains: (name) => classes.has(name),
+          toggle: (name, force) => {
+            const next = force === undefined ? !classes.has(name) : !!force;
+            if (next) classes.add(name); else classes.delete(name);
+            return next;
+          },
+        },
+        textContent: "",
+      }];
+    }));
+    window.__distronPilotNodes = pilotNodes;
+    const nativeGetElementById = document.getElementById.bind(document);
+    document.getElementById = (id) => pilotNodes[id] || nativeGetElementById(id);
+    const nativeSetTimeout = window.setTimeout;
+    window.__distronScheduledTimers = [];
+    window.setTimeout = (callback, delay, ...args) => {
+      window.__distronScheduledTimers.push({ callback: () => callback(...args), delay });
+      return window.__distronScheduledTimers.length;
+    };
+    try {
+      startDistronDashboardStages();
+    } finally {
+      window.setTimeout = nativeSetTimeout;
+    }
+    return {
+      morning: !document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
+      duty: !document.getElementById("dutyDashboardCard")?.classList.contains("hidden"),
+      affairs: !document.getElementById("studentAffairsBtn")?.classList.contains("hidden"),
+      attendance: !document.getElementById("attendanceDashboardCard")?.classList.contains("hidden"),
+      behavior: !document.getElementById("behaviorDashboardCard")?.classList.contains("hidden"),
+      adminPilot: isDistronStagedPilot({ type: "admin", name: "مدير النظام العام", permissions: { admin: true } }),
+      delays: window.__distronScheduledTimers.map(timer => timer.delay),
+    };
+  });
+  expect(initial).toEqual({
+    morning: false, duty: false, affairs: false,
+    attendance: true, behavior: true, adminPilot: false,
+    delays: [5000, 10000, 15000],
+  });
+
+  await page.evaluate(() => window.__distronScheduledTimers[0].callback());
+  let visibility = await page.evaluate(() => ({
+    morning: !window.__distronPilotNodes.morningAssemblyLatenessDashboardCard.classList.contains("hidden"),
+    duty: !window.__distronPilotNodes.dutyDashboardCard.classList.contains("hidden"),
+    affairs: !window.__distronPilotNodes.studentAffairsBtn.classList.contains("hidden"),
+  }));
+  expect(visibility).toEqual({ morning: true, duty: false, affairs: false });
+  expect(await page.evaluate(() => window.timetablePilotCalls.slice())).toEqual([]);
+
+  await page.evaluate(() => window.__distronScheduledTimers[1].callback());
+  visibility = await page.evaluate(() => ({
+    morning: !window.__distronPilotNodes.morningAssemblyLatenessDashboardCard.classList.contains("hidden"),
+    duty: !window.__distronPilotNodes.dutyDashboardCard.classList.contains("hidden"),
+    affairs: !window.__distronPilotNodes.studentAffairsBtn.classList.contains("hidden"),
+  }));
+  expect(visibility).toEqual({ morning: true, duty: true, affairs: false });
+  expect((await page.evaluate(() => window.timetablePilotCalls)).length).toBe(1);
+
+  await page.evaluate(() => window.__distronScheduledTimers[2].callback());
+  visibility = await page.evaluate(() => ({
+    morning: !window.__distronPilotNodes.morningAssemblyLatenessDashboardCard.classList.contains("hidden"),
+    duty: !window.__distronPilotNodes.dutyDashboardCard.classList.contains("hidden"),
+    affairs: !window.__distronPilotNodes.studentAffairsBtn.classList.contains("hidden"),
+  }));
+  expect(visibility).toEqual({ morning: true, duty: true, affairs: true });
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
 });

@@ -46,3 +46,34 @@ test("admin reserve distribution report does not auto-load when login reveals it
   const reportsTab = section("if (tab === 'reports') {", "if (tab === 'timetable') {");
   assert.match(reportsTab, /loadSubstitutionDistributionReport\(true\)/);
 });
+
+test("staggered dashboard pilot is restricted to the non-admin Distron account", () => {
+  const pilot = section("function isDistronStagedPilot(", "function renderAuthenticatedDashboardShell()");
+  assert.match(pilot, /normalizedName === 'distron'/);
+  assert.match(pilot, /user\.type !== 'admin'/);
+  assert.match(pilot, /distronDashboardStageRunId/);
+  assert.match(pilot, /runId !== distronDashboardStageRunId/);
+  assert.match(pilot, /isDistronStagedPilot\(\)/);
+});
+
+test("Distron dashboard modules are revealed on the requested independent schedule", () => {
+  const pilot = section("function startDistronDashboardStages()", "function renderAuthenticatedDashboardShell()");
+  assert.match(pilot, /schedule\(5000,[\s\S]*'morning-assembly'/);
+  assert.match(pilot, /schedule\(10000,[\s\S]*timetableRefreshAccess\(\{ deferAdminPortalStatus: true \}\)/);
+  assert.match(pilot, /schedule\(15000,[\s\S]*'student-affairs'/);
+  const duty = section("function refreshDutyDashboardCard()", "function openDutyView()");
+  const morning = section("function refreshMorningAssemblyLatenessCard()", "function openMorningAssemblyLateness()");
+  assert.match(duty, /distronDashboardStagePending\(10000\)/);
+  assert.match(morning, /distronDashboardStagePending\(5000\)/);
+  assert.match(html, /distronDashboardStagePending\(15000\)/);
+});
+
+test("the staged pilot starts with the authenticated shell and does not change administrator credentials", () => {
+  const shell = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess(");
+  assert.match(shell, /startDistronDashboardStages\(\)/);
+  assert.doesNotMatch(finalize, /startDistronDashboardStages\(\)/);
+  assert.doesNotMatch(finalize, /update.*adminPin|set.*adminPin|change.*adminPin/i);
+  assert.match(finalize, /refreshActiveUserPermissions\(\)/);
+  assert.match(finalize, /if \(!isDistronStagedPilot\(\)\) \{\s*refreshDutyDashboardCard\(\);\s*renderDutyTodayRecords\(\);/);
+});
