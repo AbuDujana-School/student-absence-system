@@ -726,3 +726,117 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
   await context.close();
 });
+
+
+async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
+  const context = await browser.newContext({ serviceWorkers: "block" });
+  const page = await context.newPage();
+  const requests = [];
+  const errors = [];
+  page.on("pageerror", error => errors.push(error.stack || error.message));
+  await page.addInitScript(() => {
+    if (!window.tailwind) window.tailwind = { config: {} };
+  });
+  await page.route(/cdn\.tailwindcss\.com/, route => route.abort());
+  await page.route(/\/functions\/v1\/student-affairs(?:\?.*)?$/, async route => {
+    const request = route.request();
+    if (request.method() === "OPTIONS") {
+      await route.fulfill({
+        status: 204,
+        headers: {
+          "access-control-allow-origin": request.headers().origin || "*",
+          "access-control-allow-headers": request.headers()["access-control-request-headers"] || "authorization, apikey, content-type",
+          "access-control-allow-methods": "POST, OPTIONS",
+        },
+      });
+      return;
+    }
+    let body = {};
+    try { body = JSON.parse(request.postData() || "{}"); } catch (_) {}
+    requests.push(body.action || "");
+    if (body.action !== "app_login") {
+      await route.fulfill({
+        status: 400,
+        headers: { "access-control-allow-origin": request.headers().origin || "*", "content-type": "application/json" },
+        body: JSON.stringify({ error: "Unexpected synthetic login action" }),
+      });
+      return;
+    }
+    await route.fulfill({
+      status: 200,
+      headers: { "access-control-allow-origin": request.headers().origin || "*", "content-type": "application/json" },
+      body: JSON.stringify({
+        token: "a".repeat(64),
+        expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+        principal,
+      }),
+    });
+  });
+
+  const response = await page.goto(process.env.PREVIEW_URL || "http://127.0.0.1:4173/", {
+    waitUntil: "domcontentloaded",
+    timeout: 60_000,
+  });
+  expect(response?.status()).toBe(200);
+  await page.waitForFunction(() => typeof handleUserLogin === "function", undefined, { timeout: 30_000 });
+
+  // Simulate a stalled sync, while keeping authentication and optional access
+  // refreshes deterministic. The signed-in dashboard must still appear.
+  await page.evaluate(() => {
+    window.loadSystemDataFromCloud = async () => {
+      console.log("QA_LOGIN_TEST cloud sync intentionally pending");
+      cloudDataLoadState = "loading";
+      return new Promise(() => {});
+    };
+    window.timetableRefreshAccess = async () => true;
+    window.refreshActiveUserPermissions = async () => true;
+    window.checkAndEnforceAdminPinChange = async () => false;
+  });
+
+  await page.locator("#userPinInput").fill("7777");
+  await page.locator("#loginSubmitBtn").click();
+  await page.waitForFunction(() =>
+    document.getElementById("loginView")?.classList.contains("hidden") === true &&
+    document.getElementById("dashboardSelectionView")?.classList.contains("hidden") === false &&
+    cloudDataLoadState === "loading",
+    undefined,
+    { timeout: 10_000 },
+  );
+  await expect(page.locator("#loginSubmitBtn")).not.toBeDisabled();
+  await expect(page.locator("#loginSubmitBtn")).toContainText("دخول للنظام");
+  const state = await page.evaluate(() => ({
+    activeName: activeUser?.name || null,
+    activeType: activeUser?.type || null,
+    sessionReady: hasUnexpiredAppAuthSession(),
+    loginHidden: document.getElementById("loginView")?.classList.contains("hidden") === true,
+    dashboardVisible: document.getElementById("dashboardSelectionView")?.classList.contains("hidden") === false,
+    cloudState: cloudDataLoadState,
+  }));
+  expect(requests).toEqual(["app_login"]);
+  expect(state).toEqual({
+    activeName: principal.name,
+    activeType: "admin",
+    sessionReady: true,
+    loginHidden: true,
+    dashboardVisible: true,
+    cloudState: "loading",
+  });
+  expect(errors).toEqual([]);
+  await context.close();
+}
+
+test("general system administrator can enter while cloud sync is stalled", async ({ browser }) => {
+  await verifyLoginShellIsIndependentOfCloudSync(browser, {
+    type: "admin",
+    name: "مدير النظام العام",
+    permissions: { admin: true },
+  });
+});
+
+test("Tester1 secondary administrator can enter while cloud sync is stalled", async ({ browser }) => {
+  await verifyLoginShellIsIndependentOfCloudSync(browser, {
+    type: "admin",
+    name: "Tester1",
+    permissions: { admin: true, additionalAdmin: true },
+  });
+});
