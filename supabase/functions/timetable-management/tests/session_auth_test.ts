@@ -613,15 +613,19 @@ Deno.test("reserve distribution report grant is read-only and does not grant arc
 
 Deno.test("additional administrator sessions are downgraded to scoped teacher principals", async () => {
   const session = { principal_type: "admin", principal_name: "Tester1", expires_at: EXPIRY };
-  const allowed = storeWith(session, {
+  const noReportGrant = storeWith(session, {
     teacher: { name: "Tester1", role: "teacher", permissions: { admin: true, additionalAdmin: true, reportSubstitutionDistribution: false } },
   });
-  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowed, NOW, "timetable_substitution_report");
-  if (principal?.type !== "teacher" || principal.name !== "Tester1") {
-    throw new Error("Additional administrator must resolve as a scoped teacher, not a general administrator");
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, noReportGrant, NOW, "timetable_substitution_report") !== null) {
+    throw new Error("Additional administrator bypassed the explicit reserve-report grant");
   }
-  if (principal.permissions?.reportSubstitutionDistribution !== false) {
-    throw new Error("The current report permission snapshot was not retained");
+  const timetableGrant = storeWith(session, {
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: true, additionalAdmin: true } },
+    access: true,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, timetableGrant, NOW, "timetable_class_weekly_get");
+  if (principal?.type !== "teacher" || principal.name !== "Tester1") {
+    throw new Error("Additional administrator must use the teacher-scoped timetable authorization flow");
   }
   if (canUseTimetableAction("teacher", "timetable_substitution_reset", false, principal.reserveAccess === true)) {
     throw new Error("Additional administrator inherited the general administrator reserve bypass");
