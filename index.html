@@ -6028,7 +6028,7 @@ async function persistOfflineState() {
     const payload = {
       key: 'snapshot',
       savedAt: new Date().toISOString(),
-      db,
+      db: JSON.parse(JSON.stringify(db)),
       dirtySets: serializeDirtySets(),
       pendingDeletes: getPendingDeletes(),
       cloudSyncManifest: lastLoadedCloudManifest
