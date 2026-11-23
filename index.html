@@ -3760,6 +3760,15 @@ const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
   : "sb_publishable_xHm5_31UUMAQwpegIxhOTg_iiGdFLW5";
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Keep the modern Supabase publishable key in the apikey header only.
+// Legacy anon keys are JWTs and may also be forwarded as a Bearer token.
+function getSupabasePublicDataHeaders(extraHeaders = {}) {
+  const headers = { ...extraHeaders, apikey: SUPABASE_ANON_KEY };
+  const isLegacyJwtAnonKey = /^eyJ[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+\\.[A-Za-z0-9_-]+$/.test(SUPABASE_ANON_KEY);
+  if (isLegacyJwtAnonKey) headers.Authorization = `Bearer ${SUPABASE_ANON_KEY}`;
+  return headers;
+}
+
 // Observe Supabase Auth internals used by PostgREST without changing their
 // promise chain. The school app uses its own app_login/app_session flow; these
 // traces help identify whether the SDK's implicit getSession/lock path stalls.
@@ -5926,8 +5935,9 @@ async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
         const request = new XMLHttpRequest();
         request.open('GET', url.toString(), true);
         request.timeout = 60000;
-        request.setRequestHeader('apikey', SUPABASE_ANON_KEY);
-        request.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
+        for (const [name, value] of Object.entries(getSupabasePublicDataHeaders())) {
+          request.setRequestHeader(name, value);
+        }
         request.setRequestHeader('Accept', 'application/json');
         request.onreadystatechange = () => {
           console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-ready-state`, {
@@ -6695,11 +6705,9 @@ async function fetchAppSyncManifest() {
       console.info('[AUTH_TRACE] manifest-native-fetch:start');
       const fetchPromise = fetch(`${SUPABASE_URL}/rest/v1/rpc/get_app_sync_manifest`, {
         method: 'POST',
-        headers: {
-          apikey: SUPABASE_ANON_KEY,
-          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        headers: getSupabasePublicDataHeaders({
           'Content-Type': 'application/json'
-        },
+        }),
         body: '{}',
         signal: controller.signal
       });
