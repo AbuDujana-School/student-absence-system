@@ -325,6 +325,23 @@ test("school sync projections and timetable access reads stay isolated and minim
   // Sample Chromium's main-thread CPU while the isolated sync runs. CDP can
   // collect this from Node even if page JavaScript stops processing events.
   const profilerSession = await context.newCDPSession(page);
+  const cdpNetworkEvents = [];
+  await profilerSession.send("Network.enable");
+  for (const eventName of ["Network.requestWillBeSent", "Network.responseReceived", "Network.loadingFinished", "Network.loadingFailed"]) {
+    profilerSession.on(eventName, event => {
+      const requestUrl = event.request?.url || event.response?.url || "";
+      if (requestUrl.includes(SUPABASE_HOST)) {
+        cdpNetworkEvents.push({
+          event: eventName,
+          requestId: event.requestId,
+          url: requestUrl,
+          method: event.request?.method,
+          status: event.response?.status,
+          errorText: event.errorText,
+        });
+      }
+    });
+  }
   await profilerSession.send("Profiler.enable");
   await profilerSession.send("Profiler.start");
 
@@ -451,8 +468,15 @@ test("school sync projections and timetable access reads stay isolated and minim
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
   ]);
-  const profileResult = await profilerSession.send("Profiler.stop").catch(error => ({ error: error.message }));
-  await profilerSession.detach().catch(() => {});
+  const profileResult = await Promise.race([
+    profilerSession.send("Profiler.stop").catch(error => ({ error: error.message })),
+    new Promise(resolve => setTimeout(() => resolve({ error: "Profiler.stop exceeded 5000ms" }), 5_000)),
+  ]);
+  browserConsole.push("QA_CDP_NETWORK " + JSON.stringify(cdpNetworkEvents));
+  await Promise.race([
+    profilerSession.detach().catch(() => {}),
+    new Promise(resolve => setTimeout(resolve, 1_000)),
+  ]);
   if (profileResult.profile) {
     const nodes = new Map(profileResult.profile.nodes.map(node => [node.id, node]));
     const counts = new Map();
