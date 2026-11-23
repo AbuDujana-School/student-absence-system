@@ -6538,25 +6538,45 @@ async function persistOfflineStateWithTimeout(timeoutMs = 5000) {
 }
 
 async function fetchAppSyncManifest() {
-  console.info('[AUTH_TRACE] manifest-rpc:before-call');
-  const rpcPromise = sb.rpc('get_app_sync_manifest');
-  console.info('[AUTH_TRACE] manifest-rpc:promise-created', {
-    thenable: !!rpcPromise && typeof rpcPromise.then === 'function'
-  });
-  const result = await withAppSyncTimeout(
-    rpcPromise,
-    APP_SYNC_MANIFEST_TIMEOUT_MS,
-    'تأخر التحقق من تحديثات الخادم.',
-    'APP_SYNC_MANIFEST_TIMEOUT'
-  );
-  console.info('[AUTH_TRACE] manifest-rpc:promise-settled', {
-    hasData: !!result?.data,
-    hasError: !!result?.error
-  });
-  const { data, error } = result;
-  if (error) throw error;
+  console.info('[AUTH_TRACE] manifest-rpc:before-fetch');
+  // This RPC exposes revision counters only. Its migration explicitly grants
+  // EXECUTE to anon/authenticated, so it does not need the Supabase Auth client.
+  // Use native fetch here to avoid the SDK auth-session/lock queue that can
+  // leave repeated PostgREST thenables pending during the full sync bootstrap.
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), APP_SYNC_MANIFEST_TIMEOUT_MS);
+  let response;
+  try {
+    response = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_app_sync_manifest`, {
+      method: 'POST',
+      headers: {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: '{}',
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error?.name === 'AbortError') {
+      const timeoutError = new Error('تأخر التحقق من تحديثات الخادم.');
+      timeoutError.code = 'APP_SYNC_MANIFEST_TIMEOUT';
+      throw timeoutError;
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
+  if (!response.ok) {
+    const body = await response.text().catch(() => '');
+    const error = new Error(body || `Sync manifest request failed: HTTP ${response.status}`);
+    error.status = response.status;
+    throw error;
+  }
+  const data = await response.json();
   const manifest = normalizeAppSyncManifest(data);
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
+  console.info('[AUTH_TRACE] manifest-rpc:fetch-settled', { hasManifest: true });
   return manifest;
 }
 
