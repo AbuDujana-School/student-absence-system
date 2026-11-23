@@ -8140,6 +8140,13 @@ function logoutUser() {
 function _performLogout() {
   revokeAppAuthSession();
   clearAppAuthSession();
+  // Student Affairs bridge sessions belong to the previous authenticated app login.
+  // Drop the cached bridge token so the next login receives a fresh audit session.
+  saSession = null;
+  try {
+    localStorage.removeItem("abuDujana_studentAffairsSession");
+    sessionStorage.removeItem("abuDujana_studentAffairsSession");
+  } catch (error) {}
   localOnlySession = false;
   // A new principal must never inherit the previous user's "ready" cloud state.
   // Reset the bootstrap gate so the next successful login revalidates and refreshes
