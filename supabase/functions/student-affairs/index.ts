@@ -17,6 +17,7 @@ import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
 import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
+import { omanActivityDateRange, omanTodayIsoDate } from "./activity_monitor_policy.ts";
 import { isAdditionalAdminTeacher, buildAdditionalAdminPermissions } from "../_shared/admin_principal_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
@@ -1028,15 +1029,15 @@ async function handle(req: Request) {
       const principal = appSession.principal;
       const allowed = principal.type === "admin" || principal.permissions?.studstats === true;
       if (!allowed) return reply(403, { error: "عرض مراقبة أداء شؤون الطلبة يتطلب صلاحية الإحصائيات أو صلاحية الإدارة." });
-      const from = body.from_date == null ? new Date().toISOString().slice(0, 10) : String(body.from_date);
+      const from = body.from_date == null ? omanTodayIsoDate() : String(body.from_date);
       const to = body.to_date == null ? from : String(body.to_date);
       if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح." });
-      const endExclusive = new Date(to + "T00:00:00.000Z");
-      endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+      // Date filters are calendar dates in Oman (UTC+04:00), not UTC dates.
+      const { startInclusive, endExclusive } = omanActivityDateRange(from, to);
       const [{ data: teacherRows, error: teacherError }, { data: events, error: eventsError }] = await Promise.all([
         db.from("teachers").select("name,role,permissions").eq("role", "teacher").order("name", { ascending: true }),
         db.from("student_affairs_activity_events").select("id,event_type,actor_type,actor_name,created_at,metadata")
-          .gte("created_at", from + "T00:00:00.000Z").lt("created_at", endExclusive.toISOString())
+          .gte("created_at", startInclusive).lt("created_at", endExclusive)
           .order("created_at", { ascending: false }).limit(10000),
       ]);
       if (teacherError || eventsError) throw new Error("تعذر تحميل سجل مراقبة الأداء.");
