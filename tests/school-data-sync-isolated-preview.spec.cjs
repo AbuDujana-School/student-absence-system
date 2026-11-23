@@ -322,6 +322,12 @@ test("school sync projections and timetable access reads stay isolated and minim
   manifestCalls = 0;
   requestPhase = "sync-load";
 
+  // Sample Chromium's main-thread CPU while the isolated sync runs. CDP can
+  // collect this from Node even if page JavaScript stops processing events.
+  const profilerSession = await context.newCDPSession(page);
+  await profilerSession.send("Profiler.enable");
+  await profilerSession.send("Profiler.start");
+
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
     const heartbeat = setInterval(() => console.log("QA_HEARTBEAT " + Math.round(performance.now())), 1000);
@@ -445,7 +451,21 @@ test("school sync projections and timetable access reads stay isolated and minim
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
   ]);
-  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, routeEvents, browserConsole, pageErrors })).toBeFalsy();
+  const profileResult = await profilerSession.send("Profiler.stop").catch(error => ({ error: error.message }));
+  await profilerSession.detach().catch(() => {});
+  if (profileResult.profile) {
+    const nodes = new Map(profileResult.profile.nodes.map(node => [node.id, node]));
+    const counts = new Map();
+    for (const sample of profileResult.profile.samples || []) counts.set(sample, (counts.get(sample) || 0) + 1);
+    const hottest = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0,12).map(([id,count]) => {
+      const node = nodes.get(id); const frame = node?.callFrame || {};
+      return { count, functionName: frame.functionName || "(anonymous)", url: frame.url || "", lineNumber: frame.lineNumber, columnNumber: frame.columnNumber };
+    });
+    browserConsole.push("QA_CPU_PROFILE " + JSON.stringify({ sampleCount: (profileResult.profile.samples || []).length, hottest }));
+  } else {
+    browserConsole.push("QA_CPU_PROFILE unavailable:" + JSON.stringify(profileResult));
+  }
+    expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, routeEvents, browserConsole, pageErrors })).toBeFalsy();
   expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, routeEvents, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({
