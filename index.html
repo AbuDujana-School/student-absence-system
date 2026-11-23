@@ -10106,14 +10106,14 @@ async function loadStudentAffairsActivityReport(){
   if(!fromInput.value)fromInput.value=today.slice(0,8)+"01";
   if(!toInput.value)toInput.value=today;
   const from=fromInput.value,to=toInput.value;
-  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to){if(status)status.textContent="يرجى تحديد فترة تاريخ صحيحة.";return;}
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(from)||!/^\d{4}-\d{2}-\d{2}$/.test(to)||from>to){studentAffairsActivitySnapshot=null;if(status)status.textContent="يرجى تحديد فترة تاريخ صحيحة.";const table=document.getElementById("saActivityTeacherTable"),timeline=document.getElementById("saActivityTimeline"),summary=document.getElementById("saActivitySummary");if(table)table.textContent="الفترة المحددة غير صالحة.";if(timeline)timeline.textContent="";if(summary)summary.innerHTML="";return;}
   if(status)status.textContent="جارٍ تحميل سجل الأنشطة الموثق...";
   try{
     const token=appAuthSession?.token||readAppAuthToken()||getToken();
     const data=await appAuthRequest({action:"student_affairs_activity_report",from,to},token);
     studentAffairsActivitySnapshot={teachers:Array.isArray(data.teachers)?data.teachers:[],events:Array.isArray(data.events)?data.events:[],from,to};
     renderStudentAffairsActivityReport();
-  }catch(error){if(status)status.textContent=error?.message||"تعذر تحميل سجل الأنشطة.";const table=document.getElementById("saActivityTeacherTable");if(table)table.textContent=error?.message||"تعذر تحميل التقرير.";}
+  }catch(error){studentAffairsActivitySnapshot=null;if(status)status.textContent=error?.message||"تعذر تحميل سجل الأنشطة.";const table=document.getElementById("saActivityTeacherTable"),timeline=document.getElementById("saActivityTimeline"),summary=document.getElementById("saActivitySummary");if(table)table.textContent=error?.message||"تعذر تحميل التقرير.";if(timeline)timeline.textContent="";if(summary)summary.innerHTML="";}
 }
 function printStudentAffairsActivityReport(){
   if(!studentAffairsActivitySnapshot){showToast("اعرض التقرير أولاً قبل تصدير PDF.","error");return;}
