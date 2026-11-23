@@ -203,9 +203,15 @@ test("unchanged cloud manifests persist only queued deletion overlays", () => {
   assert.doesNotMatch(capture, /cloneOfflineValue\(db\)/);
 
   const manifestSave = loader.lastIndexOf("if (nextManifest) lastLoadedCloudManifest = nextManifest");
-  const finalPersist = loader.indexOf("await persistOfflineStateWithTimeout()", manifestSave);
-  const fallbackSave = loader.indexOf("if (!localSnapshotSaved) saveToLocalStorageSafe()", manifestSave);
+  const finalPersist = loader.indexOf("const localSnapshotSaved = await persistOfflineStateWithTimeout()", manifestSave);
+  const fallbackSave = loader.indexOf("saveToLocalStorageSafe()", finalPersist);
   assert.ok(manifestSave >= 0 && finalPersist > manifestSave && fallbackSave > finalPersist);
+  const snapshotStateUpdate = loader.slice(finalPersist, fallbackSave);
+  assert.match(snapshotStateUpdate, /if \(localSnapshotSaved\)/);
+  assert.match(snapshotStateUpdate, /offlineSnapshotRestorePromise = Promise\.resolve\(true\)/);
+  assert.match(snapshotStateUpdate, /offlineSnapshotRestoredAtBoot = true/);
+  assert.match(snapshotStateUpdate, /else/);
+  assert.match(snapshotStateUpdate, /offlineSnapshotRestorePromise = null/);
   assert.equal((loader.match(/await persistOfflineStateWithTimeout\(\)/g) || []).length, 3);
 });
 
