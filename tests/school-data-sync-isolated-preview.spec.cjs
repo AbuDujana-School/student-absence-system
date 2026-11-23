@@ -821,7 +821,7 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     };
   });
   expect(loginOutcome.activeName, JSON.stringify(loginOutcome.consoleLines)).toBe(principal.name);
-  expect(loginOutcome.activeType).toBe("admin");
+  expect(loginOutcome.activeType).toBe(principal.type);
   expect(loginOutcome.sessionReady).toBe(true);
   expect(loginOutcome.loginHidden).toBe(true);
   expect(loginOutcome.dashboardVisible).toBe(true);
@@ -842,7 +842,7 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   expect(requests).toEqual(["app_login"]);
   expect(state).toEqual({
     activeName: principal.name,
-    activeType: "admin",
+    activeType: principal.type,
     sessionReady: true,
     loginHidden: true,
     dashboardVisible: true,
@@ -860,10 +860,25 @@ test("general system administrator can enter while cloud sync is stalled", async
   });
 });
 
-test("Tester1 secondary administrator can enter while cloud sync is stalled", async ({ browser }) => {
+test("Tester1 teacher account with full administration access can enter while cloud sync is stalled", async ({ browser }) => {
   await verifyLoginShellIsIndependentOfCloudSync(browser, {
-    type: "admin",
+    type: "teacher",
     name: "Tester1",
-    permissions: { admin: true, additionalAdmin: true },
+    permissions: {
+      admin: true,
+      attendance: true,
+      behavior: true,
+      studstats: true,
+      behaviorstats: true,
+      users: true,
+      students: true,
+      teachers: true,
+      duty: true,
+      alerts: true,
+      reports: true,
+      sync: true,
+      security: true,
+      studentAffairs: true,
+    },
   });
 });
