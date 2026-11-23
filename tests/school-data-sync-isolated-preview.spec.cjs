@@ -334,6 +334,33 @@ test("school sync projections and timetable access reads stay isolated and minim
   });
   browserConsole.push("QA_DIRECT_FETCH_PROBE " + JSON.stringify(directFetchProbe));
 
+  // Verify that the browser can receive an isolated asynchronous XHR response
+  // from the synthetic table route before the application starts its sync flow.
+  requestPhase = "direct-xhr-probe";
+  const directXhrProbe = await page.evaluate(async () => Promise.race([
+    new Promise(resolve => {
+      const request = new XMLHttpRequest();
+      const states = [];
+      request.open("GET", "https://" + "ylsocrvwqibptuwfzbke.supabase.co" + "/rest/v1/classes?select=name&limit=1000&offset=0", true);
+      request.timeout = 10000;
+      request.setRequestHeader("apikey", "qa-only");
+      request.setRequestHeader("Authorization", "Bearer qa-only");
+      request.setRequestHeader("Accept", "application/json");
+      request.onreadystatechange = () => states.push({ state: request.readyState, status: request.status });
+      request.onload = () => resolve({ settled: true, status: request.status, body: request.responseText, states });
+      request.onerror = () => resolve({ settled: true, error: "xhr-error", states });
+      request.ontimeout = () => resolve({ settled: true, error: "xhr-timeout", states });
+      request.onabort = () => resolve({ settled: true, error: "xhr-abort", states });
+      request.send();
+    }),
+    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 11000 }), 11000)),
+  ]));
+  browserConsole.push("QA_DIRECT_XHR_PROBE " + JSON.stringify(directXhrProbe));
+  expect(directXhrProbe.settled, "Synthetic async XHR must complete before app sync; diagnostics: " + JSON.stringify({ directXhrProbe, supabaseRequests, routeEvents, browserConsole })).toBe(true);
+  expect(directXhrProbe.status, "Synthetic XHR fixture must return HTTP 200").toBe(200);
+  reads.clear();
+  projections.clear();
+
   // Probe the real Supabase client's RPC path independently from application sync.
   // This separates client auth/REST transport from loadSystemDataFromCloud orchestration.
   requestPhase = "direct-rpc";
