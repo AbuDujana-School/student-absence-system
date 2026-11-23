@@ -7464,7 +7464,12 @@ function startTesterOneDashboardStages() {
     }
   }, delayMs);
   schedule(5000, () => refreshMorningAssemblyLatenessCard(), 'morning-assembly');
-  schedule(10000, () => refreshDutyDashboardCard(), 'duty');
+  schedule(10000, () => {
+    refreshDutyDashboardCard();
+    void timetableRefreshAccess({ deferAdminPortalStatus: true }).catch(error => {
+      console.warn('Tester1 timetable access refresh deferred:', error);
+    });
+  }, 'duty-and-timetable-access');
   schedule(15000, () => {
     const button = document.getElementById('studentAffairsBtn');
     const allowed = !localOnlySession && (activeUser?.type === 'admin' ||
@@ -7576,13 +7581,15 @@ async function finalizeLoginState() {
     } catch (permissionError) {
       console.warn('Permission refresh deferred after successful login.', permissionError);
     }
-    try {
-      await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
-    } catch (timetableError) {
-      timetableCanAccess = activeUser?.type === 'admin';
-      teacherPortalCanAccess = false;
-      teacherPortalEnabled = false;
-      console.warn('Timetable access refresh deferred after successful login.', timetableError);
+    if (!isTesterOneStagedPilot()) {
+      try {
+        await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
+      } catch (timetableError) {
+        timetableCanAccess = activeUser?.type === 'admin';
+        teacherPortalCanAccess = false;
+        teacherPortalEnabled = false;
+        console.warn('Timetable access refresh deferred after successful login.', timetableError);
+      }
     }
   } else {
     timetableCanAccess = false;
