@@ -4687,7 +4687,7 @@ async function openStudentAffairsView(fromHome = false) {
   }
 }
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(studentAffairsOpenedFromHome){studentAffairsOpenedFromHome=false;document.getElementById("dashboardSelectionView")?.classList.remove("hidden");return;}if(isSinglePermissionMode()&&getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
-async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
+async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(isGeneralAdminUser(d.principal))await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
   const teachers=Array.isArray(saAdminData?.teachers)?saAdminData.teachers:[];
@@ -7768,7 +7768,7 @@ function renderAuthenticatedDashboardShell() {
   startDistronDashboardStages();
   const user = activeUser;
   if (!user) return;
-  const isAdmin = isGeneralAdminUser(user) || isGeneralAdminUser(user) || isAdminAuthorized();
+  const isAdmin = isGeneralAdminUser(user) || isAdminAuthorized();
   document.getElementById("loginView")?.classList.add("hidden");
   document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
   const name = document.getElementById("activeUserName");
@@ -7943,10 +7943,10 @@ async function finalizeLoginState() {
   refreshReportPanelsVisibility();
 }
 function hasAdminPanelAccess(user = activeUser) {
-  return isGeneralAdminUser(user) || isGeneralAdminUser(user) || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
+  return isGeneralAdminUser(user) || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
 }
 function getSingleAdminPanelPermission(user = activeUser) {
-  if (!user || isGeneralAdminUser(user) || isGeneralAdminUser(user)) return null;
+  if (!user || isGeneralAdminUser(user)) return null;
   const keys = ADMIN_TAB_PERMISSIONS.filter(key => user.permissions?.[key] === true);
   return keys.length === 1 ? keys[0] : null;
 }
@@ -9982,11 +9982,11 @@ function hasGranularReportPermissions(permissions) {
 function canAccessReport(key, user = activeUser) {
   if (!REPORT_PERMISSION_KEYS.includes(key)) return false;
   const p = user?.permissions && typeof user.permissions === 'object' ? user.permissions : {};
-  if (isGeneralAdminUser(user) || isGeneralAdminUser(user) || isAdminAuthorized()) return true;
+  if (isGeneralAdminUser(user) || isAdminAuthorized()) return true;
   return p[key] === true;
 }
 function canAccessAnyReport(user = activeUser) {
-  return isGeneralAdminUser(user) || isGeneralAdminUser(user) || isAdminAuthorized()
+  return isGeneralAdminUser(user) || isAdminAuthorized()
     || REPORT_PERMISSION_KEYS.some(key => canAccessReport(key, user));
 }
 function refreshReportPanelsVisibility() {
