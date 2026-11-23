@@ -6495,12 +6495,22 @@ async function persistOfflineStateWithTimeout(timeoutMs = 5000) {
 }
 
 async function fetchAppSyncManifest() {
-  const { data, error } = await withAppSyncTimeout(
-    sb.rpc('get_app_sync_manifest'),
+  console.info('[AUTH_TRACE] manifest-rpc:before-call');
+  const rpcPromise = sb.rpc('get_app_sync_manifest');
+  console.info('[AUTH_TRACE] manifest-rpc:promise-created', {
+    thenable: !!rpcPromise && typeof rpcPromise.then === 'function'
+  });
+  const result = await withAppSyncTimeout(
+    rpcPromise,
     APP_SYNC_MANIFEST_TIMEOUT_MS,
     'تأخر التحقق من تحديثات الخادم.',
     'APP_SYNC_MANIFEST_TIMEOUT'
   );
+  console.info('[AUTH_TRACE] manifest-rpc:promise-settled', {
+    hasData: !!result?.data,
+    hasError: !!result?.error
+  });
+  const { data, error } = result;
   if (error) throw error;
   const manifest = normalizeAppSyncManifest(data);
   if (!manifest) throw new Error('Invalid cloud synchronization manifest.');
