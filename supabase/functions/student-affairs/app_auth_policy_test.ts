@@ -13,6 +13,7 @@ import {
   revokeAppSession,
   projectAppPrincipal,
   resolveAppPrincipal,
+  appCredentialLookupKey,
 } from "./app_auth_policy.ts";
 
 Deno.test("general app PIN accepts only 4–10 numeric digits", () => {
@@ -159,4 +160,29 @@ Deno.test("additional admin elevation requires a separate explicit marker on a t
   if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: false, additionalAdmin: true } })) {
     throw new Error("Additional-admin marker without admin permission must be rejected");
   }
+});
+
+
+Deno.test("additional administrator uses the original teacher credential namespace", () => {
+  const additionalAdmin = appCredentialLookupKey({
+    type: "admin",
+    credentialType: "teacher",
+    name: "Tester1",
+  });
+  if (additionalAdmin !== "teacher|Tester1") {
+    throw new Error("Elevated additional-admin role must not change the stored teacher credential key");
+  }
+  const generalAdmin = appCredentialLookupKey({
+    type: "admin",
+    name: "مدير النظام العام",
+  });
+  if (generalAdmin !== "admin|مدير النظام العام") {
+    throw new Error("General administrator credential namespace changed");
+  }
+  const custom = appCredentialLookupKey({
+    type: "custom",
+    credentialType: "custom",
+    name: "Custom User",
+  });
+  if (custom !== "custom|Custom User") throw new Error("Custom credential namespace changed");
 });

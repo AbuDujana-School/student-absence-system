@@ -77,8 +77,18 @@ export function extractAppBearerToken(header: unknown): string | null {
 
 
 export interface AppLoginCandidate extends AppPrincipalInput {
+  /** The stored credential namespace can differ from the effective session role.
+   * Additional administrators authenticate against their original teacher record. */
+  credentialType?: "teacher" | "custom";
   hash: unknown;
   salt: unknown;
+}
+
+/** Resolve the credential row using its storage identity, not an elevated session role. */
+export function appCredentialLookupKey(candidate: Pick<AppLoginCandidate, "type" | "name" | "credentialType">): string {
+  const credentialType = candidate.credentialType || candidate.type;
+  const name = typeof candidate.name === "string" ? candidate.name.trim() : "";
+  return `${String(credentialType)}|${name}`;
 }
 
 /**
