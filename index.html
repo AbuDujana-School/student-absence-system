@@ -5704,6 +5704,15 @@ function isGeneralAdminUser(user = activeUser) {
 }
 function isAdditionalAdminUser(user = activeUser) { return user?.type === 'admin' && user?.adminScope === 'additional'; }
 function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser()) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
+// Statistics are separately granted, but the matching record-reading permission is also required.
+// General and additional administrators retain their explicit privileged bypass.
+function canAccessAdminTab(key, user = activeUser) {
+  if (isGeneralAdminUser(user) || (user === activeUser && isAdminAuthorized())) return true;
+  const permissions = user?.permissions && typeof user.permissions === 'object' ? user.permissions : {};
+  if (key === 'studstats') return permissions.studstats === true && permissions.attendance !== false;
+  if (key === 'behaviorstats') return permissions.behaviorstats === true && permissions.behavior !== false;
+  return permissions[key] === true;
+}
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
 // Legacy teacher accounts with the explicit admin permission may review the local deletion queue only.
 // This deliberately does not grant them the general-admin bypass used by other protected modules.
@@ -7956,17 +7965,17 @@ async function finalizeLoginState() {
   refreshReportPanelsVisibility();
 }
 function hasAdminPanelAccess(user = activeUser) {
-  return isGeneralAdminUser(user) || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
+  return isGeneralAdminUser(user) || ADMIN_TAB_PERMISSIONS.some(key => canAccessAdminTab(key, user));
 }
 function getSingleAdminPanelPermission(user = activeUser) {
   if (!user || isGeneralAdminUser(user)) return null;
-  const keys = ADMIN_TAB_PERMISSIONS.filter(key => user.permissions?.[key] === true);
+  const keys = ADMIN_TAB_PERMISSIONS.filter(key => canAccessAdminTab(key, user));
   return keys.length === 1 ? keys[0] : null;
 }
-function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => user.permissions[k] === true) || user.permissions.studentAffairs === true) : false; }
+function hasAnyPermission(user) { return user?.permissions ? (ADMIN_TAB_PERMISSIONS.some(k => canAccessAdminTab(k, user)) || user.permissions.studentAffairs === true) : false; }
 function getAssignedAdminPermissionKeys(user = activeUser) {
   const permissions = user?.permissions || {};
-  return [...ADMIN_TAB_PERMISSIONS, 'studentAffairs'].filter(key => permissions[key] === true);
+  return [...ADMIN_TAB_PERMISSIONS.filter(key => canAccessAdminTab(key, user)), 'studentAffairs'].filter(key => permissions[key] === true);
 }
 function getSingleAdminPermission(user = activeUser) {
   const keys = getAssignedAdminPermissionKeys(user);
@@ -9307,7 +9316,7 @@ function setupRolePermissions() {
     else if (canBeneficiaries) first = 'beneficiaries';
     ADMIN_TAB_PERMISSIONS.forEach(id => {
       const el = document.getElementById(`tab-${id}`);
-      const allow = !!(activeUser?.permissions?.[id]);
+      const allow = canAccessAdminTab(id, activeUser);
       if (el) el.style.display = allow ? 'flex' : 'none';
       if (allow && !first && id !== 'students' && id !== 'teachers') first = id;
     });
@@ -9623,8 +9632,8 @@ function updateAdvancedAnalytics() {
 
 function renderAdminOverview() {
   const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || !!isGeneralAdminUser(activeUser);
-  const canStats = isA || !!activeUser?.permissions?.studstats;
-  const canTeachers = isA || !!activeUser?.permissions?.teachers;
+  const canStats = canAccessAdminTab('studstats', activeUser);
+  const canTeachers = canAccessAdminTab('teachers', activeUser);
   const canStudentAffairs = isA || activeUser?.permissions?.studentAffairs === true;
   const setText = (id, value) => { const el = document.getElementById(id); if (el) el.textContent = String(value); };
   const toggle = (id, visible) => { const el = document.getElementById(id); if (el) el.classList.toggle('hidden', !visible); };
@@ -9739,7 +9748,7 @@ function renderAdminOverview() {
 }
 function initAdminDashboard() {
   const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
-  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : (isA || !!(activeUser?.permissions?.[k]));
+  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : canAccessAdminTab(k, activeUser);
   const activitySection = document.getElementById('dashboardTeachersActivity');
   if (activitySection) activitySection.classList.toggle('hidden', !has('teachers'));
   const metricsSection = document.getElementById('dashboardMetricsSection');
@@ -10018,7 +10027,7 @@ function refreshReportPanelsVisibility() {
 function switchAdminTab(tab) {
   refreshReportPanelsVisibility();
   const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
-  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : k === 'reports' ? (isA || canAccessAnyReport()) : (isA || !!(activeUser?.permissions?.[k]));
+  const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : k === 'reports' ? (isA || canAccessAnyReport()) : canAccessAdminTab(k, activeUser);
   const canDashboard = isA || hasMultipleAdminPermissions(activeUser);
   const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
   if (tab === 'timetable' && !isGeneralAdminUser(activeUser) && !timetableCanAccess) { showToast('لا تملك صلاحية منظومة الجداول والاحتياط.', 'error'); return; }
