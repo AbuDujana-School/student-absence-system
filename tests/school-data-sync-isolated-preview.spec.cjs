@@ -805,6 +805,25 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     window.refreshActiveUserPermissions = async () => true;
     window.checkAndEnforceAdminPinChange = async () => false;
 
+    const nativeSetTimeout = window.setTimeout.bind(window);
+    window.setTimeout = function (callback, delay, ...args) {
+      if (typeof callback === "function" && callback.name === "startPostLoginInitialization") {
+        console.log("QA_LOGIN_TIMER scheduled:" + String(delay));
+        return nativeSetTimeout(() => {
+          console.log("QA_LOGIN_TIMER fired:" + String(delay));
+          return callback(...args);
+        }, delay);
+      }
+      return nativeSetTimeout(callback, delay, ...args);
+    };
+    const nativeRaf = window.requestAnimationFrame?.bind(window);
+    if (nativeRaf) {
+      window.requestAnimationFrame = callback => nativeRaf(timestamp => {
+        console.log("QA_LOGIN_RAF fired");
+        return callback(timestamp);
+      });
+    }
+
     // Trace each synchronous dashboard-finalization stage in the Node job log.
     // This remains test-only and does not change deployed application code.
     const watched = [
