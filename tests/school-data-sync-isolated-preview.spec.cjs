@@ -103,6 +103,31 @@ test("school sync projections and timetable access reads stay isolated and minim
   });
 
   await page.addInitScript(() => {
+    // Observe Web Locks without changing lock options, callback, or returned promise.
+    if (navigator.locks && typeof navigator.locks.request === "function") {
+      const manager = navigator.locks;
+      const originalLockRequest = manager.request.bind(manager);
+      manager.request = function (...args) {
+        const lockName = typeof args[0] === "string" ? args[0] : String(args[0]?.name || "unknown");
+        console.log("QA_LOCK request:start:" + lockName);
+        let result;
+        try {
+          result = originalLockRequest(...args);
+        } catch (error) {
+          console.log("QA_LOCK request:throw:" + lockName + ":" + (error?.message || String(error)));
+          throw error;
+        }
+        console.log("QA_LOCK request:returned:" + lockName + ":thenable=" + String(!!result && typeof result.then === "function"));
+        return Promise.resolve(result).then(value => {
+          console.log("QA_LOCK request:fulfilled:" + lockName);
+          return value;
+        }, error => {
+          console.log("QA_LOCK request:rejected:" + lockName + ":" + (error?.message || String(error)));
+          throw error;
+        });
+      };
+    }
+
     // Install before application scripts create the Supabase client, because
     // supabase-js captures the global fetch implementation during createClient.
     // This wrapper is observational only: it forwards the original arguments,
@@ -182,7 +207,11 @@ test("school sync projections and timetable access reads stay isolated and minim
 
     if (url.pathname === "/rest/v1/rpc/get_app_sync_manifest" && method === "POST") {
       manifestCalls += 1;
+      routeEvents.push({ stage: "manifest-fulfill-start", phase: requestPhase });
+      browserConsole.push("QA_ROUTE manifest-fulfill-start:" + requestPhase);
       await route.fulfill({ status: 200, headers, body: JSON.stringify(manifest) });
+      routeEvents.push({ stage: "manifest-fulfill-done", phase: requestPhase });
+      browserConsole.push("QA_ROUTE manifest-fulfill-done:" + requestPhase);
       return;
     }
 
