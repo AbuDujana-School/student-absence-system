@@ -6022,25 +6022,20 @@ function restoreDirtySetsObject(obj) {
 async function persistOfflineState() {
   try {
     const database = await openOfflineDatabase();
-    const serializedDb = JSON.stringify(db);
-    const dbSnapshot = JSON.parse(serializedDb);
-    const payload = {
-      key: 'snapshot',
+    const snapshotData = {
       savedAt: new Date().toISOString(),
-      db: dbSnapshot,
+      db: JSON.parse(JSON.stringify(db)),
       dirtySets: serializeDirtySets(),
       pendingDeletes: getPendingDeletes(),
       cloudSyncManifest: lastLoadedCloudManifest
     };
-    const serializedPayloadLength = JSON.stringify(payload).length;
-    const fieldSizes = Object.fromEntries(Object.entries(db).map(([key, value]) => {
-      try { return [key, JSON.stringify(value)?.length || 0]; }
-      catch (_) { return [key, -1]; }
-    }));
+    // Store one compact JSON string instead of a nested object graph. Some
+    // mobile WebViews stall while IndexedDB clones nested school snapshots,
+    // even when the JSON representation is small. The restore path below
+    // remains compatible with existing object-form snapshots.
+    const snapshotJson = JSON.stringify(snapshotData);
     console.info('[AUTH_TRACE] offline-snapshot:payload-ready', {
-      jsonChars: serializedDb.length,
-      payloadJsonChars: serializedPayloadLength,
-      fieldSizes,
+      jsonChars: snapshotJson.length,
       classes: Array.isArray(db.classes) ? db.classes.length : 0,
       teachers: Array.isArray(db.teachers) ? db.teachers.length : 0,
       students: Object.values(db.students || {}).reduce((total, rows) => total + (Array.isArray(rows) ? rows.length : 0), 0),
@@ -6071,7 +6066,10 @@ async function persistOfflineState() {
         reject(error);
       };
       try {
-        const request = transaction.objectStore('state').put(payload);
+        const request = transaction.objectStore('state').put({
+          key: 'snapshot',
+          snapshotJson
+        });
         request.onsuccess = () => console.info('[AUTH_TRACE] offline-snapshot:put-success');
         request.onerror = () => console.warn('[AUTH_TRACE] offline-snapshot:put-error', request.error?.name || request.error?.message || 'unknown');
         console.info('[AUTH_TRACE] offline-snapshot:put-issued');
@@ -6117,7 +6115,7 @@ async function restoreOfflineState() {
     // IndexedDB open/read can remain pending on some Android WebViews when an
     // older app window still owns the database. Never let that stall login or
     // hold the shared cloud-refresh lock indefinitely.
-    const snapshot = await withAppSyncTimeout((async () => {
+    const storedSnapshot = await withAppSyncTimeout((async () => {
       const database = await openOfflineDatabase();
       return await new Promise((resolve, reject) => {
         const tx = database.transaction('state', 'readonly');
@@ -6127,6 +6125,11 @@ async function restoreOfflineState() {
         tx.onabort = () => reject(tx.error || new Error('أُلغيت قراءة النسخة المحلية'));
       });
     })(), 6000, 'تأخرت استعادة النسخة المحلية؛ سيتم استخدام النسخة الاحتياطية الآمنة.', 'APP_OFFLINE_RESTORE_TIMEOUT');
+    // New snapshots are stored as a single JSON string to avoid nested-object
+    // structured-clone stalls; continue accepting the legacy object format.
+    const snapshot = typeof storedSnapshot?.snapshotJson === 'string'
+      ? JSON.parse(storedSnapshot.snapshotJson)
+      : storedSnapshot;
     if (!snapshot?.db || typeof snapshot.db !== 'object') {
       // IndexedDB may be unavailable in older browsers or restricted sessions.
       // Restore the localStorage cache before cloud loading captures dirty local edits.
