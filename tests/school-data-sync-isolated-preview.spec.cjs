@@ -597,12 +597,10 @@ test("school sync projections and timetable access reads stay isolated and minim
       console.log("QA_ORCHESTRATION_TABLE_READ " + tableName + " " + selectCols);
       return window.__qaReadFixtures?.[tableName] || [];
     };
-    // Isolate the real offline persistence call below from the main sync
-    // orchestration so its result and event timing can be observed separately.
-    persistOfflineStateWithTimeout = async () => {
-      console.log("QA_TEST offline snapshot persistence deferred for isolated probe");
-      return true;
-    };
+    // Keep real IndexedDB persistence in the orchestration test. The next
+    // unchanged-manifest refresh is only valid when the first sync actually
+    // committed a usable local snapshot, not when a stub merely returned true.
+    console.log("QA_TEST using real offline snapshot persistence");
     const trace = [];
     // A page-level heartbeat distinguishes a blocked renderer from a fetch
     // promise that remains pending while the event loop continues to run.
