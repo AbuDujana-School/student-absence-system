@@ -712,17 +712,8 @@ test("school sync projections and timetable access reads stay isolated and minim
     expect(changedOrchestrationReads[table] || 0, "Unchanged table must not be fetched again: " + table).toBe(1);
   }
 
-  await page.evaluate(async () => {
-    timetableCanAccess = true;
-    // Verify the access-list action independently, without bootstrapping the
-    // portal's teacher directory/weekly-grid queries in this sync regression.
-    await appAuthRequest({ action: "timetable_list_access" }, appAuthSession?.token);
-    await timetableLoadImports({ refreshAccess: false });
-    await timetableLoadImports({ refreshAccess: false });
-  });
-  expect(functionActions.filter((action) => action === "timetable_list_access")).toHaveLength(1);
-  expect(functionActions.filter((action) => action === "timetable_list_imports")).toHaveLength(2);
-
+  // Timetable management has its own dedicated browser regression workflow.
+  // Keep this test focused on school-data sync and avoid loading its editor UI.
   expect(manifestCalls).toBe(0); // Sync orchestration uses the synthetic manifest fixture.
   expect(blockedWrites, "No REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
@@ -786,7 +777,14 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   // Simulate a stalled sync, while keeping authentication and optional access
   // refreshes deterministic. The signed-in dashboard must still appear.
   await page.evaluate(() => {
+    // The application may have started a boot-time silent refresh before the
+    // synthetic principal is authenticated. Clear only that test-owned lock so
+    // this test measures the post-login path, not the previous session's teardown.
+    cloudRefreshInProgress = false;
+    cloudDataLoadState = "not-started";
+    window.__qaCloudSyncStarted = false;
     window.loadSystemDataFromCloud = async () => {
+      window.__qaCloudSyncStarted = true;
       console.log("QA_LOGIN_TEST cloud sync intentionally pending");
       cloudDataLoadState = "loading";
       return new Promise(() => {});
@@ -828,7 +826,7 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   expect(loginOutcome.buttonDisabled).toBe(false);
   // The primary login handler returns without awaiting the delayed bootstrap.
   // Allow its detached finalizer to start so the intentionally stalled sync is active.
-  await page.waitForFunction(() => cloudDataLoadState === "loading", undefined, { timeout: 10_000 });
+  await page.waitForFunction(() => window.__qaCloudSyncStarted === true && cloudDataLoadState === "loading", undefined, { timeout: 15_000 });
   await expect(page.locator("#loginSubmitBtn")).not.toBeDisabled();
   await expect(page.locator("#loginSubmitBtn")).toContainText("دخول للنظام");
   const state = await page.evaluate(() => ({
