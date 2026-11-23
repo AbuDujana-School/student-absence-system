@@ -5899,27 +5899,47 @@ async function robustUpsert(table, rows, onConflictCols, chunkSize = 200) {
   }
 }
 async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
-  const all = []; let from = 0;
+  // Use native REST transport for school-table reads. The app authenticates
+  // through its verified app_login/app_session flow; routing these reads
+  // through Supabase JS thenables can leave the login bootstrap pending after
+  // getSession settles, before any HTTP request is issued.
+  if (!APP_SYNC_TABLES.includes(tableName)) throw new Error(`Unsupported cloud table: ${tableName}`);
+  const all = [];
+  let from = 0;
   while (true) {
-    console.info(`[AUTH_TRACE] table-read:${tableName}:query-start`, { from, pageSize });
-    let query;
+    const to = from + pageSize - 1;
+    const url = new URL(`${SUPABASE_URL}/rest/v1/${encodeURIComponent(tableName)}`);
+    url.searchParams.set('select', selectCols);
+    console.info(`[AUTH_TRACE] table-read:${tableName}:fetch-start`, { from, to });
     try {
-      query = sb.from(tableName).select(selectCols).range(from, from + pageSize - 1);
-      console.info(`[AUTH_TRACE] table-read:${tableName}:query-created`);
-      const { data, error } = await query;
-      console.info(`[AUTH_TRACE] table-read:${tableName}:query-settled`, {
-        rowCount: Array.isArray(data) ? data.length : null,
-        hasError: !!error
+      const response = await fetch(url.toString(), {
+        method: 'GET',
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          'Range-Unit': 'items',
+          Range: `${from}-${to}`,
+          Accept: 'application/json'
+        },
+        cache: 'no-store'
       });
-      if (error) throw error;
-      if (!data || data.length === 0) break;
+      console.info(`[AUTH_TRACE] table-read:${tableName}:response-headers`, { status: response.status });
+      if (!response.ok) {
+        const body = await response.text().catch(() => '');
+        const error = new Error(body || `Cloud read failed for ${tableName}: HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
+      }
+      const data = await response.json();
+      if (!Array.isArray(data)) throw new Error(`Invalid cloud response for ${tableName}.`);
+      console.info(`[AUTH_TRACE] table-read:${tableName}:response-parsed`, { rowCount: data.length });
+      if (data.length === 0) break;
       all.push(...data);
       if (data.length < pageSize) break;
       from += pageSize;
     } catch (error) {
-      console.warn(`[AUTH_TRACE] table-read:${tableName}:query-failed`, {
+      console.warn(`[AUTH_TRACE] table-read:${tableName}:fetch-failed`, {
         message: error?.message || String(error),
-        code: error?.code || null,
         status: error?.status || null
       });
       throw error;
