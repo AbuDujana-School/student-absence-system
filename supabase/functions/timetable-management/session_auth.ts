@@ -97,17 +97,19 @@ export async function resolveTimetablePrincipal(
     type = session.principal_type;
     name = session.principal_name;
   }
-  const needsTeacherPermissions = requestedAction.startsWith("timetable_substitution_") ||
-    new Set([
-      "health",
-      "timetable_check_access",
-      "timetable_duty_report_context",
-      "timetable_activity_report_data",
-    ]).has(requestedAction);
+  // Always load the current teacher permission snapshot: the explicit
+  // permissions.admin capability grants delegated administrator authority
+  // inside this module without changing the account's stored teacher role.
+  const needsTeacherPermissions = true;
   const teacher = preloadedTeacher || await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
+  // Delegated full administrators remain teacher identities in app_sessions,
+  // but receive administrator authority for timetable management actions.
+  if (type === "teacher" && permissions.admin === true) {
+    return { type: "admin", name, permissions };
+  }
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
   // A dedicated report grant is read-only and authorizes only the all-school reserve report action.
   if (requestedAction === "timetable_substitution_report" &&
