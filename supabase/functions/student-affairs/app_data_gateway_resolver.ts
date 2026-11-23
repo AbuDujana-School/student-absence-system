@@ -19,6 +19,16 @@ export async function resolveAppDataScope(
   const principalType = principal.type === "admin" && principal.adminScope === "additional" ? "teacher" : principal.type;
   if (principalType !== "teacher" && principalType !== "custom") return { allowedClasses: [] };
 
+  // A teacher with the explicit full-administrator capability receives the
+  // same schoolwide data scope as the general administrator, without changing
+  // the teacher identity or enabling Additional Admin.
+  if (principal.type === "teacher" && principal.permissions?.admin === true) {
+    const { data: classes, error: classesError } = await db.from("classes").select("name") as QueryResult;
+    if (classesError) throw new Error("Unable to resolve delegated administrator class scope");
+    const allClasses = [...new Set((classes || []).map((item: any) => String(item.name || "").trim()).filter(Boolean))];
+    return { allowedClasses: allClasses, allowedAttendanceClasses: allClasses, allowedBehaviorClasses: allClasses };
+  }
+
   const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
     .select("id").eq("status", "active").limit(2) as QueryResult;
   if (versionError) throw new Error("Unable to resolve active timetable version");
