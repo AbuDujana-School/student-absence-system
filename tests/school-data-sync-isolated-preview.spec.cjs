@@ -385,10 +385,14 @@ test("school sync projections and timetable access reads stay isolated and minim
   requestPhase = "sync-load";
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
-    const originalUpdateSyncStatus = updateSyncStatus;
-    updateSyncStatus = () => { console.log("QA_TEST updateSyncStatus bypassed"); };
+    // Keep visible status text, but avoid changing class attributes or click handlers.
+    // This isolates whether the dynamic Tailwind class rewrite is what stalls sync.
+    updateSyncStatus = (isSynced, statusText) => {
+      const txt = document.getElementById("syncText");
+      if (txt) txt.textContent = statusText || (isSynced ? "متزامن" : "محلي");
+      console.log("QA_TEST updateSyncStatus text-only");
+    };
     const value = await loadSystemDataFromCloud();
-    updateSyncStatus = originalUpdateSyncStatus;
     return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
   // While the full sync is stalled, issue a second independent RPC from the same page.
