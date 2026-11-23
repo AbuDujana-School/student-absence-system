@@ -458,6 +458,8 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     };
     localOnlySession = false;
     timetableRefreshAccess = async () => true;
+    canUseMorningAssemblyLateness = () => true;
+    isAdminAuthorized = () => true;
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
       .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
     startTesterOneDashboardStages();
