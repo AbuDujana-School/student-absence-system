@@ -202,7 +202,28 @@ test("school sync projections and timetable access reads stay isolated and minim
     };
 
     if (method === "OPTIONS") {
-      await route.fulfill({ status: 204, headers });
+      const requestedHeaders = request.headers()["access-control-request-headers"] || "";
+      const requestedMethod = request.headers()["access-control-request-method"] || "POST";
+      routeEvents.push({
+        stage: "preflight",
+        phase: requestPhase,
+        requestedMethod,
+        requestedHeaders,
+        origin: request.headers().origin || null,
+      });
+      // The browser does not treat "*" as permission for the Authorization
+      // request header in CORS preflights. Echo the exact requested headers,
+      // as a real Supabase CORS response does.
+      await route.fulfill({
+        status: 204,
+        headers: {
+          ...headers,
+          "access-control-allow-origin": request.headers().origin || "*",
+          "access-control-allow-headers": requestedHeaders || "authorization, apikey, content-type, x-client-info",
+          "access-control-allow-methods": requestedMethod,
+          "access-control-max-age": "600",
+        },
+      });
       return;
     }
 
