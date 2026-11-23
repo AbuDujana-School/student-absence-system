@@ -7440,6 +7440,44 @@ async function refreshActiveUserPermissions() {
   }
 }
 
+let testerOneDashboardStageStartedAt = 0;
+let testerOneDashboardStageRunId = 0;
+function isTesterOneStagedPilot(user = activeUser) {
+  const normalizedName = String(user?.name || '').replace(/[\\s_\\-]/g, '').toLowerCase();
+  return !!user && user.type !== 'admin' && normalizedName === 'tester1';
+}
+function testerOneDashboardStagePending(delayMs) {
+  return isTesterOneStagedPilot() && testerOneDashboardStageStartedAt > 0 &&
+    Date.now() - testerOneDashboardStageStartedAt < delayMs;
+}
+function startTesterOneDashboardStages() {
+  if (!isTesterOneStagedPilot()) return false;
+  testerOneDashboardStageStartedAt = Date.now();
+  const runId = ++testerOneDashboardStageRunId;
+  const schedule = (delayMs, callback, label) => setTimeout(() => {
+    if (runId !== testerOneDashboardStageRunId || !isTesterOneStagedPilot()) return;
+    try {
+      callback();
+      console.info('[AUTH_TRACE] tester1-dashboard-stage-ready', { stage: label, delayMs });
+    } catch (error) {
+      console.warn('[AUTH_TRACE] tester1-dashboard-stage-failed', { stage: label, message: error?.message || String(error) });
+    }
+  }, delayMs);
+  schedule(5000, () => refreshMorningAssemblyLatenessCard(), 'morning-assembly');
+  schedule(10000, () => refreshDutyDashboardCard(), 'duty');
+  schedule(15000, () => {
+    const button = document.getElementById('studentAffairsBtn');
+    const allowed = !localOnlySession && (activeUser?.type === 'admin' ||
+      activeUser?.permissions?.admin === true || isAdminAuthorized() ||
+      activeUser?.permissions?.studentAffairs === true);
+    if (button) {
+      button.classList.toggle('hidden', !allowed);
+      button.classList.toggle('flex', allowed);
+    }
+  }, 'student-affairs');
+  return true;
+}
+
 function renderAuthenticatedDashboardShell() {
   const user = activeUser;
   if (!user) return;
@@ -7455,7 +7493,7 @@ function renderAuthenticatedDashboardShell() {
     adminBtn.classList.toggle("flex", showAdminPanel);
   }
   const studentAffairsBtn = document.getElementById("studentAffairsBtn");
-  const showStudentAffairs = !localOnlySession && (isAdmin || user.permissions?.studentAffairs === true);
+  const showStudentAffairs = !localOnlySession && (isAdmin || user.permissions?.studentAffairs === true) && !testerOneDashboardStagePending(15000);
   if (studentAffairsBtn) {
     studentAffairsBtn.classList.toggle("hidden", !showStudentAffairs);
     studentAffairsBtn.classList.toggle("flex", showStudentAffairs);
@@ -7473,6 +7511,7 @@ async function finalizeLoginState() {
   console.info("[AUTH_TRACE] finalizeLoginState:start", {
     principalType: activeUser?.type || null
   });
+  startTesterOneDashboardStages();
   // Make the authenticated shell visible immediately. Cloud synchronization and
   // optional permission checks must never hold the user on the login screen.
   document.getElementById('loginView')?.classList.add('hidden');
@@ -7573,7 +7612,7 @@ async function finalizeLoginState() {
   const studentAffairsBtn = document.getElementById('studentAffairsBtn');
   const teacherTimetableBtn = document.getElementById('teacherTimetableBtn');
   const showAdminPanel = hasAdminPanelAccess(activeUser) || isAdmin;
-  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true);
+  const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true) && !testerOneDashboardStagePending(15000);
   if (adminBtn) {
     adminBtn.classList.toggle('hidden', !showAdminPanel);
     adminBtn.classList.toggle('flex', showAdminPanel);
@@ -7989,7 +8028,7 @@ function canUseMorningAssemblyLateness() {
 function refreshMorningAssemblyLatenessCard() {
   const card = document.getElementById('morningAssemblyLatenessDashboardCard');
   if (!card) return;
-  const show = canUseMorningAssemblyLateness();
+  const show = canUseMorningAssemblyLateness() && !testerOneDashboardStagePending(5000);
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
   if (status && show) {
@@ -10677,7 +10716,7 @@ function refreshDutyDashboardCard() {
   };
 
   const isTE = activeUser?.type === 'teacher' && activeUser?.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name) && checkWorkingHours();
-  const show = isA || hasDutyPerm || isTE;
+  const show = (isA || hasDutyPerm || isTE) && !testerOneDashboardStagePending(10000);
   
   card.classList.toggle('hidden', !show);
   
