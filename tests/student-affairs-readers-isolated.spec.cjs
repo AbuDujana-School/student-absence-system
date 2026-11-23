@@ -470,7 +470,7 @@ test("Distron dashboard pilot reveals secondary sections in staged order without
     };
     canUseMorningAssemblyLateness = () => true;
     isAdminAuthorized = () => true;
-    const pilotNodeIds = ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"];
+    const pilotNodeIds = ["morningAssemblyLatenessDashboardCard", "morningAssemblyLatenessCardStatus", "dutyDashboardCard", "dutyDashboardTime", "studentAffairsBtn"];
     const pilotNodes = Object.fromEntries(pilotNodeIds.map((id) => {
       const classes = new Set(["hidden"]);
       return [id, {
