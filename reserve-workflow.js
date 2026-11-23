@@ -1776,8 +1776,12 @@
   let schoolwideReserveReportPendingPermission = null;
   let schoolwideReserveReportPermissionWriteSeen = false;
   function schoolwideReserveReportIsAdmin(){
-    try{return activeUser?.type==="admin"||appAuthSession?.principal?.type==="admin"||
-      (typeof window.isAdminAuthorized==="function"&&window.isAdminAuthorized()===true);}catch{return false;}
+    try{
+      const active=typeof activeUser!=="undefined"?activeUser:null;
+      const session=typeof appAuthSession!=="undefined"?appAuthSession?.principal:null;
+      return (active?.type==="admin"&&(active.adminScope==="general"||active.name==="مدير النظام العام"))||
+        (session?.type==="admin"&&(session.adminScope==="general"||session.name==="مدير النظام العام"));
+    }catch{return false;}
   }
   function schoolwideReserveReportAllowed(){
     return schoolwideReserveReportIsAdmin()||
@@ -1810,11 +1814,6 @@
       const original=window.canAccessReport;
       const wrapped=function(key,...args){return String(key)==="reportSubstitutionDistribution"?schoolwideReserveReportAllowed():original.call(this,key,...args);};
       wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.canAccessReport=wrapped;
-    }
-    if(typeof window.canAccessAnyReport==="function"&&!window.canAccessAnyReport.__reserveDistributionWrapped){
-      const original=window.canAccessAnyReport;
-      const wrapped=function(...args){return schoolwideReserveReportAllowed()||original.apply(this,args);};
-      wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.canAccessAnyReport=wrapped;
     }
     const box=$("perm_p_reportSubstitutionDistribution");
     if(box&&!box.dataset.reserveDistributionChangeBound){
