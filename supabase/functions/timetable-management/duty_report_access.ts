@@ -32,7 +32,7 @@ export function isDutyReportEligibleOnDay(
   weekday: string,
 ): boolean {
   const permissions: DutyPermissions = isRecord(permissionsValue) ? permissionsValue : {};
-  if (permissions.duty === true || permissions.admin === true) return true;
+  if (principalType === "admin" || permissions.duty === true) return true;
   if (principalType !== "teacher" || permissions.dutyToday === false) return false;
   return validDutyDay(weekday) && assignedDutyDay(permissions, subjectDaysValue) === weekday;
 }
@@ -94,7 +94,7 @@ export function canReadDutyReportPeriod(input: {
   now?: Date;
 }): boolean {
   const permissions: DutyPermissions = isRecord(input.permissions) ? input.permissions : {};
-  if (permissions.duty === true || permissions.admin === true) return true;
+  if (principalType === "admin" || permissions.duty === true) return true;
   if (input.principalType !== "teacher" || permissions.dutyToday === false) return false;
 
   const now = input.now instanceof Date ? input.now : new Date();
