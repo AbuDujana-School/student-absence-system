@@ -453,7 +453,7 @@ test("Distron dashboard pilot reveals secondary sections in staged order without
   // Tailwind's CDN runtime observes every class mutation and can stall this
   // large page during isolated DOM visibility assertions. The app's own
   // stylesheet defines .hidden, so the runtime is not needed for this test.
-  await page.route("https://cdn.tailwindcss.com/**", (route) => route.abort());
+  await page.route(/^https:\/\/cdn\.tailwindcss\.com(?:\/.*)?$/, (route) => route.abort());
   const traffic = await openIsolatedApp(page);
   const initial = await page.evaluate(() => {
     activeUser = {
