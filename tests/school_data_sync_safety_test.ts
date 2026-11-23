@@ -471,7 +471,7 @@ Deno.test("timetable settings load the access list once and import saves do not 
   const settingsBlock = html.slice(settingsStart, settingsEnd);
   assert(settingsBlock.includes("timetableLoadImports();"), "Opening timetable settings must load saved imports");
   assert(!settingsBlock.includes("timetableLoadAccessManagement();"), "Settings tab must not repeat the access read already owned by timetableLoadImports");
-  assert(html.includes("if (activeUser?.type === \"admin\" && options.refreshAccess !== false) await timetableLoadAccessManagement();"), "Import loader must retain its default access refresh for settings entry");
+  assert(html.includes("if (isGeneralAdminUser(activeUser) && options.refreshAccess !== false) await timetableLoadAccessManagement();"), "Import loader must retain its default access refresh for settings entry");
   assert(html.includes("await timetableLoadImports({ refreshAccess: false });"), "Saving an import must not reload unchanged access permissions");
 });
 
