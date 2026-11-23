@@ -164,18 +164,24 @@ Deno.test("sync indicator routes pending local records to the explicit upload wo
   assert(refresh.includes("لن تُرفع تعديلات أو تُنفذ عمليات حذف"), "Delete-only refresh must not claim to upload or delete");
 });
 
-Deno.test("successful record saves do not report full sync while deletions remain queued", () => {
+Deno.test("deletion-review queue does not keep ordinary teachers in a false unsynced state", () => {
   const save = section("async function saveSystemDataToCloud(", "function forceSyncWithCloud()");
-  assert(save.includes("const pendingDeleteCount = getPendingDeletes().length"), "Save completion must inspect queued deletions");
-  assert(save.includes("updateSyncStatus(!pendingDeleteCount && !pendingRecords"), "Pending deletions or newer local edits must keep the status unsynced");
-  assert(save.includes("طلب حذف بانتظار المراجعة"), "The status must explain why synchronization is incomplete");
+  assert(save.includes("updateSyncStatus(!pendingRecords"), "Only actual dirty records may keep a completed cloud save unsynced");
+  assert(!save.includes("pendingDeleteCount"), "Deletion-review queue must not be treated as an unsynced record save");
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("reviewQueueOnlyForTeacher"), "Teacher-only deletion queue must be treated as synced for display");
+  assert(status.includes("effectiveSynced"), "The displayed success state must use the effective sync state");
 });
 
-
-Deno.test("queued deletions immediately remain visibly pending instead of appearing synced", () => {
+Deno.test("queued deletion review is visible only to administrators and never runs for teachers", () => {
   const queue = section("async function queueCloudDelete(", "// Fail-closed protection");
-  assert(queue.includes("updateSyncStatus(false"), "Queueing a deletion must immediately show an unsynced state");
-  assert(queue.includes("طلب حذف بانتظار المراجعة"), "The sync status must explain that deletion is pending review");
+  assert(queue.includes("updateSyncStatus(false"), "Queueing must refresh the status immediately");
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only authorized admins may see the pending deletion count");
+  assert(status.includes("const effectiveSynced = isSynced || reviewQueueOnlyForTeacher"), "Teacher status must ignore a delete-review-only queue");
+  const force = section("function forceSyncWithCloud()", "function doForceSync()");
+  assert(force.includes("pendingDeletes && isAdminAuthorized()"), "Only admins receive the pending-delete review prompt");
+  assert(force.includes("if (hasPendingOfflineRecordChanges())"), "Real dirty records must still enter the protected upload workflow");
 });
 
 Deno.test("destructive UI actions do not claim that server-side deletion completed", () => {
@@ -542,4 +548,5 @@ Deno.test("pending deletion review and counts are administrator-only", () => {
   assert(status.includes("const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0"), "Ordinary teachers must not read the pending-delete count for display");
   assert(status.includes("if (!canReviewDeletes)"), "Pre-composed deletion counts from callers must be removed for teachers");
   assert(status.includes("else if (canReviewDeletes && getPendingDeletes().length) openPendingDeleteReview()"), "Only administrators may open the deletion review from the sync indicator");
+  assert(status.includes("const effectiveSynced = isSynced || reviewQueueOnlyForTeacher"), "A deletion-review-only queue must not make ordinary teachers appear unsynced");
 });
