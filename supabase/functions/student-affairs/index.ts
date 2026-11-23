@@ -1010,13 +1010,6 @@ async function handle(req: Request) {
         expires_at: expires
       });
       if (error) throw error;
-      const { error: activityError } = await db.from("student_affairs_activity_events").insert({
-        actor_type: principal.type,
-        actor_name: principal.name,
-        event_type: "student_affairs_open",
-        metadata: { source: "student_affairs_session" }
-      });
-      if (activityError) console.error("Student Affairs entry audit could not be saved:", activityError);
       return reply(200, {
         token,
         expires_at: expires,
@@ -1672,14 +1665,19 @@ async function handle(req: Request) {
 
       if (body.action === "activity_log") {
         const eventType = String(body.event_type || "");
-        if (!["absence_report_view", "behavior_report_view"].includes(eventType)) {
+        const isStudentAffairsEntry = eventType === "student_affairs_open";
+        if (isStudentAffairsEntry) {
+          if (!isAdminPrincipal && principal.permissions?.studentAffairs !== true) {
+            return reply(403, { error: "لا تملك صلاحية دخول شؤون الطلبة." });
+          }
+        } else if (!["absence_report_view", "behavior_report_view"].includes(eventType)) {
           return reply(400, { error: "نوع نشاط الإحصائيات غير صالح." });
         }
         const { error } = await db.from("student_affairs_activity_events").insert({
           actor_type: principal.type,
           actor_name: principal.name,
           event_type: eventType,
-          metadata: { source: "statistics_dashboard" }
+          metadata: { source: isStudentAffairsEntry ? "student_affairs_module" : "statistics_dashboard" }
         });
         if (error) throw error;
         return reply(200, { ok: true });
