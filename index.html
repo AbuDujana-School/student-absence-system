@@ -7463,10 +7463,22 @@ function startTesterOneDashboardStages() {
       console.warn('[AUTH_TRACE] tester1-dashboard-stage-failed', { stage: label, message: error?.message || String(error) });
     }
   }, delayMs);
-  schedule(5000, () => refreshMorningAssemblyLatenessCard(), 'morning-assembly');
+  schedule(5000, () => {
+    const card = document.getElementById('morningAssemblyLatenessDashboardCard');
+    const allowed = canUseMorningAssemblyLateness();
+    if (card) card.classList.toggle('hidden', !allowed);
+    const status = document.getElementById('morningAssemblyLatenessCardStatus');
+    if (status && allowed) status.textContent = 'صلاحية استثنائية مفعلة';
+  }, 'morning-assembly');
   schedule(10000, () => {
-    refreshDutyDashboardCard();
-    renderDutyTodayRecords();
+    const card = document.getElementById('dutyDashboardCard');
+    const allowed = activeUser?.permissions?.admin === true ||
+      activeUser?.permissions?.duty === true || isAdminAuthorized();
+    if (card) card.classList.toggle('hidden', !allowed);
+    if (allowed) {
+      const label = document.getElementById('dutyDashboardTime');
+      if (label) label.textContent = 'صلاحية المناوبة مفعلة — اضغط للفتح';
+    }
     void timetableRefreshAccess({ deferAdminPortalStatus: true }).catch(error => {
       console.warn('Tester1 timetable access refresh deferred:', error);
     });
