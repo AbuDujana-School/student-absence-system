@@ -6,14 +6,14 @@ const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
 const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
 
 test('installed PWA checks for a fresh service worker immediately on startup', () => {
-  assert.match(html, /register\("\.\/sw\.js\?v=20261122-admin-login-paint-5",\s*\{\s*updateViaCache:\s*"none"\s*\}\)/);
+  assert.match(html, /register\("\.\/sw\.js\?v=20261123-admin-login-recovery-1",\s*\{\s*updateViaCache:\s*"none"\s*\}\)/);
   assert.match(html, /registration\.update\(\)/);
   assert.doesNotMatch(html, /window\.addEventListener\("load",\s*\(\)\s*=>\s*\{\s*navigator\.serviceWorker\.register/);
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v49/);
-  assert.match(sw, /abudujana-static-v56/);
+  assert.match(sw, /abudujana-app-v50/);
+  assert.match(sw, /abudujana-static-v57/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
