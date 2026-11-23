@@ -6,14 +6,14 @@ import {
 import { assertEquals } from "jsr:@std/assert@1";
 
 Deno.test("admin can read and write allowlisted non-credential tables", () => {
-  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const admin = { type: "admin" as const, adminScope: "general" as const, name: "مدير النظام العام" };
   assertEquals(authorizeAppDataOperation(admin, "attendance", "read"), true);
   assertEquals(authorizeAppDataOperation(admin, "students", "write"), true);
   assertEquals(authorizeAppDataOperation(admin, "unknown_table", "read"), false);
 });
 
 Deno.test("unknown tables and all delete operations fail closed", () => {
-  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const admin = { type: "admin" as const, adminScope: "general" as const, name: "مدير النظام العام" };
   assertEquals(authorizeAppDataOperation(admin, "teachers", "delete"), false);
   assertEquals(authorizeAppDataOperation(admin, "app_sessions", "read"), false);
   assertEquals(authorizeAppDataOperation(null, "classes", "read"), false);
@@ -53,7 +53,7 @@ Deno.test("teacher profile projection never returns PIN or secret fields", () =>
 });
 
 Deno.test("admin PIN setting is not readable or writable through generic data gateway", () => {
-  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const admin = { type: "admin" as const, adminScope: "general" as const, name: "مدير النظام العام" };
   assertEquals(projectAppDataRow("school_settings", { key: "admin_pin", value: { hash: "secret", salt: "secret" } }), null);
   assertEquals(authorizeAppDataOperation(admin, "school_settings", "write", { key: "admin_pin", value: {} }), false);
   assertEquals(authorizeAppDataOperation(admin, "school_settings", "write", { key: "duty_module", value: {} }), true);
@@ -81,7 +81,7 @@ Deno.test("teacher attendance and behavior access require explicit server-loaded
 
 Deno.test("invalid principal and operation values fail closed at runtime", () => {
   const invalidPrincipal = { type: "root", name: "Unexpected" } as unknown as import("./app_data_gateway_policy.ts").AppDataPrincipal;
-  const admin = { type: "admin" as const, name: "مدير النظام العام" };
+  const admin = { type: "admin" as const, adminScope: "general" as const, name: "مدير النظام العام" };
   assertEquals(authorizeAppDataOperation(invalidPrincipal, "classes", "read"), false);
   assertEquals(authorizeAppDataOperation(admin, "classes", "update" as never), false);
 });
@@ -99,4 +99,28 @@ Deno.test("student affairs grants use separate attendance and behavior scopes", 
   assertEquals(authorizeAppDataOperation(principal, "attendance", "read", { class_name: "7/1" }, scope), false);
   assertEquals(authorizeAppDataOperation(principal, "behaviors", "read", { class_name: "7/1" }, scope), true);
   assertEquals(authorizeAppDataOperation(principal, "behaviors", "read", { class_name: "6/1" }, scope), false);
+});
+
+
+Deno.test("additional administrators use explicit data permissions and never inherit general settings access", () => {
+  const additional = {
+    type: "admin" as const,
+    adminScope: "additional" as const,
+    name: "Tester1",
+    permissions: { students: true, teachers: true, attendance: true, behavior: false, duty: true },
+  };
+  const scope = { allowedClasses: ["5/1"] };
+  assertEquals(authorizeAppDataOperation(additional, "students", "read", { class_name: "5/1" }, scope), true);
+  assertEquals(authorizeAppDataOperation(additional, "teachers", "read", { name: "Teacher B" }, scope), true);
+  assertEquals(authorizeAppDataOperation(additional, "attendance", "read", { class_name: "5/1" }, scope), true);
+  assertEquals(authorizeAppDataOperation(additional, "behaviors", "read", { class_name: "5/1" }, scope), false);
+  assertEquals(authorizeAppDataOperation(additional, "duty_reports", "read", { class_name: "5/1" }, scope), true);
+  assertEquals(authorizeAppDataOperation(additional, "school_settings", "read", null), false);
+  assertEquals(authorizeAppDataOperation(additional, "school_settings", "write", { key: "duty_module", value: {} }), false);
+});
+
+Deno.test("admin marker alone never grants additional-admin data access", () => {
+  const additional = { type: "admin" as const, adminScope: "additional" as const, name: "Tester1", permissions: { admin: true, additionalAdmin: true } };
+  assertEquals(authorizeAppDataOperation(additional, "students", "read", { class_name: "5/1" }, { allowedClasses: ["5/1"] }), false);
+  assertEquals(authorizeAppDataOperation(additional, "teachers", "read", { name: "Teacher B" }), false);
 });
