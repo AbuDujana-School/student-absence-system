@@ -383,8 +383,7 @@ async function handle(req: Request) {
   );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
     principal.type === "admin" ||
-    principal.permissions?.teachers === true ||
-    principal.permissions?.admin === true
+    principal.permissions?.teachers === true
   );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
     && !hasDutyReportPermission
