@@ -5703,7 +5703,7 @@ function isGeneralAdminUser(user = activeUser) {
   return user?.type === "admin" && (user.adminScope === "general" || user.name === "مدير النظام العام");
 }
 function isAdditionalAdminUser(user = activeUser) { return user?.type === 'admin' && user?.adminScope === 'additional'; }
-function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser()) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
+function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser() || activeUser?.permissions?.admin === true) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
 
 /* ============ Cloud helpers ============ */
