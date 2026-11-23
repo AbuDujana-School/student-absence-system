@@ -39,6 +39,7 @@ export async function handleAppDataGatewayRead(
   }
   const table = tableValue as AppDataTable;
   const isGeneralAdmin = principal.type === "admin" && principal.adminScope === "general";
+  const isAdditionalAdmin = principal.type === "admin" && principal.adminScope === "additional";
   if (body?.offset !== undefined && (!Number.isInteger(body.offset) || body.offset < 0 || body.offset > 100000)) {
     return gatewayReply(400, { error: "موضع الصفحة غير صالح." }, deps.headers);
   }
@@ -86,7 +87,7 @@ export async function handleAppDataGatewayRead(
 
   let query: any = deps.db.from(table).select(allowedAppDataFields(table).join(","));
   if (!isGeneralAdmin) {
-    if (table === "teachers" && principal.permissions?.teachers !== true && principal.permissions?.users !== true) query = query.eq("name", principal.name);
+    if (table === "teachers" && !(isAdditionalAdmin && (principal.permissions?.teachers === true || principal.permissions?.users === true))) query = query.eq("name", principal.name);
     else if (table === "school_settings") {
       return gatewayReply(403, { error: "قراءة إعدادات النظام للمدير فقط." }, deps.headers);
     } else if (table === "classes") {
