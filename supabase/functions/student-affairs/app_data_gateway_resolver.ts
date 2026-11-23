@@ -37,7 +37,7 @@ export async function resolveAppDataScope(
   }
 
   if (principal.type === "admin" && principal.adminScope === "additional" && principal.permissions?.students === true) {
-    const { data: classes, error: classesError } = await db.from("classes").select("name");
+    const { data: classes, error: classesError } = await db.from("classes").select("name").limit(1000);
     if (classesError) throw new Error("Unable to resolve additional administrator class scope");
     timetableClasses = [...new Set([...timetableClasses, ...(classes || []).map((item: any) => String(item.name || "")).filter(Boolean)])];
   }
