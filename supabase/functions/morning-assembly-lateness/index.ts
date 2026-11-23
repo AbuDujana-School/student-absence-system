@@ -1,7 +1,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { academicYearKey, canUseMorningLateness } from "./policy.ts";
-import { buildAdditionalAdminPermissions, isAdditionalAdminTeacher } from "../student-affairs/admin_principal_policy.ts";
+import { buildAdditionalAdminPermissions, isAdditionalAdminTeacher } from "../_shared/admin_principal_policy.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
