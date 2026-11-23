@@ -1010,6 +1010,13 @@ async function handle(req: Request) {
         expires_at: expires
       });
       if (error) throw error;
+      const { error: activityError } = await db.from("student_affairs_activity_events").insert({
+        actor_type: principal.type,
+        actor_name: principal.name,
+        event_type: "student_affairs_open",
+        metadata: { source: "student_affairs_session" }
+      });
+      if (activityError) console.error("Student Affairs entry audit could not be saved:", activityError);
       return reply(200, {
         token,
         expires_at: expires,
@@ -1654,6 +1661,67 @@ async function handle(req: Request) {
       return reply(status, { error: message });
     }
   }
+  if (body?.action === "activity_log" || body?.action === "activity_report") {
+    try {
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = appSession.principal;
+      const isAdminPrincipal = principal.type === "admin";
+      const canViewActivity = isAdminPrincipal || principal.permissions?.studstats === true;
+      if (!canViewActivity) return reply(403, { error: "لا تملك صلاحية الإحصائيات ومراقبة الأداء." });
+
+      if (body.action === "activity_log") {
+        const eventType = String(body.event_type || "");
+        if (!["absence_report_view", "behavior_report_view"].includes(eventType)) {
+          return reply(400, { error: "نوع نشاط الإحصائيات غير صالح." });
+        }
+        const { error } = await db.from("student_affairs_activity_events").insert({
+          actor_type: principal.type,
+          actor_name: principal.name,
+          event_type: eventType,
+          metadata: { source: "statistics_dashboard" }
+        });
+        if (error) throw error;
+        return reply(200, { ok: true });
+      }
+
+      const from = body.from == null ? new Date(Date.now() - 29 * 86400000).toISOString().slice(0, 10) : String(body.from);
+      const to = body.to == null ? new Date().toISOString().slice(0, 10) : String(body.to);
+      if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) {
+        return reply(400, { error: "نطاق تاريخ تقرير المراقبة غير صالح." });
+      }
+      const fromIso = new Date(from + "T00:00:00+04:00").toISOString();
+      const endExclusive = new Date(to + "T00:00:00+04:00");
+      endExclusive.setUTCDate(endExclusive.getUTCDate() + 1);
+      const [{ data: teachers, error: teachersError }, { data: events, error: eventsError }, { data: settings, error: settingsError }] = await Promise.all([
+        db.from("teachers").select("name,role,permissions").eq("role", "teacher").order("name").limit(2000),
+        db.from("student_affairs_activity_events").select("actor_type,actor_name,event_type,occurred_at,metadata")
+          .gte("occurred_at", fromIso).lt("occurred_at", endExclusive.toISOString())
+          .order("occurred_at", { ascending: true }).limit(10000),
+        db.from("student_affairs_activity_settings").select("tracking_started_at").eq("id", true).maybeSingle()
+      ]);
+      if (teachersError) throw teachersError;
+      if (eventsError) throw eventsError;
+      if (settingsError) throw settingsError;
+      if ((events || []).length >= 10000) {
+        return reply(413, { error: "عدد السجلات كبير جداً لهذه الفترة. قسّم الفترة إلى نطاقات أقصر." });
+      }
+      const monitoredTeachers = (teachers || [])
+        .filter((teacher: any) => teacher.permissions?.studentAffairs === true)
+        .map((teacher: any) => ({ name: String(teacher.name || "") }))
+        .filter((teacher: any) => teacher.name);
+      const monitoredNames = new Set(monitoredTeachers.map((teacher: any) => teacher.name));
+      const visibleEvents = (events || []).filter((event: any) => monitoredNames.has(String(event.actor_name || "")));
+      return reply(200, {
+        from, to, teachers: monitoredTeachers, events: visibleEvents,
+        tracking_started_at: settings?.tracking_started_at || null
+      });
+    } catch (error) {
+      console.error("Student Affairs activity monitoring request failed:", error);
+      return reply(500, { error: "تعذر تحميل أو تسجيل بيانات مراقبة الأداء." });
+    }
+  }
+
   let session: Awaited<ReturnType<typeof getSession>> = null;
   let p: { type: string; name: string };
   if (body?.action === "reports_permissions" || body?.action === "reports") {
