@@ -469,10 +469,12 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
       morning: !document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
       duty: !document.getElementById("dutyDashboardCard")?.classList.contains("hidden"),
       affairs: !document.getElementById("studentAffairsBtn")?.classList.contains("hidden"),
+      attendance: !document.getElementById("attendanceDashboardCard")?.classList.contains("hidden"),
+      behavior: !document.getElementById("behaviorDashboardCard")?.classList.contains("hidden"),
       adminPilot: isTesterOneStagedPilot({ type: "admin", name: "مدير النظام العام", permissions: { admin: true } }),
     };
   });
-  expect(initial).toEqual({ morning: false, duty: false, affairs: false, adminPilot: false });
+  expect(initial).toEqual({ morning: false, duty: false, affairs: false, attendance: true, behavior: true, adminPilot: false });
 
   await page.waitForTimeout(5200);
   const stageAfterFive = await page.evaluate(() => ({ pilot: isTesterOneStagedPilot(), elapsedMs: Date.now() - testerOneDashboardStageStartedAt, pending: testerOneDashboardStagePending(5000), canUse: canUseMorningAssemblyLateness(), hidden: document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden") }));
