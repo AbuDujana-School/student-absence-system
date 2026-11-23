@@ -28,6 +28,15 @@ Deno.test("principal projection accepts only supported types and non-empty names
   if (!projected || projected.name !== "Teacher A") throw new Error("Principal was not normalized");
 });
 
+Deno.test("admin principal projection distinguishes general and additional administrator scopes", () => {
+  const general = projectAppPrincipal({ type: "admin", name: "مدير النظام العام" });
+  const additional = projectAppPrincipal({ type: "admin", name: "Tester1" });
+  if (general?.adminScope !== "general") throw new Error("General administrator scope was not inferred");
+  if (additional?.adminScope !== "additional") throw new Error("Additional administrator scope was not inferred");
+  const explicit = projectAppPrincipal({ type: "admin", name: "Tester1", adminScope: "general" });
+  if (explicit?.adminScope !== "general") throw new Error("Explicit server-side scope was not preserved");
+});
+
 Deno.test("principal projection excludes credential-shaped permission fields", () => {
   const projected = projectAppPrincipal({
     type: "teacher", name: "Teacher A",
