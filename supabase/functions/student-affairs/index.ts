@@ -949,7 +949,7 @@ async function handle(req: Request) {
       return reply(403, { error: "تسجيل نشاط شؤون الطلبة متاح لأعضاء القسم المعتمدين فقط." });
     }
     const eventType = body.event_type;
-    if (!validActivityEventType(eventType) || eventType === "absence_report_view" || eventType === "behavior_report_view") {
+    if (!validActivityEventType(eventType)) {
       return reply(400, { error: "نوع النشاط المطلوب تسجيله غير صالح." });
     }
     let rows: any[] = [];

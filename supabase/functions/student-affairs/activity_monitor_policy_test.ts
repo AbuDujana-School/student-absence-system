@@ -14,6 +14,6 @@ Deno.test("only active Student Affairs teachers appear in the monitored director
   if (isStudentAffairsActivityTeacher({role:"teacher",permissions:{}})) throw new Error("ordinary teacher must not be included");
 });
 Deno.test("client event API accepts only user-visible audited activity types", () => {
-  for (const type of ["section_access","absence_report_view","behavior_report_view","official_warning_print"]) if (!validActivityEventType(type)) throw new Error("expected allowed type "+type);
-  for (const type of ["official_warning_issued","preview","delete","anything"]) if (validActivityEventType(type)) throw new Error("unexpected allowed type "+type);
+  for (const type of ["section_access","official_warning_print"]) if (!validActivityEventType(type)) throw new Error("expected allowed type "+type);
+  for (const type of ["absence_report_view","behavior_report_view","official_warning_issued","preview","delete","anything"]) if (validActivityEventType(type)) throw new Error("unexpected allowed type "+type);
 });
