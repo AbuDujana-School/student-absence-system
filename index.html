@@ -7443,7 +7443,7 @@ async function refreshActiveUserPermissions() {
 let testerOneDashboardStageStartedAt = 0;
 let testerOneDashboardStageRunId = 0;
 function isTesterOneStagedPilot(user = activeUser) {
-  const normalizedName = String(user?.name || '').replace(/[\\s_\\-]/g, '').toLowerCase();
+  const normalizedName = String(user?.name || '').replace(/[\s_-]/g, '').toLowerCase();
   return !!user && user.type !== 'admin' && normalizedName === 'tester1';
 }
 function testerOneDashboardStagePending(delayMs) {
