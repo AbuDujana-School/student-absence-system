@@ -246,14 +246,25 @@ test("school sync projections and timetable access reads stay isolated and minim
       reads.set(table, (reads.get(table) || 0) + 1);
       projections.set(table, url.searchParams.get("select"));
       const rows = fixtures[table] || [];
-      await route.fulfill({
-        status: 200,
-        headers: {
-          ...headers,
-          "content-range": rows.length ? "0-" + (rows.length - 1) + "/" + rows.length : "*/0",
-        },
-        body: method === "HEAD" ? "" : JSON.stringify(rows),
-      });
+      const body = method === "HEAD" ? "" : JSON.stringify(rows);
+      const responseHeaders = {
+        ...headers,
+        "access-control-allow-origin": request.headers().origin || "*",
+        "content-range": rows.length ? "0-" + (rows.length - 1) + "/" + rows.length : "*/0",
+      };
+      console.log("[QA_ROUTE_NODE] table-fulfill-start " + JSON.stringify({
+        table, method, rowCount: rows.length, bodyLength: body.length,
+        origin: responseHeaders["access-control-allow-origin"],
+      }));
+      routeEvents.push({ stage: "table-fulfill-start", table, method, rowCount: rows.length });
+      try {
+        await route.fulfill({ status: 200, headers: responseHeaders, body });
+      } catch (error) {
+        console.log("[QA_ROUTE_NODE] table-fulfill-error " + table + ": " + (error?.message || String(error)));
+        throw error;
+      }
+      routeEvents.push({ stage: "table-fulfill-done", table, method });
+      console.log("[QA_ROUTE_NODE] table-fulfill-done " + table);
       return;
     }
 
