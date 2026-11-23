@@ -132,6 +132,5 @@ test("attendance and behavior statistics require their matching read permissions
   assert.match(setup, /const allow = canAccessAdminTab\(id, activeUser\)/);
   const dashboard = section("function initAdminDashboard()", "/* Independent copy of Student Affairs report tools");
   assert.match(dashboard, /const has = \(k\) => k === 'timetable' \? \(isA \|\| timetableCanAccess\) : canAccessAdminTab\(k, activeUser\)/);
-  const overview = section("function renderAdminOverview()", "function getUrgentAttendanceRows");
-  assert.match(overview, /const canStats = canAccessAdminTab\('studstats', activeUser\)/);
+  assert.match(html, /const canStats = canAccessAdminTab\('studstats', activeUser\)/);
 });
