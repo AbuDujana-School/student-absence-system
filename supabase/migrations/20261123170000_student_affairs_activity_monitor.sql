@@ -21,7 +21,7 @@ create index if not exists student_affairs_activity_events_type_created_idx
 
 alter table public.student_affairs_activity_events enable row level security;
 revoke all on public.student_affairs_activity_events from anon, authenticated;
-grant all on public.student_affairs_activity_events to service_role;
+grant select, insert on public.student_affairs_activity_events to service_role;
 
 comment on table public.student_affairs_activity_events is
   'Append-only audit trail for Student Affairs module access, report views, and official warning issuance/printing. Tracking starts when this migration is deployed.';
