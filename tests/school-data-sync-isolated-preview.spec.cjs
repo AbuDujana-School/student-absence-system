@@ -905,7 +905,14 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   // The primary login handler returns without awaiting the delayed bootstrap.
   // Allow its detached finalizer to start so the intentionally stalled sync is active.
   try {
-    await page.waitForFunction(() => window.__qaCloudSyncStarted === true && cloudDataLoadState === "loading", undefined, { timeout: 5_000 });
+    // Use interval polling instead of Playwright's default RAF polling.
+    // The admin preview may intentionally defer animation frames while the
+    // page is transitioning, even though the sync microtask has already run.
+    await page.waitForFunction(
+      () => window.__qaCloudSyncStarted === true && cloudDataLoadState === "loading",
+      undefined,
+      { polling: 50, timeout: 5_000 }
+    );
   } catch (waitError) {
     throw new Error("Post-login cloud bootstrap did not reach the controlled pending state: " +
       JSON.stringify({ lastBrowserMessages: browserMessages.slice(-100), errors, waitError: waitError.message }));
