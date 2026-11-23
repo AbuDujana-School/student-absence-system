@@ -91,6 +91,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     const line = message.text();
     browserConsole.push(line);
     if (line.startsWith("QA_FETCH_MOCK manifest")) manifestCalls += 1;
+    if (line.startsWith("QA_") || line.startsWith("[AUTH_TRACE]")) console.log("[BROWSER_TRACE] " + line);
   });
   page.on("request", (request) => {
     if (request.url().includes(SUPABASE_HOST)) supabaseRequests.push({ phase: requestPhase, method: request.method(), url: request.url(), postDataLength: (request.postData() || "").length });
@@ -369,24 +370,38 @@ test("school sync projections and timetable access reads stay isolated and minim
   const preflightProbes = await page.evaluate(async () => {
     const results = [];
     const probe = async label => {
+      console.log("QA_PREFLIGHT probe-start:" + label);
       const result = await Promise.race([
         fetchAppSyncManifest().then(value => ({ settled: true, valid: !!value }))
           .catch(error => ({ settled: true, error: error?.message || String(error) })),
         new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 5_000 }), 5_000)),
       ]);
+      console.log("QA_PREFLIGHT probe-done:" + label + ":" + JSON.stringify(result));
       results.push({ label, ...result });
     };
+    console.log("QA_PREFLIGHT auth-start");
     await ensureAppAuthSession();
+    console.log("QA_PREFLIGHT auth-done");
     await probe("after-auth-check");
+    console.log("QA_PREFLIGHT local-status-start");
     updateSyncStatus(false, "جارِ استعادة البيانات المحلية...");
+    console.log("QA_PREFLIGHT local-status-done");
     await probe("after-local-status");
+    console.log("QA_PREFLIGHT offline-restore-start");
     await ensureOfflineSnapshotRestored();
+    console.log("QA_PREFLIGHT offline-restore-done");
     await probe("after-offline-restore");
+    console.log("QA_PREFLIGHT dirty-sets-start");
     loadDirtySetsFromLocal();
+    console.log("QA_PREFLIGHT dirty-sets-done");
     await probe("after-dirty-sets");
+    console.log("QA_PREFLIGHT dirty-capture-start");
     captureDirtyLocalState();
+    console.log("QA_PREFLIGHT dirty-capture-done");
     await probe("after-dirty-capture");
+    console.log("QA_PREFLIGHT manifest-status-start");
     updateSyncStatus(false, "جارِ التحقق من تحديثات الخادم...");
+    console.log("QA_PREFLIGHT manifest-status-done");
     await probe("after-manifest-status");
     return results;
   });
