@@ -8,7 +8,7 @@ Deno.test("activity report is restricted to statistics-enabled teachers and admi
 });
 Deno.test("only active Student Affairs teachers appear in the monitored directory", () => {
   if (!isStudentAffairsActivityTeacher({role:"teacher",permissions:{studentAffairs:true}})) throw new Error("active Student Affairs teacher missing");
-  if (!isStudentAffairsActivityTeacher({role:"teacher",permissions:{student_affairs_role:"team_leader"}})) throw new Error("team leader missing");
+  if (isStudentAffairsActivityTeacher({role:"teacher",permissions:{student_affairs_role:"team_leader"}})) throw new Error("inactive role assignment must not be treated as an active Student Affairs member");
   if (isStudentAffairsActivityTeacher({role:"custom",permissions:{studentAffairs:true}})) throw new Error("custom account must not be included");
   if (isStudentAffairsActivityTeacher({role:"teacher",permissions:{}})) throw new Error("ordinary teacher must not be included");
 });
