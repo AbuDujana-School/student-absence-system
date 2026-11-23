@@ -5,6 +5,12 @@ const BASE_URL = process.env.APP_PREVIEW_URL || "http://127.0.0.1:4173/index.htm
 
 async function openIsolatedApp(page) {
   const traffic = { functionCalls: [], blockedWrites: [], unexpected: [], pageErrors: [] };
+  // The isolated pilot blocks Tailwind's remote runtime to avoid mutation observers
+  // in the large page. Keep its config bootstrap defined so the inline config
+  // statement remains valid when the CDN script is intentionally unavailable.
+  await page.addInitScript(() => {
+    if (!window.tailwind) window.tailwind = { config: {} };
+  });
   page.on("pageerror", (error) => traffic.pageErrors.push(error.stack || error.message));
 
   await page.route(/^https:\/\/[^/]+\.supabase\.co\/.*/, async (route) => {
