@@ -2162,7 +2162,7 @@ async function handle(req: Request) {
           }
         });
         if (error) throw error;
-        return reply(200, { ok: true, warning_count: warningCount });
+        return reply(200, { ok: true, warning_count: 1, notice_count: batchRows.length });
       }
       return reply(400, { error: "نوع سجل النشاط غير صالح." });
     }
