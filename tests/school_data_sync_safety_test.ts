@@ -534,7 +534,7 @@ Deno.test("pending deletion review is visible only to authenticated administrato
   assert(auth.includes("isGeneralAdminUser() || isAdditionalAdminUser()"), "General and additional administrators may review pending deletions");
   const status = section("function updateSyncStatus(", "async function initDefaults()");
   assert(status.includes("const canReviewDeletes = isAdminAuthorized()"), "Pending-delete visibility must be gated by administrator authorization");
-  assert(status.includes("const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0"), "Ordinary teachers must not see pending-delete counts or review actions");
+  assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only admins may display pending-delete counts or review actions");
 });
 
 
@@ -545,7 +545,7 @@ Deno.test("pending deletion review and counts are administrator-only", () => {
   assert(auth.includes("isGeneralAdminUser() || isAdditionalAdminUser()"), "General and additional administrators may review pending deletions");
   const status = section("function updateSyncStatus(", "async function initDefaults()");
   assert(status.includes("const canReviewDeletes = isAdminAuthorized()"), "Pending-delete visibility must be gated by administrator authorization");
-  assert(status.includes("const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0"), "Ordinary teachers must not read the pending-delete count for display");
+  assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only admins may display the pending-delete count");
   assert(status.includes("if (!canReviewDeletes)"), "Pre-composed deletion counts from callers must be removed for teachers");
   assert(status.includes("else if (canReviewDeletes && getPendingDeletes().length) openPendingDeleteReview()"), "Only administrators may open the deletion review from the sync indicator");
   assert(status.includes("const effectiveSynced = isSynced || reviewQueueOnlyForTeacher"), "A deletion-review-only queue must not make ordinary teachers appear unsynced");
