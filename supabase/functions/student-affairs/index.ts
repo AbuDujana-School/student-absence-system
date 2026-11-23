@@ -327,13 +327,13 @@ async function hasStudentAffairsAccess(p: { type: string; name: string; permissi
   if (isGeneralAdminPrincipal(p)) return true;
   if (p.permissions && typeof p.permissions === "object") {
     if (p.type !== "teacher" && p.type !== "custom") return false;
-    return p.permissions.studentAffairs === true || p.permissions.admin === true;
+    return p.permissions.studentAffairs === true;
   }
   const { data, error } = await db.from("teachers").select("role,permissions").eq("name", p.name).maybeSingle();
   if (error || !data) return false;
   const expectedRole = p.type === "custom" ? "custom" : "teacher";
   return (expectedRole === "custom" ? data.role === "custom" : data.role !== "custom")
-    && (data.permissions?.studentAffairs === true || data.permissions?.admin === true);
+    && data.permissions?.studentAffairs === true;
 }
 async function adminStudentAffairsAccessEnabled(): Promise<boolean> {
   try {
