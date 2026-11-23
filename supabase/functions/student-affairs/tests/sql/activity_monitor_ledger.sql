@@ -19,10 +19,12 @@ END $do$;
 
 SET ROLE service_role;
 INSERT INTO public.student_affairs_activity_events(event_type,actor_type,actor_name,metadata)
-VALUES ('absence_report_view','teacher','synthetic-activity-teacher','{"from":"2026-11-23","to":"2026-11-23"}');
+VALUES
+  ('absence_report_view','teacher','synthetic-activity-teacher','{"from":"2026-11-23","to":"2026-11-23"}'),
+  ('combined_report_view','teacher','synthetic-activity-teacher','{"from":"2026-11-23","to":"2026-11-23","source":"student_affairs_combined_view"}');
 DO $do$
 BEGIN
-  IF (SELECT count(*) FROM public.student_affairs_activity_events WHERE actor_name='synthetic-activity-teacher') <> 1 THEN
+  IF (SELECT count(*) FROM public.student_affairs_activity_events WHERE actor_name='synthetic-activity-teacher') <> 2 THEN
     RAISE EXCEPTION 'service_role could not append/read synthetic activity';
   END IF;
 END $do$;
