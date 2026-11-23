@@ -362,18 +362,9 @@ test("school sync projections and timetable access reads stay isolated and minim
   reads.clear();
   projections.clear();
 
-  // Probe the real Supabase client's RPC path independently from application sync.
-  // This separates client auth/REST transport from loadSystemDataFromCloud orchestration.
-  requestPhase = "direct-rpc";
-  const directRpcProbe = await page.evaluate(async () => Promise.race([
-    sb.rpc("get_app_sync_manifest").then(({ data, error }) => ({
-      settled: true,
-      hasData: !!data,
-      error: error ? { message: error.message, code: error.code || null } : null,
-    })).catch(error => ({ settled: true, thrown: error?.message || String(error) })),
-    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 8_000 }), 8_000)),
-  ]));
-  browserConsole.push("QA_DIRECT_RPC_PROBE " + JSON.stringify(directRpcProbe));
+  // The manifest's native transport is tested above. Do not run an extra
+  // supabase-js RPC probe on this page before the table sync: that SDK call is
+  // unrelated to projection coverage and may alter the auth client's lock state.
   manifestCalls = 0;
 
   // Reproduce the synthetic authenticated principal before the full orchestration.
