@@ -457,6 +457,60 @@ test("school sync projections and timetable access reads stay isolated and minim
       tx.onabort = () => reject(tx.error || new Error('Synthetic IDB cleanup aborted'));
     });
   });
+  const snapshotKeyWriteProbe = await page.evaluate(async () => {
+    const database = await openOfflineDatabase();
+    const previous = await new Promise((resolve, reject) => {
+      const tx = database.transaction('state', 'readonly');
+      const request = tx.objectStore('state').get('snapshot');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Could not read prior snapshot'));
+    });
+    const result = await Promise.race([
+      new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        const request = tx.objectStore('state').put({
+          key: 'snapshot',
+          savedAt: new Date().toISOString(),
+          db: {},
+          dirtySets: {},
+          pendingDeletes: [],
+          cloudSyncManifest: null,
+          __qaProbe: true,
+        });
+        request.onerror = () => reject(request.error || new Error('Snapshot-key write failed'));
+        tx.oncomplete = () => resolve({ settled: true, transactionComplete: true });
+        tx.onerror = () => reject(tx.error || new Error('Snapshot-key transaction failed'));
+        tx.onabort = () => reject(tx.error || new Error('Snapshot-key transaction aborted'));
+      }),
+      new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 5000 }), 5000)),
+    ]);
+    if (previous) {
+      await new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        tx.objectStore('state').put(previous);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Snapshot-key restore failed'));
+        tx.onabort = () => reject(tx.error || new Error('Snapshot-key restore aborted'));
+      });
+    } else if (result.settled) {
+      await new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        tx.objectStore('state').delete('snapshot');
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Snapshot-key cleanup failed'));
+        tx.onabort = () => reject(tx.error || new Error('Snapshot-key cleanup aborted'));
+      });
+    }
+    return {
+      ...result,
+      previousExists: !!previous,
+      previousJsonChars: previous ? JSON.stringify(previous).length : 0,
+    };
+  });
+  browserConsole.push("QA_IDB_SNAPSHOT_KEY_PROBE " + JSON.stringify(snapshotKeyWriteProbe));
+  expect(snapshotKeyWriteProbe.settled && snapshotKeyWriteProbe.transactionComplete,
+    "A small IndexedDB write to the snapshot key must complete; diagnostics: " +
+      JSON.stringify({ snapshotKeyWriteProbe, browserConsole, pageErrors })).toBe(true);
 
   // Diagnostic isolation: the last run showed the next RPC stalls only after
   // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
