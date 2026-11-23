@@ -6337,10 +6337,7 @@ async function retryOfflineSyncSilently() {
       offlineAutoSyncRetryCount = 0;
       if (offlineAutoSyncRetryTimer) clearTimeout(offlineAutoSyncRetryTimer);
       offlineAutoSyncRetryTimer = null;
-      const pendingDeletes = getPendingDeletes().length;
-      updateSyncStatus(!pendingDeletes, pendingDeletes
-        ? `تمت مزامنة التعديلات؛ ${pendingDeletes} طلب حذف بانتظار المراجعة`
-        : 'متزامن');
+      updateSyncStatus(true, 'متزامن');
       return true;
     }
     if (offlineSyncApprovalFingerprint() !== offlineAutoSyncApprovedFingerprint) {
@@ -6877,7 +6874,7 @@ async function loadSystemDataFromCloud() {
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
         dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
         dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
-        dirtySets.custom_categories || getPendingDeletes().length;
+        dirtySets.custom_categories;
       updateSyncStatus(!pendingSync, pendingSync
         ? "محفوظ محلياً - بانتظار المزامنة"
         : "متزامن");
@@ -7081,7 +7078,7 @@ async function loadSystemDataFromCloud() {
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
       dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
       dirtySets.duty_reports.size || dirtySets.admin_pin || dirtySets.duty_module ||
-      dirtySets.custom_categories || getPendingDeletes().length;
+      dirtySets.custom_categories;
     console.info('[AUTH_TRACE] sync:pending-state:done', { pendingSync: !!pendingSync });
     updateSyncStatus(!pendingSync && localSnapshotSaved, !localSnapshotSaved
       ? (pendingSync
@@ -7297,11 +7294,9 @@ async function saveSystemDataToCloud(options = {}) {
 
     saveToLocalStorageSafe();
     await persistOfflineState();
-    const pendingDeleteCount = getPendingDeletes().length;
     const pendingRecords = hasPendingOfflineRecordChanges();
-    updateSyncStatus(!pendingDeleteCount && !pendingRecords,
-      pendingRecords ? 'بقيت تعديلات أحدث من عملية المزامنة محفوظة محلياً'
-        : pendingDeleteCount ? `تم حفظ التعديلات؛ ${pendingDeleteCount} طلب حذف بانتظار المراجعة` : "متزامن");
+    updateSyncStatus(!pendingRecords,
+      pendingRecords ? 'بقيت تعديلات أحدث من عملية المزامنة محفوظة محلياً' : "متزامن");
     return !pendingRecords;
   } catch(error) {
     console.error('Cloud save failed:', error);
@@ -7328,9 +7323,9 @@ function forceSyncWithCloud() {
     return;
   }
   const pendingDeletes = getPendingDeletes().length;
-  if (pendingDeletes) {
+  if (pendingDeletes && isAdminAuthorized()) {
     showConfirm(
-      `سيتم جلب بيانات الخادم مع إبقاء ${pendingDeletes} طلب حذف محلياً للمراجعة. لن تُرفع تعديلات أو تُنفذ عمليات حذف. متابعة؟`,
+      `سيتم جلب بيانات الخادم مع إبقاء ${pendingDeletes} طلب حذف محلياً للمراجعة. لن تُرفع تعديلات أو تُنفذ عمليات حذف.`,
       { danger: false, okText: 'جلب بيانات الخادم' }
     ).then(ok => { if (ok) doForceSync(); });
     return;
@@ -7356,14 +7351,19 @@ function updateSyncStatus(isSynced, text) {
   const pendingRecords = hasPendingOfflineRecordChanges();
   // Deletion review is an administrator-only workflow; ordinary teachers must not see its count or action.
   const canReviewDeletes = isAdminAuthorized();
-  const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0;
+  const queuedDeletes = getPendingDeletes().length;
+  const pendingDeletes = canReviewDeletes ? queuedDeletes : 0;
+  // A local deletion-review queue is not an unsynced teacher edit. Keep it out
+  // of ordinary teachers' sync status while preserving genuine dirty records.
+  const reviewQueueOnlyForTeacher = !canReviewDeletes && !pendingRecords && queuedDeletes > 0;
+  const effectiveSynced = isSynced || reviewQueueOnlyForTeacher;
   const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل|جارِ التحقق|جاري الاتصال)/.test(String(text || ''));
   const reviewOnly = canReviewDeletes && !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
   let displayText = text || (isSynced ? "متزامن" : "محلي");
   if (!canReviewDeletes) {
     // Some callers pass a pre-composed status containing the queue count. Strip it for non-admin sessions.
     displayText = String(displayText).replace(/[؛;،]?\s*\d+\s*طلب(?:ات)?\s*حذف(?:\s*(?:للمراجعة|بانتظار\s*المراجعة))?/g, '').trim();
-    if (!displayText) displayText = isSynced ? "متزامن" : "محلي";
+    if (!displayText) displayText = effectiveSynced ? "متزامن" : "محلي";
   }
   if (reviewOnly) displayText = `المزامنة مكتملة؛ ${pendingDeletes} طلب حذف للمراجعة`;
   else if (canReviewDeletes && pendingRecords && pendingDeletes) displayText = `${displayText}؛ ${pendingDeletes} طلب حذف للمراجعة`;
@@ -7380,7 +7380,7 @@ function updateSyncStatus(isSynced, text) {
     ind.title = "المزامنة مكتملة؛ انقر لمراجعة أو إلغاء طلبات الحذف المحلية";
     return;
   }
-  if (isSynced && !pendingRecords && !pendingDeletes) {
+  if (effectiveSynced && !pendingRecords && !pendingDeletes) {
     ind.className = "bg-emerald-800/80 text-emerald-200 px-3 py-1.5 rounded-2xl text-xs font-bold flex items-center gap-2 border border-emerald-700/60";
     ind.onclick = null;
     ind.removeAttribute('title');
