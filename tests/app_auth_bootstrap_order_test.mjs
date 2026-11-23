@@ -334,7 +334,8 @@ test("first cloud manifest and table reads have explicit five-minute deadlines",
 test("publishable API keys are sent only as apikey while legacy JWT anon keys retain Bearer compatibility", () => {
   const helper = section("function getSupabasePublicDataHeaders(", "function installSupabaseAuthDiagnostics()");
   const publishableHeaders = runInNewContext(
-    `${helper}\\ngetSupabasePublicDataHeaders({ "Content-Type": "application/json" })`,
+    `${helper}
+getSupabasePublicDataHeaders({ "Content-Type": "application/json" })`,
     { SUPABASE_ANON_KEY: "sb_publishable_test-key" },
   );
   assert.equal(
@@ -344,7 +345,8 @@ test("publishable API keys are sent only as apikey while legacy JWT anon keys re
 
   const legacyKey = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature";
   const legacyHeaders = runInNewContext(
-    `${helper}\\ngetSupabasePublicDataHeaders()`,
+    `${helper}
+getSupabasePublicDataHeaders()`,
     { SUPABASE_ANON_KEY: legacyKey },
   );
   assert.equal(
