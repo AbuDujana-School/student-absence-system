@@ -116,3 +116,22 @@ test("reserve workflow controls distinguish the general administrator from addit
   assert.doesNotMatch(identity, /activeUser\?\.type/);
   assert.doesNotMatch(identity, /appAuthSession\?\.principal\?\.type/);
 });
+
+
+test("attendance and behavior statistics require their matching read permissions while admins retain access", () => {
+  const policy = section("function canAccessAdminTab(", "function grantTemporaryAdminAuth()");
+  assert.match(policy, /isGeneralAdminUser\(user\) \|\| \(user === activeUser && isAdminAuthorized\(\)\)/);
+  assert.match(policy, /key === 'studstats'.*permissions\.studstats === true && permissions\.attendance !== false/);
+  assert.match(policy, /key === 'behaviorstats'.*permissions\.behaviorstats === true && permissions\.behavior !== false/);
+
+  const access = section("function hasAdminPanelAccess(", "function getSingleAdminPanelPermission(");
+  assert.match(access, /ADMIN_TAB_PERMISSIONS\.some\(key => canAccessAdminTab\(key, user\)\)/);
+  const switcher = section("function switchAdminTab(tab)", "/* ============ Students admin ============ */");
+  assert.match(switcher, /: canAccessAdminTab\(k, activeUser\)/);
+  const setup = section("function setupRolePermissions()", "let currentUrgentType");
+  assert.match(setup, /const allow = canAccessAdminTab\(id, activeUser\)/);
+  const dashboard = section("function initAdminDashboard()", "/* Independent copy of Student Affairs report tools");
+  assert.match(dashboard, /const has = \(k\) => k === 'timetable' \? \(isA \|\| timetableCanAccess\) : canAccessAdminTab\(k, activeUser\)/);
+  const overview = section("function renderAdminOverview()", "function getUrgentAttendanceRows");
+  assert.match(overview, /const canStats = canAccessAdminTab\('studstats', activeUser\)/);
+});
