@@ -59,7 +59,7 @@ test("staggered dashboard pilot is restricted to the non-admin Tester1 account",
 test("Tester1 dashboard modules are revealed on the requested independent schedule", () => {
   const pilot = section("function startTesterOneDashboardStages()", "function renderAuthenticatedDashboardShell()");
   assert.match(pilot, /schedule\(5000,[\s\S]*'morning-assembly'/);
-  assert.match(pilot, /schedule\(10000,[\s\S]*'duty'/);
+  assert.match(pilot, /schedule\(10000,[\s\S]*timetableRefreshAccess\(\{ deferAdminPortalStatus: true \}\)/);
   assert.match(pilot, /schedule\(15000,[\s\S]*'student-affairs'/);
   const duty = section("function refreshDutyDashboardCard()", "function openDutyView()");
   const morning = section("function refreshMorningAssemblyLatenessCard()", "function openMorningAssemblyLateness()");
