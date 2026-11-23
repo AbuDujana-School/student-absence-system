@@ -152,6 +152,10 @@ async function currentAppPrincipal(type: string, name: string): Promise<AppPrinc
 }
 
 function isGeneralAdminPrincipal(value: { type?: unknown; name?: unknown; adminScope?: unknown } | null | undefined): boolean {
+function hasFullAdministrativeAccess(value: { type?: unknown; name?: unknown; adminScope?: unknown; permissions?: Record<string, unknown> | null } | null | undefined): boolean {
+  // Delegated full administrators keep their teacher identity and do not become Additional Admins.
+  return isGeneralAdminPrincipal(value) || (value?.type === "teacher" && value.permissions?.admin === true);
+}
   return value?.type === "admin" && (value.adminScope === "general" || value.name === "مدير النظام العام");
 }
 
@@ -214,7 +218,7 @@ async function findPrincipal(pin: string, pepper: string): Promise<Principal | n
   return null;
 }
 async function permissionsFor(p: { type: string; name: string; permissions?: Record<string, unknown> }, strictCompetition = false) {
-  if (isGeneralAdminPrincipal(p)) {
+  if (hasFullAdministrativeAccess(p)) {
     const [{ data: classes }, { data: teachers }, { data: permissionRows }] = await Promise.all([
       db.from("classes").select("name"),
       db.from("teachers").select("name,role,permissions").neq("role", "custom"),
@@ -316,7 +320,7 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
     can_print_attendance: data?.can_print_attendance === true, can_print_behavior: data?.can_print_behavior === true,
     can_print_combined: data?.can_print_combined === true
   };
-  const reportsAccess = canAccessReportPermission(p.type, tp, "reportStudentAffairs", isGeneralAdminPrincipal(p));
+  const reportsAccess = canAccessReportPermission(p.type, tp, "reportStudentAffairs", hasFullAdministrativeAccess(p));
   let reportClasses: string[] = [];
   if (reportsAccess) {
     const { data: classes, error: classesError } = await db.from("classes").select("name");
@@ -326,7 +330,7 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
   return applyReportsEntryPermissions(reportPermissions, reportClasses, reportsAccess);
 }
 async function hasStudentAffairsAccess(p: { type: string; name: string; permissions?: Record<string, unknown> }) {
-  if (isGeneralAdminPrincipal(p)) return true;
+  if (hasFullAdministrativeAccess(p)) return true;
   if (p.permissions && typeof p.permissions === "object") {
     if (p.type !== "teacher" && p.type !== "custom" && p.type !== "admin") return false;
     return p.permissions.studentAffairs === true;
@@ -408,7 +412,7 @@ async function getCompetitionCronSecret() {
 }
 // Current teacher class access is projected from live assignment permissions.
 function projectCompetitionResponse(snapshot: any, principal: { type: string; name: string }, permissions: any = {}) {
-  const isAdmin = isGeneralAdminPrincipal(principal);
+  const isAdmin = hasFullAdministrativeAccess(principal);
   const isVisitor = permissions?.role === "visitor";
   const canSeeAll = isAdmin || isVisitor;
   const sourceTeams = Array.isArray(snapshot?.teams) ? snapshot.teams : [];
@@ -529,17 +533,17 @@ async function readCompetitionTermSettings() {
   return { terms, currentTerm, showBothTerms: visibility?.showBothTerms === true };
 }
 async function buildTermCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, requestedTermId?: unknown) {
-  if (!isGeneralAdminPrincipal(principal) && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
+  if (!hasFullAdministrativeAccess(principal) && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
   const today = getOmanIsoDate();
   const termSettings = await readCompetitionTermSettings();
   const { terms, currentTerm, showBothTerms } = termSettings;
   const selectedTermId = String(requestedTermId || currentTerm.id);
   const selectedTerm = terms.find((term: any) => term.id === selectedTermId);
   if (!selectedTerm) competitionError(400, "الفصل الدراسي المطلوب غير موجود في تقويم المدرسة.");
-  if (!isGeneralAdminPrincipal(principal) && !showBothTerms && selectedTerm.id !== currentTerm.id) {
+  if (!hasFullAdministrativeAccess(principal) && !showBothTerms && selectedTerm.id !== currentTerm.id) {
     competitionError(403, "لا تملك صلاحية عرض نتائج فصل دراسي سابق.");
   }
-  const visibleTerms = isGeneralAdminPrincipal(principal) || showBothTerms ? terms : [currentTerm];
+  const visibleTerms = hasFullAdministrativeAccess(principal) || showBothTerms ? terms : [currentTerm];
   const termTo = today > selectedTerm.end ? selectedTerm.end : today < selectedTerm.start ? selectedTerm.start : today;
   const { data: history, error } = await db.from("competition_weekly_results")
     .select("week_start,week_end,status,finalized_at,snapshot")
@@ -713,7 +717,7 @@ function rowsForCompetitionRange(index: Map<string, Map<string, any[]>>, classNa
   return rows;
 }
 async function buildCompetitionSnapshot(principal: { type: string; name: string }, permissions: any, fromValue: unknown, toValue: unknown, periodValue: unknown) {
-  if (!isGeneralAdminPrincipal(principal) && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
+  if (!hasFullAdministrativeAccess(principal) && permissions?.can_view_competition !== true) competitionError(403, "لا تملك صلاحية مشاهدة لوحة سباق التميز.");
   const today = getOmanIsoDate();
   const period = ["weekly", "monthly", "term"].includes(String(periodValue)) ? String(periodValue) : "weekly";
   const defaultWeek = getSchoolWeekRange(today);
@@ -846,7 +850,7 @@ async function buildCompetitionSnapshot(principal: { type: string; name: string 
       if (ownTeamIds.includes(team.teamId)) ownClasses.push(classItem);
     }
   }
-  return { from, to, period, today, isAdmin: isGeneralAdminPrincipal(principal), status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
+  return { from, to, period, today, isAdmin: hasFullAdministrativeAccess(principal), status: allTeamsComplete ? "complete" : "incomplete", teams: currentWeekAwards, ownGrades: teams.filter((team: any) => ownTeamIds.includes(team.teamId)).map((team: any) => team.teamName), ownClasses, classComparison, dailyProgress, weeklyWins, weeklyPoints, weeklyHistory, completedWeeks };
 }
 
 
@@ -865,7 +869,7 @@ async function readAppDataGateway(req: Request, body: any): Promise<Response> {
 }
 
 async function hasTimetableAccess(principal: { type: string; name: string }): Promise<boolean> {
-  if (isGeneralAdminPrincipal(principal)) return true;
+  if (hasFullAdministrativeAccess(principal)) return true;
   const principalType = principal.type === "admin" ? "teacher" : principal.type;
   const { data, error } = await db.from("timetable_access_permissions")
     .select("can_access")
@@ -916,7 +920,7 @@ async function handle(req: Request) {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !isGeneralAdminPrincipal(principal)) {
+      if (!principal || !hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "حفظ قوائم الطلاب متاح لمدير النظام العام فقط." });
       }
       const className = String(body.class_name || "").trim();
@@ -950,7 +954,7 @@ async function handle(req: Request) {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !isGeneralAdminPrincipal(principal)) {
+      if (!principal || !hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "نقل الطلاب بين الصفوف متاح لمدير النظام العام فقط." });
       }
       const studentName = String(body.student_name || "").trim();
@@ -999,10 +1003,10 @@ async function handle(req: Request) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
       }
-      if (isGeneralAdminPrincipal(principal) && !(await adminStudentAffairsAccessEnabled())) {
+      if (hasFullAdministrativeAccess(principal) && !(await adminStudentAffairsAccessEnabled())) {
         return reply(403, { error: "تم تعليق دخول مدير النظام إلى شؤون الطلبة مؤقتاً للاختبار؛ يمكن إعادة الصلاحية دون تغيير الحساب." });
       }
-      if (!isGeneralAdminPrincipal(principal) && !(await hasStudentAffairsAccess(principal))) {
+      if (!hasFullAdministrativeAccess(principal) && !(await hasStudentAffairsAccess(principal))) {
         return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة." });
       }
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
@@ -1095,10 +1099,10 @@ async function handle(req: Request) {
     try {
       const principal = await findPrincipal(body.pin, await getPepper());
       if (!principal) { await failedLogin(rate.key); return reply(401, { error: "بيانات الدخول غير صحيحة" }); }
-      if (isGeneralAdminPrincipal(principal) && !(await adminStudentAffairsAccessEnabled())) {
+      if (hasFullAdministrativeAccess(principal) && !(await adminStudentAffairsAccessEnabled())) {
         return reply(403, { error: "تم تعليق دخول مدير النظام إلى شؤون الطلبة مؤقتاً للاختبار؛ يمكن إعادة الصلاحية دون تغيير الحساب." });
       }
-      if (!isGeneralAdminPrincipal(principal) && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة" }); }
+      if (!hasFullAdministrativeAccess(principal) && !(await hasStudentAffairsAccess(principal))) { await failedLogin(rate.key); return reply(403, { error: "هذا الحساب غير مخوّل لدخول شؤون الطلبة" }); }
       await clearFailedLogin(rate.key);
       const token = hex(crypto.getRandomValues(new Uint8Array(32)));
       const expires = new Date(Date.now() + SESSION_HOURS * 60 * 60 * 1000).toISOString();
@@ -1117,10 +1121,10 @@ async function handle(req: Request) {
 
       if (body.action === "timetable_check_access") {
         const canAccess = await hasTimetableAccess(principal);
-        return reply(200, { canAccess, isAdmin: isGeneralAdminPrincipal(principal) });
+        return reply(200, { canAccess, isAdmin: hasFullAdministrativeAccess(principal) });
       }
 
-      if (!isGeneralAdminPrincipal(principal)) {
+      if (!hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "إدارة صلاحيات الجداول متاحة لمدير النظام العام فقط." });
       }
 
@@ -1178,7 +1182,7 @@ async function handle(req: Request) {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !isGeneralAdminPrincipal(principal)) {
+      if (!principal || !hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "إدارة الجدول الأسبوعي متاحة لمدير النظام العام فقط." });
       }
 
@@ -1277,7 +1281,7 @@ async function handle(req: Request) {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !isGeneralAdminPrincipal(principal)) {
+      if (!principal || !hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "استعراض جداول جميع المعلمين متاح لمدير النظام العام فقط." });
       }
       const teacherName = String(body.teacherName || "").trim();
@@ -1366,7 +1370,7 @@ async function handle(req: Request) {
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
       if (!principal) return reply(401, { error: "تعذر التحقق من المستخدم الحالي." });
-      if (!isGeneralAdminPrincipal(principal) && !(await hasTimetableAccess(principal))) {
+      if (!hasFullAdministrativeAccess(principal) && !(await hasTimetableAccess(principal))) {
         return reply(403, { error: "لا تملك صلاحية منظومة الجداول والاحتياط." });
       }
 
@@ -1395,7 +1399,7 @@ async function handle(req: Request) {
       })).filter((item:any)=>item.name);
       const actorDirectoryRow = teacherRows.find((item:any)=>item.name===principal.name);
       const actorDepartment = actorDirectoryRow?.department || "";
-      if (!isGeneralAdminPrincipal(principal) && !actorDepartment) {
+      if (!hasFullAdministrativeAccess(principal) && !actorDepartment) {
         return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
       }
 
@@ -1415,7 +1419,7 @@ async function handle(req: Request) {
           return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
         const absentRow=teacherRows.find((item:any)=>item.name===assignment.absent_teacher_name&&item.role==="teacher");
         if(!absentRow)return reply(404,{error:"تعذر العثور على قسم المعلم الغائب."});
-        if(!isGeneralAdminPrincipal(principal)&&absentRow.department!==actorDepartment) {
+        if(!hasFullAdministrativeAccess(principal)&&absentRow.department!==actorDepartment) {
           return reply(403,{error:"لا تملك صلاحية إلغاء تكليف هذا القسم."});
         }
         const {data,error}=await db.rpc("cancel_timetable_substitution",{
@@ -1427,7 +1431,7 @@ async function handle(req: Request) {
       if (absentTeacherName) {
         const absentDirectoryRow = teacherRows.find((item:any)=>item.name===absentTeacherName);
         if (!absentDirectoryRow || absentDirectoryRow.role!=="teacher") return reply(404,{error:"المعلم المحدد غير موجود في دليل المعلمين."});
-        if (!isGeneralAdminPrincipal(principal) && absentDirectoryRow.department !== actorDepartment) {
+        if (!hasFullAdministrativeAccess(principal) && absentDirectoryRow.department !== actorDepartment) {
           return reply(403,{error:"يمكنك إدارة احتياط معلمي قسمك فقط."});
         }
       }
@@ -1458,7 +1462,7 @@ async function handle(req: Request) {
       const absentTeachers = Array.from(new Set((dayCells || [])
         .filter((cell:any)=>cell.cell_status==="teaching" && cell.matched_teacher_name)
         .filter((cell:any)=>teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.role==="teacher")
-        .filter((cell:any)=>isGeneralAdminPrincipal(principal) || teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.department===actorDepartment)
+        .filter((cell:any)=>hasFullAdministrativeAccess(principal) || teacherRows.find((t:any)=>t.name===cell.matched_teacher_name)?.department===actorDepartment)
         .map((cell:any)=>String(cell.matched_teacher_name))))
         .sort((a,b)=>a.localeCompare(b,"ar"));
       if (!absentTeacherName) {
@@ -1514,7 +1518,7 @@ async function handle(req: Request) {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !isGeneralAdminPrincipal(principal)) {
+      if (!principal || !hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
       const sheets = body?.sheets;
@@ -1563,7 +1567,7 @@ async function handle(req: Request) {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
       if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
       const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
-      if (!principal || !isGeneralAdminPrincipal(principal)) {
+      if (!principal || !hasFullAdministrativeAccess(principal)) {
         return reply(403, { error: "لا تملك صلاحية الدخول إلى منظومة الجداول والاحتياط." });
       }
       const sheets = body?.sheets;
@@ -1709,10 +1713,10 @@ async function handle(req: Request) {
         await revokeAppSession(appSessionStore, req.headers.get("authorization"));
         return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
       }
-      if (isGeneralAdminPrincipal(appPrincipal) && !(await adminStudentAffairsAccessEnabled())) {
+      if (hasFullAdministrativeAccess(appPrincipal) && !(await adminStudentAffairsAccessEnabled())) {
         return reply(403, { error: "تم تعليق دخول مدير النظام إلى تقارير شؤون الطلبة مؤقتاً للاختبار." });
       }
-      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs", isGeneralAdminPrincipal(appPrincipal))) {
+      if (!canAccessReportPermission(appPrincipal.type, appPrincipal.permissions, "reportStudentAffairs", hasFullAdministrativeAccess(appPrincipal))) {
         return reply(403, { error: "لا تملك صلاحية دخول لوحة تقارير شؤون الطلبة." });
       }
       p = appPrincipal;
@@ -1722,7 +1726,7 @@ async function handle(req: Request) {
       session = saSession;
       activitySessionHash = saSession.appSessionHash || saSession.tokenHash;
       p = saSession.principal;
-      if (!isGeneralAdminPrincipal(p) && !(await hasStudentAffairsAccess(p))) {
+      if (!hasFullAdministrativeAccess(p) && !(await hasStudentAffairsAccess(p))) {
         await db.from("student_affairs_sessions").delete().eq("token_hash", saSession.tokenHash);
         return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
       }
@@ -1737,7 +1741,7 @@ async function handle(req: Request) {
     if (!session) return reply(401, { error: "انتهت الجلسة. أعد تسجيل الدخول." });
     activitySessionHash = session.appSessionHash || session.tokenHash;
     p = session.principal;
-    if (!isGeneralAdminPrincipal(p) && !(await hasStudentAffairsAccess(p))) {
+    if (!hasFullAdministrativeAccess(p) && !(await hasStudentAffairsAccess(p))) {
       await db.from("student_affairs_sessions").delete().eq("token_hash", session.tokenHash);
       return reply(403, { error: "تم إيقاف صلاحية دخول شؤون الطلبة لهذا الحساب" });
     }
@@ -1752,7 +1756,7 @@ async function handle(req: Request) {
   }
   if (body?.action === "supervision_trend") {
     const permissions = await permissionsFor(p);
-    if (!isGeneralAdminPrincipal(p) && permissions.can_view_analytics !== true && !["team_leader", "visitor"].includes(permissions.role)) return reply(403, { error: "غير مصرح بعرض مؤشر الأداء" });
+    if (!hasFullAdministrativeAccess(p) && permissions.can_view_analytics !== true && !["team_leader", "visitor"].includes(permissions.role)) return reply(403, { error: "غير مصرح بعرض مؤشر الأداء" });
     const from = body.from == null ? "2000-01-01" : body.from;
     const to = body.to == null ? new Date().toISOString().slice(0, 10) : body.to;
     if (!isValidIsoDate(from) || !isValidIsoDate(to) || from > to) return reply(400, { error: "نطاق التاريخ غير صالح" });
@@ -1762,7 +1766,7 @@ async function handle(req: Request) {
     if (scope === "own") {
       attendanceClasses = permissions.own_allowed_attendance_classes || [];
       behaviorClasses = permissions.own_allowed_behavior_classes || [];
-    } else if (scope === "team" && !isGeneralAdminPrincipal(p) && permissions.role === "team_leader") {
+    } else if (scope === "team" && !hasFullAdministrativeAccess(p) && permissions.role === "team_leader") {
       // Team scope includes the leader's own assigned classes plus only directly supervised team members.
       selectedMembers = [{
         name: p.name,
@@ -1772,13 +1776,13 @@ async function handle(req: Request) {
       }, ...(permissions.team_members || [])];
       attendanceClasses = [...(permissions.own_allowed_attendance_classes || []), ...(permissions.team_allowed_attendance_classes || [])];
       behaviorClasses = [...(permissions.own_allowed_behavior_classes || []), ...(permissions.team_allowed_behavior_classes || [])];
-    } else if (scope === "teacher" && (isGeneralAdminPrincipal(p) || ["team_leader", "visitor"].includes(permissions.role))) {
+    } else if (scope === "teacher" && (hasFullAdministrativeAccess(p) || ["team_leader", "visitor"].includes(permissions.role))) {
       const target = resolveSupervisionTeacher(permissions.role === "admin" ? "visitor" : permissions.role, String(body.teacher_name || ""), permissions.team_members || [], permissions.teacher_directory || []);
       if (!target) return reply(403, { error: permissions.role === "visitor" ? "هذا المعلم غير موجود ضمن معلمي شؤون الطلبة." : "هذا المعلم ليس ضمن فريقك" });
       selectedMembers = [target];
       attendanceClasses = target.allowed_attendance_classes || [];
       behaviorClasses = target.allowed_behavior_classes || [];
-    } else if (scope === "all" && (isGeneralAdminPrincipal(p) || permissions.role === "visitor")) {
+    } else if (scope === "all" && (hasFullAdministrativeAccess(p) || permissions.role === "visitor")) {
       selectedMembers = permissions.teacher_directory || [];
       attendanceClasses = selectedMembers.flatMap((item: any) => item.allowed_attendance_classes || []);
       behaviorClasses = selectedMembers.flatMap((item: any) => item.allowed_behavior_classes || []);
@@ -1854,13 +1858,13 @@ async function handle(req: Request) {
   }
   if (body?.action === "supervision_team") {
     const permissions = await permissionsFor(p);
-    if (isGeneralAdminPrincipal(p)) return reply(200, { team_name: "جميع المعلمين", teachers: permissions.teacher_directory || [] });
+    if (hasFullAdministrativeAccess(p)) return reply(200, { team_name: "جميع المعلمين", teachers: permissions.teacher_directory || [] });
     if (permissions.role === "visitor") return reply(200, { team_name: "جميع معلمي شؤون الطلبة", teachers: permissions.teacher_directory || [] });
     if (permissions.role !== "team_leader") return reply(403, { error: "متابعة المعلمين متاحة لقائد الفريق والزائر فقط" });
     return reply(200, { team_name: permissions.team_name || "", teachers: permissions.team_members || [] });
   }
   if (body?.action === "get_permissions") {
-    if (!isGeneralAdminPrincipal(p)) return reply(403, { error: "غير مصرح" });
+    if (!hasFullAdministrativeAccess(p)) return reply(403, { error: "غير مصرح" });
     const [{ data: teachers }, { data: classes }, { data: perms }] = await Promise.all([
       db.from("teachers").select("name,role,permissions").order("name"),
       db.from("classes").select("name").order("name"),
@@ -1869,7 +1873,7 @@ async function handle(req: Request) {
     return reply(200, { teachers: teachers || [], classes: classes || [], permissions: perms || [] });
   }
   if (body?.action === "remove_student_affairs_member") {
-    if (!isGeneralAdminPrincipal(p)) return reply(403, { error: "حذف عضوية شؤون الطلبة متاح لمدير النظام فقط." });
+    if (!hasFullAdministrativeAccess(p)) return reply(403, { error: "حذف عضوية شؤون الطلبة متاح لمدير النظام فقط." });
     const type = String(body.principal_type || "");
     const name = String(body.principal_name || "").trim();
     if (type !== "teacher" || !name) return reply(400, { error: "بيانات المعلم المطلوب حذفه غير صالحة." });
@@ -1913,7 +1917,7 @@ async function handle(req: Request) {
     return reply(200, { ok: true, principal_name: name, removed_from: "student_affairs" });
   }
   if (body?.action === "set_permissions") {
-    if (!isGeneralAdminPrincipal(p)) return reply(403, { error: "غير مصرح" });
+    if (!hasFullAdministrativeAccess(p)) return reply(403, { error: "غير مصرح" });
     const type = body.principal_type, name = String(body.principal_name || "").trim();
     if (!["teacher", "custom"].includes(type) || !name) return reply(400, { error: "المعلم غير صالح" });
     const { data: target } = await db.from("teachers").select("name,role,permissions").eq("name", name).maybeSingle();
@@ -2057,11 +2061,11 @@ async function handle(req: Request) {
     return reply(200, { ok: true, permissions: row });
   }
   if (body?.action === "competition_settings") {
-    const permissions = isGeneralAdminPrincipal(p) ? {} : await permissionsFor(p, true);
-    if (!isGeneralAdminPrincipal(p) && permissions?.can_view_competition !== true) return reply(403, { error: "لا تملك صلاحية مشاهدة إعدادات البطولة." });
+    const permissions = hasFullAdministrativeAccess(p) ? {} : await permissionsFor(p, true);
+    if (!hasFullAdministrativeAccess(p) && permissions?.can_view_competition !== true) return reply(403, { error: "لا تملك صلاحية مشاهدة إعدادات البطولة." });
     const mode = String(body.mode || "read");
     if (mode === "save") {
-      if (!isGeneralAdminPrincipal(p)) return reply(403, { error: "تعديل إعدادات البطولة متاح لمدير النظام فقط." });
+      if (!hasFullAdministrativeAccess(p)) return reply(403, { error: "تعديل إعدادات البطولة متاح لمدير النظام فقط." });
       if (typeof body.showBothTerms !== "boolean") return reply(400, { error: "قيمة إتاحة نتائج الفصلين غير صالحة." });
       const { error } = await db.from("school_settings").upsert({
         key: "competition_visibility_mode",
@@ -2070,16 +2074,16 @@ async function handle(req: Request) {
       if (error) throw error;
     }
     const settings = await readCompetitionTermSettings();
-    const visibleTerms = isGeneralAdminPrincipal(p) || settings.showBothTerms ? settings.terms : [settings.currentTerm];
+    const visibleTerms = hasFullAdministrativeAccess(p) || settings.showBothTerms ? settings.terms : [settings.currentTerm];
     return reply(200, {
       terms: visibleTerms, currentTermId: settings.currentTerm.id,
       selectedTermId: settings.currentTerm.id, showBothTerms: settings.showBothTerms,
-      canManage: isGeneralAdminPrincipal(p)
+      canManage: hasFullAdministrativeAccess(p)
     });
   }
   if (body?.action === "competition") {
-    const permissions = isGeneralAdminPrincipal(p) ? {} : await permissionsFor(p, true);
-    if (!isGeneralAdminPrincipal(p) && permissions?.can_view_competition !== true) {
+    const permissions = hasFullAdministrativeAccess(p) ? {} : await permissionsFor(p, true);
+    if (!hasFullAdministrativeAccess(p) && permissions?.can_view_competition !== true) {
       return reply(403, { error: "لا تملك صلاحية مشاهدة لوحة سباق التميز." });
     }
     try {
@@ -2107,7 +2111,7 @@ async function handle(req: Request) {
       else {
         let from = body.from, to = body.to;
         const termSettings = await readCompetitionTermSettings();
-        if (!isGeneralAdminPrincipal(p) && !termSettings.showBothTerms) {
+        if (!hasFullAdministrativeAccess(p) && !termSettings.showBothTerms) {
           if (!isValidIsoDate(from) || !isValidIsoDate(to)) return reply(400, { error: "نطاق تاريخ البطولة غير صالح." });
           if (from < termSettings.currentTerm.start) from = termSettings.currentTerm.start;
           if (to > termSettings.currentTerm.end) to = termSettings.currentTerm.end;
@@ -2147,7 +2151,7 @@ async function handle(req: Request) {
     if (mode === "activity_event") {
       const eventType = String(body.activity_type || "");
       if (eventType === "module_access") {
-        if (!isGeneralAdminPrincipal(p) && !(await hasStudentAffairsAccess(p))) return reply(403, { error: "غير مصرح بتسجيل دخول شؤون الطلبة." });
+        if (!hasFullAdministrativeAccess(p) && !(await hasStudentAffairsAccess(p))) return reply(403, { error: "غير مصرح بتسجيل دخول شؤون الطلبة." });
         if (!activitySessionHash) return reply(401, { error: "تعذر تحديد جلسة تسجيل الدخول لتوثيق النشاط." });
         const { error } = await db.from("student_affairs_activity_events").upsert({
           event_type: "module_access", actor_type: p.type, actor_name: p.name,
