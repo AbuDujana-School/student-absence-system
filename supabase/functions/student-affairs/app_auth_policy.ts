@@ -46,10 +46,9 @@ export function projectAppPrincipal(input: AppPrincipalInput): AppPrincipal | nu
     ? input.permissions
     : {};
   const permissions = removeSecretFields(source) as Record<string, unknown>;
-  const inferredScope = inferAppAdminScope(type, name);
-  const adminScope = type === "admin"
-    ? (input.adminScope === "general" || input.adminScope === "additional" ? input.adminScope : inferredScope)
-    : undefined;
+  // Scope is derived from the canonical server-side administrator identity;
+  // never trust a caller-supplied scope to elevate an additional administrator.
+  const adminScope = inferAppAdminScope(type, name);
   return { type, name, permissions, ...(adminScope ? { adminScope } : {}), mustChangePin: input.mustChangePin === true };
 }
 
