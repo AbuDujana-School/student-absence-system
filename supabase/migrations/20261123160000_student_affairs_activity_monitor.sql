@@ -73,3 +73,6 @@ comment on table public.student_affairs_activity_events is
   'Append-only audit events for Student Affairs usage monitoring; access is restricted to the service role.';
 comment on table public.student_affairs_activity_settings is
   'Stores the start timestamp for Student Affairs activity monitoring.';
+
+-- The edge function inserts events without supplying the identity column.
+grant usage, select on sequence public.student_affairs_activity_events_id_seq to service_role;
