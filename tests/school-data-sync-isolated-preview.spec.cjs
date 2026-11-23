@@ -511,6 +511,70 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(snapshotKeyWriteProbe.settled && snapshotKeyWriteProbe.transactionComplete,
     "A small IndexedDB write to the snapshot key must complete; diagnostics: " +
       JSON.stringify({ snapshotKeyWriteProbe, browserConsole, pageErrors })).toBe(true);
+  const snapshotJsonWriteProbe = await page.evaluate(async () => {
+    const database = await openOfflineDatabase();
+    const previous = await new Promise((resolve, reject) => {
+      const tx = database.transaction('state', 'readonly');
+      const request = tx.objectStore('state').get('snapshot');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error || new Error('Could not read snapshot before JSON probe'));
+    });
+    const snapshotJson = JSON.stringify({
+      savedAt: new Date().toISOString(),
+      db,
+      dirtySets: serializeDirtySets(),
+      pendingDeletes: getPendingDeletes(),
+      cloudSyncManifest: null,
+    });
+    const write = await Promise.race([
+      new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        const request = tx.objectStore('state').put({ key: 'snapshot', snapshotJson });
+        request.onsuccess = () => resolve({ settled: true, requestSuccess: true });
+        request.onerror = () => reject(request.error || new Error('Snapshot JSON probe request failed'));
+        tx.oncomplete = () => console.log("QA_IDB_JSON_PROBE_TX_COMPLETE");
+        tx.onerror = () => reject(tx.error || new Error('Snapshot JSON probe transaction failed'));
+        tx.onabort = () => reject(tx.error || new Error('Snapshot JSON probe transaction aborted'));
+      }),
+      new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 5000 }), 5000)),
+    ]);
+    let readBack = null;
+    if (write.settled) {
+      readBack = await new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readonly');
+        const request = tx.objectStore('state').get('snapshot');
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error || new Error('Snapshot JSON probe readback failed'));
+      });
+    }
+    if (previous) {
+      await new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        tx.objectStore('state').put(previous);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Snapshot JSON probe restore failed'));
+        tx.onabort = () => reject(tx.error || new Error('Snapshot JSON probe restore aborted'));
+      });
+    } else if (write.settled) {
+      await new Promise((resolve, reject) => {
+        const tx = database.transaction('state', 'readwrite');
+        tx.objectStore('state').delete('snapshot');
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error || new Error('Snapshot JSON probe cleanup failed'));
+        tx.onabort = () => reject(tx.error || new Error('Snapshot JSON probe cleanup aborted'));
+      });
+    }
+    return {
+      ...write,
+      jsonChars: snapshotJson.length,
+      readBackMatches: readBack?.snapshotJson === snapshotJson,
+      previousExists: !!previous,
+    };
+  });
+  browserConsole.push("QA_IDB_SNAPSHOT_JSON_PROBE " + JSON.stringify(snapshotJsonWriteProbe));
+  expect(snapshotJsonWriteProbe.settled && snapshotJsonWriteProbe.requestSuccess && snapshotJsonWriteProbe.readBackMatches,
+    "A JSON-string snapshot of the real in-memory database must persist and read back; diagnostics: " +
+      JSON.stringify({ snapshotJsonWriteProbe, browserConsole, pageErrors })).toBe(true);
 
   // Diagnostic isolation: the last run showed the next RPC stalls only after
   // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
