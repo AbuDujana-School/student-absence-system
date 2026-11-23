@@ -329,3 +329,34 @@ test("first cloud manifest and table reads have explicit five-minute deadlines",
   assert.match(loader, /APP_SYNC_MANIFEST_TIMEOUT/);
   assert.match(loader, /APP_SYNC_TABLES_TIMEOUT/);
 });
+
+
+test("publishable API keys are sent only as apikey while legacy JWT anon keys retain Bearer compatibility", () => {
+  const helper = section("function getSupabasePublicDataHeaders(", "function installSupabaseAuthDiagnostics()");
+  const publishableHeaders = runInNewContext(
+    `${helper}\\ngetSupabasePublicDataHeaders({ "Content-Type": "application/json" })`,
+    { SUPABASE_ANON_KEY: "sb_publishable_test-key" },
+  );
+  assert.equal(
+    JSON.stringify(publishableHeaders),
+    JSON.stringify({ "Content-Type": "application/json", apikey: "sb_publishable_test-key" }),
+  );
+
+  const legacyKey = "eyJhbGciOiJIUzI1NiJ9.eyJyb2xlIjoiYW5vbiJ9.signature";
+  const legacyHeaders = runInNewContext(
+    `${helper}\\ngetSupabasePublicDataHeaders()`,
+    { SUPABASE_ANON_KEY: legacyKey },
+  );
+  assert.equal(
+    JSON.stringify(legacyHeaders),
+    JSON.stringify({ apikey: legacyKey, Authorization: `Bearer ${legacyKey}` }),
+  );
+
+  const manifest = section("async function fetchAppSyncManifest()", "function getChangedAppSyncTables");
+  assert.match(manifest, /headers:\\s*getSupabasePublicDataHeaders\\(/);
+  assert.doesNotMatch(manifest, /Authorization:\\s*`Bearer \\$\\{SUPABASE_ANON_KEY\\}`/);
+
+  const tableReader = section("async function fetchAllPaginated(", "async function persistOfflineState()");
+  assert.match(tableReader, /Object\\.entries\\(getSupabasePublicDataHeaders\\(\\)\\)/);
+  assert.doesNotMatch(tableReader, /setRequestHeader\\(['"]Authorization['"]/);
+});
