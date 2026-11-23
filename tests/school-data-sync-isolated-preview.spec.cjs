@@ -103,6 +103,34 @@ test("school sync projections and timetable access reads stay isolated and minim
   });
 
   await page.addInitScript(() => {
+    // Install before application scripts create the Supabase client, because
+    // supabase-js captures the global fetch implementation during createClient.
+    // This wrapper is observational only: it forwards the original arguments,
+    // receiver, response, and rejection unchanged.
+    const nativeFetch = window.fetch;
+    window.fetch = function (...args) {
+      const input = args[0];
+      const requestUrl = typeof input === "string" ? input : (input?.url || String(input));
+      const isSupabaseRest = requestUrl.includes("ylsocrvwqibptuwfzbke.supabase.co/rest/v1/");
+      if (isSupabaseRest) console.log("QA_NATIVE_FETCH start:" + requestUrl);
+      let result;
+      try {
+        result = nativeFetch.apply(this, args);
+      } catch (error) {
+        if (isSupabaseRest) console.log("QA_NATIVE_FETCH throw:" + (error?.message || String(error)));
+        throw error;
+      }
+      if (!isSupabaseRest) return result;
+      console.log("QA_NATIVE_FETCH returned:thenable=" + String(!!result && typeof result.then === "function"));
+      return Promise.resolve(result).then(response => {
+        console.log("QA_NATIVE_FETCH fulfilled:status=" + String(response?.status));
+        return response;
+      }, error => {
+        console.log("QA_NATIVE_FETCH rejected:" + (error?.message || String(error)));
+        throw error;
+      });
+    };
+
     const originalGet = IDBObjectStore.prototype.get;
     IDBObjectStore.prototype.get = function (...args) {
       console.log("QA_BOOT_IDB get:start:" + this.name + ":" + String(args[0]));
