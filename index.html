@@ -5702,7 +5702,8 @@ function clearSession() { try { localStorage.removeItem('abuDujana_session'); } 
 function isGeneralAdminUser(user = activeUser) {
   return user?.type === "admin" && (user.adminScope === "general" || user.name === "مدير النظام العام");
 }
-function isAdminAuthorized() { if (isGeneralAdminUser()) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
+function isAdditionalAdminUser(user = activeUser) { return user?.type === 'admin' && user?.adminScope === 'additional'; }
+function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser()) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
 
 /* ============ Cloud helpers ============ */
@@ -7353,7 +7354,9 @@ function updateSyncStatus(isSynced, text) {
   const ind = document.getElementById('syncIndicator'), txt = document.getElementById('syncText');
   if (!ind || !txt) return;
   const pendingRecords = hasPendingOfflineRecordChanges();
-  const pendingDeletes = getPendingDeletes().length;
+  // Deletion review is an administrator-only workflow; ordinary teachers must not see its count.
+  const canReviewDeletes = isAdminAuthorized();
+  const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0;
   const isWorking = /^(جارِ الحفظ|جارِ مزامنة|جارِ التحميل|جارِ التحقق|جاري الاتصال)/.test(String(text || ''));
   const reviewOnly = !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
   let displayText = text || (isSynced ? "متزامن" : "محلي");
