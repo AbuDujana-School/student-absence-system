@@ -341,15 +341,30 @@ test("school sync projections and timetable access reads stay isolated and minim
   ]));
   browserConsole.push("QA_DIRECT_RPC_PROBE " + JSON.stringify(directRpcProbe));
   manifestCalls = 0;
-  requestPhase = "sync-load";
 
-  const loadEvaluation = page.evaluate(async () => {
-    const trace = [];
+  // Reproduce the synthetic authenticated principal before the full orchestration.
+  // Calling the exact manifest helper in this same state distinguishes a transport
+  // failure from a stall elsewhere in loadSystemDataFromCloud.
+  requestPhase = "synthetic-session-rpc";
+  const syntheticSessionRpc = await page.evaluate(async () => {
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
       expires_at: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
     };
+    return Promise.race([
+      fetchAppSyncManifest().then(value => ({ settled: true, hasManifest: !!value }))
+        .catch(error => ({ settled: true, error: error?.message || String(error), code: error?.code || null })),
+      new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 8_000 }), 8_000)),
+    ]);
+  });
+  browserConsole.push("QA_SYNTHETIC_SESSION_RPC " + JSON.stringify(syntheticSessionRpc));
+  expect(syntheticSessionRpc.settled, "Manifest helper must resolve with the synthetic admin state").toBe(true);
+  expect(syntheticSessionRpc.hasManifest, "Manifest helper must return a valid manifest").toBe(true);
+
+  requestPhase = "sync-load";
+  const loadEvaluation = page.evaluate(async () => {
+    const trace = [];
     const value = await loadSystemDataFromCloud();
     return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
