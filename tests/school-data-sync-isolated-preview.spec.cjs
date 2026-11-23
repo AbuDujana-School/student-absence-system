@@ -804,6 +804,13 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     window.timetableRefreshAccess = async () => true;
     window.refreshActiveUserPermissions = async () => true;
     window.checkAndEnforceAdminPinChange = async () => false;
+    const originalShowToast = window.showToast;
+    window.showToast = function (...args) {
+      console.log("QA_LOGIN_TOAST start:" + String(args[0] || ""));
+      const result = originalShowToast.apply(this, args);
+      console.log("QA_LOGIN_TOAST done");
+      return result;
+    };
 
     const nativeSetTimeout = window.setTimeout.bind(window);
     window.setTimeout = function (callback, delay, ...args) {
