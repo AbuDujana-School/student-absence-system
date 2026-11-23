@@ -550,3 +550,13 @@ Deno.test("pending deletion review and counts are administrator-only", () => {
   assert(status.includes("else if (canReviewDeletes && getPendingDeletes().length) openPendingDeleteReview()"), "Only administrators may open the deletion review from the sync indicator");
   assert(status.includes("const effectiveSynced = isSynced || reviewQueueOnlyForTeacher"), "A deletion-review-only queue must not make ordinary teachers appear unsynced");
 });
+
+
+Deno.test("ordinary teachers see only neutral sync labels while admins retain deletion review", () => {
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes('displayText = effectiveSynced && !pendingRecords && cloudDataLoadState === \'ready\' && navigator.onLine'), "Teachers must see synced only after a ready online load with no dirty records");
+  assert(status.includes('? "متزامن"\n      : "جار الاتصال"'), "Teacher status must be limited to synced or connecting labels");
+  assert(status.includes("const pendingDeletes = canReviewDeletes ? queuedDeletes : 0"), "Only authorized admins may see the pending deletion count");
+  assert(status.includes("ind.onclick = openPendingDeleteReview"), "Admins must retain access to the deletion review workflow");
+  assert(status.includes("reviewOnly"), "Admin-only deletion review status must remain available");
+});
