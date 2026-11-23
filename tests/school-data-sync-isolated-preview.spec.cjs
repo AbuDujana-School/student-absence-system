@@ -714,7 +714,10 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   await page.evaluate(async () => {
     timetableCanAccess = true;
-    await timetableLoadImports();
+    // Verify the access-list action independently, without bootstrapping the
+    // portal's teacher directory/weekly-grid queries in this sync regression.
+    await appAuthRequest({ action: "timetable_list_access" }, appAuthSession?.token);
+    await timetableLoadImports({ refreshAccess: false });
     await timetableLoadImports({ refreshAccess: false });
   });
   expect(functionActions.filter((action) => action === "timetable_list_access")).toHaveLength(1);
