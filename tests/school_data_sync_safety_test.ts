@@ -560,3 +560,12 @@ Deno.test("ordinary teachers see only neutral sync labels while admins retain de
   assert(status.includes("ind.onclick = openPendingDeleteReview"), "Admins must retain access to the deletion review workflow");
   assert(status.includes("reviewOnly"), "Admin-only deletion review status must remain available");
 });
+
+
+Deno.test("explicit admin permission authorizes pending deletion review without changing the teacher role", () => {
+  const auth = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  assert(auth.includes("activeUser?.permissions?.admin === true"), "An account with the explicit admin permission must be authorized for admin review actions");
+  assert(auth.includes("isGeneralAdminUser()") && auth.includes("isAdditionalAdminUser()"), "General and additional admin identities must remain authorized");
+  const review = section("function openPendingDeleteReview()", "async function initDefaults()");
+  assert(review.includes("if (!isAdminAuthorized())"), "The review modal must continue to enforce admin authorization");
+});
