@@ -4588,7 +4588,7 @@ function saRenderCompetition(data){
   if(count)count.textContent=other.length?other.length+" معلماً":(IS_UI_REVIEW_PREVIEW?"لا توجد بيانات":"");
 }
 async function openStudentAffairsAssignments(){
-  const isAdmin=isGeneralAdminUser(activeUser)||isGeneralAdminUser(activeUser)===true||isAdminAuthorized();
+  const isAdmin=isGeneralAdminUser(activeUser)||isAdminAuthorized();
   if(!isAdmin){showToast("إدارة تكليفات شؤون الطلبة متاحة للإدارة فقط","error");return;}
   if(!saSession?.token||!isGeneralAdminUser(saSession?.principal)){showToast("تعذر استعادة جلسة الإدارة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.","error");return;}
   const panel=document.getElementById("saAssignmentsPanel");
@@ -4607,7 +4607,7 @@ function closeStudentAffairsAssignments(){
   document.getElementById("saAdmin")?.classList.add("hidden");
   document.querySelectorAll("#sec-beneficiaries [data-beneficiary-card]").forEach(card=>{
     const kind=card.getAttribute("data-beneficiary-card");
-    const isAdmin=isGeneralAdminUser(activeUser)||isGeneralAdminUser(activeUser)===true||isAdminAuthorized();
+    const isAdmin=isGeneralAdminUser(activeUser)||isAdminAuthorized();
     const allowed=isAdmin||(kind!=="sa-admin"&&!!activeUser?.permissions?.[kind]);
     card.classList.toggle("hidden",!allowed);
   });
@@ -4615,7 +4615,7 @@ function closeStudentAffairsAssignments(){
 let studentAffairsOpenedFromHome = false;
 async function openStudentAffairsView(fromHome = false) {
   studentAffairsOpenedFromHome = fromHome === true;
-  const allowed = isGeneralAdminUser(activeUser) || isGeneralAdminUser(activeUser) ||
+  const allowed = isGeneralAdminUser(activeUser) ||
     activeUser?.permissions?.studentAffairs === true;
   if (!allowed) {
     showToast("لا تملك صلاحية دخول شؤون الطلبة", "error");
@@ -7894,7 +7894,7 @@ async function finalizeLoginState() {
   }
   document.getElementById('activeUserName').textContent = activeUser.name;
 
-  const isAdmin = isGeneralAdminUser(activeUser) || isGeneralAdminUser(activeUser) || isAdminAuthorized();
+  const isAdmin = isGeneralAdminUser(activeUser) || isAdminAuthorized();
   const singlePermission = !isAdmin ? getSingleAdminPanelPermission(activeUser) : null;
   const adminBtn = document.getElementById('adminPanelBtn');
   const studentAffairsBtn = document.getElementById('studentAffairsBtn');
@@ -9224,7 +9224,7 @@ function printHorizontalBehaviorReport() {
 async function openAdminModal() {
   document.getElementById('teacherTimetableView')?.classList.add('hidden');
   if (!isGeneralAdminUser(activeUser)) await timetableRefreshAccess();
-  const isAdmin = isGeneralAdminUser(activeUser) || isGeneralAdminUser(activeUser) || isAdminAuthorized();
+  const isAdmin = isGeneralAdminUser(activeUser) || isAdminAuthorized();
   const singlePermission = !isAdmin ? getSingleAdminPanelPermission(activeUser) : null;
   if (singlePermission) {
     openSinglePermissionModule(singlePermission);
@@ -9973,7 +9973,7 @@ async function repPrint(){
 
 const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'];
 function canManageReportPermissions() {
-  return isGeneralAdminUser(activeUser) || isGeneralAdminUser(activeUser) || isAdminAuthorized();
+  return isGeneralAdminUser(activeUser) || isAdminAuthorized();
 }
 function hasGranularReportPermissions(permissions) {
   const p = permissions && typeof permissions === 'object' ? permissions : {};
@@ -11495,7 +11495,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const validStatus=["absent","late","escape","outside"];
   const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
-  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=isGeneralAdminUser(saSession?.principal)||isGeneralAdminUser(activeUser)||isGeneralAdminUser(activeUser)===true||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
+  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=isGeneralAdminUser(saSession?.principal)||isGeneralAdminUser(activeUser)||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
   function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
