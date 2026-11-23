@@ -1,9 +1,16 @@
 export type AppPrincipalType = "admin" | "teacher" | "custom";
+export type AppAdminScope = "general" | "additional";
+
+export function inferAppAdminScope(type: unknown, name: unknown): AppAdminScope | undefined {
+  if (type !== "admin") return undefined;
+  return name === "مدير النظام العام" ? "general" : "additional";
+}
 
 export interface AppPrincipalInput {
   type: unknown;
   name: unknown;
   permissions?: unknown;
+  adminScope?: unknown;
   mustChangePin?: unknown;
 }
 
@@ -11,6 +18,7 @@ export interface AppPrincipal {
   type: AppPrincipalType;
   name: string;
   permissions: Record<string, unknown>;
+  adminScope?: AppAdminScope;
   mustChangePin: boolean;
 }
 
@@ -38,7 +46,11 @@ export function projectAppPrincipal(input: AppPrincipalInput): AppPrincipal | nu
     ? input.permissions
     : {};
   const permissions = removeSecretFields(source) as Record<string, unknown>;
-  return { type, name, permissions, mustChangePin: input.mustChangePin === true };
+  const inferredScope = inferAppAdminScope(type, name);
+  const adminScope = type === "admin"
+    ? (input.adminScope === "general" || input.adminScope === "additional" ? input.adminScope : inferredScope)
+    : undefined;
+  return { type, name, permissions, ...(adminScope ? { adminScope } : {}), mustChangePin: input.mustChangePin === true };
 }
 
 export function isValidAppSessionToken(value: unknown): value is string {
@@ -175,7 +187,7 @@ export async function readAppSession(
   const tokenHash = await hashAppSessionToken(token);
   const record = await store.findByTokenHash(tokenHash);
   if (!record || !isAppSessionActive(record.expires_at, now)) return null;
-  const principal = projectAppPrincipal({ type: record.principal_type, name: record.principal_name });
+  const principal = projectAppPrincipal({ type: record.principal_type, name: record.principal_name, adminScope: inferAppAdminScope(record.principal_type, record.principal_name) });
   if (!principal) return null;
   return { tokenHash, principal: { type: principal.type, name: principal.name }, expiresAt: record.expires_at };
 }
