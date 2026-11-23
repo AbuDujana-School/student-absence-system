@@ -385,6 +385,13 @@ test("school sync projections and timetable access reads stay isolated and minim
   requestPhase = "sync-load";
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
+    // A page-level heartbeat distinguishes a blocked renderer from a fetch
+    // promise that remains pending while the event loop continues to run.
+    let heartbeatCount = 0;
+    const heartbeatTimer = window.setInterval(() => {
+      heartbeatCount += 1;
+      console.log("QA_HEARTBEAT " + heartbeatCount);
+    }, 500);
     // Keep visible status text, but avoid changing class attributes or click handlers.
     // This isolates whether the dynamic Tailwind class rewrite is what stalls sync.
     updateSyncStatus = (isSynced, statusText) => {
@@ -393,7 +400,8 @@ test("school sync projections and timetable access reads stay isolated and minim
       console.log("QA_TEST updateSyncStatus text-only");
     };
     const value = await loadSystemDataFromCloud();
-    return { value, trace, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
+    window.clearInterval(heartbeatTimer);
+    return { value, trace, heartbeatCount, state: { cloudDataLoadState, offlineSnapshotRestoredAtBoot, localOnlySession } };
   });
   // While the full sync is stalled, issue a second independent RPC from the same page.
   // If it succeeds concurrently, the Supabase client/network is still healthy and the
