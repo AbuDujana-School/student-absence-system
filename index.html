@@ -7038,7 +7038,21 @@ async function loadSystemDataFromCloud() {
     console.info('[AUTH_TRACE] sync:persist-snapshot:start');
     const localSnapshotSaved = await persistOfflineStateWithTimeout();
     console.info('[AUTH_TRACE] sync:persist-snapshot:done', { localSnapshotSaved });
-    if (!localSnapshotSaved) saveToLocalStorageSafe();
+    if (localSnapshotSaved) {
+      // The boot-time restore promise may have resolved to false before the first
+      // successful online sync. Promote that memoized result only after the new
+      // full snapshot and manifest have actually committed to IndexedDB; otherwise
+      // every later refresh would keep believing there is no local snapshot and
+      // download all seven tables again.
+      offlineSnapshotRestorePromise = Promise.resolve(true);
+      offlineSnapshotRestoredAtBoot = true;
+      localStorageFallbackSnapshot = false;
+    } else {
+      saveToLocalStorageSafe();
+      // Allow the next refresh to re-check IndexedDB/localStorage after a failed
+      // durable write rather than pinning a stale boot-time false result.
+      offlineSnapshotRestorePromise = null;
+    }
 
     const pendingSync = dirtySets.classes.size || dirtySets.teachers.size ||
       dirtySets.students.size || dirtySets.attendance.size || dirtySets.behaviors.size ||
