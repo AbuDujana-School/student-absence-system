@@ -475,6 +475,8 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
   expect(initial).toEqual({ morning: false, duty: false, affairs: false, adminPilot: false });
 
   await page.waitForTimeout(5200);
+  const stageAfterFive = await page.evaluate(() => ({ pilot: isTesterOneStagedPilot(), elapsedMs: Date.now() - testerOneDashboardStageStartedAt, pending: testerOneDashboardStagePending(5000), canUse: canUseMorningAssemblyLateness(), hidden: document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden") }));
+  expect(stageAfterFive.hidden, "Tester1 5-second stage diagnostics: " + JSON.stringify(stageAfterFive)).toBe(false);
   await expect(page.locator("#morningAssemblyLatenessDashboardCard")).toBeVisible();
   await expect(page.locator("#dutyDashboardCard")).toBeHidden();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
