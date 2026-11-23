@@ -124,3 +124,19 @@ Deno.test("admin marker alone never grants additional-admin data access", () => 
   assertEquals(authorizeAppDataOperation(additional, "students", "read", { class_name: "5/1" }, { allowedClasses: ["5/1"] }), false);
   assertEquals(authorizeAppDataOperation(additional, "teachers", "read", { name: "Teacher B" }), false);
 });
+
+
+Deno.test("delegated full administrator keeps teacher identity while receiving schoolwide data management", () => {
+  const delegated = {
+    type: "teacher" as const,
+    name: "Tester1",
+    permissions: { admin: true, additionalAdmin: false, users: true, teachers: true, students: true },
+  };
+  assertEquals(authorizeAppDataOperation(delegated, "classes", "read", null), true);
+  assertEquals(authorizeAppDataOperation(delegated, "students", "write", { class_name: "5/1", student_name: "Student A" }), true);
+  assertEquals(authorizeAppDataOperation(delegated, "teachers", "write", { name: "Teacher B", role: "teacher" }), true);
+  assertEquals(authorizeAppDataOperation(delegated, "attendance", "read", { class_name: "5/1" }), true);
+  assertEquals(authorizeAppDataOperation(delegated, "school_settings", "read", null), false);
+  assertEquals(authorizeAppDataOperation(delegated, "school_settings", "write", { key: "admin_pin", value: {} }), false);
+  assertEquals(authorizeAppDataOperation(delegated, "students", "delete", { class_name: "5/1" }), false);
+});
