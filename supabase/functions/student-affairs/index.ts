@@ -17,7 +17,7 @@ import { handleAppDataGatewayRead } from "./app_data_gateway_handler.ts";
 import { resolveAppDataScope } from "./app_data_gateway_resolver.ts";
 import { canAccessReportPermission } from "../_shared/report_access_policy.ts";
 import { isAdminStudentAffairsAccessEnabled } from "./admin_student_affairs_access_policy.ts";
-import { isAdditionalAdminTeacher, buildAdditionalAdminPermissions } from "./admin_principal_policy.ts";
+import { isAdditionalAdminTeacher, buildAdditionalAdminPermissions } from "../_shared/admin_principal_policy.ts";
 import { parseTimetableWorkbook, matchSystemTeacherName, type SystemTeacher } from "./timetable_import.ts";
 import { parseTimetableDay, validateSchoolTeacherCount } from "./timetable_grid.ts";
 import { getAbsentTeacherLessons, getAvailableSubstitutionCandidates, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
