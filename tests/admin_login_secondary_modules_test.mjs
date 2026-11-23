@@ -75,4 +75,5 @@ test("the staged pilot starts with the authenticated shell and does not change a
   assert.doesNotMatch(finalize, /startTesterOneDashboardStages\(\)/);
   assert.doesNotMatch(finalize, /update.*adminPin|set.*adminPin|change.*adminPin/i);
   assert.match(finalize, /refreshActiveUserPermissions\(\)/);
+  assert.match(finalize, /if \(!isTesterOneStagedPilot\(\)\) \{\s*refreshDutyDashboardCard\(\);\s*renderDutyTodayRecords\(\);/);
 });
