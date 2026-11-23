@@ -6355,7 +6355,7 @@ async function retryOfflineSyncSilently() {
 function refreshCloudDependentViews() {
   if (!activeUser) return;
   try {
-    if (isAdminAuthorized()) {
+    if (isGeneralAdminUser(activeUser) || activeUser.permissions?.teachers || activeUser.permissions?.users) {
       if (isGeneralAdminUser(activeUser) || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
       if (isGeneralAdminUser(activeUser) || activeUser.permissions?.users) renderCustomUsersList();
     }
@@ -7753,8 +7753,7 @@ function startDistronDashboardStages() {
   }, 'duty-and-timetable-access');
   schedule(15000, () => {
     const button = document.getElementById('studentAffairsBtn');
-    const allowed = !localOnlySession && (isGeneralAdminUser(activeUser) ||
-      isGeneralAdminUser(activeUser) || isAdminAuthorized() ||
+    const allowed = !localOnlySession && (isGeneralAdminUser(activeUser) || isAdminAuthorized() ||
       activeUser?.permissions?.studentAffairs === true);
     if (button) {
       button.classList.toggle('hidden', !allowed);
