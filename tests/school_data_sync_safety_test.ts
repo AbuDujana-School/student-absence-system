@@ -563,9 +563,11 @@ Deno.test("ordinary teachers see only neutral sync labels while admins retain de
 
 
 Deno.test("explicit admin permission authorizes pending deletion review without changing the teacher role", () => {
-  const auth = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
-  assert(auth.includes("activeUser?.permissions?.admin === true"), "An account with the explicit admin permission must be authorized for admin review actions");
-  assert(auth.includes("isGeneralAdminUser()") && auth.includes("isAdditionalAdminUser()"), "General and additional admin identities must remain authorized");
+  const auth = section("function canReviewPendingDeletes(", "/* ============ Cloud helpers ============ */");
+  assert(auth.includes("activeUser?.type === 'teacher' && activeUser?.permissions?.admin === true"), "A legacy teacher with explicit admin permission may review pending deletes");
+  assert(auth.includes("isAdminAuthorized()"), "General and additional admins must remain authorized");
+  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  assert(!identity.includes("permissions?.admin"), "The queue-only privilege must not grant the general-admin bypass");
   const review = section("function openPendingDeleteReview()", "async function initDefaults()");
   assert(review.includes("if (!isAdminAuthorized())"), "The review modal must continue to enforce admin authorization");
 });
