@@ -261,8 +261,8 @@ Deno.test("manual offline sync is explicit, scoped to dirty records, and never e
 Deno.test("sync indicator distinguishes upload, review-only deletion requests, and cloud refresh", () => {
   const status = section("function updateSyncStatus(", "async function initDefaults()");
   assert(status.includes("if (hasPendingOfflineRecordChanges()) void syncPendingLocalChanges()"), "Dirty records must route to the explicit upload workflow");
-  assert(status.includes("else if (getPendingDeletes().length) openPendingDeleteReview()"), "Delete-only state must open local review rather than show a false upload state");
-  assert(status.includes("const reviewOnly = !pendingRecords && pendingDeletes > 0"), "Delete-only state must be distinct from unsynced record edits");
+  assert(status.includes("else if (canReviewDeletes && getPendingDeletes().length) openPendingDeleteReview()"), "Only administrators may open delete-only local review");
+  assert(status.includes("const reviewOnly = canReviewDeletes && !pendingRecords && pendingDeletes > 0"), "Delete-only review state must be restricted to administrators");
   assert(status.includes("المزامنة مكتملة؛"), "A successful cloud sync with queued deletions must be reported as synced with review pending");
 });
 Deno.test("pending deletion review can cancel one or all local intents without server deletion", () => {
