@@ -343,119 +343,8 @@ test("school sync projections and timetable access reads stay isolated and minim
   manifestCalls = 0;
   requestPhase = "sync-load";
 
-  // Sample Chromium's main-thread CPU while the isolated sync runs. CDP can
-  // collect this from Node even if page JavaScript stops processing events.
-  const profilerSession = await context.newCDPSession(page);
-  const cdpNetworkEvents = [];
-  await profilerSession.send("Network.enable");
-  for (const eventName of ["Network.requestWillBeSent", "Network.responseReceived", "Network.loadingFinished", "Network.loadingFailed"]) {
-    profilerSession.on(eventName, event => {
-      const requestUrl = event.request?.url || event.response?.url || "";
-      if (requestUrl.includes(SUPABASE_HOST)) {
-        cdpNetworkEvents.push({
-          event: eventName,
-          requestId: event.requestId,
-          url: requestUrl,
-          method: event.request?.method,
-          status: event.response?.status,
-          errorText: event.errorText,
-        });
-      }
-    });
-  }
-  await profilerSession.send("Profiler.enable");
-  await profilerSession.send("Profiler.start");
-
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
-    const heartbeat = setInterval(() => console.log("QA_HEARTBEAT " + Math.round(performance.now())), 1000);
-    console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, restorePromiseExists: !!offlineSnapshotRestorePromise, readyState: document.readyState }));
-    const originalEnsureRestore = window.ensureOfflineSnapshotRestored;
-    window.ensureOfflineSnapshotRestored = function (...args) {
-      console.log("QA_SYNC ensureRestore:call:" + JSON.stringify({ promiseExists: !!offlineSnapshotRestorePromise, bootRestored: offlineSnapshotRestoredAtBoot }));
-      const result = originalEnsureRestore.apply(this, args);
-      console.log("QA_SYNC ensureRestore:return:" + JSON.stringify({ promiseExists: !!offlineSnapshotRestorePromise }));
-      return result;
-    };
-    const originalGet = IDBObjectStore.prototype.get;
-    IDBObjectStore.prototype.get = function (...args) {
-      console.log("QA_IDB get:start:" + this.name + ":" + String(args[0]));
-      const request = originalGet.apply(this, args);
-      request.addEventListener("success", () => console.log("QA_IDB get:success:" + this.name));
-      request.addEventListener("error", () => console.log("QA_IDB get:error:" + this.name + ":" + (request.error?.message || "unknown")));
-      return request;
-    };
-    const originalTransaction = IDBDatabase.prototype.transaction;
-    IDBDatabase.prototype.transaction = function (...args) {
-      console.log("QA_IDB tx:start:" + JSON.stringify(args));
-      const transaction = originalTransaction.apply(this, args);
-      transaction.addEventListener("complete", () => console.log("QA_IDB tx:complete"));
-      transaction.addEventListener("abort", () => console.log("QA_IDB tx:abort:" + (transaction.error?.message || "unknown")));
-      transaction.addEventListener("error", () => console.log("QA_IDB tx:error:" + (transaction.error?.message || "unknown")));
-      return transaction;
-    };
-    const wrap = (name) => {
-      const original = window[name];
-      if (typeof original !== "function") { trace.push(name + ":missing"); console.log("QA_SYNC " + name + ":missing"); return; }
-      window[name] = async (...args) => {
-        trace.push(name + ":start");
-        console.log("QA_SYNC " + name + ":start");
-        try {
-          const value = await original(...args);
-          trace.push(name + ":done");
-          console.log("QA_SYNC " + name + ":done");
-          return value;
-        } catch (error) {
-          trace.push(name + ":error:" + (error?.message || String(error)));
-          console.log("QA_SYNC " + name + ":error:" + (error?.message || String(error)));
-          throw error;
-        }
-      };
-    };
-    console.log("QA_SYNC manifestDiagnostics:" + JSON.stringify({
-      sbType: typeof sb,
-      rpcType: typeof sb?.rpc,
-      fetchType: typeof fetch,
-      manifestFunctionType: typeof fetchAppSyncManifest,
-      manifestFunctionSource: typeof fetchAppSyncManifest === "function" ? fetchAppSyncManifest.toString().slice(0, 1600) : null
-    }));
-    // Add transparent call-boundary probes without changing RPC results or auth behavior.
-    // These distinguish a synchronous client stall from an auth-session lock wait.
-    const originalRestFetch = sb.rest.fetch.bind(sb.rest);
-    sb.rest.fetch = (...args) => {
-      const requestUrl = typeof args[0] === "string" ? args[0] : (args[0]?.url || String(args[0]));
-      console.log("QA_REST_FETCH start:" + requestUrl);
-      const result = originalRestFetch(...args);
-      console.log("QA_REST_FETCH returned:thenable=" + String(!!result && typeof result.then === "function"));
-      return Promise.resolve(result).then(response => {
-        console.log("QA_REST_FETCH fulfilled:status=" + String(response?.status));
-        return response;
-      }, error => {
-        console.log("QA_REST_FETCH rejected:" + (error?.message || String(error)));
-        throw error;
-      });
-    };
-    const originalRpc = sb.rpc.bind(sb);
-    sb.rpc = (...args) => {
-      console.log("QA_RPC_CALL before:" + String(args[0]));
-      const result = originalRpc(...args);
-      console.log("QA_RPC_CALL returned:" + String(args[0]) + ":thenable=" + String(!!result && typeof result.then === "function"));
-      return result;
-    };
-    const originalGetSession = sb.auth.getSession.bind(sb.auth);
-    sb.auth.getSession = (...args) => {
-      console.log("QA_AUTH_SESSION_CALL start");
-      const result = originalGetSession(...args);
-      console.log("QA_AUTH_SESSION_CALL returned:thenable=" + String(!!result && typeof result.then === "function"));
-      return Promise.resolve(result).then(value => {
-        console.log("QA_AUTH_SESSION_CALL fulfilled");
-        return value;
-      }, error => {
-        console.log("QA_AUTH_SESSION_CALL rejected:" + (error?.message || String(error)));
-        throw error;
-      });
-    };
-    ["ensureAppAuthSession", "ensureOfflineSnapshotRestored", "restoreOfflineState", "openOfflineDatabase", "fetchAppSyncManifest", "fetchAllPaginated", "clearCompletedStudentDeleteIntentsFromCloud", "persistOfflineStateWithTimeout"].forEach(wrap);
     activeUser = { type: "admin", name: "QA_ONLY_ADMIN", permissions: { admin: true } };
     appAuthSession = {
       token: "a".repeat(64),
@@ -489,28 +378,7 @@ test("school sync projections and timetable access reads stay isolated and minim
     loadEvaluation,
     new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true }), 35_000)),
   ]);
-  const profileResult = await Promise.race([
-    profilerSession.send("Profiler.stop").catch(error => ({ error: error.message })),
-    new Promise(resolve => setTimeout(() => resolve({ error: "Profiler.stop exceeded 5000ms" }), 5_000)),
-  ]);
-  browserConsole.push("QA_CDP_NETWORK " + JSON.stringify(cdpNetworkEvents));
-  await Promise.race([
-    profilerSession.detach().catch(() => {}),
-    new Promise(resolve => setTimeout(resolve, 1_000)),
-  ]);
-  if (profileResult.profile) {
-    const nodes = new Map(profileResult.profile.nodes.map(node => [node.id, node]));
-    const counts = new Map();
-    for (const sample of profileResult.profile.samples || []) counts.set(sample, (counts.get(sample) || 0) + 1);
-    const hottest = [...counts.entries()].sort((a,b) => b[1]-a[1]).slice(0,12).map(([id,count]) => {
-      const node = nodes.get(id); const frame = node?.callFrame || {};
-      return { count, functionName: frame.functionName || "(anonymous)", url: frame.url || "", lineNumber: frame.lineNumber, columnNumber: frame.columnNumber };
-    });
-    browserConsole.push("QA_CPU_PROFILE " + JSON.stringify({ sampleCount: (profileResult.profile.samples || []).length, hottest }));
-  } else {
-    browserConsole.push("QA_CPU_PROFILE unavailable:" + JSON.stringify(profileResult));
-  }
-    expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, routeEvents, browserConsole, pageErrors })).toBeFalsy();
+  expect(initialLoad.nodeTimedOut, "Cloud load evaluation timed out; browser evidence: " + JSON.stringify({ supabaseRequests, routeEvents, browserConsole, pageErrors })).toBeFalsy();
   expect(initialLoad.value, "Synthetic initial cloud snapshot must load; diagnostics: " + JSON.stringify({ trace: initialLoad.trace, state: initialLoad.state, supabaseRequests, routeEvents, browserConsole, pageErrors })).toBe(true);
 
   const mapped = await page.evaluate(() => ({
