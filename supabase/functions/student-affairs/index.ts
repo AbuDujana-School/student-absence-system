@@ -877,6 +877,33 @@ async function handle(req: Request) {
   if (req.method !== "POST") return reply(405, { error: "Method not allowed" });
   let body: any; try { body = await req.json(); } catch { return reply(400, { error: "Invalid request" }); }
 
+  if (body?.action === "student_affairs_activity_stats_view") {
+    try {
+      const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
+      if (!appSession) return reply(401, { error: "انتهت جلسة التطبيق. سجّل الدخول مجدداً." });
+      const principal = await currentAppPrincipal(appSession.principal.type, appSession.principal.name);
+      if (!principal) return reply(401, { error: "الحساب غير موجود أو لم يعد صالحاً." });
+      if (!canReadStudentAffairsActivityReport(principal)) {
+        return reply(403, { error: "تسجيل الاطلاع على التقارير يتطلب صلاحية الإحصائيات." });
+      }
+      const eventType = String(body.event_type || "");
+      if (eventType !== "absence_report_view" && eventType !== "behavior_report_view") {
+        return reply(400, { error: "نوع مشاهدة التقرير غير صالح." });
+      }
+      const { error } = await db.from("student_affairs_activity_events").insert({
+        actor_type: principal.type,
+        actor_name: principal.name,
+        event_type: eventType,
+        details: { source: "statistics_dashboard" }
+      });
+      if (error) throw error;
+      return reply(200, { ok: true });
+    } catch (error) {
+      console.error("Student Affairs statistics view audit failed:", error);
+      return reply(500, { error: "تعذر تسجيل الاطلاع على التقرير." });
+    }
+  }
+
   if (body?.action === "student_affairs_activity_report") {
     try {
       const appSession = await readAuthorizedAppSession(req.headers.get("authorization"));
