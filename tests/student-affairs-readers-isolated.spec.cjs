@@ -451,6 +451,7 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
 
 test("Tester1 dashboard pilot reveals secondary sections in staged order without affecting admin principals", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
+  await page.clock.install();
   const initial = await page.evaluate(() => {
     activeUser = {
       type: "custom", name: "Tester1",
@@ -480,7 +481,7 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
   });
   expect(initial).toEqual({ morning: false, duty: false, affairs: false, attendance: true, behavior: true, adminPilot: false });
 
-  await page.waitForTimeout(5200);
+  await page.clock.fastForward(5000);
   const stageAfterFive = await page.evaluate(() => ({
     pilot: isTesterOneStagedPilot(),
     elapsedMs: Date.now() - testerOneDashboardStageStartedAt,
@@ -493,7 +494,7 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
   await expect(page.locator("#dutyDashboardCard")).toBeHidden();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
 
-  await page.waitForTimeout(5000);
+  await page.clock.fastForward(5000);
   await expect(page.locator("#dutyDashboardCard")).toBeVisible();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
   const stageAfterTen = await page.evaluate(() => window.timetablePilotCalls.slice());
@@ -501,7 +502,7 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
   expect(stageAfterTen[0]).toBeGreaterThanOrEqual(10000);
   expect(stageAfterTen[0]).toBeLessThan(15000);
 
-  await page.waitForTimeout(5200);
+  await page.clock.fastForward(5000);
   await expect(page.locator("#studentAffairsBtn")).toBeVisible();
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
