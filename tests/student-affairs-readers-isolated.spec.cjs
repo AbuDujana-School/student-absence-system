@@ -451,7 +451,6 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
 
 test("Tester1 dashboard pilot reveals secondary sections in staged order without affecting admin principals", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
-  await page.clock.install();
   const initial = await page.evaluate(() => {
     activeUser = {
       type: "custom", name: "Tester1",
@@ -469,7 +468,17 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     isAdminAuthorized = () => true;
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
       .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
-    startTesterOneDashboardStages();
+    const nativeSetTimeout = window.setTimeout;
+    window.__testerOneScheduledTimers = [];
+    window.setTimeout = (callback, delay, ...args) => {
+      window.__testerOneScheduledTimers.push({ callback: () => callback(...args), delay });
+      return window.__testerOneScheduledTimers.length;
+    };
+    try {
+      startTesterOneDashboardStages();
+    } finally {
+      window.setTimeout = nativeSetTimeout;
+    }
     return {
       morning: !document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
       duty: !document.getElementById("dutyDashboardCard")?.classList.contains("hidden"),
@@ -477,32 +486,27 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
       attendance: !document.getElementById("attendanceDashboardCard")?.classList.contains("hidden"),
       behavior: !document.getElementById("behaviorDashboardCard")?.classList.contains("hidden"),
       adminPilot: isTesterOneStagedPilot({ type: "admin", name: "مدير النظام العام", permissions: { admin: true } }),
+      delays: window.__testerOneScheduledTimers.map(timer => timer.delay),
     };
   });
-  expect(initial).toEqual({ morning: false, duty: false, affairs: false, attendance: true, behavior: true, adminPilot: false });
+  expect(initial).toEqual({
+    morning: false, duty: false, affairs: false,
+    attendance: true, behavior: true, adminPilot: false,
+    delays: [5000, 10000, 15000],
+  });
 
-  await page.clock.fastForward(5000);
-  const stageAfterFive = await page.evaluate(() => ({
-    pilot: isTesterOneStagedPilot(),
-    elapsedMs: Date.now() - testerOneDashboardStageStartedAt,
-    pending: testerOneDashboardStagePending(5000),
-    hidden: document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
-    timetableCalls: window.timetablePilotCalls.slice(),
-  }));
-  expect(stageAfterFive.hidden, "Tester1 5-second stage diagnostics: " + JSON.stringify(stageAfterFive)).toBe(false);
-  expect(stageAfterFive.timetableCalls).toEqual([]);
+  await page.evaluate(() => window.__testerOneScheduledTimers[0].callback());
+  await expect(page.locator("#morningAssemblyLatenessDashboardCard")).toBeVisible();
   await expect(page.locator("#dutyDashboardCard")).toBeHidden();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
+  expect(await page.evaluate(() => window.timetablePilotCalls.slice())).toEqual([]);
 
-  await page.clock.fastForward(5000);
+  await page.evaluate(() => window.__testerOneScheduledTimers[1].callback());
   await expect(page.locator("#dutyDashboardCard")).toBeVisible();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
-  const stageAfterTen = await page.evaluate(() => window.timetablePilotCalls.slice());
-  expect(stageAfterTen.length).toBe(1);
-  expect(stageAfterTen[0]).toBeGreaterThanOrEqual(10000);
-  expect(stageAfterTen[0]).toBeLessThan(15000);
+  expect((await page.evaluate(() => window.timetablePilotCalls)).length).toBe(1);
 
-  await page.clock.fastForward(5000);
+  await page.evaluate(() => window.__testerOneScheduledTimers[2].callback());
   await expect(page.locator("#studentAffairsBtn")).toBeVisible();
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
