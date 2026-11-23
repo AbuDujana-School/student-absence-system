@@ -138,3 +138,20 @@ Deno.test("additional administrator data scope uses teacher grants and explicit 
   assertEquals(scope.allowedBehaviorClasses, ["12/1", "5/1", "6/1", "7/1"]);
   assert(calls.some(([kind, table, column, value]) => kind === "eq" && table === "student_affairs_permissions" && column === "principal_type" && value === "teacher"));
 });
+
+
+Deno.test("delegated full administrator receives schoolwide class scope without changing teacher identity", async () => {
+  const { db, calls } = fixture();
+  const scope = await resolveAppDataScope({
+    type: "teacher", name: "Tester1",
+    permissions: { admin: true, additionalAdmin: false, studentAffairs: true },
+  }, db);
+  assertEquals(scope, {
+    allowedClasses: ["5/1", "6/1", "7/1"],
+    allowedAttendanceClasses: ["5/1", "6/1", "7/1"],
+    allowedBehaviorClasses: ["5/1", "6/1", "7/1"],
+  });
+  assert(calls.some(([kind, table]) => kind === "from" && table === "classes"));
+  assert(!calls.some(([kind, table]) => kind === "from" && table === "timetable_weekly_versions"));
+  assert(!calls.some(([kind, table]) => kind === "from" && table === "student_affairs_permissions"));
+});
