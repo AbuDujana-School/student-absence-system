@@ -57,7 +57,8 @@ Deno.test("verified app principals reuse Student Affairs permissions without a d
   const principalCheck = access.indexOf('if (p.permissions && typeof p.permissions === "object")');
   const teacherLookup = access.indexOf('db.from("teachers")');
   assert(principalCheck >= 0 && teacherLookup > principalCheck, "Verified principal permissions must be checked before the legacy teachers lookup");
-  assert(access.includes("p.permissions.studentAffairs === true || p.permissions.admin === true"), "Verified principal permissions must remain authoritative");
+  assert(access.includes("p.permissions.studentAffairs === true"), "Verified additional-admin permissions must use the explicit Student Affairs grant");
+  assert(!access.includes("p.permissions.admin === true"), "The admin marker must not grant Student Affairs access");
 
   const permissionsStart = edgeIndex.indexOf("async function permissionsFor");
   const legacyStart = edgeIndex.indexOf("const legacy = Array.isArray(data?.allowed_classes)", permissionsStart);
@@ -87,15 +88,16 @@ Deno.test("report permissions are independent and legacy broad access is denied"
   const helperEnd = html.indexOf("function switchAdminTab", helperStart);
   assert(helperStart >= 0 && helperEnd > helperStart, "Could not locate report permission helpers");
   const helperSource = html.slice(helperStart, helperEnd);
-  const create = new Function("activeUser", "isAdminAuthorized", `${helperSource}; return { canAccessReport, canAccessAnyReport };`) as
-    (user: Record<string, unknown>, isAdminAuthorized: () => boolean) => {
+  const create = new Function("activeUser", "isAdminAuthorized", "isGeneralAdminUser", `${helperSource}; return { canAccessReport, canAccessAnyReport };`) as
+    (user: Record<string, unknown>, isAdminAuthorized: () => boolean, isGeneralAdminUser: (user: Record<string, unknown>) => boolean) => {
       canAccessReport: (key: string) => boolean;
       canAccessAnyReport: () => boolean;
     };
 
-  const legacy = create({ type: "teacher", permissions: { reports: true } }, () => false);
+  const isGeneralAdminUser = (user: Record<string, unknown>) => user.type === "admin" && (user.adminScope === "general" || user.name === "مدير النظام العام");
+  const legacy = create({ type: "teacher", permissions: { reports: true } }, () => false, isGeneralAdminUser);
   assert(!legacy.canAccessAnyReport(), "Legacy broad reports permission must not open the reports section");
-  for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"]) {
+  for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup", "reportSubstitutionDistribution"]) {
     assert(!legacy.canAccessReport(key), "Each report requires its own explicit permission");
   }
 
@@ -105,7 +107,7 @@ Deno.test("report permissions are independent and legacy broad access is denied"
     reportStudentAffairs: true,
     reportComprehensiveAbsence: false,
     reportClassLatenessFollowup: false
-  } }, () => false);
+  } }, () => false, isGeneralAdminUser);
   assert(limited.canAccessReport("reportStudentAffairs"), "The selected report must be accessible");
   assert(!limited.canAccessReport("reportMorningAssemblyLateness"), "Unselected morning report must be hidden");
   assert(!limited.canAccessReport("reportComprehensiveAbsence"), "Unselected absence report must be hidden");
@@ -120,7 +122,7 @@ Deno.test("only administrators can change report permissions in the teacher edit
   const editor = html.slice(openStart, saveEnd);
   assert(editor.includes("control.disabled = !canManageReportPermissions()"), "Non-admin report permission controls must be disabled");
   assert(editor.includes("if (canManageReportPermissions())"), "Save must ignore report permission edits from non-admin accounts");
-  for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup"]) {
+  for (const key of ["reportMorningAssemblyLateness", "reportStudentAffairs", "reportComprehensiveAbsence", "reportClassLatenessFollowup", "reportSubstitutionDistribution"]) {
     assert(editor.includes("t.permissions." + key), "Teacher permission save must persist " + key);
   }
 });
