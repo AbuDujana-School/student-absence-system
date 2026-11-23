@@ -233,8 +233,9 @@ async function permissionsFor(p: { type: string; name: string; permissions?: Rec
   const teacherLookup = principalPermissions
     ? Promise.resolve({ data: { name: p.name, role: p.type === "custom" ? "custom" : "teacher", permissions: principalPermissions }, error: null })
     : db.from("teachers").select("name,role,permissions").eq("name", p.name).maybeSingle();
+  const principalType = p.type === "admin" ? "teacher" : p.type;
   const [{ data }, { data: teacher }] = await Promise.all([
-    db.from("student_affairs_permissions").select("*").eq("principal_type", p.type).eq("principal_name", p.name).maybeSingle(),
+    db.from("student_affairs_permissions").select("*").eq("principal_type", principalType).eq("principal_name", p.name).maybeSingle(),
     teacherLookup
   ]);
   const legacy = Array.isArray(data?.allowed_classes) ? data.allowed_classes : [];
