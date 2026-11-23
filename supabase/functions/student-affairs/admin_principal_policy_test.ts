@@ -23,3 +23,19 @@ Deno.test("additional admin permission overrides disable only the explicitly sel
   if (result.studentAffairs !== true || result.users !== true || result.reports !== true) throw new Error("Disabling one capability unexpectedly disabled other capabilities");
   if ("additionalAdminOverrides" in result) throw new Error("Override metadata leaked into effective permissions");
 });
+
+
+Deno.test("additional admin report and reserve capabilities are opt-in and independently overridable", async () => {
+  const { buildAdditionalAdminPermissions } = await import("./admin_principal_policy.ts");
+  const denied = buildAdditionalAdminPermissions({ role: "teacher", permissions: { admin: true, additionalAdmin: true } });
+  if (denied.reportSubstitutionDistribution !== false || denied.reserve !== false) {
+    throw new Error("Reserve and report capabilities must not be granted by the admin marker");
+  }
+  const granted = buildAdditionalAdminPermissions({ role: "teacher", permissions: {
+    admin: true, additionalAdmin: true,
+    additionalAdminOverrides: { reportSubstitutionDistribution: true, reserve: true },
+  } });
+  if (granted.reportSubstitutionDistribution !== true || granted.reserve !== true) {
+    throw new Error("Explicit additional-admin capability overrides were ignored");
+  }
+});
