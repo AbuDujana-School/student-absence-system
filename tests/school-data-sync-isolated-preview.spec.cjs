@@ -103,6 +103,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   });
 
   await page.addInitScript(() => {
+    console.log("QA_LOCK availability:" + String(!!navigator.locks && typeof navigator.locks.request === "function"));
     // Observe Web Locks without changing lock options, callback, or returned promise.
     if (navigator.locks && typeof navigator.locks.request === "function") {
       const manager = navigator.locks;
@@ -323,6 +324,7 @@ test("school sync projections and timetable access reads stay isolated and minim
 
   const loadEvaluation = page.evaluate(async () => {
     const trace = [];
+    const heartbeat = setInterval(() => console.log("QA_HEARTBEAT " + Math.round(performance.now())), 1000);
     console.log("QA_SYNC bootState:" + JSON.stringify({ offlineSnapshotRestoredAtBoot, restorePromiseExists: !!offlineSnapshotRestorePromise, readyState: document.readyState }));
     const originalEnsureRestore = window.ensureOfflineSnapshotRestored;
     window.ensureOfflineSnapshotRestored = function (...args) {
