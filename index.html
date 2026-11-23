@@ -14366,7 +14366,7 @@ async function timetableSaveOwner() {
   window.refreshSubstitutionDashboardCard=function(){
     const card=document.getElementById('substitutionDashboardCard');
     if(!card)return;
-    const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    const allowed=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true;
     card.classList.toggle('hidden',!allowed);
   };
   function bindOtherDepartmentControls(){
@@ -14413,7 +14413,7 @@ async function timetableSaveOwner() {
     document.getElementById('substitutionView')?.classList.remove('hidden');
     const date=document.getElementById('substitutionDate');
     if(date&&!date.value)date.value=getOmanLocalDate();
-    const canExpand=isGeneralAdminUser(activeUser)||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    const canExpand=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true;
     document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',!canExpand);
     clearPlan();
     await window.substitutionLoadAbsentees();
