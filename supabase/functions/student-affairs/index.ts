@@ -8,7 +8,7 @@ import { applyTeamLeaderNoticePrintAccess, buildVisitorAccess, projectSupervisio
 import { fetchAnalyticsBatch } from "./analytics_batch_fetch.ts";
 import { fetchSupervisionTrendRows } from "./supervision_trend_fetch.ts";
 import {
-  resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession,
+  resolveAppPrincipal, issueAppSession, readAppSession, revokeAppSession, appCredentialLookupKey,
   type AppLoginCandidate, type AppPrincipal,
 } from "./app_auth_policy.ts";
 import { createSupabaseAppSessionStore, type AppSessionDatabaseClient } from "./app_session_store.ts";
@@ -106,7 +106,8 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
     const type = designatedAdmin ? "admin" : user.role === "custom" ? "custom" : "teacher";
     if (!user.pin_hash || !user.pin_salt) continue;
     candidates.push({
-      type, name: user.name, hash: user.pin_hash, salt: user.pin_salt,
+      type, credentialType: user.role === "custom" ? "custom" : "teacher",
+      name: user.name, hash: user.pin_hash, salt: user.pin_salt,
       permissions: designatedAdmin
         ? buildAdditionalAdminPermissions(user)
         : user.permissions || {},
@@ -117,7 +118,7 @@ async function findAppPrincipal(pin: string, pepper: string): Promise<AppPrincip
   return await resolveAppPrincipal(pin, candidates, async (candidatePin, salt, hash) => {
     const candidate = candidates.find((item) => item.salt === salt && item.hash === hash);
     if (!candidate) return false;
-    const secure = secureMap.get(candidate.type + "|" + candidate.name) as any;
+    const secure = secureMap.get(appCredentialLookupKey(candidate)) as any;
     if (secure && secure.source_hash === hash && secure.source_salt === salt) {
       return await verifyNewPin(candidatePin, secure.pin_salt, secure.pin_hash, pepper);
     }
