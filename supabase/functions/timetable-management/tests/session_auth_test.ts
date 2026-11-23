@@ -186,8 +186,6 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
 });
 
 
-import { canUseTimetableAction } from "../session_auth.ts";
-
 Deno.test("non-admin substitution access requires the correct explicit authorization", () => {
   const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own"];
   for (const action of allowed) {
