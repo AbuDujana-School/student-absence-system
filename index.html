@@ -5920,6 +5920,18 @@ async function fetchAllPaginated(tableName, selectCols = '*', pageSize = 1000) {
         request.setRequestHeader('apikey', SUPABASE_ANON_KEY);
         request.setRequestHeader('Authorization', `Bearer ${SUPABASE_ANON_KEY}`);
         request.setRequestHeader('Accept', 'application/json');
+        request.onreadystatechange = () => {
+          console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-ready-state`, {
+            readyState: request.readyState,
+            status: request.status
+          });
+        };
+        request.onloadend = () => {
+          console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-loadend`, {
+            readyState: request.readyState,
+            status: request.status
+          });
+        };
         request.onload = () => {
           console.info(`[AUTH_TRACE] table-read:${tableName}:xhr-response`, { status: request.status });
           if (request.status < 200 || request.status >= 300) {
