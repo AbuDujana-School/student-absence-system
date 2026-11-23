@@ -459,7 +459,11 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     localOnlySession = false;
     document.getElementById("loginView")?.classList.add("hidden");
     document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
-    timetableRefreshAccess = async () => true;
+    window.timetablePilotCalls = [];
+    timetableRefreshAccess = async () => {
+      window.timetablePilotCalls.push(Date.now() - testerOneDashboardStageStartedAt);
+      return true;
+    };
     canUseMorningAssemblyLateness = () => true;
     isAdminAuthorized = () => true;
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
@@ -477,15 +481,25 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
   expect(initial).toEqual({ morning: false, duty: false, affairs: false, attendance: true, behavior: true, adminPilot: false });
 
   await page.waitForTimeout(5200);
-  const stageAfterFive = await page.evaluate(() => ({ pilot: isTesterOneStagedPilot(), elapsedMs: Date.now() - testerOneDashboardStageStartedAt, pending: testerOneDashboardStagePending(5000), canUse: canUseMorningAssemblyLateness(), hidden: document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden") }));
+  const stageAfterFive = await page.evaluate(() => ({
+    pilot: isTesterOneStagedPilot(),
+    elapsedMs: Date.now() - testerOneDashboardStageStartedAt,
+    pending: testerOneDashboardStagePending(5000),
+    hidden: document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
+    timetableCalls: window.timetablePilotCalls.slice(),
+  }));
   expect(stageAfterFive.hidden, "Tester1 5-second stage diagnostics: " + JSON.stringify(stageAfterFive)).toBe(false);
-  await expect(page.locator("#morningAssemblyLatenessDashboardCard")).toBeVisible();
+  expect(stageAfterFive.timetableCalls).toEqual([]);
   await expect(page.locator("#dutyDashboardCard")).toBeHidden();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
 
   await page.waitForTimeout(5000);
   await expect(page.locator("#dutyDashboardCard")).toBeVisible();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
+  const stageAfterTen = await page.evaluate(() => window.timetablePilotCalls.slice());
+  expect(stageAfterTen.length).toBe(1);
+  expect(stageAfterTen[0]).toBeGreaterThanOrEqual(10000);
+  expect(stageAfterTen[0]).toBeLessThan(15000);
 
   await page.waitForTimeout(5200);
   await expect(page.locator("#studentAffairsBtn")).toBeVisible();
