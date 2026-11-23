@@ -2138,7 +2138,6 @@ async function handle(req: Request) {
         if (permissions.can_print_attendance !== true && permissions.can_print_behavior !== true) return reply(403, { error: "لا تملك صلاحية طباعة الإنذارات الرسمية." });
         const { data: recentIssues, error: issueReadError } = await db.from("student_affairs_notice_issues")
           .select("id,issued_at").eq("issued_by_name", p.name)
-          .gte("issued_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
           .order("issued_at", { ascending: false }).limit(1000);
         if (issueReadError) throw issueReadError;
         const latestIssueAt = recentIssues?.[0]?.issued_at;
