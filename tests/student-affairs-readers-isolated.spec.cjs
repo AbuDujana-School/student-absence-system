@@ -464,7 +464,7 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     isAdminAuthorized = () => true;
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
       .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
-    startTesterOneDashboardStages();
+    renderAuthenticatedDashboardShell();
     return {
       morning: !document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
       duty: !document.getElementById("dutyDashboardCard")?.classList.contains("hidden"),
