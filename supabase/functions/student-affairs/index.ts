@@ -2367,8 +2367,8 @@ async function handle(req: Request) {
     if (attendance.error || behaviors.error) return reply(500, { error: "تعذر تحميل التقارير" });
     if (mode === "view" && body.activity_source === "student_affairs_module") {
       const activityRows: any[] = [];
-      if (wantsAttendance && requestedAttendance.length) activityRows.push({ event_type: "absence_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedAttendance.length, from, to } });
-      if (wantsBehavior && requestedBehavior.length) activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedBehavior.length, from, to } });
+      if (wantsAttendance && requestedAttendance.length) activityRows.push({ event_type: "absence_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedAttendance.length, from, to, source: "student_affairs_module" } });
+      if (wantsBehavior && requestedBehavior.length) activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedBehavior.length, from, to, source: "student_affairs_module" } });
       if (wantsAttendance && requestedAttendance.length && wantsBehavior && requestedBehavior.length) activityRows.push({
         event_type: "combined_report_view", actor_type: p.type, actor_name: p.name,
         metadata: { attendance_classes_count: requestedAttendance.length, behavior_classes_count: requestedBehavior.length, from, to, source: "student_affairs_combined_view" }
