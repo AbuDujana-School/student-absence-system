@@ -5705,6 +5705,9 @@ function isGeneralAdminUser(user = activeUser) {
 function isAdditionalAdminUser(user = activeUser) { return user?.type === 'admin' && user?.adminScope === 'additional'; }
 function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser() || activeUser?.permissions?.admin === true) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
+// Legacy teacher accounts with the explicit admin permission may review the local deletion queue only.
+// This deliberately does not grant them the general-admin bypass used by other protected modules.
+function canReviewPendingDeletes() { return isAdminAuthorized() || (activeUser?.type === 'teacher' && activeUser?.permissions?.admin === true); }
 
 /* ============ Cloud helpers ============ */
 let pendingDeleteQueueCache = null;
@@ -5822,7 +5825,7 @@ function openPendingDeleteReview() {
     updateSyncStatus(!hasPendingOfflineRecordChanges(), hasPendingOfflineRecordChanges() ? 'توجد تعديلات محلية بانتظار الرفع' : 'متزامن');
     return;
   }
-  if (!isAdminAuthorized()) {
+  if (!canReviewPendingDeletes()) {
     showToast('توجد طلبات حذف محلية بانتظار مراجعة مدير النظام.', 'info');
     return;
   }
@@ -7323,7 +7326,7 @@ function forceSyncWithCloud() {
     return;
   }
   const pendingDeletes = getPendingDeletes().length;
-  if (pendingDeletes && isAdminAuthorized()) {
+  if (pendingDeletes && canReviewPendingDeletes()) {
     showConfirm(
       `سيتم جلب بيانات الخادم مع إبقاء ${pendingDeletes} طلب حذف محلياً للمراجعة. لن تُرفع تعديلات أو تُنفذ عمليات حذف.`,
       { danger: false, okText: 'جلب بيانات الخادم' }
@@ -7350,7 +7353,7 @@ function updateSyncStatus(isSynced, text) {
   if (!ind || !txt) return;
   const pendingRecords = hasPendingOfflineRecordChanges();
   // Deletion review is an administrator-only workflow; ordinary teachers must not see its count or action.
-  const canReviewDeletes = isAdminAuthorized();
+  const canReviewDeletes = canReviewPendingDeletes();
   const queuedDeletes = getPendingDeletes().length;
   const pendingDeletes = canReviewDeletes ? queuedDeletes : 0;
   // A local deletion-review queue is not an unsynced teacher edit. Keep it out
