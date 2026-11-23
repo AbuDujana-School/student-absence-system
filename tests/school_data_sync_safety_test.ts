@@ -569,5 +569,5 @@ Deno.test("explicit admin permission authorizes pending deletion review without 
   const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
   assert(!identity.includes("permissions?.admin"), "The queue-only privilege must not grant the general-admin bypass");
   const review = section("function openPendingDeleteReview()", "async function initDefaults()");
-  assert(review.includes("if (!isAdminAuthorized())"), "The review modal must continue to enforce admin authorization");
+  assert(review.includes("if (!canReviewPendingDeletes())"), "The review modal must enforce the scoped deletion-review authorization");
 });
