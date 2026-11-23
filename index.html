@@ -2006,6 +2006,12 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
 
   <div id="loginView" class="max-w-md mx-auto my-12 glass-card p-8 rounded-[2.5rem] shadow-2xl border border-slate-200/80 dark:border-slate-700/80">
+    <div id="isolatedPreviewNotice" class="hidden mb-5 rounded-2xl border border-amber-300 bg-amber-50 p-4 text-right text-xs leading-6 text-amber-950 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-100" dir="rtl">
+      <strong class="block text-sm font-black">هذه نسخة اختبار معزولة</strong>
+      <p class="mt-1">هذه الصفحة تستخدم قاعدة بيانات تجريبية منفصلة؛ حسابات المدرسة وأرقامها السرية الفعلية غير متاحة هنا. لا يعني رفض الرقم أن رقمك السري في النظام الأساسي قد تغيّر.</p>
+      <a class="mt-2 inline-block font-black underline" href="https://student-absence-system.pages.dev/" target="_blank" rel="noopener noreferrer">افتح النظام الأساسي لتسجيل الدخول الفعلي</a>
+      <p class="mt-1 text-[10px]">ملاحظة: النظام الأساسي يعرض الإصدار المنشور حاليًا، وليس إصلاحات هذا الفرع التجريبي.</p>
+    </div>
     <div class="text-center mb-6">
       <div class="w-20 h-20 bg-gradient-to-tr from-emerald-600 to-teal-500 text-white rounded-3xl flex items-center justify-center mx-auto mb-4 text-3xl shadow-lg"><i class="fa-solid fa-user-lock"></i></div>
       <h2 class="text-2xl font-black text-slate-800 dark:text-white">تسجيل الدخول للنظام</h2>
@@ -3745,6 +3751,9 @@ const IS_CLOUDFLARE_BRANCH_PREVIEW =
     location.hostname.endsWith(".student-absence-system.pages.dev")) ||
   location.hostname === "abu-dujana-school-preview.pages.dev" ||
   location.hostname.endsWith(".abu-dujana-school-preview.pages.dev");
+if (IS_CLOUDFLARE_BRANCH_PREVIEW) {
+  document.getElementById("isolatedPreviewNotice")?.classList.remove("hidden");
+}
 const SUPABASE_URL = IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co" : "https://ylsocrvwqibptuwfzbke.supabase.co";
 const SUPABASE_ANON_KEY = IS_CLOUDFLARE_BRANCH_PREVIEW
   ? "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Indhd3BsdHRycGlpbm91a3BqcXF4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTQyMDMzOTEsImV4cCI6MjEwOTc3OTM5MX0.wL11406QXMUjjMRcMQrmkZ-wbUBuQhajxpSOn1e6bhA"
