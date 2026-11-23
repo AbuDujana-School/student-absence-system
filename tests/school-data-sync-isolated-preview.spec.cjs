@@ -727,7 +727,9 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   const page = await context.newPage();
   const requests = [];
   const errors = [];
+  const browserMessages = [];
   page.on("pageerror", error => errors.push(error.stack || error.message));
+  page.on("console", message => browserMessages.push(message.type() + ": " + message.text()));
   await page.addInitScript(() => {
     if (!window.tailwind) window.tailwind = { config: {} };
   });
@@ -782,6 +784,9 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
     // this test measures the post-login path, not the previous session's teardown.
     cloudRefreshInProgress = false;
     cloudDataLoadState = "not-started";
+    // Playwright's Chromium runner should behave as an online browser; make
+    // this explicit so the cloud bootstrap branch is deterministic.
+    Object.defineProperty(navigator, "onLine", { configurable: true, get: () => true });
     window.__qaCloudSyncStarted = false;
     window.loadSystemDataFromCloud = async () => {
       window.__qaCloudSyncStarted = true;
@@ -826,7 +831,23 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   expect(loginOutcome.buttonDisabled).toBe(false);
   // The primary login handler returns without awaiting the delayed bootstrap.
   // Allow its detached finalizer to start so the intentionally stalled sync is active.
-  await page.waitForFunction(() => window.__qaCloudSyncStarted === true && cloudDataLoadState === "loading", undefined, { timeout: 15_000 });
+  try {
+    await page.waitForFunction(() => window.__qaCloudSyncStarted === true && cloudDataLoadState === "loading", undefined, { timeout: 5_000 });
+  } catch (waitError) {
+    const diagnosticState = await page.evaluate(() => ({
+      activeName: activeUser?.name || null,
+      activeType: activeUser?.type || null,
+      localOnlySession,
+      online: navigator.onLine,
+      cloudState: cloudDataLoadState,
+      previousRefreshInProgress: cloudRefreshInProgress,
+      cloudSyncStarted: window.__qaCloudSyncStarted === true,
+      finalizeType: typeof finalizeLoginState,
+      loadType: typeof loadSystemDataFromCloud,
+    }));
+    throw new Error("Post-login cloud bootstrap did not reach the controlled pending state: " +
+      JSON.stringify({ diagnosticState, browserMessages, errors, waitError: waitError.message }));
+  }
   await expect(page.locator("#loginSubmitBtn")).not.toBeDisabled();
   await expect(page.locator("#loginSubmitBtn")).toContainText("دخول للنظام");
   const state = await page.evaluate(() => ({
