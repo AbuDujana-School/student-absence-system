@@ -944,8 +944,8 @@ async function handle(req: Request) {
   if (body?.action === "student_affairs_activity_event") {
     const saSession = await getSession(req);
     if (!saSession) return reply(401, { error: "انتهت جلسة شؤون الطلبة. أعد تسجيل الدخول." });
-    const { data: actor, error: actorError } = await db.from("teachers").select("name,role,permissions").eq("name", saSession.principal.name).maybeSingle();
-    if (actorError || !actor || actor.role === "custom" || actor.permissions?.studentAffairs !== true) {
+    const activityPrincipal = await currentAppPrincipal(saSession.principal.type, saSession.principal.name);
+    if (!activityPrincipal || !(await hasStudentAffairsAccess(activityPrincipal))) {
       return reply(403, { error: "تسجيل نشاط شؤون الطلبة متاح لأعضاء القسم المعتمدين فقط." });
     }
     const eventType = body.event_type;
@@ -2400,8 +2400,8 @@ async function handle(req: Request) {
     ]);
     if (attendance.error || behaviors.error) return reply(500, { error: "تعذر تحميل التقارير" });
     if (mode === "view") {
-      const { data: activityActor } = await db.from("teachers").select("permissions").eq("name", p.name).maybeSingle();
-      if (activityActor?.permissions?.studentAffairs === true) {
+      const activityPrincipal = await currentAppPrincipal(p.type, p.name);
+      if (activityPrincipal && await hasStudentAffairsAccess(activityPrincipal)) {
         const activityRows: any[] = [];
         if (requestedAttendance.length) activityRows.push({ actor_type: p.type, actor_name: p.name, event_type: "absence_report_view", quantity: 1, details: { from, to, class_count: requestedAttendance.length } });
         if (requestedBehavior.length) activityRows.push({ actor_type: p.type, actor_name: p.name, event_type: "behavior_report_view", quantity: 1, details: { from, to, class_count: requestedBehavior.length } });

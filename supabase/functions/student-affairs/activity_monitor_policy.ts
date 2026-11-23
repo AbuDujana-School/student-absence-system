@@ -11,7 +11,7 @@ export function isStudentAffairsActivityTeacher(value: unknown): boolean {
   if (row.role === "custom") return false;
   const permissions = row.permissions && typeof row.permissions === "object" && !Array.isArray(row.permissions)
     ? row.permissions as Record<string, unknown> : {};
-  return permissions.studentAffairs === true;
+  return permissions.studentAffairs === true || permissions.additionalAdmin === true;
 }
 export function validActivityEventType(value: unknown): value is "section_access" | "absence_report_view" | "behavior_report_view" | "official_warning_print" {
   return ["section_access", "absence_report_view", "behavior_report_view", "official_warning_print"].includes(String(value));
