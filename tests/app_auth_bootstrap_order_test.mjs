@@ -261,7 +261,7 @@ test("mobile PIN input normalizes Arabic, Persian, and full-width numerals befor
 
 test("authenticated login refreshes all independent report panel visibility after role initialization", () => {
   const reports = section("function canAccessReport(key, user = activeUser)", "function switchAdminTab(tab)");
-  assert.match(reports, /user\?\.type === 'admin'/);
+  assert.match(reports, /isGeneralAdminUser\(user\)/);
   assert.match(reports, /reportMorningAssemblyLateness/);
   assert.match(reports, /reportStudentAffairs/);
   assert.match(reports, /reportComprehensiveAbsence/);

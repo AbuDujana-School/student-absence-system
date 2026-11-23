@@ -28,6 +28,15 @@ Deno.test("principal projection accepts only supported types and non-empty names
   if (!projected || projected.name !== "Teacher A") throw new Error("Principal was not normalized");
 });
 
+Deno.test("admin principal projection distinguishes general and additional administrator scopes", () => {
+  const general = projectAppPrincipal({ type: "admin", name: "مدير النظام العام" });
+  const additional = projectAppPrincipal({ type: "admin", name: "Tester1" });
+  if (general?.adminScope !== "general") throw new Error("General administrator scope was not inferred");
+  if (additional?.adminScope !== "additional") throw new Error("Additional administrator scope was not inferred");
+  const forged = projectAppPrincipal({ type: "admin", name: "Tester1", adminScope: "general" });
+  if (forged?.adminScope !== "additional") throw new Error("Caller-supplied scope must not elevate an additional administrator");
+});
+
 Deno.test("principal projection excludes credential-shaped permission fields", () => {
   const projected = projectAppPrincipal({
     type: "teacher", name: "Teacher A",
@@ -157,8 +166,11 @@ Deno.test("additional admin elevation requires a separate explicit marker on a t
   if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: true } })) {
     throw new Error("Admin permission alone must not elevate a teacher");
   }
-  if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: false, additionalAdmin: true } })) {
-    throw new Error("Additional-admin marker without admin permission must be rejected");
+  if (!isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: false, additionalAdmin: true } })) {
+    throw new Error("Dedicated additional-admin marker must work independently of the generic admin bit");
+  }
+  if (isAdditionalAdminTeacher({ role: "custom", permissions: { additionalAdmin: true } })) {
+    throw new Error("Additional-admin marker must not elevate a custom principal");
   }
 });
 

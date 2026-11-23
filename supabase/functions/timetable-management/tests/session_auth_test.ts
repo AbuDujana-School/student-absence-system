@@ -1,5 +1,6 @@
 import {
   resolveTimetablePrincipal,
+  canUseTimetableAction,
   type TimetableAuthStore,
   type TimetableSessionLookup,
 } from "../session_auth.ts";
@@ -184,8 +185,6 @@ Deno.test("unknown principal types and empty teacher names are rejected", async 
   }
 });
 
-
-import { canUseTimetableAction } from "../session_auth.ts";
 
 Deno.test("non-admin substitution access requires the correct explicit authorization", () => {
   const allowed = ["health", "timetable_check_access", "teacher_timetable_get_own"];
@@ -610,15 +609,41 @@ Deno.test("reserve distribution report grant is read-only and does not grant arc
 });
 
 
-Deno.test("additional administrator sessions require the explicit additional-admin marker on the teacher record", async () => {
+Deno.test("additional administrator sessions are downgraded to scoped teacher principals", async () => {
   const session = { principal_type: "admin", principal_name: "Tester1", expires_at: EXPIRY };
-  const allowed = storeWith(session, { adminTeacher: true });
-  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, allowed, NOW);
-  if (principal?.type !== "admin" || principal.name !== "Tester1") {
-    throw new Error("Explicitly designated additional administrator was rejected");
+  const noReportGrant = storeWith(session, {
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false, additionalAdmin: true, reportSubstitutionDistribution: false } },
+  });
+  if (await resolveTimetablePrincipal("Bearer " + TOKEN, noReportGrant, NOW, "timetable_substitution_report") !== null) {
+    throw new Error("Additional administrator bypassed the explicit reserve-report grant");
   }
-  const ordinaryTeacher = storeWith(session, { adminTeacher: false, teacher: { name: "Tester1", role: "teacher" } });
+  const timetableGrant = storeWith(session, {
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false, additionalAdmin: true } },
+    access: true,
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, timetableGrant, NOW, "timetable_class_weekly_get");
+  if (principal?.type !== "teacher" || principal.name !== "Tester1") {
+    throw new Error("Additional administrator must use the teacher-scoped timetable authorization flow");
+  }
+  if (canUseTimetableAction("teacher", "timetable_substitution_reset", false, principal.reserveAccess === true)) {
+    throw new Error("Additional administrator inherited the general administrator reserve bypass");
+  }
+  const ordinaryTeacher = storeWith(session, { teacher: { name: "Tester1", role: "teacher", permissions: { admin: true, additionalAdmin: false } } });
   if (await resolveTimetablePrincipal("Bearer " + TOKEN, ordinaryTeacher, NOW) !== null) {
-    throw new Error("Ordinary teacher session was promoted to administrator");
+    throw new Error("Teacher without the additional-admin marker was promoted");
+  }
+});
+
+Deno.test("additional administrator may read the reserve distribution report only with its explicit grant", async () => {
+  const session = { principal_type: "admin", principal_name: "Tester1", expires_at: EXPIRY };
+  const store = storeWith(session, {
+    teacher: { name: "Tester1", role: "teacher", permissions: { admin: false, additionalAdmin: true, reportSubstitutionDistribution: true } },
+  });
+  const principal = await resolveTimetablePrincipal("Bearer " + TOKEN, store, NOW, "timetable_substitution_report");
+  if (principal?.type !== "teacher" || principal.permissions?.reportSubstitutionDistribution !== true) {
+    throw new Error("Explicit report permission was not retained for the additional administrator");
+  }
+  if (canUseTimetableAction("teacher", "timetable_substitution_report")) {
+    throw new Error("Report-only permission must not become a general timetable action bypass");
   }
 });

@@ -5,6 +5,7 @@ export type AppDataScopePrincipal = {
   type: string;
   name: string;
   permissions?: Record<string, unknown>;
+  adminScope?: "general" | "additional";
 };
 
 type QueryResult = { data: any; error: unknown };
@@ -15,7 +16,8 @@ export async function resolveAppDataScope(
   principal: AppDataScopePrincipal,
   db: ScopeDatabase,
 ): Promise<AppDataScope> {
-  if (principal.type !== "teacher" && principal.type !== "custom") return { allowedClasses: [] };
+  const principalType = principal.type === "admin" && principal.adminScope === "additional" ? "teacher" : principal.type;
+  if (principalType !== "teacher" && principalType !== "custom") return { allowedClasses: [] };
 
   const { data: versions, error: versionError } = await db.from("timetable_weekly_versions")
     .select("id").eq("status", "active").limit(2) as QueryResult;
@@ -34,15 +36,20 @@ export async function resolveAppDataScope(
     if ((cells || []).length < 500) timetableClasses = projectAssignedClassScope(cells || [], principal.name);
   }
 
+  if (principal.type === "admin" && principal.adminScope === "additional" && principal.permissions?.students === true) {
+    const { data: classes, error: classesError } = await db.from("classes").select("name").limit(1000);
+    if (classesError) throw new Error("Unable to resolve additional administrator class scope");
+    timetableClasses = [...new Set([...timetableClasses, ...(classes || []).map((item: any) => String(item.name || "")).filter(Boolean)])];
+  }
+
   const { data: grants, error: grantError } = await db.from("student_affairs_permissions")
     .select("allowed_classes,allowed_attendance_classes,allowed_behavior_classes,can_read_attendance,can_read_behavior")
-    .eq("principal_type", principal.type)
+    .eq("principal_type", principalType)
     .eq("principal_name", principal.name)
     .maybeSingle() as QueryResult;
   if (grantError) throw new Error("Unable to resolve explicit school-affairs class grants");
 
-  const hasStudentAffairsAccess = principal.permissions?.studentAffairs === true ||
-    principal.permissions?.admin === true;
+  const hasStudentAffairsAccess = principal.permissions?.studentAffairs === true;
   const explicitGeneral = principal.permissions?.studentAffairs === true ? grants?.allowed_classes : [];
   const explicitAttendance = grants?.can_read_attendance === true ? grants.allowed_attendance_classes : [];
   const explicitBehavior = grants?.can_read_behavior === true ? grants.allowed_behavior_classes : [];

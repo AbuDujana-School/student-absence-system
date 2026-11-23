@@ -61,7 +61,7 @@ async function authenticate(req:Request):Promise<Principal|null> {
     const {data:user,error} = await db.from("teachers").select("name,role,permissions")
       .eq("name",principalName).maybeSingle();
     if (error || !user || !isAdditionalAdminTeacher(user)) return null;
-    return {type:"admin",name:principalName,permissions:buildAdditionalAdminPermissions(user)};
+    return {type:"teacher",name:principalName,permissions:buildAdditionalAdminPermissions(user)};
   }
   const {data:user,error} = await db.from("teachers").select("name,role,permissions")
     .eq("name",session.principal_name).maybeSingle();
@@ -73,8 +73,6 @@ async function authenticate(req:Request):Promise<Principal|null> {
   };
 }
 function canUse(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
-  if (principal.type === "admin" && principal.name !== "مدير النظام العام"
-    && principal.permissions.morningAssemblyLateness !== true) return false;
   const personal = principal.permissions.dutyDay;
   const category = String(principal.permissions.category || "");
   const assignedDay = ["الأحد","الاثنين","الثلاثاء","الأربعاء","الخميس"].includes(personal)
@@ -104,11 +102,7 @@ async function handle(req:Request) {
   const ctx=omanNow();
   const action=String(body?.action || "");
   if (action === "report") {
-    if (principal.type === "admin" && principal.name !== "مدير النظام العام"
-      && principal.permissions.morningAssemblyLateness !== true) {
-      return reply(403,{error:"تم إيقاف صلاحية إدارة تأخر الطابور الصباحي لهذا الحساب."});
-    }
-    if (principal.type !== "admin" && principal.permissions.reports !== true) {
+    if (principal.type !== "admin" && principal.permissions.reportMorningAssemblyLateness !== true) {
       return reply(403,{error:"لا تملك صلاحية عرض تقرير التأخر."});
     }
     const requestedYear = String(body?.academic_year || ctx.academicYear);

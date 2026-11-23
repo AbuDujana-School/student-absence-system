@@ -4236,7 +4236,7 @@ async function saSetupSupervisionPanel(){
   const panel=document.getElementById("saSupervisionPanel"),p=saReportPermissions||{};if(!panel)return;
   saBaseReportPermissions={...p};
   const isVisitor=p.role==="visitor",isLeader=p.role==="team_leader";
-  const enabled=saSession?.principal?.type==="admin"||p.can_view_analytics===true||isVisitor;panel.classList.toggle("hidden",!enabled);if(!enabled)return;
+  const enabled=isGeneralAdminUser(saSession?.principal)||p.can_view_analytics===true||isVisitor;panel.classList.toggle("hidden",!enabled);if(!enabled)return;
   const today=getOmanLocalDate(),currentYear=Number(today.slice(0,4)),schoolYearStart=today>=currentYear+"-09-09"?currentYear:currentYear-1,from=schoolYearStart+"-09-09",fromInput=document.getElementById("saSupervisionFrom"),toInput=document.getElementById("saSupervisionTo");
   // Always start with the current academic-year window when Student Affairs opens.
   // The range is recalculated from Omani local date; no manual refresh is needed.
@@ -4244,7 +4244,7 @@ async function saSetupSupervisionPanel(){
   if(fromInput)fromInput.value=from;if(toInput)toInput.value=today;
   document.getElementById("saSupervisionTeamBtn")?.classList.toggle("hidden",!isLeader);
   const wrap=document.getElementById("saSupervisionTeacherWrap"),select=document.getElementById("saSupervisionTeacherSelect");
-  if(wrap)wrap.classList.toggle("hidden",!(isLeader||isVisitor||saSession?.principal?.type==="admin"));
+  if(wrap)wrap.classList.toggle("hidden",!(isLeader||isVisitor||isGeneralAdminUser(saSession?.principal)));
   saSupervisionTeacherName="";
   if(select){
     select.innerHTML='<option value="">اختر المعلم لمتابعة أدائه</option>';
@@ -4317,7 +4317,7 @@ async function saLoadSupervisionTrend(scope="own"){
     document.getElementById("saSupervisionOwnBtn")?.classList.toggle("bg-blue-700",scope==="own");document.getElementById("saSupervisionOwnBtn")?.classList.toggle("text-white",scope==="own");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("bg-blue-700",scope==="team");document.getElementById("saSupervisionTeamBtn")?.classList.toggle("text-white",scope==="team");
   }catch(e){if(status){status.textContent=e?.message||"تعذر تحميل مؤشر الأداء.";status.classList.remove("hidden");}if(saSupervisionTrendChart){saSupervisionTrendChart.destroy();saSupervisionTrendChart=null;}if(saSupervisionBehaviorChart){saSupervisionBehaviorChart.destroy();saSupervisionBehaviorChart=null;}}
 }
-function saCanViewCompetition(){const p=saReportPermissions||{};return saSession?.principal?.type==="admin"||p.can_view_competition===true;}
+function saCanViewCompetition(){const p=saReportPermissions||{};return isGeneralAdminUser(saSession?.principal)||p.can_view_competition===true;}
 function saDateShift(value,days){const d=new Date(value+"T12:00:00.000Z");d.setUTCDate(d.getUTCDate()+days);return d.toISOString().slice(0,10);}
 function saSetReportDateInputs(prefix,fromValue,toValue,preset){const from=document.getElementById(prefix+"From"),to=document.getElementById(prefix+"To"),select=document.getElementById(prefix+"DatePreset");if(!from||!to||!select)return;from.value=fromValue;to.value=toValue;select.value=preset;from.disabled=to.disabled=preset!=="custom";syncReportPeriodControls(prefix);}
 function saInitReportDateInputs(prefix){const today=getOmanLocalDate(),from=document.getElementById(prefix+"From"),to=document.getElementById(prefix+"To"),select=document.getElementById(prefix+"DatePreset");if(!from||!to||!select)return;if(!from.value&&!to.value){saSetReportDateInputs(prefix,today,today,"today");return;}const preset=from.value===today&&to.value===today?"today":select.value==="week"?"week":"custom";select.value=preset;from.disabled=to.disabled=preset!=="custom";syncReportPeriodControls(prefix);}
@@ -4347,7 +4347,7 @@ async function saCompetitionLoadSettings(){
 function saCompetitionRenderSettings(){
   const panel=document.getElementById("saCompetitionSettingsPanel");
   if(!panel)return;
-  const isAdmin=saSession?.principal?.type==="admin"||activeUser?.type==="admin";
+  const isAdmin=isGeneralAdminUser(saSession?.principal)||isGeneralAdminUser(activeUser);
   panel.classList.toggle("hidden",!isAdmin);
   if(!isAdmin)return;
   const select=document.getElementById("saCompetitionVisibilityMode");
@@ -4383,7 +4383,7 @@ function saSetCompetitionTerm(termId){
 }
 async function saCompetitionSaveSettings(){
   if(IS_UI_REVIEW_PREVIEW){showToast("المعاينة للعرض فقط؛ الحفظ معطل لحماية بيانات المدرسة.","info");return;}
-  if(saSession?.principal?.type!=="admin"&&activeUser?.type!=="admin"){showToast("تعديل إعدادات البطولة متاح لمدير النظام فقط.","error");return;}
+  if(!isGeneralAdminUser(saSession?.principal)&&!isGeneralAdminUser(activeUser)){showToast("تعديل إعدادات البطولة متاح لمدير النظام فقط.","error");return;}
   const mode=document.getElementById("saCompetitionVisibilityMode")?.value||"current";
   try{
     const settings=await saRequest({action:"competition_settings",mode:"save",showBothTerms:mode==="both"});
@@ -4588,9 +4588,9 @@ function saRenderCompetition(data){
   if(count)count.textContent=other.length?other.length+" معلماً":(IS_UI_REVIEW_PREVIEW?"لا توجد بيانات":"");
 }
 async function openStudentAffairsAssignments(){
-  const isAdmin=activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();
+  const isAdmin=isGeneralAdminUser(activeUser)||isAdminAuthorized();
   if(!isAdmin){showToast("إدارة تكليفات شؤون الطلبة متاحة للإدارة فقط","error");return;}
-  if(!saSession?.token||saSession?.principal?.type!=="admin"){showToast("تعذر استعادة جلسة الإدارة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.","error");return;}
+  if(!saSession?.token||!isGeneralAdminUser(saSession?.principal)){showToast("تعذر استعادة جلسة الإدارة. سجّل الخروج ثم الدخول مجدداً أثناء الاتصال بالإنترنت.","error");return;}
   const panel=document.getElementById("saAssignmentsPanel");
   if(!panel)return;
   try{
@@ -4607,7 +4607,7 @@ function closeStudentAffairsAssignments(){
   document.getElementById("saAdmin")?.classList.add("hidden");
   document.querySelectorAll("#sec-beneficiaries [data-beneficiary-card]").forEach(card=>{
     const kind=card.getAttribute("data-beneficiary-card");
-    const isAdmin=activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();
+    const isAdmin=isGeneralAdminUser(activeUser)||isAdminAuthorized();
     const allowed=isAdmin||(kind!=="sa-admin"&&!!activeUser?.permissions?.[kind]);
     card.classList.toggle("hidden",!allowed);
   });
@@ -4615,7 +4615,7 @@ function closeStudentAffairsAssignments(){
 let studentAffairsOpenedFromHome = false;
 async function openStudentAffairsView(fromHome = false) {
   studentAffairsOpenedFromHome = fromHome === true;
-  const allowed = activeUser?.type === "admin" || activeUser?.permissions?.admin ||
+  const allowed = isGeneralAdminUser(activeUser) ||
     activeUser?.permissions?.studentAffairs === true;
   if (!allowed) {
     showToast("لا تملك صلاحية دخول شؤون الطلبة", "error");
@@ -4687,7 +4687,7 @@ async function openStudentAffairsView(fromHome = false) {
   }
 }
 function closeStudentAffairsView(){saCompetitionLoadSequence++;document.getElementById("studentAffairsView").classList.add("hidden");if(studentAffairsOpenedFromHome){studentAffairsOpenedFromHome=false;document.getElementById("dashboardSelectionView")?.classList.remove("hidden");return;}if(isSinglePermissionMode()&&getSingleAdminPermission(activeUser)==="studentAffairs"){document.getElementById("dashboardSelectionView")?.classList.remove("hidden");document.getElementById("adminModal")?.classList.add("hidden");return;}document.getElementById("adminModal")?.classList.remove("hidden");document.getElementById("adminContentSection")?.classList.remove("hidden");document.getElementById("adminAuthSection")?.classList.add("hidden");}
-async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(d.principal.type==="admin")await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
+async function saLogin(pin){const appToken=appAuthSession?.token||readAppAuthToken();let d;if(appToken){d=await appAuthRequest({action:"app_student_affairs_session"},appToken);}else{if(!/^[0-9]{4,10}$/.test(String(pin||"")))throw new Error("تعذر استخدام جلسة دخول التطبيق الحالية.");d=await saRequest({action:"login",pin:String(pin)});}saSession=d;try{localStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));sessionStorage.removeItem("abuDujana_studentAffairsSession");}catch(e){try{sessionStorage.setItem("abuDujana_studentAffairsSession",JSON.stringify(d));}catch(ignore){}}document.getElementById("saLogin").classList.add("hidden");document.getElementById("saContent").classList.remove("hidden");document.getElementById("saBadge").textContent=d.principal.name;saReportPermissions=d.permissions||{};if(isGeneralAdminUser(d.principal))await saLoadAdmin();saSetDomain(saReportPermissions.can_read_attendance?"attendance":"behavior");window.refreshCombinedReportTabs?.();if(!document.getElementById("repStudentAffairsPanel")?.classList.contains("hidden"))void repInitStudentAffairsReports();saSetupCompetitionPanel();saSetupSupervisionPanel();return d;}
 async function saLoadAdmin(){saAdminData=await saRequest({action:"get_permissions"});saLoadPerson();saRenderAssignedTeachers();saCompetitionRenderSettings();}
 function saAssignedTeacherData(){
   const teachers=Array.isArray(saAdminData?.teachers)?saAdminData.teachers:[];
@@ -5699,7 +5699,10 @@ async function verifyStoredSession() {
   } catch(e) { return null; }
 }
 function clearSession() { try { localStorage.removeItem('abuDujana_session'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_session_secret'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_adminAuthUntil'); } catch(e) {} try { localStorage.removeItem('abuDujana_studentAffairsSession'); } catch(e) {} try { sessionStorage.removeItem('abuDujana_studentAffairsSession'); } catch(e) {} clearAppAuthSession(); }
-function isAdminAuthorized() { if (activeUser?.type === 'admin') return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
+function isGeneralAdminUser(user = activeUser) {
+  return user?.type === "admin" && (user.adminScope === "general" || user.name === "مدير النظام العام");
+}
+function isAdminAuthorized() { if (isGeneralAdminUser()) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
 function grantTemporaryAdminAuth() { try { sessionStorage.setItem('abuDujana_adminAuthUntil', String(Date.now() + ADMIN_AUTH_TTL_MS)); } catch(e) {} window.refreshCombinedReportTabs?.(); }
 
 /* ============ Cloud helpers ============ */
@@ -6352,9 +6355,9 @@ async function retryOfflineSyncSilently() {
 function refreshCloudDependentViews() {
   if (!activeUser) return;
   try {
-    if (isAdminAuthorized()) {
-      if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
-      if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList();
+    if (isGeneralAdminUser(activeUser) || activeUser.permissions?.teachers || activeUser.permissions?.users) {
+      if (isGeneralAdminUser(activeUser) || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); }
+      if (isGeneralAdminUser(activeUser) || activeUser.permissions?.users) renderCustomUsersList();
     }
     if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
     if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
@@ -7338,7 +7341,7 @@ function doForceSync() {
     showToast(success ? 'تم التحديث!' : 'تعذر الجلب.', success ? 'success' : 'error');
     if (success && activeUser) {
       try {
-        if (isAdminAuthorized()) { if (activeUser.type === 'admin' || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); } if (activeUser.type === 'admin' || activeUser.permissions?.users) renderCustomUsersList(); }
+        if (isAdminAuthorized()) { if (isGeneralAdminUser(activeUser) || activeUser.permissions?.teachers) { renderTeachersList(); renderSubjectDutyDays(); } if (isGeneralAdminUser(activeUser) || activeUser.permissions?.users) renderCustomUsersList(); }
         if (!document.getElementById('classesView')?.classList.contains('hidden')) renderClassesGrid();
         if (!document.getElementById('behaviorClassesView')?.classList.contains('hidden')) renderBehaviorClassesGrid();
         refreshDutyDashboardCard();
@@ -7640,7 +7643,7 @@ async function findUserByPinWithRecord(pin) {
 
 async function refreshActiveUserPermissions() {
   const user = activeUser;
-  if (!user || user.type === 'admin') return;
+  if (!user || isGeneralAdminUser(user)) return;
   const securePrincipal = appAuthSession?.principal;
   if (securePrincipal?.name === user.name && securePrincipal?.type === user.type) {
     // app_login and app_session already reload the account permissions server-side.
@@ -7737,7 +7740,7 @@ function startDistronDashboardStages() {
   }, 'morning-assembly');
   schedule(10000, () => {
     const card = document.getElementById('dutyDashboardCard');
-    const allowed = activeUser?.permissions?.admin === true ||
+    const allowed = isGeneralAdminUser(activeUser) ||
       activeUser?.permissions?.duty === true || isAdminAuthorized();
     if (card) card.classList.toggle('hidden', !allowed);
     if (allowed) {
@@ -7750,8 +7753,7 @@ function startDistronDashboardStages() {
   }, 'duty-and-timetable-access');
   schedule(15000, () => {
     const button = document.getElementById('studentAffairsBtn');
-    const allowed = !localOnlySession && (activeUser?.type === 'admin' ||
-      activeUser?.permissions?.admin === true || isAdminAuthorized() ||
+    const allowed = !localOnlySession && (isGeneralAdminUser(activeUser) || isAdminAuthorized() ||
       activeUser?.permissions?.studentAffairs === true);
     if (button) {
       button.classList.toggle('hidden', !allowed);
@@ -7765,7 +7767,7 @@ function renderAuthenticatedDashboardShell() {
   startDistronDashboardStages();
   const user = activeUser;
   if (!user) return;
-  const isAdmin = user.type === "admin" || user.permissions?.admin === true || isAdminAuthorized();
+  const isAdmin = isGeneralAdminUser(user) || isAdminAuthorized();
   document.getElementById("loginView")?.classList.add("hidden");
   document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
   const name = document.getElementById("activeUserName");
@@ -7863,7 +7865,7 @@ async function finalizeLoginState() {
       try {
         await bounded(timetableRefreshAccess({ deferAdminPortalStatus: true }), 7000, 'تعذر تحديث صلاحية الجدول الآن.');
       } catch (timetableError) {
-        timetableCanAccess = activeUser?.type === 'admin';
+        timetableCanAccess = isGeneralAdminUser(activeUser);
         teacherPortalCanAccess = false;
         teacherPortalEnabled = false;
         console.warn('Timetable access refresh deferred after successful login.', timetableError);
@@ -7891,7 +7893,7 @@ async function finalizeLoginState() {
   }
   document.getElementById('activeUserName').textContent = activeUser.name;
 
-  const isAdmin = activeUser.type === 'admin' || activeUser.permissions?.admin === true || isAdminAuthorized();
+  const isAdmin = isGeneralAdminUser(activeUser) || isAdminAuthorized();
   const singlePermission = !isAdmin ? getSingleAdminPanelPermission(activeUser) : null;
   const adminBtn = document.getElementById('adminPanelBtn');
   const studentAffairsBtn = document.getElementById('studentAffairsBtn');
@@ -7940,10 +7942,10 @@ async function finalizeLoginState() {
   refreshReportPanelsVisibility();
 }
 function hasAdminPanelAccess(user = activeUser) {
-  return user?.type === 'admin' || user?.permissions?.admin === true || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
+  return isGeneralAdminUser(user) || ADMIN_TAB_PERMISSIONS.some(key => user?.permissions?.[key] === true);
 }
 function getSingleAdminPanelPermission(user = activeUser) {
-  if (!user || user.type === 'admin' || user.permissions?.admin === true) return null;
+  if (!user || isGeneralAdminUser(user)) return null;
   const keys = ADMIN_TAB_PERMISSIONS.filter(key => user.permissions?.[key] === true);
   return keys.length === 1 ? keys[0] : null;
 }
@@ -7960,7 +7962,7 @@ function hasMultipleAdminPermissions(user = activeUser) {
   return getAssignedAdminPermissionKeys(user).length >= 2;
 }
 function isSinglePermissionMode(user = activeUser) {
-  return !!user && user.type !== 'admin' && user.permissions?.admin !== true && !isAdminAuthorized()
+  return !!user && !isGeneralAdminUser(user) && !isAdminAuthorized()
     && (!!getSingleAdminPanelPermission(user) || getSingleAdminPermission(user) === 'studentAffairs');
 }
 function renderSinglePermissionLauncher(permissionKey) {
@@ -8012,8 +8014,8 @@ function openSinglePermissionModule(permissionKey) {
   openControlPanelDirectly();
   switchAdminTab(permissionKey);
 }
-function canAccessAttendance() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.attendance; if (activeUser.type === 'teacher') return activeUser.permissions?.attendance !== false; return false; }
-function canAccessBehavior() { if (!activeUser) return false; if (activeUser.type === 'admin') return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.behavior; if (activeUser.type === 'teacher') return activeUser.permissions?.behavior !== false; return false; }
+function canAccessAttendance() { if (!activeUser) return false; if (isGeneralAdminUser(activeUser)) return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.attendance; if (activeUser.type === 'teacher') return activeUser.permissions?.attendance !== false; return false; }
+function canAccessBehavior() { if (!activeUser) return false; if (isGeneralAdminUser(activeUser)) return true; if (activeUser.type === 'custom') return !!activeUser.permissions?.behavior; if (activeUser.type === 'teacher') return activeUser.permissions?.behavior !== false; return false; }
 
 async function checkAndEnforcePinChange() {
   if (!activeUser || activeUser.type !== 'teacher') return false;
@@ -8024,7 +8026,7 @@ async function checkAndEnforcePinChange() {
   return true;
 }
 async function checkAndEnforceAdminPinChange() {
-  if (!activeUser || activeUser.type !== 'admin') return false;
+  if (!activeUser || !isGeneralAdminUser(activeUser)) return false;
   const isDefault = await verifyPinAgainstRecord('1234', db.adminPin);
   if (!isDefault) return false;
   const modal = document.getElementById('forceAdminPinModal');
@@ -8305,7 +8307,7 @@ let morningAssemblyReportRows = [];
 let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
   if (!activeUser) return false;
-  if (activeUser.type === 'admin') return true;
+  if (isGeneralAdminUser(activeUser)) return true;
   if (activeUser.permissions?.morningAssemblyLateness !== true) return false;
   if (activeUser.type === 'custom') return true;
   if (activeUser.type !== 'teacher' || activeUser.permissions?.dutyToday === false) return false;
@@ -8321,7 +8323,7 @@ function refreshMorningAssemblyLatenessCard() {
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
   if (status && show) {
-    if (activeUser?.type === 'admin') status.textContent = 'صلاحية المدير — متاح في أي وقت';
+    if (isGeneralAdminUser(activeUser)) status.textContent = 'صلاحية المدير — متاح في أي وقت';
     else if (activeUser?.type === 'custom') status.textContent = 'صلاحية استثنائية مفعلة';
     else status.textContent = 'مناوب اليوم · التسجيل متاح حتى 8:30 صباحاً';
   }
@@ -9220,8 +9222,8 @@ function printHorizontalBehaviorReport() {
 /* ============ Admin modal ============ */
 async function openAdminModal() {
   document.getElementById('teacherTimetableView')?.classList.add('hidden');
-  if (activeUser?.type !== 'admin') await timetableRefreshAccess();
-  const isAdmin = activeUser?.type === 'admin' || activeUser?.permissions?.admin || isAdminAuthorized();
+  if (!isGeneralAdminUser(activeUser)) await timetableRefreshAccess();
+  const isAdmin = isGeneralAdminUser(activeUser) || isAdminAuthorized();
   const singlePermission = !isAdmin ? getSingleAdminPanelPermission(activeUser) : null;
   if (singlePermission) {
     openSinglePermissionModule(singlePermission);
@@ -9260,7 +9262,7 @@ async function verifyAdminPinAndOpen() {
 function setupRolePermissions() {
   refreshReportPanelsVisibility();
   const badge = document.getElementById('roleBadge'), text = document.getElementById('roleNoticeText');
-  if (activeUser?.type === 'admin') {
+  if (isGeneralAdminUser(activeUser)) {
     timetableCanAccess = true;
     text.textContent = "صلاحية الدخول: مدير النظام العام (تحكم كامل)";
     badge.textContent = "مدير النظام"; badge.className = "bg-emerald-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
@@ -9269,9 +9271,9 @@ function setupRolePermissions() {
     const saTab = document.getElementById('tab-studentAffairs'); if (saTab) saTab.style.display = 'flex';
     const timetableTab = document.getElementById('tab-timetable'); if (timetableTab) timetableTab.style.display = 'flex';
     switchAdminTab('dashboard');
-  } else if (isAdminAuthorized() || activeUser?.permissions?.admin) {
-    text.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة";
-    badge.textContent = isAdminAuthorized() && activeUser?.type !== 'admin' ? "إداري مؤقت" : "إدارة";
+  } else if (isAdminAuthorized() || isGeneralAdminUser(activeUser)) {
+    text.textContent = isAdminAuthorized() && !isGeneralAdminUser(activeUser) ? "صلاحية إدارية مؤقتة (30 دقيقة)" : "إدارة كاملة";
+    badge.textContent = isAdminAuthorized() && !isGeneralAdminUser(activeUser) ? "إداري مؤقت" : "إدارة";
     badge.className = "bg-amber-700 text-white px-3 py-1 rounded-xl text-[10px] shadow-sm";
     const dashboardTab = document.getElementById('tab-dashboard'); if (dashboardTab) dashboardTab.style.display = 'flex';
     ADMIN_TAB_PERMISSIONS.forEach(id => { const el = document.getElementById(`tab-${id}`); if (el) el.style.display = 'flex'; });
@@ -9300,19 +9302,19 @@ function setupRolePermissions() {
     if (timetableCanAccess && !first) first = 'timetable';
     if (first) switchAdminTab(first);
   }
-  if (activeUser?.type !== 'admin') document.getElementById('timetableAccessManagement')?.classList.add('hidden');
-  const timetableAdmin = activeUser?.type === 'admin';
+  if (!isGeneralAdminUser(activeUser)) document.getElementById('timetableAccessManagement')?.classList.add('hidden');
+  const timetableAdmin = isGeneralAdminUser(activeUser);
   document.getElementById('timetableAdminImportPanel')?.classList.toggle('hidden', !timetableAdmin);
   document.getElementById('timetableAdminImportNotice')?.classList.toggle('hidden', timetableAdmin);
   const beneficiaryTab = document.getElementById('tab-beneficiaries');
   if (beneficiaryTab) {
     const isSingleModule = isSinglePermissionMode();
-    const canOpenBeneficiaries = !isSingleModule && (activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students);
+    const canOpenBeneficiaries = !isSingleModule && (isGeneralAdminUser(activeUser) || isAdminAuthorized() || !!isGeneralAdminUser(activeUser) || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students);
     beneficiaryTab.style.display = canOpenBeneficiaries ? 'flex' : 'none';
   }
   document.querySelectorAll('[data-beneficiary-card]').forEach(card => {
     const kind = card.getAttribute('data-beneficiary-card');
-    const isAdmin = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin;
+    const isAdmin = isGeneralAdminUser(activeUser) || isAdminAuthorized() || !!isGeneralAdminUser(activeUser);
     const allowed = isAdmin || (kind !== 'sa-admin' && !!activeUser?.permissions?.[kind]);
     card.classList.toggle('hidden', !allowed);
   });
@@ -9606,7 +9608,7 @@ function updateAdvancedAnalytics() {
 }
 
 function renderAdminOverview() {
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || !!isGeneralAdminUser(activeUser);
   const canStats = isA || !!activeUser?.permissions?.studstats;
   const canTeachers = isA || !!activeUser?.permissions?.teachers;
   const canStudentAffairs = isA || activeUser?.permissions?.studentAffairs === true;
@@ -9722,7 +9724,7 @@ function renderAdminOverview() {
   if (canTeachers) renderTeachersActivity();
 }
 function initAdminDashboard() {
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
   const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : (isA || !!(activeUser?.permissions?.[k]));
   const activitySection = document.getElementById('dashboardTeachersActivity');
   if (activitySection) activitySection.classList.toggle('hidden', !has('teachers'));
@@ -9970,7 +9972,7 @@ async function repPrint(){
 
 const REPORT_PERMISSION_KEYS = ['reportMorningAssemblyLateness','reportStudentAffairs','reportComprehensiveAbsence','reportClassLatenessFollowup','reportSubstitutionDistribution'];
 function canManageReportPermissions() {
-  return activeUser?.type === 'admin' || activeUser?.permissions?.admin === true || isAdminAuthorized();
+  return isGeneralAdminUser(activeUser) || isAdminAuthorized();
 }
 function hasGranularReportPermissions(permissions) {
   const p = permissions && typeof permissions === 'object' ? permissions : {};
@@ -9979,11 +9981,11 @@ function hasGranularReportPermissions(permissions) {
 function canAccessReport(key, user = activeUser) {
   if (!REPORT_PERMISSION_KEYS.includes(key)) return false;
   const p = user?.permissions && typeof user.permissions === 'object' ? user.permissions : {};
-  if (user?.type === 'admin' || p.admin === true || isAdminAuthorized()) return true;
+  if (isGeneralAdminUser(user) || isAdminAuthorized()) return true;
   return p[key] === true;
 }
 function canAccessAnyReport(user = activeUser) {
-  return user?.type === 'admin' || user?.permissions?.admin === true || isAdminAuthorized()
+  return isGeneralAdminUser(user) || isAdminAuthorized()
     || REPORT_PERMISSION_KEYS.some(key => canAccessReport(key, user));
 }
 function refreshReportPanelsVisibility() {
@@ -10001,11 +10003,11 @@ function refreshReportPanelsVisibility() {
 }
 function switchAdminTab(tab) {
   refreshReportPanelsVisibility();
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
   const has = (k) => k === 'timetable' ? (isA || timetableCanAccess) : k === 'reports' ? (isA || canAccessAnyReport()) : (isA || !!(activeUser?.permissions?.[k]));
   const canDashboard = isA || hasMultipleAdminPermissions(activeUser);
   const canBeneficiaries = isA || !!activeUser?.permissions?.teachers || !!activeUser?.permissions?.students;
-  if (tab === 'timetable' && activeUser?.type !== 'admin' && !timetableCanAccess) { showToast('لا تملك صلاحية منظومة الجداول والاحتياط.', 'error'); return; }
+  if (tab === 'timetable' && !isGeneralAdminUser(activeUser) && !timetableCanAccess) { showToast('لا تملك صلاحية منظومة الجداول والاحتياط.', 'error'); return; }
   if (tab === 'dashboard' ? !canDashboard : tab === 'beneficiaries' ? !canBeneficiaries : !has(tab)) return;
   document.getElementById('sec-dashboard')?.classList.add('hidden');
   document.getElementById('sec-beneficiaries')?.classList.add('hidden');
@@ -10043,7 +10045,7 @@ function switchAdminTab(tab) {
     if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
     if (canAccessReport('reportSubstitutionDistribution')) { initSubstitutionDistributionReport(); loadSubstitutionDistributionReport(true); }
   }
-  if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (activeUser?.type === 'admin') timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (isGeneralAdminUser(activeUser)) timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
@@ -10439,7 +10441,7 @@ function renderTeachersActivity() {
     '<td class="p-3.5 text-center"><span class="inline-flex px-3 py-1 rounded-full text-[10px] font-black '+(r.active?'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-300':'bg-rose-100 text-rose-800 dark:bg-rose-900/40 dark:text-rose-300')+'">'+(r.active?'نشط':'غير نشط')+'</span></td></tr>').join('');
 }
 function printTeachersActivityPDF() {
-  const canViewActivity = activeUser?.type === 'admin' || isAdminAuthorized() || !!activeUser?.permissions?.admin || !!activeUser?.permissions?.teachers;
+  const canViewActivity = isGeneralAdminUser(activeUser) || isAdminAuthorized() || !!isGeneralAdminUser(activeUser) || !!activeUser?.permissions?.teachers;
   if (!canViewActivity) { showToast('ليست لديك صلاحية عرض تقرير نشاط المعلمين.', 'error'); return; }
   const data = window.lastTeachersActivityData;
   if (!data || !Array.isArray(data.teachersArray) || data.teachersArray.length === 0) {
@@ -10990,8 +10992,8 @@ function refreshDutyDashboardCard() {
   refreshMorningAssemblyLatenessCard();
   const card = document.getElementById('dutyDashboardCard'); if (!card) return;
   
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized();
-  const hasDutyPerm = activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized();
+  const hasDutyPerm = activeUser?.permissions?.duty === true || isGeneralAdminUser(activeUser);
   
   const checkWorkingHours = () => {
       const d = dutyData();
@@ -11025,8 +11027,8 @@ function refreshDutyDashboardCard() {
 }
 
 function openDutyView() {
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized();
-  const hasDutyPerm = activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized();
+  const hasDutyPerm = activeUser?.permissions?.duty === true || isGeneralAdminUser(activeUser);
   
   const d = dutyData();
   const now = omanNowParts().minutes;
@@ -11063,7 +11065,7 @@ function renderDutyPeriods() {
   const w = document.getElementById('dutyPeriodsGrid'); if (!w) return;
   w.innerHTML = '';
   const d = dutyData(), now = omanNowParts();
-  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  const isAT = isGeneralAdminUser(activeUser) || isAdminAuthorized() || activeUser?.permissions?.duty === true || isGeneralAdminUser(activeUser);
   const cat = getTeacherCategory(activeUser?.name);
   const tDay = getTeacherDutyDay(activeUser?.name);
   const td = dutyDayForDate(getOmanLocalDate());
@@ -11102,7 +11104,7 @@ function selectDutyPeriod(period) {
   const d = dutyData();
   const p = d.periods[period - 1];
   const now = omanNowParts(), s = toMinutes(p.start), e = toMinutes(p.end);
-  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  const isAT = isGeneralAdminUser(activeUser) || isAdminAuthorized() || activeUser?.permissions?.duty === true || isGeneralAdminUser(activeUser);
   
   if (!isAT && (s === null || e === null || now.minutes < s + d.graceMinutes || now.minutes > e)) { showToast('خارج وقت الحصة.', 'error'); return; }
   selectedDutyPeriod = period;
@@ -11245,7 +11247,7 @@ async function submitDutyReport() {
   const date = getOmanLocalDate(), day = dutyDayForDate(date), d = dutyData();
   const createdAt = getTrustedDate().toISOString();
 
-  const isAT = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.duty === true || activeUser?.permissions?.admin === true;
+  const isAT = isGeneralAdminUser(activeUser) || isAdminAuthorized() || activeUser?.permissions?.duty === true || isGeneralAdminUser(activeUser);
   if (!isAT) {
     const pC = d.periods[selectedDutyPeriod - 1];
     const nowMin = omanNowParts().minutes;
@@ -11318,7 +11320,7 @@ async function copyLastDutyMessage() {
 function renderDutyTodayRecords() {
   const el = document.getElementById('dutyTodayRecords'); if (!el) return;
   const today = getOmanLocalDate();
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser);
   const rows = dutyData().records.filter(r => r.date === today && (isA || r.reportedBy === activeUser?.name));
   if (!rows.length) { el.innerHTML = '<p class="text-slate-400 text-xs">لا بلاغات.</p>'; return; }
   el.innerHTML = rows.map(r => `<div class="border border-slate-200 dark:border-slate-700 rounded-xl p-3 bg-white dark:bg-slate-800"><strong>صف ${ltrHtml(r.className)}</strong> · ح${r.period}${r.teacherName ? ' · ' + escapeHtml(r.teacherName) : ''} · <span class="text-amber-700 dark:text-amber-400">${escapeHtml(dutyStatusLabel(r.status))}</span></div>`).join('');
@@ -11365,7 +11367,7 @@ function renderDutyAdminReview() {
   }).join('') : '<p class="text-slate-400 text-xs">لا بلاغات.</p>';
 }
 async function updateDutyRecordStatus(sel) {
-  const isA = activeUser?.type === 'admin' || isAdminAuthorized() || activeUser?.permissions?.admin || activeUser?.permissions?.duty;
+  const isA = isGeneralAdminUser(activeUser) || isAdminAuthorized() || isGeneralAdminUser(activeUser) || activeUser?.permissions?.duty;
   if (!isA) { showToast('لا تملك صلاحية مراجعة البلاغات.', 'error'); renderDutyAdminReview(); return; }
   const id = sel.dataset.id;
   const r = dutyData().records.find(x => String(x.id) === id); if (!r) return;
@@ -11492,7 +11494,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
   const esc=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const validStatus=["absent","late","escape","outside"];
   const behaviorKeys=Object.keys(SA_BEHAVIOR_TYPES||{});
-  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=saSession?.principal?.type==="admin"||activeUser?.type==="admin"||activeUser?.permissions?.admin===true||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
+  function canUseCombined(prefix){const p=cfg[prefix].getP();const isAdmin=isGeneralAdminUser(saSession?.principal)||isGeneralAdminUser(activeUser)||isAdminAuthorized();return isAdmin||(p.can_read_attendance===true&&p.can_read_behavior===true&&p.can_print_combined===true);}
   function intersection(c){const a=new Set(c.getAllowed("attendance"));const b=new Set(c.getAllowed("behavior"));return [...a].filter(x=>b.has(x)).sort((x,y)=>sortClassesList([x,y]).indexOf(x)-sortClassesList([x,y]).indexOf(y));}
   function buildFilter(prefix){
     const id=prefix+"CombinedFilters";if(document.getElementById(id))return;
@@ -11859,14 +11861,14 @@ async function timetableRefreshAccess(options = {}) {
       teacherPortalEnabled = result.teacherPortalEnabled === true;
       teacherPortalCanAccess = activeUser.type === "teacher" && result.teacherPortalCanAccess === true;
     } catch (error) {
-      timetableCanAccess = activeUser?.type === "admin";
+      timetableCanAccess = isGeneralAdminUser(activeUser);
       teacherPortalCanAccess = false;
       teacherPortalEnabled = false;
     }
   }
   const portalControl = document.getElementById("teacherTimetablePortalControl");
-  if (portalControl) portalControl.classList.toggle("hidden", activeUser?.type !== "admin");
-  if (activeUser?.type === "admin") {
+  if (portalControl) portalControl.classList.toggle("hidden", !isGeneralAdminUser(activeUser));
+  if (isGeneralAdminUser(activeUser)) {
     timetableCanAccess = true;
     // Loading the full weekly grid and eligible-teacher directory is secondary
     // admin portal work. Defer it during login; the settings tab loads it on demand.
@@ -11883,7 +11885,7 @@ async function timetableRefreshAccess(options = {}) {
   return timetableCanAccess;
 }
 async function timetableLoadPortalStatus() {
-  if (activeUser?.type !== "admin") return null;
+  if (!isGeneralAdminUser(activeUser)) return null;
   const token = appAuthSession?.token || readAppAuthToken();
   if (!token) return null;
   const retry = document.getElementById("teacherTimetablePortalRetry");
@@ -11977,7 +11979,7 @@ function timetableUpdatePortalSelectionCount() {
 }
 
 async function timetableSaveCustomPortalTeachers() {
-  if (activeUser?.type !== "admin") { showToast("تخصيص عرض الجداول متاح للمدير العام فقط.", "error"); return; }
+  if (!isGeneralAdminUser(activeUser)) { showToast("تخصيص عرض الجداول متاح للمدير العام فقط.", "error"); return; }
   const names = Array.from(new Set(Array.from(document.querySelectorAll("[data-timetable-portal-teacher]:checked"))
     .map(input => String(input.value || "").trim()).filter(Boolean)));
   if (!names.length) { showToast("اختر معلماً واحداً على الأقل. للتفعيل للجميع استخدم زر العرض العام.", "error"); return; }
@@ -12012,7 +12014,7 @@ async function timetableSaveCustomPortalTeachers() {
   }
 }
 async function timetableToggleTeacherPortal() {
-  if (activeUser?.type !== "admin") { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
+  if (!isGeneralAdminUser(activeUser)) { showToast("تفعيل خدمة الجدول الشخصي متاح للمدير العام فقط.", "error"); return; }
   const switchingToAll = !teacherPortalEnabled;
   const message = switchingToAll
     ? "سيظهر الجدول الشخصي لجميع المعلمين المرتبطين بحصص تدريس في الجدول النشط، مع إلغاء أي تخصيص سابق. هل تريد التفعيل العام؟"
@@ -12291,7 +12293,7 @@ function closeTeacherTimetableView() {
 async function timetableLoadAccessManagement() {
   const panel = document.getElementById("timetableAccessManagement");
   const host = document.getElementById("timetableAccessList");
-  if (activeUser?.type !== "admin" || !panel || !host) return;
+  if (!isGeneralAdminUser(activeUser) || !panel || !host) return;
   panel.classList.remove("hidden");
   try {
     const token = appAuthSession?.token || readAppAuthToken();
@@ -12318,7 +12320,7 @@ function timetableRenderAccessList() {
 async function timetableSaveAccessChanges() {
   const button = document.getElementById("timetableAccessSaveButton");
   const status = document.getElementById("timetableAccessStatus");
-  if (activeUser?.type !== "admin") return;
+  if (!isGeneralAdminUser(activeUser)) return;
   const token = appAuthSession?.token || readAppAuthToken();
   const inputs = Array.from(document.querySelectorAll("#timetableAccessList .timetable-access-checkbox"));
   button.disabled = true;
@@ -12653,7 +12655,7 @@ function timetablePreflightTextWorker(sourceText) {
 async function timetableParseDayText() {
   const selectedWeekday=document.getElementById("timetableTextWeekday")?.value||"";
   const sourceText=document.getElementById("timetableDayText")?.value||"";
-  if(!timetableCanAccess||activeUser?.type!=="admin"){timetableWeeklySetStatus("يلزم الدخول بصلاحية مدير النظام لتحليل الجدول.","error");return;}
+  if(!timetableCanAccess||!isGeneralAdminUser(activeUser)){timetableWeeklySetStatus("يلزم الدخول بصلاحية مدير النظام لتحليل الجدول.","error");return;}
   if(!sourceText.trim()){timetableWeeklySetStatus("الصق نص اليوم أولاً أو حمّل ملف TXT.","error");return;}
   const button=document.getElementById("timetableParseDayButton");
   const old=button.innerHTML;button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-1"></i> جارٍ الفحص...';
@@ -12806,7 +12808,7 @@ async function timetableActivateWeek() {
   finally{button.disabled=false;button.innerHTML=old;}
 }
 async function timetableResumeWeeklyDraft() {
-  if (activeUser?.type !== "admin") {
+  if (!isGeneralAdminUser(activeUser)) {
     timetableWeeklySetStatus("استعادة مسودة الأسبوع متاحة لمدير النظام العام فقط.", "error");
     return;
   }
@@ -12923,7 +12925,7 @@ async function timetableLoadClassWeeklyGrid() {
   const host=document.getElementById("timetableClassWeeklyResults");
   const status=document.getElementById("timetableClassWeeklyStatus");
   const setStatus=(message,error=false)=>{if(!status)return;status.textContent=message;status.className="rounded-xl border px-4 py-3 text-xs font-bold "+(error?"border-red-200 bg-red-50 text-red-700":"border-amber-200 bg-amber-50 text-amber-800");status.classList.remove("hidden");};
-  if(activeUser?.type!=="admin"){setStatus("هذه الخاصية متاحة لمدير النظام فقط.",true);return;}
+  if(!isGeneralAdminUser(activeUser)){setStatus("هذه الخاصية متاحة لمدير النظام فقط.",true);return;}
   const old=button?.textContent;if(button){button.disabled=true;button.textContent="جارٍ تحميل جداول الصفوف...";}
   try{
     const token=appAuthSession?.token||readAppAuthToken();if(!token)throw new Error("انتهت جلسة التطبيق. سجّل الدخول مجدداً.");
@@ -12968,7 +12970,7 @@ async function timetableLookupTeacherWeeklyGrid() {
   const name=document.getElementById("timetableTeacherLookupName")?.value.trim()||"";
   const button=document.getElementById("timetableTeacherLookupButton");
   const host=document.getElementById("timetableTeacherLookupResults");
-  if(activeUser?.type!=="admin") {
+  if(!isGeneralAdminUser(activeUser)) {
     timetableTeacherLookupSetStatus("هذه الخاصية متاحة لمدير النظام العام فقط.","error");
     return;
   }
@@ -13041,7 +13043,7 @@ function timetableSubstitutionSetStatus(message,kind="info") {
 async function timetableLoadSubstitutionOptions() {
   const panel=document.getElementById("timetableSubstitutionPanel");
   if(!panel)return;
-  if(activeUser?.type!=="admin"&&!timetableCanAccess)return;
+  if(!isGeneralAdminUser(activeUser)&&!timetableCanAccess)return;
   panel.classList.remove("hidden");
   try{
     const {date,weekday}=timetableSubstitutionGetDate();
@@ -13289,7 +13291,7 @@ let timetableDailyBusy = false;
 function timetableSwitchDashboardTab(tab) {
   const settings = tab === "settings";
   const classes = tab === "classes";
-  const isAdmin = activeUser?.type === "admin";
+  const isAdmin = isGeneralAdminUser(activeUser);
   ["timetableAdminImportPanel","timetableTeacherWeeklyLookup","timetableSettingsNotice"].forEach(id => document.getElementById(id)?.classList.toggle("hidden", !settings || !isAdmin));
   const classPanel=document.getElementById("timetableClassWeeklyPanel");
   if(classPanel)classPanel.classList.toggle("hidden",!classes||!isAdmin);
@@ -13315,7 +13317,7 @@ function timetableDailyNormalizeName(value) {
 
 async function timetableLoadSubstitutionOptions() {
   const panel = document.getElementById("timetableSubstitutionPanel");
-  if (!panel || (activeUser?.type !== "admin" && !timetableCanAccess)) return;
+  if (!panel || (!isGeneralAdminUser(activeUser) && !timetableCanAccess)) return;
   panel.classList.remove("hidden");
   try {
     const dateInput = document.getElementById("timetableSubstitutionDate");
@@ -13694,7 +13696,7 @@ async function timetableImportPdf() {
   const input=document.getElementById("timetablePdfFile"),file=input?.files?.[0];
   const button=document.getElementById("timetablePdfImportButton"),panel=document.getElementById("timetablePdfWorkerProgress");
   const bar=document.getElementById("timetablePdfWorkerProgressBar"),label=document.getElementById("timetablePdfWorkerProgressLabel"),value=document.getElementById("timetablePdfWorkerProgressValue");
-  if(activeUser?.type!=="admin"||!timetableCanAccess){timetableSetStatus("استيراد PDF متاح لمدير النظام العام فقط.","error");return;}
+  if(!isGeneralAdminUser(activeUser)||!timetableCanAccess){timetableSetStatus("استيراد PDF متاح لمدير النظام العام فقط.","error");return;}
   if(!file){timetableSetStatus("اختر ملف PDF أولاً.","error");return;}
   if(!window.TimetablePdfImporter?.parseFile){timetableSetStatus("تعذر تحميل قارئ PDF. حدّث الصفحة وتأكد من اتصال الإنترنت.","error");return;}
   const old=button?.innerHTML;
@@ -14032,9 +14034,9 @@ function timetableRenderTeacherList() {
   }).join("");
 }
 async function timetableLoadImports(options = {}) {
-  if (!timetableCanAccess || activeUser?.type !== 'admin') return;
+  if (!timetableCanAccess || !isGeneralAdminUser(activeUser)) return;
   document.getElementById("timetableTeacherWeeklyLookup")?.classList.remove("hidden");
-  if (activeUser?.type === "admin" && options.refreshAccess !== false) await timetableLoadAccessManagement();
+  if (isGeneralAdminUser(activeUser) && options.refreshAccess !== false) await timetableLoadAccessManagement();
   const host = document.getElementById("timetableSavedImportList");
   const panel = document.getElementById("timetableSavedImports");
   if (!host || !panel) return;
@@ -14364,7 +14366,7 @@ async function timetableSaveOwner() {
   window.refreshSubstitutionDashboardCard=function(){
     const card=document.getElementById('substitutionDashboardCard');
     if(!card)return;
-    const allowed=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    const allowed=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true;
     card.classList.toggle('hidden',!allowed);
   };
   function bindOtherDepartmentControls(){
@@ -14404,14 +14406,14 @@ async function timetableSaveOwner() {
     }
   }
   window.openSubstitutionView=async function(){
-    const allowed=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
     if(!allowed){showToast('لا تملك صلاحية توزيع حصص الاحتياط.','error');return;}
     bindOtherDepartmentControls();
     ['dashboardSelectionView','dutyView','dutyClassesView','teacherTimetableView','attendanceView','classesView','behaviorClassesView','behaviorSessionView'].forEach(function(id){document.getElementById(id)?.classList.add('hidden');});
     document.getElementById('substitutionView')?.classList.remove('hidden');
     const date=document.getElementById('substitutionDate');
     if(date&&!date.value)date.value=getOmanLocalDate();
-    const canExpand=activeUser?.type==='admin'||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    const canExpand=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true;
     document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',!canExpand);
     clearPlan();
     await window.substitutionLoadAbsentees();

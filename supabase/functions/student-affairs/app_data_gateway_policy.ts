@@ -14,6 +14,7 @@ export type AppDataPrincipal = {
   type: "admin" | "teacher" | "custom";
   name: string;
   permissions?: Record<string, unknown>;
+  adminScope?: "general" | "additional";
 };
 export type AppDataScope = {
   /** General class/roster scope: active timetable plus explicit school-affairs grants. */
@@ -74,20 +75,22 @@ export function authorizeAppDataOperation(
     (operation !== "read" && operation !== "write" && operation !== "delete") ||
     !ALLOWED_TABLES.has(String(tableValue))) return false;
   const table = tableValue as AppDataTable;
+  const isGeneralAdmin = principal.type === "admin" && principal.adminScope === "general";
+  const isAdditionalAdmin = principal.type === "admin" && principal.adminScope === "additional";
 
   // Deletes are deliberately held back for the existing tombstone/transfer workflows.
   if (operation === "delete") return false;
 
   if (table === "school_settings") {
-    // PIN records are handled only by dedicated authentication actions.
-    if (isRecord(row) && row.key === "admin_pin") return false;
-    if (operation === "read" && row === null) return principal.type === "admin";
-    if (operation === "write") return principal.type === "admin" &&
-      isRecord(row) && (row.key === "duty_module" || row.key === "custom_categories");
-    return principal.type === "admin";
+    // Only the general administrator can read or change settings; PIN records
+    // remain isolated behind dedicated authentication actions.
+    if (!isGeneralAdmin || (isRecord(row) && row.key === "admin_pin")) return false;
+    if (operation === "read" && row === null) return true;
+    if (operation === "write") return isRecord(row) && (row.key === "duty_module" || row.key === "custom_categories");
+    return true;
   }
 
-  if (principal.type === "admin") return true;
+  if (isGeneralAdmin) return true;
 
   const permissions = principal.permissions || {};
   const classes = normalizeClasses(scope?.allowedClasses);
@@ -96,14 +99,16 @@ export function authorizeAppDataOperation(
   const className = isRecord(row) ? String(row.class_name || "") : "";
 
   if (table === "classes" || table === "students") {
-    if (operation !== "read") return false;
+    if (operation !== "read" || (isAdditionalAdmin && permissions.students !== true)) return false;
     return classes.size > 0 && (table === "classes"
       ? (row === null || (isRecord(row) && classes.has(String(row.name || ""))))
       : (row === null || classes.has(className)));
   }
 
   if (table === "teachers") {
-    return operation === "read" && isRecord(row) && String(row.name || "") === principal.name;
+    return operation === "read" && (isAdditionalAdmin
+      ? permissions.teachers === true || permissions.users === true
+      : isRecord(row) && String(row.name || "") === principal.name);
   }
 
   if (table === "attendance" || table === "behaviors") {

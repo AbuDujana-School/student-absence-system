@@ -370,7 +370,7 @@
 
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
-    if(appAuthSession?.principal?.type==="admin")installAdminReserveTools();
+    if(schoolwideReserveReportIsAdmin())installAdminReserveTools();
     if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftApproved=new Set(); reserveLastAbsentSignature=""; reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
@@ -1195,7 +1195,7 @@
 
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
-    if(!panel || panel.dataset.adminReserveTools==="1" || appAuthSession?.principal?.type!=="admin")return;
+    if(!panel || panel.dataset.adminReserveTools==="1" || !schoolwideReserveReportIsAdmin())return;
     panel.dataset.adminReserveTools="1";
     const card=document.createElement("section");
     card.id="ttAdminReserveTools";
@@ -1217,7 +1217,7 @@
     const say=(message,error=false)=>{const box=$("ttAdminToolsStatus");if(!box)return;box.textContent=message;box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");};
     $("ttAdminPrintAllReserve")?.addEventListener("click",async()=>{
       const button=$("ttAdminPrintAllReserve");
-      if(appAuthSession?.principal?.type!=="admin"){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
+      if(!schoolwideReserveReportIsAdmin()){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
       button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
       try{
         const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
@@ -1391,7 +1391,7 @@
     if(!view||view.classList.contains("hidden")||view.dataset.cumulativeArchiveInstalled==="1")return;
     const accessCheck=view.dataset.cumulativeArchiveAccessCheck||"";
     if(accessCheck==="pending"||accessCheck==="denied")return;
-    const canViewLocally=activeUser?.type==="admin"||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.type==="admin";
+    const canViewLocally=schoolwideReserveReportIsAdmin()||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.permissions?.reserve===true;
     if(!canViewLocally&&accessCheck!=="allowed"){
       const token=appAuthSession?.token||readAppAuthToken();
       if(!token)return;
@@ -1776,8 +1776,12 @@
   let schoolwideReserveReportPendingPermission = null;
   let schoolwideReserveReportPermissionWriteSeen = false;
   function schoolwideReserveReportIsAdmin(){
-    try{return activeUser?.type==="admin"||appAuthSession?.principal?.type==="admin"||
-      (typeof window.isAdminAuthorized==="function"&&window.isAdminAuthorized()===true);}catch{return false;}
+    try{
+      const active=typeof activeUser!=="undefined"?activeUser:null;
+      const session=typeof appAuthSession!=="undefined"?appAuthSession?.principal:null;
+      return (active?.type==="admin"&&(active.adminScope==="general"||active.name==="مدير النظام العام"))||
+        (session?.type==="admin"&&(session.adminScope==="general"||session.name==="مدير النظام العام"));
+    }catch{return false;}
   }
   function schoolwideReserveReportAllowed(){
     return schoolwideReserveReportIsAdmin()||
@@ -1810,11 +1814,6 @@
       const original=window.canAccessReport;
       const wrapped=function(key,...args){return String(key)==="reportSubstitutionDistribution"?schoolwideReserveReportAllowed():original.call(this,key,...args);};
       wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.canAccessReport=wrapped;
-    }
-    if(typeof window.canAccessAnyReport==="function"&&!window.canAccessAnyReport.__reserveDistributionWrapped){
-      const original=window.canAccessAnyReport;
-      const wrapped=function(...args){return schoolwideReserveReportAllowed()||original.apply(this,args);};
-      wrapped.__reserveDistributionWrapped=true;wrapped.__original=original;window.canAccessAnyReport=wrapped;
     }
     const box=$("perm_p_reportSubstitutionDistribution");
     if(box&&!box.dataset.reserveDistributionChangeBound){

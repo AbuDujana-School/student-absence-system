@@ -3,14 +3,18 @@ export function isAdditionalAdminTeacher(value: unknown): boolean {
   const user = value as Record<string, unknown>;
   const permissions = user.permissions && typeof user.permissions === "object" && !Array.isArray(user.permissions)
     ? user.permissions as Record<string, unknown> : {};
-  return user.role === "teacher" && permissions.admin === true && permissions.additionalAdmin === true;
+  // Additional-admin identity is independent of the legacy generic admin flag.
+  return user.role === "teacher" && permissions.additionalAdmin === true;
 }
 
 
 const ADDITIONAL_ADMIN_PERMISSION_DEFAULTS: Record<string, boolean> = {
   studstats: true, behaviorstats: true, users: true, students: true, teachers: true,
-  duty: true, alerts: true, reports: true, sync: true, security: true, admin: true,
+  duty: true, alerts: true, reports: true, sync: true, security: true, admin: false,
   studentAffairs: true, morningAssemblyLateness: true,
+  reserve: false, reportSubstitutionDistribution: false,
+  reportClassLatenessFollowup: false, reportComprehensiveAbsence: false,
+  reportMorningAssemblyLateness: false, reportStudentAffairs: false,
 };
 
 /** Apply explicit per-account overrides without mixing them with ordinary teacher permissions. */

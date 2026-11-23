@@ -9,7 +9,7 @@ import {
 } from "./app_data_gateway_policy.ts";
 import { isAppDataGatewayDate } from "./app_data_gateway_validation.ts";
 
-type SessionIdentity = { principal: { type: string; name: string } } | null;
+type SessionIdentity = { principal: { type: string; name: string; adminScope?: "general" | "additional" } } | null;
 type GatewayDependencies = {
   db: { from(table: string): any };
   headers: HeadersInit;
@@ -38,6 +38,8 @@ export async function handleAppDataGatewayRead(
     return gatewayReply(400, { error: "نوع البيانات المطلوب غير مدعوم." }, deps.headers);
   }
   const table = tableValue as AppDataTable;
+  const isGeneralAdmin = principal.type === "admin" && principal.adminScope === "general";
+  const isAdditionalAdmin = principal.type === "admin" && principal.adminScope === "additional";
   if (body?.offset !== undefined && (!Number.isInteger(body.offset) || body.offset < 0 || body.offset > 100000)) {
     return gatewayReply(400, { error: "موضع الصفحة غير صالح." }, deps.headers);
   }
@@ -55,7 +57,7 @@ export async function handleAppDataGatewayRead(
     return gatewayReply(400, { error: "نطاق التاريخ غير صالح." }, deps.headers);
   }
 
-  const scope: AppDataScope = principal.type === "admin" || table === "teachers" || table === "school_settings"
+  const scope: AppDataScope = isGeneralAdmin || table === "teachers" || table === "school_settings"
     ? { allowedClasses: [] }
     : await deps.resolveScope(principal);
   const tableClasses = table === "attendance" ? (scope.allowedAttendanceClasses || scope.allowedClasses) :
@@ -78,14 +80,14 @@ export async function handleAppDataGatewayRead(
     }
     requestedClassName = body.class_name.trim();
     if (!requestedClassName || requestedClassName.length > 120 ||
-      (principal.type !== "admin" && !tableClasses.includes(requestedClassName))) {
+      (!isGeneralAdmin && !tableClasses.includes(requestedClassName))) {
       return gatewayReply(403, { error: "الصف المطلوب خارج نطاق صلاحيات الحساب." }, deps.headers);
     }
   }
 
   let query: any = deps.db.from(table).select(allowedAppDataFields(table).join(","));
-  if (principal.type !== "admin") {
-    if (table === "teachers") query = query.eq("name", principal.name);
+  if (!isGeneralAdmin) {
+    if (table === "teachers" && !(isAdditionalAdmin && (principal.permissions?.teachers === true || principal.permissions?.users === true))) query = query.eq("name", principal.name);
     else if (table === "school_settings") {
       return gatewayReply(403, { error: "قراءة إعدادات النظام للمدير فقط." }, deps.headers);
     } else if (table === "classes") {
@@ -99,7 +101,7 @@ export async function handleAppDataGatewayRead(
   if (requestedClassName !== undefined) {
     query = table === "classes" ? query.eq("name", requestedClassName) : query.eq("class_name", requestedClassName);
   }
-  if (table === "school_settings" && principal.type === "admin") {
+  if (table === "school_settings" && isGeneralAdmin) {
     query = query.neq("key", "admin_pin");
   }
   if (table === "attendance" || table === "behaviors") {

@@ -155,7 +155,7 @@ const timetableAuthStore: TimetableAuthStore = {
     const { data, error } = await db.from("teachers")
       .select("name,role,permissions").eq("name", name).maybeSingle();
     return !error && data?.name === name && data.role === "teacher"
-      && data.permissions?.admin === true && data.permissions?.additionalAdmin === true;
+      && data.permissions?.additionalAdmin === true;
   },
   async findTeacher(name, includePermissions = false) {
     let data: any = null;
@@ -189,7 +189,7 @@ const timetableAuthStore: TimetableAuthStore = {
   async hasDutyReportAccess(type, _name, teacherPermissions, checkCurrentDay = true) {
     const permissions = teacherPermissions && typeof teacherPermissions === "object"
       ? teacherPermissions : {};
-    if (permissions.duty === true || permissions.admin === true) return true;
+    if (permissions.duty === true) return true;
     if (type !== "teacher" || permissions.dutyToday === false) return false;
     // The duty-context handler performs the authoritative date/period check; do not read duty_module twice.
     if (!checkCurrentDay) return true;
@@ -202,7 +202,7 @@ const timetableAuthStore: TimetableAuthStore = {
   async canReadDutyReportContext(type, _name, date, weekday, period, teacherPermissions) {
     const permissions = teacherPermissions && typeof teacherPermissions === "object"
       ? teacherPermissions : {};
-    if (permissions.duty === true || permissions.admin === true) return true;
+    if (permissions.duty === true) return true;
     if (type !== "teacher" || permissions.dutyToday === false) return false;
     const { data: dutySetting, error: dutySettingError } = await db.from("school_settings")
       .select("value").eq("key", "duty_module").maybeSingle();
@@ -383,8 +383,7 @@ async function handle(req: Request) {
   );
   const hasTeacherActivityPermission = action === "timetable_activity_report_data" && (
     principal.type === "admin" ||
-    principal.permissions?.teachers === true ||
-    principal.permissions?.admin === true
+    principal.permissions?.teachers === true
   );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
     && !hasDutyReportPermission

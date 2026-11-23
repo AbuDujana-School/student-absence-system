@@ -87,7 +87,7 @@ Deno.test("attendance and behavior use separate server-side class grants", async
 });
 
 Deno.test("admin settings query excludes admin_pin before data is returned", async () => {
-  const admin = { type: "admin" as const, name: "مدير النظام العام", permissions: {} };
+  const admin = { type: "admin" as const, adminScope: "general" as const, name: "مدير النظام العام", permissions: {} };
   const { deps, calls } = fixture({ principal: admin, session: { principal: { type: "admin", name: admin.name } }, rows: [{ key: "duty_module", value: true }] });
   const response = await request({ table: "school_settings" }, deps);
   assertEquals(response.status, 200);
@@ -137,4 +137,18 @@ Deno.test("full page returns a continuation offset while a short page ends pagin
   const short = fixture({ rows: [] });
   const shortResponse = await request({ table: "students", offset: 20, limit: 1 }, short.deps);
   assertEquals((await body(shortResponse)).next_offset, null);
+});
+
+
+Deno.test("additional administrator reads only explicitly granted gateway tables", async () => {
+  const additional = { type: "admin" as const, adminScope: "additional" as const, name: "Tester1", permissions: { teachers: true, students: true } };
+  const { deps, calls } = fixture({ principal: additional, rows: [{ name: "Teacher B", role: "teacher" }] });
+  const response = await request({ table: "teachers" }, deps);
+  assertEquals(response.status, 200);
+  assertEquals(calls.some(([name, column]) => name === "eq" && column === "name"), false);
+
+  const { deps: settingsDeps, calls: settingsCalls } = fixture({ principal: additional });
+  const settings = await request({ table: "school_settings" }, settingsDeps);
+  assertEquals(settings.status, 403);
+  assertEquals(settingsCalls.some(([name]) => name === "from"), false);
 });

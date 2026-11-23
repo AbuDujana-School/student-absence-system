@@ -77,3 +77,42 @@ test("the staged pilot starts with the authenticated shell and does not change a
   assert.match(finalize, /refreshActiveUserPermissions\(\)/);
   assert.match(finalize, /if \(!isDistronStagedPilot\(\)\) \{\s*refreshDutyDashboardCard\(\);\s*renderDutyTodayRecords\(\);/);
 });
+
+
+test("additional administrators never inherit the general administrator frontend bypass", () => {
+  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  assert.match(identity, /user\?\.type === "admin"/);
+  assert.match(identity, /user\.adminScope === "general"/);
+  assert.match(identity, /user\.name === "مدير النظام العام"/);
+  assert.doesNotMatch(identity, /permissions\?\.admin/);
+
+  const adminPanels = section("function hasAdminPanelAccess(", "function hasAnyPermission(");
+  assert.match(adminPanels, /isGeneralAdminUser\(user\)/);
+  assert.doesNotMatch(adminPanels, /permissions\?\.admin/);
+
+  const reports = section("function canManageReportPermissions()", "function refreshReportPanelsVisibility()");
+  assert.match(reports, /isGeneralAdminUser\(user\)/);
+  assert.match(reports, /return p\[key\] === true/);
+  assert.doesNotMatch(reports, /p\.admin === true/);
+});
+
+
+const morningLateness = await readFile(new URL("../supabase/functions/morning-assembly-lateness/index.ts", import.meta.url), "utf8");
+test("additional administrators use teacher-scoped morning lateness permissions", () => {
+  assert.match(morningLateness, /return \{type:"teacher",name:principalName,permissions:buildAdditionalAdminPermissions\(user\)\}/);
+  assert.match(morningLateness, /principal\.permissions\.reportMorningAssemblyLateness !== true/);
+  assert.doesNotMatch(morningLateness, /principal\.type === "admin" && principal\.name !== "مدير النظام العام"/);
+});
+
+
+test("reserve workflow controls distinguish the general administrator from additional admins", () => {
+  const start = reserveWorkflow.indexOf("function schoolwideReserveReportIsAdmin()");
+  const end = reserveWorkflow.indexOf("function schoolwideReserveReportAllowed()", start);
+  assert.ok(start >= 0 && end > start);
+  const identity = reserveWorkflow.slice(start, end);
+  assert.match(identity, /active\.adminScope===\"general\"/);
+  assert.match(identity, /active\.name===\"مدير النظام العام\"/);
+  assert.match(identity, /session\.adminScope===\"general\"/);
+  assert.doesNotMatch(identity, /activeUser\?\.type/);
+  assert.doesNotMatch(identity, /appAuthSession\?\.principal\?\.type/);
+});
