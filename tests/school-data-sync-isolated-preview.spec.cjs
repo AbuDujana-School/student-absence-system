@@ -782,6 +782,9 @@ async function verifyLoginShellIsIndependentOfCloudSync(browser, principal) {
   });
   expect(response?.status()).toBe(200);
   await page.waitForFunction(() => typeof handleUserLogin === "function", undefined, { timeout: 30_000 });
+  // Let DOMContentLoaded and delayed report-tab mounting finish before the
+  // synthetic login, so this regression isolates post-login work from boot work.
+  await page.waitForTimeout(1_500);
 
   // Simulate a stalled sync, while keeping authentication and optional access
   // refreshes deterministic. The signed-in dashboard must still appear.
