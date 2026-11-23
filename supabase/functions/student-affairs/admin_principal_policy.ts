@@ -10,7 +10,7 @@ export function isAdditionalAdminTeacher(value: unknown): boolean {
 
 const ADDITIONAL_ADMIN_PERMISSION_DEFAULTS: Record<string, boolean> = {
   studstats: true, behaviorstats: true, users: true, students: true, teachers: true,
-  duty: true, alerts: true, reports: true, sync: true, security: true, admin: true,
+  duty: true, alerts: true, reports: true, sync: true, security: true, admin: false,
   studentAffairs: true, morningAssemblyLateness: true,
   reserve: false, reportSubstitutionDistribution: false,
   reportClassLatenessFollowup: false, reportComprehensiveAbsence: false,
