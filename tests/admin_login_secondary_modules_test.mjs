@@ -46,3 +46,31 @@ test("admin reserve distribution report does not auto-load when login reveals it
   const reportsTab = section("if (tab === 'reports') {", "if (tab === 'timetable') {");
   assert.match(reportsTab, /loadSubstitutionDistributionReport\(true\)/);
 });
+
+test("staggered dashboard pilot is restricted to the non-admin Tester1 account", () => {
+  const pilot = section("function isTesterOneStagedPilot(", "function renderAuthenticatedDashboardShell()");
+  assert.match(pilot, /normalizedName === 'tester1'/);
+  assert.match(pilot, /user\.type !== 'admin'/);
+  assert.match(pilot, /testerOneDashboardStageRunId/);
+  assert.match(pilot, /runId !== testerOneDashboardStageRunId/);
+  assert.match(pilot, /isTesterOneStagedPilot\(\)/);
+});
+
+test("Tester1 dashboard modules are revealed on the requested independent schedule", () => {
+  const pilot = section("function startTesterOneDashboardStages()", "function renderAuthenticatedDashboardShell()");
+  assert.match(pilot, /schedule\(5000,[\s\S]*'morning-assembly'/);
+  assert.match(pilot, /schedule\(10000,[\s\S]*'duty'/);
+  assert.match(pilot, /schedule\(15000,[\s\S]*'student-affairs'/);
+  const duty = section("function refreshDutyDashboardCard()", "function openDutyView()");
+  const morning = section("function refreshMorningAssemblyLatenessCard()", "function openMorningAssemblyLateness()");
+  assert.match(duty, /testerOneDashboardStagePending\(10000\)/);
+  assert.match(morning, /testerOneDashboardStagePending\(5000\)/);
+  assert.match(html, /testerOneDashboardStagePending\(15000\)/);
+});
+
+test("the staged pilot starts after authenticated finalization and does not change administrator credentials", () => {
+  const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess(");
+  assert.match(finalize, /startTesterOneDashboardStages\(\)/);
+  assert.doesNotMatch(finalize, /update.*adminPin|set.*adminPin|change.*adminPin/i);
+  assert.match(finalize, /refreshActiveUserPermissions\(\)/);
+});
