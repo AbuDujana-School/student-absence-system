@@ -31,6 +31,9 @@ Deno.test("additional admin report and reserve capabilities are opt-in and indep
   if (denied.reportSubstitutionDistribution !== false || denied.reserve !== false) {
     throw new Error("Reserve and report capabilities must not be granted by the admin marker");
   }
+  if (denied.admin !== false) {
+    throw new Error("Additional-admin permissions must not project the legacy generic admin flag");
+  }
   const granted = buildAdditionalAdminPermissions({ role: "teacher", permissions: {
     admin: true, additionalAdmin: true,
     additionalAdminOverrides: { reportSubstitutionDistribution: true, reserve: true },
