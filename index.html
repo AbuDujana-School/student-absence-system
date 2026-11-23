@@ -7503,14 +7503,14 @@ async function handleUserLogin(e) {
           loginTimeoutId = setTimeout(() => {
             loginTimedOut = true;
             loginController.abort();
-            reject(new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 15 ثانية."));
-          }, 15000);
+            reject(new Error("انتهت مهلة الاتصال بخدمة الدخول بعد دقيقتين."));
+          }, 120000);
         });
         serverLogin = await Promise.race([loginRequest, loginDeadline]);
       }
       catch (serverError) {
         if (loginTimedOut) {
-          throw new Error("انتهت مهلة الاتصال بخدمة الدخول بعد 15 ثانية. أعد المحاولة؛ لم يتم تغيير بيانات الحساب.");
+          throw new Error("انتهت مهلة الاتصال بخدمة الدخول بعد دقيقتين. أعد المحاولة؛ لم يتم تغيير بيانات الحساب.");
         }
         if (isLegacyAuthEndpointUnavailable(serverError) || isNetworkFailureForOfflineFallback(serverError)) useLegacyLogin = true;
         else throw serverError;
