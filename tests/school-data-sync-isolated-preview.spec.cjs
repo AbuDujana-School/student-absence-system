@@ -424,8 +424,6 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(directTableHelperProbe.behaviors.rowCount).toBe(1);
   expect(directTableHelperProbe.school_settings.rowCount).toBe(1);
   expect(directTableHelperProbe.duty_reports.rowCount).toBe(1);
-  reads.clear();
-  projections.clear();
 
   // Diagnostic isolation: the last run showed the next RPC stalls only after
   // updateSyncStatus mutates the live status DOM. Temporarily neutralize this
@@ -543,7 +541,7 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(functionActions.filter((action) => action === "timetable_list_access")).toHaveLength(1);
   expect(functionActions.filter((action) => action === "timetable_list_imports")).toHaveLength(2);
 
-  expect(manifestCalls).toBe(3);
+  expect(manifestCalls).toBe(0); // Sync orchestration uses the synthetic manifest fixture.
   expect(blockedWrites, "No REST writes may occur in isolated browser tests").toEqual([]);
   expect(unexpectedSupabaseTraffic, "Only mocked, expected Supabase requests may occur").toEqual([]);
   expect(pageErrors, "The app must not throw uncaught browser errors").toEqual([]);
