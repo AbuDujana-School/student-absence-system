@@ -8696,7 +8696,7 @@ async function loadStudentAffairsActivityStats() {
     const labels={module_access:'دخول شؤون الطلبة',absence_report_view:'اطلاع على تقارير الغياب',behavior_report_view:'اطلاع على تقارير السلوك',combined_report_view:'اطلاع على تقريري الغياب والسلوك (كلاهما)',formal_warning_print:'طباعة التنبيهات الرسمية المعتمدة'};
     const dayKey=stamp=>new Date(Date.parse(stamp)+4*60*60*1000).toISOString().slice(0,10);
     const weekStart=date=>{const d=new Date(date+'T00:00:00Z');d.setUTCDate(d.getUTCDate()-d.getUTCDay());return d.toISOString().slice(0,10);};
-    const weekEnd=start=>{const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+4);return d.toISOString().slice(0,10);};
+    const weekEnd=start=>{const d=new Date(start+'T00:00:00Z');d.setUTCDate(d.getUTCDate()+6);return d.toISOString().slice(0,10);};
     const dailyDates=[];for(let d=new Date(from+'T00:00:00Z'),end=new Date(to+'T00:00:00Z');d<=end;d.setUTCDate(d.getUTCDate()+1))dailyDates.push(d.toISOString().slice(0,10));
     const weeklyStarts=[...new Set(dailyDates.map(weekStart))];
     const byName=new Map(teachers.map(t=>[t.name,{name:t.name,access:0,absence:0,behavior:0,combined:0,printed:0,events:[],daily:Object.fromEntries(dailyDates.map(d=>[d,0])),weekly:Object.fromEntries(weeklyStarts.map(d=>[d,0])),printDates:[]}]));
@@ -8726,7 +8726,7 @@ function printStudentAffairsActivityPdf(){
   if(!data){showToast('حدّث التقرير أولاً قبل تصدير PDF.','error');return;}
   const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const dailyText=r=>Object.entries(r.daily||{}).map(([d,n])=>d+': '+n).join(' | ');
-  const weeklyText=r=>Object.entries(r.weekly||{}).map(([d,n])=>d+' إلى '+new Date(new Date(d+'T00:00:00Z').getTime()+4*86400000).toISOString().slice(0,10)+': '+n).join(' | ');
+  const weeklyText=r=>Object.entries(r.weekly||{}).map(([d,n])=>d+' إلى '+new Date(new Date(d+'T00:00:00Z').getTime()+6*86400000).toISOString().slice(0,10)+': '+n).join(' | ');
   const rows=data.teachers.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+r.access+'</td><td>'+esc(dailyText(r))+'</td><td>'+esc(weeklyText(r))+'</td><td>'+r.absence+'</td><td>'+r.behavior+'</td><td>'+r.combined+'</td><td>'+r.printed+'</td><td>'+esc((r.printDates||[]).map(x=>new Date(x).toLocaleString('ar-OM')).join('، ')||'—')+'</td></tr>').join('');
   const details=data.events.filter(ev=>data.labels[ev.event_type]).map(ev=>'<tr><td>'+esc(new Date(ev.created_at).toLocaleString('ar-OM'))+'</td><td>'+esc(ev.actor_name)+'</td><td>'+esc(data.labels[ev.event_type])+'</td></tr>').join('');
   const w=window.open('','_blank');if(!w){showToast('اسمح بفتح نافذة التقرير لطباعة PDF.','error');return;}
