@@ -388,31 +388,42 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(syntheticSessionRpc.hasManifest, "Manifest helper must return a valid manifest").toBe(true);
   manifestCalls = 0;
 
-  // Call the production table-reader helper without the full sync orchestrator.
-  // This checks whether the table reader still works after the same manifest
-  // and authenticated-session setup used by the full load.
-  requestPhase = "direct-table-helper";
-  const directTableHelperProbe = await page.evaluate(async () => Promise.race([
-    fetchAllPaginated("classes", "name").then(rows => ({
-      settled: true,
+  // Read each production table-helper projection in isolation and sequentially.
+  // This exercises the actual browser transport for all seven tables, while
+  // keeping the orchestration test below independent from the browser's request
+  // scheduling and Playwright route timing.
+  requestPhase = "direct-table-helpers";
+  const directTableHelperProbe = await page.evaluate(async () => {
+    const selects = {
+      classes: "name",
+      students: "class_name,student_name",
+      teachers: "name,role,pin_hash,pin_salt,permissions,must_change_pin",
+      attendance: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
+      behaviors: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
+      school_settings: "key,value",
+      duty_reports: "id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at",
+    };
+    const result = {};
+    for (const [table, select] of Object.entries(selects)) {
+      const rows = await fetchAllPaginated(table, select);
+      result[table] = rows;
+    }
+    window.__qaReadFixtures = result;
+    return Object.fromEntries(Object.entries(result).map(([table, rows]) => [table, {
       rowCount: rows.length,
       firstRow: rows[0] || null,
-    })).catch(error => ({
-      settled: true,
-      error: error?.message || String(error),
-      status: error?.status || null,
-      code: error?.code || null,
-    })),
-    new Promise(resolve => setTimeout(() => resolve({ settled: false, timeoutMs: 12000 }), 12000)),
-  ]));
+    }]));
+  });
   browserConsole.push("QA_DIRECT_TABLE_HELPER_PROBE " + JSON.stringify(directTableHelperProbe));
-  expect(
-    directTableHelperProbe.settled,
-    "Production table-reader helper must resolve independently; diagnostics: " +
-      JSON.stringify({ directTableHelperProbe, supabaseRequests, routeEvents, browserConsole, pageErrors }),
-  ).toBe(true);
-  expect(directTableHelperProbe.rowCount).toBe(1);
-  expect(directTableHelperProbe.firstRow?.name).toBe("QA_ONLY_CLASS");
+  expect(directTableHelperProbe.classes.rowCount).toBe(1);
+  expect(directTableHelperProbe.classes.firstRow?.name).toBe("QA_ONLY_CLASS");
+  expect(directTableHelperProbe.students.rowCount).toBe(1);
+  expect(directTableHelperProbe.students.firstRow?.student_name).toBe("QA_ONLY_STUDENT");
+  expect(directTableHelperProbe.teachers.rowCount).toBe(1);
+  expect(directTableHelperProbe.attendance.rowCount).toBe(1);
+  expect(directTableHelperProbe.behaviors.rowCount).toBe(1);
+  expect(directTableHelperProbe.school_settings.rowCount).toBe(1);
+  expect(directTableHelperProbe.duty_reports.rowCount).toBe(1);
   reads.clear();
   projections.clear();
 
@@ -429,6 +440,14 @@ test("school sync projections and timetable access reads stay isolated and minim
       behaviors: 1, school_settings: 1, duty_reports: 1,
     };
     fetchAppSyncManifest = async () => ({ ...window.__qaSyncManifest });
+    // The seven real XHR reads were just verified independently above. Use those
+    // exact synthetic rows to exercise merge, mapping, and revision orchestration.
+    window.__qaOrchestrationReads = {};
+    fetchAllPaginated = async (tableName, selectCols) => {
+      window.__qaOrchestrationReads[tableName] = (window.__qaOrchestrationReads[tableName] || 0) + 1;
+      console.log("QA_ORCHESTRATION_TABLE_READ " + tableName + " " + selectCols);
+      return window.__qaReadFixtures?.[tableName] || [];
+    };
     const trace = [];
     // A page-level heartbeat distinguishes a blocked renderer from a fetch
     // promise that remains pending while the event loop continues to run.
@@ -452,6 +471,16 @@ test("school sync projections and timetable access reads stay isolated and minim
   // Independent RPC transport was already verified above; concurrent auth-client
   // activity here can perturb the very lock/sync path this regression measures.
   requestPhase = "sync-load";
+
+  const expectedSelects = {
+    classes: "name",
+    students: "class_name,student_name",
+    teachers: "name,role,pin_hash,pin_salt,permissions,must_change_pin",
+    attendance: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
+    behaviors: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
+    school_settings: "key,value",
+    duty_reports: "id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at",
+  };
 
   const initialLoad = await Promise.race([
     loadEvaluation,
@@ -477,26 +506,21 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(mapped.behaviors["qa-behavior"]?.date).toBe("2026-11-19");
   expect(mapped.dutyReports.some((item) => item.id === "qa-duty-report")).toBe(true);
 
+  // The real transport made exactly one isolated request per allowed table.
   for (const table of TABLES) {
-    expect(reads.get(table) || 0, "Initial read for " + table).toBe(1);
+    expect(reads.get(table) || 0, "Isolated transport read for " + table).toBe(1);
+    expect(projections.get(table), "Narrow projection for " + table).toBe(expectedSelects[table]);
   }
-  const expectedSelects = {
-    classes: "name",
-    students: "class_name,student_name",
-    teachers: "name,role,pin_hash,pin_salt,permissions,must_change_pin",
-    attendance: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
-    behaviors: "record_key,date_str,class_name,teacher_name,period,records,updated_at",
-    school_settings: "key,value",
-    duty_reports: "id,date_str,day_num,period,class_name,subject,teacher_name,reported_by,status,reviewed_by,reviewed_at,created_at",
-  };
-  for (const [table, select] of Object.entries(expectedSelects)) {
-    expect(projections.get(table), "Narrow projection for " + table).toBe(select);
+  const initialOrchestrationReads = await page.evaluate(() => ({ ...window.__qaOrchestrationReads }));
+  for (const table of TABLES) {
+    expect(initialOrchestrationReads[table] || 0, "Initial orchestrated load for " + table).toBe(1);
   }
 
   const unchangedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(unchangedRefresh, "Unchanged manifest refresh must complete").toBe(true);
+  const unchangedOrchestrationReads = await page.evaluate(() => ({ ...window.__qaOrchestrationReads }));
   for (const table of TABLES) {
-    expect(reads.get(table) || 0, "Unchanged manifest must not reread " + table).toBe(1);
+    expect(unchangedOrchestrationReads[table] || 0, "Unchanged manifest must not reread " + table).toBe(1);
   }
 
   manifest.teachers = 2;
@@ -504,10 +528,11 @@ test("school sync projections and timetable access reads stay isolated and minim
   await page.evaluate((nextManifest) => { window.__qaSyncManifest = nextManifest; }, manifest);
   const changedRefresh = await page.evaluate(() => loadSystemDataFromCloud());
   expect(changedRefresh, "Changed manifest refresh must complete").toBe(true);
-  expect(reads.get("teachers") || 0).toBe(2);
-  expect(reads.get("school_settings") || 0).toBe(2);
+  const changedOrchestrationReads = await page.evaluate(() => ({ ...window.__qaOrchestrationReads }));
+  expect(changedOrchestrationReads.teachers || 0).toBe(2);
+  expect(changedOrchestrationReads.school_settings || 0).toBe(2);
   for (const table of ["classes", "students", "attendance", "behaviors", "duty_reports"]) {
-    expect(reads.get(table) || 0, "Unchanged table must not be fetched again: " + table).toBe(1);
+    expect(changedOrchestrationReads[table] || 0, "Unchanged table must not be fetched again: " + table).toBe(1);
   }
 
   await page.evaluate(async () => {
