@@ -103,3 +103,13 @@ test("additional administrators use teacher-scoped morning lateness permissions"
   assert.match(morningLateness, /principal\.permissions\.reportMorningAssemblyLateness !== true/);
   assert.doesNotMatch(morningLateness, /principal\.type === "admin" && principal\.name !== "مدير النظام العام"/);
 });
+
+
+test("reserve workflow controls distinguish the general administrator from additional admins", () => {
+  const identity = section("function schoolwideReserveReportIsAdmin()", "function schoolwideReserveReportAllowed()");
+  assert.match(identity, /active\?\.adminScope === \"general\"/);
+  assert.match(identity, /active\?\.name === \"مدير النظام العام\"/);
+  assert.match(identity, /session\?\.adminScope === \"general\"/);
+  assert.doesNotMatch(identity, /activeUser\?\.type/);
+  assert.doesNotMatch(identity, /appAuthSession\?\.principal\?\.type/);
+});
