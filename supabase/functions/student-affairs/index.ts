@@ -2137,10 +2137,14 @@ async function handle(req: Request) {
       if (eventType === "formal_warning_print") {
         if (permissions.can_print_attendance !== true && permissions.can_print_behavior !== true) return reply(403, { error: "لا تملك صلاحية طباعة الإنذارات الرسمية." });
         const { data: recentIssues, error: issueReadError } = await db.from("student_affairs_notice_issues")
-          .select("id").eq("issued_by_name", p.name)
-          .gte("issued_at", new Date(Date.now() - 30 * 60 * 1000).toISOString()).limit(1000);
+          .select("id,issued_at").eq("issued_by_name", p.name)
+          .gte("issued_at", new Date(Date.now() - 30 * 60 * 1000).toISOString())
+          .order("issued_at", { ascending: false }).limit(1000);
         if (issueReadError) throw issueReadError;
-        const warningCount = (recentIssues || []).length;
+        const latestIssueAt = recentIssues?.[0]?.issued_at;
+        const warningCount = latestIssueAt
+          ? (recentIssues || []).filter((row: any) => row.issued_at === latestIssueAt).length
+          : 0;
         if (!warningCount) return reply(409, { error: "لا يوجد إصدار رسمي حديث مرتبط بحسابك لتسجيل طباعته." });
         const { error } = await db.from("student_affairs_activity_events").insert({
           event_type: "formal_warning_print", actor_type: p.type, actor_name: p.name,
