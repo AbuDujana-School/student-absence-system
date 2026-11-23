@@ -2255,8 +2255,8 @@ async function handle(req: Request) {
         event_type: "formal_warning_issued", actor_type: p.type, actor_name: p.name,
         metadata: { warning_count: issuedRows.length, source: "official_notice_issue_commit" }
       });
-      if (activityError) throw activityError;
-      return reply(200, { issued: issuedRows, candidates, message: "تم اعتماد التنبيهات الرسمية وحفظ سجلها." });
+      if (activityError) console.error("Official warning activity audit insert failed:", activityError);
+      return reply(200, { issued: issuedRows, candidates, message: "تم اعتماد التنبيهات الرسمية وحفظ سجلها.", activity_logged: !activityError });
     }
     if (body.attendance_status_filters != null && !Array.isArray(body.attendance_status_filters)) return reply(400, { error: "قائمة حالات الغياب غير صالحة" });
     const requestedStatuses = body.attendance_status_filters == null
@@ -2358,7 +2358,7 @@ async function handle(req: Request) {
       if (wantsBehavior && requestedBehavior.length) activityRows.push({ event_type: "behavior_report_view", actor_type: p.type, actor_name: p.name, metadata: { classes_count: requestedBehavior.length, from, to } });
       if (activityRows.length) {
         const { error: activityError } = await db.from("student_affairs_activity_events").insert(activityRows);
-        if (activityError) throw activityError;
+        if (activityError) console.error("Student Affairs report-view audit insert failed:", activityError);
       }
     }
     return reply(200, { attendance: filterAttendance(attendance.data || []), behaviors: filterBehavior(behaviors.data || []), students: [], analytics: {}, permissions });
