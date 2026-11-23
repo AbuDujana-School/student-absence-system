@@ -166,8 +166,11 @@ Deno.test("additional admin elevation requires a separate explicit marker on a t
   if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: true } })) {
     throw new Error("Admin permission alone must not elevate a teacher");
   }
-  if (isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: false, additionalAdmin: true } })) {
-    throw new Error("Additional-admin marker without admin permission must be rejected");
+  if (!isAdditionalAdminTeacher({ role: "teacher", permissions: { admin: false, additionalAdmin: true } })) {
+    throw new Error("Dedicated additional-admin marker must work independently of the generic admin bit");
+  }
+  if (isAdditionalAdminTeacher({ role: "custom", permissions: { additionalAdmin: true } })) {
+    throw new Error("Additional-admin marker must not elevate a custom principal");
   }
 });
 
