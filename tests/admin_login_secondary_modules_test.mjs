@@ -68,9 +68,11 @@ test("Tester1 dashboard modules are revealed on the requested independent schedu
   assert.match(html, /testerOneDashboardStagePending\(15000\)/);
 });
 
-test("the staged pilot starts after authenticated finalization and does not change administrator credentials", () => {
+test("the staged pilot starts with the authenticated shell and does not change administrator credentials", () => {
+  const shell = section("function renderAuthenticatedDashboardShell()", "async function finalizeLoginState()");
   const finalize = section("async function finalizeLoginState()", "function hasAdminPanelAccess(");
-  assert.match(finalize, /startTesterOneDashboardStages\(\)/);
+  assert.match(shell, /startTesterOneDashboardStages\(\)/);
+  assert.doesNotMatch(finalize, /startTesterOneDashboardStages\(\)/);
   assert.doesNotMatch(finalize, /update.*adminPin|set.*adminPin|change.*adminPin/i);
   assert.match(finalize, /refreshActiveUserPermissions\(\)/);
 });
