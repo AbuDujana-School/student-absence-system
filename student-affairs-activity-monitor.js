@@ -144,22 +144,23 @@
       if (status) status.textContent = error?.message || "تعذر تحميل تقرير المراقبة.";
     } finally { loading = false; }
   }
-  function printReport() {
-    if (!lastReport) { window.saActivityLoad?.(); return; }
+  async function printReport() {
+    if (!lastReport) await load();
+    if (!lastReport) return;
     const { rows, events, from, to, report } = lastReport;
     const htmlRows = rows.map(row => {
       const details = row.events.slice().sort((a,b)=>String(a.occurred_at).localeCompare(String(b.occurred_at))).map(event =>
         '<tr><td>' + escapeHtml(EVENT_LABELS[event.event_type] || event.event_type) + '</td><td>' + escapeHtml(formatDateTime(event.occurred_at)) + '</td></tr>'
       ).join("");
-      return '<tr><td>' + escapeHtml(row.name) + '</td><td>' + row.student_affairs_open + '</td><td>' + row.absence_report_view + '</td><td>' + row.behavior_report_view + '</td><td>' + row.formal_warning_issued + '</td><td>' + row.total + '</td><td>' + (row.student_affairs_open / Math.max(1, Math.round((new Date(to+"T12:00:00Z")-new Date(from+"T12:00:00Z"))/86400000)+1)).toFixed(2) + '</td></tr>' +
-        (details ? '<tr><td colspan="7"><table class="details"><thead><tr><th>نوع النشاط</th><th>التاريخ والوقت</th></tr></thead><tbody>' + details + '</tbody></table></td></tr>' : '');
+      return '<tr><td>' + escapeHtml(row.name) + '</td><td>' + row.student_affairs_open + '</td><td>' + row.absence_report_view + '</td><td>' + row.behavior_report_view + '</td><td>' + row.formal_warning_issued + '</td><td>' + row.total + '</td><td>' + (row.student_affairs_open / Math.max(1, Math.round((new Date(to+"T12:00:00Z")-new Date(from+"T12:00:00Z"))/86400000)+1)).toFixed(2) + '</td><td>' + (row.student_affairs_open * 7 / Math.max(1, Math.round((new Date(to+"T12:00:00Z")-new Date(from+"T12:00:00Z"))/86400000)+1)).toFixed(2) + '</td></tr>' +
+        (details ? '<tr><td colspan="8"><table class="details"><thead><tr><th>نوع النشاط</th><th>التاريخ والوقت</th></tr></thead><tbody>' + details + '</tbody></table></td></tr>' : '');
     }).join("");
     const w = window.open("", "_blank");
     if (!w) { window.alert("يرجى السماح بالنوافذ المنبثقة لتصدير التقرير."); return; }
     w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>تقرير مراقبة أداء معلمي شؤون الطلبة</title><style>' +
       '@page{size:A4 landscape;margin:12mm}body{font-family:Tahoma,Arial,sans-serif;color:#172033}h1{text-align:center;font-size:20px;margin:0 0 6px}p{font-size:11px;text-align:center;color:#475569}.meta{display:flex;justify-content:space-between;border-block:1px solid #cbd5e1;padding:8px 0;margin:12px 0;font-size:11px}table{width:100%;border-collapse:collapse;font-size:10px;margin:8px 0}th{background:#e8eef8}th,td{border:1px solid #cbd5e1;padding:6px;text-align:right}.details{width:100%;font-size:9px}.details th{background:#f1f5f9}tr{break-inside:avoid}footer{margin-top:12px;font-size:9px;color:#64748b;text-align:center}@media print{button{display:none}}' +
       '</style></head><body><h1>تقرير مراقبة أداء معلمي شؤون الطلبة</h1><p>مدرسة أبو دجانة — تقرير إداري موثق</p><div class="meta"><span>الفترة: ' + escapeHtml(from) + ' إلى ' + escapeHtml(to) + '</span><span>تاريخ إعداد التقرير: ' + escapeHtml(formatDateTime(new Date().toISOString())) + '</span><span>عدد الأنشطة: ' + events.length + '</span></div>' +
-      '<table><thead><tr><th>المعلم</th><th>زيارات شؤون الطلبة</th><th>تقارير الغياب</th><th>تقارير السلوكيات</th><th>الإنذارات الرسمية</th><th>إجمالي النشاط</th><th>متوسط يومي</th></tr></thead><tbody>' + htmlRows + '</tbody></table><footer>يحتوي هذا التقرير على الأنشطة المسجلة منذ تاريخ بدء التسجيل المركزي فقط، ولا يعيد بناء أنشطة سابقة.</footer><script>window.onload=()=>window.print();<\/script></body></html>');
+      '<table><thead><tr><th>المعلم</th><th>زيارات شؤون الطلبة</th><th>تقارير الغياب</th><th>تقارير السلوكيات</th><th>الإنذارات الرسمية</th><th>إجمالي النشاط</th><th>متوسط الزيارات اليومي</th><th>متوسط الزيارات الأسبوعي</th></tr></thead><tbody>' + htmlRows + '</tbody></table><footer>يحتوي هذا التقرير على الأنشطة المسجلة منذ تاريخ بدء التسجيل المركزي فقط، ولا يعيد بناء أنشطة سابقة.</footer><script>window.onload=()=>window.print();<\/script></body></html>');
     w.document.close();
   }
   window.saActivityLoad = load;
