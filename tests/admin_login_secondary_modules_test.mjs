@@ -77,3 +77,21 @@ test("the staged pilot starts with the authenticated shell and does not change a
   assert.match(finalize, /refreshActiveUserPermissions\(\)/);
   assert.match(finalize, /if \(!isDistronStagedPilot\(\)\) \{\s*refreshDutyDashboardCard\(\);\s*renderDutyTodayRecords\(\);/);
 });
+
+
+test("additional administrators never inherit the general administrator frontend bypass", () => {
+  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  assert.match(identity, /user\?\.type === "admin"/);
+  assert.match(identity, /user\.adminScope === "general"/);
+  assert.match(identity, /user\.name === "مدير النظام العام"/);
+  assert.doesNotMatch(identity, /permissions\?\.admin/);
+
+  const adminPanels = section("function hasAdminPanelAccess(", "function hasAnyPermission(");
+  assert.match(adminPanels, /isGeneralAdminUser\(user\)/);
+  assert.doesNotMatch(adminPanels, /permissions\?\.admin/);
+
+  const reports = section("function canManageReportPermissions()", "function refreshReportPanelsVisibility()");
+  assert.match(reports, /isGeneralAdminUser\(user\)/);
+  assert.match(reports, /return p\[key\] === true/);
+  assert.doesNotMatch(reports, /p\.admin === true/);
+});
