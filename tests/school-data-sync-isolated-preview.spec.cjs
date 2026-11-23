@@ -597,6 +597,12 @@ test("school sync projections and timetable access reads stay isolated and minim
       console.log("QA_ORCHESTRATION_TABLE_READ " + tableName + " " + selectCols);
       return window.__qaReadFixtures?.[tableName] || [];
     };
+    // Isolate the real offline persistence call below from the main sync
+    // orchestration so its result and event timing can be observed separately.
+    persistOfflineStateWithTimeout = async () => {
+      console.log("QA_TEST offline snapshot persistence deferred for isolated probe");
+      return true;
+    };
     const trace = [];
     // A page-level heartbeat distinguishes a blocked renderer from a fetch
     // promise that remains pending while the event loop continues to run.
@@ -654,6 +660,22 @@ test("school sync projections and timetable access reads stay isolated and minim
   expect(mapped.behaviors["qa-behavior"]?.className).toBe("QA_ONLY_CLASS");
   expect(mapped.behaviors["qa-behavior"]?.date).toBe("2026-11-19");
   expect(mapped.dutyReports.some((item) => item.id === "qa-duty-report")).toBe(true);
+
+  const actualPersistenceProbe = await Promise.race([
+    page.evaluate(async () => {
+      try {
+        const saved = await persistOfflineState();
+        return { settled: true, saved };
+      } catch (error) {
+        return { settled: true, error: error?.message || String(error), code: error?.code || null };
+      }
+    }),
+    new Promise(resolve => setTimeout(() => resolve({ nodeTimedOut: true, timeoutMs: 12000 }), 12000)),
+  ]);
+  browserConsole.push("QA_ACTUAL_PERSISTENCE_PROBE " + JSON.stringify(actualPersistenceProbe));
+  expect(actualPersistenceProbe.nodeTimedOut, "Actual persistence helper must settle independently; diagnostics: " +
+    JSON.stringify({ actualPersistenceProbe, browserConsole, pageErrors })).toBeFalsy();
+  expect(actualPersistenceProbe.settled && actualPersistenceProbe.saved, "Actual persistence helper must save the offline snapshot").toBe(true);
 
   // The real transport made exactly one isolated request per allowed table.
   for (const table of TABLES) {
