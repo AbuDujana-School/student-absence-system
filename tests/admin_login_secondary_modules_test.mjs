@@ -95,3 +95,11 @@ test("additional administrators never inherit the general administrator frontend
   assert.match(reports, /return p\[key\] === true/);
   assert.doesNotMatch(reports, /p\.admin === true/);
 });
+
+
+const morningLateness = await readFile(new URL("../supabase/functions/morning-assembly-lateness/index.ts", import.meta.url), "utf8");
+test("additional administrators use teacher-scoped morning lateness permissions", () => {
+  assert.match(morningLateness, /return \{type:"teacher",name:principalName,permissions:buildAdditionalAdminPermissions\(user\)\}/);
+  assert.match(morningLateness, /principal\.permissions\.reportMorningAssemblyLateness !== true/);
+  assert.doesNotMatch(morningLateness, /principal\.type === "admin" && principal\.name !== "مدير النظام العام"/);
+});
