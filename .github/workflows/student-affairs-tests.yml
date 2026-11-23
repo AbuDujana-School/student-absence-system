@@ -68,6 +68,10 @@ jobs:
         run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/app_sessions_isolation.sql
       - name: Apply isolated official notice ledger migration
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261112150000_student_affairs_notice_ledger.sql
+      - name: Apply Student Affairs activity monitoring migration
+        run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261123153000_student_affairs_activity_monitor.sql
+      - name: Verify Student Affairs activity ledger isolation and append-only privileges
+        run: psql -v ON_ERROR_STOP=1 -f supabase/functions/student-affairs/tests/sql/activity_monitor_isolation.sql
       - name: Apply official notice period validation correction
         run: psql -v ON_ERROR_STOP=1 -f supabase/migrations/20261120120000_fix_notice_period_end_validation.sql
       - name: Verify official notice period date handling
@@ -825,6 +829,10 @@ jobs:
         run: deno check supabase/functions/student-affairs/app_auth_policy.ts supabase/functions/student-affairs/app_session_store.ts supabase/functions/student-affairs/notice_policy.ts
       - name: Run general app auth policy tests
         run: deno test supabase/functions/student-affairs/app_auth_policy_test.ts
+      - name: Type-check Student Affairs activity monitor authorization policy
+        run: deno check supabase/functions/student-affairs/activity_monitor_policy.ts
+      - name: Run Student Affairs activity monitor authorization tests
+        run: deno test supabase/functions/student-affairs/activity_monitor_policy_test.ts
       - name: Type-check app data gateway authorization policy
         run: deno check supabase/functions/student-affairs/app_data_gateway_policy.ts
       - name: Run app data gateway authorization and privacy tests
