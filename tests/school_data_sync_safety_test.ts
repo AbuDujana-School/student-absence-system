@@ -519,3 +519,14 @@ Deno.test("Cloudflare branch previews route every Edge Function to the isolated 
   assert(apiRoutes.includes("window.STUDENT_AFFAIRS_API_URL") && apiRoutes.includes("window.TIMETABLE_MANAGEMENT_API_URL"), "Existing production overrides must remain supported outside preview mode");
   assert(html.includes("const IS_CLOUDFLARE_BRANCH_PREVIEW ="), "Preview routing must use the hostname-based isolation guard");
 });
+
+
+Deno.test("pending deletion review is visible only to authenticated administrators", () => {
+  const auth = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth()");
+  assert(auth.includes("function isAdditionalAdminUser(user = activeUser)"), "Additional-admin principal must be recognized separately");
+  assert(auth.includes("user?.type === 'admin' && user?.adminScope === 'additional'"), "Only the canonical additional-admin principal may use the additional-admin path");
+  assert(auth.includes("isGeneralAdminUser() || isAdditionalAdminUser()"), "General and additional administrators may review pending deletions");
+  const status = section("function updateSyncStatus(", "async function initDefaults()");
+  assert(status.includes("const canReviewDeletes = isAdminAuthorized()"), "Pending-delete visibility must be gated by administrator authorization");
+  assert(status.includes("const pendingDeletes = canReviewDeletes ? getPendingDeletes().length : 0"), "Ordinary teachers must not see pending-delete counts or review actions");
+});
