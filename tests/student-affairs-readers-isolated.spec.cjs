@@ -449,11 +449,11 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
   expect(result.fontSize).toBeGreaterThanOrEqual(14);
 });
 
-test("Tester1 dashboard pilot reveals secondary sections in staged order without affecting admin principals", async ({ page }) => {
+test("Distron dashboard pilot reveals secondary sections in staged order without affecting admin principals", async ({ page }) => {
   const traffic = await openIsolatedApp(page);
   const initial = await page.evaluate(() => {
     activeUser = {
-      type: "custom", name: "Tester1",
+      type: "custom", name: "Distron",
       permissions: { admin: true, duty: true, morningAssemblyLateness: true, studentAffairs: true },
     };
     localOnlySession = false;
@@ -461,7 +461,7 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     document.getElementById("dashboardSelectionView")?.classList.remove("hidden");
     window.timetablePilotCalls = [];
     timetableRefreshAccess = async () => {
-      window.timetablePilotCalls.push(Date.now() - testerOneDashboardStageStartedAt);
+      window.timetablePilotCalls.push(Date.now() - distronDashboardStageStartedAt);
       return true;
     };
     canUseMorningAssemblyLateness = () => true;
@@ -469,13 +469,13 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
       .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
     const nativeSetTimeout = window.setTimeout;
-    window.__testerOneScheduledTimers = [];
+    window.__distronScheduledTimers = [];
     window.setTimeout = (callback, delay, ...args) => {
-      window.__testerOneScheduledTimers.push({ callback: () => callback(...args), delay });
-      return window.__testerOneScheduledTimers.length;
+      window.__distronScheduledTimers.push({ callback: () => callback(...args), delay });
+      return window.__distronScheduledTimers.length;
     };
     try {
-      startTesterOneDashboardStages();
+      startDistronDashboardStages();
     } finally {
       window.setTimeout = nativeSetTimeout;
     }
@@ -485,8 +485,8 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
       affairs: !document.getElementById("studentAffairsBtn")?.classList.contains("hidden"),
       attendance: !document.getElementById("attendanceDashboardCard")?.classList.contains("hidden"),
       behavior: !document.getElementById("behaviorDashboardCard")?.classList.contains("hidden"),
-      adminPilot: isTesterOneStagedPilot({ type: "admin", name: "مدير النظام العام", permissions: { admin: true } }),
-      delays: window.__testerOneScheduledTimers.map(timer => timer.delay),
+      adminPilot: isDistronStagedPilot({ type: "admin", name: "مدير النظام العام", permissions: { admin: true } }),
+      delays: window.__distronScheduledTimers.map(timer => timer.delay),
     };
   });
   expect(initial).toEqual({
@@ -495,18 +495,18 @@ test("Tester1 dashboard pilot reveals secondary sections in staged order without
     delays: [5000, 10000, 15000],
   });
 
-  await page.evaluate(() => window.__testerOneScheduledTimers[0].callback());
+  await page.evaluate(() => window.__distronScheduledTimers[0].callback());
   await expect(page.locator("#morningAssemblyLatenessDashboardCard")).toBeVisible();
   await expect(page.locator("#dutyDashboardCard")).toBeHidden();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
   expect(await page.evaluate(() => window.timetablePilotCalls.slice())).toEqual([]);
 
-  await page.evaluate(() => window.__testerOneScheduledTimers[1].callback());
+  await page.evaluate(() => window.__distronScheduledTimers[1].callback());
   await expect(page.locator("#dutyDashboardCard")).toBeVisible();
   await expect(page.locator("#studentAffairsBtn")).toBeHidden();
   expect((await page.evaluate(() => window.timetablePilotCalls)).length).toBe(1);
 
-  await page.evaluate(() => window.__testerOneScheduledTimers[2].callback());
+  await page.evaluate(() => window.__distronScheduledTimers[2].callback());
   await expect(page.locator("#studentAffairsBtn")).toBeVisible();
   expect(traffic.blockedWrites).toEqual([]);
   expect(traffic.unexpected).toEqual([]);
