@@ -7361,9 +7361,12 @@ function updateSyncStatus(isSynced, text) {
   const reviewOnly = canReviewDeletes && !pendingRecords && pendingDeletes > 0 && cloudDataLoadState === 'ready' && navigator.onLine && !isWorking;
   let displayText = text || (isSynced ? "متزامن" : "محلي");
   if (!canReviewDeletes) {
-    // Some callers pass a pre-composed status containing the queue count. Strip it for non-admin sessions.
-    displayText = String(displayText).replace(/[؛;،]?\s*\d+\s*طلب(?:ات)?\s*حذف(?:\s*(?:للمراجعة|بانتظار\s*المراجعة))?/g, '').trim();
-    if (!displayText) displayText = effectiveSynced ? "متزامن" : "محلي";
+    // Ordinary teachers see only a neutral connection state. Local deletion-review
+    // intents are administrator workflow items, never teacher sync work.
+    // Keep genuine dirty records from being falsely labelled as successfully synced.
+    displayText = effectiveSynced && !pendingRecords && cloudDataLoadState === 'ready' && navigator.onLine
+      ? "متزامن"
+      : "جار الاتصال";
   }
   if (reviewOnly) displayText = `المزامنة مكتملة؛ ${pendingDeletes} طلب حذف للمراجعة`;
   else if (canReviewDeletes && pendingRecords && pendingDeletes) displayText = `${displayText}؛ ${pendingDeletes} طلب حذف للمراجعة`;
