@@ -930,7 +930,7 @@ async function handle(req: Request) {
       rows = [{ actor_type: saSession.principal.type, actor_name: saSession.principal.name, event_type: eventType, details: {} }];
     } else if (eventType === "official_warning_print") {
       if (!Array.isArray(body.items) || body.items.length < 1 || body.items.length > 1000) return reply(400, { error: "قائمة الإنذارات المطلوب توثيق طباعتها غير صالحة." });
-      const ids = Array.from(new Set(body.items.map((item: any) => String(item?.notice_id || "").trim())));
+      const ids: string[] = Array.from(new Set<string>(body.items.map((item: any) => String(item?.notice_id || "").trim())));
       if (ids.length !== body.items.length || ids.some((id: string) => !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
         return reply(400, { error: "معرّفات الإنذارات الرسمية غير صالحة." });
       }
