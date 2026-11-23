@@ -448,3 +448,41 @@ test("notice PDF keeps each complete notice on one page with readable minimum fo
   expect(result.failed).toBe(false);
   expect(result.fontSize).toBeGreaterThanOrEqual(14);
 });
+
+test("Tester1 dashboard pilot reveals secondary sections in staged order without affecting admin principals", async ({ page }) => {
+  const traffic = await openIsolatedApp(page);
+  const initial = await page.evaluate(() => {
+    activeUser = {
+      type: "custom", name: "Tester1",
+      permissions: { admin: true, duty: true, morningAssemblyLateness: true, studentAffairs: true },
+    };
+    localOnlySession = false;
+    ["morningAssemblyLatenessDashboardCard", "dutyDashboardCard", "studentAffairsBtn"]
+      .forEach((id) => document.getElementById(id)?.classList.add("hidden"));
+    startTesterOneDashboardStages();
+    refreshMorningAssemblyLatenessCard();
+    refreshDutyDashboardCard();
+    return {
+      morning: !document.getElementById("morningAssemblyLatenessDashboardCard")?.classList.contains("hidden"),
+      duty: !document.getElementById("dutyDashboardCard")?.classList.contains("hidden"),
+      affairs: !document.getElementById("studentAffairsBtn")?.classList.contains("hidden"),
+      adminPilot: isTesterOneStagedPilot({ type: "admin", name: "مدير النظام العام", permissions: { admin: true } }),
+    };
+  });
+  expect(initial).toEqual({ morning: false, duty: false, affairs: false, adminPilot: false });
+
+  await page.waitForTimeout(5200);
+  await expect(page.locator("#morningAssemblyLatenessDashboardCard")).toBeVisible();
+  await expect(page.locator("#dutyDashboardCard")).toBeHidden();
+  await expect(page.locator("#studentAffairsBtn")).toBeHidden();
+
+  await page.waitForTimeout(5000);
+  await expect(page.locator("#dutyDashboardCard")).toBeVisible();
+  await expect(page.locator("#studentAffairsBtn")).toBeHidden();
+
+  await page.waitForTimeout(5200);
+  await expect(page.locator("#studentAffairsBtn")).toBeVisible();
+  expect(traffic.blockedWrites).toEqual([]);
+  expect(traffic.unexpected).toEqual([]);
+  expect(traffic.pageErrors).toEqual([]);
+});
