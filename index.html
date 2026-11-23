@@ -7531,8 +7531,11 @@ async function handleUserLogin(e) {
           showToast('تم تسجيل الدخول، لكن بعض عناصر لوحة النظام تأخر تجهيزها.', 'error');
         });
       };
-      // Prefer a post-paint start, but never rely on requestAnimationFrame alone:
-      // mobile WebViews may pause RAF while the page is backgrounded or repainting.
+      // Start at the next microtask checkpoint as the primary path. Some embedded
+      // browsers can suspend RAF and timer callbacks after an admin shell repaint;
+      // a microtask does not depend on either scheduler. The guarded RAF/timer
+      // paths remain as extra fallbacks and can never run finalization twice.
+      Promise.resolve().then(startPostLoginInitialization);
       if (typeof window.requestAnimationFrame === 'function') {
         window.requestAnimationFrame(() => window.setTimeout(startPostLoginInitialization, 0));
       }
