@@ -1,4 +1,9 @@
-import { assertEquals, assertMatch, assertNotMatch } from "https://deno.land/std/assert/mod.ts";
+function assertMatch(source: string, pattern: RegExp) {
+  if (!pattern.test(source)) throw new Error("Expected source to match " + pattern);
+}
+function assertNotMatch(source: string, pattern: RegExp) {
+  if (pattern.test(source)) throw new Error("Expected source not to match " + pattern);
+}
 
 const workflow = await Deno.readTextFile(new URL("../../../../reserve-workflow.js", import.meta.url));
 const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
