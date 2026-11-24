@@ -2146,6 +2146,16 @@
       };
       window.closeSubstitutionView.__canonicalReserveWrapped=true;
     }
+    const distributionDate=$("substitutionDate");
+    if(distributionDate&&distributionDate.dataset.canonicalLegacyDateSync!=="1"){
+      distributionDate.dataset.canonicalLegacyDateSync="1";
+      distributionDate.addEventListener("change",()=>{
+        const legacyDate=$("timetableSubstitutionDate");
+        if(!legacyDate||legacyDate.value===distributionDate.value)return;
+        legacyDate.value=distributionDate.value;
+        legacyDate.dispatchEvent(new Event("change",{bubbles:true}));
+      });
+    }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     // The new date picker is authoritative. Keep the hidden compatibility
     // engine's date synchronized before its original loader refreshes the plan.
