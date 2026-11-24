@@ -460,6 +460,7 @@
       "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
       "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
       "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
+      "#timetableSubstitutionPanel [hidden]{display:none!important}",
       "#timetableSubstitutionPanel .tt-premium-toolbar .tt-action{min-height:3rem;border-radius:1rem;padding:.75rem 1rem;font-size:.8rem;font-weight:900;box-shadow:0 4px 10px rgba(15,23,42,.05)}",
       "#timetableSubstitutionPanel .tt-premium-results{display:none;margin-top:1rem}",
       "#timetableSubstitutionPanel .tt-premium-results.tt-premium-results-ready{display:block}",
