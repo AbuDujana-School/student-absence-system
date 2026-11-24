@@ -16,7 +16,7 @@ Deno.test("only system admins can read the consolidated cross-department reserve
 
 Deno.test("the archive endpoint uses the shared server-side scope policy", async () => {
   const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
-  const policyUses = backend.match(/canViewSchoolwideReserveArchive\\(principal\\.type\\)/g) || [];
+  const policyUses = backend.match(/canViewSchoolwideReserveArchive\(principal\.type\)/g) || [];
   assert(
     policyUses.length >= 2,
     "Both archive query paths must use the shared server-side principal policy",
