@@ -273,10 +273,11 @@
           ?'<div class="tt-reserve-checklist-items">'+matches.map(name=>{
             const isSelected=selected.includes(name),isPending=pending.has(name);
             const reason=String(reserveAbsenceReasons[name]||"").trim();
+            const reasonLabel=reason==="مرضية"?"إجازة مرضية":reason;
             return '<div class="tt-reserve-absentee-row'+(isSelected?' is-selected':'')+(isPending?' is-pending':'')+'">'+
               '<input type="checkbox" data-tt-check-absent="'+esc(name)+'" aria-label="تحديد غياب '+esc(name)+'" '+((isSelected||isPending)?'checked':'')+(busy?' disabled':'')+'>'+
               '<button type="button" class="tt-reserve-absentee-name" data-tt-open-absence-reason="'+esc(name)+'" '+(busy?'disabled':'')+'>'+esc(name)+'</button>'+
-              '<span class="tt-reserve-absentee-reason">'+(isSelected?(reason?esc(reason):"حدد السبب"):"متاح للتحديد")+'</span>'+
+              '<span class="tt-reserve-absentee-reason">'+(isSelected?(reason?esc(reasonLabel):"حدد السبب"):"متاح للتحديد")+'</span>'+
             '</div>';
           }).join("")+'</div>'
           :'<p class="tt-reserve-checklist-empty">'+(options.length?"لا توجد نتائج مطابقة لبحثك.":"اختر التاريخ لتحميل قائمة المعلمين.")+'</p>');
