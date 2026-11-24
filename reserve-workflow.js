@@ -266,6 +266,20 @@
         const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
         card.innerHTML='<div class="tt-premium-card-heading"><span class="tt-premium-icon tt-icon-date"><i class="fa-regular fa-calendar-check"></i></span><div><strong>الخطوة الأولى: اختر تاريخ الاحتياط</strong><small>حدد اليوم الدراسي الذي تريد إعداد التوزيع له</small></div><span class="tt-premium-chip">البداية</span></div>';
         dateWrap.parentNode?.insertBefore(card,dateWrap);card.appendChild(dateWrap);dateWrap.classList.add("tt-premium-date-control");
+        if(!card.querySelector("#ttPremiumDateQuickNav")){
+          const nav=document.createElement("div");nav.id="ttPremiumDateQuickNav";nav.className="tt-premium-date-nav";
+          nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+          card.appendChild(nav);
+          const toLocalISO=value=>{const y=value.getFullYear(),m=String(value.getMonth()+1).padStart(2,"0"),d=String(value.getDate()).padStart(2,"0");return y+"-"+m+"-"+d;};
+          nav.addEventListener("click",event=>{
+            const button=event.target.closest("[data-date-offset]");if(!button||!date)return;
+            const offset=Number(button.dataset.dateOffset),base=offset===0?reserveCurrentMuscatDate():(date.value||reserveCurrentMuscatDate());
+            const parts=base.split("-").map(Number),selected=new Date(parts[0],parts[1]-1,parts[2]+offset,12,0,0);
+            date.value=toLocalISO(selected);date.dispatchEvent(new Event("input",{bubbles:true}));date.dispatchEvent(new Event("change",{bubbles:true}));
+            nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
+          });
+        }
+        if(!date.value){date.value=reserveCurrentMuscatDate();date.dispatchEvent(new Event("change",{bubbles:true}));}
       }
     }
     const search=$("timetableDailyAbsentSearch");
@@ -459,6 +473,21 @@
       "#timetableSubstitutionPanel .tt-premium-chip{padding:.35rem .7rem;border-radius:999px;background:#ecfdf5;color:#047857;font-size:.62rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-date-control{max-width:26rem;padding:.15rem}",
       "#timetableSubstitutionPanel .tt-premium-date-control input{width:100%;min-height:3.2rem;border:1px solid #cbd5e1;border-radius:1rem;background:#f8fafc;padding:.75rem 1rem;font-size:1rem;font-weight:800;color:#0f172a}",
+      "#timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(248,252,255,.72));backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);border-color:rgba(203,213,225,.72);box-shadow:0 18px 48px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.82)}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:2.7rem;padding:.6rem 1rem;border:1px solid rgba(148,163,184,.35);border-radius:.9rem;background:rgba(255,255,255,.72);color:#334155;font-size:.78rem;font-weight:900;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button:hover{transform:translateY(-2px);border-color:#34d399;background:#ecfdf5;box-shadow:0 8px 18px rgba(16,185,129,.12)}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button.is-today,#timetableSubstitutionPanel .tt-premium-date-nav button.is-selected{border-color:#10b981;background:linear-gradient(135deg,#059669,#0f766e);color:#fff;box-shadow:0 8px 20px rgba(5,150,105,.2)}",
+      "#timetableSubstitutionPanel .tt-date-nav-hint{margin-inline-start:auto;color:#64748b;font-size:.68rem;font-weight:600}",
+      "#timetableSubstitutionPanel .tt-premium-toolbar{border-color:rgba(203,213,225,.7);background:linear-gradient(125deg,rgba(248,250,252,.86),rgba(236,253,245,.78));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(15,23,42,.055)}",
+      "#timetableSubstitutionPanel .tt-premium-step{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(245,249,252,.78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 22px rgba(15,23,42,.035)}",
+      "#timetableSubstitutionPanel .tt-premium-step:hover{transform:translateY(-2px);border-color:#86cdb2;box-shadow:0 12px 24px rgba(15,23,42,.08)}",
+      "#timetableSubstitutionPanel button:focus-visible,#timetableSubstitutionPanel input:focus-visible,#timetableSubstitutionPanel select:focus-visible{outline:3px solid rgba(16,185,129,.28);outline-offset:2px}",
+      ".dark #timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(20,34,54,.9),rgba(15,23,42,.82));border-color:rgba(71,85,105,.68);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%)}",
+      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button{border-color:#475569;background:rgba(30,41,59,.82);color:#e2e8f0}",
+      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
+      ".dark #timetableSubstitutionPanel .tt-date-nav-hint{color:#94a3b8}",
+      "@media(prefers-reduced-motion:reduce){#timetableSubstitutionPanel *,#timetableDailyAbsenceReasonModal *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}",
       "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
       "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
       "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
