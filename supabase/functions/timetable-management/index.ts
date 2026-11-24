@@ -512,7 +512,8 @@ async function handle(req: Request) {
         subject:String(row.subject||""),reason:String(row.reserve_reason||"-"),absenceReason:String(row.absence_reason||"-"),
         status:String(row.status||"assigned"),versionId:String(row.version_id||""),
       }));
-    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide});
+    const teacherSpecialties=Object.fromEntries(directory.filter((teacher:any)=>teacher.role==="teacher"&&visibleNames.has(teacher.name)).map((teacher:any)=>[teacher.name,String(teacher.departmentName||teacher.department||"").trim()]));
+    return reply(200,{ok:true,archive,dateFrom,dateTo,schoolwide,teacherSpecialties});
   }
 
   if (["timetable_preview", "timetable_save_import"].includes(action)) {
