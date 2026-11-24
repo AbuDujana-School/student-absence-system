@@ -22,6 +22,10 @@ Deno.test("supporting teachers can be selected from multiple departments", () =>
   assert(reserveWorkflow.includes("timetableDailyOtherDepartmentChoices"), "Departments must be shown as visible selectable cards");
   assert(reserveWorkflow.includes("selectedOtherDepartmentIds"), "The UI must track the selected department set");
   assert(reserveWorkflow.includes("otherDepartmentIds:selectedOtherDepartmentIds()"), "Preview and save payloads must include all selected departments");
+  const batchPreviewStart = reserveWorkflow.indexOf("async function fetchBatchPreview()");
+  const batchPreviewEnd = reserveWorkflow.indexOf("window.timetableDailySetBusy", batchPreviewStart);
+  const batchPreview = reserveWorkflow.slice(batchPreviewStart, batchPreviewEnd);
+  assert(batchPreview.includes("otherDepartmentIds:selectedOtherDepartmentIds()"), "Batch preview must send every selected supporting department to the server");
   assert(reserveWorkflow.includes("departments.flatMap"), "Teacher choices must combine the selected departments");
   assert(reserveWorkflow.includes("reserveOtherDepartmentIds"), "Multiple department selections must survive draft persistence");
 });
