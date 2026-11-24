@@ -636,7 +636,7 @@
         if(activeHost)activeHost.innerHTML='<div class="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">'+esc(message)+'</div>';
         return false;
       }finally{reserveDailyArchiveLoadPromise=null;}
-    })();
+    });
     return reserveDailyArchiveLoadPromise;
   };
   window.timetableDailyPrintArchiveRange = function (sourceRecords) {
@@ -1480,7 +1480,7 @@
         setHomeArchiveStatus(error?.message||"تعذر تحميل السجل.","error");
         return false;
       }finally{reserveCumulativeArchiveLoadPromise=null;}
-    })();
+    });
     return reserveCumulativeArchiveLoadPromise;
   };
 
