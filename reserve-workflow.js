@@ -1673,7 +1673,7 @@
     }
     if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
       window.openSubstitutionView=async function(){
-        const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true);
+        const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||appAuthSession?.principal?.permissions?.reserve===true;
         if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
         ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
         root.classList.remove("hidden");
