@@ -156,7 +156,7 @@ test("premium reserve wizard advances progressively from date to absence and app
       <div class="tt-toolbar"><button id="timetableDailySaveBatchButton">حفظ</button></div>
       <div id="timetableSubstitutionResults"></div>
     </section>`);
-  await page.evaluate(({ premium }) => {
+  await page.evaluate(({ premium, checklist }) => {
     const $ = id => document.getElementById(id);
     const preview = { assignments: [], unassigned: [], existingAssignments: [] };
     const approved = new Set();
@@ -165,7 +165,7 @@ test("premium reserve wizard advances progressively from date to absence and app
       checklist + ";" + premium + "; return installPremiumReserveExperience;")($, preview, approved, absentees, () => "2026-11-24", [], value => String(value || "").toLowerCase(), Object.create(null), () => {}, () => {}, false, value => String(value ?? ""));
     install($("timetableSubstitutionPanel"));
     window.__premiumReserveState = { preview, approved, absentees };
-  }, { premium });
+  }, { premium, checklist });
 
   const initial = await page.evaluate(() => ({
     dateVisible: !document.getElementById("ttPremiumDateCard")?.hidden,
