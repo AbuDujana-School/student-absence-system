@@ -120,6 +120,24 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   assert(html.includes('const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)'),"Reserve-enabled teachers must retain access to the canonical batch panel");
 });
 
+Deno.test("canonical batch selection requires and preserves the absence reason", () => {
+  const pickerStart=source.indexOf("function installAbsenceReasonPicker()");
+  const pickerEnd=source.indexOf("function reserveDutyReasonMarkup",pickerStart);
+  assert(pickerStart>=0&&pickerEnd>pickerStart,"The canonical batch absence picker must exist");
+  const picker=source.slice(pickerStart,pickerEnd);
+  assert(picker.includes('window.timetableDailyAddAbsent'),"The canonical absent-teacher add handler must be wrapped");
+  assert(picker.includes("openAbsenceReasonPicker(absentName,value=>"),"Adding a new absent teacher must open the reason picker first");
+  assert(picker.includes("if(!value)return;"),"Cancelling the reason picker must not add the absent teacher");
+  assert(picker.includes("reserveAbsenceReasons[absentName]=value"),"The selected reason must be stored against the absent teacher");
+  assert(picker.includes("original.apply(this,args)"),"The original add action must run only after a reason is selected");
+  const saveStart=source.indexOf("window.timetableDailySaveBatch = async function");
+  const saveEnd=source.indexOf("window.timetableDailyToggleArchive",saveStart);
+  assert(saveStart>=0&&saveEnd>saveStart,"The canonical batch save handler must exist");
+  const save=source.slice(saveStart,saveEnd);
+  assert(save.includes('absenceReason:(reserveAbsenceReasons[item.absentTeacherName]||"").trim()||"-"'),"Each saved assignment must carry its absent teacher's selected reason");
+  assert(save.includes('action:"timetable_substitution_batch_save"'),"The reason must travel through the existing authenticated batch-save action");
+});
+
 Deno.test("reserve operational views initialize only when opened", () => {
   const homeStart=source.indexOf("function installHomeReserveArchive()");
   const homeEnd=source.indexOf("function setHomeArchiveStatus",homeStart);
