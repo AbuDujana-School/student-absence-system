@@ -174,10 +174,13 @@ test("premium reserve wizard advances progressively from date to absence and app
   }));
   expect(initial.dateVisible).toBe(true);
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
+  await page.locator("#timetableSubstitutionDate").fill("2026-11-30");
+  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"-1\"]").click();
+  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-23");
+  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"0\"]").click();
+  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
   await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"1\"]").click();
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-25");
-  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"-1\"]").click();
-  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
   await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
   expect(initial.absentHidden).toBe(false);
   expect(initial.toolbarHidden).toBe(true);
