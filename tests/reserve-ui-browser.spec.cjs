@@ -160,8 +160,8 @@ test("premium reserve wizard advances progressively from date to absence and app
     const preview = { assignments: [], unassigned: [], existingAssignments: [] };
     const approved = new Set();
     const absentees = [];
-    const install = new Function("$", "reserveBatchPreview", "reserveDraftApproved", "timetableDailyAbsentTeachers",
-      premium + "; return installPremiumReserveExperience;")($, preview, approved, absentees);
+    const install = new Function("$", "reserveBatchPreview", "reserveDraftApproved", "timetableDailyAbsentTeachers", "reserveCurrentMuscatDate",
+      premium + "; return installPremiumReserveExperience;")($, preview, approved, absentees, () => "2026-11-24");
     install($("timetableSubstitutionPanel"));
     window.__premiumReserveState = { preview, approved, absentees };
   }, { premium });
@@ -173,12 +173,17 @@ test("premium reserve wizard advances progressively from date to absence and app
     resultsReady: document.getElementById("timetableSubstitutionResults").classList.contains("tt-premium-results-ready")
   }));
   expect(initial.dateVisible).toBe(true);
+  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
+  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"1\"]").click();
+  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-25");
+  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"-1\"]").click();
+  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
+  await page.locator("#timetableSubstitutionDate").fill("2026-11-25");
+  await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
   expect(initial.absentHidden).toBe(true);
   expect(initial.toolbarHidden).toBe(true);
   expect(initial.resultsReady).toBe(false);
 
-  await page.locator("#timetableSubstitutionDate").fill("2026-11-25");
-  await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
   await page.locator('[data-premium-step="2"]').click();
   await expect(page.locator("#timetableDailyAbsentSearch")).toBeFocused();
 
