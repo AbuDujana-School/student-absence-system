@@ -109,6 +109,7 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   assert(integration.includes('host.appendChild(panel)'),"The existing batch panel must be mounted instead of creating a duplicate");
   assert(integration.includes("restoreCanonicalPanel()"),"Closing the main view must restore the original timetable panel location");
   assert(integration.includes("__canonicalReserveInitialOpenAttempted"),"If the integration installs after the view becomes visible, it must initialize the canonical panel on that first opening");
+  assert(integration.includes('$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped'),"First-open initialization must wait until the canonical panel exists so a late DOM mount can be retried");
   assert(integration.includes("return window.openSubstitutionView()"),"The first visible opening must replay the wrapped entry point exactly once");
   assert(integration.includes('window.timetableLoadSubstitutionOptions()'),"Opening the main view must load the batch workflow");
   assert(integration.includes('window.timetableDailyLoadArchive()'),"Opening the main view must refresh current-day assignments");
