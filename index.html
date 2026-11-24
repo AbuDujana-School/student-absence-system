@@ -2267,11 +2267,146 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 @media(max-width:640px){#substitutionView .subx-header-actions{width:100%;justify-content:stretch}#substitutionView .subx-header-actions button{flex:1;justify-content:center;padding:10px 8px;font-size:10px}#substitutionView .subx-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-points-matrix{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-rules-drawer{padding:14px}}
 @media(prefers-reduced-motion:reduce){#substitutionView #subxGenerateDock #substitutionGenerateButton:before{animation:none}}
 </style>
+<style id="substitution-redesign-v2">
+/* Premium RTL workspace — presentation layer only */
+#substitutionView{--subx-navy:#183653;--subx-teal:#168C85;--subx-gold:#D5A64A;--subx-bg:#E9EFF5;--subx-ink:#18324a;--subx-muted:#718096;position:relative;isolation:isolate;min-height:calc(100dvh - 1rem);padding:12px 12px 92px!important;max-width:100%;overflow-x:clip;font-family:'Tajawal',sans-serif;color:var(--subx-ink);background:linear-gradient(145deg,#eef3f8 0%,#e7eef5 52%,#f5f7fa 100%);border-radius:28px}
+#substitutionView *{box-sizing:border-box;min-width:0}
+.dark #substitutionView{--subx-ink:#e5edf5;--subx-muted:#9aabba;background:radial-gradient(ellipse at 10% 0%,rgba(22,140,133,.13),transparent 38%),linear-gradient(145deg,#0b1726,#101e2e 60%,#111827)}
+#substitutionView button,#substitutionView input,#substitutionView select{font-family:'Tajawal',sans-serif}
+#substitutionView button{min-height:44px;touch-action:manipulation}
+#substitutionView .subx-appbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:12px;padding:10px 12px;margin:-2px -2px 14px;border:1px solid rgba(255,255,255,.62);border-radius:22px;background:rgba(255,255,255,.72);backdrop-filter:blur(18px);box-shadow:0 10px 30px rgba(24,54,83,.08)}
+.dark #substitutionView .subx-appbar{background:rgba(15,29,45,.78);border-color:rgba(148,163,184,.14)}
+#substitutionView .subx-icon-btn{width:44px;height:44px;min-height:44px;display:grid;place-items:center;border:1px solid rgba(24,54,83,.1);border-radius:15px;color:var(--subx-navy);background:linear-gradient(145deg,#fff,#edf3f8);font-size:16px}
+.dark #substitutionView .subx-icon-btn{color:#d8e7f4;background:linear-gradient(145deg,#20364b,#17283a);border-color:#31465a}
+#substitutionView .subx-appbar-title{flex:1;text-align:center}
+#substitutionView .subx-appbar-title span{display:block;color:var(--subx-teal);font-size:10px;font-weight:800}
+#substitutionView .subx-appbar-title h2{margin:1px 0 0;font-size:20px;line-height:1.2;font-weight:900;color:var(--subx-navy)}
+.dark #substitutionView .subx-appbar-title h2{color:#f1f5f9}
+#substitutionView .subx-balance-btn{color:#a47724;background:linear-gradient(145deg,#fff9e9,#f5e8c9);border-color:rgba(213,166,74,.25)}
+#substitutionView .subx-stepper{display:flex;align-items:center;justify-content:center;gap:8px;padding:2px 4px 14px}
+#substitutionView .subx-step{display:flex;align-items:center;gap:7px;color:#94a3b8}
+#substitutionView .subx-step>span{width:28px;height:28px;display:grid;place-items:center;border-radius:50%;background:#e2e8f0;color:#64748b;font-size:11px;font-weight:900}
+#substitutionView .subx-step b{display:block;font-size:11px}#substitutionView .subx-step small{display:block;font-size:9px}
+#substitutionView .subx-step.is-current{color:var(--subx-navy)}#substitutionView .subx-step.is-current>span,#substitutionView .subx-step.is-done>span{background:linear-gradient(145deg,var(--subx-teal),#43b5a8);color:white;box-shadow:0 5px 14px rgba(22,140,133,.2)}
+#substitutionView .subx-step-line{height:1px;width:clamp(16px,7vw,54px);background:linear-gradient(90deg,transparent,#cbd5e1,transparent)}
+#substitutionView .subx-hero-card{position:relative;overflow:hidden;padding:19px;border:1px solid rgba(255,255,255,.85);border-radius:26px;background:linear-gradient(140deg,rgba(255,255,255,.94),rgba(245,249,252,.84));box-shadow:0 16px 40px rgba(24,54,83,.09)}
+#substitutionView .subx-hero-card:before{content:"";position:absolute;inset:auto -55px -90px auto;width:220px;height:220px;border-radius:50%;background:radial-gradient(circle,rgba(22,140,133,.12),transparent 70%);pointer-events:none}
+.dark #substitutionView .subx-hero-card{background:linear-gradient(145deg,rgba(25,45,65,.96),rgba(16,31,48,.94));border-color:rgba(148,163,184,.13)}
+#substitutionView .subx-hero-copy h1{margin:3px 0 2px;font-size:20px;font-weight:900;color:var(--subx-navy)}
+.dark #substitutionView .subx-hero-copy h1{color:#f8fafc}
+#substitutionView .subx-hero-copy p{margin:0 0 14px;color:var(--subx-muted);font-size:12px}
+#substitutionView .subx-eyebrow{color:var(--subx-teal);font-size:10px;font-weight:900;letter-spacing:.02em}
+#substitutionView .subx-date-launch{display:flex;align-items:center;gap:11px;width:100%;padding:11px 12px;text-align:right;border:1px solid rgba(22,140,133,.16);border-radius:18px;background:rgba(232,246,244,.8);color:var(--subx-ink)}
+.dark #substitutionView .subx-date-launch{background:rgba(18,74,72,.24);border-color:rgba(45,180,165,.2);color:#e2f3f0}
+#substitutionView .subx-date-launch>span:nth-child(2){flex:1}
+#substitutionView .subx-date-launch b,#substitutionView .subx-date-launch small{display:block}
+#substitutionView .subx-date-launch b{font-size:14px;font-weight:900}
+#substitutionView .subx-date-launch small{margin-top:2px;color:var(--subx-muted);font-size:10px}
+#substitutionView .subx-date-icon,.subx-section-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:14px;color:#fff;background:linear-gradient(145deg,#168c85,#37b8a6);box-shadow:0 6px 14px rgba(22,140,133,.2)}
+#substitutionView .subx-quick-dates{display:flex;gap:7px;margin-top:9px}
+#substitutionView .subx-quick-dates button{flex:1;min-height:36px;border:1px solid rgba(24,54,83,.1);border-radius:12px;background:rgba(255,255,255,.72);color:#526579;font-size:11px;font-weight:800}
+#substitutionView .subx-quick-dates button.is-today{border-color:rgba(22,140,133,.28);background:rgba(22,140,133,.1);color:var(--subx-teal)}
+.dark #substitutionView .subx-quick-dates button{background:#1a2b3e;border-color:#34465a;color:#cbd5e1}
+#substitutionView .subx-weekend-note{margin:9px 0 0;padding:8px 10px;border-radius:12px;background:#fff7e5;color:#946a1b;font-size:10px;font-weight:700}
+#substitutionView .subx-live-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:14px}
+#substitutionView .subx-stat-chip{display:flex;align-items:center;gap:8px;min-height:66px;padding:9px;border:1px solid rgba(148,163,184,.17);border-radius:17px;background:rgba(255,255,255,.68)}
+.dark #substitutionView .subx-stat-chip{background:rgba(9,20,33,.42);border-color:rgba(148,163,184,.13)}
+#substitutionView .subx-stat-icon{width:33px;height:33px;flex:0 0 33px;display:grid;place-items:center;border-radius:11px;font-size:13px}
+#substitutionView .stat-rose{background:#fff0f0;color:#d35b62}#substitutionView .stat-amber{background:#fff5df;color:#b47c1d}#substitutionView .stat-green{background:#e6f7f0;color:#19845d}
+#substitutionView .subx-stat-chip b{display:block;font-size:18px;line-height:1.1;font-weight:900;color:var(--subx-navy)}
+.dark #substitutionView .subx-stat-chip b{color:#f1f5f9}
+#substitutionView .subx-stat-chip small{display:block;margin-top:3px;color:var(--subx-muted);font-size:9px;font-weight:700}
+#substitutionView .subx-last-saved{display:flex;align-items:center;gap:8px;margin-top:11px;padding:8px 10px;border-radius:12px;background:rgba(24,54,83,.045);color:#526579;font-size:10px}
+#substitutionView .subx-last-saved i{color:var(--subx-gold)}#substitutionView .subx-last-saved small{margin-right:auto;color:#8a99a8;font-size:9px}
+.dark #substitutionView .subx-last-saved{background:rgba(255,255,255,.04);color:#c4d0dc}
+#substitutionView .subx-primary-cta{display:flex;align-items:center;justify-content:center;gap:9px;width:100%;min-height:54px;margin-top:12px;padding:12px 16px;border:0;border-radius:17px;background:linear-gradient(110deg,#183653,#168c85);color:#fff;font-size:14px;font-weight:900;box-shadow:0 12px 24px rgba(24,75,91,.2);transition:transform .22s,box-shadow .22s}
+#substitutionView .subx-primary-cta span{margin-right:auto;font-size:9px;font-weight:700;opacity:.8}
+#substitutionView .subx-primary-cta:hover{transform:translateY(-2px);box-shadow:0 16px 28px rgba(24,75,91,.25)}
+#substitutionView .subx-next-step-hint{display:flex;align-items:center;gap:9px;margin-top:12px;padding:12px 14px;border:1px solid rgba(213,166,74,.16);border-radius:16px;background:rgba(255,250,237,.7);color:#8a6b2b;font-size:11px;font-weight:700}
+.dark #substitutionView .subx-next-step-hint{background:rgba(213,166,74,.07);color:#e4c987}
+#substitutionView .subx-pane{min-height:180px;padding-bottom:12px}
+#substitutionView .subx-pane-heading{display:flex;align-items:center;gap:12px;margin:6px 0 14px}
+#substitutionView .subx-pane-heading h3{margin:0;color:var(--subx-navy);font-size:18px;font-weight:900}
+.dark #substitutionView .subx-pane-heading h3{color:#f8fafc}
+#substitutionView .subx-pane-heading p{margin:3px 0 0;color:var(--subx-muted);font-size:11px}
+#substitutionView .subx-bottom-nav{position:fixed;z-index:35;right:50%;bottom:calc(10px + env(safe-area-inset-bottom));transform:translateX(50%);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));width:min(540px,calc(100vw - 24px));padding:6px;border:1px solid rgba(255,255,255,.68);border-radius:20px;background:rgba(255,255,255,.82);backdrop-filter:blur(20px);box-shadow:0 14px 38px rgba(24,54,83,.16)}
+.dark #substitutionView .subx-bottom-nav{background:rgba(15,29,45,.9);border-color:rgba(148,163,184,.15)}
+#substitutionView .subx-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:50px;border:0;border-radius:14px;background:transparent;color:#7a8a9b;font-size:9px;font-weight:800}
+#substitutionView .subx-nav-item i{font-size:15px}
+#substitutionView .subx-nav-item.is-active{background:linear-gradient(145deg,rgba(22,140,133,.13),rgba(24,54,83,.07));color:var(--subx-teal)}
+#substitutionView .subx-sheet-backdrop{position:fixed;z-index:80;inset:0;display:flex;align-items:flex-end;justify-content:center;padding:12px;background:rgba(8,20,34,.46);backdrop-filter:blur(5px)}
+#substitutionView .subx-sheet-backdrop[hidden]{display:none!important}
+#substitutionView .subx-bottom-sheet{width:min(680px,100%);max-height:min(82dvh,780px);overflow:hidden;padding:12px 16px calc(14px + env(safe-area-inset-bottom));border:1px solid rgba(255,255,255,.72);border-radius:26px 26px 20px 20px;background:rgba(250,252,254,.97);box-shadow:0 -18px 55px rgba(8,20,34,.2);animation:subxSheetIn .24s ease-out}
+.dark #substitutionView .subx-bottom-sheet{background:rgba(17,31,47,.98);border-color:rgba(148,163,184,.16)}
+#substitutionView .subx-sheet-tall{max-height:90dvh}
+#substitutionView .subx-sheet-grabber{width:42px;height:4px;margin:0 auto 12px;border-radius:9px;background:#c5d0db}
+#substitutionView .subx-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding-bottom:12px;border-bottom:1px solid rgba(148,163,184,.18)}
+#substitutionView .subx-sheet-head h3{margin:2px 0 0;color:var(--subx-navy);font-size:18px;font-weight:900}
+.dark #substitutionView .subx-sheet-head h3{color:#f8fafc}
+#substitutionView .subx-sheet-head p{margin:3px 0 0;color:var(--subx-muted);font-size:10px}
+#substitutionView .subx-sheet-close{width:40px;height:40px;border:0;border-radius:13px;background:#edf2f6;color:#526579;font-size:24px}
+#substitutionView .subx-sheet-scroll{max-height:calc(90dvh - 170px);overflow:auto;overscroll-behavior:contain;padding:12px 2px}
+#substitutionView .subx-sheet-footer{display:flex;align-items:center;gap:12px;padding-top:10px;border-top:1px solid rgba(148,163,184,.18)}
+#substitutionView .subx-sheet-footer-meta{display:flex;align-items:baseline;gap:5px;color:var(--subx-muted);font-size:10px}
+#substitutionView .subx-sheet-footer-meta b{color:var(--subx-teal);font-size:19px}
+#substitutionView #subxGenerateDock{flex:1}
+#substitutionView #subxGenerateDock #substitutionGenerateButton{width:100%;min-height:50px;border:0;border-radius:15px;background:linear-gradient(110deg,#183653,#168c85);font-size:13px;box-shadow:0 8px 20px rgba(22,140,133,.2)}
+#substitutionView #substitutionAbsenteeList{display:grid;grid-template-columns:1fr;gap:8px;margin-top:12px}
+#substitutionView #substitutionAbsenteeList>label{min-height:64px;padding:12px;border:1px solid rgba(148,163,184,.22);border-radius:17px;background:rgba(255,255,255,.82);box-shadow:0 4px 12px rgba(24,54,83,.035);transition:border-color .2s,background .2s,transform .2s}
+#substitutionView #substitutionAbsenteeList>label:has(input:checked){border-color:rgba(22,140,133,.48);background:rgba(22,140,133,.075)}
+#substitutionView #substitutionAbsenteeList input[type=checkbox]{width:20px;height:20px;accent-color:var(--subx-teal)}
+.dark #substitutionView #substitutionAbsenteeList>label{background:#182b3e;border-color:#31465a}
+#substitutionView .subx-search-wrap{display:flex;align-items:center;gap:9px;margin-top:12px;padding:0 12px;border:1px solid rgba(148,163,184,.25);border-radius:14px;background:#f7fafc}
+.dark #substitutionView .subx-search-wrap{background:#102033;border-color:#34465a}
+#substitutionView .subx-search-wrap input{width:100%;min-height:46px;border:0;outline:0;background:transparent;font-size:12px;color:var(--subx-ink)}
+#substitutionView .subx-search-wrap kbd{font-size:9px;color:#91a0af}
+#substitutionView #substitutionPlanPanel{margin-top:10px}
+#substitutionView #substitutionPlanAssignments{display:grid;gap:12px}
+#substitutionView #substitutionPlanAssignments>div{border-radius:22px;box-shadow:0 8px 22px rgba(24,54,83,.055)}
+#substitutionView #substitutionPlanAssignments [data-substitution-row]{min-height:46px;border-radius:13px;border-color:rgba(148,163,184,.3);background:#f7fafc;font-size:12px}
+.dark #substitutionView #substitutionPlanAssignments [data-substitution-row]{background:#13263a;color:#e5edf5}
+#substitutionView #substitutionUnassigned:not(.hidden){padding:14px 16px;border-radius:18px;background:linear-gradient(120deg,#fff7e5,#fffaf0);border-color:#efd59c;color:#855d15;font-weight:800;animation:subxSoftPulse 2.8s ease-in-out infinite}
+.dark #substitutionView #substitutionUnassigned:not(.hidden){background:rgba(213,166,74,.1);color:#f2d58d;border-color:rgba(213,166,74,.3)}
+#substitutionView #substitutionStatsContent{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;border:0!important;background:transparent!important;padding:0!important;box-shadow:none!important}
+#substitutionView #substitutionStatsContent>*{min-width:0;border-radius:20px}
+#substitutionView .subx-report-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+#substitutionView .subx-report-actions button{min-height:58px;justify-content:center;border-radius:17px;font-size:12px}
+#substitutionView .subx-report-note{margin-top:12px;padding:12px;border-radius:14px;background:rgba(22,140,133,.07);color:var(--subx-muted);font-size:10px}
+#substitutionView .subx-empty-state{display:grid;justify-items:center;gap:8px;padding:28px 18px;border:1px dashed rgba(148,163,184,.35);border-radius:20px;text-align:center;color:var(--subx-muted)}
+#substitutionView .subx-empty-state i{font-size:27px;color:var(--subx-teal)}#substitutionView .subx-empty-state b{color:var(--subx-ink);font-size:14px}
+#substitutionView .subx-empty-state p{margin:0;font-size:11px}
+#substitutionView #substitutionDate{min-height:48px;border-radius:14px;font-family:'Tajawal',sans-serif}
+#substitutionView #substitutionDate~p{font-size:11px}
+#substitutionView #substitutionOtherDepartmentsWrap{margin-top:12px;padding:14px;border-radius:18px;border:1px solid rgba(22,140,133,.2);background:rgba(22,140,133,.055)}
+#substitutionView #substitutionOtherDepartmentSelect{min-height:46px;border-radius:12px}
+#substitutionView #substitutionOtherTeacherChoices{max-height:250px;overflow:auto;border-radius:14px}
+#substitutionView .subx-floating-bar{display:none!important}
+#substitutionView .subx-tab-hidden{display:none!important}
+#substitutionView [hidden]{display:none!important}
+@keyframes subxSheetIn{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:translateY(0)}}
+@keyframes subxSoftPulse{0%,100%{box-shadow:0 0 0 0 rgba(213,166,74,.05)}50%{box-shadow:0 0 0 5px rgba(213,166,74,.09)}}
+@media(min-width:700px){#substitutionView{padding:18px 22px 100px!important}#substitutionView .subx-hero-card{max-width:980px;margin:0 auto;padding:24px}#substitutionView .subx-live-stats{max-width:620px}#substitutionView #substitutionAbsenteeList{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-bottom-sheet{max-height:88dvh}#substitutionView .subx-sheet-backdrop{align-items:center}}
+@media(min-width:1100px){#substitutionView .subx-hero-card{max-width:1080px}#substitutionView #substitutionAbsenteeList{grid-template-columns:repeat(3,minmax(0,1fr))}#substitutionView .subx-bottom-nav{bottom:18px}}
+@media(max-width:380px){#substitutionView{padding:8px 8px 88px!important}#substitutionView .subx-hero-card{padding:14px;border-radius:22px}#substitutionView .subx-stat-chip{gap:5px;padding:7px}#substitutionView .subx-stat-icon{width:28px;height:28px;flex-basis:28px}#substitutionView .subx-stat-chip b{font-size:16px}#substitutionView .subx-stat-chip small{font-size:8px}#substitutionView .subx-step{gap:4px}#substitutionView .subx-step b{font-size:9px}#substitutionView .subx-step small{font-size:8px}#substitutionView .subx-bottom-nav{width:calc(100vw - 16px)}}
+@media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+</style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
-  <div class="subx-toolbar">
-    <div class="subx-toolbar-top"><div><span class="subx-eyebrow">مساحة العمل الذكية</span><h3>إدارة التوزيع اليومي</h3><p>اختر الغياب، راجع الاقتراح، ثم اعتمد بثقة.</p></div><div class="subx-header-actions"><button type="button" id="subxRulesToggle" class="subx-rules-trigger"><i class="fa-solid fa-scale-balanced"></i><span>⚖️ عدالة التوزيع واحتساب النقاط</span></button><button type="button" class="subx-back-home" onclick="closeSubstitutionView()"><i class="fa-solid fa-arrow-right"></i><span>العودة للرئيسية</span></button></div></div>
-    <div class="subx-tabs" role="tablist" aria-label="أقسام لوحة الاحتياط"><button type="button" class="subx-tab is-active" data-subx-tab="daily" role="tab" aria-selected="true"><i class="fa-solid fa-calendar-day"></i> التوزيع اليومي</button><button type="button" class="subx-tab" data-subx-tab="stats" role="tab" aria-selected="false"><i class="fa-solid fa-chart-column"></i> سجل النقاط والإحصائيات</button></div>
-    <div class="subx-stepper" aria-label="مراحل التوزيع"><div class="subx-step is-current" id="subxStep1"><span>١</span><div><b>الاختيار</b><small>تحديد الغياب</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep2"><span>٢</span><div><b>المراجعة</b><small>فحص الاقتراح</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep3"><span>٣</span><div><b>الاعتماد</b><small>حفظ ومشاركة</small></div></div></div>
+  <!-- واجهة رئيسية جديدة؛ تبقى قواعد العمل والأحداث الأصلية كما هي. -->
+  <header class="subx-appbar">
+    <button type="button" class="subx-icon-btn" onclick="closeSubstitutionView()" aria-label="العودة"><i class="fa-solid fa-arrow-right"></i></button>
+    <div class="subx-appbar-title"><span>مساحة العمل المدرسية</span><h2>توزيع الاحتياط</h2></div>
+    <button type="button" id="subxRulesToggle" class="subx-icon-btn subx-balance-btn" aria-label="قواعد العدالة" title="قواعد العدالة"><i class="fa-solid fa-scale-balanced"></i></button>
+  </header>
+  <nav class="subx-bottom-nav" role="tablist" aria-label="أقسام توزيع الاحتياط">
+    <button type="button" class="subx-nav-item is-active" data-subx-tab="daily" role="tab" aria-selected="true"><i class="fa-solid fa-calendar-day"></i><span>التوزيع</span></button>
+    <button type="button" class="subx-nav-item" data-subx-tab="history" role="tab" aria-selected="false"><i class="fa-solid fa-clock-rotate-left"></i><span>السجل</span></button>
+    <button type="button" class="subx-nav-item" data-subx-tab="stats" role="tab" aria-selected="false"><i class="fa-solid fa-chart-pie"></i><span>الإحصائيات</span></button>
+    <button type="button" class="subx-nav-item" data-subx-tab="reports" role="tab" aria-selected="false"><i class="fa-solid fa-file-lines"></i><span>التقارير</span></button>
+  </nav>
+  <div class="subx-stepper" aria-label="مراحل التوزيع">
+    <div class="subx-step is-current" id="subxStep1"><span>١</span><div><b>الاختيار</b><small>تحديد الغياب</small></div></div><i class="subx-step-line"></i>
+    <div class="subx-step" id="subxStep2"><span>٢</span><div><b>المراجعة</b><small>فحص الاقتراح</small></div></div><i class="subx-step-line"></i>
+    <div class="subx-step" id="subxStep3"><span>٣</span><div><b>الاعتماد</b><small>حفظ ومشاركة</small></div></div>
   </div>
   <div id="subxRulesDrawer" class="subx-rules-drawer" hidden>
     <div class="subx-rules-head">
@@ -2299,6 +2434,36 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
     <p class="subx-rules-note">هذه اللوحة للشرح والشفافية فقط؛ لم تتغير خوارزمية الترشيح أو احتساب النقاط أو قواعد الحفظ.</p>
   </div>
+  <!-- لوحة اليوم: موجزة ومضغوطة، مع إبقاء التاريخ الفعلي في نافذة التقويم. -->
+  <section id="subxDistributionPane" class="subx-pane" data-subx-pane="daily">
+    <div class="subx-hero-card">
+      <div class="subx-hero-copy"><span class="subx-eyebrow">ملخص اليوم الدراسي</span><h1>ما المطلوب إنجازه الآن؟</h1><p>ابدأ بتحديد الغياب، وسنرتب لك خطوات التوزيع.</p></div>
+      <button type="button" class="subx-date-launch" id="subxOpenCalendar"><span class="subx-date-icon"><i class="fa-solid fa-calendar-days"></i></span><span><b id="subxDateHeadline">تاريخ التوزيع</b><small id="subxDateSubline">اضغط لاختيار اليوم</small></span><i class="fa-solid fa-chevron-left"></i></button>
+      <div class="subx-quick-dates" aria-label="اختيار تاريخ سريع">
+        <button type="button" data-subx-date-offset="-1">أمس</button><button type="button" data-subx-date-offset="0" class="is-today">اليوم</button><button type="button" data-subx-date-offset="1">غداً</button>
+      </div>
+      <p id="subxWeekendNote" class="subx-weekend-note" hidden><i class="fa-solid fa-circle-info"></i> الدراسة من الأحد إلى الخميس. يمكنك اختيار تاريخ آخر عند الحاجة.</p>
+      <div class="subx-live-stats">
+        <div class="subx-stat-chip"><span class="subx-stat-icon stat-rose"><i class="fa-solid fa-user-minus"></i></span><div><b id="subxAbsenteeMetric">0</b><small>غائبون</small></div></div>
+        <div class="subx-stat-chip"><span class="subx-stat-icon stat-amber"><i class="fa-solid fa-hourglass-half"></i></span><div><b id="subxPendingMetric">—</b><small>تحتاج بديلاً</small></div></div>
+        <div class="subx-stat-chip"><span class="subx-stat-icon stat-green"><i class="fa-solid fa-circle-check"></i></span><div><b id="subxAssignedMetric">—</b><small>موزعة</small></div></div>
+      </div>
+      <div class="subx-last-saved" id="subxLastSaved"><i class="fa-solid fa-clock"></i><span>آخر توزيع محفوظ اليوم</span><small>سيظهر هنا بعد الاعتماد</small></div>
+      <button type="button" class="subx-primary-cta" id="subxOpenAbsentees"><i class="fa-solid fa-plus"></i> تسجيل غياب معلم <span>ابدأ التوزيع</span></button>
+    </div>
+    <div class="subx-next-step-hint"><i class="fa-solid fa-sparkles"></i><span>اختر المعلمين الغائبين أولاً، ثم راجع البدلاء واعتمد التوزيع.</span></div>
+  </section>
+  <section id="subxHistoryPane" class="subx-pane" data-subx-pane="history" hidden>
+    <div class="subx-pane-heading"><span class="subx-section-icon"><i class="fa-solid fa-clock-rotate-left"></i></span><div><h3>السجل والتوزيعات</h3><p>راجع تفاصيل التوزيع الحالي والتكليفات المحفوظة التي يسمح النظام بعرضها.</p></div></div>
+    <div id="subxHistoryMount"></div>
+    <div id="subxHistoryEmpty" class="subx-empty-state"><i class="fa-solid fa-calendar-check"></i><b>لا يوجد سجل معروض بعد</b><p>أنشئ التوزيع المقترح لعرض التكليفات الحالية وما يرتبط بها من سجلات محفوظة.</p></div>
+  </section>
+  <section id="subxStatsPane" class="subx-pane" data-subx-pane="stats" hidden><div id="subxStatsMount"></div></section>
+  <section id="subxReportsPane" class="subx-pane" data-subx-pane="reports" hidden>
+    <div class="subx-pane-heading"><span class="subx-section-icon"><i class="fa-solid fa-file-export"></i></span><div><h3>التقارير والتصدير</h3><p>أدوات الطباعة والمشاركة في مكان واحد بعيداً عن شاشة التوزيع.</p></div></div>
+    <div class="subx-report-actions" id="subxReportActions"></div>
+    <p class="subx-report-note"><i class="fa-solid fa-shield-halved"></i> تستخدم هذه الأزرار بيانات التوزيع الحالية وآليات التصدير الأصلية دون تغيير.</p>
+  </section>
   <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
     <div class="subx-date-card rounded-3xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-700 dark:bg-slate-900">
       <label for="substitutionDate" class="mb-2 block text-xs font-black text-slate-700 dark:text-slate-200">اليوم والتاريخ</label>
@@ -2349,37 +2514,133 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     <div class="flex items-center justify-between gap-2"><div><h3 class="text-base font-black text-slate-900 dark:text-white"><i class="fa-solid fa-chart-line ml-2 text-cyan-600"></i>نقاط الاحتياط والإحصائيات</h3><p class="mt-1 text-[10px] text-slate-500 dark:text-slate-400">رصيدك وتوزيع حصص الاحتياط من الأولى إلى الثامنة.</p></div><button type="button" onclick="substitutionLoadStats()" class="rounded-xl border border-slate-200 px-3 py-2 text-[10px] font-black text-slate-600 dark:border-slate-700 dark:text-slate-300"><i class="fa-solid fa-rotate ml-1"></i>تحديث</button></div>
     <div id="substitutionStatsContent" class="rounded-3xl border border-slate-200 bg-white p-4 text-xs text-slate-400 shadow-sm dark:border-slate-700 dark:bg-slate-900">جارٍ تحميل الإحصائيات...</div>
   </div>
+  <!-- نوافذ سفلية مستقلة؛ عناصر الإدخال الأصلية تُنقل إليها دون استنساخ أو تغيير معرّفاتها. -->
+  <div class="subx-sheet-backdrop" id="subxCalendarSheet" hidden>
+    <section class="subx-bottom-sheet" role="dialog" aria-modal="true" aria-labelledby="subxCalendarTitle">
+      <div class="subx-sheet-grabber"></div><div class="subx-sheet-head"><div><span class="subx-eyebrow">تحديد يوم العمل</span><h3 id="subxCalendarTitle">اختر تاريخ التوزيع</h3></div><button type="button" class="subx-sheet-close" data-subx-close-sheet aria-label="إغلاق">×</button></div>
+      <div id="subxDateMount"></div>
+    </section>
+  </div>
+  <div class="subx-sheet-backdrop" id="subxAbsenteeSheet" hidden>
+    <section class="subx-bottom-sheet subx-sheet-tall" role="dialog" aria-modal="true" aria-labelledby="subxAbsenteeTitle">
+      <div class="subx-sheet-grabber"></div><div class="subx-sheet-head"><div><span class="subx-eyebrow">الخطوة الأولى</span><h3 id="subxAbsenteeTitle">اختيار المعلمين الغائبين</h3><p>ابحث وحدد الغياب، ثم أنشئ الاقتراح.</p></div><button type="button" class="subx-sheet-close" data-subx-close-sheet aria-label="إغلاق">×</button></div>
+      <div class="subx-sheet-scroll" id="subxAbsenteeMount"></div>
+      <div class="subx-sheet-footer"><div class="subx-sheet-footer-meta"><b id="subxSheetSelectedCount">0</b><span>معلم محدد</span></div><div id="subxGenerateDock"></div></div>
+    </section>
+  </div>
+  <div class="subx-sheet-backdrop" id="subxRulesSheet" hidden>
+    <section class="subx-bottom-sheet subx-sheet-tall" role="dialog" aria-modal="true" aria-labelledby="subxRulesTitle">
+      <div class="subx-sheet-grabber"></div><div class="subx-sheet-head"><div><span class="subx-eyebrow">شفافية وتوازن وإنصاف</span><h3 id="subxRulesTitle">قواعد العدالة والنقاط</h3></div><button type="button" class="subx-sheet-close" data-subx-close-sheet aria-label="إغلاق">×</button></div>
+      <div id="subxRulesMount"></div>
+    </section>
+  </div>
   <div id="subxFloatingBar" class="subx-floating-bar" aria-live="polite"><div class="subx-floating-copy"><span class="subx-floating-dot"></span><div><b>جاهز لإنشاء التوزيع؟</b><small id="subxSelectedSummary">لم يتم تحديد أي معلم بعد</small></div></div><div id="subxGenerateDock"></div></div>
 </section>
 <script id="substitution-cinematic-interactions">
 (function(){
- const root=document.getElementById('substitutionView');if(!root||root.dataset.subxEnhanced==='yes')return;root.dataset.subxEnhanced='yes';
- const $=q=>root.querySelector(q),tabs=Array.from(root.querySelectorAll('[data-subx-tab]')),stats=$('#substitutionStatsPanel'),dateGrid=$('#substitutionDate')?.closest('.grid'),absenteeCard=$('#substitutionAbsenteeList')?.closest('.rounded-3xl'),plan=$('#substitutionPlanPanel'),search=$('#subxTeacherSearch'),floating=$('#subxFloatingBar'),generate=$('#substitutionGenerateButton'),dock=$('#subxGenerateDock'),summary=$('#subxSelectedSummary'),rules=$('#subxRulesDrawer');let activeTab='daily';
- if(generate&&dock&&!dock.contains(generate))dock.appendChild(generate);
- function updateFloating(){
-  const checked=Array.from(root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked'));
-  if(summary)summary.textContent=checked.length?checked.length+' معلم محدد للتوزيع':'لم يتم تحديد أي معلم بعد';
-  if(floating)floating.classList.toggle('is-visible',activeTab==='daily'&&checked.length>0);
-  const hasPlan=!!plan&&!plan.classList.contains('hidden'),saved=(($('#substitutionSaveStatus')?.textContent)||'').includes('تم حفظ');
-  $('#subxStep1')?.classList.toggle('is-current',!hasPlan);$('#subxStep1')?.classList.toggle('is-done',hasPlan);
-  $('#subxStep2')?.classList.toggle('is-current',hasPlan&&!saved);$('#subxStep2')?.classList.toggle('is-done',saved);
-  $('#subxStep3')?.classList.toggle('is-current',saved);$('#subxStep3')?.classList.toggle('is-done',saved);
+ const root=document.getElementById('substitutionView');
+ if(!root||root.dataset.subxEnhancedV2==='yes')return;
+ root.dataset.subxEnhancedV2='yes';
+ const $=id=>document.getElementById(id);
+ const dateGrid=$('substitutionDate')?.closest('.grid');
+ const dateCard=$('substitutionDate')?.closest('.subx-date-card');
+ const absenteeCard=$('substitutionAbsenteeList')?.closest('.rounded-3xl');
+ const otherWrap=$('substitutionOtherDepartmentsWrap');
+ const plan=$('substitutionPlanPanel');
+ const stats=$('substitutionStatsPanel');
+ const rules=$('subxRulesDrawer');
+ const generate=$('substitutionGenerateButton');
+ const reportActions=$('subxReportActions');
+ const tabs=[...root.querySelectorAll('[data-subx-tab]')];
+ let activeTab='daily',moving=false;
+ function move(node,target){if(node&&target&&!target.contains(node))target.appendChild(node);}
+ move(dateCard,$('subxDateMount'));
+ if(dateGrid)dateGrid.hidden=true;
+ move(absenteeCard,$('subxAbsenteeMount'));
+ move(stats,$('subxStatsMount'));
+ move(plan,$('subxHistoryMount'));
+ if(otherWrap&&plan){
+   const details=document.createElement('details');details.className='subx-other-department-details';
+   details.innerHTML='<summary><i class="fa-solid fa-people-arrows-left-right"></i><span>معلم من قسم آخر</span><i class="fa-solid fa-chevron-down"></i></summary><div class="subx-other-department-body"><button type="button" class="subx-other-back">← عودة لقائمة القسم</button><div class="subx-other-department-slot"></div></div>';
+   details.querySelector('.subx-other-back').addEventListener('click',()=>{details.open=false;});
+   plan.insertBefore(details,plan.querySelector('#substitutionUnassigned')||plan.firstChild);
+   move(otherWrap,details.querySelector('.subx-other-department-slot'));
+   const sync=()=>{details.hidden=otherWrap.classList.contains('hidden');};
+   new MutationObserver(sync).observe(otherWrap,{attributes:true,attributeFilter:['class']});sync();
  }
+ if(generate)move(generate,$('subxGenerateDock'));
+ ['substitutionPdfButton','substitutionWhatsappButton'].forEach(id=>move($(id),reportActions));
+ if($('substitutionSaveButton'))$('substitutionSaveButton').classList.add('subx-save-primary');
+ function openSheet(id){const el=$(id);if(!el)return;el.hidden=false;document.body.classList.add('subx-sheet-open');}
+ function closeSheets(){root.querySelectorAll('.subx-sheet-backdrop').forEach(el=>el.hidden=true);document.body.classList.remove('subx-sheet-open');}
  function setTab(name){
-  activeTab=name==='stats'?'stats':'daily';const isStats=activeTab==='stats';
-  tabs.forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
-  [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',isStats));stats?.classList.toggle('hidden',!isStats);updateFloating();
-  if(isStats&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
+   activeTab=name;
+   tabs.forEach(t=>{const on=t.dataset.subxTab===name;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
+   root.querySelectorAll('[data-subx-pane]').forEach(p=>p.hidden=p.dataset.subxPane!==name);
+   if(name==='stats'&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
+   if(name==='history'){$('subxHistoryEmpty').hidden=!!(plan&&!plan.classList.contains('hidden'));}
+   updateMetrics();
  }
  tabs.forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.subxTab)));
- $('#subxRulesToggle')?.addEventListener('click',()=>{if(rules)rules.hidden=!rules.hidden;});$('#subxRulesClose')?.addEventListener('click',()=>{if(rules)rules.hidden=true;});
- search?.addEventListener('input',()=>{const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));});
- root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateFloating();});
- const observer=new MutationObserver(updateFloating);if(plan)observer.observe(plan,{attributes:true,attributeFilter:['class']});
- const status=$('#substitutionSaveStatus');if(status)observer.observe(status,{childList:true,characterData:true,subtree:true});
- const list=$('#substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateFloating();}).observe(list,{childList:true,subtree:true});
- root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('button[onclick="substitutionToggleAllAbsentees()"]'))setTimeout(updateFloating,100);});
- setTab('daily');updateFloating();
+ $('subxOpenCalendar')?.addEventListener('click',()=>openSheet('subxCalendarSheet'));
+ $('subxOpenAbsentees')?.addEventListener('click',()=>openSheet('subxAbsenteeSheet'));
+ $('subxRulesToggle')?.addEventListener('click',()=>openSheet('subxRulesSheet'));
+ $('subxRulesMount')?.appendChild(rules);
+ root.querySelectorAll('[data-subx-close-sheet]').forEach(b=>b.addEventListener('click',closeSheets));
+ root.querySelectorAll('.subx-sheet-backdrop').forEach(backdrop=>backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeSheets();}));
+ document.addEventListener('keydown',e=>{if(e.key==='Escape')closeSheets();});
+ function localDate(d){const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return y+'-'+m+'-'+day;}
+ function updateDateLabels(){
+   const input=$('substitutionDate');if(!input?.value)return;
+   const d=new Date(input.value+'T12:00:00');
+   const weekday=new Intl.DateTimeFormat('ar-OM',{weekday:'long'}).format(d);
+   const full=new Intl.DateTimeFormat('ar-OM',{day:'numeric',month:'long',year:'numeric'}).format(d);
+   const today=localDate(new Date());
+   $('subxDateHeadline').textContent=input.value===today?'اليوم · '+weekday:weekday;
+   $('subxDateSubline').textContent=full;
+   const weekend=d.getDay()===5||d.getDay()===6;
+   $('subxWeekendNote').hidden=!weekend;
+   root.querySelectorAll('[data-subx-date-offset]').forEach(b=>b.classList.toggle('is-today',Number(b.dataset.subxDateOffset)===0));
+ }
+ function setDateOffset(offset){
+   const input=$('substitutionDate');if(!input)return;
+   const base=input.value?new Date(input.value+'T12:00:00'):new Date();
+   base.setDate(base.getDate()+Number(offset));
+   input.value=localDate(base);updateDateLabels();closeSheets();
+   if(typeof window.substitutionDateChanged==='function')window.substitutionDateChanged();
+ }
+ root.querySelectorAll('[data-subx-date-offset]').forEach(b=>b.addEventListener('click',()=>setDateOffset(b.dataset.subxDateOffset)));
+ $('substitutionDate')?.addEventListener('change',()=>{updateDateLabels();});
+ const search=$('subxTeacherSearch');
+ search?.addEventListener('input',()=>{
+   const term=search.value.trim().toLocaleLowerCase();
+   root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));
+ });
+ function updateMetrics(){
+   const selected=root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked').length;
+   $('subxAbsenteeMetric').textContent=String(selected);
+   $('subxSheetSelectedCount').textContent=String(selected);
+   const assigned=root.querySelectorAll('#substitutionPlanAssignments select[data-substitution-row]').length;
+   $('subxAssignedMetric').textContent=String(assigned||'—');
+   const unassigned=$('substitutionUnassigned');
+   const pending=unassigned&&!unassigned.classList.contains('hidden')?(unassigned.textContent.match(/[0-9٠-٩]+/)||[])[0]:'—';
+   $('subxPendingMetric').textContent=pending||'—';
+   $('substitutionSelectedCount')?.setAttribute('aria-live','polite');
+   const status=$('substitutionSaveStatus')?.textContent||'';
+   if(status.includes('تم حفظ')){$('subxLastSaved').querySelector('small').textContent='تم اعتماد التوزيع بنجاح';}
+ }
+ root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateMetrics();});
+ const observer=new MutationObserver(()=>{
+   updateMetrics();
+   if(plan&&!plan.classList.contains('hidden')&&activeTab==='daily')setTab('history');
+ });
+ if(plan)observer.observe(plan,{attributes:true,attributeFilter:['class']});
+ const status=$('substitutionSaveStatus');if(status)new MutationObserver(updateMetrics).observe(status,{childList:true,characterData:true,subtree:true});
+ const list=$('substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateMetrics();}).observe(list,{childList:true});
+ $('subxRulesClose')?.addEventListener('click',closeSheets);
+ const countObserver=new MutationObserver(updateMetrics);if($('substitutionPlanAssignments'))countObserver.observe($('substitutionPlanAssignments'),{childList:true,subtree:true});
+ if(!$('substitutionDate')?.value&&typeof window.getOmanLocalDate==='function')$('substitutionDate').value=window.getOmanLocalDate();
+ updateDateLabels();updateMetrics();setTab('daily');
 })();
 </script><style id="substitution-tab-visibility">#substitutionView .subx-tab-hidden{display:none!important}</style>
 
