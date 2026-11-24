@@ -11,6 +11,8 @@
   let reserveDraftScope = "";
   let reserveOtherDepartmentId = "";
   let reserveOtherDepartments = [];
+  let reserveSelectedOtherDepartmentIds = new Set();
+  let reserveSelectedOtherTeachersByDepartment = new Map();
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
@@ -32,7 +34,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames],otherDepartmentSelections:otherDepartmentSelectionsPayload()}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -49,10 +51,15 @@
       reserveLastAbsentSignature=timetableDailyAbsentTeachers.join("\u0000");
       const otherToggle=$("timetableSubstitutionOtherDepartments");
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
-      const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
-      if(saved.otherDepartmentId)reserveOtherDepartmentId=String(saved.otherDepartmentId);
-      reserveSelectedOtherTeacherNames=new Set(Array.isArray(saved.otherTeacherNames)?saved.otherTeacherNames.map(String):[]);
-      if(otherDepartmentSelect&&saved.otherDepartmentId)otherDepartmentSelect.value=saved.otherDepartmentId;
+      if(Array.isArray(saved.otherDepartmentSelections)&&saved.otherDepartmentSelections.length){
+        reserveSelectedOtherDepartmentIds=new Set(saved.otherDepartmentSelections.map(item=>String(item?.departmentId||"")).filter(Boolean));
+        reserveSelectedOtherTeachersByDepartment=new Map(saved.otherDepartmentSelections.map(item=>[String(item?.departmentId||""),new Set(Array.isArray(item?.teacherNames)?item.teacherNames.map(String):[])]));
+      }else if(saved.otherDepartmentId){
+        reserveOtherDepartmentId=String(saved.otherDepartmentId);
+        reserveSelectedOtherDepartmentIds=new Set([reserveOtherDepartmentId]);
+        reserveSelectedOtherTeachersByDepartment=new Map([[reserveOtherDepartmentId,new Set(Array.isArray(saved.otherTeacherNames)?saved.otherTeacherNames.map(String):[])]]);
+      }
+      reserveSelectedOtherTeacherNames=new Set([...reserveSelectedOtherTeachersByDepartment.values()].flatMap(names=>[...names]));
       const otherButton=$("timetableDailyOtherDepartmentsButton");
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
         ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
@@ -70,7 +77,7 @@
   const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
   const reserveReasonKey = (name, period) => String(name) + "::" + Number(period);
   function currentDraftScope() {
-    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+selectedOtherDepartmentId():"department"].join("|"); }
+    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+otherDepartmentSelectionsPayload().map(item=>item.departmentId+":"+item.teacherNames.join(",")).join(";"):"department"].join("|"); }
     catch { return ""; }
   }
   function currentPlanRows(response) {
@@ -90,7 +97,16 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
-  const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||reserveOtherDepartmentId||"").trim();
+  const selectedOtherDepartmentId = () => [...reserveSelectedOtherDepartmentIds][0]||reserveOtherDepartmentId||"";
+  function otherDepartmentSelectionsPayload(){
+    return [...reserveSelectedOtherDepartmentIds].map(departmentId=>({
+      departmentId,
+      teacherNames:[...(reserveSelectedOtherTeachersByDepartment.get(departmentId)||new Set())]
+    }));
+  }
+  function syncOtherTeacherNameSet(){
+    reserveSelectedOtherTeacherNames=new Set([...reserveSelectedOtherTeachersByDepartment.values()].flatMap(names=>[...names]));
+  }
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
     if(!button)return;
@@ -104,32 +120,41 @@
     document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyPrintReport],#timetableSubstitutionPanel button[onclick*=timetableDailyShareWhatsApp]").forEach(control=>control.classList.toggle("hidden",!reportsReady));
   }
   function renderOtherDepartmentTeachers() {
-    const host=$("timetableDailyOtherTeacherChoices"), add=$("timetableDailyAddOtherTeachersButton");
-    if(!host)return;
-    const department=reserveOtherDepartments.find(item=>String(item.id)===selectedOtherDepartmentId());
-    const teachers=Array.isArray(department?.teachers)?department.teachers:[];
-    host.innerHTML=department ? (teachers.length ? teachers.map(teacher=>
-      '<label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs font-semibold"><input type="checkbox" class="h-4 w-4" data-other-teacher-name="'+esc(teacher.name)+'"'+(reserveSelectedOtherTeacherNames.has(String(teacher.name))?" checked":"")+'><span>'+esc(teacher.name)+'</span></label>'
-    ).join("") : '<p class="text-xs text-slate-500">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>') : '<p class="text-xs text-slate-500">اختر القسم لعرض معلميه.</p>';
-    if(add)add.disabled=!department||teachers.length===0;
+    const departmentHost=$("timetableDailyOtherDepartmentChoices");
+    const teacherHost=$("timetableDailyOtherTeacherChoices");
+    const add=$("timetableDailyAddOtherTeachersButton");
+    if(!departmentHost||!teacherHost)return;
+    departmentHost.innerHTML=reserveOtherDepartments.length?reserveOtherDepartments.map(department=>{
+      const id=String(department.id),selected=reserveSelectedOtherDepartmentIds.has(id);
+      const count=Array.isArray(department.teachers)?department.teachers.length:0;
+      return '<label class="flex min-w-0 cursor-pointer items-center gap-3 rounded-2xl border p-3 transition '+(selected?'border-indigo-400 bg-indigo-50 shadow-sm':'border-slate-200 bg-white hover:border-indigo-200')+'">'+
+        '<input type="checkbox" class="h-5 w-5 accent-indigo-700" data-other-department-id="'+esc(id)+'"'+(selected?' checked':'')+'>'+
+        '<span class="min-w-0 flex-1"><strong class="block text-sm font-black text-slate-800">'+esc(department.name)+'</strong><small class="text-[10px] text-slate-500">'+count+' معلم في الجدول النشط</small></span>'+
+        '<i class="fa-solid fa-chevron-left text-slate-400"></i></label>';
+    }).join(""):'<p class="rounded-xl bg-white p-3 text-xs text-slate-500">لا توجد أقسام مساندة متاحة في الجدول النشط.</p>';
+    const selectedDepartments=reserveOtherDepartments.filter(item=>reserveSelectedOtherDepartmentIds.has(String(item.id)));
+    teacherHost.innerHTML=selectedDepartments.length?selectedDepartments.map(department=>{
+      const id=String(department.id),teachers=Array.isArray(department.teachers)?department.teachers:[];
+      const selected=reserveSelectedOtherTeachersByDepartment.get(id)||new Set();
+      return '<section class="rounded-2xl border border-slate-200 bg-white p-3"><div class="mb-2 flex items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">'+esc(department.name)+'</strong><span class="rounded-full bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-700">'+selected.size+' محدد</span></div>'+
+        (teachers.length?'<div class="grid gap-2 sm:grid-cols-2">'+teachers.map(teacher=>'<label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-100 bg-slate-50 p-3 text-xs font-semibold"><input type="checkbox" class="h-5 w-5 accent-indigo-700" data-other-teacher-name="'+esc(teacher.name)+'" data-other-teacher-department="'+esc(id)+'"'+(selected.has(String(teacher.name))?' checked':'')+'><span>'+esc(teacher.name)+'</span></label>').join("")+'</div>':'<p class="text-xs text-slate-500">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>')+'</section>';
+    }).join(""):'<p class="rounded-xl border border-dashed border-slate-300 bg-white p-4 text-center text-xs text-slate-500">اختر تخصصًا واحدًا أو أكثر لعرض المعلمين المتاحين.</p>';
+    if(add)add.disabled=selectedDepartments.length===0||!otherDepartmentSelectionsPayload().some(item=>item.teacherNames.length);
   }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
     const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
-    const select=$("timetableDailyOtherDepartmentSelect");
-    if(!select)return;
     reserveOtherDepartments=Array.isArray(result.departments)?result.departments:[];
-    const current=reserveOtherDepartmentId||selectedOtherDepartmentId();
-    select.innerHTML='<option value="">اختر المادة / القسم المساند</option>'+
-      reserveOtherDepartments.map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
-    if(current && reserveOtherDepartments.some(item=>item.id===current)){select.value=current;reserveOtherDepartmentId=current;}
+    reserveSelectedOtherDepartmentIds=new Set([...reserveSelectedOtherDepartmentIds].filter(id=>reserveOtherDepartments.some(item=>String(item.id)===id)));
+    for(const id of [...reserveSelectedOtherTeachersByDepartment.keys()])if(!reserveSelectedOtherDepartmentIds.has(id))reserveSelectedOtherTeachersByDepartment.delete(id);
+    syncOtherTeacherNameSet();
     renderOtherDepartmentTeachers();
   }
 
   function reserveCurrentMuscatDate(){
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
-  const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"];
+  const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
     const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
@@ -157,8 +182,7 @@
       const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
       const error=modal.querySelector("#ttAbsenceReasonError");
       if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
-      if(choice==="أخرى"&&!custom){error.textContent="اكتب سبب الغياب عند اختيار «أخرى».";error.classList.remove("hidden");modal.querySelector("#ttAbsenceReasonOther")?.focus();return;}
-      const value=choice==="أخرى"?"أخرى: "+custom:choice;
+      const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;
       if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
@@ -273,11 +297,7 @@
             await loadOtherDepartments();
             $("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");
             button.innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
-            if(!selectedOtherDepartmentId()){
-              status("اختر القسم المساند أولاً؛ لن تظهر أسماء المعلمين قبل اختيار القسم.","info");
-              $("timetableDailyOtherDepartmentSelect")?.focus();return;
-            }
-            await timetableDailyRefreshAll();
+            status("اختر تخصصًا واحدًا أو أكثر، ثم حدد المعلمين الذين ترغب في الاستعانة بهم.","info");
           }catch(error){
             toggle.checked=false;
             if(select){select.value="";select.closest("label")?.classList.add("hidden");}
@@ -288,28 +308,41 @@
           return;
         }
         toggle.checked=false;
-        if(select){select.value="";select.closest("label")?.classList.add("hidden");}
-        reserveOtherDepartmentId="";reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
+        reserveOtherDepartmentId="";reserveSelectedOtherDepartmentIds=new Set();reserveSelectedOtherTeachersByDepartment=new Map();reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
         button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
         await timetableDailyRefreshAll();
       });
-      const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[220px] text-[10px] font-bold text-slate-600"><label class="block"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" class="w-full rounded-xl border border-indigo-200 bg-white p-2 text-xs"><option value="">اختر المادة / القسم المساند</option></select></label><section class="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3"><p class="mb-2 text-xs font-black text-slate-800">حدد المعلمين الذين ترغب في إضافتهم</p><div id="timetableDailyOtherTeacherChoices" class="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر القسم لعرض معلميه.</p></div><button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-lg bg-indigo-700 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50" disabled>إضافة المعلمين المحددين</button><p class="mt-2 text-[10px] text-slate-500">لن يُستخدم أي معلم قبل تحديده والضغط على زر الإضافة.</p></section></div>';
+      const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden mt-3 w-full rounded-3xl border border-indigo-100 bg-gradient-to-br from-indigo-50 to-white p-4 text-slate-700 shadow-sm"><div class="mb-3"><h4 class="text-sm font-black text-indigo-950">اختر التخصصات المساندة</h4><p class="mt-1 text-[11px] text-slate-600">يمكنك اختيار أكثر من تخصص، ثم تحديد معلم أو أكثر من كل تخصص.</p></div><div id="timetableDailyOtherDepartmentChoices" class="grid gap-2 sm:grid-cols-2"></div><div class="mt-4"><h4 class="mb-2 text-xs font-black text-slate-800">المعلمون المتاحون في التخصصات المختارة</h4><div id="timetableDailyOtherTeacherChoices" class="grid max-h-72 gap-3 overflow-y-auto"></div></div><button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-4 w-full rounded-2xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-md disabled:cursor-not-allowed disabled:opacity-50" disabled><i class="fa-solid fa-user-plus ml-2"></i> إضافة المعلمين المحددين إلى قائمة البدلاء</button><p class="mt-2 text-center text-[10px] text-slate-500">لن يدخل أي معلم من خارج قسمك في التوزيع إلا بعد تحديده وإضافته صراحةً.</p></div>';
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
-      $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",()=>{
-        reserveOtherDepartmentId=selectedOtherDepartmentId();reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";reserveDraftApproved=new Set();
-        reserveBatchPreview=null;reserveDraftAssignments=[];renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();
-        status("حدد المعلمين الذين تريد الاستعانة بهم من القسم المختار، ثم اضغط إضافة المعلمين المحددين.","info");
+      $("timetableDailyOtherDepartmentWrap")?.addEventListener("change",event=>{
+        const departmentInput=event.target.closest("[data-other-department-id]");
+        if(departmentInput){
+          const id=String(departmentInput.dataset.otherDepartmentId||"");
+          if(departmentInput.checked)reserveSelectedOtherDepartmentIds.add(id);
+          else{reserveSelectedOtherDepartmentIds.delete(id);reserveSelectedOtherTeachersByDepartment.delete(id);}
+          syncOtherTeacherNameSet();reserveDraftScope="";reserveDraftApproved=new Set();reserveBatchPreview=null;reserveDraftAssignments=[];
+          renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();return;
+        }
+        const teacherInput=event.target.closest("[data-other-teacher-name]");
+        if(teacherInput){
+          const id=String(teacherInput.dataset.otherTeacherDepartment||"");
+          const name=String(teacherInput.dataset.otherTeacherName||"");
+          const names=reserveSelectedOtherTeachersByDepartment.get(id)||new Set();
+          if(teacherInput.checked)names.add(name);else names.delete(name);
+          reserveSelectedOtherTeachersByDepartment.set(id,names);syncOtherTeacherNameSet();renderOtherDepartmentTeachers();
+        }
       });
       $("timetableDailyAddOtherTeachersButton")?.addEventListener("click",async()=>{
-        const selected=[...document.querySelectorAll("#timetableDailyOtherTeacherChoices [data-other-teacher-name]:checked")].map(input=>String(input.dataset.otherTeacherName||"")).filter(Boolean);
-        if(!selected.length){status("حدد معلماً واحداً على الأقل قبل الإضافة.","error");return;}
-        reserveSelectedOtherTeacherNames=new Set(selected);reserveDraftScope="";reserveDraftApproved=new Set();
+        syncOtherTeacherNameSet();
+        const selections=otherDepartmentSelectionsPayload().filter(item=>item.teacherNames.length);
+        const selectedCount=selections.reduce((sum,item)=>sum+item.teacherNames.length,0);
+        if(!selectedCount){status("حدد معلماً واحداً على الأقل من التخصصات المختارة.","error");return;}
+        reserveDraftScope="";reserveDraftApproved=new Set();
         const add=$("timetableDailyAddOtherTeachersButton");if(add)add.disabled=true;
-        try{await timetableDailyRefreshAll();status("تمت إضافة "+selected.length+" من المعلمين الذين حددتهم فقط إلى قائمة البدلاء المتاحين.","success");}
+        try{await timetableDailyRefreshAll();status("تمت إضافة "+selectedCount+" معلماً من "+selections.length+" تخصصات إلى قائمة البدلاء المتاحين.","success");}
         catch(error){status(error?.message||"تعذر تحميل البدلاء المحددين.","error");}
         finally{if(add)add.disabled=false;}
       });
-      $("timetableDailyOtherDepartmentSelect")?.closest("label")?.classList.toggle("hidden",!includeOthers());
       if(includeOthers())loadOtherDepartments().then(()=>{$("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");}).catch(()=>{});
     }
     const results = $("timetableSubstitutionResults");
@@ -357,14 +390,14 @@
   }
 
   async function fetchBatchPreview() {
-    if(includeOthers()&&!selectedOtherDepartmentId())throw new Error("اختر القسم المساند أولاً قبل تحميل أسماء المعلمين.");
-    if(includeOthers()&&!reserveSelectedOtherTeacherNames.size)throw new Error("حدد معلماً واحداً على الأقل من القسم المساند واضغط إضافة المعلمين المحددين.");
+    if(includeOthers()&&!otherDepartmentSelectionsPayload().length)throw new Error("اختر تخصصاً مسانداً واحداً على الأقل.");
+    if(includeOthers()&&!otherDepartmentSelectionsPayload().some(item=>item.teacherNames.length))throw new Error("حدد معلماً واحداً على الأقل من التخصصات المساندة واضغط إضافة المعلمين المحددين.");
     const {date, weekday} = timetableSubstitutionGetDate();
     const token = appAuthSession?.token || readAppAuthToken();
     if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({
       action: "timetable_substitution_batch_preview", weekday, assignmentDate: date,
-      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId(), otherTeacherNames:[...reserveSelectedOtherTeacherNames]
+      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentSelections:otherDepartmentSelectionsPayload()
     }, token);
   }
 
@@ -589,7 +622,7 @@
     try{
       const {date,weekday}=timetableSubstitutionGetDate(),token=appAuthSession?.token||readAppAuthToken();
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
-        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
+        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentSelections:otherDepartmentSelectionsPayload()},token);
       const savedCount=Number(result.assignmentCount||assignments.length);
       // A successful batch-save response is the commit confirmation. Clear the
       // local draft immediately so a later refresh failure cannot invite a duplicate save.
@@ -690,7 +723,7 @@
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
-      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
+      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentSelections:otherDepartmentSelectionsPayload()},token);
   }
 
   window.timetableDailyRenderArchive = function () {
