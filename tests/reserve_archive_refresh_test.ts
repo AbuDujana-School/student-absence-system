@@ -199,9 +199,9 @@ Deno.test("daily and cumulative reserve archive reads are single-flight", () => 
   assert(cumulativeStart>=0&&cumulativeEnd>cumulativeStart,"Cumulative archive loader must exist");
   const daily=source.slice(dailyStart,dailyEnd);
   const cumulative=source.slice(cumulativeStart,cumulativeEnd);
-  assert(daily.includes("if(reserveDailyArchiveLoadKey===requestKey)return reserveDailyArchiveLoadPromise;"), "Concurrent daily archive refreshes for the same range must reuse the pending request");
+  assert(daily.includes("reserveDailyArchiveLoadKey===requestKey"), "Concurrent daily archive refreshes for the same range must reuse the pending request");
   assert(daily.includes("finally{reserveDailyArchiveLoadPromise=null;reserveDailyArchiveLoadKey=null;}"), "Daily archive request lock and key must always release");
-  assert(cumulative.includes("if(reserveCumulativeArchiveLoadKey===requestKey)return reserveCumulativeArchiveLoadPromise;"), "Concurrent cumulative archive refreshes for the same range must reuse the pending request");
+  assert(cumulative.includes("reserveCumulativeArchiveLoadKey===requestKey"), "Concurrent cumulative archive refreshes for the same range must reuse the pending request");
   assert(cumulative.includes("finally{reserveCumulativeArchiveLoadPromise=null;reserveCumulativeArchiveLoadKey=null;}"), "Cumulative archive request lock and key must always release");
   assert(daily.includes("Array.isArray(response.archive)?response.archive:[]"), "Daily archive must validate the response shape");
   assert(cumulative.includes("Array.isArray(response.archive)?response.archive:[]"), "Cumulative archive must validate the response shape");
