@@ -93,6 +93,19 @@ test("additional administrators never inherit the general administrator frontend
 });
 
 
+test("delegated admin permission grants reserve management without the general-admin bypass", () => {
+  const reserve = section("function canManageReserveWorkspace(", "function isAdminAuthorized()");
+  assert.match(reserve, /isGeneralAdminUser\(user\)/);
+  assert.match(reserve, /user\?\.permissions\?\.admin === true/);
+  assert.match(reserve, /user\?\.type === "teacher" && user\?\.permissions\?\.reserve === true/);
+
+  const identity = section("function isGeneralAdminUser(", "function isAdditionalAdminUser(");
+  assert.doesNotMatch(identity, /permissions\?\.admin/);
+  const adminPanels = section("function hasAdminPanelAccess(", "function hasAnyPermission(");
+  assert.doesNotMatch(adminPanels, /canManageReserveWorkspace|permissions\?\.admin/);
+  assert.match(reserveWorkflow, /if\(!isGeneralAdminUser\(activeUser\)\)\{say\("هذه الميزة متاحة لمدير النظام العام فقط\./);
+});
+
 const morningLateness = await readFile(new URL("../supabase/functions/morning-assembly-lateness/index.ts", import.meta.url), "utf8");
 test("additional administrators use teacher-scoped morning lateness permissions", () => {
   assert.match(morningLateness, /return \{type:"teacher",name:principalName,permissions:buildAdditionalAdminPermissions\(user\)\}/);
