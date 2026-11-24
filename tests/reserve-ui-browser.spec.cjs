@@ -150,7 +150,7 @@ test("premium reserve wizard advances progressively from date to absence and app
     <section id="timetableSubstitutionPanel">
       <div><h3>توزيع الاحتياط اليومي</h3><p>اختيار اليوم وإعداد التوزيع</p></div>
       <nav class="tt-reserve-steps"></nav>
-      <label><span>التاريخ</span><input id="timetableSubstitutionDate" type="date"></label>
+      <label><span>التاريخ</span><input id="timetableSubstitutionDate" type="date" onchange="window.__dateRefreshes=(window.__dateRefreshes||0)+1"></label>
       <div><label>بحث المعلم</label><input id="timetableDailyAbsentSearch"></div>
       <div id="timetableDailyAbsentTags"></div>
       <div class="tt-toolbar"><button id="timetableDailySaveBatchButton">حفظ</button></div>
@@ -175,6 +175,7 @@ test("premium reserve wizard advances progressively from date to absence and app
   }));
   expect(initial.dateVisible).toBe(true);
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
+  await expect.poll(() => page.evaluate(() => window.__dateRefreshes || 0)).toBe(1);
   await page.locator("#timetableSubstitutionDate").fill("2026-11-30");
   await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"-1\"]").click();
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-23");
@@ -182,6 +183,7 @@ test("premium reserve wizard advances progressively from date to absence and app
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
   await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"1\"]").click();
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-25");
+  await expect.poll(() => page.evaluate(() => window.__dateRefreshes || 0)).toBe(5);
   await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
   expect(initial.absentHidden).toBe(false);
   expect(initial.toolbarHidden).toBe(true);
