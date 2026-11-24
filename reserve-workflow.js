@@ -154,20 +154,20 @@
   function reserveCurrentMuscatDate(){
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
-  const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"];
+  const ABSENCE_REASON_OPTIONS=["طارئة","إجازة مرضية","موعد مستشفى","أخرى"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
     const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
-    const selected=ABSENCE_REASON_OPTIONS.includes(current)?current:(current.startsWith("أخرى:")?"أخرى":"");
+    const normalizedCurrent=current==="مرضية"?"إجازة مرضية":current;
+    const selected=ABSENCE_REASON_OPTIONS.includes(normalizedCurrent)?normalizedCurrent:(current.startsWith("أخرى:")?"أخرى":"");
     const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
     const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
     modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
     const reasonPresentation={
       "طارئة":{icon:"fa-bolt",hint:"حالة طارئة"},
       "موعد مستشفى":{icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
-      "مرضية":{icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
-      "أخرى":{icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
-      "دورة تدريبية":{icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
+      "إجازة مرضية":{icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
+      "أخرى":{icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"}
     };
     modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
       '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
