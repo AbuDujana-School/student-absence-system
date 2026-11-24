@@ -166,3 +166,40 @@ Deno.test("reserve operational views initialize only when opened", () => {
 
 
 });
+
+
+Deno.test("custom coordinator opens only the scoped reserve workspace without archive or statistics requests", () => {
+  const start=source.indexOf("function installMainSubstitutionViewIntegration()");
+  const end=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",start);
+  assert(start>=0&&end>start,"Canonical reserve integration must be present");
+  const integration=source.slice(start,end);
+  assert(integration.includes('const isCustomCoordinator=reservePrincipal?.type==="custom"'),"The UI must identify the server-authenticated custom coordinator principal");
+  assert(integration.includes('$("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the school statistics panel");
+  assert(integration.includes('$("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the archive panel");
+  const openStart=integration.indexOf("try{",integration.indexOf("const isCustomCoordinator="));
+  const openEnd=integration.indexOf("}catch(error)",openStart);
+  const openBlock=integration.slice(openStart,openEnd);
+  assert(openBlock.includes("if(!isCustomCoordinator)"),"Archive and statistics loading must be gated for custom coordinators");
+  assert(openBlock.includes("timetableLoadSubstitutionOptions"),"Custom coordinators must retain the scoped operational preview workflow");
+  assert(openBlock.includes("timetableDailyLoadArchive")&&openBlock.includes("substitutionLoadStats"),"Authorized non-custom accounts must retain archive and statistics loading");
+  assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
+});
+
+Deno.test("server authorization keeps ordinary teachers and custom coordinators least-privileged", async () => {
+  const auth=await Deno.readTextFile(new URL("../supabase/functions/timetable-management/session_auth.ts",import.meta.url));
+  const fnStart=auth.indexOf("export function canUseTimetableAction(");
+  const fnEnd=auth.indexOf("/** The administrator or a teacher explicitly",fnStart);
+  assert(fnStart>=0&&fnEnd>fnStart,"Server action authorization function must exist");
+  const fn=auth.slice(fnStart,fnEnd);
+  assert(fn.includes("if (substitutionActions.has(action)) return hasReservePermission"),"Ordinary teachers must need an explicit reserve permission for reserve actions");
+  assert(fn.includes("const customSubstitutionActions = new Set(["),"Custom coordinators must use a separate limited allowlist");
+  const customStart=fn.indexOf("const customSubstitutionActions");
+  const customEnd=fn.indexOf("]);",customStart);
+  const custom=fn.slice(customStart,customEnd);
+  for(const denied of ["timetable_substitution_archive","timetable_substitution_stats","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_reset_options","timetable_substitution_reset","timetable_substitution_departments"]){
+    assert(!custom.includes('"'+denied+'"'),"Custom coordinators must not receive "+denied);
+  }
+  for(const allowed of ["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_cancel_batch","timetable_substitution_batch_preview","timetable_substitution_batch_save"]){
+    assert(custom.includes('"'+allowed+'"'),"Custom coordinators must retain scoped action "+allowed);
+  }
+});
