@@ -25,7 +25,7 @@ export async function resolveAppDataScope(
   if (principal.type === "teacher" && principal.permissions?.admin === true) {
     const { data: classes, error: classesError } = await db.from("classes").select("name").limit(1000) as QueryResult;
     if (classesError) throw new Error("Unable to resolve delegated administrator class scope");
-    const allClasses = [...new Set((classes || []).map((item: any) => String(item.name || "").trim()).filter(Boolean))];
+    const allClasses: string[] = [...new Set<string>((classes || []).map((item: any) => String(item.name || "").trim()).filter(Boolean))];
     return { allowedClasses: allClasses, allowedAttendanceClasses: allClasses, allowedBehaviorClasses: allClasses };
   }
 

@@ -35,16 +35,12 @@ test("report loading remains inside the Student Affairs module entry path, not p
 
 const reserveWorkflow = await readFile(new URL("../reserve-workflow.js", import.meta.url), "utf8");
 
-test("admin reserve distribution report does not auto-load when login reveals its panel", () => {
-  const start = reserveWorkflow.indexOf("function installSchoolwideReserveDistributionReport()");
-  assert.notEqual(start, -1, "missing reserve report installer");
-  const end = reserveWorkflow.indexOf("\n  installSchoolwideReserveDistributionReport();", start);
-  assert.notEqual(end, -1, "missing reserve report installer boundary");
-  const installer = reserveWorkflow.slice(start, end);
-  assert.doesNotMatch(installer, /loadSubstitutionDistributionReport/);
-
-  const reportsTab = section("if (tab === 'reports') {", "if (tab === 'timetable') {");
-  assert.match(reportsTab, /loadSubstitutionDistributionReport\(true\)/);
+test("reserve admin tools use the canonical general-admin identity and never load during login", () => {
+  assert.doesNotMatch(reserveWorkflow, /schoolwideReserveReportIsAdmin/);
+  assert.match(reserveWorkflow, /function installAdminReserveTools\(\)[\s\S]*?isGeneralAdminUser\(activeUser\)/);
+  assert.match(reserveWorkflow, /if\(isGeneralAdminUser\(activeUser\)\)installAdminReserveTools\(\)/);
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord(");
+  assert.doesNotMatch(login, /installAdminReserveTools\(|timetable_substitution_archive/);
 });
 
 test("staggered dashboard pilot is restricted to the non-admin Distron account", () => {
@@ -80,7 +76,7 @@ test("the staged pilot starts with the authenticated shell and does not change a
 
 
 test("additional administrators never inherit the general administrator frontend bypass", () => {
-  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  const identity = section("function isGeneralAdminUser(", "function isAdditionalAdminUser(");
   assert.match(identity, /user\?\.type === "admin"/);
   assert.match(identity, /user\.adminScope === "general"/);
   assert.match(identity, /user\.name === "مدير النظام العام"/);
@@ -97,6 +93,19 @@ test("additional administrators never inherit the general administrator frontend
 });
 
 
+test("delegated admin permission grants reserve management without the general-admin bypass", () => {
+  const reserve = section("function canManageReserveWorkspace(", "function isAdminAuthorized()");
+  assert.match(reserve, /isGeneralAdminUser\(user\)/);
+  assert.match(reserve, /user\?\.permissions\?\.admin === true/);
+  assert.match(reserve, /user\?\.type === "teacher" && user\?\.permissions\?\.reserve === true/);
+
+  const identity = section("function isGeneralAdminUser(", "function isAdditionalAdminUser(");
+  assert.doesNotMatch(identity, /permissions\?\.admin/);
+  const adminPanels = section("function hasAdminPanelAccess(", "function hasAnyPermission(");
+  assert.doesNotMatch(adminPanels, /canManageReserveWorkspace|permissions\?\.admin/);
+  assert.match(reserveWorkflow, /if\(!isGeneralAdminUser\(activeUser\)\)\{say\("هذه الميزة متاحة لمدير النظام العام فقط\./);
+});
+
 const morningLateness = await readFile(new URL("../supabase/functions/morning-assembly-lateness/index.ts", import.meta.url), "utf8");
 test("additional administrators use teacher-scoped morning lateness permissions", () => {
   assert.match(morningLateness, /return \{type:"teacher",name:principalName,permissions:buildAdditionalAdminPermissions\(user\)\}/);
@@ -105,18 +114,12 @@ test("additional administrators use teacher-scoped morning lateness permissions"
 });
 
 
-test("reserve workflow controls distinguish the general administrator from additional admins", () => {
-  const start = reserveWorkflow.indexOf("function schoolwideReserveReportIsAdmin()");
-  const end = reserveWorkflow.indexOf("function schoolwideReserveReportAllowed()", start);
-  assert.ok(start >= 0 && end > start);
-  const identity = reserveWorkflow.slice(start, end);
-  assert.match(identity, /active\.adminScope===\"general\"/);
-  assert.match(identity, /active\.name===\"مدير النظام العام\"/);
-  assert.match(identity, /session\.adminScope===\"general\"/);
-  assert.doesNotMatch(identity, /activeUser\?\.type/);
-  assert.doesNotMatch(identity, /appAuthSession\?\.principal\?\.type/);
+test("reserve tools are restricted to the canonical general administrator identity", () => {
+  assert.doesNotMatch(reserveWorkflow, /schoolwideReserveReportIsAdmin/);
+  assert.match(reserveWorkflow, /function installAdminReserveTools\(\)[\s\S]*?isGeneralAdminUser\(activeUser\)/);
+  assert.match(reserveWorkflow, /if\(isGeneralAdminUser\(activeUser\)\)installAdminReserveTools\(\)/);
+  assert.match(reserveWorkflow, /if\(!isGeneralAdminUser\(activeUser\)\)\{say\("هذه الميزة متاحة لمدير النظام العام فقط\."/);
 });
-
 
 test("attendance and behavior statistics require their matching read permissions while admins retain access", () => {
   const policy = section("function canAccessAdminTab(", "function grantTemporaryAdminAuth()");

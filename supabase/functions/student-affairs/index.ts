@@ -152,11 +152,12 @@ async function currentAppPrincipal(type: string, name: string): Promise<AppPrinc
 }
 
 function isGeneralAdminPrincipal(value: { type?: unknown; name?: unknown; adminScope?: unknown } | null | undefined): boolean {
+  return value?.type === "admin" && (value.adminScope === "general" || value.name === "مدير النظام العام");
+}
+
 function hasFullAdministrativeAccess(value: { type?: unknown; name?: unknown; adminScope?: unknown; permissions?: Record<string, unknown> | null } | null | undefined): boolean {
   // Delegated full administrators keep their teacher identity and do not become Additional Admins.
   return isGeneralAdminPrincipal(value) || (value?.type === "teacher" && value.permissions?.admin === true);
-}
-  return value?.type === "admin" && (value.adminScope === "general" || value.name === "مدير النظام العام");
 }
 
 async function readAuthorizedAppSession(authorization: unknown) {

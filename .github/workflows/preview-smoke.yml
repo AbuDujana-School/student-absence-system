@@ -7,6 +7,7 @@ on:
     paths:
       - ".github/workflows/preview-smoke.yml"
       - "tests/preview-smoke.spec.cjs"
+      - "tests/reserve-ui-browser.spec.cjs"
       - "supabase/functions/timetable-management/**"
   pull_request:
     branches:
@@ -46,8 +47,8 @@ jobs:
 
       - name: Run live preview smoke test
         env:
-          PREVIEW_URL: https://fix-timetable-fallback-null.student-absence-system.pages.dev/
-        run: npx playwright test tests/preview-smoke.spec.cjs --reporter=line
+          PREVIEW_URL: https://refactor-reserve-ui-phase2.student-absence-system.pages.dev/
+        run: npx playwright test tests/preview-smoke.spec.cjs tests/reserve-ui-browser.spec.cjs --reporter=line
 
       - name: Upload browser screenshot and test report
         if: always()

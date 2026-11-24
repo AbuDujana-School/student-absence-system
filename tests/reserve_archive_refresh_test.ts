@@ -54,54 +54,6 @@ Deno.test("home reserve archive handles non-school days without an uncaught erro
 });
 
 
-Deno.test("schoolwide reserve report groups all departments by day in newest-first order", () => {
-  const start=source.indexOf("function schoolwideReserveReportBuildDays(rows){");
-  const end=source.indexOf("\n  function schoolwideReserveReportRender()",start);
-  assert(start>=0&&end>start,"Schoolwide reserve report grouping function must exist");
-  const factory=new Function(source.slice(start,end)+"; return schoolwideReserveReportBuildDays;") as
-    () => (rows: Record<string,unknown>[]) => Array<{date:string;groups:Array<{absentName:string;rows:Array<{period:number}>}>}>;
-  const build=factory();
-  const days=build([
-    {assignmentDate:"2026-11-20",weekday:"الخميس",absentTeacherName:"أحمد",absentTeacherDepartment:"لغة عربية",period:4,substituteTeacherName:"سالم"},
-    {assignmentDate:"2026-11-20",weekday:"الخميس",absentTeacherName:"خالد",absentTeacherDepartment:"تربية إسلامية",period:2,substituteTeacherName:"علي"},
-    {assignmentDate:"2026-11-20",weekday:"الخميس",absentTeacherName:"أحمد",absentTeacherDepartment:"لغة عربية",period:1,substituteTeacherName:"ناصر"},
-    {assignmentDate:"2026-11-21",weekday:"الجمعة",absentTeacherName:"أحمد",absentTeacherDepartment:"لغة عربية",period:3,substituteTeacherName:"سالم"},
-  ]);
-  assert(days.length===2,"Every date with assignments must produce one report page group");
-  assert(days[0].date==="2026-11-21"&&days[1].date==="2026-11-20","Report days must be newest first");
-  assert(days[1].groups.length===2,"Different absent teachers and departments on one day must share that day's report");
-  assert(days[1].groups.some(group=>group.absentName==="أحمد – لغة عربية"),"The absent teacher label must include the department");
-  assert(days[1].groups.some(group=>group.absentName==="خالد – تربية إسلامية"),"All departments must be represented");
-  const arabic=days[1].groups.find(group=>group.absentName==="أحمد – لغة عربية");
-  assert(arabic?.rows.map(row=>row.period).join(",")==="1,4","Lessons within each absent-teacher group must be sorted by period");
-});
-
-Deno.test("schoolwide reserve report uses one official page per day and a dedicated teacher grant", async () => {
-  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(html.includes('id="reserveDistributionReportPanel"'),"The reserve report panel must live inside the main reports section");
-  assert(html.includes('id="perm_p_reportSubstitutionDistribution"'),"Teacher permissions must include the reserve report checkbox");
-  assert(source.includes('action:"timetable_substitution_report"'),"The report must read from the dedicated schoolwide report action");
-  assert(source.includes('const options={singlePage:true,title:"توزيع الاحتياط"}'),"The official print template must create a single page for each day");
-  assert(source.includes("window.printSchoolwideReserveDistributionReport(schoolwideReserveReportDays)"),"The date-grouped report must use the official schoolwide printer");
-  assert(source.includes("wrappedSave.__reserveDistributionWrapped"),"Teacher permission saving must preserve the dedicated report grant");
-  assert(source.includes("wrappedSwitch.__reserveDistributionWrapped"),"The reports tab must open for teachers with the dedicated reserve-report grant");
-});
-
-Deno.test("schoolwide reserve report permission lookup reads canonical db.teachers records", () => {
-  const start=source.indexOf("function schoolwideReserveReportTeacherRecord(index,name){");
-  const end=source.indexOf("\n  function installSchoolwideReserveReportPermissionBridge()",start);
-  assert(start>=0&&end>start,"The dedicated report permission teacher lookup must exist");
-  const helper=source.slice(start,end);
-  assert(helper.includes('typeof db!=="undefined"&&Array.isArray(db?.teachers)'),"Permission lookup must read the canonical db.teachers array");
-  const factory=new Function("db","window",helper+"; return schoolwideReserveReportTeacherRecord;") as
-    (db:{teachers:Array<{name:string;permissions:Record<string,unknown>}>},window:Record<string,unknown>) =>
-      (index:number,name:string)=>{name:string;permissions:Record<string,unknown>}|null;
-  const teacher={name:"معلم اختبار",permissions:{reportSubstitutionDistribution:true}};
-  const lookup=factory({teachers:[teacher]}, {});
-  assert(lookup(0,teacher.name)?.permissions.reportSubstitutionDistribution===true,"Opening permissions must retrieve the saved schoolwide report grant");
-  assert(lookup(-1,teacher.name)?.name===teacher.name,"Save fallback must resolve the teacher by exact name");
-});
-
 Deno.test("main substitution view requires, saves, and prints the selected absence reason", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(source.includes("window.openSubstitutionAbsenceReasonPicker = function"),"The main substitution view must have access to the shared reason picker");
@@ -148,7 +100,56 @@ Deno.test("reserve coordinator controls require explicit per-period permissions"
   assert(!source.includes('date===reserveCurrentMuscatDate()&&savedRows'), "Future-dated assignments must not be hidden by a same-day-only UI condition");
 });
 
-Deno.test("reserve archives and reports initialize only when their own views are opened", () => {
+Deno.test("main reserve entry point mounts one canonical batch workspace and restores the timetable panel", async () => {
+  const integrationStart=source.indexOf("function installMainSubstitutionViewIntegration()");
+  const integrationEnd=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",integrationStart);
+  assert(integrationStart>=0&&integrationEnd>integrationStart,"Canonical reserve integration must exist");
+  const integration=source.slice(integrationStart,integrationEnd);
+  assert(integration.includes('canonicalHost.id="substitutionCanonicalWorkspace"'),"The main reserve view must provide one canonical workspace host");
+  assert(integration.includes('host.appendChild(panel)'),"The existing batch panel must be mounted instead of creating a duplicate");
+  assert(integration.includes("restoreCanonicalPanel()"),"Closing the main view must restore the original timetable panel location");
+  assert(integration.includes("__canonicalReserveInitialOpenAttempted"),"If the integration installs after the view becomes visible, it must initialize the canonical panel on that first opening");
+  assert(integration.includes('$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped'),"First-open initialization must wait until the canonical panel exists so a late DOM mount can be retried");
+  assert(integration.includes("return window.openSubstitutionView()"),"The first visible opening must replay the wrapped entry point exactly once");
+  assert(integration.includes('window.timetableLoadSubstitutionOptions()'),"Opening the main view must load the batch workflow");
+  assert(integration.includes('window.timetableDailyLoadArchive()'),"Opening the main view must refresh current-day assignments");
+  assert(integration.includes('window.substitutionLoadStats()'),"The existing reserve statistics view must remain available");
+  assert(integration.includes('$("substitutionAbsenteeList")?.closest(".rounded-3xl")'),"The legacy duplicate absentee workflow must be hidden");
+  const boot=source.slice(source.indexOf("installMainSubstitutionViewIntegration();",source.indexOf("function installReserveArchiveAutoRefresh()")+1));
+  assert(!boot.includes("installHomeReserveArchive();"),"The legacy home archive must not install a second distribution surface");
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("function canManageReserveWorkspace(user = activeUser)"),"Reserve access must use a dedicated module-level capability check");
+  assert(html.split("canManageReserveWorkspace(activeUser)").length>=5,"Dashboard card, legacy entry, and both canonical batch loaders must use the dedicated reserve capability");
+  assert(integration.includes("canManageReserveWorkspace(activeUser)"),"Delegated administrators and reserve-enabled teachers must be admitted to the canonical workspace");
+  assert(integration.includes('reservePrincipal?.type==="custom"'),"A custom authenticated reserve principal must remain eligible for the scoped workspace");
+  assert(integration.includes("sameSessionAdmin"),"A server-resolved admin principal must be matched to the active account before opening reserve");
+  assert(integration.includes("const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin"),"Explicit reserve administrators may use the existing cross-department workflow");
+  assert(integration.includes('reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true'),"Reserve-enabled teacher principals retain their existing cross-department capability");
+  const expandStart=integration.indexOf("const canExpand=");
+  const expandEnd=integration.indexOf(";",expandStart);
+  assert(expandStart>=0&&expandEnd>expandStart,"Cross-department authorization must be explicit");
+  assert(!integration.slice(expandStart,expandEnd).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must not receive cross-department controls");
+});
+
+Deno.test("canonical batch selection requires and preserves the absence reason", () => {
+  const pickerStart=source.indexOf("function installAbsenceReasonPicker()");
+  const pickerEnd=source.indexOf("function reserveDutyReasonMarkup",pickerStart);
+  assert(pickerStart>=0&&pickerEnd>pickerStart,"The canonical batch absence picker must exist");
+  const picker=source.slice(pickerStart,pickerEnd);
+  assert(picker.includes('window.timetableDailyAddAbsent'),"The canonical absent-teacher add handler must be wrapped");
+  assert(picker.includes("openAbsenceReasonPicker(absentName,value=>"),"Adding a new absent teacher must open the reason picker first");
+  assert(picker.includes("if(!value)return;"),"Cancelling the reason picker must not add the absent teacher");
+  assert(picker.includes("reserveAbsenceReasons[absentName]=value"),"The selected reason must be stored against the absent teacher");
+  assert(picker.includes("original.apply(this,args)"),"The original add action must run only after a reason is selected");
+  const saveStart=source.indexOf("window.timetableDailySaveBatch = async function");
+  const saveEnd=source.indexOf("window.timetableDailyToggleArchive",saveStart);
+  assert(saveStart>=0&&saveEnd>saveStart,"The canonical batch save handler must exist");
+  const save=source.slice(saveStart,saveEnd);
+  assert(save.includes('absenceReason:(reserveAbsenceReasons[item.absentTeacherName]||"").trim()||"-"'),"Each saved assignment must carry its absent teacher's selected reason");
+  assert(save.includes('action:"timetable_substitution_batch_save"'),"The reason must travel through the existing authenticated batch-save action");
+});
+
+Deno.test("reserve operational views initialize only when opened", () => {
   const homeStart=source.indexOf("function installHomeReserveArchive()");
   const homeEnd=source.indexOf("function setHomeArchiveStatus",homeStart);
   assert(homeStart>=0&&homeEnd>homeStart,"Home archive installer must exist");
@@ -163,10 +164,24 @@ Deno.test("reserve archives and reports initialize only when their own views are
   assert(boot.includes("timetableVisibilityObserver"),"Timetable reserve tools must follow their own panel visibility");
   assert(boot.includes("timetableContentObserver"),"Dynamically-created timetable reserve content must still initialize");
 
-  const reportStart=source.indexOf("function installSchoolwideReserveDistributionReport()");
-  const reportEnd=source.indexOf("\n  installSchoolwideReserveDistributionReport();",reportStart);
-  assert(reportStart>=0&&reportEnd>reportStart,"Schoolwide report installer must exist");
-  const report=source.slice(reportStart,reportEnd);
-  assert(report.includes('!panel.classList.contains("hidden")'),"Schoolwide report must not fetch while its panel is hidden");
-  assert(report.includes("reserveDistributionVisibilityObserver"),"Schoolwide report must initialize when its panel is opened");
+
 });
+
+
+Deno.test("custom coordinator opens only the scoped reserve workspace without archive or statistics requests", () => {
+  const start=source.indexOf("function installMainSubstitutionViewIntegration()");
+  const end=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",start);
+  assert(start>=0&&end>start,"Canonical reserve integration must be present");
+  const integration=source.slice(start,end);
+  assert(integration.includes('const isCustomCoordinator=reservePrincipal?.type==="custom"'),"The UI must identify the server-authenticated custom coordinator principal");
+  assert(integration.includes('$("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the school statistics panel");
+  assert(integration.includes('$("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the archive panel");
+  const openStart=integration.indexOf("try{",integration.indexOf("const isCustomCoordinator="));
+  const openEnd=integration.indexOf("}catch(error)",openStart);
+  const openBlock=integration.slice(openStart,openEnd);
+  assert(openBlock.includes("if(!isCustomCoordinator)"),"Archive and statistics loading must be gated for custom coordinators");
+  assert(openBlock.includes("timetableLoadSubstitutionOptions"),"Custom coordinators must retain the scoped operational preview workflow");
+  assert(openBlock.includes("timetableDailyLoadArchive")&&openBlock.includes("substitutionLoadStats"),"Authorized non-custom accounts must retain archive and statistics loading");
+  assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
+});
+

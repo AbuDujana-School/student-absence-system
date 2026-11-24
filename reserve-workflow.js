@@ -370,7 +370,7 @@
 
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
-    if(schoolwideReserveReportIsAdmin())installAdminReserveTools();
+    if(isGeneralAdminUser(activeUser))installAdminReserveTools();
     if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftApproved=new Set(); reserveLastAbsentSignature=""; reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
@@ -1195,7 +1195,7 @@
 
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
-    if(!panel || panel.dataset.adminReserveTools==="1" || !schoolwideReserveReportIsAdmin())return;
+    if(!panel || panel.dataset.adminReserveTools==="1" || !isGeneralAdminUser(activeUser))return;
     panel.dataset.adminReserveTools="1";
     const card=document.createElement("section");
     card.id="ttAdminReserveTools";
@@ -1217,7 +1217,7 @@
     const say=(message,error=false)=>{const box=$("ttAdminToolsStatus");if(!box)return;box.textContent=message;box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");};
     $("ttAdminPrintAllReserve")?.addEventListener("click",async()=>{
       const button=$("ttAdminPrintAllReserve");
-      if(!schoolwideReserveReportIsAdmin()){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
+      if(!isGeneralAdminUser(activeUser)){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
       button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
       try{
         const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
@@ -1391,7 +1391,7 @@
     if(!view||view.classList.contains("hidden")||view.dataset.cumulativeArchiveInstalled==="1")return;
     const accessCheck=view.dataset.cumulativeArchiveAccessCheck||"";
     if(accessCheck==="pending"||accessCheck==="denied")return;
-    const canViewLocally=schoolwideReserveReportIsAdmin()||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.permissions?.reserve===true;
+    const canViewLocally=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.permissions?.reserve===true;
     if(!canViewLocally&&accessCheck!=="allowed"){
       const token=appAuthSession?.token||readAppAuthToken();
       if(!token)return;
@@ -1636,6 +1636,88 @@
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
+    let canonicalHost=$("substitutionCanonicalWorkspace");
+    if(!canonicalHost){
+      canonicalHost=document.createElement("div");
+      canonicalHost.id="substitutionCanonicalWorkspace";
+      canonicalHost.className="space-y-4";
+      $("substitutionStatsPanel")?.before(canonicalHost);
+    }
+    [$("substitutionDate")?.closest(".grid"),$("substitutionAbsenteeList")?.closest(".rounded-3xl"),$("substitutionPlanPanel"),$("subxFloatingBar")].forEach(element=>element?.classList.add("hidden"));
+    root.querySelector(".subx-stepper")?.classList.add("hidden");
+    let canonicalPanelOrigin=window.__canonicalReservePanelOrigin||null;
+    function mountCanonicalPanel(){
+      const panel=$("timetableSubstitutionPanel"),host=$("substitutionCanonicalWorkspace");
+      if(!panel||!host)return false;
+      if(panel.parentElement!==host){
+        if(!canonicalPanelOrigin){
+          const placeholder=document.createElement("div");
+          placeholder.id="timetableSubstitutionPanelReturnPoint";
+          panel.parentNode?.insertBefore(placeholder,panel);
+          canonicalPanelOrigin={placeholder,wasHidden:panel.classList.contains("hidden")};
+          window.__canonicalReservePanelOrigin=canonicalPanelOrigin;
+        }
+        host.appendChild(panel);
+      }
+      panel.classList.remove("hidden");
+      return true;
+    }
+    function restoreCanonicalPanel(){
+      const panel=$("timetableSubstitutionPanel"),origin=canonicalPanelOrigin;
+      if(!panel||!origin?.placeholder?.parentNode)return;
+      origin.placeholder.parentNode.insertBefore(panel,origin.placeholder.nextSibling);
+      origin.placeholder.remove();
+      panel.classList.toggle("hidden",origin.wasHidden===true);
+      canonicalPanelOrigin=null;
+      window.__canonicalReservePanelOrigin=null;
+    }
+    if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
+      window.openSubstitutionView=async function(){
+        const reservePrincipal=appAuthSession?.principal;
+        const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
+        const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
+        if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
+        ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
+        root.classList.remove("hidden");
+        if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
+        const date=$("timetableSubstitutionDate");
+        if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+        const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
+        const isCustomCoordinator=reservePrincipal?.type==="custom";
+        $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
+        // Custom coordinators can use only the scoped preview/save/cancel workflow.
+        // Do not expose archive/statistics surfaces or issue requests the server must reject.
+        $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
+        $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
+        try{
+          if(typeof window.timetableLoadSubstitutionOptions==="function")await window.timetableLoadSubstitutionOptions();
+          if(!isCustomCoordinator){
+            if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+            if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
+          }
+        }catch(error){status(error?.message||"تعذر تحميل بيانات توزيع الاحتياط.","error");}
+      };
+      window.openSubstitutionView.__canonicalReserveWrapped=true;
+    }
+    // If this installer ran only after the original entry point had already
+    // revealed the view, replay the newly wrapped entry point once so the
+    // canonical panel is mounted on that very first visible opening.
+    if(!root.classList.contains("hidden")&&$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped&&!window.__canonicalReserveInitialOpenAttempted){
+      window.__canonicalReserveInitialOpenAttempted=true;
+      Promise.resolve().then(()=>{
+        if(root.isConnected&&!root.classList.contains("hidden")&&typeof window.openSubstitutionView==="function")
+          return window.openSubstitutionView();
+      }).catch(error=>status(error?.message||"تعذر تهيئة مساحة توزيع الاحتياط عند الفتح الأول.","error"));
+    }
+    if(typeof window.closeSubstitutionView==="function"&&!window.closeSubstitutionView.__canonicalReserveWrapped){
+      window.closeSubstitutionView=function(){
+        restoreCanonicalPanel();
+        root.classList.add("hidden");
+        $("dashboardSelectionView")?.classList.remove("hidden");
+        if(typeof window.refreshSubstitutionDashboardCard==="function")window.refreshSubstitutionDashboardCard();
+      };
+      window.closeSubstitutionView.__canonicalReserveWrapped=true;
+    }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
@@ -1740,7 +1822,6 @@
       const initializeHomeReserveView=()=>{
         if(substitutionView.classList.contains("hidden"))return;
         installMainSubstitutionViewIntegration();
-        installHomeReserveArchive();
       };
       const substitutionVisibilityObserver=new MutationObserver(initializeHomeReserveView);
       substitutionVisibilityObserver.observe(substitutionView,{attributes:true,attributeFilter:["class"]});
