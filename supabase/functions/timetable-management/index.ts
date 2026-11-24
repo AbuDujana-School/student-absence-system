@@ -476,9 +476,10 @@ async function handle(req: Request) {
     if(activeVersion.error)throw activeVersion.error;
     const actor=directory.find((teacher:any)=>teacher.name===principal.name);
     const homeToday=body.homeToday===true;
-    // The home panel is department-scoped for teachers even when they hold
-    // reserve/archive permissions. Archive access remains schoolwide as granted.
-    const schoolwide=principal.type==="admin"||(!homeToday&&(hasTimetableGrant||hasReservePermission));
+    // Reserve/archive permission grants access to the feature, not schoolwide
+    // visibility. Only system admins receive the consolidated cross-department
+    // archive; every other principal is restricted to their own department.
+    const schoolwide=principal.type==="admin";
     const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
       (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
     const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
