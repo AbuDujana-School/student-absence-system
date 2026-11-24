@@ -12,6 +12,7 @@ Deno.test("reserve workspace presents a premium four-step date-first flow", () =
   assert(reserveWorkflow.includes("ttPremiumDateCard"), "The date must have its own first-step card");
   assert(reserveWorkflow.includes("ttPremiumAbsentCard"), "Absentee selection must be a separate progressive step");
   assert(reserveWorkflow.includes("absentCard.hidden=!hasDate"), "Absentee selection must remain hidden until a date is selected");
+  assert(reserveWorkflow.includes("Array.isArray(timetableDailyAbsentTeachers)&&timetableDailyAbsentTeachers.length>0"), "The stepper must read the live shared absentee selection state");
   assert(reserveWorkflow.includes("tt-premium-step-icon"), "The wizard must use prominent step icons");
   assert(reserveWorkflow.includes("installPremiumReserveExperience(panel)"), "The premium workflow must be installed on the live reserve panel");
 });
