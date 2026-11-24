@@ -618,7 +618,7 @@
     // Several successful mutation paths also request a refresh explicitly. Share
     // one in-flight read instead of flooding the archive endpoint with duplicates.
     if(reserveDailyArchiveLoadPromise)return reserveDailyArchiveLoadPromise;
-    reserveDailyArchiveLoadPromise=(async()=>{
+    reserveDailyArchiveLoadPromise=Promise.resolve().then(async()=>{
       const activeHost=$("timetableDailyActiveResults");
       host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
       if(activeHost)activeHost.innerHTML='<p class="text-center text-xs text-slate-500">جارٍ تحميل سجلات اليوم...</p>';
@@ -1462,12 +1462,12 @@
   window.substitutionLoadCumulativeArchive = function() {
     const host=$("substitutionCumulativeArchiveResults");if(!host)return Promise.resolve(false);
     if(reserveCumulativeArchiveLoadPromise)return reserveCumulativeArchiveLoadPromise;
-    reserveCumulativeArchiveLoadPromise=(async()=>{
+    reserveCumulativeArchiveLoadPromise=Promise.resolve().then(async()=>{
       const from=$("substitutionArchiveFrom")?.value||"",to=$("substitutionArchiveTo")?.value||"";
-      if(!from||!to||from>to){setHomeArchiveStatus("حدد فترة زمنية صحيحة قبل عرض السجل.","error");return false;}
-      host.innerHTML='<div class="rounded-xl bg-slate-50 p-4 text-center text-xs text-slate-500">جارٍ تحميل سجل الاحتياط...</div>';
-      setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
       try{
+        if(!from||!to||from>to){setHomeArchiveStatus("حدد فترة زمنية صحيحة قبل عرض السجل.","error");return false;}
+        host.innerHTML='<div class="rounded-xl bg-slate-50 p-4 text-center text-xs text-slate-500">جارٍ تحميل سجل الاحتياط...</div>';
+        setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
         const token=appAuthSession?.token||readAppAuthToken();
         if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
         const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
