@@ -238,8 +238,6 @@ export function canUseTimetableAction(
     "timetable_substitution_cancel_batch",
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
-    "timetable_substitution_update",
-    "timetable_substitution_update_batch",
   ]);
   return new Set([
     "health",
