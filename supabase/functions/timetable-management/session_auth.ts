@@ -100,7 +100,11 @@ export async function resolveTimetablePrincipal(
   // Always load the current teacher permission snapshot: the explicit
   // permissions.admin capability grants delegated administrator authority
   // inside this module without changing the account's stored teacher role.
-  const needsTeacherPermissions = true;
+  const selfScopedAction = new Set([
+    "teacher_timetable_get_own",
+    "teacher_substitution_get_today",
+  ]).has(requestedAction);
+  const needsTeacherPermissions = !selfScopedAction;
   const teacher = preloadedTeacher || await store.findTeacher(name, needsTeacherPermissions);
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
