@@ -20,7 +20,7 @@ Working branch: `refactor/reserve-permissions-phase1`
 ## Current database snapshot (read-only)
 
 - Teacher accounts with `permissions.reserve=true`: 12.
-- Teacher accounts with `permissions.admin=true`: 2; one of these also has `reserve=true`.
+- Teacher accounts with `permissions.admin=true`: 2; both currently also have `reserve=true`.
 - `timetable_access_permissions`: 81 teacher rows, 0 enabled.
 - `timetable_reserve_stats_access`: no rows returned in the current snapshot.
 - No database rows were changed during this inspection.
