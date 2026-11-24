@@ -46,6 +46,26 @@ Deno.test("custom reserve coordinators cannot gain schoolwide statistics, archiv
   }
 });
 
+Deno.test("custom batch save derives absent-teacher and substitute scope from server records", async () => {
+  const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
+  assert(
+    backend.includes('getVisibleAbsentTeachers(dayCells.map((c:any)=>({matchedTeacherName:c.matched_teacher_name?String(c.matched_teacher_name):null,status:String(c.cell_status||"")})),directory,actorDepartmentId,principal.type==="admin")'),
+    "Custom coordinators must receive absent teachers filtered by their server-resolved department",
+  );
+  assert(
+    backend.includes('if(selectedNames.some((name:string)=>!absentTeachers.includes(name)))'),
+    "Batch save must reject absent-teacher names outside the server-filtered list",
+  );
+  assert(
+    backend.includes('if(substituteTeacher.departmentId!==absentTeacher.departmentId&&!isSelectedSupportingTeacher)'),
+    "Batch save must reject a substitute outside the absent teacher department unless explicitly authorized",
+  );
+  assert(
+    backend.includes('canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true)'),
+    "A custom coordinator must not obtain cross-department substitute access from client input alone",
+  );
+});
+
 Deno.test("custom reserve mutations stay inside the coordinator department", () => {
   const base = {
     actorType: "custom",
