@@ -37,6 +37,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
   for (const role of roles) {
     await page.setContent(`
       <main id="dashboardSelectionView"></main>
+      <div id="substitutionDashboardCard" role="button" tabindex="0" onclick="window.openSubstitutionView()">توزيع الاحتياط</div>
       <section id="substitutionView" class="hidden">
         <div class="subx-stepper"></div><div class="grid"><input id="substitutionDate"></div>
         <div class="rounded-3xl"><div id="substitutionAbsenteeList"></div></div>
@@ -74,14 +75,17 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         if (!root.classList.contains("hidden")) window.openSubstitutionView();
       });
       observer.observe(root, { attributes: true, attributeFilter: ["class"] });
-      window.firstOpenPromise = window.openSubstitutionView();
     });
-    await page.waitForFunction(() => window.calls.options === 1);
-    await page.waitForTimeout(0);
-    const inFlightCalls = await page.evaluate(() => window.calls.options);
-    expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
-    await page.evaluate(() => window.releaseOptions());
-    await page.evaluate(() => window.firstOpenPromise);
+    await page.locator("#substitutionDashboardCard").click();
+    if (role.allowed) {
+      await page.waitForFunction(() => window.calls.options === 1);
+      await page.waitForTimeout(0);
+      const inFlightCalls = await page.evaluate(() => window.calls.options);
+      expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
+      await page.evaluate(() => window.releaseOptions());
+    } else {
+      await page.waitForFunction(() => window.denials === 1);
+    }
     const result = await page.evaluate(() => {
       const $ = (id) => document.getElementById(id);
       return {
