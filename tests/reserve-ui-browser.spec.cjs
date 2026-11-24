@@ -264,3 +264,28 @@ test("reserve absentee checklist selects teachers and edits absence reasons inde
   await expect(page.locator('[data-tt-check-absent="سالم محمد"]')).toBeVisible();
   await expect(page.locator('[data-tt-check-absent="أحمد علي"]')).toHaveCount(0);
 });
+
+
+test("absence reason picker uses the four requested categories and keeps legacy sick-leave values editable", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const picker = extractFunction(source, "function openAbsenceReasonPicker(");
+  await page.setContent("<main></main>");
+  await page.evaluate(({ picker }) => {
+    const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const open = new Function("ABSENCE_REASON_OPTIONS", "esc", picker + "; return openAbsenceReasonPicker;")(
+      ["طارئة", "إجازة مرضية", "موعد مستشفى", "أخرى"], esc
+    );
+    window.__openReason = open;
+    window.__reasonResult = undefined;
+  }, { picker });
+
+  await page.evaluate(() => window.__openReason("معلم تجريبي", value => { window.__reasonResult = value; }, "مرضية"));
+  await expect(page.locator('#timetableDailyAbsenceReasonModal input[name="ttAbsenceReasonChoice"]')).toHaveCount(4);
+  await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="إجازة مرضية"]')).toBeChecked();
+  await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="دورة تدريبية"]')).toHaveCount(0);
+
+  await page.locator('#timetableDailyAbsenceReasonModal input[value="أخرى"]').check();
+  await expect(page.locator("#ttAbsenceReasonOtherWrap")).toBeVisible();
+  await page.locator('[data-absence-reason-confirm]').click();
+  expect(await page.evaluate(() => window.__reasonResult)).toBe("أخرى");
+});
