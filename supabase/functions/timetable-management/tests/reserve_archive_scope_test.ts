@@ -26,8 +26,8 @@ Deno.test("the archive endpoint uses the shared server-side scope policy", async
     "Non-admin archive results must be restricted to the actor's department",
   );
   assert(
-    backend.includes("teacher.departmentId===actorDepartmentId"),
-    "The alternate archive query path must also filter by the actor's department",
+    backend.includes("Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId)"),
+    "The alternate archive query path must fail closed when the actor has no department",
   );
   assert(
     !backend.includes('principal.type==="admin"||hasReservePermission||teacher.departmentId===actorDepartmentId'),
