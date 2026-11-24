@@ -1865,6 +1865,7 @@
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
           const date=$("timetableSubstitutionDate");
           if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+          date?.dispatchEvent(new Event("change",{bubbles:true}));
           const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           const isCustomCoordinator=reservePrincipal?.type==="custom";
           $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
