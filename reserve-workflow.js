@@ -10,6 +10,7 @@
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
   let reserveOtherDepartmentId = "";
+  let reserveOtherDepartmentIds = [];
   let reserveOtherDepartments = [];
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
@@ -32,7 +33,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames],otherDepartmentIds:selectedOtherDepartmentIds()}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:(selectedOtherDepartmentIds().length?selectedOtherDepartmentIds():reserveOtherDepartmentIds),otherTeacherNames:[...reserveSelectedOtherTeacherNames]}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -51,6 +52,7 @@
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
       const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
       if(saved.otherDepartmentId)reserveOtherDepartmentId=String(saved.otherDepartmentId);
+      reserveOtherDepartmentIds=Array.isArray(saved.otherDepartmentIds)?saved.otherDepartmentIds.map(String):saved.otherDepartmentId?[String(saved.otherDepartmentId)]:[];
       reserveSelectedOtherTeacherNames=new Set(Array.isArray(saved.otherTeacherNames)?saved.otherTeacherNames.map(String):[]);
       if(otherDepartmentSelect){const savedIds=Array.isArray(saved.otherDepartmentIds)?saved.otherDepartmentIds.map(String):saved.otherDepartmentId?[String(saved.otherDepartmentId)]:[];Array.from(otherDepartmentSelect.options).forEach(option=>option.selected=savedIds.includes(option.value));}
       const otherButton=$("timetableDailyOtherDepartmentsButton");
@@ -90,7 +92,7 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
-  const selectedOtherDepartmentIds = () => Array.from($("timetableDailyOtherDepartmentSelect")?.selectedOptions||[]).map(option=>String(option.value||"").trim()).filter(Boolean);
+  const selectedOtherDepartmentIds = () => {const selected=Array.from($("timetableDailyOtherDepartmentSelect")?.selectedOptions||[]).map(option=>String(option.value||"").trim()).filter(Boolean);return selected.length?selected:[...reserveOtherDepartmentIds];};
   const selectedOtherDepartmentId = () => selectedOtherDepartmentIds()[0] || String(reserveOtherDepartmentId||"").trim();
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
@@ -126,7 +128,8 @@
     const current=currentIds.length?currentIds:(reserveOtherDepartmentId?[reserveOtherDepartmentId]:[]);
     select.innerHTML=reserveOtherDepartments.map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
     Array.from(select.options).forEach(option=>option.selected=current.includes(option.value));
-    reserveOtherDepartmentId=selectedOtherDepartmentId();
+    reserveOtherDepartmentIds=[...current];
+    reserveOtherDepartmentId=selectedOtherDepartmentIds()[0]||"";
     renderOtherDepartmentTeachers();
   }
 
@@ -342,7 +345,7 @@
           }catch(error){
             toggle.checked=false;
             if(select){select.value="";select.closest("label")?.classList.add("hidden");}
-            reserveOtherDepartmentId="";
+            reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];
             button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
             status(error?.message||"تعذر تحميل الأقسام المساندة. حاول مرة أخرى.","error");
           }finally{button.disabled=false;}
@@ -350,14 +353,14 @@
         }
         toggle.checked=false;
         if(select){select.value="";select.closest("label")?.classList.add("hidden");}
-        reserveOtherDepartmentId="";reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
+        reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
         button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
         await timetableDailyRefreshAll();
       });
       const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[220px] text-[10px] font-bold text-slate-600"><label class="block"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" multiple size="5" aria-label="اختر تخصصاً أو أكثر" class="tt-department-multiselect w-full rounded-xl border border-indigo-200 bg-white p-3 text-sm"></select></label><section class="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3"><p class="mb-2 text-xs font-black text-slate-800">حدد المعلمين الذين ترغب في إضافتهم</p><div id="timetableDailyOtherTeacherChoices" class="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر القسم لعرض معلميه.</p></div><button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-lg bg-indigo-700 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50" disabled>إضافة المعلمين المحددين</button><p class="mt-2 text-[10px] text-slate-500">لن يُستخدم أي معلم قبل تحديده والضغط على زر الإضافة.</p></section></div>';
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
       $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",()=>{
-        const selectedIds=selectedOtherDepartmentIds();reserveOtherDepartmentId=selectedIds[0]||"";
+        const selectedIds=selectedOtherDepartmentIds();reserveOtherDepartmentIds=[...selectedIds];reserveOtherDepartmentId=selectedIds[0]||"";
         const eligibleNames=new Set(reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name))));
         reserveSelectedOtherTeacherNames=new Set([...reserveSelectedOtherTeacherNames].filter(name=>eligibleNames.has(name)));
         reserveDraftScope="";reserveDraftApproved=new Set();reserveBatchPreview=null;reserveDraftAssignments=[];
