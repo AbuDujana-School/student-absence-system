@@ -3719,7 +3719,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
           @media print{body *{visibility:hidden!important}#sec-timetable,#sec-timetable *{visibility:visible!important}#sec-timetable{position:absolute!important;inset:0!important;width:100%!important;background:#fff!important;color:#000!important}#sec-timetable .tt-no-print,#sec-timetable button,#sec-timetable select{display:none!important}#sec-timetable .tt-lesson{break-inside:avoid;border:1px solid #999!important;color:#000!important}}
         </style>
         <div class="tt-dashboard">
-          <nav class="tt-tabs tt-no-print" aria-label="تبويبات الجداول والاحتياط">
+          <nav class="tt-tabs tt-no-print" aria-label="تبويبات إدارة الجداول">
             <button type="button" class="tt-tab" id="timetableSettingsTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('settings')">⚙️ إعداد وإدارة الجدول العام</button>
             <button type="button" class="tt-tab" id="timetableClassTabButton" aria-selected="false" onclick="timetableSwitchDashboardTab('classes')">🏫 جداول الصفوف</button>
           </nav>
@@ -10346,7 +10346,7 @@ function switchAdminTab(tab) {
     if (canAccessReport('reportStudentAffairs')) repInitStudentAffairsReports();
     if (canAccessReport('reportSubstitutionDistribution')) { initSubstitutionDistributionReport(); loadSubstitutionDistributionReport(true); }
   }
-  if (tab === 'timetable') { timetableSwitchDashboardTab('daily'); timetableLoadImports().then(() => timetableSwitchDashboardTab('daily')); if (isGeneralAdminUser(activeUser)) timetableResumeWeeklyDraft(); timetableLoadSubstitutionOptions(); }
+  if (tab === 'timetable') { timetableSwitchDashboardTab('settings'); timetableLoadImports().then(() => timetableSwitchDashboardTab('settings')); if (isGeneralAdminUser(activeUser)) timetableResumeWeeklyDraft(); }
 }
 /* ============ Students admin ============ */
 function populateAdminClassSelect() { const s = document.getElementById('adminClassSelect'); if (!s) return; const c = s.value; s.innerHTML = ''; sortClassesList(db.classes).forEach(x => s.innerHTML += `<option value="${escapeHtml(x)}">${escapeHtml(formatClassName(x))}</option>`); s.value = db.classes.includes(c) ? c : (db.classes[0] || ''); }
