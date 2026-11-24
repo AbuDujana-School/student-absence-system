@@ -604,7 +604,7 @@
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
       $("timetableDailyArchivePrint")?.addEventListener("click", timetableDailyPrintArchiveRange);
       $("timetableDailyActiveReload")?.addEventListener("click", timetableDailyLoadArchive);
-      try{const today=timetableSubstitutionGetDate().date;$("timetableDailyArchiveFrom").value=today;$("timetableDailyArchiveTo").value=today;}catch{}
+      try{const today=timetableSubstitutionGetDate().date;const start=new Date(today+"T00:00:00Z");start.setUTCDate(start.getUTCDate()-365);const from=start.toISOString().slice(0,10);const fromInput=$("timetableDailyArchiveFrom"),toInput=$("timetableDailyArchiveTo");if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;}catch{}
     }
     const style = document.createElement("style");
     style.id = "reserve-workflow-styles";
