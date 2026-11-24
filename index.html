@@ -5735,6 +5735,12 @@ function isGeneralAdminUser(user = activeUser) {
   return user?.type === "admin" && (user.adminScope === "general" || user.name === "مدير النظام العام");
 }
 function isAdditionalAdminUser(user = activeUser) { return user?.type === 'admin' && user?.adminScope === 'additional'; }
+// Reserve management is a module-specific capability: an explicit delegated
+// admin permission may manage reserve without inheriting the general-admin UI.
+function canManageReserveWorkspace(user = activeUser) {
+  return isGeneralAdminUser(user) || user?.permissions?.admin === true ||
+    (user?.type === "teacher" && user?.permissions?.reserve === true);
+}
 function isAdminAuthorized() { if (isGeneralAdminUser() || isAdditionalAdminUser()) return true; try { const until = Number(sessionStorage.getItem('abuDujana_adminAuthUntil') || '0'); return until > Date.now(); } catch(e) { return false; } }
 // Statistics are separately granted, but the matching record-reading permission is also required.
 // General and additional administrators retain their explicit privileged bypass.
@@ -13234,7 +13240,7 @@ function timetableSubstitutionSetStatus(message,kind="info") {
 async function timetableLoadSubstitutionOptions() {
   const panel=document.getElementById("timetableSubstitutionPanel");
   if(!panel)return;
-  const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||appAuthSession?.principal?.permissions?.reserve===true;
+  const reserveWorkspaceAllowed=canManageReserveWorkspace(activeUser)||appAuthSession?.principal?.type==="custom"||(appAuthSession?.principal?.type==="teacher"&&appAuthSession?.principal?.permissions?.reserve===true);
   if(!reserveWorkspaceAllowed&&!timetableCanAccess)return;
   panel.classList.remove("hidden");
   try{
@@ -13509,7 +13515,7 @@ function timetableDailyNormalizeName(value) {
 
 async function timetableLoadSubstitutionOptions() {
   const panel = document.getElementById("timetableSubstitutionPanel");
-  const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||appAuthSession?.principal?.permissions?.reserve===true;
+  const reserveWorkspaceAllowed=canManageReserveWorkspace(activeUser)||appAuthSession?.principal?.type==="custom"||(appAuthSession?.principal?.type==="teacher"&&appAuthSession?.principal?.permissions?.reserve===true);
   if (!panel || (!reserveWorkspaceAllowed && !timetableCanAccess)) return;
   panel.classList.remove("hidden");
   try {
@@ -14559,7 +14565,7 @@ async function timetableSaveOwner() {
   window.refreshSubstitutionDashboardCard=function(){
     const card=document.getElementById('substitutionDashboardCard');
     if(!card)return;
-    const allowed=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true;
+    const allowed=canManageReserveWorkspace(activeUser);
     card.classList.toggle('hidden',!allowed);
   };
   function bindOtherDepartmentControls(){
@@ -14599,14 +14605,14 @@ async function timetableSaveOwner() {
     }
   }
   window.openSubstitutionView=async function(){
-    const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==='teacher'&&activeUser?.permissions?.reserve===true);
+    const allowed=canManageReserveWorkspace(activeUser);
     if(!allowed){showToast('لا تملك صلاحية توزيع حصص الاحتياط.','error');return;}
     bindOtherDepartmentControls();
     ['dashboardSelectionView','dutyView','dutyClassesView','teacherTimetableView','attendanceView','classesView','behaviorClassesView','behaviorSessionView'].forEach(function(id){document.getElementById(id)?.classList.add('hidden');});
     document.getElementById('substitutionView')?.classList.remove('hidden');
     const date=document.getElementById('substitutionDate');
     if(date&&!date.value)date.value=getOmanLocalDate();
-    const canExpand=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true;
+    const canExpand=canManageReserveWorkspace(activeUser);
     document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',!canExpand);
     clearPlan();
     await window.substitutionLoadAbsentees();
