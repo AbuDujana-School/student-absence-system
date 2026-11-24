@@ -118,8 +118,12 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   const boot=source.slice(source.indexOf("installMainSubstitutionViewIntegration();",source.indexOf("function installReserveArchiveAutoRefresh()")+1));
   assert(!boot.includes("installHomeReserveArchive();"),"The legacy home archive must not install a second distribution surface");
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(html.includes('const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)'),"Reserve-enabled teachers must retain access to the canonical batch panel");
-  assert(integration.includes('appAuthSession?.principal?.permissions?.reserve===true'),"A custom authenticated reserve principal must not be blocked by the UI gate when the server session grants reserve permission");
+  assert(html.includes("function canManageReserveWorkspace(user = activeUser)"),"Reserve access must use a dedicated module-level capability check");
+  assert((html.match(/canManageReserveWorkspace\\(activeUser\\)/g)||[]).length>=4,"Dashboard card, legacy entry, and both canonical batch loaders must use the dedicated reserve capability");
+  assert(integration.includes("canManageReserveWorkspace(activeUser)"),"Delegated administrators and reserve-enabled teachers must be admitted to the canonical workspace");
+  assert(integration.includes('reservePrincipal?.type==="custom"'),"A custom authenticated reserve principal must remain eligible for the scoped workspace");
+  assert(integration.includes("sameSessionAdmin"),"A server-resolved admin principal must be matched to the active account before opening reserve");
+  assert(integration.includes("const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin"),"Explicit reserve administrators may use the existing cross-department workflow");
   assert(integration.includes('appAuthSession?.principal?.type==="custom"'),"A custom principal with an authenticated timetable grant must be allowed into the department-scoped reserve workspace");
   assert(integration.includes('appAuthSession?.principal?.type==="teacher"&&appAuthSession?.principal?.permissions?.reserve===true'),"Only admins and reserve-enabled teacher principals may see cross-department controls; custom coordinators remain department-scoped");
 });
