@@ -231,11 +231,11 @@ Deno.test("same-date duty or substitution blocks a candidate across timetable ve
   equal(ranked.length, 0, "An actual same-date duty must block the candidate even from an older timetable version");
 });
 
-Deno.test("only admins and explicitly reserve-authorized teachers can include other departments", () => {
+Deno.test("admins, scoped reserve coordinators, and explicitly reserve-authorized teachers can request support departments", () => {
   equal(canIncludeOtherDepartments("admin", true), true, "Administrator may request cross-department candidates");
   equal(canIncludeOtherDepartments("teacher", true), false, "Teacher without reserve permission cannot widen department scope");
   equal(canIncludeOtherDepartments("teacher", true, true), true, "Reserve-authorized teacher may request cross-department substitutes");
-  equal(canIncludeOtherDepartments("custom", true, true), false, "Custom users cannot widen department scope");
+  equal(canIncludeOtherDepartments("custom", true), true, "Department-scoped coordinators may explicitly select support departments");
   equal(canIncludeOtherDepartments("admin", "true"), false, "Non-boolean values are rejected");
 });
 
