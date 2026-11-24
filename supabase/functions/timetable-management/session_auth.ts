@@ -105,14 +105,6 @@ export async function resolveTimetablePrincipal(
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
-  // The all-school substitution report is a separate read-only capability.
-  // Check it before delegated-admin elevation so admin=true cannot bypass its
-  // explicit report grant or turn this read into general reserve management.
-  if (type === "teacher" && requestedAction === "timetable_substitution_report") {
-    return permissions.reportSubstitutionDistribution === true
-      ? { type, name, permissions }
-      : null;
-  }
   // Delegated full administrators remain teacher identities in app_sessions,
   // but receive administrator authority for timetable management actions.
   if (type === "teacher" && permissions.admin === true) {
