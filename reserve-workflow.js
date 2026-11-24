@@ -360,7 +360,7 @@
             button.innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
             if(!selectedOtherDepartmentId()){
               status("اختر القسم المساند أولاً؛ لن تظهر أسماء المعلمين قبل اختيار القسم.","info");
-              $("timetableDailyOtherDepartmentSelect")?.focus();return;
+              $("timetableDailyOtherDepartmentChoices")?.querySelector("input")?.focus();return;
             }
             await timetableDailyRefreshAll();
           }catch(error){
