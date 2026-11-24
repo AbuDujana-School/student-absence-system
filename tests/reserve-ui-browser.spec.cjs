@@ -42,10 +42,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         <div class="subx-stepper"></div><div class="grid"><input id="substitutionDate"></div>
         <div class="rounded-3xl"><div id="substitutionAbsenteeList"></div></div>
         <div id="substitutionPlanPanel"></div><div id="subxFloatingBar"></div>
-        <div id="substitutionStatsPanel">stats</div><div id="timetableDailyArchivePanel">archive</div>
+        <div id="substitutionStatsPanel">stats</div>
+        <section id="subxEditPanel"><div id="subxEditContent"></div></section>
+        <section id="subxArchivePanel"><div id="subxArchiveContent"></div></section>
       </section>
       <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden">
         <button id="timetableDailyOtherDepartmentsButton">other departments</button>
+        <div id="timetableDailyActivePanel">active assignments</div>
+        <div id="timetableDailyArchivePanel" class="hidden">archive</div>
       </div></section>`);
     await page.evaluate(({ role, integration, generalAdminHelper, reserveCapabilityHelper }) => {
       const $ = (id) => document.getElementById(id);
@@ -93,7 +97,10 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const $ = (id) => document.getElementById(id);
       return {
         visible: !$("substitutionView").classList.contains("hidden"),
-        mounted: $("timetableSubstitutionPanel").parentElement?.id === "substitutionCanonicalWorkspace",
+        legacyHidden: $("timetableSubstitutionPanel").classList.contains("hidden"),
+        legacyStillInOrigin: $("timetableSubstitutionPanel").parentElement?.id === "timetableOrigin",
+        editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditContent",
+        archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveContent",
         crossDepartment: !$("timetableDailyOtherDepartmentsButton").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
         archive: !$("timetableDailyArchivePanel").classList.contains("hidden"),
@@ -103,7 +110,10 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
     });
     if (role.allowed) {
       expect(result.visible, role.id).toBe(true);
-      expect(result.mounted, role.id).toBe(true);
+      expect(result.legacyHidden, role.id).toBe(true);
+      expect(result.legacyStillInOrigin, role.id).toBe(true);
+      expect(result.editMounted, role.id).toBe(true);
+      expect(result.archiveMounted, role.id).toBe(true);
       expect(result.crossDepartment, role.id).toBe(role.expand);
       expect(result.stats, role.id).toBe(!role.custom);
       expect(result.archive, role.id).toBe(!role.custom);
@@ -111,9 +121,13 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.calls.archive, role.id).toBe(role.custom ? 0 : 1);
       expect(result.calls.stats, role.id).toBe(role.custom ? 0 : 1);
       await page.evaluate(() => window.closeSubstitutionView());
-      expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel").count(), role.id + " restore").toBe(1);
+      expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel").count(), role.id + " compatibility engine remains mounted").toBe(1);
+      expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel.hidden").count(), role.id + " compatibility engine stays hidden").toBe(1);
     } else {
-      expect(result.mounted, role.id).toBe(false);
+      expect(result.legacyHidden, role.id).toBe(true);
+      expect(result.legacyStillInOrigin, role.id).toBe(true);
+      expect(result.editMounted, role.id).toBe(false);
+      expect(result.archiveMounted, role.id).toBe(false);
       expect(result.calls.options, role.id).toBe(0);
       expect(result.denials, role.id).toBe(1);
     }
