@@ -2489,7 +2489,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  }
  function setTab(name){
   activeTab=['daily','stats','log','reports'].includes(name)?name:'daily';
-  tabs.forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
+  root.querySelectorAll('[data-subx-tab]').forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
   [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',activeTab!=='daily'));
   stats?.classList.toggle('hidden',activeTab!=='stats');
   logPanel.classList.toggle('hidden',activeTab!=='log');
