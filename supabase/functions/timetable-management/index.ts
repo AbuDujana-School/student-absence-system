@@ -366,7 +366,7 @@ async function handle(req: Request) {
       return reply(503, { error: "تعذر التحقق من صلاحية الاحتياط المؤقتة. حاول لاحقاً." });
     }
   }
-  // The live reserve grant is already included in the teacher identity lookup.
+  // Custom principals are department-scoped reserve coordinators. Their reserve actions remain bounded by the server-side department checks below.
   const hasReservePermission = (principal.type === "custom" || (principal.type === "teacher" && principal.reserveAccess === true)) &&
     action.startsWith("timetable_substitution_");
   // Only archive actions need the separate timetable grant; avoid this
