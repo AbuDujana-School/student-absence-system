@@ -566,7 +566,7 @@ Deno.test("explicit admin permission authorizes pending deletion review without 
   const auth = section("function canReviewPendingDeletes(", "/* ============ Cloud helpers ============ */");
   assert(auth.includes("activeUser?.type === 'teacher' && activeUser?.permissions?.admin === true"), "A legacy teacher with explicit admin permission may review pending deletes");
   assert(auth.includes("isAdminAuthorized()"), "General and additional admins must remain authorized");
-  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  const identity = section("function isGeneralAdminUser(", "function isAdditionalAdminUser(");
   assert(!identity.includes("permissions?.admin"), "The queue-only privilege must not grant the general-admin bypass");
   const review = section("function openPendingDeleteReview()", "async function initDefaults()");
   assert(review.includes("if (!canReviewPendingDeletes())"), "The review modal must enforce the scoped deletion-review authorization");
