@@ -186,3 +186,20 @@ Deno.test("custom coordinator opens only the scoped reserve workspace without ar
   assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
 });
 
+
+
+Deno.test("reserve archive route accepts date ranges without weekday and bypasses planner-wide history reads", async () => {
+  const handler = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
+  const routeStart = handler.indexOf('if(actionName==="timetable_substitution_archive"){');
+  const routeEnd = handler.indexOf('const weekday = String(body.weekday || "");', routeStart);
+  assert(routeStart >= 0 && routeEnd > routeStart, "Archive must have an early, independent route before weekday validation");
+  const archiveRoute = handler.slice(routeStart, routeEnd);
+  assert(archiveRoute.includes('body.dateFrom||requestedDate||"1900-01-01"'), "Archive must honor the requested start date");
+  assert(archiveRoute.includes('body.dateTo||requestedDate||"2100-12-31"'), "Archive must honor the requested end date");
+  assert(archiveRoute.includes('.gte("assignment_date",dateFrom).lte("assignment_date",dateTo)'), "The database query itself must restrict archive rows to the requested period");
+  assert(archiveRoute.includes('eq("assignment_type","substitution")'), "Archive reads must return only substitution assignments");
+  assert(!archiveRoute.includes("fetchAllTimetableCells"), "Archive reads must not fetch the weekly timetable");
+  assert(!archiveRoute.includes("timetable_substitution_points_ledger"), "Archive reads must not fetch the fairness points ledger");
+  assert(archiveRoute.includes("activeVersionResult.data?.id"), "Historical reads must still work without an active timetable version");
+  assert(!handler.slice(routeEnd).includes('if(body.action==="timetable_substitution_archive"){'), "The obsolete full-history archive branch must be removed");
+});
