@@ -620,9 +620,9 @@
     if(reserveDailyArchiveLoadPromise)return reserveDailyArchiveLoadPromise;
     reserveDailyArchiveLoadPromise=Promise.resolve().then(async()=>{
       const activeHost=$("timetableDailyActiveResults");
-      host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
-      if(activeHost)activeHost.innerHTML='<p class="text-center text-xs text-slate-500">جارٍ تحميل سجلات اليوم...</p>';
       try{
+        host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
+        if(activeHost)activeHost.innerHTML='<p class="text-center text-xs text-slate-500">جارٍ تحميل سجلات اليوم...</p>';
         const from=$("timetableDailyArchiveFrom")?.value||"",to=$("timetableDailyArchiveTo")?.value||"",token=appAuthSession?.token||readAppAuthToken();
         if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
         if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
