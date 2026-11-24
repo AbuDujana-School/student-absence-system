@@ -46,7 +46,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden">
         <button id="timetableDailyOtherDepartmentsButton">other departments</button>
       </div></section>`);
-    await page.evaluate(({ role, integration }) => {
+    await page.evaluate(({ role, integration, generalAdminHelper, reserveCapabilityHelper }) => {
       const $ = (id) => document.getElementById(id);
       const activeUser = role.user;
       const appAuthSession = { principal: role.principal };
