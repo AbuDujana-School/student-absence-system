@@ -1,4 +1,4 @@
-import { academicYearKey, isWithinTeacherRegistrationWindow, isTeacherEligibleForMorningLateness, latenessAbsenceDays, canUseMorningLateness } from "./policy.ts";
+import { academicYearKey, isWithinTeacherRegistrationWindow, isTeacherEligibleForMorningLateness, isNonDutyTeacherEligibleForMorningLateness, latenessAbsenceDays, canUseMorningLateness } from "./policy.ts";
 
 Deno.test("Oman academic year starts on September 1", () => {
   if (academicYearKey("2026-08-31") !== "2025/2026") throw new Error("August must remain in the ending academic year");
@@ -13,14 +13,20 @@ Deno.test("teacher registration window includes 07:00 and 08:30 only", () => {
   }
 });
 
-Deno.test("teacher needs permission and the actual assigned weekday", () => {
-  const base = { permission:true, dutyToday:true, weekday:"الأربعاء", assignedDutyDay:"الأربعاء", minutes:480 };
+Deno.test("assigned duty teachers can record on their assigned weekday without a separate permission toggle", () => {
+  const base = { dutyToday:true, weekday:"الثلاثاء", assignedDutyDay:"الثلاثاء", minutes:480 };
   if (!isTeacherEligibleForMorningLateness(base)) throw new Error("Assigned teacher should be eligible");
-  if (isTeacherEligibleForMorningLateness({...base,permission:false})) throw new Error("Permission is mandatory");
   if (isTeacherEligibleForMorningLateness({...base,assignedDutyDay:"الخميس"})) throw new Error("Non-duty day must be denied");
   if (isTeacherEligibleForMorningLateness({...base,weekday:"الجمعة"})) throw new Error("Friday must be denied");
   if (isTeacherEligibleForMorningLateness({...base,dutyToday:false})) throw new Error("Explicitly disabled daily duty must be denied");
   if (!isTeacherEligibleForMorningLateness({...base,dutyToday:undefined as unknown as boolean})) throw new Error("An unset optional disable flag must preserve the existing duty-day rule");
+});
+Deno.test("non-duty teachers require the separate permission and retain the same time window", () => {
+  const base = { permission:true, weekday:"الثلاثاء", minutes:480 };
+  if (!isNonDutyTeacherEligibleForMorningLateness(base)) throw new Error("Explicit non-duty permission should allow recording");
+  if (isNonDutyTeacherEligibleForMorningLateness({...base,permission:false})) throw new Error("Non-duty permission must be mandatory");
+  if (isNonDutyTeacherEligibleForMorningLateness({...base,weekday:"الجمعة"})) throw new Error("Friday must be denied");
+  if (isNonDutyTeacherEligibleForMorningLateness({...base,minutes:511})) throw new Error("The time window must remain unchanged");
 });
 
 Deno.test("four lateness events equal one separate absence day", () => {
@@ -37,4 +43,7 @@ Deno.test("admin and explicitly authorized custom users have independent access"
     // custom access does not depend on weekday, duty day, or registration time.
   } else throw new Error("Authorized custom user must bypass duty and time gates");
   if (canUseMorningLateness({ principalType:"custom", ...common, permission:false })) throw new Error("Custom permission must remain explicit");
+  if (!canUseMorningLateness({principalType:"teacher",permission:false,nonDutyPermission:true,dutyToday:true,weekday:"الثلاثاء",assignedDutyDay:"الأربعاء",minutes:480})) throw new Error("Non-duty teacher with explicit permission should be allowed");
+  if (!canUseMorningLateness({principalType:"teacher",permission:false,dutyToday:true,weekday:"الثلاثاء",assignedDutyDay:"الثلاثاء",minutes:480})) throw new Error("Duty teacher should be allowed without legacy permission");
+  if (canUseMorningLateness({principalType:"teacher",permission:false,dutyToday:true,weekday:"الثلاثاء",assignedDutyDay:"الأربعاء",minutes:480})) throw new Error("Non-duty teacher without explicit permission must be denied");
 });

@@ -80,6 +80,7 @@ function canUse(principal:Principal, ctx:ReturnType<typeof omanNow>, duty:any) {
   return canUseMorningLateness({
     principalType: principal.type,
     permission: principal.permissions.morningAssemblyLateness === true,
+    nonDutyPermission: principal.permissions.morningAssemblyLatenessNonDuty === true,
     dutyToday: principal.permissions.dutyToday !== false,
     weekday: ctx.weekday,
     assignedDutyDay: assignedDay,
