@@ -2400,6 +2400,15 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #substitutionView #substitutionPlanAssignments .grid>div:first-child>span:first-child{display:inline-grid;place-items:center;min-width:44px;min-height:44px;border-radius:50%;background:linear-gradient(145deg,#e3f2f1,#d2e9e6);color:#176c68;font-size:10px;font-weight:900}
 .dark #substitutionView #substitutionPlanAssignments .grid>div:first-child>span:first-child{background:linear-gradient(145deg,#164b4b,#1d3c4b);color:#b8e7df}
 body.subx-sheet-open{overflow:hidden}
+#substitutionView .subx-candidate-options{display:grid;gap:9px;max-height:52dvh;overflow:auto;padding:12px 2px}
+#substitutionView .subx-candidate-card{position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-height:68px;padding:12px 44px 12px 12px;border:1px solid rgba(148,163,184,.22);border-radius:16px;background:rgba(255,255,255,.86);text-align:right;color:var(--subx-ink)}
+.dark #substitutionView .subx-candidate-card{background:#182b3e;border-color:#34465a;color:#e5edf5}
+#substitutionView .subx-candidate-card b{font-size:13px;font-weight:900}
+#substitutionView .subx-candidate-card small{color:var(--subx-muted);font-size:10px}
+#substitutionView .subx-candidate-card.is-selected{border-color:var(--subx-teal);background:rgba(22,140,133,.09)}
+#substitutionView .subx-candidate-mark{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:24px;height:24px;display:grid;place-items:center;border-radius:50%;background:#e7f5f1;color:var(--subx-teal);opacity:0}
+#substitutionView .subx-candidate-card.is-selected .subx-candidate-mark{opacity:1}
+#substitutionView .subx-open-candidate{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:40px;margin-top:6px;padding:7px 12px;border:1px solid rgba(22,140,133,.2);border-radius:12px;background:rgba(22,140,133,.08);color:var(--subx-teal);font-size:10px;font-weight:900}
 </style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <!-- واجهة رئيسية جديدة؛ تبقى قواعد العمل والأحداث الأصلية كما هي. -->
@@ -2539,6 +2548,16 @@ body.subx-sheet-open{overflow:hidden}
       <div class="subx-sheet-footer"><div class="subx-sheet-footer-meta"><b id="subxSheetSelectedCount">0</b><span>معلم محدد</span></div><div id="subxGenerateDock"></div></div>
     </section>
   </div>
+  <div class="subx-sheet-backdrop" id="subxCandidateSheet" hidden>
+    <section class="subx-bottom-sheet subx-sheet-tall" role="dialog" aria-modal="true" aria-labelledby="subxCandidateTitle">
+      <div class="subx-sheet-grabber"></div><div class="subx-sheet-head"><div><span class="subx-eyebrow">اختيار متوازن</span><h3 id="subxCandidateTitle">اختيار البديل</h3><p>قارن الحصص المشغولة ثم اختر من القائمة المتاحة.</p></div><button type="button" class="subx-sheet-close" data-subx-close-sheet aria-label="إغلاق">×</button></div>
+      <div id="subxCandidateOptions" class="subx-candidate-options"></div>
+      <details id="subxCandidateOtherDept" class="subx-other-department-details" hidden>
+        <summary><i class="fa-solid fa-people-arrows-left-right"></i><span>معلم من قسم آخر</span><i class="fa-solid fa-chevron-down"></i></summary>
+        <div class="subx-other-department-body"><button type="button" class="subx-other-back">← عودة لقائمة البدلاء</button><div id="subxCandidateOtherDepartmentMount"></div></div>
+      </details>
+    </section>
+  </div>
   <div class="subx-sheet-backdrop" id="subxRulesSheet" hidden>
     <section class="subx-bottom-sheet subx-sheet-tall" role="dialog" aria-modal="true" aria-labelledby="subxRulesTitle">
       <div class="subx-sheet-grabber"></div><div class="subx-sheet-head"><div><span class="subx-eyebrow">شفافية وتوازن وإنصاف</span><h3 id="subxRulesTitle">قواعد العدالة والنقاط</h3></div><button type="button" class="subx-sheet-close" data-subx-close-sheet aria-label="إغلاق">×</button></div>
@@ -2570,13 +2589,11 @@ body.subx-sheet-open{overflow:hidden}
  move(absenteeCard,$('subxAbsenteeMount'));
  move(stats,$('subxStatsMount'));
  move(plan,$('subxHistoryMount'));
- if(otherWrap&&plan){
-   const details=document.createElement('details');details.className='subx-other-department-details';
-   details.innerHTML='<summary><i class="fa-solid fa-people-arrows-left-right"></i><span>معلم من قسم آخر</span><i class="fa-solid fa-chevron-down"></i></summary><div class="subx-other-department-body"><button type="button" class="subx-other-back">← عودة لقائمة القسم</button><div class="subx-other-department-slot"></div></div>';
-   details.querySelector('.subx-other-back').addEventListener('click',()=>{details.open=false;});
-   plan.insertBefore(details,plan.querySelector('#substitutionUnassigned')||plan.firstChild);
-   move(otherWrap,details.querySelector('.subx-other-department-slot'));
-   const sync=()=>{details.hidden=otherWrap.classList.contains('hidden');};
+ if(otherWrap){
+   const details=$('subxCandidateOtherDept');
+   move(otherWrap,$('subxCandidateOtherDepartmentMount'));
+   details?.querySelector('.subx-other-back')?.addEventListener('click',()=>{details.open=false;});
+   const sync=()=>{if(details)details.hidden=otherWrap.classList.contains('hidden');};
    new MutationObserver(sync).observe(otherWrap,{attributes:true,attributeFilter:['class']});sync();
  }
  if(generate)move(generate,$('subxGenerateDock'));
@@ -2627,6 +2644,42 @@ body.subx-sheet-open{overflow:hidden}
    const term=search.value.trim().toLocaleLowerCase();
    root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));
  });
+ let activeCandidateSelect=null;
+ function openCandidateChooser(select){
+   if(!select)return;
+   activeCandidateSelect=select;
+   const host=$('subxCandidateOptions');if(!host)return;
+   const options=[...select.options].filter(o=>o.value);
+   $('subxCandidateTitle').textContent='اختيار بديل · الحصة '+(select.closest('.grid')?.querySelector('span')?.textContent||'');
+   host.innerHTML='';
+   if(!options.length){host.innerHTML='<div class="subx-empty-state"><i class="fa-solid fa-user-clock"></i><b>لا توجد بدائل متاحة في هذه القائمة</b><p>يمكنك مراجعة الأقسام المساندة إذا كانت صلاحيتك تسمح بذلك.</p></div>';}
+   options.forEach(option=>{
+     const card=document.createElement('button');card.type='button';card.className='subx-candidate-card'+(option.selected?' is-selected':'');
+     const raw=option.textContent.trim(),parts=raw.split('· الحصص');
+     const name=parts[0]?.trim()||raw,periods=parts[1]?.trim()||'لم تُذكر حصص مشغولة';
+     const title=document.createElement('b');title.textContent=name;
+     const meta=document.createElement('small');meta.textContent='الحصص المشغولة: '+periods;
+     const mark=document.createElement('span');mark.className='subx-candidate-mark';mark.innerHTML='<i class="fa-solid fa-check"></i>';
+     card.append(title,meta,mark);
+     card.addEventListener('click',()=>{
+       if(!activeCandidateSelect||!activeCandidateSelect.isConnected)return;
+       activeCandidateSelect.value=option.value;
+       activeCandidateSelect.dispatchEvent(new Event('change',{bubbles:true}));
+       closeSheets();
+     });
+     host.appendChild(card);
+   });
+   openSheet('subxCandidateSheet');
+ }
+ function enhanceCandidateControls(){
+   root.querySelectorAll('select[data-substitution-row]').forEach(select=>{
+     if(select.dataset.subxEnhancedChooser==='yes')return;
+     select.dataset.subxEnhancedChooser='yes';
+     const button=document.createElement('button');button.type='button';button.className='subx-open-candidate';button.innerHTML='<i class="fa-solid fa-users"></i> عرض البدلاء';
+     button.addEventListener('click',()=>openCandidateChooser(select));
+     select.insertAdjacentElement('afterend',button);
+   });
+ }
  function updateMetrics(){
    if($('subxHistoryEmpty'))$('subxHistoryEmpty').hidden=!!(plan&&!plan.classList.contains('hidden'));
    const selected=root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked').length;
@@ -2647,6 +2700,8 @@ body.subx-sheet-open{overflow:hidden}
    if(plan&&!plan.classList.contains('hidden')&&activeTab==='daily')setTab('history');
  });
  if(plan)observer.observe(plan,{attributes:true,attributeFilter:['class']});
+ const candidateObserver=new MutationObserver(enhanceCandidateControls);if($('substitutionPlanAssignments'))candidateObserver.observe($('substitutionPlanAssignments'),{childList:true,subtree:true});
+ enhanceCandidateControls();
  const status=$('substitutionSaveStatus');if(status)new MutationObserver(updateMetrics).observe(status,{childList:true,characterData:true,subtree:true});
  const list=$('substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateMetrics();}).observe(list,{childList:true});
  $('subxRulesClose')?.addEventListener('click',closeSheets);
