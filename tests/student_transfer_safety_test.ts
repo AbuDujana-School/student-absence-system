@@ -14,6 +14,13 @@ function section(source: string, startMarker: string, endMarker: string): string
   return source.slice(start, end);
 }
 
+Deno.test("Student Affairs admin authorization helpers are top-level and preserve delegated-admin policy", () => {
+  const general = section(edge, "function isGeneralAdminPrincipal(", "function hasFullAdministrativeAccess(");
+  const full = section(edge, "function hasFullAdministrativeAccess(", "async function readAuthorizedAppSession(");
+  assert(general.includes('return value?.type === "admin" && (value.adminScope === "general" || value.name === "مدير النظام العام");'), "General-admin detection must remain limited to the general admin identity");
+  assert(full.includes('return isGeneralAdminPrincipal(value) || (value?.type === "teacher" && value.permissions?.admin === true);'), "Full-admin access must preserve explicitly delegated teacher-admin access");
+});
+
 Deno.test("student roster removal preserves historical attendance and behavior", () => {
   const bulk = section(html, "async function saveBulkStudents()", "function handleStudentFileImport");
   const remove = section(html, "async function removeStudent(className, idx)", "async function addNewClassPrompt");
