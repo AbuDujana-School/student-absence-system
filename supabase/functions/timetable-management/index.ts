@@ -1482,7 +1482,7 @@ async function handle(req: Request) {
       const otherTeacherNames=Array.from(new Set<string>(otherDepartmentSelections.flatMap((item:any)=>item.teacherNames)));
       const selectedSupportingTeacher=(teacher:any)=>includeOtherDepartments&&otherDepartmentSelections.some((item:any)=>
         item.departmentId===String(teacher?.departmentId||"")&&item.teacherNames.includes(String(teacher?.name||"")));
-      const requiresExplicitOtherTeachers=includeOtherDepartments&&["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_batch_preview","timetable_substitution_batch_save"].includes(String(body.action||""));
+      const requiresExplicitOtherTeachers=includeOtherDepartments&&["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_batch_preview","timetable_substitution_batch_save","timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body.action||""));
       if(requiresExplicitOtherTeachers&&!otherDepartmentSelections.length)return reply(400,{error:"اختر تخصصاً مسانداً واحداً على الأقل."});
       if(requiresExplicitOtherTeachers&&!otherTeacherNames.length)return reply(400,{error:"حدد معلماً واحداً على الأقل من الأقسام المساندة التي اخترتها."});
       if(requiresExplicitOtherTeachers&&otherDepartmentSelections.some((selection:any)=>
@@ -1627,7 +1627,7 @@ async function handle(req: Request) {
         if(principal.type==="custom"&&normalized.some((item:any)=>{
           const row=editableById.get(item.assignmentId) as any;
           const targetAbsent= item.absentTeacherName || String(row?.absent_teacher_name||"");
-          const selectedSupport=otherDepartmentSelections.some((selection:any)=>selection.teacherNames.includes(item.substituteTeacherName));
+          const selectedSupport=selectedSupportingTeacher({name:item.substituteTeacherName,departmentId:directory.find((teacher:any)=>teacher.role==="teacher"&&teacher.name===item.substituteTeacherName)?.departmentId});
           return !row ||
             !customReserveScopeAllows(String(row.absent_teacher_name||"")) ||
             !customReserveScopeAllows(targetAbsent,item.substituteTeacherName,selectedSupport);
@@ -1663,7 +1663,7 @@ async function handle(req: Request) {
           return reply(409,{error:"لا يمكن تعديل هذا السجل لأنه غير نشط أو مرتبط بإصدار جدول سابق."});
         }
         const targetAbsentForScope=absentTeacherName||String(editableAssignment.absent_teacher_name||"");
-        const selectedSupportForUpdate=otherDepartmentSelections.some((selection:any)=>selection.teacherNames.includes(substituteTeacherName));
+        const selectedSupportForUpdate=selectedSupportingTeacher({name:substituteTeacherName,departmentId:directory.find((teacher:any)=>teacher.role==="teacher"&&teacher.name===substituteTeacherName)?.departmentId});
         if(principal.type==="custom"&&(
           !customReserveScopeAllows(String(editableAssignment.absent_teacher_name||""))||
           !customReserveScopeAllows(targetAbsentForScope,substituteTeacherName,selectedSupportForUpdate)||
