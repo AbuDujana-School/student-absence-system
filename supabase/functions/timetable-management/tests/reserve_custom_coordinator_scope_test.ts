@@ -1,4 +1,4 @@
-import { canUseTimetableAction } from "../session_auth.ts";
+import { canIncludeOtherDepartments, canUseTimetableAction } from "../session_auth.ts";
 import { canCustomCoordinatorManageDepartment } from "../reserve_authorization.ts";
 
 function assert(condition: boolean, message: string) {
@@ -22,13 +22,12 @@ Deno.test("custom reserve coordinators can use batch preview/save but not archiv
   }
 });
 
-Deno.test("custom reserve coordinators cannot edit archive records", () => {
-  for (const action of ["timetable_substitution_update", "timetable_substitution_update_batch", "timetable_substitution_archive"]) {
-    assert(
-      !canUseTimetableAction("custom", action),
-      "Custom coordinator must not receive archive or edit capability: " + action,
-    );
+Deno.test("custom reserve coordinators can edit their own department's reserve records but cannot open schoolwide archive", () => {
+  for (const action of ["timetable_substitution_update", "timetable_substitution_update_batch"]) {
+    assert(canUseTimetableAction("custom", action), "Department-scoped coordinator must be able to edit reserve records: " + action);
   }
+  assert(!canUseTimetableAction("custom", "timetable_substitution_archive"), "Custom coordinator must not receive schoolwide archive capability");
+  assert(canUseTimetableAction("custom", "timetable_substitution_departments"), "Custom coordinator must be able to request support department choices");
 });
 
 Deno.test("custom reserve coordinators cannot gain schoolwide statistics, archive, or reset actions", () => {
@@ -37,7 +36,6 @@ Deno.test("custom reserve coordinators cannot gain schoolwide statistics, archiv
     "timetable_substitution_archive",
     "timetable_substitution_reset_options",
     "timetable_substitution_reset",
-    "timetable_substitution_departments",
   ]) {
     assert(
       !canUseTimetableAction("custom", action),
@@ -62,7 +60,12 @@ Deno.test("custom batch save derives absent-teacher and substitute scope from se
   );
   assert(
     backend.includes('canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true)'),
-    "A custom coordinator must not obtain cross-department substitute access from client input alone",
+    "The server must decide cross-department access from the authenticated principal",
+  );
+  assert(
+    backend.includes("const rawOtherDepartmentSelections=Array.isArray(body.otherDepartmentSelections)?body.otherDepartmentSelections:[];") &&
+      backend.includes("const selectedSupportingTeacher=(teacher:any)=>includeOtherDepartments&&otherDepartmentSelections.some"),
+    "Multiple support departments and teacher membership must be validated server-side",
   );
 });
 
@@ -79,7 +82,11 @@ Deno.test("custom reserve mutations stay inside the coordinator department", () 
   );
   assert(
     !canCustomCoordinatorManageDepartment({ ...base, substituteTeacherDepartmentId: "علوم" }),
-    "Coordinator must not assign a substitute from another department",
+    "Coordinator must not assign a substitute from another department unless explicitly selected",
+  );
+  assert(
+    canCustomCoordinatorManageDepartment({ ...base, substituteTeacherDepartmentId: "علوم", allowSupportingSubstitute: true }),
+    "Coordinator may use a substitute from a department explicitly selected in the support picker",
   );
   assert(
     !canCustomCoordinatorManageDepartment({ ...base, actorDepartmentId: "" }),
@@ -157,6 +164,13 @@ Deno.test("custom reserve mutation handlers enforce department scope before priv
   );
 });
 
+
+Deno.test("custom coordinators can request multiple support departments while ordinary teachers still need an explicit grant", () => {
+  assert(canIncludeOtherDepartments("custom", true), "A scoped reserve coordinator may request selected support departments");
+  assert(!canIncludeOtherDepartments("custom", false), "A scoped reserve coordinator cannot enable support departments without choosing the option");
+  assert(!canIncludeOtherDepartments("teacher", true, false), "Ordinary teachers cannot request support departments");
+  assert(canIncludeOtherDepartments("teacher", true, true), "Reserve-enabled teachers retain support department access");
+});
 
 Deno.test("ordinary teachers cannot access reserve distribution without explicit reserve permission", () => {
   const reserveActions = [
