@@ -156,3 +156,24 @@ Deno.test("custom reserve mutation handlers enforce department scope before priv
     "The backend must use the shared custom coordinator scope policy",
   );
 });
+
+
+Deno.test("ordinary teachers cannot access reserve distribution without explicit reserve permission", () => {
+  const reserveActions = [
+    "timetable_substitution_preview",
+    "timetable_substitution_batch_preview",
+    "timetable_substitution_batch_save",
+    "timetable_substitution_archive",
+    "timetable_substitution_stats",
+  ];
+  for (const action of reserveActions) {
+    assert(
+      !canUseTimetableAction("teacher", action, false, false),
+      "Ordinary teacher without reserve permission must be denied: " + action,
+    );
+    assert(
+      canUseTimetableAction("teacher", action, false, true),
+      "Teacher with explicit reserve permission must retain the authorized action: " + action,
+    );
+  }
+});
