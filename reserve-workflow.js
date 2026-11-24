@@ -2066,8 +2066,12 @@
       panel.classList.add("hidden");
       const activePanel=$("timetableDailyActivePanel");
       const archivePanel=$("timetableDailyArchivePanel");
+      const adminTools=$("ttAdminReserveTools");
+      const departmentTools=$("ttDepartmentReserveTools");
       if(activePanel&&activePanel.parentElement!==editHost)editHost.appendChild(activePanel);
       if(archivePanel&&archivePanel.parentElement!==archiveHost)archiveHost.appendChild(archivePanel);
+      if(adminTools&&adminTools.parentElement!==archiveHost)archiveHost.appendChild(adminTools);
+      if(departmentTools&&departmentTools.parentElement!==archiveHost)archiveHost.appendChild(departmentTools);
       activePanel?.classList.remove("hidden");
       archivePanel?.classList.remove("hidden");
       return true;
@@ -2086,6 +2090,8 @@
           const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
           const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
+          if(typeof window.timetableDailyInstallAdminTools==="function")await window.timetableDailyInstallAdminTools();
+          if(typeof window.timetableDailyInstallDepartmentTools==="function")await window.timetableDailyInstallDepartmentTools();
           ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
           root.classList.remove("hidden");
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
