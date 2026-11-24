@@ -192,4 +192,4 @@ jobs:
           NODE
 
       - name: Test supporting-teacher selection state
-        run: deno test --allow-read=index.html,reserve-workflow.js tests/substitution_selection_state_test.ts tests/reserve_archive_refresh_test.ts
+        run: deno test --allow-read=index.html,reserve-workflow.js,supabase/functions/timetable-management/index.ts tests/substitution_selection_state_test.ts tests/reserve_archive_refresh_test.ts tests/reserve-premium-wizard_test.ts
