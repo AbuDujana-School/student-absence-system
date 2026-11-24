@@ -152,7 +152,7 @@ Deno.test("custom reserve mutation handlers enforce department scope before priv
     );
   }
   assert(
-    backend.includes('import { canCustomCoordinatorManageDepartment } from "./reserve_authorization.ts";'),
+    backend.includes('import { canCustomCoordinatorManageDepartment, canViewSchoolwideReserveArchive } from "./reserve_authorization.ts";'),
     "The backend must use the shared custom coordinator scope policy",
   );
 });
