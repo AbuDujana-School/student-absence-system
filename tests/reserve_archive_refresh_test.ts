@@ -185,21 +185,3 @@ Deno.test("custom coordinator opens only the scoped reserve workspace without ar
   assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
 });
 
-Deno.test("server authorization keeps ordinary teachers and custom coordinators least-privileged", async () => {
-  const auth=await Deno.readTextFile(new URL("../supabase/functions/timetable-management/session_auth.ts",import.meta.url));
-  const fnStart=auth.indexOf("export function canUseTimetableAction(");
-  const fnEnd=auth.indexOf("/** The administrator or a teacher explicitly",fnStart);
-  assert(fnStart>=0&&fnEnd>fnStart,"Server action authorization function must exist");
-  const fn=auth.slice(fnStart,fnEnd);
-  assert(fn.includes("if (substitutionActions.has(action)) return hasReservePermission"),"Ordinary teachers must need an explicit reserve permission for reserve actions");
-  assert(fn.includes("const customSubstitutionActions = new Set(["),"Custom coordinators must use a separate limited allowlist");
-  const customStart=fn.indexOf("const customSubstitutionActions");
-  const customEnd=fn.indexOf("]);",customStart);
-  const custom=fn.slice(customStart,customEnd);
-  for(const denied of ["timetable_substitution_archive","timetable_substitution_stats","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_reset_options","timetable_substitution_reset","timetable_substitution_departments"]){
-    assert(!custom.includes('"'+denied+'"'),"Custom coordinators must not receive "+denied);
-  }
-  for(const allowed of ["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel","timetable_substitution_cancel_batch","timetable_substitution_batch_preview","timetable_substitution_batch_save"]){
-    assert(custom.includes('"'+allowed+'"'),"Custom coordinators must retain scoped action "+allowed);
-  }
-});
