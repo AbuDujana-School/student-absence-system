@@ -186,3 +186,23 @@ Deno.test("custom coordinator opens only the scoped reserve workspace without ar
   assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
 });
 
+
+
+Deno.test("daily and cumulative reserve archive reads are single-flight", () => {
+  assert(source.includes("let reserveDailyArchiveLoadPromise = null;"), "Daily archive loader must expose one shared in-flight request");
+  assert(source.includes("let reserveCumulativeArchiveLoadPromise = null;"), "Cumulative archive loader must expose one shared in-flight request");
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  assert(dailyStart>=0&&dailyEnd>dailyStart,"Daily archive loader must exist");
+  assert(cumulativeStart>=0&&cumulativeEnd>cumulativeStart,"Cumulative archive loader must exist");
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("if(reserveDailyArchiveLoadPromise)return reserveDailyArchiveLoadPromise;"), "Concurrent daily archive refreshes must reuse the pending request");
+  assert(daily.includes("finally{reserveDailyArchiveLoadPromise=null;}"), "Daily archive request lock must always release");
+  assert(cumulative.includes("if(reserveCumulativeArchiveLoadPromise)return reserveCumulativeArchiveLoadPromise;"), "Concurrent cumulative archive refreshes must reuse the pending request");
+  assert(cumulative.includes("finally{reserveCumulativeArchiveLoadPromise=null;}"), "Cumulative archive request lock must always release");
+  assert(daily.includes("Array.isArray(response.archive)?response.archive:[]"), "Daily archive must validate the response shape");
+  assert(cumulative.includes("Array.isArray(response.archive)?response.archive:[]"), "Cumulative archive must validate the response shape");
+});
