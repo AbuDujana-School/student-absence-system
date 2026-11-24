@@ -14,7 +14,7 @@ Deno.test("reserve archive refresh is centralized and mutation-only", () => {
   const auto = source.slice(autoStart);
   assert(!legacy.includes("substitutionLoadCumulativeArchive()"), "The legacy request wrapper must not duplicate cumulative archive reads");
 
-  assert(auto.includes("const reserveMutationActions=new Set(["), "A single explicit mutation allowlist must control reserve archive refresh");
+  assert(auto.includes("const mutationActions=new Set(["), "A single explicit mutation allowlist must control reserve archive refresh");
   for (const action of [
     "timetable_substitution_batch_save",
     "timetable_substitution_save",
@@ -35,7 +35,8 @@ Deno.test("reserve archive refresh is centralized and mutation-only", () => {
   ]) {
     assert(!auto.includes('"'+readOnlyAction+'"'), "Read-only action must not trigger mutation archive refresh: " + readOnlyAction);
   }
-  assert(auto.includes("const reserveAction=reserveMutationActions.has(action)"), "Only allowlisted mutations may trigger the reserve archive refresh path");
+  assert(auto.includes("const reserveMutation=mutationActions.has(action)"), "Only allowlisted mutations may trigger the reserve archive refresh path");
+  assert(auto.includes("if(accessGranted||reserveMutation)refreshDailyArchiveInBackground()"), "Archive refresh must run after authorization or successful mutation without blocking the original request");
   assert(auto.includes('action==="timetable_substitution_archive_access"&&result?.canView===true'), "Authorized archive opening must still load the archive");
 });
 
@@ -112,8 +113,8 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   assert(integration.includes('$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped'),"First-open initialization must wait until the canonical panel exists so a late DOM mount can be retried");
   assert(integration.includes("return window.openSubstitutionView()"),"The first visible opening must replay the wrapped entry point exactly once");
   assert(integration.includes('window.timetableLoadSubstitutionOptions()'),"Opening the main view must load the batch workflow");
-  assert(integration.includes('window.timetableDailyLoadArchive()'),"Opening the main view must refresh current-day assignments");
-  assert(integration.includes('window.substitutionLoadStats()'),"The existing reserve statistics view must remain available");
+  assert(integration.includes('startBackgroundLoad(window.timetableDailyLoadArchive'),"Opening the main view must refresh current-day assignments in the background");
+  assert(integration.includes('startBackgroundLoad(window.substitutionLoadStats'),"The existing reserve statistics view must remain available without blocking the workspace");
   assert(integration.includes('$("substitutionAbsenteeList")?.closest(".rounded-3xl")'),"The legacy duplicate absentee workflow must be hidden");
   const boot=source.slice(source.indexOf("installMainSubstitutionViewIntegration();",source.indexOf("function installReserveArchiveAutoRefresh()")+1));
   assert(!boot.includes("installHomeReserveArchive();"),"The legacy home archive must not install a second distribution surface");
@@ -177,7 +178,7 @@ Deno.test("custom coordinator opens only the scoped reserve workspace without ar
   assert(integration.includes('$("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the school statistics panel");
   assert(integration.includes('$("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the archive panel");
   const openStart=integration.indexOf("try{",integration.indexOf("const isCustomCoordinator="));
-  const openEnd=integration.indexOf("}catch(error)",openStart);
+  const openEnd=integration.indexOf("finally{",openStart);
   const openBlock=integration.slice(openStart,openEnd);
   assert(openBlock.includes("if(!isCustomCoordinator)"),"Archive and statistics loading must be gated for custom coordinators");
   assert(openBlock.includes("timetableLoadSubstitutionOptions"),"Custom coordinators must retain the scoped operational preview workflow");
