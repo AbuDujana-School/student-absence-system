@@ -245,14 +245,18 @@ test("reserve absentee checklist selects teachers and edits absence reasons inde
   const checkbox = page.locator('[data-tt-check-absent="أحمد علي"]');
   await checkbox.check();
   await expect(checkbox).toBeChecked();
-  expect(await page.evaluate(() => window.__lastReasonPicker.name)).toBe("أحمد علي");
-  await page.evaluate(() => window.__reasonCallback("مرضية"));
-  await expect(checkbox).toBeChecked();
-  expect(await page.evaluate(() => window.__checklistState.absent)).toContain("أحمد علي");
-  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("مرضية");
+  await expect(page.locator("#timetableDailyAbsenceReasonModal")).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => window.__checklistState.absent)).toContain("أحمد علي");
+  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBeUndefined();
 
   await page.locator('[data-tt-open-absence-reason="أحمد علي"]').click();
-  expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("مرضية");
+  expect(await page.evaluate(() => window.__lastReasonPicker.name)).toBe("أحمد علي");
+  expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("");
+  await page.evaluate(() => window.__reasonCallback("إجازة مرضية"));
+  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("إجازة مرضية");
+
+  await page.locator('[data-tt-open-absence-reason="أحمد علي"]').click();
+  expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("إجازة مرضية");
   await page.evaluate(() => window.__reasonCallback("موعد مستشفى"));
   expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("موعد مستشفى");
 
