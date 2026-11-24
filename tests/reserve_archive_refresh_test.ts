@@ -100,6 +100,24 @@ Deno.test("reserve coordinator controls require explicit per-period permissions"
   assert(!source.includes('date===reserveCurrentMuscatDate()&&savedRows'), "Future-dated assignments must not be hidden by a same-day-only UI condition");
 });
 
+Deno.test("main reserve entry point mounts one canonical batch workspace and restores the timetable panel", async () => {
+  const integrationStart=source.indexOf("function installMainSubstitutionViewIntegration()");
+  const integrationEnd=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",integrationStart);
+  assert(integrationStart>=0&&integrationEnd>integrationStart,"Canonical reserve integration must exist");
+  const integration=source.slice(integrationStart,integrationEnd);
+  assert(integration.includes('canonicalHost.id="substitutionCanonicalWorkspace"'),"The main reserve view must provide one canonical workspace host");
+  assert(integration.includes('host.appendChild(panel)'),"The existing batch panel must be mounted instead of creating a duplicate");
+  assert(integration.includes("restoreCanonicalPanel()"),"Closing the main view must restore the original timetable panel location");
+  assert(integration.includes('window.timetableLoadSubstitutionOptions()'),"Opening the main view must load the batch workflow");
+  assert(integration.includes('window.timetableDailyLoadArchive()'),"Opening the main view must refresh current-day assignments");
+  assert(integration.includes('window.substitutionLoadStats()'),"The existing reserve statistics view must remain available");
+  assert(integration.includes('$("substitutionAbsenteeList")?.closest(".rounded-3xl")'),"The legacy duplicate absentee workflow must be hidden");
+  const boot=source.slice(source.indexOf("installMainSubstitutionViewIntegration();",source.indexOf("function installReserveArchiveAutoRefresh()")+1));
+  assert(!boot.includes("installHomeReserveArchive();"),"The legacy home archive must not install a second distribution surface");
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes('const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)'),"Reserve-enabled teachers must retain access to the canonical batch panel");
+});
+
 Deno.test("reserve operational views initialize only when opened", () => {
   const homeStart=source.indexOf("function installHomeReserveArchive()");
   const homeEnd=source.indexOf("function setHomeArchiveStatus",homeStart);
