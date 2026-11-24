@@ -1035,7 +1035,7 @@
           reserveReason:String(item.reason||"")
         });
       });
-      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");
+      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"",undefined,{singlePage:true});
     });
     printOfficialReservePages(pages);
   };
@@ -1074,7 +1074,7 @@
     host.innerHTML='<div class="mb-3 grid gap-2 sm:grid-cols-2">'+
       '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات نشطة قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' تكليف متاح تعديلها وحذفها حتى نهاية اليوم بتوقيت سلطنة عمان</span></div>'+
       '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي للقراءة والطباعة</strong><span class="text-[10px] text-slate-600">'+archivedTotal+' تكليف محفوظ في الأرشيف</span></div></div>'+
-      Array.from(grouped.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,items])=>{
+      Array.from(grouped.entries()).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
         const byAbsent=new Map();
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
         const editableItems=items.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
