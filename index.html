@@ -2267,6 +2267,73 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 @media(max-width:640px){#substitutionView .subx-header-actions{width:100%;justify-content:stretch}#substitutionView .subx-header-actions button{flex:1;justify-content:center;padding:10px 8px;font-size:10px}#substitutionView .subx-rules-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-points-matrix{grid-template-columns:repeat(2,minmax(0,1fr))}#substitutionView .subx-rules-drawer{padding:14px}}
 @media(prefers-reduced-motion:reduce){#substitutionView #subxGenerateDock #substitutionGenerateButton:before{animation:none}}
 </style>
+<style id="substitution-redesign-v2">
+/* الهوية البصرية الجديدة — نطاقها محصور بقسم توزيع الاحتياط */
+#substitutionView{--subx-navy:#183653;--subx-teal:#168c85;--subx-gold:#d5a64a;--subx-bg:#e9eff5;padding-bottom:28px;overflow-x:clip}
+#substitutionView .subx-toolbar{border:1px solid rgba(148,163,184,.22);border-radius:26px;padding:18px;background:linear-gradient(130deg,rgba(255,255,255,.94),rgba(232,245,246,.88) 58%,rgba(247,242,229,.84));backdrop-filter:blur(20px) saturate(155%);-webkit-backdrop-filter:blur(20px) saturate(155%);box-shadow:0 16px 42px rgba(24,54,83,.08),inset 0 1px rgba(255,255,255,.8)}
+#substitutionView .subx-toolbar h3{font-size:20px;color:#183653}
+#substitutionView .subx-eyebrow{color:#168c85}
+#substitutionView .subx-toolbar-top p{font-size:11px}
+#substitutionView .subx-tabs{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:5px;border-radius:16px;background:rgba(24,54,83,.045)}
+#substitutionView .subx-tab{min-width:0;min-height:44px;gap:6px;padding:8px 5px;border-radius:12px;font-size:10px}
+#substitutionView .subx-tab.is-active{background:linear-gradient(110deg,#183653,#168c85);box-shadow:0 7px 18px rgba(22,91,105,.2)}
+#substitutionView .subx-date-card,#substitutionView #substitutionOtherDepartmentsWrap,#substitutionView #substitutionAbsenteeList>label,#substitutionView #substitutionPlanPanel,#substitutionView #substitutionStatsPanel,#substitutionView #subxLogPanel,#substitutionView #subxReportsPanel{border-radius:20px}
+#substitutionView .subx-date-card{background:linear-gradient(135deg,rgba(255,255,255,.96),rgba(239,248,247,.88));border-color:rgba(22,140,133,.16);box-shadow:0 10px 28px rgba(24,54,83,.06)}
+#substitutionView #substitutionDate{min-height:44px;border-radius:13px;font-weight:900}
+#substitutionView .subx-date-shortcuts{display:flex;gap:6px;margin-top:9px}
+#substitutionView .subx-date-shortcuts button{flex:1;min-height:36px;border:1px solid #dce7ed;border-radius:10px;background:#fff;color:#52677d;font-size:10px;font-weight:900}
+#substitutionView .subx-date-shortcuts button[data-subx-date-shift="0"]{border-color:rgba(22,140,133,.25);background:#e8f6f3;color:#126e6a}
+#substitutionView .subx-live-metrics{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:12px}
+#substitutionView .subx-live-metric{display:flex;align-items:center;gap:9px;min-width:0;padding:11px;border:1px solid rgba(148,163,184,.2);border-radius:16px;background:rgba(255,255,255,.88);box-shadow:0 7px 20px rgba(24,54,83,.045)}
+#substitutionView .subx-live-metric i{display:grid;place-items:center;width:34px;height:34px;flex:0 0 34px;border-radius:11px;background:#e5f5f1;color:#168c85}
+#substitutionView .subx-live-metric:nth-child(1) i{background:#fff0f1;color:#d65c68}
+#substitutionView .subx-live-metric:nth-child(2) i{background:#fff5df;color:#b7832f}
+#substitutionView .subx-live-metric small,#substitutionView .subx-live-metric strong{display:block}
+#substitutionView .subx-live-metric small{color:#718096;font-size:9px;font-weight:800}
+#substitutionView .subx-live-metric strong{margin-top:2px;color:#183653;font-size:18px;font-weight:900;font-variant-numeric:tabular-nums}
+#substitutionView #substitutionAbsenteeList{gap:9px}
+#substitutionView #substitutionAbsenteeList>label{min-height:62px;padding:12px!important;border:1px solid #e0e8ee!important;background:linear-gradient(135deg,#fff,#f7fafc)!important;box-shadow:0 4px 13px rgba(24,54,83,.035);transition:transform .2s,border-color .2s,box-shadow .2s}
+#substitutionView #substitutionAbsenteeList>label:hover{transform:translateY(-2px);border-color:rgba(22,140,133,.35)!important;box-shadow:0 10px 22px rgba(24,54,83,.07)}
+#substitutionView #substitutionAbsenteeList>label:has(input:checked){border-color:#168c85!important;background:linear-gradient(120deg,#e9f7f4,#f1fbfc)!important;box-shadow:0 0 0 2px rgba(22,140,133,.10)}
+#substitutionView #substitutionAbsenteeList input{width:18px;height:18px;accent-color:#168c85}
+#substitutionView #substitutionGenerateButton,#substitutionView #substitutionSaveButton{min-height:46px;border-radius:14px;background:linear-gradient(110deg,#183653,#168c85);box-shadow:0 8px 20px rgba(22,91,105,.18);font-size:11px;font-weight:900}
+#substitutionView #substitutionPlanAssignments>div{border-radius:19px!important;border-color:#dce7ed!important;box-shadow:0 7px 20px rgba(24,54,83,.045)}
+#substitutionView #substitutionPlanAssignments select{min-width:0;min-height:44px;border-radius:12px!important}
+#substitutionView #substitutionUnassigned{border-radius:16px}
+#substitutionView #substitutionStatsContent>div{min-width:0}
+#substitutionView #substitutionStatsContent .overflow-x-auto{max-width:100%;overscroll-behavior-x:contain}
+#substitutionView .subx-v2-panel{margin-top:12px;padding:16px;border:1px solid rgba(148,163,184,.22);border-radius:21px;background:rgba(255,255,255,.88);box-shadow:0 10px 28px rgba(24,54,83,.06)}
+#substitutionView .subx-v2-panel h3{color:#183653;font-size:14px;font-weight:900}
+#substitutionView .subx-v2-panel p{color:#718096;font-size:10px;line-height:1.7}
+#substitutionView .subx-v2-empty{display:grid;justify-items:center;gap:8px;padding:28px 12px;border:1px dashed #d5e0e7;border-radius:16px;background:#f8fafc;text-align:center;color:#718096}
+#substitutionView .subx-v2-empty i{color:#168c85;font-size:25px}
+#substitutionView .subx-v2-empty b{color:#183653;font-size:12px}
+#substitutionView .subx-v2-report-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin-top:14px}
+#substitutionView .subx-v2-report-actions button{min-height:46px;border:1px solid #dce5ec;border-radius:13px;background:#f8fafc;color:#52677d;font-size:11px;font-weight:900}
+#substitutionView #substitutionWhatsappButton:not(:disabled){background:#16865b;color:#fff}
+#substitutionView #substitutionPdfButton:not(:disabled){background:#fff0f1;color:#a33d4a}
+.dark #substitutionView .subx-toolbar{background:linear-gradient(130deg,rgba(15,23,42,.96),rgba(15,45,57,.94) 58%,rgba(45,39,25,.78));border-color:rgba(148,163,184,.18)}
+.dark #substitutionView .subx-toolbar h3,.dark #substitutionView .subx-v2-panel h3,.dark #substitutionView .subx-live-metric strong{color:#f1f5f9}
+.dark #substitutionView .subx-date-card,#substitutionView .dark .subx-live-metric{background:rgba(15,23,42,.88);border-color:#334155}
+.dark #substitutionView .subx-live-metric{background:rgba(15,23,42,.88);border-color:#334155}
+.dark #substitutionView .subx-v2-panel{background:rgba(15,23,42,.9);border-color:#334155}
+.dark #substitutionView .subx-v2-empty{background:#111c2d;border-color:#334155}
+.dark #substitutionView .subx-v2-empty b{color:#e2e8f0}
+@media(max-width:640px){
+ #substitutionView .subx-toolbar{padding:14px;border-radius:21px}
+ #substitutionView .subx-toolbar h3{font-size:18px}
+ #substitutionView .subx-tabs{gap:4px}
+ #substitutionView .subx-tab{font-size:9px;gap:4px}
+ #substitutionView .subx-tab i{font-size:11px}
+ #substitutionView .subx-live-metrics{gap:6px}
+ #substitutionView .subx-live-metric{flex-direction:column;align-items:flex-start;padding:8px;gap:5px}
+ #substitutionView .subx-live-metric i{width:29px;height:29px;flex-basis:29px}
+ #substitutionView .subx-live-metric small{font-size:8px}
+ #substitutionView .subx-live-metric strong{font-size:16px}
+ #substitutionView .subx-v2-report-actions{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation:none!important;transition:none!important}}
+</style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <div class="subx-toolbar">
     <div class="subx-toolbar-top"><div><span class="subx-eyebrow">مساحة العمل الذكية</span><h3>إدارة التوزيع اليومي</h3><p>اختر الغياب، راجع الاقتراح، ثم اعتمد بثقة.</p></div><div class="subx-header-actions"><button type="button" id="subxRulesToggle" class="subx-rules-trigger"><i class="fa-solid fa-scale-balanced"></i><span>⚖️ عدالة التوزيع واحتساب النقاط</span></button><button type="button" class="subx-back-home" onclick="closeSubstitutionView()"><i class="fa-solid fa-arrow-right"></i><span>العودة للرئيسية</span></button></div></div>
@@ -2352,34 +2419,97 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   <div id="subxFloatingBar" class="subx-floating-bar" aria-live="polite"><div class="subx-floating-copy"><span class="subx-floating-dot"></span><div><b>جاهز لإنشاء التوزيع؟</b><small id="subxSelectedSummary">لم يتم تحديد أي معلم بعد</small></div></div><div id="subxGenerateDock"></div></div>
 </section>
 <script id="substitution-cinematic-interactions">
+/* تفاعلات العرض فقط: تبويبات إضافية، اختصارات التاريخ، مؤشرات حية، وسجل المعاينة. */
 (function(){
- const root=document.getElementById('substitutionView');if(!root||root.dataset.subxEnhanced==='yes')return;root.dataset.subxEnhanced='yes';
- const $=q=>root.querySelector(q),tabs=Array.from(root.querySelectorAll('[data-subx-tab]')),stats=$('#substitutionStatsPanel'),dateGrid=$('#substitutionDate')?.closest('.grid'),absenteeCard=$('#substitutionAbsenteeList')?.closest('.rounded-3xl'),plan=$('#substitutionPlanPanel'),search=$('#subxTeacherSearch'),floating=$('#subxFloatingBar'),generate=$('#substitutionGenerateButton'),dock=$('#subxGenerateDock'),summary=$('#subxSelectedSummary'),rules=$('#subxRulesDrawer');let activeTab='daily';
+ const root=document.getElementById('substitutionView');
+ if(!root||root.dataset.subxEnhancedV2==='yes')return;
+ root.dataset.subxEnhancedV2='yes';
+ const $=q=>root.querySelector(q);
+ const tabs=Array.from(root.querySelectorAll('[data-subx-tab]'));
+ const stats=$('#substitutionStatsPanel');
+ const dateGrid=$('#substitutionDate')?.closest('.grid');
+ const absenteeCard=$('#substitutionAbsenteeList')?.closest('.rounded-3xl');
+ const plan=$('#substitutionPlanPanel');
+ const search=$('#subxTeacherSearch');
+ const floating=$('#subxFloatingBar');
+ const generate=$('#substitutionGenerateButton');
+ const dock=$('#subxGenerateDock');
+ const summary=$('#subxSelectedSummary');
+ const rules=$('#subxRulesDrawer');
+ let activeTab='daily';
  if(generate&&dock&&!dock.contains(generate))dock.appendChild(generate);
- function updateFloating(){
-  const checked=Array.from(root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked'));
-  if(summary)summary.textContent=checked.length?checked.length+' معلم محدد للتوزيع':'لم يتم تحديد أي معلم بعد';
-  if(floating)floating.classList.toggle('is-visible',activeTab==='daily'&&checked.length>0);
-  const hasPlan=!!plan&&!plan.classList.contains('hidden'),saved=(($('#substitutionSaveStatus')?.textContent)||'').includes('تم حفظ');
-  $('#subxStep1')?.classList.toggle('is-current',!hasPlan);$('#subxStep1')?.classList.toggle('is-done',hasPlan);
-  $('#subxStep2')?.classList.toggle('is-current',hasPlan&&!saved);$('#subxStep2')?.classList.toggle('is-done',saved);
-  $('#subxStep3')?.classList.toggle('is-current',saved);$('#subxStep3')?.classList.toggle('is-done',saved);
+ const tabsHost=$('.subx-tabs');
+ function addTab(name,label,icon){
+  if(!tabsHost||tabsHost.querySelector('[data-subx-tab="'+name+'"]'))return;
+  const button=document.createElement('button');
+  button.type='button';button.className='subx-tab';button.dataset.subxTab=name;button.setAttribute('role','tab');button.setAttribute('aria-selected','false');
+  button.innerHTML='<i class="'+icon+'"></i> '+label;tabsHost.appendChild(button);
+  button.addEventListener('click',()=>setTab(name));
+ }
+ addTab('log','السجل','fa-solid fa-clock-rotate-left');
+ addTab('reports','التقارير','fa-solid fa-file-lines');
+ const logPanel=document.createElement('section');
+ logPanel.id='subxLogPanel';logPanel.className='subx-v2-panel hidden';logPanel.innerHTML='<div><h3><i class="fa-solid fa-clock-rotate-left"></i> سجل التاريخ المحدد</h3><p>اختر التاريخ من تبويب التوزيع ثم أنشئ المعاينة لعرض التكليفات المحفوظة التي يعيدها النظام لذلك اليوم.</p></div><div id="subxLogContent" class="mt-3"></div>';
+ const reportsPanel=document.createElement('section');
+ reportsPanel.id='subxReportsPanel';reportsPanel.className='subx-v2-panel hidden';reportsPanel.innerHTML='<div><h3><i class="fa-solid fa-file-export"></i> التقارير والمشاركة</h3><p>تظهر خيارات التصدير بعد اعتماد التوزيع وحفظه بنجاح.</p><div class="mt-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-700"><i class="fa-solid fa-file-pdf"></i></span><div><b class="block text-xs font-black text-slate-800 dark:text-white">كشف توزيع الاحتياط</b><small class="text-[10px] text-slate-500">طباعة الكشف الرسمي أو مشاركته مع المعلمين.</small></div></div><div id="subxReportsActions" class="subx-v2-report-actions"></div><p class="mt-3">لا يتم تفعيل الطباعة أو المشاركة قبل حفظ التوزيع.</p></section>';
+ root.append(logPanel,reportsPanel);
+ const planActions=$('#substitutionSaveButton')?.parentElement;
+ const pdf=$('#substitutionPdfButton'),wa=$('#substitutionWhatsappButton');
+ const reportActions=$('#subxReportsActions');
+ if(pdf&&reportActions)reportActions.appendChild(pdf);
+ if(wa&&reportActions)reportActions.appendChild(wa);
+ const date=$('#substitutionDate');
+ if(date){
+  const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="-1">أمس</button><button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
+  date.insertAdjacentElement('afterend',shortcuts);
+  shortcuts.querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
+   const shift=Number(button.dataset.subxDateShift||0),base=date.value||new Date().toISOString().slice(0,10),parsed=new Date(base+'T12:00:00+04:00');
+   if(!Number.isFinite(parsed.getTime()))return;parsed.setDate(parsed.getDate()+shift);date.value=parsed.toISOString().slice(0,10);
+   if(typeof window.substitutionDateChanged==='function')window.substitutionDateChanged();
+  }));
+ }
+ const metrics=document.createElement('div');metrics.className='subx-live-metrics';metrics.innerHTML='<div class="subx-live-metric"><i class="fa-solid fa-user-minus"></i><div><small>المعلمون المحددون</small><strong id="subxMetricAbsentees">0</strong></div></div><div class="subx-live-metric"><i class="fa-solid fa-hourglass-half"></i><div><small>حصص دون بديل</small><strong id="subxMetricUnassigned">0</strong></div></div><div class="subx-live-metric"><i class="fa-solid fa-circle-check"></i><div><small>حصص موزعة</small><strong id="subxMetricAssigned">0</strong></div></div>';
+ if(dateGrid)dateGrid.insertAdjacentElement('afterend',metrics);
+ function updateMetrics(){
+  const absent=root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked').length;
+  const assigned=root.querySelectorAll('#substitutionPlanAssignments select[data-substitution-row]').length;
+  const unassigned=root.querySelectorAll('#substitutionUnassigned .border-t').length;
+  if($('#subxMetricAbsentees'))$('#subxMetricAbsentees').textContent=String(absent);
+  if($('#subxMetricAssigned'))$('#subxMetricAssigned').textContent=String(assigned);
+  if($('#subxMetricUnassigned'))$('#subxMetricUnassigned').textContent=String(unassigned);
+  if(summary)summary.textContent=absent?absent+' معلم محدد للتوزيع':'لم يتم تحديد أي معلم بعد';
+  if(floating)floating.classList.toggle('is-visible',activeTab==='daily'&&absent>0);
+ }
+ function refreshLog(){
+  const host=$('#subxLogContent'),source=$('#substitutionPlanAssignments');
+  if(!host||!source)return;
+  const saved=Array.from(source.children).find(el=>el.classList.contains('border-emerald-200'));
+  if(!saved){host.innerHTML='<div class="subx-v2-empty"><i class="fa-regular fa-calendar-check"></i><b>لا توجد تكليفات محفوظة معروضة لهذا التاريخ</b><span>انتقل إلى التوزيع وأنشئ المعاينة للتاريخ المختار حتى تظهر السجلات التي أعادها النظام.</span></div>';return;}
+  const clone=saved.cloneNode(true);clone.querySelectorAll('button,[data-subx-existing-edit],[data-subx-existing-delete]').forEach(node=>node.remove());host.replaceChildren(clone);
  }
  function setTab(name){
-  activeTab=name==='stats'?'stats':'daily';const isStats=activeTab==='stats';
+  activeTab=['daily','stats','log','reports'].includes(name)?name:'daily';
   tabs.forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
-  [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',isStats));stats?.classList.toggle('hidden',!isStats);updateFloating();
-  if(isStats&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
+  [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',activeTab!=='daily'));
+  stats?.classList.toggle('hidden',activeTab!=='stats');
+  logPanel.classList.toggle('hidden',activeTab!=='log');
+  reportsPanel.classList.toggle('hidden',activeTab!=='reports');
+  if(activeTab==='stats'&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
+  if(activeTab==='log')refreshLog();
+  updateMetrics();
  }
  tabs.forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.subxTab)));
- $('#subxRulesToggle')?.addEventListener('click',()=>{if(rules)rules.hidden=!rules.hidden;});$('#subxRulesClose')?.addEventListener('click',()=>{if(rules)rules.hidden=true;});
+ $('#subxRulesToggle')?.addEventListener('click',()=>{if(rules)rules.hidden=!rules.hidden;});
+ $('#subxRulesClose')?.addEventListener('click',()=>{if(rules)rules.hidden=true;});
  search?.addEventListener('input',()=>{const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));});
- root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateFloating();});
- const observer=new MutationObserver(updateFloating);if(plan)observer.observe(plan,{attributes:true,attributeFilter:['class']});
- const status=$('#substitutionSaveStatus');if(status)observer.observe(status,{childList:true,characterData:true,subtree:true});
- const list=$('#substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateFloating();}).observe(list,{childList:true,subtree:true});
- root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('button[onclick="substitutionToggleAllAbsentees()"]'))setTimeout(updateFloating,100);});
- setTab('daily');updateFloating();
+ root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateMetrics();});
+ root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('#substitutionSaveButton'))setTimeout(()=>{updateMetrics();refreshLog();},150);});
+ const observer=new MutationObserver(()=>{updateMetrics();refreshLog();});
+ if($('#substitutionPlanAssignments'))observer.observe($('#substitutionPlanAssignments'),{childList:true,subtree:true});
+ if($('#substitutionUnassigned'))new MutationObserver(updateMetrics).observe($('#substitutionUnassigned'),{childList:true,subtree:true,attributes:true});
+ if(plan)new MutationObserver(updateMetrics).observe(plan,{attributes:true,attributeFilter:['class']});
+ if($('#substitutionAbsenteeList'))new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateMetrics();}).observe($('#substitutionAbsenteeList'),{childList:true,subtree:true});
+ setTab('daily');updateMetrics();
 })();
 </script><style id="substitution-tab-visibility">#substitutionView .subx-tab-hidden{display:none!important}</style>
 
