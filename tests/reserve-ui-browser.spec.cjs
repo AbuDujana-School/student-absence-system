@@ -277,15 +277,16 @@ test("absence reason picker uses the four requested categories and keeps legacy 
   await page.evaluate(({ picker }) => {
     const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
     const open = new Function("ABSENCE_REASON_OPTIONS", "esc", picker + "; return openAbsenceReasonPicker;")(
-      ["طارئة", "إجازة مرضية", "موعد مستشفى", "أخرى"], esc
+      ["طارئة", "موعد مستشفى", "مرضية", "أخرى", "دورة تدريبية"], esc
     );
     window.__openReason = open;
     window.__reasonResult = undefined;
   }, { picker });
 
   await page.evaluate(() => window.__openReason("معلم تجريبي", value => { window.__reasonResult = value; }, "مرضية"));
-  await expect(page.locator('#timetableDailyAbsenceReasonModal input[name="ttAbsenceReasonChoice"]')).toHaveCount(4);
+  await expect(page.locator('#timetableDailyAbsenceReasonModal input[name="ttAbsenceReasonChoice"]')).toHaveCount(5);
   await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="مرضية"]')).toBeChecked();
+  await expect(page.locator("#timetableDailyAbsenceReasonModal .tt-absence-reason-option").filter({ hasText: "إجازة مرضية" })).toBeVisible();
   await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="دورة تدريبية"]')).toHaveCount(1);
 
   await page.locator('#timetableDailyAbsenceReasonModal input[value="أخرى"]').check();
