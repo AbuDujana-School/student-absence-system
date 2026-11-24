@@ -2389,6 +2389,17 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 @media(min-width:1100px){#substitutionView .subx-hero-card{max-width:1080px}#substitutionView #substitutionAbsenteeList{grid-template-columns:repeat(3,minmax(0,1fr))}#substitutionView .subx-bottom-nav{bottom:18px}}
 @media(max-width:380px){#substitutionView{padding:8px 8px 88px!important}#substitutionView .subx-hero-card{padding:14px;border-radius:22px}#substitutionView .subx-stat-chip{gap:5px;padding:7px}#substitutionView .subx-stat-icon{width:28px;height:28px;flex-basis:28px}#substitutionView .subx-stat-chip b{font-size:16px}#substitutionView .subx-stat-chip small{font-size:8px}#substitutionView .subx-step{gap:4px}#substitutionView .subx-step b{font-size:9px}#substitutionView .subx-step small{font-size:8px}#substitutionView .subx-bottom-nav{width:calc(100vw - 16px)}}
 @media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+/* التفاصيل الدقيقة لقائمة القسم المساند وبطاقات المراجعة */
+#substitutionView .subx-other-department-details{margin:12px 0;padding:0;border:1px solid rgba(22,140,133,.2);border-radius:18px;background:rgba(22,140,133,.045);overflow:hidden}
+#substitutionView .subx-other-department-details>summary{display:flex;align-items:center;gap:9px;min-height:52px;padding:10px 14px;cursor:pointer;list-style:none;color:var(--subx-teal);font-size:12px;font-weight:900}
+#substitutionView .subx-other-department-details>summary::-webkit-details-marker{display:none}
+#substitutionView .subx-other-department-details>summary i:last-child{margin-right:auto;transition:transform .2s}
+#substitutionView .subx-other-department-details[open]>summary i:last-child{transform:rotate(180deg)}
+#substitutionView .subx-other-department-body{padding:0 12px 12px}
+#substitutionView .subx-other-back{min-height:38px;margin:0 0 8px;padding:6px 11px;border:1px solid rgba(22,140,133,.2);border-radius:11px;background:rgba(22,140,133,.08);color:var(--subx-teal);font-size:10px;font-weight:800}
+#substitutionView #substitutionPlanAssignments .grid>div:first-child>span:first-child{display:inline-grid;place-items:center;min-width:44px;min-height:44px;border-radius:50%;background:linear-gradient(145deg,#e3f2f1,#d2e9e6);color:#176c68;font-size:10px;font-weight:900}
+.dark #substitutionView #substitutionPlanAssignments .grid>div:first-child>span:first-child{background:linear-gradient(145deg,#164b4b,#1d3c4b);color:#b8e7df}
+body.subx-sheet-open{overflow:hidden}
 </style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <!-- واجهة رئيسية جديدة؛ تبقى قواعد العمل والأحداث الأصلية كما هي. -->
@@ -2640,6 +2651,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  const list=$('substitutionAbsenteeList');if(list)new MutationObserver(()=>{if(search?.value){const term=search.value.trim().toLocaleLowerCase();list.querySelectorAll(':scope > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));}updateMetrics();}).observe(list,{childList:true});
  $('subxRulesClose')?.addEventListener('click',closeSheets);
  const countObserver=new MutationObserver(updateMetrics);if($('substitutionPlanAssignments'))countObserver.observe($('substitutionPlanAssignments'),{childList:true,subtree:true});
+ const viewObserver=new MutationObserver(()=>{if(!root.classList.contains('hidden')){setTab('daily');updateDateLabels();}});viewObserver.observe(root,{attributes:true,attributeFilter:['class']});
  if(!$('substitutionDate')?.value&&typeof window.getOmanLocalDate==='function')$('substitutionDate').value=window.getOmanLocalDate();
  updateDateLabels();updateMetrics();setTab('daily');
 })();
