@@ -62,7 +62,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const openAbsenceReasonPicker = () => {};
       window.calls = { options: 0, archive: 0, stats: 0 };
       window.appAuthRequest = async () => ({});
-      window.timetableLoadSubstitutionOptions = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
+      window.substitutionLoadAbsentees = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
       window.timetableDailyInstallAdminTools = async () => {
         if (role.user.type === "admin" || role.user.permissions?.admin === true) {
           $("timetableSubstitutionPanel").insertAdjacentHTML("beforeend", '<div id="ttAdminReserveTools">admin tools</div>');
