@@ -133,7 +133,7 @@ async function handle(req:Request) {
     }
     return reply(200,{academic_year:selectedYear,available_years:[...new Set([ctx.academicYear,...years])].sort((a,b)=>b.localeCompare(a)),rows:reportRows});
   }
-  if (action !== "record") return reply(400,{error:"طلب غير معروف."});
+  if (action !== "today" && action !== "record" && action !== "toggle") return reply(400,{error:"طلب غير معروف."});
   const localMonth = Number(ctx.date.slice(5,7));
   if (localMonth === 7 || localMonth === 8) return reply(403,{error:"التسجيل متاح خلال العام الدراسي فقط (من 1 سبتمبر إلى 30 يونيو)."});
   let duty:any={};
@@ -142,6 +142,16 @@ async function handle(req:Request) {
   }
   if (!canUse(principal,ctx,duty)) {
     return reply(403,{error:"لا تملك صلاحية التسجيل الآن، أو أنك لست مناوباً اليوم، أو انتهت فترة التسجيل (7:00–8:30 صباحاً)."});
+  }
+  if (action === "today") {
+    const {data:rows,error}=await db.from("morning_assembly_lateness")
+      .select("student_id,student_name_snapshot,class_name_snapshot")
+      .eq("late_date",ctx.date);
+    if (error) {
+      console.error("morning assembly lateness today lookup failed",error);
+      return reply(500,{error:"تعذر تحميل حالة تسجيل الطلاب لهذا اليوم."});
+    }
+    return reply(200,{date:ctx.date,rows:rows||[]});
   }
   const className=String(body?.class_name || "").trim();
   const studentName=String(body?.student_name || "").trim();
@@ -153,6 +163,23 @@ async function handle(req:Request) {
   if (studentError || !students?.length) return reply(404,{error:"لم يتم العثور على الطالب في الصف المحدد. حدّث الصفحة وحاول مجدداً."});
   if (students.length > 1) return reply(409,{error:"توجد سجلات متطابقة للطالب في الصف. يرجى مراجعة بيانات الطلاب قبل التسجيل."});
   const student=students[0];
+  if (action === "toggle") {
+    const {data:existing,error:lookupError}=await db.from("morning_assembly_lateness")
+      .select("id").eq("student_id",student.id).eq("late_date",ctx.date).maybeSingle();
+    if (lookupError) {
+      console.error("morning assembly lateness toggle lookup failed",lookupError);
+      return reply(500,{error:"تعذر التحقق من حالة تأخر الطالب."});
+    }
+    if (existing) {
+      const {data:removed,error:deleteError}=await db.from("morning_assembly_lateness")
+        .delete().eq("id",existing.id).select("id").maybeSingle();
+      if (deleteError || !removed) {
+        console.error("morning assembly lateness toggle removal failed",deleteError);
+        return reply(500,{error:"تعذر إلغاء تسجيل التأخر. لم يتم تأكيد أي تغيير."});
+      }
+      return reply(200,{success:true,action:"removed",student_name:student.student_name,class_name:student.class_name});
+    }
+  }
   const {data,error}=await db.from("morning_assembly_lateness").insert({
     student_id:student.id,
     student_name_snapshot:student.student_name,
@@ -172,7 +199,7 @@ async function handle(req:Request) {
     console.error("morning assembly lateness insert failed",error);
     return reply(500,{error:"تعذر حفظ التسجيل. لم يتم تغيير أي سجل آخر."});
   }
-  return reply(201,{success:true,record:data,student_name:student.student_name,class_name:student.class_name});
+  return reply(201,{success:true,action:"recorded",record:data,student_name:student.student_name,class_name:student.class_name});
 }
 Deno.serve(async (req:Request) => {
   try { return await handle(req); }
