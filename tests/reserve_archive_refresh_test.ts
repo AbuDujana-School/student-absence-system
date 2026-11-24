@@ -120,6 +120,7 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(html.includes('const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)'),"Reserve-enabled teachers must retain access to the canonical batch panel");
   assert(integration.includes('appAuthSession?.principal?.permissions?.reserve===true'),"A custom authenticated reserve principal must not be blocked by the UI gate when the server session grants reserve permission");
+  assert(integration.includes('appAuthSession?.principal?.type==="custom"'),"A custom principal with an authenticated timetable grant must be allowed into the department-scoped reserve workspace");
   assert(integration.includes('appAuthSession?.principal?.type==="teacher"&&appAuthSession?.principal?.permissions?.reserve===true'),"Only admins and reserve-enabled teacher principals may see cross-department controls; custom coordinators remain department-scoped");
 });
 
