@@ -206,3 +206,17 @@ Deno.test("daily and cumulative reserve archive reads are single-flight", () => 
   assert(daily.includes("Array.isArray(response.archive)?response.archive:[]"), "Daily archive must validate the response shape");
   assert(cumulative.includes("Array.isArray(response.archive)?response.archive:[]"), "Cumulative archive must validate the response shape");
 });
+
+
+Deno.test("reserve archive locks are assigned before validation and always release", () => {
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("reserveDailyArchiveLoadPromise=Promise.resolve().then(async()=>{"), "Daily loader must defer work until after the shared promise is assigned");
+  assert(cumulative.includes("reserveCumulativeArchiveLoadPromise=Promise.resolve().then(async()=>{"), "Cumulative loader must defer work until after the shared promise is assigned");
+  assert(cumulative.indexOf("try{") < cumulative.indexOf('if(!from||!to||from>to)'), "Invalid cumulative dates must pass through finally and release the lock");
+  assert(daily.indexOf("try{") < daily.indexOf("host.innerHTML="), "Daily UI failures must also pass through finally and release the lock");
+});
