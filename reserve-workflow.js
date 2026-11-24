@@ -332,7 +332,9 @@
           const name=String(teacherInput.dataset.otherTeacherName||"");
           const names=reserveSelectedOtherTeachersByDepartment.get(id)||new Set();
           if(teacherInput.checked)names.add(name);else names.delete(name);
-          reserveSelectedOtherTeachersByDepartment.set(id,names);syncOtherTeacherNameSet();renderOtherDepartmentTeachers();
+          reserveSelectedOtherTeachersByDepartment.set(id,names);syncOtherTeacherNameSet();
+          reserveDraftScope="";reserveDraftApproved=new Set();reserveBatchPreview=null;reserveDraftAssignments=[];
+          renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();persistStoredDraft();
         }
       });
       $("timetableDailyAddOtherTeachersButton")?.addEventListener("click",async()=>{
