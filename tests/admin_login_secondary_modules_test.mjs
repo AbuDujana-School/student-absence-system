@@ -101,18 +101,12 @@ test("additional administrators use teacher-scoped morning lateness permissions"
 });
 
 
-test("reserve workflow controls distinguish the general administrator from additional admins", () => {
-  const start = reserveWorkflow.indexOf("function schoolwideReserveReportIsAdmin()");
-  const end = reserveWorkflow.indexOf("function schoolwideReserveReportAllowed()", start);
-  assert.ok(start >= 0 && end > start);
-  const identity = reserveWorkflow.slice(start, end);
-  assert.match(identity, /active\.adminScope===\"general\"/);
-  assert.match(identity, /active\.name===\"مدير النظام العام\"/);
-  assert.match(identity, /session\.adminScope===\"general\"/);
-  assert.doesNotMatch(identity, /activeUser\?\.type/);
-  assert.doesNotMatch(identity, /appAuthSession\?\.principal\?\.type/);
+test("reserve tools are restricted to the canonical general administrator identity", () => {
+  assert.doesNotMatch(reserveWorkflow, /schoolwideReserveReportIsAdmin/);
+  assert.match(reserveWorkflow, /function installAdminReserveTools\(\)[\s\S]*?isGeneralAdminUser\(activeUser\)/);
+  assert.match(reserveWorkflow, /if\(isGeneralAdminUser\(activeUser\)\)installAdminReserveTools\(\)/);
+  assert.match(reserveWorkflow, /if\(!isGeneralAdminUser\(activeUser\)\)\{say\("هذه الميزة متاحة لمدير النظام العام فقط\."/);
 });
-
 
 test("attendance and behavior statistics require their matching read permissions while admins retain access", () => {
   const policy = section("function canAccessAdminTab(", "function grantTemporaryAdminAuth()");
