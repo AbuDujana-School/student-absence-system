@@ -233,11 +233,14 @@ export function canUseTimetableAction(
   }
   const customSubstitutionActions = new Set([
     "timetable_substitution_preview",
+    "timetable_substitution_departments",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
     "timetable_substitution_cancel_batch",
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
+    "timetable_substitution_update",
+    "timetable_substitution_update_batch",
   ]);
   return new Set([
     "health",
@@ -251,7 +254,7 @@ export function canUseTimetableAction(
 export function canIncludeOtherDepartments(
   principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
 ): boolean {
-  return requested === true && (principalType === "admin" || ((principalType === "teacher" || principalType === "custom") && hasReservePermission));
+  return requested === true && (principalType === "admin" || principalType === "custom" || (principalType === "teacher" && hasReservePermission));
 }
 
 export function canAccessTeacherTimetablePortal(enabled: unknown, selectedTeacherNames: unknown, teacherName: string): boolean {
