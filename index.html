@@ -14565,7 +14565,7 @@ async function timetableSaveOwner() {
   window.refreshSubstitutionDashboardCard=function(){
     const card=document.getElementById('substitutionDashboardCard');
     if(!card)return;
-    const allowed=canManageReserveWorkspace(activeUser);
+    const allowed=canManageReserveWorkspace(activeUser)||appAuthSession?.principal?.type==="custom";
     card.classList.toggle('hidden',!allowed);
   };
   function bindOtherDepartmentControls(){
@@ -14605,18 +14605,22 @@ async function timetableSaveOwner() {
     }
   }
   window.openSubstitutionView=async function(){
-    const allowed=canManageReserveWorkspace(activeUser);
+    const reservePrincipal=appAuthSession?.principal;
+    const isCustomCoordinator=reservePrincipal?.type==="custom";
+    const allowed=canManageReserveWorkspace(activeUser)||isCustomCoordinator;
     if(!allowed){showToast('لا تملك صلاحية توزيع حصص الاحتياط.','error');return;}
     bindOtherDepartmentControls();
     ['dashboardSelectionView','dutyView','dutyClassesView','teacherTimetableView','attendanceView','classesView','behaviorClassesView','behaviorSessionView'].forEach(function(id){document.getElementById(id)?.classList.add('hidden');});
     document.getElementById('substitutionView')?.classList.remove('hidden');
     const date=document.getElementById('substitutionDate');
     if(date&&!date.value)date.value=getOmanLocalDate();
-    const canExpand=canManageReserveWorkspace(activeUser);
+    const canExpand=!isCustomCoordinator&&canManageReserveWorkspace(activeUser);
     document.getElementById('substitutionOtherDepartmentsWrap')?.classList.toggle('hidden',!canExpand);
+    document.getElementById('substitutionStatsPanel')?.classList.toggle('hidden',isCustomCoordinator);
+    document.getElementById('substitutionCumulativeArchivePanel')?.classList.toggle('hidden',isCustomCoordinator);
     clearPlan();
     await window.substitutionLoadAbsentees();
-    await window.substitutionLoadStats();
+    if(!isCustomCoordinator)await window.substitutionLoadStats();
   };
   window.closeSubstitutionView=function(){
     document.getElementById('substitutionView')?.classList.add('hidden');
