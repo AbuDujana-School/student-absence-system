@@ -9,6 +9,7 @@ import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
+import { canCustomCoordinatorManageDepartment } from "./reserve_authorization.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -1454,6 +1455,18 @@ async function handle(req: Request) {
         .filter((name:string|null):name is string=>Boolean(name)));
       const actorDirectoryEntry=directory.find((t:any)=>t.name===principal.name);
       const actorDepartmentId=actorDirectoryEntry?.departmentId||"";
+      const customReserveScopeAllows=(absentName:string, substituteName?:string)=>{
+        const absentTeacher=directory.find((teacher:any)=>teacher.role==="teacher"&&teacher.name===absentName);
+        const substituteTeacher=substituteName
+          ? directory.find((teacher:any)=>teacher.role==="teacher"&&teacher.name===substituteName)
+          : undefined;
+        return canCustomCoordinatorManageDepartment({
+          actorType:principal.type,
+          actorDepartmentId,
+          absentTeacherDepartmentId:absentTeacher?.departmentId||"",
+          ...(substituteName?{substituteTeacherDepartmentId:substituteTeacher?.departmentId||""}:{})
+        });
+      };
       if(principal.type!=="admin"&&!actorDepartmentId&&!principal.schoolwideReserveStats)return reply(403,{error:"حسابك غير مرتبط بقسم واضح في دليل المعلمين. راجع مدير النظام."});
       const absentTeacherName=String(body.absentTeacherName||"").trim();
       const includeOtherDepartments=canIncludeOtherDepartments(principal.type,body.includeOtherDepartments,actorDirectoryEntry?.canManageSubstitutions===true);
@@ -1475,6 +1488,9 @@ async function handle(req: Request) {
         if(error)throw error;
         const cancellationDate=String(body.assignmentDate||"");
         if(!assignment||assignment.weekday!==weekday||String(assignment.assignment_date||"")!==cancellationDate)return reply(404,{error:"تكليف الاحتياط غير موجود في التاريخ المحدد."});
+        if(principal.type==="custom"&&!customReserveScopeAllows(String(assignment.absent_teacher_name||""))){
+          return reply(403,{error:"يمكن لمنسق الاحتياط المخصص إلغاء تكليفات قسمه فقط."});
+        }
         const activeStatus=["assigned","confirmed"].includes(String(assignment.status||""));
         const withinWindow=principal.type==="admin"
           ? cancellationDate===todayInMuscat
@@ -1497,6 +1513,9 @@ async function handle(req: Request) {
           .in("id",rawIds).eq("version_id",activeVersion.id).eq("assignment_type","substitution");
         if(batchRowsError)throw batchRowsError;
         if(!batchRows||batchRows.length!==rawIds.length)return reply(404,{error:"تعذر العثور على جميع حصص التوزيع المطلوب حذفه."});
+        if(principal.type==="custom"&&!customReserveScopeAllows(absentName)){
+          return reply(403,{error:"يمكن لمنسق الاحتياط المخصص إلغاء تكليفات قسمه فقط."});
+        }
         if(batchRows.some((row:any)=>{
           const status=String(row.status||"");
           const statusAllowed=principal.type==="admin"
@@ -1589,11 +1608,20 @@ async function handle(req: Request) {
         }
         const assignmentIds=normalized.map((item:any)=>item.assignmentId);
         const {data:editableRows,error:editableRowsError}=await db.from("timetable_assignments")
-          .select("id,version_id,assignment_date,period,status").in("id",assignmentIds)
+          .select("id,version_id,assignment_date,period,status,absent_teacher_name").in("id",assignmentIds)
           .eq("version_id",activeVersion.id).eq("assignment_type","substitution");
         if(editableRowsError)throw editableRowsError;
         if(!editableRows||editableRows.length!==assignmentIds.length)return reply(404,{error:"تعذر العثور على جميع التكليفات المطلوب تعديلها في الجدول النشط."});
         const editableById=new Map(editableRows.map((row:any)=>[String(row.id),row]));
+        if(principal.type==="custom"&&normalized.some((item:any)=>{
+          const row=editableById.get(item.assignmentId) as any;
+          const targetAbsent= item.absentTeacherName || String(row?.absent_teacher_name||"");
+          return !row ||
+            !customReserveScopeAllows(String(row.absent_teacher_name||"")) ||
+            !customReserveScopeAllows(targetAbsent,item.substituteTeacherName);
+        })){
+          return reply(403,{error:"يمكن لمنسق الاحتياط المخصص تعديل تكليفات قسمه فقط، واختيار بديل من القسم نفسه."});
+        }
         if(normalized.some((item:any)=>{
           const row=editableById.get(item.assignmentId) as any;
           if(!row||!["assigned","confirmed"].includes(String(row.status||"")))return true;
@@ -1621,6 +1649,14 @@ async function handle(req: Request) {
         if(editableError)throw editableError;
         if(!editableAssignment||!["assigned","confirmed"].includes(String(editableAssignment.status||""))){
           return reply(409,{error:"لا يمكن تعديل هذا السجل لأنه غير نشط أو مرتبط بإصدار جدول سابق."});
+        }
+        const targetAbsentForScope=absentTeacherName||String(editableAssignment.absent_teacher_name||"");
+        if(principal.type==="custom"&&(
+          !customReserveScopeAllows(String(editableAssignment.absent_teacher_name||""))||
+          !customReserveScopeAllows(targetAbsentForScope,substituteTeacherName)||
+          !activeTeachingTeacherNames.has(substituteTeacherName)
+        )){
+          return reply(403,{error:"يمكن لمنسق الاحتياط المخصص تعديل تكليفات قسمه فقط واختيار بديل من معلمي القسم في الجدول النشط."});
         }
         const requestedPeriod=body.period==null?Number(editableAssignment.period):Number(body.period);
         if(!Number.isInteger(requestedPeriod)||requestedPeriod<1||requestedPeriod>Number(activeVersion.period_count||7)){
