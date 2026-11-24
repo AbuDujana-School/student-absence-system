@@ -324,7 +324,7 @@
           if(departmentInput.checked)reserveSelectedOtherDepartmentIds.add(id);
           else{reserveSelectedOtherDepartmentIds.delete(id);reserveSelectedOtherTeachersByDepartment.delete(id);}
           syncOtherTeacherNameSet();reserveDraftScope="";reserveDraftApproved=new Set();reserveBatchPreview=null;reserveDraftAssignments=[];
-          renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();return;
+          renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();persistStoredDraft();return;
         }
         const teacherInput=event.target.closest("[data-other-teacher-name]");
         if(teacherInput){
