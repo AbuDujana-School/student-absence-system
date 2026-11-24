@@ -5,7 +5,7 @@ function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
 }
 
-Deno.test("custom reserve coordinators can use the scoped batch workflow and active edit actions", () => {
+Deno.test("custom reserve coordinators can use batch preview/save but not archive edit actions", () => {
   const allowed = [
     "timetable_substitution_preview",
     "timetable_substitution_save",
@@ -13,13 +13,20 @@ Deno.test("custom reserve coordinators can use the scoped batch workflow and act
     "timetable_substitution_cancel_batch",
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
-    "timetable_substitution_update",
-    "timetable_substitution_update_batch",
   ];
   for (const action of allowed) {
     assert(
       canUseTimetableAction("custom", action),
       "Custom timetable coordinator must be able to use the department-scoped action: " + action,
+    );
+  }
+});
+
+Deno.test("custom reserve coordinators cannot edit archive records", () => {
+  for (const action of ["timetable_substitution_update", "timetable_substitution_update_batch", "timetable_substitution_archive"]) {
+    assert(
+      !canUseTimetableAction("custom", action),
+      "Custom coordinator must not receive archive or edit capability: " + action,
     );
   }
 });
@@ -68,8 +75,6 @@ Deno.test("general admin and explicitly reserve-enabled teachers keep their exis
   const actions = [
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
-    "timetable_substitution_update",
-    "timetable_substitution_update_batch",
     "timetable_substitution_reset",
   ];
   for (const action of actions) {
