@@ -410,6 +410,7 @@
         '<button type="button" class="tt-premium-step" data-premium-step="4"><span class="tt-premium-step-icon"><i class="fa-solid fa-clipboard-check"></i></span><span><b>٤ · الاعتماد</b><small>مراجعة ونشر ومشاركة</small></span></button></nav>';
       if(!panel.querySelector(".tt-premium-intro"))intro.insertAdjacentHTML("afterend",'<div class="tt-premium-intro"><span class="tt-premium-spark"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div><strong>مساحة إعداد احتياط متكاملة</strong><p>ابدأ بالتاريخ، ثم حدد الغياب، ودع النظام يقترح التوزيع الأنسب.</p></div></div>');
     }
+    let defaultDateInitialized=false;
     const date=$("timetableSubstitutionDate");
     if(date){
       const dateWrap=date.closest("label")||date.parentElement;
@@ -430,7 +431,7 @@
             nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
           });
         }
-        if(!date.value){date.value=reserveCurrentMuscatDate();date.dispatchEvent(new Event("change",{bubbles:true}));}
+        if(!date.value){date.value=reserveCurrentMuscatDate();defaultDateInitialized=true;}
       }
     }
     const search=$("timetableDailyAbsentSearch");
@@ -445,6 +446,7 @@
       }
     }
     installReserveAbsenteeChecklist(panel);
+    if(defaultDateInitialized)date?.dispatchEvent(new Event("change",{bubbles:true}));
     const toolbar=$("timetableDailySaveBatchButton")?.parentElement;if(toolbar)toolbar.classList.add("tt-premium-toolbar");
     const results=$("timetableSubstitutionResults");if(results)results.classList.add("tt-premium-results");
     const update=()=>{
