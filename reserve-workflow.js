@@ -92,7 +92,7 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
-  const selectedOtherDepartmentIds = () => {const selected=Array.from($("timetableDailyOtherDepartmentSelect")?.selectedOptions||[]).map(option=>String(option.value||"").trim()).filter(Boolean);return selected.length?selected:[...reserveOtherDepartmentIds];};
+  const selectedOtherDepartmentIds = () => {const select=$("timetableDailyOtherDepartmentSelect");if(select&&select.options.length)return Array.from(select.selectedOptions||[]).map(option=>String(option.value||"").trim()).filter(Boolean);return [...reserveOtherDepartmentIds];};
   const selectedOtherDepartmentId = () => selectedOtherDepartmentIds()[0] || String(reserveOtherDepartmentId||"").trim();
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
