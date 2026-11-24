@@ -657,6 +657,7 @@
         byAbsent.get(name).rows.push({
           period:item.period,
           className:item.className,
+          subject:item.subject||"",
           substitute:item.substituteTeacherName||"",
           reserveReason:String(item.reason||"")
         });
