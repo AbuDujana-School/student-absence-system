@@ -1636,6 +1636,34 @@
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
+    // Bind the visible dashboard card directly. Do not rely on its inline
+    // handler: later UI installers can replace global entry points, leaving
+    // a visually active card with no working click action.
+    const dashboardCard=$("substitutionDashboardCard");
+    if(dashboardCard&&dashboardCard.dataset.canonicalReserveClickBound!=="1"){
+      dashboardCard.dataset.canonicalReserveClickBound="1";
+      dashboardCard.removeAttribute("onclick");
+      dashboardCard.removeAttribute("onkeydown");
+      dashboardCard.addEventListener("click",event=>{
+        event.preventDefault();
+        const opener=window.openSubstitutionView;
+        if(typeof opener!=="function"){
+          showToast("تعذر تشغيل شاشة توزيع الاحتياط. حدّث الصفحة ثم حاول مجدداً.","error");
+          return;
+        }
+        try{
+          const opening=opener();
+          Promise.resolve(opening).catch(error=>status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error"));
+        }catch(error){
+          status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error");
+        }
+      });
+      dashboardCard.addEventListener("keydown",event=>{
+        if(event.key!=="Enter"&&event.key!==" ")return;
+        event.preventDefault();
+        dashboardCard.click();
+      });
+    }
     let canonicalHost=$("substitutionCanonicalWorkspace");
     if(!canonicalHost){
       canonicalHost=document.createElement("div");
