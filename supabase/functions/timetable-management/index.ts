@@ -9,7 +9,7 @@ import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
-import { canCustomCoordinatorManageDepartment } from "./reserve_authorization.ts";
+import { canCustomCoordinatorManageDepartment, canViewSchoolwideReserveArchive } from "./reserve_authorization.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -479,7 +479,7 @@ async function handle(req: Request) {
     // Reserve/archive permission grants access to the feature, not schoolwide
     // visibility. Only system admins receive the consolidated cross-department
     // archive; every other principal is restricted to their own department.
-    const schoolwide=principal.type==="admin";
+    const schoolwide=canViewSchoolwideReserveArchive(principal.type);
     const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
       (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
     const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
