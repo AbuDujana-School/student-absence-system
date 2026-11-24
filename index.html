@@ -13234,7 +13234,8 @@ function timetableSubstitutionSetStatus(message,kind="info") {
 async function timetableLoadSubstitutionOptions() {
   const panel=document.getElementById("timetableSubstitutionPanel");
   if(!panel)return;
-  if(!isGeneralAdminUser(activeUser)&&!timetableCanAccess)return;
+  const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||appAuthSession?.principal?.permissions?.reserve===true;
+  if(!reserveWorkspaceAllowed&&!timetableCanAccess)return;
   panel.classList.remove("hidden");
   try{
     const {date,weekday}=timetableSubstitutionGetDate();
@@ -13508,7 +13509,8 @@ function timetableDailyNormalizeName(value) {
 
 async function timetableLoadSubstitutionOptions() {
   const panel = document.getElementById("timetableSubstitutionPanel");
-  if (!panel || (!isGeneralAdminUser(activeUser) && !timetableCanAccess)) return;
+  const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||appAuthSession?.principal?.permissions?.reserve===true;
+  if (!panel || (!reserveWorkspaceAllowed && !timetableCanAccess)) return;
   panel.classList.remove("hidden");
   try {
     const dateInput = document.getElementById("timetableSubstitutionDate");
