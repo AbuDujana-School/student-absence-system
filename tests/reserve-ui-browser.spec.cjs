@@ -135,3 +135,9 @@ test("cumulative reserve archive renders from its own cache, not the daily archi
   expect(source).toContain("let reserveCumulativeArchive = [];");
   expect(source).toContain("reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];");
 });
+
+test("home reserve observer ignores nested canonical workspace mutations", async () => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  expect(source).toContain("substitutionContentObserver.observe(substitutionView,{childList:true});");
+  expect(source).not.toContain("substitutionContentObserver.observe(substitutionView,{subtree:true,childList:true});");
+});
