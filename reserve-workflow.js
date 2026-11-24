@@ -519,7 +519,7 @@
     if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({
       action: "timetable_substitution_batch_preview", weekday, assignmentDate: date,
-      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId(), otherTeacherNames:[...reserveSelectedOtherTeacherNames]
+      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId(), otherDepartmentIds:selectedOtherDepartmentIds(), otherTeacherNames:[...reserveSelectedOtherTeacherNames]
     }, token);
   }
 
