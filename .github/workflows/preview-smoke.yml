@@ -50,7 +50,7 @@ jobs:
 
       - name: Run live preview smoke test
         env:
-          PREVIEW_URL: https://fix-reserve-archive-unfreeze-20261124.student-absence-system.pages.dev/
+          PREVIEW_URL: https://fix-reserve-archive-unfreeze.student-absence-system.pages.dev/
         run: npx playwright test tests/preview-smoke.spec.cjs tests/reserve-ui-browser.spec.cjs --reporter=line
 
       - name: Upload browser screenshot and test report
