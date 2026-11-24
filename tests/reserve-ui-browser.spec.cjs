@@ -64,9 +64,18 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       window.closeSubstitutionView = () => {};
       window.refreshSubstitutionDashboardCard = () => {};
       const install = new Function("$", "activeUser", "appAuthSession", "canManageReserveWorkspace", "showToast", "getOmanLocalDate", "status", "openAbsenceReasonPicker", integration + "; return installMainSubstitutionViewIntegration;")($, activeUser, appAuthSession, canManageReserveWorkspace, showToast, getOmanLocalDate, status, openAbsenceReasonPicker);
+      window.installMainReserveView = install;
       install();
     }, { role, integration, generalAdminHelper, reserveCapabilityHelper });
-    await page.evaluate(() => window.openSubstitutionView());
+    await page.evaluate(() => {
+      const root = document.getElementById("substitutionView");
+      const observer = new MutationObserver(() => {
+        if (!root.classList.contains("hidden")) window.installMainReserveView();
+      });
+      observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+      return window.openSubstitutionView();
+    });
+    await page.waitForTimeout(0);
     const result = await page.evaluate(() => {
       const $ = (id) => document.getElementById(id);
       return {
