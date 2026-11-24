@@ -57,8 +57,8 @@
       if(otherDepartmentSelect){const savedIds=Array.isArray(saved.otherDepartmentIds)?saved.otherDepartmentIds.map(String):saved.otherDepartmentId?[String(saved.otherDepartmentId)]:[];Array.from(otherDepartmentSelect.options).forEach(option=>option.selected=savedIds.includes(option.value));}
       const otherButton=$("timetableDailyOtherDepartmentsButton");
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
-        ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
-        :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        ?'<i class="fa-solid fa-chevron-up ml-1"></i> إغلاق الأقسام المساندة'
+        :'<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
       reserveDraftApproved=new Set(Array.isArray(saved.approvedAbsentTeachers)?saved.approvedAbsentTeachers.filter(name=>timetableDailyAbsentTeachers.includes(name)):[]);
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
@@ -352,7 +352,7 @@
     if (otherLabel) otherLabel.classList.add("hidden");
     if (otherToggle) otherToggle.removeAttribute("onchange");
     if (toolbar) {
-      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800"><i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى</button>');
+      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action flex items-center gap-3 rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-indigo-900"><span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-lg"><i class="fa-solid fa-people-group"></i></span><span class="text-right"><strong class="block text-sm font-black">استعارة معلمين من أقسام أخرى</strong><small class="mt-1 block text-[10px] font-medium text-indigo-600">اختيار تخصص واحد أو أكثر</small></span></button>');
       $("timetableDailyOtherDepartmentsButton")?.addEventListener("click", async () => {
         const toggle=$("timetableSubstitutionOtherDepartments");
         const button=$("timetableDailyOtherDepartmentsButton");
@@ -363,7 +363,7 @@
           try{
             await loadOtherDepartments();
             $("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");
-            button.innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
+            button.innerHTML='<i class="fa-solid fa-chevron-up ml-1"></i> إغلاق الأقسام المساندة';
             if(!selectedOtherDepartmentId()){
               status("اختر القسم المساند أولاً؛ لن تظهر أسماء المعلمين قبل اختيار القسم.","info");
               $("timetableDailyOtherDepartmentChoices")?.querySelector("input")?.focus();return;
@@ -373,7 +373,7 @@
             toggle.checked=false;
             if(select){select.value="";select.closest("label")?.classList.add("hidden");}
             reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];
-            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
             status(error?.message||"تعذر تحميل الأقسام المساندة. حاول مرة أخرى.","error");
           }finally{button.disabled=false;}
           return;
@@ -381,7 +381,7 @@
         toggle.checked=false;
         if(select){select.value="";select.closest("label")?.classList.add("hidden");}
         reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
-        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
         await timetableDailyRefreshAll();
       });
       const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[260px] text-xs font-bold text-slate-700">  <section class="rounded-2xl border border-indigo-100 bg-white p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700 text-xl"><i class="fa-solid fa-layer-group"></i></span><div><strong class="block text-sm text-slate-900">اختر التخصصات المساندة</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">يمكنك اختيار أكثر من تخصص في الوقت نفسه</small></div></div>    <div id="timetableDailyOtherDepartmentChoices" class="grid grid-cols-1 gap-2 sm:grid-cols-2"><p class="text-xs text-slate-500">جارٍ تحميل التخصصات...</p></div>    <select id="timetableDailyOtherDepartmentSelect" multiple class="hidden" aria-hidden="true" tabindex="-1"></select>  </section>  <section class="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-white text-indigo-700 text-lg"><i class="fa-solid fa-users"></i></span><div><strong class="block text-sm text-slate-900">اختر المعلمين البدلاء</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">حدد معلماً أو أكثر من التخصصات التي اخترتها</small></div></div>    <div id="timetableDailyOtherTeacherChoices" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر التخصص أولاً لعرض المعلمين.</p></div>    <button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-md disabled:cursor-not-allowed disabled:opacity-50" disabled><i class="fa-solid fa-user-plus ml-1"></i> إضافة المعلمين المحددين</button>    <p class="mt-2 text-[10px] text-slate-500">لن يدخل أي معلم في التوزيع إلا بعد تحديده والضغط على زر الإضافة.</p>  </section></div>';
