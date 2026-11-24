@@ -105,17 +105,20 @@ export async function resolveTimetablePrincipal(
   if (!teacher || teacher.name !== name || teacher.role !== type) return null;
   const permissions = teacher.permissions && typeof teacher.permissions === "object"
     ? teacher.permissions : {};
+  // The all-school substitution report is a separate read-only capability.
+  // Check it before delegated-admin elevation so admin=true cannot bypass its
+  // explicit report grant or turn this read into general reserve management.
+  if (type === "teacher" && requestedAction === "timetable_substitution_report") {
+    return permissions.reportSubstitutionDistribution === true
+      ? { type, name, permissions }
+      : null;
+  }
   // Delegated full administrators remain teacher identities in app_sessions,
   // but receive administrator authority for timetable management actions.
   if (type === "teacher" && permissions.admin === true) {
     return { type: "admin", name, permissions };
   }
   const reserveAccess = type === "teacher" && teacher.reserveAccess === true;
-  // A dedicated report grant is read-only and authorizes only the all-school reserve report action.
-  if (requestedAction === "timetable_substitution_report" &&
-      type === "teacher" && permissions.reportSubstitutionDistribution === true) {
-    return { type, name, permissions };
-  }
   // These two reads are strictly self-scoped by their request handlers. The
   // handlers verify the live portal allow-list or query only this teacher's
   // assignments, so preflight permission/portal queries here are redundant.
