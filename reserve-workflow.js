@@ -136,7 +136,7 @@
   function reserveCurrentMuscatDate(){
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
-  const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"];
+  const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
     const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
@@ -164,8 +164,7 @@
       const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
       const error=modal.querySelector("#ttAbsenceReasonError");
       if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
-      if(choice==="أخرى"&&!custom){error.textContent="اكتب سبب الغياب عند اختيار «أخرى».";error.classList.remove("hidden");modal.querySelector("#ttAbsenceReasonOther")?.focus();return;}
-      const value=choice==="أخرى"?"أخرى: "+custom:choice;
+      const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;
       if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
@@ -229,10 +228,10 @@
       const oldSteps=panel.querySelector(".tt-reserve-steps");
       if(oldSteps)oldSteps.outerHTML=
         '<nav class="tt-premium-stepper" aria-label="مراحل توزيع الاحتياط">'+
-        '<div class="tt-premium-step is-active" data-premium-step="1"><span class="tt-premium-step-icon"><i class="fa-regular fa-calendar-days"></i></span><span><b>١ · التاريخ</b><small>حدد يوم الاحتياط</small></span></div>'+
-        '<div class="tt-premium-step" data-premium-step="2"><span class="tt-premium-step-icon"><i class="fa-solid fa-user-check"></i></span><span><b>٢ · الغياب</b><small>اختر المعلمين وأسبابهم</small></span></div>'+
-        '<div class="tt-premium-step" data-premium-step="3"><span class="tt-premium-step-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><span><b>٣ · البدلاء</b><small>اقتراحات النظام الذكي</small></span></div>'+
-        '<div class="tt-premium-step" data-premium-step="4"><span class="tt-premium-step-icon"><i class="fa-solid fa-clipboard-check"></i></span><span><b>٤ · الاعتماد</b><small>مراجعة ونشر ومشاركة</small></span></div></nav>';
+        '<button type="button" class="tt-premium-step is-active" data-premium-step="1"><span class="tt-premium-step-icon"><i class="fa-regular fa-calendar-days"></i></span><span><b>١ · التاريخ</b><small>حدد يوم الاحتياط</small></span></button>'+
+        '<button type="button" class="tt-premium-step" data-premium-step="2"><span class="tt-premium-step-icon"><i class="fa-solid fa-user-check"></i></span><span><b>٢ · الغياب</b><small>اختر المعلمين وأسبابهم</small></span></button>'+
+        '<button type="button" class="tt-premium-step" data-premium-step="3"><span class="tt-premium-step-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><span><b>٣ · البدلاء</b><small>اقتراحات النظام الذكي</small></span></button>'+
+        '<button type="button" class="tt-premium-step" data-premium-step="4"><span class="tt-premium-step-icon"><i class="fa-solid fa-clipboard-check"></i></span><span><b>٤ · الاعتماد</b><small>مراجعة ونشر ومشاركة</small></span></button></nav>';
       if(!panel.querySelector(".tt-premium-intro"))intro.insertAdjacentHTML("afterend",'<div class="tt-premium-intro"><span class="tt-premium-spark"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div><strong>مساحة إعداد احتياط متكاملة</strong><p>ابدأ بالتاريخ، ثم حدد الغياب، ودع النظام يقترح التوزيع الأنسب.</p></div></div>');
     }
     const date=$("timetableSubstitutionDate");
@@ -265,11 +264,15 @@
       const stage=!hasDate?1:!hasAbsentees?2:!hasPlan?3:allApproved?4:3;
       panel.querySelectorAll("[data-premium-step]").forEach(step=>{const n=Number(step.dataset.premiumStep);step.classList.toggle("is-active",n===stage);step.classList.toggle("is-complete",n<stage);});
       $("ttPremiumDateCard")?.classList.toggle("is-complete",hasDate);
-      $("ttPremiumAbsentCard")?.classList.toggle("is-current",hasDate);
-      $("ttPremiumAbsentCard")?.classList.toggle("is-complete",hasAbsentees);
-      if(toolbar)toolbar.classList.toggle("tt-premium-toolbar-ready",hasAbsentees);
+      const absentCard=$("ttPremiumAbsentCard");
+      if(absentCard){absentCard.hidden=!hasDate;absentCard.classList.toggle("is-current",hasDate);absentCard.classList.toggle("is-complete",hasAbsentees);}
+      if(toolbar){toolbar.hidden=!hasAbsentees;toolbar.classList.toggle("tt-premium-toolbar-ready",hasAbsentees);}
       if(results)results.classList.toggle("tt-premium-results-ready",hasAbsentees);
     };
+    panel.querySelectorAll("[data-premium-step]").forEach(button=>button.addEventListener("click",()=>{
+      const target=Number(button.dataset.premiumStep)===1?$("ttPremiumDateCard"):Number(button.dataset.premiumStep)===2?$("ttPremiumAbsentCard"):Number(button.dataset.premiumStep)===3?toolbar:results;
+      if(target&&!target.hidden){target.scrollIntoView({behavior:"smooth",block:"center"});target.querySelector("input,select,button")?.focus?.({preventScroll:true});}
+    }));
     date?.addEventListener("change",update);date?.addEventListener("input",update);
     panel.addEventListener("change",event=>{if(event.target?.id==="timetableDailyAbsentSearch"||event.target?.matches?.('[name="substitutionAbsentTeacher"]'))queueMicrotask(update);});
     panel.addEventListener("click",event=>{if(event.target?.closest?.("[data-tt-remove-absent],[data-tt-approve],#timetableDailySaveBatchButton"))queueMicrotask(update);});
@@ -401,7 +404,7 @@
       "#timetableSubstitutionPanel .tt-premium-hero h3{color:#fff!important;font-size:clamp(1.25rem,2vw,1.65rem)!important;letter-spacing:-.02em}",
       "#timetableSubstitutionPanel .tt-premium-hero p{color:#d8e9e8!important;font-size:.82rem!important;line-height:1.8}",
       "#timetableSubstitutionPanel .tt-premium-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.15rem}",
-      "#timetableSubstitutionPanel .tt-premium-step{display:flex;align-items:center;gap:.7rem;min-width:0;padding:.85rem .9rem;border:1px solid #dce5ee;border-radius:1.1rem;background:linear-gradient(145deg,#fff,#f7fafc);transition:all .2s ease}",
+      "#timetableSubstitutionPanel .tt-premium-step{display:flex;align-items:center;gap:.7rem;min-width:0;width:100%;padding:.85rem .9rem;border:1px solid #dce5ee;border-radius:1.1rem;background:linear-gradient(145deg,#fff,#f7fafc);text-align:right;cursor:pointer;transition:all .2s ease}",
       "#timetableSubstitutionPanel .tt-premium-step-icon{display:grid;place-items:center;flex:0 0 2.7rem;width:2.7rem;height:2.7rem;border-radius:.9rem;background:#edf2f7;color:#64748b;font-size:1.15rem}",
       "#timetableSubstitutionPanel .tt-premium-step b{display:block;color:#334155;font-size:.75rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-step small{display:block;margin-top:.18rem;color:#718096;font-size:.62rem;line-height:1.5}",
