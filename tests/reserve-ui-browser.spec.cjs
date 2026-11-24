@@ -23,7 +23,10 @@ function extractFunction(source, marker) {
 
 test("canonical reserve UI opens with the correct five role boundaries", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const html = fs.readFileSync(path.join(process.cwd(), "index.html"), "utf8");
   const integration = extractFunction(source, "function installMainSubstitutionViewIntegration()");
+  const generalAdminHelper = extractFunction(html, "function isGeneralAdminUser(");
+  const reserveCapabilityHelper = extractFunction(html, "function canManageReserveWorkspace(");
   const roles = [
     { id: "general admin", user: { type: "admin", name: "مدير النظام العام" }, principal: { type: "admin", name: "مدير النظام العام" }, allowed: true, expand: true, custom: false },
     { id: "delegated admin", user: { type: "teacher", name: "مدير مفوض", permissions: { admin: true } }, principal: { type: "admin", name: "مدير مفوض" }, allowed: true, expand: true, custom: false },
@@ -47,7 +50,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const $ = (id) => document.getElementById(id);
       const activeUser = role.user;
       const appAuthSession = { principal: role.principal };
-      const canManageReserveWorkspace = (user) => user?.type === "admin" || user?.permissions?.admin === true || (user?.type === "teacher" && user?.permissions?.reserve === true);
+      const canManageReserveWorkspace = new Function("activeUser", generalAdminHelper + ";" + reserveCapabilityHelper + "; return canManageReserveWorkspace;")(role.user);
       const showToast = (...args) => { window.denials = (window.denials || 0) + 1; };
       const getOmanLocalDate = () => "2026-11-24";
       const status = () => {};
@@ -62,7 +65,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       window.refreshSubstitutionDashboardCard = () => {};
       const install = new Function("$", "activeUser", "appAuthSession", "canManageReserveWorkspace", "showToast", "getOmanLocalDate", "status", "openAbsenceReasonPicker", integration + "; return installMainSubstitutionViewIntegration;")($, activeUser, appAuthSession, canManageReserveWorkspace, showToast, getOmanLocalDate, status, openAbsenceReasonPicker);
       install();
-    }, { role, integration });
+    }, { role, integration, generalAdminHelper, reserveCapabilityHelper });
     await page.evaluate(() => window.openSubstitutionView());
     const result = await page.evaluate(() => {
       const $ = (id) => document.getElementById(id);
