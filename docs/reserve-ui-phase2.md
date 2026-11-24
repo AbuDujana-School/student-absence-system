@@ -15,6 +15,15 @@ The two identified surfaces are not safe to delete as if they were duplicate cop
 
 The surfaces therefore overlap in purpose but contain distinct behavior. Blindly hiding or deleting either would risk losing absence reasons, current-day edit/delete, or the batch distribution flow.
 
+## Findings and fixes completed on the isolated branch
+
+1. Removed obsolete test assertions that required the retired schoolwide reserve report installer and its deleted permission. The absence-reason, current-day assignment, edit/delete, and view-initialization tests remain.
+2. Restored the department coordinator's batch preview/save and active edit actions in the action allowlist. This does not grant schoolwide statistics, archive, reset, or cross-department access.
+3. Added a shared department-scope guard for custom coordinator mutations. Single and batch cancellation verify that the absent teacher belongs to the coordinator's department. Single and batch edits verify both the old and target absent teacher remain in that department and that the replacement substitute is an active teacher from the same department.
+4. Added Deno regression coverage for the capability matrix, department boundaries, and guard placement in each mutation handler.
+
+The custom coordinator checks are enforced server-side; hiding buttons in the UI is not treated as authorization. The existing general-admin principal resolver and login/session resolution code were not changed. In `session_auth.ts`, only the action allowlist for the already-resolved `custom` principal was extended.
+
 ## Phase 2 implementation direction
 
 - Establish one canonical distribution workflow and one source of truth for its state and actions.
@@ -22,7 +31,7 @@ The surfaces therefore overlap in purpose but contain distinct behavior. Blindly
 - Retain the timetable workspace's batch preview, candidate selection, fairness logic, draft handling, review, and explicit save.
 - Retain the home surface's absence-reason capture and current-day assignment visibility/edit/delete, but integrate these into the canonical workflow rather than maintaining duplicate distribution controls.
 - Historical cumulative archive and PDF are explicitly out of scope for this phase.
-- Do not change backend authorization, `session_auth.ts`, `requirePrincipal`, session creation, account roles, permission grants, or database records as part of UI unification.
+- Keep `requirePrincipal`, general-admin login/session resolution, account roles, teacher permission records, and database records unchanged during UI unification. Any further capability change must be separately justified, department-scoped, and covered by regression tests.
 
 ## Required regression checks
 
@@ -38,5 +47,10 @@ The surfaces therefore overlap in purpose but contain distinct behavior. Blindly
 10. Current-day assignments remain visible to the same authorized audience and edit/delete controls continue to follow server-provided `canEdit`/`canDelete`.
 
 ## Safety boundary
+
+- No teacher or student records were inserted, updated, or deleted.
+- No PIN, credential, `app_sessions` row, general-admin identity path, or session creation logic was changed.
+- No Supabase migration, SQL write, Edge Function deployment, production merge, or production publish was performed.
+- The new server-side scope checks read the existing teacher directory and active timetable; they do not mutate either.
 
 This branch is separate from Phase 1 permission design and from the historical PDF/archive work. No production code is changed by this audit document. Do not merge or deploy until the unified flow and the login/permission regression suite pass.
