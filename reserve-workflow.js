@@ -158,20 +158,21 @@
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
     const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
-    const selected=ABSENCE_REASON_OPTIONS.includes(current)?current:(current.startsWith("أخرى:")?"أخرى":"");
+    const normalizedCurrent=current==="إجازة مرضية"?"مرضية":current;
+    const selected=ABSENCE_REASON_OPTIONS.includes(normalizedCurrent)?normalizedCurrent:(current.startsWith("أخرى:")?"أخرى":"");
     const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
     const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
     modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
     const reasonPresentation={
-      "طارئة":{icon:"fa-bolt",hint:"حالة طارئة"},
-      "موعد مستشفى":{icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
-      "مرضية":{icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
-      "أخرى":{icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
-      "دورة تدريبية":{icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
+      "طارئة":{label:"طارئة",icon:"fa-bolt",hint:"حالة طارئة"},
+      "موعد مستشفى":{label:"موعد مستشفى",icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
+      "مرضية":{label:"إجازة مرضية",icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
+      "أخرى":{label:"أخرى",icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
+      "دورة تدريبية":{label:"دورة تدريبية",icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
     };
     modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
       '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
-      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
+      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(item.label||reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
       '<label id="ttAbsenceReasonOtherWrap" class="'+(selected==="أخرى"?"":"hidden")+' block text-xs font-bold text-slate-700">اكتب سبب الغياب<textarea id="ttAbsenceReasonOther" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm" placeholder="اكتب سبب الغياب بالتفصيل...">'+esc(customValue)+'</textarea></label>'+
       '<p id="ttAbsenceReasonError" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-bold text-rose-700"></p>'+
       '<div class="flex justify-end gap-2"><button type="button" data-absence-reason-cancel class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">إلغاء</button><button type="button" data-absence-reason-confirm class="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-black text-white">موافق</button></div></section>';
@@ -244,6 +245,170 @@
 
 
 
+  function installReserveAbsenteeChecklist(panel) {
+    const search=$("timetableDailyAbsentSearch");
+    if(!panel||!search||search.dataset.reserveChecklistBound==="1")return;
+    search.dataset.reserveChecklistBound="1";
+    const searchWrap=search.parentElement;
+    const host=document.createElement("section");
+    host.id="ttReserveAbsenteeChecklist";
+    host.className="tt-reserve-absentee-checklist";
+    host.setAttribute("aria-label","قائمة المعلمين الغائبين");
+    searchWrap?.insertAdjacentElement("afterend",host);
+    $("timetableDailySuggestions")?.classList.add("hidden");
+    const pending=new Set();
+    let busy=false;
+
+    const selectedNames=()=>Array.isArray(timetableDailyAbsentTeachers)?timetableDailyAbsentTeachers:[];
+    const normalize=value=>typeof timetableDailyNormalizeName==="function"
+      ?timetableDailyNormalizeName(value):String(value||"").trim().toLocaleLowerCase("ar");
+    function render(){
+      const options=Array.isArray(timetableDailyAbsentOptions)?timetableDailyAbsentOptions:[];
+      const query=normalize(search.value);
+      const matches=options.filter(name=>!query||normalize(name).includes(query));
+      const selected=selectedNames();
+      host.innerHTML=
+        '<div class="tt-reserve-checklist-heading"><strong>قائمة المعلمين</strong><span>حدد الغائب بالمربع، واضغط الاسم لتحديد السبب أو تعديله</span></div>'+
+        (matches.length
+          ?'<div class="tt-reserve-checklist-items">'+matches.map(name=>{
+            const isSelected=selected.includes(name),isPending=pending.has(name);
+            const reason=String(reserveAbsenceReasons[name]||"").trim();
+            const reasonLabel=reason==="مرضية"?"إجازة مرضية":reason;
+            return '<div class="tt-reserve-absentee-row'+(isSelected?' is-selected':'')+(isPending?' is-pending':'')+'">'+
+              '<input type="checkbox" data-tt-check-absent="'+esc(name)+'" aria-label="تحديد غياب '+esc(name)+'" '+((isSelected||isPending)?'checked':'')+(busy?' disabled':'')+'>'+
+              '<button type="button" class="tt-reserve-absentee-name" data-tt-open-absence-reason="'+esc(name)+'" '+(busy?'disabled':'')+'>'+esc(name)+'</button>'+
+              '<span class="tt-reserve-absentee-reason">'+(isSelected?(reason?esc(reasonLabel):"حدد السبب"):"متاح للتحديد")+'</span>'+
+            '</div>';
+          }).join("")+'</div>'
+          :'<p class="tt-reserve-checklist-empty">'+(options.length?"لا توجد نتائج مطابقة لبحثك.":"اختر التاريخ لتحميل قائمة المعلمين.")+'</p>');
+    }
+    function addAbsentWithoutReason(name){
+      if(pending.has(name)||selectedNames().includes(name))return;
+      const handler=window.timetableDailyAddAbsent;
+      const add=handler?.__reserveAbsenceReasonOriginal||handler;
+      if(typeof add!=="function"){status("تعذر إضافة المعلم الغائب.","error");return;}
+      pending.add(name);render();
+      Promise.resolve(add.call(window,name)).then(()=>{
+        persistStoredDraft();
+      }).catch(error=>{
+        status(error?.message||"تعذر إضافة المعلم الغائب.","error");
+      }).finally(()=>{pending.delete(name);render();});
+    }
+    function openReason(name,adding){
+      const picker=window.openSubstitutionAbsenceReasonPicker;
+      if(typeof picker!=="function"){status("تعذر فتح نافذة سبب الغياب. حدّث الصفحة ثم حاول مجدداً.","error");return;}
+      if(adding)pending.add(name);
+      render();
+      picker(name,String(reserveAbsenceReasons[name]||""),value=>{
+        if(adding)pending.delete(name);
+        if(!value){render();return;}
+        reserveAbsenceReasons[name]=value;
+        persistStoredDraft();
+        if(adding){
+          const handler=window.timetableDailyAddAbsent;
+          const add=handler?.__reserveAbsenceReasonOriginal||handler;
+          if(typeof add!=="function"){delete reserveAbsenceReasons[name];status("تعذر إضافة المعلم الغائب.","error");render();return;}
+          Promise.resolve(add.call(window,name)).then(()=>{
+            persistStoredDraft();
+            render();
+          }).catch(error=>{
+            delete reserveAbsenceReasons[name];
+            status(error?.message||"تعذر إضافة المعلم الغائب.","error");
+            render();
+          });
+        }else{
+          window.timetableDailyRenderLessons?.();
+          render();
+        }
+      });
+    }
+    host.addEventListener("change",event=>{
+      const checkbox=event.target?.closest?.("[data-tt-check-absent]");
+      if(!checkbox)return;
+      const name=checkbox.getAttribute("data-tt-check-absent");
+      if(checkbox.checked){
+        if(!selectedNames().includes(name))addAbsentWithoutReason(name);
+        else render();
+      }else if(selectedNames().includes(name)){
+        window.timetableDailyRemoveAbsent?.(name);
+        render();
+      }
+    });
+    host.addEventListener("click",event=>{
+      const button=event.target?.closest?.("[data-tt-open-absence-reason]");
+      if(!button)return;
+      const name=button.getAttribute("data-tt-open-absence-reason");
+      openReason(name,!selectedNames().includes(name));
+    });
+    search.addEventListener("input",render);
+
+    const wrap=(name,after)=>{
+      const original=window[name];
+      if(typeof original!=="function"||original.__ttReserveChecklistWrapped)return;
+      const wrapped=function(...args){
+        const result=original.apply(this,args);
+        queueMicrotask(()=>{after?.(args,result);render();});
+        return result;
+      };
+      wrapped.__ttReserveChecklistWrapped=true;
+      wrapped.__ttReserveChecklistOriginal=original;
+      window[name]=wrapped;
+    };
+    wrap("timetableDailyRenderTags");
+    wrap("timetableDailyFilterAbsentTeachers",()=>{
+      $("timetableDailySuggestions")?.classList.add("hidden");
+    });
+    const originalLoad=window.timetableLoadSubstitutionOptions;
+    if(typeof originalLoad==="function"&&!originalLoad.__ttReserveChecklistWrapped){
+      const wrappedLoad=async function(...args){
+        try{return await originalLoad.apply(this,args);}
+        finally{render();}
+      };
+      wrappedLoad.__ttReserveChecklistWrapped=true;
+      wrappedLoad.__ttReserveChecklistOriginal=originalLoad;
+      window.timetableLoadSubstitutionOptions=wrappedLoad;
+    }
+    const originalBusy=window.timetableDailySetBusy;
+    if(typeof originalBusy==="function"&&!originalBusy.__ttReserveChecklistWrapped){
+      const wrappedBusy=function(disabled,...args){
+        busy=disabled===true;
+        const result=originalBusy.call(this,disabled,...args);
+        render();
+        return result;
+      };
+      wrappedBusy.__ttReserveChecklistWrapped=true;
+      wrappedBusy.__ttReserveChecklistOriginal=originalBusy;
+      window.timetableDailySetBusy=wrappedBusy;
+    }
+    if(!document.getElementById("ttReserveAbsenteeChecklistStyles")){
+      const style=document.createElement("style");
+      style.id="ttReserveAbsenteeChecklistStyles";
+      style.textContent=[
+        "#ttReserveAbsenteeChecklist{margin-top:.75rem;padding:.8rem;border:1px solid rgba(148,163,184,.24);border-radius:1.15rem;background:rgba(248,250,252,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.65rem}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-heading strong{font-size:.8rem;font-weight:900;color:#0f172a}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-heading span{font-size:.65rem;color:#64748b}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;max-height:19rem;overflow:auto;padding:.1rem}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-row{display:grid;grid-template-columns:1.2rem minmax(0,1fr);align-items:center;gap:.35rem .6rem;min-width:0;padding:.65rem .7rem;border:1px solid rgba(148,163,184,.22);border-radius:.9rem;background:rgba(255,255,255,.78);transition:border-color .16s,background .16s,box-shadow .16s}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-row.is-selected{border-color:rgba(16,185,129,.5);background:rgba(236,253,245,.9);box-shadow:0 0 0 1px rgba(16,185,129,.1)}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-row.is-pending{border-style:dashed}",
+        "#ttReserveAbsenteeChecklist input[type=checkbox]{width:1.1rem;height:1.1rem;accent-color:#059669;cursor:pointer}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-name{min-width:0;text-align:right;overflow-wrap:anywhere;color:#1e293b;font-size:.75rem;font-weight:900}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-name:hover{color:#047857}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-reason{grid-column:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:.6rem}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-empty{padding:.8rem;text-align:center;color:#64748b;font-size:.72rem}",
+        ".dark #ttReserveAbsenteeChecklist{border-color:rgba(71,85,105,.6);background:rgba(15,23,42,.72)}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-checklist-heading strong{color:#f1f5f9}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-absentee-row{border-color:rgba(71,85,105,.55);background:rgba(30,41,59,.72)}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-absentee-row.is-selected{border-color:rgba(52,211,153,.55);background:rgba(6,78,59,.42)}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-absentee-name{color:#e2e8f0}",
+        "@media(max-width:540px){#ttReserveAbsenteeChecklist .tt-reserve-checklist-items{grid-template-columns:1fr}}"
+      ].join("\n");
+      document.head.appendChild(style);
+    }
+    render();
+  }
+
   function installPremiumReserveExperience(panel) {
     if(!panel||panel.dataset.premiumReserveExperience==="1")return;
     panel.dataset.premiumReserveExperience="1";
@@ -259,6 +424,7 @@
         '<button type="button" class="tt-premium-step" data-premium-step="4"><span class="tt-premium-step-icon"><i class="fa-solid fa-clipboard-check"></i></span><span><b>٤ · الاعتماد</b><small>مراجعة ونشر ومشاركة</small></span></button></nav>';
       if(!panel.querySelector(".tt-premium-intro"))intro.insertAdjacentHTML("afterend",'<div class="tt-premium-intro"><span class="tt-premium-spark"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div><strong>مساحة إعداد احتياط متكاملة</strong><p>ابدأ بالتاريخ، ثم حدد الغياب، ودع النظام يقترح التوزيع الأنسب.</p></div></div>');
     }
+    let defaultDateInitialized=false;
     const date=$("timetableSubstitutionDate");
     if(date){
       const dateWrap=date.closest("label")||date.parentElement;
@@ -266,6 +432,20 @@
         const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
         card.innerHTML='<div class="tt-premium-card-heading"><span class="tt-premium-icon tt-icon-date"><i class="fa-regular fa-calendar-check"></i></span><div><strong>الخطوة الأولى: اختر تاريخ الاحتياط</strong><small>حدد اليوم الدراسي الذي تريد إعداد التوزيع له</small></div><span class="tt-premium-chip">البداية</span></div>';
         dateWrap.parentNode?.insertBefore(card,dateWrap);card.appendChild(dateWrap);dateWrap.classList.add("tt-premium-date-control");
+        if(!card.querySelector("#ttPremiumDateQuickNav")){
+          const nav=document.createElement("div");nav.id="ttPremiumDateQuickNav";nav.className="tt-premium-date-nav";
+          nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+          card.appendChild(nav);
+          const toLocalISO=value=>{const y=value.getFullYear(),m=String(value.getMonth()+1).padStart(2,"0"),d=String(value.getDate()).padStart(2,"0");return y+"-"+m+"-"+d;};
+          nav.addEventListener("click",event=>{
+            const button=event.target.closest("[data-date-offset]");if(!button||!date)return;
+            const offset=Number(button.dataset.dateOffset),base=reserveCurrentMuscatDate();
+            const parts=base.split("-").map(Number),selected=new Date(parts[0],parts[1]-1,parts[2]+offset,12,0,0);
+            date.value=toLocalISO(selected);date.dispatchEvent(new Event("input",{bubbles:true}));date.dispatchEvent(new Event("change",{bubbles:true}));
+            nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
+          });
+        }
+        if(!date.value){date.value=reserveCurrentMuscatDate();defaultDateInitialized=true;}
       }
     }
     const search=$("timetableDailyAbsentSearch");
@@ -279,6 +459,8 @@
         searchWrap.parentNode?.insertBefore(card,searchWrap);card.appendChild(searchWrap);if(tags&&tags.parentNode!==card)card.appendChild(tags);
       }
     }
+    installReserveAbsenteeChecklist(panel);
+    if(defaultDateInitialized)date?.dispatchEvent(new Event("change",{bubbles:true}));
     const toolbar=$("timetableDailySaveBatchButton")?.parentElement;if(toolbar)toolbar.classList.add("tt-premium-toolbar");
     const results=$("timetableSubstitutionResults");if(results)results.classList.add("tt-premium-results");
     const update=()=>{
@@ -459,6 +641,23 @@
       "#timetableSubstitutionPanel .tt-premium-chip{padding:.35rem .7rem;border-radius:999px;background:#ecfdf5;color:#047857;font-size:.62rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-date-control{max-width:26rem;padding:.15rem}",
       "#timetableSubstitutionPanel .tt-premium-date-control input{width:100%;min-height:3.2rem;border:1px solid #cbd5e1;border-radius:1rem;background:#f8fafc;padding:.75rem 1rem;font-size:1rem;font-weight:800;color:#0f172a}",
+      "#timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(248,252,255,.72));backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);border-color:rgba(203,213,225,.72);box-shadow:0 18px 48px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.82)}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:2.7rem;padding:.6rem 1rem;border:1px solid rgba(148,163,184,.35);border-radius:.9rem;background:rgba(255,255,255,.72);color:#334155;font-size:.78rem;font-weight:900;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button:hover{transform:translateY(-2px);border-color:#34d399;background:#ecfdf5;box-shadow:0 8px 18px rgba(16,185,129,.12)}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button.is-today{border-color:rgba(16,185,129,.4);background:rgba(236,253,245,.76);color:#047857}",
+      "#timetableSubstitutionPanel .tt-premium-date-nav button.is-selected{border-color:#10b981;background:linear-gradient(135deg,#059669,#0f766e);color:#fff;box-shadow:0 8px 20px rgba(5,150,105,.2)}",
+      "#timetableSubstitutionPanel .tt-date-nav-hint{margin-inline-start:auto;color:#64748b;font-size:.68rem;font-weight:600}",
+      "#timetableSubstitutionPanel .tt-premium-toolbar{border-color:rgba(203,213,225,.7);background:linear-gradient(125deg,rgba(248,250,252,.86),rgba(236,253,245,.78));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(15,23,42,.055)}",
+      "#timetableSubstitutionPanel .tt-premium-step{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(245,249,252,.78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 22px rgba(15,23,42,.035)}",
+      "#timetableSubstitutionPanel .tt-premium-step:hover{transform:translateY(-2px);border-color:#86cdb2;box-shadow:0 12px 24px rgba(15,23,42,.08)}",
+      "#timetableSubstitutionPanel button:focus-visible,#timetableSubstitutionPanel input:focus-visible,#timetableSubstitutionPanel select:focus-visible{outline:3px solid rgba(16,185,129,.28);outline-offset:2px}",
+      ".dark #timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(20,34,54,.9),rgba(15,23,42,.82));border-color:rgba(71,85,105,.68);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%)}",
+      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button{border-color:#475569;background:rgba(30,41,59,.82);color:#e2e8f0}",
+      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
+      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button.is-today{border-color:#0f766e;background:rgba(6,78,59,.35);color:#a7f3d0}",
+      ".dark #timetableSubstitutionPanel .tt-date-nav-hint{color:#94a3b8}",
+      "@media(prefers-reduced-motion:reduce){#timetableSubstitutionPanel *,#timetableDailyAbsenceReasonModal *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}",
       "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
       "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
       "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",

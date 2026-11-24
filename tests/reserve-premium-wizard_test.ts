@@ -17,6 +17,15 @@ Deno.test("reserve workspace presents a premium four-step date-first flow", () =
   assert(reserveWorkflow.includes("installPremiumReserveExperience(panel)"), "The premium workflow must be installed on the live reserve panel");
 });
 
+Deno.test("date navigation defaults to Muscat today and provides yesterday/today/tomorrow shortcuts", () => {
+  assert(reserveWorkflow.includes("ttPremiumDateQuickNav"), "The date card must include quick navigation");
+  assert(reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday shortcut is missing");
+  assert(reserveWorkflow.includes('data-date-offset="0"'), "Today shortcut is missing");
+  assert(reserveWorkflow.includes('data-date-offset="1"'), "Tomorrow shortcut is missing");
+  assert(reserveWorkflow.includes("reserveCurrentMuscatDate()"), "The default date must use Muscat local time");
+  assert(reserveWorkflow.includes('date.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the date must refresh the existing date-driven workflow");
+});
+
 Deno.test("supporting teachers can be selected from multiple departments", () => {
   assert(reserveWorkflow.includes('multiple class="hidden"'), "The department ID control must preserve multiple selections behind the visual picker");
   assert(reserveWorkflow.includes("timetableDailyOtherDepartmentChoices"), "Departments must be shown as visible selectable cards");

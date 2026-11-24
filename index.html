@@ -11672,7 +11672,8 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
  window.addEventListener('appinstalled',()=>{sheet.classList.remove('pwa-visible');sheet.setAttribute('aria-hidden','true');installPrompt=null});
  action.addEventListener('click',async()=>{if(installPrompt){const p=installPrompt;installPrompt=null;try{await p.prompt();const choice=await p.userChoice;if(choice&&choice.outcome==='accepted')hide();else showHelp()}catch(e){showHelp()}}else showHelp()});
  close.addEventListener('click',hide);later.addEventListener('click',hide);
- window.addEventListener('load',()=>window.setTimeout(show,1800),{once:true});
+ // The automatic install bottom-sheet was distracting on first launch; keep installation available through the browser's native menu instead.
+ // Intentionally do not auto-open this sheet on page load.
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&isStandalone())hide()});
 })();
 </script>
