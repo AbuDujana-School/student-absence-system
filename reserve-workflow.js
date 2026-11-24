@@ -1673,14 +1673,16 @@
     }
     if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
       window.openSubstitutionView=async function(){
-        const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||appAuthSession?.principal?.type==="custom"||(appAuthSession?.principal?.type==="teacher"&&appAuthSession?.principal?.permissions?.reserve===true);
+        const reservePrincipal=appAuthSession?.principal;
+        const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
+        const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
         if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
         ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
         root.classList.remove("hidden");
         if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
         const date=$("timetableSubstitutionDate");
         if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
-        const canExpand=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)||(appAuthSession?.principal?.type==="teacher"&&appAuthSession?.principal?.permissions?.reserve===true);
+        const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
         $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
         try{
           if(typeof window.timetableLoadSubstitutionOptions==="function")await window.timetableLoadSubstitutionOptions();
