@@ -370,7 +370,7 @@
 
   window.timetableDailyRefreshOne = async function () { return await window.timetableDailyRefreshAll(); };
   window.timetableDailyRefreshAll = async function () {
-    if(schoolwideReserveReportIsAdmin())installAdminReserveTools();
+    if(isGeneralAdminUser(activeUser))installAdminReserveTools();
     if(!timetableDailyAbsentTeachers.length)restoreStoredDraft();
     if (!timetableDailyAbsentTeachers.length) {
       reserveBatchPreview = null; reserveDraftAssignments = []; reserveManualChoices=Object.create(null); reserveDraftApproved=new Set(); reserveLastAbsentSignature=""; reserveDraftScope=""; window.timetableDailyRenderLessons(); return;
@@ -1195,7 +1195,7 @@
 
   async function installAdminReserveTools() {
     const panel=$("timetableSubstitutionPanel");
-    if(!panel || panel.dataset.adminReserveTools==="1" || !schoolwideReserveReportIsAdmin())return;
+    if(!panel || panel.dataset.adminReserveTools==="1" || !isGeneralAdminUser(activeUser))return;
     panel.dataset.adminReserveTools="1";
     const card=document.createElement("section");
     card.id="ttAdminReserveTools";
@@ -1217,7 +1217,7 @@
     const say=(message,error=false)=>{const box=$("ttAdminToolsStatus");if(!box)return;box.textContent=message;box.className="rounded-lg p-3 text-xs font-bold "+(error?"bg-red-100 text-red-800":"bg-emerald-100 text-emerald-800");};
     $("ttAdminPrintAllReserve")?.addEventListener("click",async()=>{
       const button=$("ttAdminPrintAllReserve");
-      if(!schoolwideReserveReportIsAdmin()){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
+      if(!isGeneralAdminUser(activeUser)){say("هذه الميزة متاحة لمدير النظام العام فقط.",true);return;}
       button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
       try{
         const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
@@ -1391,7 +1391,7 @@
     if(!view||view.classList.contains("hidden")||view.dataset.cumulativeArchiveInstalled==="1")return;
     const accessCheck=view.dataset.cumulativeArchiveAccessCheck||"";
     if(accessCheck==="pending"||accessCheck==="denied")return;
-    const canViewLocally=schoolwideReserveReportIsAdmin()||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.permissions?.reserve===true;
+    const canViewLocally=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.permissions?.reserve===true;
     if(!canViewLocally&&accessCheck!=="allowed"){
       const token=appAuthSession?.token||readAppAuthToken();
       if(!token)return;
