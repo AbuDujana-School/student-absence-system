@@ -278,9 +278,9 @@
       const auto = toolbar.querySelector('button[onclick*="timetableDailyAutoAssign"]');
       if (auto) auto.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles ml-1"></i> إعداد التوزيع الذكي';
       const print = toolbar.querySelector('button[onclick*="window.print"]');
-      if (print) { print.setAttribute("onclick", "timetableDailyPrintReport()"); print.innerHTML = '<i class="fa-solid fa-print ml-1"></i> طباعة A4'; }
+      if (print) { print.setAttribute("onclick", "timetableDailyPrintReport()"); print.innerHTML = '<i class="fa-solid fa-file-pdf ml-1"></i> تصدير PDF / طباعة A4'; }
       toolbar.insertAdjacentHTML("beforeend",
-        '<button type="button" id="timetableDailySaveBatchButton" class="tt-action bg-emerald-700 text-white"><i class="fa-solid fa-floppy-disk ml-1"></i> حفظ التوزيع</button>' +
+        '<button type="button" id="timetableDailySaveBatchButton" class="tt-action bg-emerald-700 text-white"><i class="fa-solid fa-circle-check ml-1"></i> اعتماد ونشر الاحتياط</button>' +
         '<button type="button" id="timetableDailyArchiveButton" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800"><i class="fa-solid fa-box-archive ml-1"></i> سجل الاحتياط التراكمي</button>');
       $("timetableDailySaveBatchButton")?.classList.add("hidden");
       $("timetableDailySaveBatchButton")?.addEventListener("click", timetableDailySaveBatch);
