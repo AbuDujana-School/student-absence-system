@@ -8,12 +8,18 @@ export function isWithinTeacherRegistrationWindow(minutes:number):boolean {
   return Number.isFinite(minutes) && minutes>=420 && minutes<=510;
 }
 export function isTeacherEligibleForMorningLateness(input:{
-  permission:boolean; dutyToday:boolean; weekday:string; assignedDutyDay:string; minutes:number;
+  dutyToday:boolean; weekday:string; assignedDutyDay:string; minutes:number;
 }):boolean {
-  return input.permission===true
-    && input.dutyToday!==false
+  return input.dutyToday!==false
     && SCHOOL_DAYS.includes(input.weekday as typeof SCHOOL_DAYS[number])
     && input.assignedDutyDay===input.weekday
+    && isWithinTeacherRegistrationWindow(input.minutes);
+}
+export function isNonDutyTeacherEligibleForMorningLateness(input:{
+  permission:boolean; weekday:string; minutes:number;
+}):boolean {
+  return input.permission===true
+    && SCHOOL_DAYS.includes(input.weekday as typeof SCHOOL_DAYS[number])
     && isWithinTeacherRegistrationWindow(input.minutes);
 }
 export function latenessAbsenceDays(count:number):number {
@@ -23,19 +29,24 @@ export function latenessAbsenceDays(count:number):number {
 export function canUseMorningLateness(input: {
   principalType: "admin" | "teacher" | "custom";
   permission: boolean;
+  nonDutyPermission?: boolean;
   dutyToday: boolean;
   weekday: string;
   assignedDutyDay: string;
   minutes: number;
 }): boolean {
   if (input.principalType === "admin") return true;
-  if (input.permission !== true) return false;
-  if (input.principalType === "custom") return true;
-  return input.principalType === "teacher" && isTeacherEligibleForMorningLateness({
-    permission: input.permission,
+  if (input.principalType === "custom") return input.permission === true;
+  if (input.principalType !== "teacher") return false;
+  if (isTeacherEligibleForMorningLateness({
     dutyToday: input.dutyToday,
     weekday: input.weekday,
     assignedDutyDay: input.assignedDutyDay,
+    minutes: input.minutes,
+  })) return true;
+  return isNonDutyTeacherEligibleForMorningLateness({
+    permission: input.nonDutyPermission === true,
+    weekday: input.weekday,
     minutes: input.minutes,
   });
 }
