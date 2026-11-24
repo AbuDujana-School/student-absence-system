@@ -89,3 +89,45 @@ Deno.test("general admin and explicitly reserve-enabled teachers keep their exis
     "The custom department guard must not change the general admin authorization path",
   );
 });
+
+Deno.test("custom reserve mutation handlers enforce department scope before privileged writes", async () => {
+  const backend = await Deno.readTextFile(
+    new URL("../supabase/functions/timetable-management/index.ts", import.meta.url),
+  );
+  const blocks = [
+    [
+      'if (body.action==="timetable_substitution_cancel")',
+      'if (body.action==="timetable_substitution_cancel_batch")',
+      "single cancellation",
+    ],
+    [
+      'if (body.action==="timetable_substitution_cancel_batch")',
+      "if (absentTeacherName)",
+      "batch cancellation",
+    ],
+    [
+      'if(body.action==="timetable_substitution_update_batch")',
+      'if(body.action==="timetable_substitution_update")',
+      "batch update",
+    ],
+    [
+      'if(body.action==="timetable_substitution_update")',
+      "const pointsBalanceByTeacher=",
+      "single update",
+    ],
+  ];
+  for (const [startMarker, endMarker, label] of blocks) {
+    const start = backend.indexOf(startMarker);
+    const end = backend.indexOf(endMarker, start + startMarker.length);
+    assert(start >= 0 && end > start, "Could not locate " + label + " handler");
+    const handler = backend.slice(start, end);
+    assert(
+      handler.includes("customReserveScopeAllows"),
+      label + " must verify the custom coordinator's department before mutation",
+    );
+  }
+  assert(
+    backend.includes('import { canCustomCoordinatorManageDepartment } from "./reserve_authorization.ts";'),
+    "The backend must use the shared custom coordinator scope policy",
+  );
+});
