@@ -17,7 +17,8 @@ Deno.test("reserve workspace presents a premium four-step date-first flow", () =
 });
 
 Deno.test("supporting teachers can be selected from multiple departments", () => {
-  assert(reserveWorkflow.includes('multiple size="5"'), "The department selector must allow multiple selections");
+  assert(reserveWorkflow.includes('multiple class="hidden"'), "The department ID control must preserve multiple selections behind the visual picker");
+  assert(reserveWorkflow.includes("timetableDailyOtherDepartmentChoices"), "Departments must be shown as visible selectable cards");
   assert(reserveWorkflow.includes("selectedOtherDepartmentIds"), "The UI must track the selected department set");
   assert(reserveWorkflow.includes("otherDepartmentIds:selectedOtherDepartmentIds()"), "Preview and save payloads must include all selected departments");
   assert(reserveWorkflow.includes("departments.flatMap"), "Teacher choices must combine the selected departments");
