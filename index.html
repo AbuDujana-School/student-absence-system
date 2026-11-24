@@ -14873,7 +14873,9 @@ async function timetableSaveOwner() {
         const item=row.item,index=row.index;
         const options=(item.candidateOptions||[]).map(function(option){
           const occupied=(option.occupiedPeriods||[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b).map(period=>new Intl.NumberFormat('ar-OM').format(period)).join('، ')||'لا توجد حصص تدريس';
-          const label=option.teacherName+' · الحصص '+occupied;
+          const dailyCount=Number(option.dailyTeachingCount);
+          const dailyLabel=Number.isFinite(dailyCount)?' · '+dailyCount+' حصص تدريس اليوم':'';
+          const label=option.teacherName+dailyLabel+' · الحصص '+occupied;
           return '<option value="'+esc(option.teacherName)+'" '+(option.teacherName===item.substituteTeacherName?'selected':'')+'>'+esc(label)+'</option>';
         }).join('');
         html+='<div class="grid grid-cols-1 gap-3 p-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.3fr)] md:items-center">'+
@@ -14973,7 +14975,10 @@ async function timetableSaveOwner() {
       groups.get(absentName).push({
         period:Number(item.period),
         className:item.className||'غير محدد',
-        substitute:item.substituteTeacherName||'لم يحدد'
+        substitute:item.substituteTeacherName||'لم يحدد',
+        dailyTeachingCount:Number.isFinite(Number(item.substituteDailyTeachingCount))
+          ?Number(item.substituteDailyTeachingCount)
+          :(()=>{const option=(item.candidateOptions||[]).find(candidate=>candidate.teacherName===item.substituteTeacherName);return option&&Number.isFinite(Number(option.dailyTeachingCount))?Number(option.dailyTeachingCount):null;})()
       });
     };
     [...(currentPlan.existingAssignments||[]),...(currentPlan.assignments||[]),...(currentPlan.unassigned||[])].forEach(addRow);
@@ -14983,7 +14988,9 @@ async function timetableSaveOwner() {
       message+='*'+(index+1)+'-* المعلم الغائب: *'+group.name+'*\n\n';
       group.rows.sort((a,b)=>a.period-b.period).forEach(function(row){
         message+='- الحصة *'+String(row.period)+'* | الصف '+row.className+'\n';
-        message+='*الاحتياط: '+row.substitute+'*\n\n';
+        message+='*الاحتياط: '+row.substitute+'*';
+        if(row.dailyTeachingCount!==null)message+=' · لديه '+row.dailyTeachingCount+' حصص تدريس اليوم';
+        message+='\n\n';
       });
     });
     message+='إدارة المدرسة';
