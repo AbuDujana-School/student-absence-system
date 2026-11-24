@@ -244,6 +244,157 @@
 
 
 
+  function installReserveAbsenteeChecklist(panel) {
+    const search=$("timetableDailyAbsentSearch");
+    if(!panel||!search||search.dataset.reserveChecklistBound==="1")return;
+    search.dataset.reserveChecklistBound="1";
+    const searchWrap=search.parentElement;
+    const host=document.createElement("section");
+    host.id="ttReserveAbsenteeChecklist";
+    host.className="tt-reserve-absentee-checklist";
+    host.setAttribute("aria-label","قائمة المعلمين الغائبين");
+    searchWrap?.insertAdjacentElement("afterend",host);
+    $("timetableDailySuggestions")?.classList.add("hidden");
+    const pending=new Set();
+    let busy=false;
+
+    const selectedNames=()=>Array.isArray(timetableDailyAbsentTeachers)?timetableDailyAbsentTeachers:[];
+    const normalize=value=>typeof timetableDailyNormalizeName==="function"
+      ?timetableDailyNormalizeName(value):String(value||"").trim().toLocaleLowerCase("ar");
+    function render(){
+      const options=Array.isArray(timetableDailyAbsentOptions)?timetableDailyAbsentOptions:[];
+      const query=normalize(search.value);
+      const matches=options.filter(name=>!query||normalize(name).includes(query));
+      const selected=selectedNames();
+      host.innerHTML=
+        '<div class="tt-reserve-checklist-heading"><strong>قائمة المعلمين</strong><span>حدد الغائب بالمربع، واضغط الاسم لتحديد السبب أو تعديله</span></div>'+
+        (matches.length
+          ?'<div class="tt-reserve-checklist-items">'+matches.map(name=>{
+            const isSelected=selected.includes(name),isPending=pending.has(name);
+            const reason=String(reserveAbsenceReasons[name]||"").trim();
+            return '<div class="tt-reserve-absentee-row'+(isSelected?' is-selected':'')+(isPending?' is-pending':'')+'">'+
+              '<input type="checkbox" data-tt-check-absent="'+esc(name)+'" aria-label="تحديد غياب '+esc(name)+'" '+((isSelected||isPending)?'checked':'')+(busy?' disabled':'')+'>'+
+              '<button type="button" class="tt-reserve-absentee-name" data-tt-open-absence-reason="'+esc(name)+'" '+(busy?'disabled':'')+'>'+esc(name)+'</button>'+
+              '<span class="tt-reserve-absentee-reason">'+(isSelected?(reason?esc(reason):"حدد السبب"):"متاح للتحديد")+'</span>'+
+            '</div>';
+          }).join("")+'</div>'
+          :'<p class="tt-reserve-checklist-empty">'+(options.length?"لا توجد نتائج مطابقة لبحثك.":"اختر التاريخ لتحميل قائمة المعلمين.")+'</p>');
+    }
+    function openReason(name,adding){
+      const picker=window.openSubstitutionAbsenceReasonPicker;
+      if(typeof picker!=="function"){status("تعذر فتح نافذة سبب الغياب. حدّث الصفحة ثم حاول مجدداً.","error");return;}
+      if(adding)pending.add(name);
+      render();
+      picker(name,String(reserveAbsenceReasons[name]||""),value=>{
+        if(adding)pending.delete(name);
+        if(!value){render();return;}
+        reserveAbsenceReasons[name]=value;
+        persistStoredDraft();
+        if(adding){
+          const handler=window.timetableDailyAddAbsent;
+          const add=handler?.__reserveAbsenceReasonOriginal||handler;
+          if(typeof add!=="function"){delete reserveAbsenceReasons[name];status("تعذر إضافة المعلم الغائب.","error");render();return;}
+          Promise.resolve(add.call(window,name)).then(()=>{
+            persistStoredDraft();
+            render();
+          }).catch(error=>{
+            delete reserveAbsenceReasons[name];
+            status(error?.message||"تعذر إضافة المعلم الغائب.","error");
+            render();
+          });
+        }else{
+          window.timetableDailyRenderLessons?.();
+          render();
+        }
+      });
+    }
+    host.addEventListener("change",event=>{
+      const checkbox=event.target?.closest?.("[data-tt-check-absent]");
+      if(!checkbox)return;
+      const name=checkbox.getAttribute("data-tt-check-absent");
+      if(checkbox.checked){
+        if(!selectedNames().includes(name))openReason(name,true);
+        else render();
+      }else if(selectedNames().includes(name)){
+        window.timetableDailyRemoveAbsent?.(name);
+        render();
+      }
+    });
+    host.addEventListener("click",event=>{
+      const button=event.target?.closest?.("[data-tt-open-absence-reason]");
+      if(!button)return;
+      const name=button.getAttribute("data-tt-open-absence-reason");
+      openReason(name,!selectedNames().includes(name));
+    });
+    search.addEventListener("input",render);
+
+    const wrap=(name,after)=>{
+      const original=window[name];
+      if(typeof original!=="function"||original.__ttReserveChecklistWrapped)return;
+      const wrapped=function(...args){
+        const result=original.apply(this,args);
+        queueMicrotask(()=>{after?.(args,result);render();});
+        return result;
+      };
+      wrapped.__ttReserveChecklistWrapped=true;
+      wrapped.__ttReserveChecklistOriginal=original;
+      window[name]=wrapped;
+    };
+    wrap("timetableDailyRenderTags");
+    wrap("timetableDailyFilterAbsentTeachers",()=>{
+      $("timetableDailySuggestions")?.classList.add("hidden");
+    });
+    const originalLoad=window.timetableLoadSubstitutionOptions;
+    if(typeof originalLoad==="function"&&!originalLoad.__ttReserveChecklistWrapped){
+      const wrappedLoad=async function(...args){
+        try{return await originalLoad.apply(this,args);}
+        finally{render();}
+      };
+      wrappedLoad.__ttReserveChecklistWrapped=true;
+      wrappedLoad.__ttReserveChecklistOriginal=originalLoad;
+      window.timetableLoadSubstitutionOptions=wrappedLoad;
+    }
+    const originalBusy=window.timetableDailySetBusy;
+    if(typeof originalBusy==="function"&&!originalBusy.__ttReserveChecklistWrapped){
+      const wrappedBusy=function(disabled,...args){
+        busy=disabled===true;
+        const result=originalBusy.call(this,disabled,...args);
+        render();
+        return result;
+      };
+      wrappedBusy.__ttReserveChecklistWrapped=true;
+      wrappedBusy.__ttReserveChecklistOriginal=originalBusy;
+      window.timetableDailySetBusy=wrappedBusy;
+    }
+    if(!document.getElementById("ttReserveAbsenteeChecklistStyles")){
+      const style=document.createElement("style");
+      style.id="ttReserveAbsenteeChecklistStyles";
+      style.textContent=[
+        "#ttReserveAbsenteeChecklist{margin-top:.75rem;padding:.8rem;border:1px solid rgba(148,163,184,.24);border-radius:1.15rem;background:rgba(248,250,252,.72);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-heading{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.4rem;margin-bottom:.65rem}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-heading strong{font-size:.8rem;font-weight:900;color:#0f172a}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-heading span{font-size:.65rem;color:#64748b}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-items{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem;max-height:19rem;overflow:auto;padding:.1rem}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-row{display:grid;grid-template-columns:1.2rem minmax(0,1fr);align-items:center;gap:.35rem .6rem;min-width:0;padding:.65rem .7rem;border:1px solid rgba(148,163,184,.22);border-radius:.9rem;background:rgba(255,255,255,.78);transition:border-color .16s,background .16s,box-shadow .16s}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-row.is-selected{border-color:rgba(16,185,129,.5);background:rgba(236,253,245,.9);box-shadow:0 0 0 1px rgba(16,185,129,.1)}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-row.is-pending{border-style:dashed}",
+        "#ttReserveAbsenteeChecklist input[type=checkbox]{width:1.1rem;height:1.1rem;accent-color:#059669;cursor:pointer}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-name{min-width:0;text-align:right;overflow-wrap:anywhere;color:#1e293b;font-size:.75rem;font-weight:900}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-name:hover{color:#047857}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-absentee-reason{grid-column:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#64748b;font-size:.6rem}",
+        "#ttReserveAbsenteeChecklist .tt-reserve-checklist-empty{padding:.8rem;text-align:center;color:#64748b;font-size:.72rem}",
+        ".dark #ttReserveAbsenteeChecklist{border-color:rgba(71,85,105,.6);background:rgba(15,23,42,.72)}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-checklist-heading strong{color:#f1f5f9}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-absentee-row{border-color:rgba(71,85,105,.55);background:rgba(30,41,59,.72)}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-absentee-row.is-selected{border-color:rgba(52,211,153,.55);background:rgba(6,78,59,.42)}",
+        ".dark #ttReserveAbsenteeChecklist .tt-reserve-absentee-name{color:#e2e8f0}",
+        "@media(max-width:540px){#ttReserveAbsenteeChecklist .tt-reserve-checklist-items{grid-template-columns:1fr}}"
+      ].join("\n");
+      document.head.appendChild(style);
+    }
+    render();
+  }
+
   function installPremiumReserveExperience(panel) {
     if(!panel||panel.dataset.premiumReserveExperience==="1")return;
     panel.dataset.premiumReserveExperience="1";
@@ -293,6 +444,7 @@
         searchWrap.parentNode?.insertBefore(card,searchWrap);card.appendChild(searchWrap);if(tags&&tags.parentNode!==card)card.appendChild(tags);
       }
     }
+    installReserveAbsenteeChecklist(panel);
     const toolbar=$("timetableDailySaveBatchButton")?.parentElement;if(toolbar)toolbar.classList.add("tt-premium-toolbar");
     const results=$("timetableSubstitutionResults");if(results)results.classList.add("tt-premium-results");
     const update=()=>{
