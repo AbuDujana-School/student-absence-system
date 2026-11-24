@@ -145,6 +145,7 @@ test("home reserve observer ignores nested canonical workspace mutations", async
 test("premium reserve wizard advances progressively from date to absence and approval", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
   const premium = extractFunction(source, "function installPremiumReserveExperience(");
+  const checklist = extractFunction(source, "function installReserveAbsenteeChecklist(panel)");
   await page.setContent(`
     <section id="timetableSubstitutionPanel">
       <div><h3>توزيع الاحتياط اليومي</h3><p>اختيار اليوم وإعداد التوزيع</p></div>
@@ -160,8 +161,8 @@ test("premium reserve wizard advances progressively from date to absence and app
     const preview = { assignments: [], unassigned: [], existingAssignments: [] };
     const approved = new Set();
     const absentees = [];
-    const install = new Function("$", "reserveBatchPreview", "reserveDraftApproved", "timetableDailyAbsentTeachers", "reserveCurrentMuscatDate",
-      premium + "; return installPremiumReserveExperience;")($, preview, approved, absentees, () => "2026-11-24");
+    const install = new Function("$", "reserveBatchPreview", "reserveDraftApproved", "timetableDailyAbsentTeachers", "reserveCurrentMuscatDate", "timetableDailyAbsentOptions", "timetableDailyNormalizeName", "reserveAbsenceReasons", "persistStoredDraft", "status", "timetableDailyBusy", "esc",
+      checklist + ";" + premium + "; return installPremiumReserveExperience;")($, preview, approved, absentees, () => "2026-11-24", [], value => String(value || "").toLowerCase(), Object.create(null), () => {}, () => {}, false, value => String(value ?? ""));
     install($("timetableSubstitutionPanel"));
     window.__premiumReserveState = { preview, approved, absentees };
   }, { premium });
