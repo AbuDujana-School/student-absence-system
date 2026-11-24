@@ -2106,6 +2106,7 @@
           const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           const isCustomCoordinator=reservePrincipal?.type==="custom";
           $("substitutionOtherDepartmentsWrap")?.classList.toggle("hidden",!canExpand);
+          $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
           root.querySelector('[data-subx-tab="edit"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="stats"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="archive"]')?.classList.toggle("hidden",isCustomCoordinator);
