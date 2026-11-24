@@ -495,7 +495,7 @@ async function handle(req: Request) {
       const approvedAt=Date.parse(String(row.reserve_created_at||row.created_at||""));
       return Number.isFinite(approvedAt)&&approvedAt>=homeCutoff;
     })
-      .sort((a:any,b:any)=>String(a.assignment_date||"").localeCompare(String(b.assignment_date||""))||
+      .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
