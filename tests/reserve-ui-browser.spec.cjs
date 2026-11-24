@@ -37,6 +37,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
   for (const role of roles) {
     await page.setContent(`
       <main id="dashboardSelectionView"></main>
+      <div id="substitutionDashboardCard" role="button" tabindex="0" onclick="window.openSubstitutionView()">توزيع الاحتياط</div>
       <section id="substitutionView" class="hidden">
         <div class="subx-stepper"></div><div class="grid"><input id="substitutionDate"></div>
         <div class="rounded-3xl"><div id="substitutionAbsenteeList"></div></div>
@@ -57,16 +58,34 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const openAbsenceReasonPicker = () => {};
       window.calls = { options: 0, archive: 0, stats: 0 };
       window.appAuthRequest = async () => ({});
-      window.timetableLoadSubstitutionOptions = async () => { window.calls.options++; };
+      window.timetableLoadSubstitutionOptions = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
       window.timetableDailyLoadArchive = async () => { window.calls.archive++; };
       window.substitutionLoadStats = async () => { window.calls.stats++; };
       window.openSubstitutionView = async () => {};
       window.closeSubstitutionView = () => {};
       window.refreshSubstitutionDashboardCard = () => {};
       const install = new Function("$", "activeUser", "appAuthSession", "canManageReserveWorkspace", "showToast", "getOmanLocalDate", "status", "openAbsenceReasonPicker", integration + "; return installMainSubstitutionViewIntegration;")($, activeUser, appAuthSession, canManageReserveWorkspace, showToast, getOmanLocalDate, status, openAbsenceReasonPicker);
+      window.installMainReserveView = install;
       install();
     }, { role, integration, generalAdminHelper, reserveCapabilityHelper });
-    await page.evaluate(() => window.openSubstitutionView());
+    await page.evaluate(() => {
+      const root = document.getElementById("substitutionView");
+      // Reproduce the real visibility observer re-entering the open handler.
+      const observer = new MutationObserver(() => {
+        if (!root.classList.contains("hidden")) window.openSubstitutionView();
+      });
+      observer.observe(root, { attributes: true, attributeFilter: ["class"] });
+    });
+    await page.locator("#substitutionDashboardCard").click();
+    if (role.allowed) {
+      await page.waitForFunction(() => window.calls.options === 1);
+      await page.waitForTimeout(0);
+      const inFlightCalls = await page.evaluate(() => window.calls.options);
+      expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
+      await page.evaluate(() => window.releaseOptions());
+    } else {
+      await page.waitForFunction(() => window.denials === 1);
+    }
     const result = await page.evaluate(() => {
       const $ = (id) => document.getElementById(id);
       return {

@@ -1636,6 +1636,34 @@
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
+    // Bind the visible dashboard card directly. Do not rely on its inline
+    // handler: later UI installers can replace global entry points, leaving
+    // a visually active card with no working click action.
+    const dashboardCard=$("substitutionDashboardCard");
+    if(dashboardCard&&dashboardCard.dataset.canonicalReserveClickBound!=="1"){
+      dashboardCard.dataset.canonicalReserveClickBound="1";
+      dashboardCard.removeAttribute("onclick");
+      dashboardCard.removeAttribute("onkeydown");
+      dashboardCard.addEventListener("click",event=>{
+        event.preventDefault();
+        const opener=window.openSubstitutionView;
+        if(typeof opener!=="function"){
+          showToast("تعذر تشغيل شاشة توزيع الاحتياط. حدّث الصفحة ثم حاول مجدداً.","error");
+          return;
+        }
+        try{
+          const opening=opener();
+          Promise.resolve(opening).catch(error=>status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error"));
+        }catch(error){
+          status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error");
+        }
+      });
+      dashboardCard.addEventListener("keydown",event=>{
+        if(event.key!=="Enter"&&event.key!==" ")return;
+        event.preventDefault();
+        dashboardCard.click();
+      });
+    }
     let canonicalHost=$("substitutionCanonicalWorkspace");
     if(!canonicalHost){
       canonicalHost=document.createElement("div");
@@ -1673,36 +1701,44 @@
     }
     if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
       window.openSubstitutionView=async function(){
-        const reservePrincipal=appAuthSession?.principal;
-        const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
-        const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
-        if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
-        ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
-        root.classList.remove("hidden");
-        if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
-        const date=$("timetableSubstitutionDate");
-        if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
-        const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
-        const isCustomCoordinator=reservePrincipal?.type==="custom";
-        $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
-        // Custom coordinators can use only the scoped preview/save/cancel workflow.
-        // Do not expose archive/statistics surfaces or issue requests the server must reject.
-        $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
-        $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
+        // The visibility observer also runs when this function opens the view.
+        // Prevent it from replaying the same open operation while requests are pending.
+        if(window.__canonicalReserveOpening)return;
+        window.__canonicalReserveOpening=true;
         try{
-          if(typeof window.timetableLoadSubstitutionOptions==="function")await window.timetableLoadSubstitutionOptions();
-          if(!isCustomCoordinator){
-            if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
-            if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
-          }
-        }catch(error){status(error?.message||"تعذر تحميل بيانات توزيع الاحتياط.","error");}
+          const reservePrincipal=appAuthSession?.principal;
+          const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
+          const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
+          if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
+          ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
+          root.classList.remove("hidden");
+          if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
+          const date=$("timetableSubstitutionDate");
+          if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+          const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
+          const isCustomCoordinator=reservePrincipal?.type==="custom";
+          $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
+          // Custom coordinators can use only the scoped preview/save/cancel workflow.
+          // Do not expose archive/statistics surfaces or issue requests the server must reject.
+          $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
+          $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
+          try{
+            if(typeof window.timetableLoadSubstitutionOptions==="function")await window.timetableLoadSubstitutionOptions();
+            if(!isCustomCoordinator){
+              if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+              if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
+            }
+          }catch(error){status(error?.message||"تعذر تحميل بيانات توزيع الاحتياط.","error");}
+        }finally{
+          window.__canonicalReserveOpening=false;
+        }
       };
       window.openSubstitutionView.__canonicalReserveWrapped=true;
     }
     // If this installer ran only after the original entry point had already
     // revealed the view, replay the newly wrapped entry point once so the
     // canonical panel is mounted on that very first visible opening.
-    if(!root.classList.contains("hidden")&&$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped&&!window.__canonicalReserveInitialOpenAttempted){
+    if(!window.__canonicalReserveOpening&&!root.classList.contains("hidden")&&$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped&&!window.__canonicalReserveInitialOpenAttempted){
       window.__canonicalReserveInitialOpenAttempted=true;
       Promise.resolve().then(()=>{
         if(root.isConnected&&!root.classList.contains("hidden")&&typeof window.openSubstitutionView==="function")
