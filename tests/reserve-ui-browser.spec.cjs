@@ -63,6 +63,16 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       window.calls = { options: 0, archive: 0, stats: 0 };
       window.appAuthRequest = async () => ({});
       window.timetableLoadSubstitutionOptions = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
+      window.timetableDailyInstallAdminTools = async () => {
+        if (role.user.type === "admin" || role.user.permissions?.admin === true) {
+          $("timetableSubstitutionPanel").insertAdjacentHTML("beforeend", '<div id="ttAdminReserveTools">admin tools</div>');
+        }
+      };
+      window.timetableDailyInstallDepartmentTools = async () => {
+        if (role.user.permissions?.reserve === true) {
+          $("timetableSubstitutionPanel").insertAdjacentHTML("beforeend", '<div id="ttDepartmentReserveTools">department tools</div>');
+        }
+      };
       window.timetableDailyLoadArchive = () => { window.calls.archive++; return new Promise(() => {}); };
       window.substitutionLoadStats = () => { window.calls.stats++; return new Promise(() => {}); };
       window.openSubstitutionView = async () => {};
@@ -101,6 +111,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         legacyStillInOrigin: $("timetableSubstitutionPanel").parentElement?.id === "timetableOrigin",
         editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditContent",
         archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveContent",
+        adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveContent",
+        departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveContent",
         crossDepartment: !$("timetableDailyOtherDepartmentsButton").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
         archive: !$("timetableDailyArchivePanel").classList.contains("hidden"),
@@ -114,6 +126,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.legacyStillInOrigin, role.id).toBe(true);
       expect(result.editMounted, role.id).toBe(true);
       expect(result.archiveMounted, role.id).toBe(true);
+      expect(result.adminToolsMounted, role.id).toBe(role.id === "general admin" || role.id === "delegated admin");
+      expect(result.departmentToolsMounted, role.id).toBe(role.id === "reserve teacher");
       expect(result.crossDepartment, role.id).toBe(role.expand);
       expect(result.stats, role.id).toBe(!role.custom);
       expect(result.archive, role.id).toBe(!role.custom);
