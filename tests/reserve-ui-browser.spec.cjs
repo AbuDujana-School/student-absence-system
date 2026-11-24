@@ -59,8 +59,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       window.calls = { options: 0, archive: 0, stats: 0 };
       window.appAuthRequest = async () => ({});
       window.timetableLoadSubstitutionOptions = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
-      window.timetableDailyLoadArchive = async () => { window.calls.archive++; };
-      window.substitutionLoadStats = async () => { window.calls.stats++; };
+      window.timetableDailyLoadArchive = () => { window.calls.archive++; return new Promise(() => {}); };
+      window.substitutionLoadStats = () => { window.calls.stats++; return new Promise(() => {}); };
       window.openSubstitutionView = async () => {};
       window.closeSubstitutionView = () => {};
       window.refreshSubstitutionDashboardCard = () => {};
@@ -83,6 +83,9 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const inFlightCalls = await page.evaluate(() => window.calls.options);
       expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
       await page.evaluate(() => window.releaseOptions());
+      // The workspace must finish opening even if archive/statistics requests never settle.
+      await page.waitForFunction(() => window.__canonicalReserveOpening === false);
+      await page.waitForTimeout(0);
     } else {
       await page.waitForFunction(() => window.denials === 1);
     }
@@ -115,4 +118,20 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.denials, role.id).toBe(1);
     }
   }
+});
+
+test("cumulative reserve archive renders from its own cache, not the daily archive cache", async () => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const render = extractFunction(source, "window.substitutionRenderCumulativeArchive = function()");
+  const host = { innerHTML: "", querySelectorAll: () => [] };
+  const fakeWindow = {};
+  const run = new Function("window", "$", "reserveCumulativeArchive", "esc",
+    render + "; return window.substitutionRenderCumulativeArchive;");
+  const renderCumulative = run(fakeWindow, id => id === "substitutionCumulativeArchiveResults" ? host : null,
+    [{ id: "cumulative-only", assignmentDate: "2026-11-01", absentTeacherName: "سجل تراكمي", substituteTeacherName: "بديل", period: 1, status: "completed" }],
+    value => String(value ?? ""));
+  renderCumulative();
+  expect(host.innerHTML).toContain("سجل تراكمي");
+  expect(source).toContain("let reserveCumulativeArchive = [];");
+  expect(source).toContain("reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];");
 });

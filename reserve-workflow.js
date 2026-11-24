@@ -14,6 +14,8 @@
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
+  // Keep the dashboard cumulative archive separate from the daily timetable archive.
+  let reserveCumulativeArchive = [];
   let reserveHomeToday = [];
   let reserveHomeTodayLoadPromise = null;
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
@@ -177,7 +179,7 @@
           .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
         if(!absentName)return original.apply(this,args);
         const selectedDate=timetableSubstitutionGetDate().date;
-        const existing=[...(reserveArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
+        const existing=[...(reserveArchive||[]),...(reserveCumulativeArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
           .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
         if(existing){reserveAbsenceReasons[absentName]=existing.absenceReason;persistStoredDraft();return original.apply(this,args);}
         openAbsenceReasonPicker(absentName,value=>{
@@ -626,8 +628,8 @@
       return false;
     }
   };
-  window.timetableDailyPrintArchiveRange = function () {
-    const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
+  window.timetableDailyPrintArchiveRange = function (sourceRecords) {
+    const records=(Array.isArray(sourceRecords)?sourceRecords:reserveArchive).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){status("لا توجد سجلات احتياط غير ملغاة للطباعة في الفترة المحددة.","error");return;}
     const grouped=new Map();
     records.forEach(item=>{
@@ -731,7 +733,7 @@
   };
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
-    const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[])];
+    const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
     const items=source.filter((item,index,all)=>item.assignmentDate===date&&(!absentTeacherName||item.absentTeacherName===absentTeacherName)&&item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&all.findIndex(row=>row.id===item.id)===index);
     if(!items.length){status("لا توجد تكليفات ضمن مهلة التعديل لهذا التاريخ في إصدار الجدول النشط.","error");return;}
     try{
@@ -787,7 +789,7 @@
 
 
   window.timetableDailyCancelAssignment = async function (assignmentId) {
-    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||reserveCumulativeArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث القائمة ثم حاول مجدداً.","error");return;}
     if(item.canDelete!==true||!["assigned","confirmed","completed"].includes(item.status)){status("انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية وقت الحصة المحدد في الجدول.","error");return;}
     if(!window.confirm("سيتم حذف هذا التكليف من التوزيع النشط، مع الاحتفاظ بسجل المراجعة. هل تريد المتابعة؟"))return;
@@ -803,7 +805,7 @@
   };
 
   window.timetableDailyCancelAbsentDistribution = async function(date,absentTeacherName) {
-    const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[])];
+    const source=[...(reserveBatchPreview?.existingAssignments||[]),...(reserveHomeToday||[]),...(reserveArchive||[]),...(reserveCumulativeArchive||[])];
     const items=source.filter(item=>item.assignmentDate===date&&item.absentTeacherName===absentTeacherName&&
       item.canDelete===true&&["assigned","confirmed","completed"].includes(item.status))
       .filter((item,index,all)=>all.findIndex(row=>row.id===item.id)===index);
@@ -836,12 +838,14 @@
     (Array.isArray(items)?items:[]).forEach(item=>{
       if(!item||!item.id)return;
       const normalized={...item,canEdit:item.canEdit===true,canDelete:item.canDelete===true,assignmentDate:item.assignmentDate||"",weekday:item.weekday||"",status:item.status||"assigned"};
-      const index=reserveArchive.findIndex(row=>String(row.id)===String(normalized.id));
-      if(index>=0)reserveArchive[index]=normalized;else reserveArchive.push(normalized);
+      for(const records of [reserveArchive,reserveCumulativeArchive]){
+        const index=records.findIndex(row=>String(row.id)===String(normalized.id));
+        if(index>=0)records[index]=normalized;else records.push(normalized);
+      }
     });
   };
   window.timetableDailyOpenArchiveEdit = async function (assignmentId) {
-    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
+    const item=reserveHomeToday.find(row=>row.id===assignmentId)||reserveArchive.find(row=>row.id===assignmentId)||reserveCumulativeArchive.find(row=>row.id===assignmentId)||(reserveBatchPreview?.existingAssignments||[]).find(row=>row.id===assignmentId);
     if(!item){status("تعذر العثور على التكليف. حدّث قائمة الاحتياط ثم حاول مجدداً.","error");return;}
     if(item.canEdit!==true||!["assigned","confirmed"].includes(item.status)){
       status("انتهت مهلة تعديل هذه الحصة؛ يسمح بالتعديل حتى نهاية وقتها المحدد في الجدول.","error");return;
@@ -1221,12 +1225,12 @@
       button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
       try{
         const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
-        reserveArchive=response.archive||[];
-        const records=reserveArchive.filter(item=>item.status!=="cancelled"&&item.assignmentDate);
+        const adminArchive=Array.isArray(response.archive)?response.archive:[];
+        const records=adminArchive.filter(item=>item.status!=="cancelled"&&item.assignmentDate);
         if(!records.length){say("لا توجد سجلات احتياط متاحة للتصدير.");return;}
         const dayCount=new Set(records.map(item=>String(item.assignmentDate))).size;
         say("تم تجهيز "+records.length+" تكليف احتياط موحداً عبر "+dayCount+" يوماً.");
-        window.timetableDailyPrintArchiveRange();
+        window.timetableDailyPrintArchiveRange(adminArchive);
       }catch(error){say(error?.message||"تعذر إنشاء التقرير الشامل.",true);}
       finally{button.disabled=false;button.textContent="تصدير PDF شامل";}
     });
@@ -1428,10 +1432,10 @@
     $("substitutionArchiveReload")?.addEventListener("click",()=>window.substitutionLoadCumulativeArchive());
     $("substitutionTodayAssignmentsReload")?.addEventListener("click",()=>window.substitutionLoadHomeTodayAssignments());
     $("substitutionArchivePrint")?.addEventListener("click",()=>{
-      if(!(reserveArchive||[]).some(item=>item.status!=="cancelled"&&item.assignmentDate)){
+      if(!(reserveCumulativeArchive||[]).some(item=>item.status!=="cancelled"&&item.assignmentDate)){
         setHomeArchiveStatus("حمّل السجلات أولاً، ولا توجد توزيعات غير ملغاة للطباعة.","error");return;
       }
-      window.timetableDailyPrintArchiveRange();
+      window.timetableDailyPrintArchiveRange(reserveCumulativeArchive);
     });
     window.substitutionLoadHomeTodayAssignments();
     // Keep the cumulative report visible and loaded automatically for authorized reserve coordinators.
@@ -1453,7 +1457,7 @@
     try{
       const token=appAuthSession?.token||readAppAuthToken();
       const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
-      reserveArchive=response.archive||[];
+      reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];
       window.substitutionRenderCumulativeArchive();
       setHomeArchiveStatus("تم تحديث السجل من قاعدة البيانات مباشرة.","success");
     }catch(error){
@@ -1556,7 +1560,7 @@
     const host=$("substitutionCumulativeArchiveResults");if(!host)return;
     // Cancelled assignments remain in the audit trail, but are not part of the
     // current cumulative reserve record shown to coordinators or sent to print.
-    const records=(reserveArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
+    const records=(reserveCumulativeArchive||[]).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
     if(!records.length){host.innerHTML='<div class="rounded-xl border border-dashed border-slate-300 p-6 text-center text-xs text-slate-500">لا توجد توزيعات احتياط فعلية في الفترة المحددة.</div>';return;}
     const active=records.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
     const historical=records.length-active.length;
@@ -1592,40 +1596,42 @@
     const originalRequest=window.appAuthRequest;
     if(typeof originalRequest!=="function")return;
     window.__reserveArchiveAutoRefreshInstalled=true;
-    let loadedActorDateKey="",dailyArchiveLoadPromise=null;
+    let dailyArchiveLoadPromise=null,dailyArchiveRefreshQueued=false;
+    const refreshDailyArchiveInBackground=()=>{
+      if(typeof window.timetableDailyLoadArchive!=="function")return;
+      if(dailyArchiveLoadPromise){dailyArchiveRefreshQueued=true;return;}
+      dailyArchiveLoadPromise=(async()=>{
+        do{
+          dailyArchiveRefreshQueued=false;
+          try{await window.timetableDailyLoadArchive();}
+          catch(error){console.warn("Reserve archive background refresh failed.",error);}
+        }while(dailyArchiveRefreshQueued);
+      })().finally(()=>{dailyArchiveLoadPromise=null;});
+    };
+    const refreshInBackground=(label,loader)=>{
+      if(typeof loader!=="function")return;
+      Promise.resolve().then(loader).catch(error=>console.warn(label,error));
+    };
+    const mutationActions=new Set([
+      "timetable_substitution_batch_save","timetable_substitution_save",
+      "timetable_substitution_update","timetable_substitution_update_batch",
+      "timetable_substitution_cancel","timetable_substitution_cancel_batch"
+    ]);
     window.appAuthRequest=async function(body,token,signal) {
       const action=String(body?.action||"");
       const result=await originalRequest.call(this,body,token,signal);
       const accessGranted=action==="timetable_substitution_archive_access"&&result?.canView===true;
-      const reserveMutationActions=new Set([
-        "timetable_substitution_batch_save","timetable_substitution_save",
-        "timetable_substitution_update","timetable_substitution_update_batch",
-        "timetable_substitution_cancel","timetable_substitution_cancel_batch"
-      ]);
-      const reserveAction=reserveMutationActions.has(action);
-      if((accessGranted||reserveAction)&&$("timetableDailyActivePanel")&&
-        typeof window.timetableDailyLoadArchive==="function"){
-        const actor=String(appAuthSession?.principal?.name||"");
-        let date="";
-        try{date=String(timetableSubstitutionGetDate().date||"");}catch{}
-        const key=actor+"|"+date;
-        if(actor&&key!==loadedActorDateKey&&!dailyArchiveLoadPromise){
-          loadedActorDateKey=key;
-          dailyArchiveLoadPromise=(async()=>{
-            const loaded=await window.timetableDailyLoadArchive();
-            if(loaded!==true)loadedActorDateKey="";
-          })().catch(()=>{loadedActorDateKey="";}).finally(()=>{dailyArchiveLoadPromise=null;});
-        }
+      const reserveMutation=mutationActions.has(action);
+      if(accessGranted||reserveMutation)refreshDailyArchiveInBackground();
+      if(reserveMutation&&$("substitutionTodayAssignmentsResults")){
+        refreshInBackground("Reserve home-today refresh failed.",window.substitutionLoadHomeTodayAssignments);
       }
-      if(["timetable_substitution_batch_save","timetable_substitution_save","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_cancel","timetable_substitution_cancel_batch"].includes(action)&&
-        $("substitutionTodayAssignmentsResults")&&typeof window.substitutionLoadHomeTodayAssignments==="function") {
-        try{await window.substitutionLoadHomeTodayAssignments();}catch{}
+      if(reserveMutation&&$("substitutionCumulativeArchivePanel")&&
+        !$("substitutionCumulativeArchivePanel").classList.contains("hidden")){
+        refreshInBackground("Reserve cumulative archive refresh failed.",window.substitutionLoadCumulativeArchive);
       }
-      if(["timetable_substitution_batch_save","timetable_substitution_save","timetable_substitution_update","timetable_substitution_update_batch","timetable_substitution_cancel","timetable_substitution_cancel_batch"].includes(action)&&
-        !$("substitutionCumulativeArchivePanel")?.classList.contains("hidden")&&
-        typeof window.substitutionLoadCumulativeArchive==="function") {
-        try{await window.substitutionLoadCumulativeArchive();}catch{}
-      }
+      // Return the actual request result immediately. Optional archive refreshes
+      // run independently and cannot stall saves, edits, cancellations or login.
       return result;
     };
   }
@@ -1722,13 +1728,22 @@
           // Do not expose archive/statistics surfaces or issue requests the server must reject.
           $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
           $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
-          try{
-            if(typeof window.timetableLoadSubstitutionOptions==="function")await window.timetableLoadSubstitutionOptions();
-            if(!isCustomCoordinator){
-              if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
-              if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
-            }
-          }catch(error){status(error?.message||"تعذر تحميل بيانات توزيع الاحتياط.","error");}
+          // Only timetable options are required for the core workspace. Archive
+          // and statistics are secondary panels and must never hold the screen open.
+          if(typeof window.timetableLoadSubstitutionOptions==="function"){
+            try{await window.timetableLoadSubstitutionOptions();}
+            catch(error){status(error?.message||"تعذر تحميل خيارات توزيع الاحتياط.","error");}
+          }
+          if(!isCustomCoordinator){
+            const startBackgroundLoad=(loader,fallback)=>{
+              if(typeof loader!=="function")return;
+              Promise.resolve().then(loader).catch(error=>{
+                status(error?.message||fallback,"error");
+              });
+            };
+            startBackgroundLoad(window.timetableDailyLoadArchive,"تعذر تحميل أرشيف الاحتياط.");
+            startBackgroundLoad(window.substitutionLoadStats,"تعذر تحميل إحصائيات الاحتياط.");
+          }
         }finally{
           window.__canonicalReserveOpening=false;
         }
