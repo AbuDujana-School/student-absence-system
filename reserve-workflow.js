@@ -14,6 +14,7 @@
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
+  let reserveTeacherSpecialties = Object.create(null);
   let reserveHomeToday = [];
   let reserveHomeTodayLoadPromise = null;
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
@@ -618,7 +619,7 @@
       if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
       if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
       const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
-      reserveArchive=response.archive||[];timetableDailyRenderArchive();return true;
+      reserveArchive=response.archive||[];reserveTeacherSpecialties=response.teacherSpecialties&&typeof response.teacherSpecialties==="object"?response.teacherSpecialties:Object.create(null);timetableDailyRenderArchive();return true;
     }catch(error){
       const message=error?.message||"تعذر تحميل الأرشيف.";
       host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(message)+"</div>";
@@ -647,6 +648,7 @@
           const rawReserveReason=String(item.reason||"").trim();
           byAbsent.set(name,{
             absentName:name,
+            specialty:String(reserveTeacherSpecialties[name]||"").trim(),
             absenceReason:rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason,
             reserveReason:rawReserveReason==="-"||rawReserveReason==="—"?"":rawReserveReason,
             rows:[]
@@ -970,16 +972,20 @@
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 22;
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
     if(options?.singlePage)return [reserveOfficialPrintMarkup(groups,date,weekday,subject,options)];
+    // Keep every absent teacher and all of their lessons together on one page.
     const pages=[];let current=[],count=0;
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return;
-      if(rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){if(count){pages.push(current);current=[];count=0;}for(let i=0;i<rows.length;i+=RESERVE_OFFICIAL_ROWS_PER_PAGE)pages.push([{...group,rows:rows.slice(i,i+RESERVE_OFFICIAL_ROWS_PER_PAGE)}]);return;}
-      if(count+rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){pages.push(current);current=[];count=0;}
+      if(current.length&&count+rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){pages.push(current);current=[];count=0;}
       current.push({...group,rows});count+=rows.length;
+      if(count>=RESERVE_OFFICIAL_ROWS_PER_PAGE){pages.push(current);current=[];count=0;}
     });
-    if(current.length)pages.push(current);if(!pages.length)pages.push([]);
-    return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject));
+    if(current.length)pages.push(current);
+    if(!pages.length)pages.push([]);
+    return pages.map((pageGroups,pageIndex)=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject,{
+      ...options,pageNumber:pageIndex+1,pageCount:pages.length
+    }));
   }
   function reserveOfficialPrintMarkup(groups,date,weekday,subject,options={}){
     const widths=[20,16,10.5,10.5,13,11,19];
@@ -988,9 +994,10 @@
     let used=0;
     const rowsMarkup=(groups||[]).map(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));if(!rows.length)return "";used+=rows.length;
-      const absent=esc(group.absentName||""),rawAbsenceReason=String(group.absenceReason||group.reason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
+      const absent=esc(group.absentName||""),specialty=esc(group.specialty||""),lessonCount=rows.length,rawAbsenceReason=String(group.absenceReason||group.reason||"").trim(),absenceReason=esc(rawAbsenceReason==="-"||rawAbsenceReason==="—"?"":rawAbsenceReason);
+      const absentLabel=absent+'<div class="tt-official-specialty">'+(specialty||"التخصص غير محدد")+'</div><div class="tt-official-lesson-count">عدد الحصص: '+lessonCount+'</div>';
       return rows.map((row,rowIndex)=>{
-        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absent+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td>':"";
+        const merged=rowIndex===0?'<td class="tt-official-merged tt-official-absent" rowspan="'+rows.length+'">'+absentLabel+'</td><td class="tt-official-merged tt-official-reason" rowspan="'+rows.length+'">'+(absenceReason||"—")+'</td>':"";
         return '<tr class="'+(rowIndex===0?'tt-official-group-start':'')+'">'+merged+'<td>'+esc(formatReservePrintPeriod(row.period))+'</td><td class="tt-official-class">'+esc(row.className||"") +'</td><td class="tt-official-substitute">'+esc(row.substitute||"") +'</td><td class="tt-official-blank"></td><td class="tt-official-blank"></td></tr>';
       }).join("");
     }).join("");
@@ -1024,7 +1031,7 @@
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
       '.tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm;display:flex;flex-direction:column;direction:rtl;background:#fff;border:.35mm solid #333;padding:2.5mm 3mm 2mm;overflow:hidden;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
       '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;line-height:1.35;padding:2.5mm 2mm 2mm;background:#078b98;color:#fff;border-bottom:1mm solid #155e75;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:12.5pt;margin-top:.7mm!important}'+
-      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}#ttReservePrintRoot .tt-official-table thead th{height:9mm;font-size:10pt!important;line-height:1.5!important;font-weight:900!important;background:#12345a!important;background-color:#12345a!important;color:#fff!important;border:1.2px solid #0b1f36!important;text-shadow:0 1px 0 rgba(0,0,0,.25);-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
+      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}#ttReservePrintRoot .tt-official-table thead th{height:9mm;font-size:10pt!important;line-height:1.5!important;font-weight:900!important;background:#12345a!important;background-color:#12345a!important;color:#fff!important;border:1.2px solid #0b1f36!important;text-shadow:0 1px 0 rgba(0,0,0,.25);-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-specialty{font-size:8pt;font-weight:700;color:#334155;margin-top:.6mm;line-height:1.15}.tt-official-lesson-count{font-size:7.5pt;font-weight:800;color:#173b68;margin-top:.5mm}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
       '.tt-official-footer{direction:ltr;flex:0 0 19mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:1.5mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:16mm;flex:0 0 42mm;display:block;font-weight:700}'+
       '.tt-official-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2mm;margin:0 0 2mm;padding:2mm;background:#f8fafc;border:1.2px solid #1e293b;border-radius:1.5mm;direction:rtl;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '.tt-official-summary-box{min-width:0;display:flex;flex-direction:column;gap:.7mm;padding:1.5mm 2mm;background:#fff;border:1px solid #1e293b;border-radius:1mm;color:#000;overflow-wrap:anywhere}'+
@@ -1221,7 +1228,7 @@
       button.disabled=true;button.textContent="جارٍ تجميع السجلات...";
       try{
         const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:"1900-01-01",dateTo:"2100-12-31"},token());
-        reserveArchive=response.archive||[];
+        reserveArchive=response.archive||[];reserveTeacherSpecialties=response.teacherSpecialties&&typeof response.teacherSpecialties==="object"?response.teacherSpecialties:Object.create(null);
         const records=reserveArchive.filter(item=>item.status!=="cancelled"&&item.assignmentDate);
         if(!records.length){say("لا توجد سجلات احتياط متاحة للتصدير.");return;}
         const dayCount=new Set(records.map(item=>String(item.assignmentDate))).size;
@@ -1453,7 +1460,7 @@
     try{
       const token=appAuthSession?.token||readAppAuthToken();
       const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
-      reserveArchive=response.archive||[];
+      reserveArchive=response.archive||[];reserveTeacherSpecialties=response.teacherSpecialties&&typeof response.teacherSpecialties==="object"?response.teacherSpecialties:Object.create(null);
       window.substitutionRenderCumulativeArchive();
       setHomeArchiveStatus("تم تحديث السجل من قاعدة البيانات مباشرة.","success");
     }catch(error){
