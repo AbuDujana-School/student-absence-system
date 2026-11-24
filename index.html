@@ -2337,7 +2337,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <div class="subx-toolbar">
     <div class="subx-toolbar-top"><div><span class="subx-eyebrow">مساحة العمل الذكية</span><h3>إدارة التوزيع اليومي</h3><p>اختر الغياب، راجع الاقتراح، ثم اعتمد بثقة.</p></div><div class="subx-header-actions"><button type="button" id="subxRulesToggle" class="subx-rules-trigger"><i class="fa-solid fa-scale-balanced"></i><span>⚖️ عدالة التوزيع واحتساب النقاط</span></button><button type="button" class="subx-back-home" onclick="closeSubstitutionView()"><i class="fa-solid fa-arrow-right"></i><span>العودة للرئيسية</span></button></div></div>
-    <div class="subx-tabs" role="tablist" aria-label="أقسام لوحة الاحتياط"><button type="button" class="subx-tab is-active" data-subx-tab="daily" role="tab" aria-selected="true"><i class="fa-solid fa-calendar-day"></i> التوزيع اليومي</button><button type="button" class="subx-tab" data-subx-tab="stats" role="tab" aria-selected="false"><i class="fa-solid fa-chart-column"></i> سجل النقاط والإحصائيات</button></div>
+    <div class="subx-tabs" role="tablist" aria-label="أقسام لوحة الاحتياط"><button type="button" class="subx-tab is-active" data-subx-tab="daily" role="tab" aria-selected="true"><i class="fa-solid fa-calendar-day"></i> التوزيع</button><button type="button" class="subx-tab" data-subx-tab="edit" role="tab" aria-selected="false"><i class="fa-solid fa-pen-to-square"></i> التعديل</button><button type="button" class="subx-tab" data-subx-tab="archive" role="tab" aria-selected="false"><i class="fa-solid fa-box-archive"></i> الأرشيف</button><button type="button" class="subx-tab" data-subx-tab="stats" role="tab" aria-selected="false"><i class="fa-solid fa-chart-column"></i> الإحصائيات</button></div>
     <div class="subx-stepper" aria-label="مراحل التوزيع"><div class="subx-step is-current" id="subxStep1"><span>١</span><div><b>الاختيار</b><small>تحديد الغياب</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep2"><span>٢</span><div><b>المراجعة</b><small>فحص الاقتراح</small></div></div><i class="subx-step-line"></i><div class="subx-step" id="subxStep3"><span>٣</span><div><b>الاعتماد</b><small>حفظ ومشاركة</small></div></div></div>
   </div>
   <div id="subxRulesDrawer" class="subx-rules-drawer" hidden>
@@ -2446,18 +2446,14 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   button.innerHTML='<i class="'+icon+'"></i> '+label;tabsHost.appendChild(button);
   button.addEventListener('click',()=>setTab(name));
  }
- addTab('log','السجل','fa-solid fa-clock-rotate-left');
- addTab('reports','التقارير','fa-solid fa-file-lines');
+ addTab('edit','التعديل','fa-solid fa-pen-to-square');
+ addTab('archive','الأرشيف','fa-solid fa-box-archive');
  const logPanel=document.createElement('section');
- logPanel.id='subxLogPanel';logPanel.className='subx-v2-panel hidden';logPanel.innerHTML='<div><h3><i class="fa-solid fa-clock-rotate-left"></i> سجل التاريخ المحدد</h3><p>اختر التاريخ من تبويب التوزيع ثم أنشئ المعاينة لعرض التكليفات المحفوظة التي يعيدها النظام لذلك اليوم.</p></div><div id="subxLogContent" class="mt-3"></div>';
+ logPanel.id='subxLogPanel';logPanel.className='subx-v2-panel hidden';logPanel.innerHTML='<div><h3><i class="fa-solid fa-pen-to-square"></i> التعديل</h3><p>التكليفات النشطة لهذا اليوم، مع إتاحة التعديل أو الإلغاء بحسب الصلاحيات والمهلة المعتمدة.</p></div><div id="subxEditContent" class="mt-3"></div>';
  const reportsPanel=document.createElement('section');
- reportsPanel.id='subxReportsPanel';reportsPanel.className='subx-v2-panel hidden';reportsPanel.innerHTML='<div><h3><i class="fa-solid fa-file-export"></i> التقارير والمشاركة</h3><p>تظهر خيارات التصدير بعد اعتماد التوزيع وحفظه بنجاح.</p><div class="mt-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-700"><i class="fa-solid fa-file-pdf"></i></span><div><b class="block text-xs font-black text-slate-800 dark:text-white">كشف توزيع الاحتياط</b><small class="text-[10px] text-slate-500">طباعة الكشف الرسمي أو مشاركته مع المعلمين.</small></div></div><div id="subxReportsActions" class="subx-v2-report-actions"></div><p class="mt-3">لا يتم تفعيل الطباعة أو المشاركة قبل حفظ التوزيع.</p></section>';
+ reportsPanel.id='subxReportsPanel';reportsPanel.className='subx-v2-panel hidden';reportsPanel.innerHTML='<div><h3><i class="fa-solid fa-box-archive"></i> أرشيف الاحتياط</h3><p>السجلات المحفوظة مرتبة حسب التاريخ، مع أدوات الاستعراض والطباعة الرسمية.</p></div><div id="subxArchiveContent" class="mt-3"></div>';
  root.append(logPanel,reportsPanel);
- const planActions=$('#substitutionSaveButton')?.parentElement;
  const pdf=$('#substitutionPdfButton'),wa=$('#substitutionWhatsappButton');
- const reportActions=$('#subxReportsActions');
- if(pdf&&reportActions)reportActions.appendChild(pdf);
- if(wa&&reportActions)reportActions.appendChild(wa);
  const date=$('#substitutionDate');
  if(date){
   const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="-1">أمس</button><button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
@@ -2480,22 +2476,26 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
   if(summary)summary.textContent=absent?absent+' معلم محدد للتوزيع':'لم يتم تحديد أي معلم بعد';
   if(floating)floating.classList.toggle('is-visible',activeTab==='daily'&&absent>0);
  }
- function refreshLog(){
-  const host=$('#subxLogContent'),source=$('#substitutionPlanAssignments');
-  if(!host||!source)return;
-  const saved=Array.from(source.children).find(el=>el.classList.contains('border-emerald-200'));
-  if(!saved){host.innerHTML='<div class="subx-v2-empty"><i class="fa-regular fa-calendar-check"></i><b>لا توجد تكليفات محفوظة معروضة لهذا التاريخ</b><span>انتقل إلى التوزيع وأنشئ المعاينة للتاريخ المختار حتى تظهر السجلات التي أعادها النظام.</span></div>';return;}
-  const clone=saved.cloneNode(true);clone.querySelectorAll('button,[data-subx-existing-edit],[data-subx-existing-delete]').forEach(node=>node.remove());host.replaceChildren(clone);
+ function mountReserveSections(){
+  const editHost=$('#subxEditContent'),archiveHost=$('#subxArchiveContent');
+  const activePanel=document.getElementById('timetableDailyActivePanel');
+  const archivePanel=document.getElementById('timetableDailyArchivePanel');
+  if(activePanel&&editHost&&activePanel.parentElement!==editHost)editHost.appendChild(activePanel);
+  if(archivePanel&&archiveHost&&archivePanel.parentElement!==archiveHost)archiveHost.appendChild(archivePanel);
+ }
+ function refreshReserveSections(){
+  mountReserveSections();
+  if(typeof window.timetableDailyLoadArchive==='function')window.timetableDailyLoadArchive();
  }
  function setTab(name){
-  activeTab=['daily','stats','log','reports'].includes(name)?name:'daily';
+  activeTab=['daily','edit','archive','stats'].includes(name)?name:'daily';
   root.querySelectorAll('[data-subx-tab]').forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
   [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',activeTab!=='daily'));
   stats?.classList.toggle('hidden',activeTab!=='stats');
-  logPanel.classList.toggle('hidden',activeTab!=='log');
-  reportsPanel.classList.toggle('hidden',activeTab!=='reports');
+  logPanel.classList.toggle('hidden',activeTab!=='edit');
+  reportsPanel.classList.toggle('hidden',activeTab!=='archive');
   if(activeTab==='stats'&&typeof window.substitutionLoadStats==='function')window.substitutionLoadStats();
-  if(activeTab==='log')refreshLog();
+  if(activeTab==='edit'||activeTab==='archive')refreshReserveSections();
   updateMetrics();
  }
  tabs.forEach(t=>t.addEventListener('click',()=>setTab(t.dataset.subxTab)));
@@ -2503,8 +2503,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  $('#subxRulesClose')?.addEventListener('click',()=>{if(rules)rules.hidden=true;});
  search?.addEventListener('input',()=>{const term=search.value.trim().toLocaleLowerCase();root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));});
  root.addEventListener('change',e=>{if(e.target?.matches('input[name="substitutionAbsentTeacher"]'))updateMetrics();});
- root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('#substitutionSaveButton'))setTimeout(()=>{updateMetrics();refreshLog();},150);});
- const observer=new MutationObserver(()=>{updateMetrics();refreshLog();});
+ root.addEventListener('click',e=>{if(e.target.closest('#substitutionGenerateButton')||e.target.closest('#substitutionSaveButton'))setTimeout(updateMetrics,150);});
+ const observer=new MutationObserver(updateMetrics);
  if($('#substitutionPlanAssignments'))observer.observe($('#substitutionPlanAssignments'),{childList:true,subtree:true});
  if($('#substitutionUnassigned'))new MutationObserver(updateMetrics).observe($('#substitutionUnassigned'),{childList:true,subtree:true,attributes:true});
  if(plan)new MutationObserver(updateMetrics).observe(plan,{attributes:true,attributeFilter:['class']});
