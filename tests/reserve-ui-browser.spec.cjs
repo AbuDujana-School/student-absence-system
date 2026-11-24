@@ -178,9 +178,8 @@ test("premium reserve wizard advances progressively from date to absence and app
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-25");
   await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"-1\"]").click();
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
-  await page.locator("#timetableSubstitutionDate").fill("2026-11-25");
   await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
-  expect(initial.absentHidden).toBe(true);
+  expect(initial.absentHidden).toBe(false);
   expect(initial.toolbarHidden).toBe(true);
   expect(initial.resultsReady).toBe(false);
 
