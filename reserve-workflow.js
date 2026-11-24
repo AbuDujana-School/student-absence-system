@@ -64,6 +64,12 @@
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
         ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
         :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+      if(otherToggle?.checked){
+        Promise.resolve().then(async()=>{
+          await loadOtherDepartments();
+          $("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");
+        }).catch(error=>status(error?.message||"تعذر استعادة قائمة الأقسام المساندة للمسودة.","error"));
+      }
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
       reserveDraftApproved=new Set(Array.isArray(saved.approvedAbsentTeachers)?saved.approvedAbsentTeachers.filter(name=>timetableDailyAbsentTeachers.includes(name)):[]);
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
