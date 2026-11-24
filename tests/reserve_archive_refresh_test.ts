@@ -240,3 +240,15 @@ Deno.test("reserve archive reloads queue when the selected date range changes", 
   assert(cumulative.includes("return reserveCumulativeArchiveLoadPromise.then(()=>window.substitutionLoadCumulativeArchive());"), "Cumulative reads with a changed range must queue a fresh request");
   assert(cumulative.includes('if(($("substitutionArchiveFrom")?.value||"")!==from||($("substitutionArchiveTo")?.value||"")!==to)return false;'), "Cumulative reads must not render stale results after the range changes");
 });
+
+Deno.test("the four-section reserve workspace shows daily teaching load and preserves one A4 page per archived day", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  assert(html.includes("const dailyCount=Number(option.dailyTeachingCount)"),"Each substitute candidate must show the number of teaching periods scheduled that day");
+  assert(html.includes("لديه '+row.dailyTeachingCount+' حصص تدريس اليوم"),"The WhatsApp message must include the substitute's daily teaching-period count when known");
+  for(const tab of ["daily","edit","archive","stats"]){
+    assert(html.includes('data-subx-tab="'+tab+'"'),"The workspace must expose the "+tab+" section");
+  }
+  assert(source.includes("sort((a,b)=>b[0].localeCompare(a[0]))"),"Archive dates must be ordered newest first");
+  assert(source.includes('undefined,{singlePage:true}'),"The official archive PDF must create one A4 page for each day containing actual records");
+  assert(source.includes('filter(item=>item.status!=="cancelled"&&item.assignmentDate)'),"Cancelled or undated rows must not create empty archive print pages");
+});
