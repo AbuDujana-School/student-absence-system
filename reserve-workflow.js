@@ -153,7 +153,12 @@
     const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
     reserveOtherDepartments=Array.isArray(result.departments)?result.departments:[];
     reserveSelectedOtherDepartmentIds=new Set([...reserveSelectedOtherDepartmentIds].filter(id=>reserveOtherDepartments.some(item=>String(item.id)===id)));
-    for(const id of [...reserveSelectedOtherTeachersByDepartment.keys()])if(!reserveSelectedOtherDepartmentIds.has(id))reserveSelectedOtherTeachersByDepartment.delete(id);
+    for(const id of [...reserveSelectedOtherTeachersByDepartment.keys()]){
+      if(!reserveSelectedOtherDepartmentIds.has(id)){reserveSelectedOtherTeachersByDepartment.delete(id);continue;}
+      const department=reserveOtherDepartments.find(item=>String(item.id)===id);
+      const allowedNames=new Set((Array.isArray(department?.teachers)?department.teachers:[]).map(teacher=>String(teacher.name||"")));
+      reserveSelectedOtherTeachersByDepartment.set(id,new Set([...(reserveSelectedOtherTeachersByDepartment.get(id)||[])].filter(name=>allowedNames.has(name))));
+    }
     syncOtherTeacherNameSet();
     renderOtherDepartmentTeachers();
   }
