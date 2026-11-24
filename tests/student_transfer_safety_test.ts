@@ -31,10 +31,13 @@ Deno.test("student transfer UI requires admin authorization and uses the server 
   assert(transfer.includes("clearStudentDeleteIntents(fromClass, [studentName])"), "Only the transferred student's obsolete local deletion intent may be cleared");
 });
 
-Deno.test("Edge Function accepts transfers only from the active general admin session", () => {
+Deno.test("Edge Function accepts transfers only from an active fully authorized administrative session", () => {
   const action = section(edge, 'if (body?.action === "admin_transfer_student")', 'if (body?.action === "app_student_affairs_session")');
-  assert(action.includes("readAuthorizedAppSession"), "Transfer must validate and revalidate the general app session");
-  assert(action.includes("!isGeneralAdminPrincipal(principal)"), "Only the general admin may transfer students");
+  const adminPolicy = section(edge, "function hasFullAdministrativeAccess(", "async function readAuthorizedAppSession(");
+  assert(action.includes("readAuthorizedAppSession"), "Transfer must validate and revalidate the active app session");
+  assert(action.includes("!hasFullAdministrativeAccess(principal)"), "Transfer must require full administrative access");
+  assert(adminPolicy.includes("isGeneralAdminPrincipal(value)"), "The general admin must retain full administrative access");
+  assert(adminPolicy.includes('value?.type === "teacher" && value.permissions?.admin === true'), "A delegated full administrator must retain its explicit admin grant without changing identity");
   assert(action.includes('db.rpc("admin_transfer_student"'), "Transfer must run in the database transaction");
 });
 
@@ -81,10 +84,10 @@ Deno.test("old student deletion intents are pruned only after a successful cloud
   assert(load.includes("await clearCompletedStudentDeleteIntentsFromCloud(studentsData)"), "Completed student deletions must be reconciled after an authoritative cloud read");
 });
 
-Deno.test("Edge Function roster save requires the active general-admin session and uses its database transaction", () => {
+Deno.test("Edge Function roster save requires an active fully authorized administrative session and uses its database transaction", () => {
   const action = section(edge, 'if (body?.action === "admin_save_student_roster")', 'if (body?.action === "admin_transfer_student")');
   assert(action.includes("readAuthorizedAppSession"), "Roster save must validate and revalidate the active app session");
-  assert(action.includes("!isGeneralAdminPrincipal(principal)"), "Roster save must reject non-admin principals");
+  assert(action.includes("!hasFullAdministrativeAccess(principal)"), "Roster save must reject principals without full administrative access");
   assert(action.includes('db.rpc("admin_save_student_roster"'), "Roster save must use the atomic database function");
 });
 
