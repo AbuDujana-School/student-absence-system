@@ -1690,6 +1690,16 @@
       };
       window.openSubstitutionView.__canonicalReserveWrapped=true;
     }
+    // If this installer ran only after the original entry point had already
+    // revealed the view, replay the newly wrapped entry point once so the
+    // canonical panel is mounted on that very first visible opening.
+    if(!root.classList.contains("hidden")&&window.openSubstitutionView?.__canonicalReserveWrapped&&!window.__canonicalReserveInitialOpenAttempted){
+      window.__canonicalReserveInitialOpenAttempted=true;
+      Promise.resolve().then(()=>{
+        if(root.isConnected&&!root.classList.contains("hidden")&&typeof window.openSubstitutionView==="function")
+          return window.openSubstitutionView();
+      }).catch(error=>status(error?.message||"تعذر تهيئة مساحة توزيع الاحتياط عند الفتح الأول.","error"));
+    }
     if(typeof window.closeSubstitutionView==="function"&&!window.closeSubstitutionView.__canonicalReserveWrapped){
       window.closeSubstitutionView=function(){
         restoreCanonicalPanel();
