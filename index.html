@@ -2427,6 +2427,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  const $=q=>root.querySelector(q);
  const tabs=Array.from(root.querySelectorAll('[data-subx-tab]'));
  const stats=$('#substitutionStatsPanel');
+ const stepper=$('.subx-stepper');
  const dateGrid=$('#substitutionDate')?.closest('.grid');
  const absenteeCard=$('#substitutionAbsenteeList')?.closest('.rounded-3xl');
  const plan=$('#substitutionPlanPanel');
@@ -2456,7 +2457,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  const pdf=$('#substitutionPdfButton'),wa=$('#substitutionWhatsappButton');
  const date=$('#substitutionDate');
  if(date){
-  const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="-1">أمس</button><button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
+  const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
   date.insertAdjacentElement('afterend',shortcuts);
   shortcuts.querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
    const shift=Number(button.dataset.subxDateShift||0),today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Muscat',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),base=shift===0?today:(date.value||today),parsed=new Date(base+'T12:00:00+04:00');
@@ -2490,7 +2491,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  function setTab(name){
   activeTab=['daily','edit','archive','stats'].includes(name)?name:'daily';
   root.querySelectorAll('[data-subx-tab]').forEach(t=>{const on=t.dataset.subxTab===activeTab;t.classList.toggle('is-active',on);t.setAttribute('aria-selected',on?'true':'false');});
-  [dateGrid,absenteeCard,plan].forEach(el=>el?.classList.toggle('subx-tab-hidden',activeTab!=='daily'));
+  [dateGrid,absenteeCard,plan,stepper,metrics].forEach(el=>el?.classList.toggle('subx-tab-hidden',activeTab!=='daily'));
   stats?.classList.toggle('hidden',activeTab!=='stats');
   logPanel.classList.toggle('hidden',activeTab!=='edit');
   reportsPanel.classList.toggle('hidden',activeTab!=='archive');
