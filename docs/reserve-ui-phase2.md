@@ -19,8 +19,8 @@ The surfaces therefore overlap in purpose but contain distinct behavior. Blindly
 
 1. Removed obsolete test assertions that required the retired schoolwide reserve report installer and its deleted permission. The absence-reason, current-day assignment, edit/delete, and view-initialization tests remain.
 2. Restored the department coordinator's batch preview/save and active edit actions in the action allowlist. This does not grant schoolwide statistics, archive, reset, or cross-department access.
-3. Added a shared department-scope guard for custom coordinator mutations. Single and batch cancellation verify that the absent teacher belongs to the coordinator's department. Single and batch edits verify both the old and target absent teacher remain in that department and that the replacement substitute is an active teacher from the same department.
-4. Added Deno regression coverage for the capability matrix, department boundaries, and guard placement in each mutation handler.
+3. Added a shared department-scope guard for custom coordinator mutations. Single and batch cancellation verify that the absent teacher belongs to the coordinator's department. Custom accounts remain excluded from archive and edit actions; general admins and reserve-enabled teachers retain their existing edit path.
+4. Added Deno regression coverage for the capability matrix, department boundaries, and guard placement in each cancellation handler.
 
 The custom coordinator checks are enforced server-side; hiding buttons in the UI is not treated as authorization. The existing general-admin principal resolver and login/session resolution code were not changed. In `session_auth.ts`, only the action allowlist for the already-resolved `custom` principal was extended.
 
