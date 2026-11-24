@@ -286,7 +286,9 @@
       const hasPlan=!!(reserveBatchPreview&&(reserveBatchPreview.assignments?.length||reserveBatchPreview.unassigned?.length||reserveBatchPreview.existingAssignments?.length));
       const required=[...new Set([...(reserveBatchPreview?.assignments||[]),...(reserveBatchPreview?.unassigned||[])].map(row=>String(row.absentTeacherName||"")).filter(Boolean))];
       const allApproved=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
-      const stage=!hasDate?1:!hasAbsentees?2:!hasPlan?3:allApproved?4:3;
+      const hasSaved=(reserveBatchPreview?.existingAssignments||[]).length>0;
+      const workflowComplete=allApproved||(required.length===0&&hasSaved);
+      const stage=!hasDate?1:!hasAbsentees?2:!hasPlan?3:workflowComplete?4:3;
       panel.querySelectorAll("[data-premium-step]").forEach(step=>{const n=Number(step.dataset.premiumStep);step.classList.toggle("is-active",n===stage);step.classList.toggle("is-complete",n<stage);});
       $("ttPremiumDateCard")?.classList.toggle("is-complete",hasDate);
       const absentCard=$("ttPremiumAbsentCard");
