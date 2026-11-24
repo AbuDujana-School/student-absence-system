@@ -1700,7 +1700,6 @@
       window.closeSubstitutionView.__canonicalReserveWrapped=true;
     }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
-    const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
     if(root.dataset.mainReserveReasonsInstalled!=="1"){
