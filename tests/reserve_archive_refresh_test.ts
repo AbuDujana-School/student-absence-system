@@ -124,9 +124,11 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   assert(integration.includes('reservePrincipal?.type==="custom"'),"A custom authenticated reserve principal must remain eligible for the scoped workspace");
   assert(integration.includes("sameSessionAdmin"),"A server-resolved admin principal must be matched to the active account before opening reserve");
   assert(integration.includes("const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin"),"Explicit reserve administrators may use the existing cross-department workflow");
-  assert(integration.includes('reservePrincipal?.type==="custom"'),"Custom principals must remain restricted to their authenticated department scope");
   assert(integration.includes('reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true'),"Reserve-enabled teacher principals retain their existing cross-department capability");
-  assert(!integration.includes('reservePrincipal?.type==="custom"&&canExpand'),"Custom coordinators must not receive cross-department controls");
+  const expandStart=integration.indexOf("const canExpand=");
+  const expandEnd=integration.indexOf(";",expandStart);
+  assert(expandStart>=0&&expandEnd>expandStart,"Cross-department authorization must be explicit");
+  assert(!integration.slice(expandStart,expandEnd).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must not receive cross-department controls");
 });
 
 Deno.test("canonical batch selection requires and preserves the absence reason", () => {
