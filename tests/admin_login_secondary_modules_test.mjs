@@ -76,7 +76,7 @@ test("the staged pilot starts with the authenticated shell and does not change a
 
 
 test("additional administrators never inherit the general administrator frontend bypass", () => {
-  const identity = section("function isGeneralAdminUser(", "function grantTemporaryAdminAuth(");
+  const identity = section("function isGeneralAdminUser(", "function isAdditionalAdminUser(");
   assert.match(identity, /user\?\.type === "admin"/);
   assert.match(identity, /user\.adminScope === "general"/);
   assert.match(identity, /user\.name === "مدير النظام العام"/);
