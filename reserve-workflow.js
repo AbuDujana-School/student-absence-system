@@ -282,7 +282,7 @@
     const toolbar=$("timetableDailySaveBatchButton")?.parentElement;if(toolbar)toolbar.classList.add("tt-premium-toolbar");
     const results=$("timetableSubstitutionResults");if(results)results.classList.add("tt-premium-results");
     const update=()=>{
-      const hasDate=!!String(date?.value||"").trim(),hasAbsentees=Array.isArray(window.timetableDailyAbsentTeachers)&&window.timetableDailyAbsentTeachers.length>0;
+      const hasDate=!!String(date?.value||"").trim(),hasAbsentees=Array.isArray(timetableDailyAbsentTeachers)&&timetableDailyAbsentTeachers.length>0;
       const hasPlan=!!(reserveBatchPreview&&(reserveBatchPreview.assignments?.length||reserveBatchPreview.unassigned?.length||reserveBatchPreview.existingAssignments?.length));
       const required=[...new Set([...(reserveBatchPreview?.assignments||[]),...(reserveBatchPreview?.unassigned||[])].map(row=>String(row.absentTeacherName||"")).filter(Boolean))];
       const allApproved=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
