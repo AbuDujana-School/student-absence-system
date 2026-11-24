@@ -1035,7 +1035,7 @@
           reserveReason:String(item.reason||"")
         });
       });
-      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");
+      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"",undefined,{singlePage:true});
     });
     printOfficialReservePages(pages);
   };
