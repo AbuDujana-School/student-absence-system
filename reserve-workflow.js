@@ -106,6 +106,7 @@
   }
   function syncOtherTeacherNameSet(){
     reserveSelectedOtherTeacherNames=new Set([...reserveSelectedOtherTeachersByDepartment.values()].flatMap(names=>[...names]));
+    reserveOtherDepartmentId=[...reserveSelectedOtherDepartmentIds][0]||"";
   }
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
