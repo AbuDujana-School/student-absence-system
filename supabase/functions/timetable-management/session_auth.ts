@@ -250,7 +250,7 @@ export function canUseTimetableAction(
   ]).has(action);
 }
 
-/** The administrator or a teacher explicitly granted reserve-distribution permission may broaden substitute candidates. */
+/** Administrators, department-scoped reserve coordinators, and reserve-enabled teachers may explicitly select support teachers. */
 export function canIncludeOtherDepartments(
   principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
 ): boolean {
