@@ -636,8 +636,8 @@
       if(!grouped.has(date))grouped.set(date,[]);
       grouped.get(date).push(item);
     });
-    // Preserve the original approved official A4 PDF template; only reverse
-    // the date order so the newest distribution appears first.
+    // Keep the official A4 template, combine all subjects per date, and print
+    // dates newest first while keeping each absent teacher's lessons together.
     const days=[...grouped.entries()].sort((a,b)=>b[0].localeCompare(a[0]));
     const pages=days.flatMap(([date,items])=>{
       const byAbsent=new Map();
@@ -984,9 +984,16 @@
     });
     if(current.length)pages.push(current);
     if(!pages.length)pages.push([]);
-    return pages.map((pageGroups,pageIndex)=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject,{
-      ...options,pageNumber:pageIndex+1,pageCount:pages.length
-    }));
+    return pages.map((pageGroups,pageIndex)=>{
+      const oversizedTeacherGroup=pageGroups.length===1&&
+        (pageGroups[0].rows||[]).length>RESERVE_OFFICIAL_ROWS_PER_PAGE;
+      return reserveOfficialPrintMarkup(pageGroups,date,weekday,subject,{
+        ...options,
+        singlePage:options?.singlePage===true||oversizedTeacherGroup,
+        pageNumber:pageIndex+1,
+        pageCount:pages.length
+      });
+    });
   }
   function reserveOfficialPrintMarkup(groups,date,weekday,subject,options={}){
     const widths=[20,16,10.5,10.5,13,11,19];
