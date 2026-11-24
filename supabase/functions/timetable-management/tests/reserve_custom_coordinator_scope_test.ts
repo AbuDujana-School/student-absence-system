@@ -5,7 +5,7 @@ function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
 }
 
-Deno.test("custom reserve coordinators can use batch preview/save but not archive edit actions", () => {
+Deno.test("custom reserve coordinators can use department-scoped preview and save actions", () => {
   const allowed = [
     "timetable_substitution_preview",
     "timetable_substitution_save",
