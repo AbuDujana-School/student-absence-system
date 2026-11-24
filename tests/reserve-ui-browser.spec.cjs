@@ -203,3 +203,63 @@ test("premium reserve wizard advances progressively from date to absence and app
   });
   await expect(page.locator('[data-premium-step="4"]')).toHaveClass(/is-active/);
 });
+
+
+test("reserve absentee checklist selects teachers and edits absence reasons independently", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const checklist = extractFunction(source, "function installReserveAbsenteeChecklist(panel)");
+  await page.setContent('<section id="timetableSubstitutionPanel"><div><input id="timetableDailyAbsentSearch" type="search"></div><div id="timetableDailySuggestions" class="hidden"></div><div id="timetableDailyAbsentTags"></div></section>');
+  await page.evaluate(({ checklist }) => {
+    const options = ["أحمد علي", "سالم محمد"];
+    const absent = [];
+    const reasons = Object.create(null);
+    const $ = id => document.getElementById(id);
+    const esc = value => String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+    const normalize = value => String(value || "").replace(/\s+/g, " ").trim().toLowerCase();
+    window.openSubstitutionAbsenceReasonPicker = (name, current, callback) => {
+      window.__lastReasonPicker = { name, current };
+      window.__reasonCallback = callback;
+    };
+    window.timetableDailyAddAbsent = async name => { if (!absent.includes(name)) absent.push(name); };
+    window.timetableDailyRemoveAbsent = name => {
+      const index = absent.indexOf(name);
+      if (index >= 0) absent.splice(index, 1);
+      delete reasons[name];
+    };
+    window.timetableDailyRenderTags = () => {};
+    window.timetableDailyRenderLessons = () => {};
+    window.timetableDailyFilterAbsentTeachers = () => {};
+    window.timetableLoadSubstitutionOptions = async () => {};
+    window.timetableDailySetBusy = () => {};
+    const install = new Function(
+      "$", "timetableDailyAbsentOptions", "timetableDailyAbsentTeachers",
+      "timetableDailyNormalizeName", "reserveAbsenceReasons", "persistStoredDraft",
+      "status", "timetableDailyBusy", "esc",
+      checklist + "; return installReserveAbsenteeChecklist;"
+    )($, options, absent, normalize, reasons, () => {}, () => {}, false, esc);
+    install($("timetableSubstitutionPanel"));
+    window.__checklistState = { options, absent, reasons };
+  }, { checklist });
+
+  const checkbox = page.locator('[data-tt-check-absent="أحمد علي"]');
+  await checkbox.check();
+  await expect(checkbox).toBeChecked();
+  expect(await page.evaluate(() => window.__lastReasonPicker.name)).toBe("أحمد علي");
+  await page.evaluate(() => window.__reasonCallback("مرضية"));
+  await expect(checkbox).toBeChecked();
+  expect(await page.evaluate(() => window.__checklistState.absent)).toContain("أحمد علي");
+  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("مرضية");
+
+  await page.locator('[data-tt-open-absence-reason="أحمد علي"]').click();
+  expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("مرضية");
+  await page.evaluate(() => window.__reasonCallback("موعد مستشفى"));
+  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("موعد مستشفى");
+
+  await checkbox.uncheck();
+  await expect(checkbox).not.toBeChecked();
+  expect(await page.evaluate(() => window.__checklistState.absent)).not.toContain("أحمد علي");
+
+  await page.locator("#timetableDailyAbsentSearch").fill("سالم");
+  await expect(page.locator('[data-tt-check-absent="سالم محمد"]')).toBeVisible();
+  await expect(page.locator('[data-tt-check-absent="أحمد علي"]')).toHaveCount(0);
+});
