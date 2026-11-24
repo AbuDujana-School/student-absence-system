@@ -252,11 +252,11 @@ test("reserve absentee checklist selects teachers and edits absence reasons inde
   await page.locator('[data-tt-open-absence-reason="أحمد علي"]').click();
   expect(await page.evaluate(() => window.__lastReasonPicker.name)).toBe("أحمد علي");
   expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("");
-  await page.evaluate(() => window.__reasonCallback("إجازة مرضية"));
-  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("إجازة مرضية");
+  await page.evaluate(() => window.__reasonCallback("مرضية"));
+  expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("مرضية");
 
   await page.locator('[data-tt-open-absence-reason="أحمد علي"]').click();
-  expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("إجازة مرضية");
+  expect(await page.evaluate(() => window.__lastReasonPicker.current)).toBe("مرضية");
   await page.evaluate(() => window.__reasonCallback("موعد مستشفى"));
   expect(await page.evaluate(() => window.__checklistState.reasons["أحمد علي"])).toBe("موعد مستشفى");
 
@@ -285,8 +285,8 @@ test("absence reason picker uses the four requested categories and keeps legacy 
 
   await page.evaluate(() => window.__openReason("معلم تجريبي", value => { window.__reasonResult = value; }, "مرضية"));
   await expect(page.locator('#timetableDailyAbsenceReasonModal input[name="ttAbsenceReasonChoice"]')).toHaveCount(4);
-  await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="إجازة مرضية"]')).toBeChecked();
-  await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="دورة تدريبية"]')).toHaveCount(0);
+  await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="مرضية"]')).toBeChecked();
+  await expect(page.locator('#timetableDailyAbsenceReasonModal input[value="دورة تدريبية"]')).toHaveCount(1);
 
   await page.locator('#timetableDailyAbsenceReasonModal input[value="أخرى"]').check();
   await expect(page.locator("#ttAbsenceReasonOtherWrap")).toBeVisible();
