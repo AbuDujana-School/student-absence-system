@@ -1433,7 +1433,7 @@ async function handle(req: Request) {
         const requestedDate=String(body.assignmentDate||"").trim();
         const dateFrom=String(body.dateFrom||requestedDate||"1900-01-01").trim();
         const dateTo=String(body.dateTo||requestedDate||"2100-12-31").trim();
-        const validDate=(value:string)=>/^\\d{4}-\\d{2}-\\d{2}$/.test(value)&&
+        const validDate=(value:string)=>/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(value)&&
           !Number.isNaN(Date.parse(value+"T00:00:00Z"))&&
           new Date(value+"T00:00:00Z").toISOString().slice(0,10)===value;
         if(!validDate(dateFrom)||!validDate(dateTo)||dateFrom>dateTo){
