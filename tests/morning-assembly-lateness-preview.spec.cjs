@@ -17,10 +17,14 @@ test("morning assembly lateness appears in isolated branch preview without produ
   expect(html).toContain('IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co"');
   expect(html).toContain('const SA_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW');
   expect(html).toContain('const TIMETABLE_API_URL = IS_CLOUDFLARE_BRANCH_PREVIEW');
-  expect(html).toContain("action:'today'");
-  expect(html).toContain("action:'toggle'");
-  expect(html).toContain("إلغاء التأخر");
-  expect(html).toContain('morningAssemblyLatenessTodayLoaded');
+  // Assert the current append-only recording flow, not the retired today/toggle API contract.
+  expect(html).toContain('const SUPABASE_URL = IS_CLOUDFLARE_BRANCH_PREVIEW ? "https://wawplttrpiinoukpjqqx.supabase.co"');
+  expect(html).toContain('id="morningAssemblyLatenessView"');
+  expect(html).toContain('id="morningAssemblySearch"');
+  expect(html).toContain("function callMorningAssemblyLatenessApi(body)");
+  expect(html).toContain("'/functions/v1/morning-assembly-lateness'");
+  expect(html).toContain("action:'record'");
+  expect(html).toContain("recordMorningAssemblyLateness(className,studentName,button)");
 
   const productionRequests = [];
   const pageErrors = [];
