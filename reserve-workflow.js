@@ -273,7 +273,7 @@
           const toLocalISO=value=>{const y=value.getFullYear(),m=String(value.getMonth()+1).padStart(2,"0"),d=String(value.getDate()).padStart(2,"0");return y+"-"+m+"-"+d;};
           nav.addEventListener("click",event=>{
             const button=event.target.closest("[data-date-offset]");if(!button||!date)return;
-            const offset=Number(button.dataset.dateOffset),base=offset===0?reserveCurrentMuscatDate():(date.value||reserveCurrentMuscatDate());
+            const offset=Number(button.dataset.dateOffset),base=reserveCurrentMuscatDate();
             const parts=base.split("-").map(Number),selected=new Date(parts[0],parts[1]-1,parts[2]+offset,12,0,0);
             date.value=toLocalISO(selected);date.dispatchEvent(new Event("input",{bubbles:true}));date.dispatchEvent(new Event("change",{bubbles:true}));
             nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
