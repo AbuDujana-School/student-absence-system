@@ -2571,7 +2571,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  if(generate)move(generate,$('subxGenerateDock'));
  ['substitutionPdfButton','substitutionWhatsappButton'].forEach(id=>move($(id),reportActions));
  if($('substitutionSaveButton'))$('substitutionSaveButton').classList.add('subx-save-primary');
- function openSheet(id){const el=$(id);if(!el)return;el.hidden=false;document.body.classList.add('subx-sheet-open');}
+ function openSheet(id){const el=$(id);if(!el)return;if(id==='subxRulesSheet'&&rules)rules.hidden=false;el.hidden=false;document.body.classList.add('subx-sheet-open');}
  function closeSheets(){root.querySelectorAll('.subx-sheet-backdrop').forEach(el=>el.hidden=true);document.body.classList.remove('subx-sheet-open');}
  function setTab(name){
    activeTab=name;
@@ -2617,6 +2617,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
    root.querySelectorAll('#substitutionAbsenteeList > label').forEach(card=>card.hidden=!!term&&!card.textContent.toLocaleLowerCase().includes(term));
  });
  function updateMetrics(){
+   if($('subxHistoryEmpty'))$('subxHistoryEmpty').hidden=!!(plan&&!plan.classList.contains('hidden'));
    const selected=root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked').length;
    $('subxAbsenteeMetric').textContent=String(selected);
    $('subxSheetSelectedCount').textContent=String(selected);
