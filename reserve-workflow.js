@@ -162,9 +162,15 @@
     const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
     const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
     modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-    modal.innerHTML='<section class="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl" dir="rtl">'+
-      '<div><h3 class="text-base font-black text-slate-900">تحديد سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر سبب الغياب قبل إضافة المعلم إلى توزيع الاحتياط.</p></div>'+
-      '<div class="grid gap-2">'+ABSENCE_REASON_OPTIONS.map(reason=>'<label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-bold text-slate-800"><input type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span>'+esc(reason)+'</span></label>').join("")+'</div>'+
+    const reasonPresentation={
+      "طارئة":{icon:"fa-bolt",hint:"حالة طارئة"},
+      "موعد مستشفى":{icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
+      "مرضية":{icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
+      "أخرى":{icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"}
+    };
+    modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
+      '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
+      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
       '<label id="ttAbsenceReasonOtherWrap" class="'+(selected==="أخرى"?"":"hidden")+' block text-xs font-bold text-slate-700">اكتب سبب الغياب<textarea id="ttAbsenceReasonOther" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm" placeholder="اكتب سبب الغياب بالتفصيل...">'+esc(customValue)+'</textarea></label>'+
       '<p id="ttAbsenceReasonError" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-bold text-rose-700"></p>'+
       '<div class="flex justify-end gap-2"><button type="button" data-absence-reason-cancel class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">إلغاء</button><button type="button" data-absence-reason-confirm class="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-black text-white">موافق</button></div></section>';
@@ -434,6 +440,9 @@
       "#timetableSubstitutionPanel .tt-premium-spark{display:grid;place-items:center;flex:0 0 2.6rem;height:2.6rem;border-radius:.9rem;background:#d1fae5;color:#047857;font-size:1.1rem}",
       "#timetableSubstitutionPanel .tt-premium-intro strong{display:block;color:#0f3d35;font-size:.82rem;font-weight:900}",
       "#timetableSubstitutionPanel .tt-premium-intro p{margin-top:.15rem;color:#64748b;font-size:.68rem}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked){border-color:#10b981;background:linear-gradient(120deg,#ecfdf5,#fff);box-shadow:0 7px 18px rgba(16,185,129,.12)}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked)>span:first-of-type{background:#d1fae5;color:#047857}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:focus-within{outline:3px solid rgba(16,185,129,.2);outline-offset:2px}",
       "#timetableSubstitutionPanel .tt-premium-card{margin:1rem 0;padding:1.1rem;border:1px solid #dce5ee;border-radius:1.35rem;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s}",
       "#timetableSubstitutionPanel .tt-premium-card.is-current{border-color:#7dd3b0;box-shadow:0 12px 32px rgba(16,185,129,.09)}",
       "#timetableSubstitutionPanel .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
