@@ -119,6 +119,7 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   assert(!boot.includes("installHomeReserveArchive();"),"The legacy home archive must not install a second distribution surface");
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(html.includes('const reserveWorkspaceAllowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true)'),"Reserve-enabled teachers must retain access to the canonical batch panel");
+  assert(integration.includes('appAuthSession?.principal?.permissions?.reserve===true'),"A custom authenticated reserve principal must not be blocked by the UI gate when the server session grants reserve permission");
 });
 
 Deno.test("canonical batch selection requires and preserves the absence reason", () => {
