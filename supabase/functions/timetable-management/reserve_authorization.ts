@@ -10,6 +10,7 @@ export function canCustomCoordinatorManageDepartment(input: {
   actorDepartmentId: unknown;
   absentTeacherDepartmentId: unknown;
   substituteTeacherDepartmentId?: unknown;
+  allowSupportingSubstitute?: boolean;
 }): boolean {
   if (input.actorType !== "custom") return true;
   const actorDepartment = String(input.actorDepartmentId || "").trim();
@@ -17,7 +18,7 @@ export function canCustomCoordinatorManageDepartment(input: {
   if (!actorDepartment || !absentDepartment || actorDepartment !== absentDepartment) return false;
   if (input.substituteTeacherDepartmentId !== undefined) {
     const substituteDepartment = String(input.substituteTeacherDepartmentId || "").trim();
-    if (!substituteDepartment || substituteDepartment !== absentDepartment) return false;
+    if (!substituteDepartment || (substituteDepartment !== absentDepartment && input.allowSupportingSubstitute !== true)) return false;
   }
   return true;
 }
