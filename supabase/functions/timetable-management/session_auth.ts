@@ -251,7 +251,7 @@ export function canUseTimetableAction(
 export function canIncludeOtherDepartments(
   principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
 ): boolean {
-  return requested === true && (principalType === "admin" || (principalType === "teacher" && hasReservePermission));
+  return requested === true && (principalType === "admin" || ((principalType === "teacher" || principalType === "custom") && hasReservePermission));
 }
 
 export function canAccessTeacherTimetablePortal(enabled: unknown, selectedTeacherNames: unknown, teacherName: string): boolean {
