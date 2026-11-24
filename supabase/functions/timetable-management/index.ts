@@ -355,7 +355,10 @@ async function handle(req: Request) {
   const action = String(body.action || "");
   const principal = await requirePrincipal(req, action);
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-  if (principal.type === "admin" && action.startsWith("timetable_substitution_")) {
+  // A read-only report uses its dedicated report permission, not the
+  // temporary gate that pauses reserve-management operations.
+  if (principal.type === "admin" && action.startsWith("timetable_substitution_") &&
+      action !== "timetable_substitution_report") {
     try {
       if (!(await isAdminReserveAccessEnabled())) {
         return reply(403, { error: "تم إيقاف صلاحية إدارة الاحتياط للمدير العام مؤقتاً لأغراض التشخيص." });
