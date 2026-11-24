@@ -2883,7 +2883,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <div class="grid grid-cols-2 gap-2">
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-emerald-50 dark:bg-emerald-950/30 rounded-2xl border border-emerald-200 dark:border-emerald-800"><input type="checkbox" id="perm_p_attendance" class="accent-emerald-600 w-4 h-4"><span class="text-xs font-bold">📋 رصد الغياب</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-orange-50 dark:bg-orange-950/30 rounded-2xl border border-orange-200 dark:border-orange-800"><input type="checkbox" id="perm_p_dutyToday" class="accent-orange-600 w-4 h-4"><span class="text-xs font-bold">🕒 المناوبة في يوم التكليف</span></label>
-        <label class="flex items-center gap-2 cursor-pointer p-3 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl border border-fuchsia-200 dark:border-fuchsia-800"><input type="checkbox" id="perm_p_morningAssemblyLateness" class="accent-fuchsia-600 w-4 h-4"><span class="text-xs font-bold">⏰ تسجيل التأخر عن الطابور (للمناوب فقط)</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-fuchsia-50 dark:bg-fuchsia-950/30 rounded-2xl border border-fuchsia-200 dark:border-fuchsia-800"><input type="checkbox" id="perm_p_morningAssemblyLateness" class="accent-fuchsia-600 w-4 h-4"><span class="text-xs font-bold">⏰ تسجيل التأخر عن الطابور (للمناوبين تلقائياً)</span></label>
+        <label class="flex items-center gap-2 cursor-pointer p-3 bg-violet-50 dark:bg-violet-950/30 rounded-2xl border border-violet-200 dark:border-violet-800"><input type="checkbox" id="perm_p_morningAssemblyLatenessNonDuty" class="accent-violet-600 w-4 h-4"><span class="text-xs font-bold">🟣 تسجيل التأخر عن الطابور (لغير المناوبين)</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-cyan-50 dark:bg-cyan-950/30 rounded-2xl border border-cyan-200 dark:border-cyan-800"><input type="checkbox" id="perm_p_reserve" class="accent-cyan-600 w-4 h-4"><span class="text-xs font-bold">📚 توزيع حصص الاحتياط</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-teal-50 dark:bg-teal-950/30 rounded-2xl border border-teal-200 dark:border-teal-800"><input type="checkbox" id="perm_p_behavior" class="accent-teal-600 w-4 h-4"><span class="text-xs font-bold">⚖️ رصد السلوكيات</span></label>
         <label class="flex items-center gap-2 cursor-pointer p-3 bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800"><input type="checkbox" id="perm_p_dashboard" class="accent-indigo-600 w-4 h-4"><span class="text-xs font-bold">🏠 الرئيسية</span></label>
@@ -8369,29 +8370,37 @@ let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
   if (!activeUser) return false;
   if (isGeneralAdminUser(activeUser)) return true;
-  if (activeUser.permissions?.morningAssemblyLateness !== true) return false;
-  if (activeUser.type === 'custom') return true;
-  if (activeUser.type !== 'teacher' || activeUser.permissions?.dutyToday === false) return false;
   const now = omanNowParts();
-  return ['Sunday','Monday','Tuesday','Wednesday','Thursday'].includes(now.weekday)
-    && now.minutes >= 420 && now.minutes <= 510
-    && isTeacherOnDutyToday(activeUser.name);
+  if (!['Sunday','Monday','Tuesday','Wednesday','Thursday'].includes(now.weekday)) return false;
+  if (activeUser.type === 'custom') return activeUser.permissions?.morningAssemblyLateness === true;
+  if (activeUser.type !== 'teacher') return false;
+  const isDutyToday = activeUser.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name);
+  const hasNonDutyPermission = activeUser.permissions?.morningAssemblyLatenessNonDuty === true;
+  return (isDutyToday || hasNonDutyPermission) && now.minutes >= 420 && now.minutes <= 510;
+}
+function canViewMorningAssemblyLatenessCard() {
+  if (!activeUser) return false;
+  if (isGeneralAdminUser(activeUser) || activeUser.type === 'custom') return canUseMorningAssemblyLateness();
+  if (activeUser.type !== 'teacher') return false;
+  return (activeUser.permissions?.dutyToday !== false && isTeacherOnDutyToday(activeUser.name))
+    || activeUser.permissions?.morningAssemblyLatenessNonDuty === true;
 }
 function refreshMorningAssemblyLatenessCard() {
   const card = document.getElementById('morningAssemblyLatenessDashboardCard');
   if (!card) return;
-  const show = canUseMorningAssemblyLateness() && !distronDashboardStagePending(5000);
+  const show = canViewMorningAssemblyLatenessCard() && !distronDashboardStagePending(5000);
   card.classList.toggle('hidden', !show);
   const status = document.getElementById('morningAssemblyLatenessCardStatus');
   if (status && show) {
     if (isGeneralAdminUser(activeUser)) status.textContent = 'صلاحية المدير — متاح في أي وقت';
     else if (activeUser?.type === 'custom') status.textContent = 'صلاحية استثنائية مفعلة';
-    else status.textContent = 'مناوب اليوم · التسجيل متاح حتى 8:30 صباحاً';
+    else if (activeUser?.permissions?.morningAssemblyLatenessNonDuty === true && !isTeacherOnDutyToday(activeUser.name)) status.textContent = 'صلاحية تسجيل لغير المناوب · 7:00–8:30 صباحاً';
+    else status.textContent = 'مناوب اليوم · التسجيل متاح من 7:00 إلى 8:30 صباحاً';
   }
   if (!morningAssemblyRefreshTimer) morningAssemblyRefreshTimer = setInterval(refreshMorningAssemblyLatenessCard, 30000);
 }
 function openMorningAssemblyLateness() {
-  if (!canUseMorningAssemblyLateness()) { showToast('لا تملك صلاحية التسجيل الآن أو لست مناوباً اليوم.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  if (!canUseMorningAssemblyLateness()) { showToast('التسجيل متاح للمناوب في يوم تكليفه أو لمن مُنح صلاحية غير المناوب، وذلك من 7:00 إلى 8:30 صباحاً.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
   ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
   document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · الحفظ فوري عند اختيار الطالب';
@@ -10930,6 +10939,7 @@ function openPermissionsModal(idx) {
   document.getElementById('perm_p_behavior').checked = p.behavior !== false;
   document.getElementById('perm_p_dutyToday').checked = p.dutyToday !== false;
   document.getElementById('perm_p_morningAssemblyLateness').checked = p.morningAssemblyLateness === true;
+  document.getElementById('perm_p_morningAssemblyLatenessNonDuty').checked = p.morningAssemblyLatenessNonDuty === true;
   document.getElementById('perm_p_reserve').checked = p.reserve === true;
   document.getElementById('perm_p_dashboard').checked = Object.prototype.hasOwnProperty.call(p, 'dashboard') ? p.dashboard === true : !!(p.studstats || p.teachers);
   document.getElementById('perm_p_studstats').checked = !!p.studstats;
@@ -10966,6 +10976,7 @@ async function saveTeacherPermissions() {
   t.permissions.behavior = document.getElementById('perm_p_behavior').checked;
   t.permissions.dutyToday = document.getElementById('perm_p_dutyToday').checked;
   t.permissions.morningAssemblyLateness = document.getElementById('perm_p_morningAssemblyLateness').checked;
+  t.permissions.morningAssemblyLatenessNonDuty = document.getElementById('perm_p_morningAssemblyLatenessNonDuty').checked;
   t.permissions.reserve = document.getElementById('perm_p_reserve').checked;
   t.permissions.dashboard = document.getElementById('perm_p_dashboard').checked;
   t.permissions.studstats = document.getElementById('perm_p_studstats').checked;
