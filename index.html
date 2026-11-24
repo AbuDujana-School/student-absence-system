@@ -7788,7 +7788,7 @@ function startDistronDashboardStages() {
   }, delayMs);
   schedule(5000, () => {
     const card = document.getElementById('morningAssemblyLatenessDashboardCard');
-    const allowed = canUseMorningAssemblyLateness();
+    const allowed = canViewMorningAssemblyLatenessCard();
     if (card) card.classList.toggle('hidden', !allowed);
     const status = document.getElementById('morningAssemblyLatenessCardStatus');
     if (status && allowed) status.textContent = 'صلاحية استثنائية مفعلة';
