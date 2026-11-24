@@ -186,3 +186,53 @@ Deno.test("custom coordinator opens only the scoped reserve workspace without ar
   assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
 });
 
+
+
+Deno.test("daily and cumulative reserve archive reads are single-flight", () => {
+  assert(source.includes("let reserveDailyArchiveLoadPromise = null;"), "Daily archive loader must expose one shared in-flight request");
+  assert(source.includes("let reserveCumulativeArchiveLoadPromise = null;"), "Cumulative archive loader must expose one shared in-flight request");
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  assert(dailyStart>=0&&dailyEnd>dailyStart,"Daily archive loader must exist");
+  assert(cumulativeStart>=0&&cumulativeEnd>cumulativeStart,"Cumulative archive loader must exist");
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("reserveDailyArchiveLoadKey===requestKey"), "Concurrent daily archive refreshes for the same range must reuse the pending request");
+  assert(daily.includes("finally{reserveDailyArchiveLoadPromise=null;reserveDailyArchiveLoadKey=null;}"), "Daily archive request lock and key must always release");
+  assert(cumulative.includes("reserveCumulativeArchiveLoadKey===requestKey"), "Concurrent cumulative archive refreshes for the same range must reuse the pending request");
+  assert(cumulative.includes("finally{reserveCumulativeArchiveLoadPromise=null;reserveCumulativeArchiveLoadKey=null;}"), "Cumulative archive request lock and key must always release");
+  assert(daily.includes("Array.isArray(response.archive)?response.archive:[]"), "Daily archive must validate the response shape");
+  assert(cumulative.includes("Array.isArray(response.archive)?response.archive:[]"), "Cumulative archive must validate the response shape");
+});
+
+
+Deno.test("reserve archive locks are assigned before validation and always release", () => {
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("reserveDailyArchiveLoadPromise=Promise.resolve().then(async()=>{"), "Daily loader must defer work until after the shared promise is assigned");
+  assert(cumulative.includes("reserveCumulativeArchiveLoadPromise=Promise.resolve().then(async()=>{"), "Cumulative loader must defer work until after the shared promise is assigned");
+  assert(cumulative.indexOf("try{") < cumulative.indexOf('if(!from||!to||from>to)'), "Invalid cumulative dates must pass through finally and release the lock");
+  assert(daily.indexOf("try{") < daily.indexOf("host.innerHTML="), "Daily UI failures must also pass through finally and release the lock");
+});
+
+
+Deno.test("reserve archive reloads queue when the selected date range changes", () => {
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("if(reserveDailyArchiveLoadKey===requestKey)return reserveDailyArchiveLoadPromise;"), "Daily reads with the same range should share a request");
+  assert(daily.includes("return reserveDailyArchiveLoadPromise.then(()=>window.timetableDailyLoadArchive());"), "Daily reads with a changed range must queue a fresh request");
+  assert(daily.includes('if(($("timetableDailyArchiveFrom")?.value||"")!==from||($("timetableDailyArchiveTo")?.value||"")!==to)return false;'), "Daily reads must not render stale results after the range changes");
+  assert(cumulative.includes("if(reserveCumulativeArchiveLoadKey===requestKey)return reserveCumulativeArchiveLoadPromise;"), "Cumulative reads with the same range should share a request");
+  assert(cumulative.includes("return reserveCumulativeArchiveLoadPromise.then(()=>window.substitutionLoadCumulativeArchive());"), "Cumulative reads with a changed range must queue a fresh request");
+  assert(cumulative.includes('if(($("substitutionArchiveFrom")?.value||"")!==from||($("substitutionArchiveTo")?.value||"")!==to)return false;'), "Cumulative reads must not render stale results after the range changes");
+});

@@ -18,6 +18,12 @@
   let reserveCumulativeArchive = [];
   let reserveHomeToday = [];
   let reserveHomeTodayLoadPromise = null;
+  // Single-flight guards: save/cancel handlers and the mutation refresh hook can
+  // request the same archive at nearly the same time. Never render competing copies.
+  let reserveDailyArchiveLoadPromise = null;
+  let reserveDailyArchiveLoadKey = null;
+  let reserveCumulativeArchiveLoadPromise = null;
+  let reserveCumulativeArchiveLoadKey = null;
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
   function currentActorName(){return String(appAuthSession?.principal?.name||"").trim();}
   function clearStoredDraft(){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}}
@@ -609,24 +615,38 @@
     const panel=$("timetableDailyArchivePanel");if(!panel)return;
     const opening=panel.classList.contains("hidden");panel.classList.toggle("hidden");if(opening)await timetableDailyLoadArchive();
   };
-  window.timetableDailyLoadArchive = async function () {
-    const host=$("timetableDailyArchiveResults");if(!host)return false;
-    host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
-    const activeHost=$("timetableDailyActiveResults");
-    if(activeHost)activeHost.innerHTML='<p class="text-center text-xs text-slate-500">جارٍ تحميل سجلات اليوم...</p>';
-    try{
-      const from=$("timetableDailyArchiveFrom")?.value||"",to=$("timetableDailyArchiveTo")?.value||"",token=appAuthSession?.token||readAppAuthToken();
-      if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
-      if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
-      if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
-      const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
-      reserveArchive=response.archive||[];timetableDailyRenderArchive();return true;
-    }catch(error){
-      const message=error?.message||"تعذر تحميل الأرشيف.";
-      host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(message)+"</div>";
-      if(activeHost)activeHost.innerHTML='<div class="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">'+esc(message)+'</div>';
-      return false;
+  window.timetableDailyLoadArchive = function () {
+    const host=$("timetableDailyArchiveResults");if(!host)return Promise.resolve(false);
+    const from=$("timetableDailyArchiveFrom")?.value||"",to=$("timetableDailyArchiveTo")?.value||"";
+    const requestKey=from+"|"+to;
+    // Reuse the current request only for the same date range. If the user changed
+    // the range, queue a fresh read after the old one and never render stale data.
+    if(reserveDailyArchiveLoadPromise){
+      if(reserveDailyArchiveLoadKey===requestKey)return reserveDailyArchiveLoadPromise;
+      return reserveDailyArchiveLoadPromise.then(()=>window.timetableDailyLoadArchive());
     }
+    reserveDailyArchiveLoadKey=requestKey;
+    reserveDailyArchiveLoadPromise=Promise.resolve().then(async()=>{
+      const activeHost=$("timetableDailyActiveResults");
+      try{
+        host.innerHTML='<div class="p-4 text-center text-xs text-slate-500">جارٍ تحميل الأرشيف...</div>';
+        if(activeHost)activeHost.innerHTML='<p class="text-center text-xs text-slate-500">جارٍ تحميل سجلات اليوم...</p>';
+        const token=appAuthSession?.token||readAppAuthToken();
+        if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
+        if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
+        if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
+        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+        if(($("timetableDailyArchiveFrom")?.value||"")!==from||($("timetableDailyArchiveTo")?.value||"")!==to)return false;
+        reserveArchive=Array.isArray(response.archive)?response.archive:[];
+        timetableDailyRenderArchive();return true;
+      }catch(error){
+        const message=error?.message||"تعذر تحميل الأرشيف.";
+        host.innerHTML='<div class="rounded-xl bg-red-50 p-3 text-xs text-red-700">'+esc(message)+"</div>";
+        if(activeHost)activeHost.innerHTML='<div class="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">'+esc(message)+'</div>';
+        return false;
+      }finally{reserveDailyArchiveLoadPromise=null;reserveDailyArchiveLoadKey=null;}
+    });
+    return reserveDailyArchiveLoadPromise;
   };
   window.timetableDailyPrintArchiveRange = function (sourceRecords) {
     const records=(Array.isArray(sourceRecords)?sourceRecords:reserveArchive).filter(item=>item.status!=="cancelled"&&item.assignmentDate);
@@ -1448,22 +1468,35 @@
     node.className="text-[10px] font-bold "+(kind==="error"?"text-rose-700":kind==="success"?"text-emerald-700":"text-slate-500");
   }
 
-  window.substitutionLoadCumulativeArchive = async function() {
-    const host=$("substitutionCumulativeArchiveResults");if(!host)return;
+  window.substitutionLoadCumulativeArchive = function() {
+    const host=$("substitutionCumulativeArchiveResults");if(!host)return Promise.resolve(false);
     const from=$("substitutionArchiveFrom")?.value||"",to=$("substitutionArchiveTo")?.value||"";
-    if(!from||!to||from>to){setHomeArchiveStatus("حدد فترة زمنية صحيحة قبل عرض السجل.","error");return;}
-    host.innerHTML='<div class="rounded-xl bg-slate-50 p-4 text-center text-xs text-slate-500">جارٍ تحميل سجل الاحتياط...</div>';
-    setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
-    try{
-      const token=appAuthSession?.token||readAppAuthToken();
-      const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
-      reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];
-      window.substitutionRenderCumulativeArchive();
-      setHomeArchiveStatus("تم تحديث السجل من قاعدة البيانات مباشرة.","success");
-    }catch(error){
-      host.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">'+esc(error?.message||"تعذر تحميل السجل.")+'</div>';
-      setHomeArchiveStatus(error?.message||"تعذر تحميل السجل.","error");
+    const requestKey=from+"|"+to;
+    if(reserveCumulativeArchiveLoadPromise){
+      if(reserveCumulativeArchiveLoadKey===requestKey)return reserveCumulativeArchiveLoadPromise;
+      return reserveCumulativeArchiveLoadPromise.then(()=>window.substitutionLoadCumulativeArchive());
     }
+    reserveCumulativeArchiveLoadKey=requestKey;
+    reserveCumulativeArchiveLoadPromise=Promise.resolve().then(async()=>{
+      try{
+        if(!from||!to||from>to){setHomeArchiveStatus("حدد فترة زمنية صحيحة قبل عرض السجل.","error");return false;}
+        host.innerHTML='<div class="rounded-xl bg-slate-50 p-4 text-center text-xs text-slate-500">جارٍ تحميل سجل الاحتياط...</div>';
+        setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
+        const token=appAuthSession?.token||readAppAuthToken();
+        if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
+        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+        if(($("substitutionArchiveFrom")?.value||"")!==from||($("substitutionArchiveTo")?.value||"")!==to)return false;
+        reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];
+        window.substitutionRenderCumulativeArchive();
+        setHomeArchiveStatus("تم تحديث السجل من قاعدة البيانات مباشرة.","success");
+        return true;
+      }catch(error){
+        host.innerHTML='<div class="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs text-rose-700">'+esc(error?.message||"تعذر تحميل السجل.")+'</div>';
+        setHomeArchiveStatus(error?.message||"تعذر تحميل السجل.","error");
+        return false;
+      }finally{reserveCumulativeArchiveLoadPromise=null;reserveCumulativeArchiveLoadKey=null;}
+    });
+    return reserveCumulativeArchiveLoadPromise;
   };
 
   function setHomeTodayStatus(message,kind) {
