@@ -1675,12 +1675,12 @@
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
-    // Bind the visible dashboard card directly. Do not rely on its inline
-    // handler: later UI installers can replace global entry points, leaving
-    // a visually active card with no working click action.
+    // Keep the original home-screen workflow as the single entry point.
+    // Do not move timetable panels into this view or replace openSubstitutionView:
+    // the original opener loads the established absentee-selection workflow.
     const dashboardCard=$("substitutionDashboardCard");
-    if(dashboardCard&&dashboardCard.dataset.canonicalReserveClickBound!=="1"){
-      dashboardCard.dataset.canonicalReserveClickBound="1";
+    if(dashboardCard&&dashboardCard.dataset.reserveClickBound!=="1"){
+      dashboardCard.dataset.reserveClickBound="1";
       dashboardCard.removeAttribute("onclick");
       dashboardCard.removeAttribute("onkeydown");
       dashboardCard.addEventListener("click",event=>{
@@ -1691,8 +1691,7 @@
           return;
         }
         try{
-          const opening=opener();
-          Promise.resolve(opening).catch(error=>status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error"));
+          Promise.resolve(opener()).catch(error=>status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error"));
         }catch(error){
           status(error?.message||"تعذر فتح شاشة توزيع الاحتياط.","error");
         }
@@ -1702,105 +1701,6 @@
         event.preventDefault();
         dashboardCard.click();
       });
-    }
-    let canonicalHost=$("substitutionCanonicalWorkspace");
-    if(!canonicalHost){
-      canonicalHost=document.createElement("div");
-      canonicalHost.id="substitutionCanonicalWorkspace";
-      canonicalHost.className="space-y-4";
-      $("substitutionStatsPanel")?.before(canonicalHost);
-    }
-    [$("substitutionDate")?.closest(".grid"),$("substitutionAbsenteeList")?.closest(".rounded-3xl"),$("substitutionPlanPanel"),$("subxFloatingBar")].forEach(element=>element?.classList.add("hidden"));
-    root.querySelector(".subx-stepper")?.classList.add("hidden");
-    let canonicalPanelOrigin=window.__canonicalReservePanelOrigin||null;
-    function mountCanonicalPanel(){
-      const panel=$("timetableSubstitutionPanel"),host=$("substitutionCanonicalWorkspace");
-      if(!panel||!host)return false;
-      if(panel.parentElement!==host){
-        if(!canonicalPanelOrigin){
-          const placeholder=document.createElement("div");
-          placeholder.id="timetableSubstitutionPanelReturnPoint";
-          panel.parentNode?.insertBefore(placeholder,panel);
-          canonicalPanelOrigin={placeholder,wasHidden:panel.classList.contains("hidden")};
-          window.__canonicalReservePanelOrigin=canonicalPanelOrigin;
-        }
-        host.appendChild(panel);
-      }
-      panel.classList.remove("hidden");
-      return true;
-    }
-    function restoreCanonicalPanel(){
-      const panel=$("timetableSubstitutionPanel"),origin=canonicalPanelOrigin;
-      if(!panel||!origin?.placeholder?.parentNode)return;
-      origin.placeholder.parentNode.insertBefore(panel,origin.placeholder.nextSibling);
-      origin.placeholder.remove();
-      panel.classList.toggle("hidden",origin.wasHidden===true);
-      canonicalPanelOrigin=null;
-      window.__canonicalReservePanelOrigin=null;
-    }
-    if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
-      window.openSubstitutionView=async function(){
-        // The visibility observer also runs when this function opens the view.
-        // Prevent it from replaying the same open operation while requests are pending.
-        if(window.__canonicalReserveOpening)return;
-        window.__canonicalReserveOpening=true;
-        try{
-          const reservePrincipal=appAuthSession?.principal;
-          const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
-          const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
-          if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
-          ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
-          root.classList.remove("hidden");
-          if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
-          const date=$("timetableSubstitutionDate");
-          if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
-          const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
-          const isCustomCoordinator=reservePrincipal?.type==="custom";
-          $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
-          // Custom coordinators can use only the scoped preview/save/cancel workflow.
-          // Do not expose archive/statistics surfaces or issue requests the server must reject.
-          $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
-          $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
-          // Only timetable options are required for the core workspace. Archive
-          // and statistics are secondary panels and must never hold the screen open.
-          if(typeof window.timetableLoadSubstitutionOptions==="function"){
-            try{await window.timetableLoadSubstitutionOptions();}
-            catch(error){status(error?.message||"تعذر تحميل خيارات توزيع الاحتياط.","error");}
-          }
-          if(!isCustomCoordinator){
-            const startBackgroundLoad=(loader,fallback)=>{
-              if(typeof loader!=="function")return;
-              Promise.resolve().then(loader).catch(error=>{
-                status(error?.message||fallback,"error");
-              });
-            };
-            startBackgroundLoad(window.timetableDailyLoadArchive,"تعذر تحميل أرشيف الاحتياط.");
-            startBackgroundLoad(window.substitutionLoadStats,"تعذر تحميل إحصائيات الاحتياط.");
-          }
-        }finally{
-          window.__canonicalReserveOpening=false;
-        }
-      };
-      window.openSubstitutionView.__canonicalReserveWrapped=true;
-    }
-    // If this installer ran only after the original entry point had already
-    // revealed the view, replay the newly wrapped entry point once so the
-    // canonical panel is mounted on that very first visible opening.
-    if(!window.__canonicalReserveOpening&&!root.classList.contains("hidden")&&$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped&&!window.__canonicalReserveInitialOpenAttempted){
-      window.__canonicalReserveInitialOpenAttempted=true;
-      Promise.resolve().then(()=>{
-        if(root.isConnected&&!root.classList.contains("hidden")&&typeof window.openSubstitutionView==="function")
-          return window.openSubstitutionView();
-      }).catch(error=>status(error?.message||"تعذر تهيئة مساحة توزيع الاحتياط عند الفتح الأول.","error"));
-    }
-    if(typeof window.closeSubstitutionView==="function"&&!window.closeSubstitutionView.__canonicalReserveWrapped){
-      window.closeSubstitutionView=function(){
-        restoreCanonicalPanel();
-        root.classList.add("hidden");
-        $("dashboardSelectionView")?.classList.remove("hidden");
-        if(typeof window.refreshSubstitutionDashboardCard==="function")window.refreshSubstitutionDashboardCard();
-      };
-      window.closeSubstitutionView.__canonicalReserveWrapped=true;
     }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
