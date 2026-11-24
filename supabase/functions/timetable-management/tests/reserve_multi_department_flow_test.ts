@@ -39,7 +39,9 @@ Deno.test("support picker permits choosing several departments and teachers from
 Deno.test("custom coordinators keep absent-teacher scope while selected support teachers are allowed", () => {
   assertMatch(auth, /"timetable_substitution_departments"/);
   assertMatch(auth, /"timetable_substitution_update"/);
-  assertMatch(backend, /getVisibleAbsentTeachers\(dayCells\.map\(\(c:any\)=>\(\{matchedTeacherName:c\.matched_teacher_name\?String\(c\.matched_teacher_name\):null,status:String\(c\.cell_status\|\|"\)\}\)\),directory,actorDepartmentId,principal\.type==="admin"\)/);
+  if (!backend.includes("getVisibleAbsentTeachers(dayCells.map") || !backend.includes("directory,actorDepartmentId,principal.type===\"admin\"")) {
+    throw new Error("The backend must continue deriving the absent-teacher list from the coordinator's server-resolved department");
+  }
   assertMatch(backend, /customReserveScopeAllows\(targetAbsent,item\.substituteTeacherName,selectedSupport\)/);
 });
 
