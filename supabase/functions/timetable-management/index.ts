@@ -1320,6 +1320,7 @@ async function handle(req: Request) {
       resolveTimetableTeacherName(cell.matched_teacher_name,cell.teacher_source_name,systemTeachers)
     ).filter(Boolean));
     const actor = directory.find((teacher:any)=>teacher.name===principal.name);
+    if (principal.type === "custom" && !String(actor?.departmentId||"").trim()) return reply(403,{error:"حساب منسق الاحتياط غير مرتبط بقسم واضح."});
     if (principal.type !== "admin" && principal.type !== "custom" && actor?.canManageSubstitutions !== true) return reply(403,{error:"لا تملك صلاحية اختيار بدلاء من قسم آخر."});
     const ownDepartment = String(actor?.departmentId||"");
     const departments = [...new Map(directory.filter((teacher:any)=>teacher.role==="teacher"&&teacher.departmentId&&
