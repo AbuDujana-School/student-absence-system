@@ -2103,6 +2103,7 @@
           root.querySelector('[data-subx-tab="edit"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="stats"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="archive"]')?.classList.toggle("hidden",isCustomCoordinator);
+          if(isCustomCoordinator)root.querySelector('[data-subx-tab="daily"]')?.click();
           $("timetableDailyActivePanel")?.classList.toggle("hidden",isCustomCoordinator);
           $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
           $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
@@ -2146,6 +2147,20 @@
       window.closeSubstitutionView.__canonicalReserveWrapped=true;
     }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
+    // The new date picker is authoritative. Keep the hidden compatibility
+    // engine's date synchronized before its original loader refreshes the plan.
+    if(typeof window.substitutionDateChanged==="function"&&!window.substitutionDateChanged.__reserveDateSyncWrapped){
+      const originalDateChanged=window.substitutionDateChanged;
+      const syncedDateChanged=async function(...args){
+        const selectedDate=String($("substitutionDate")?.value||"").trim();
+        const legacyDate=$("timetableSubstitutionDate");
+        if(legacyDate&&selectedDate)legacyDate.value=selectedDate;
+        return originalDateChanged.apply(this,args);
+      };
+      syncedDateChanged.__reserveDateSyncWrapped=true;
+      syncedDateChanged.__original=originalDateChanged;
+      window.substitutionDateChanged=syncedDateChanged;
+    }
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
     if(root.dataset.mainReserveReasonsInstalled!=="1"){
