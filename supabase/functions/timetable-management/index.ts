@@ -355,10 +355,7 @@ async function handle(req: Request) {
   const action = String(body.action || "");
   const principal = await requirePrincipal(req, action);
   if (!principal) return reply(401, { error: "انتهت جلسة الدخول أو لا تملك صلاحية الوصول إلى الجداول." });
-  // A read-only report uses its dedicated report permission, not the
-  // temporary gate that pauses reserve-management operations.
-  if (principal.type === "admin" && action.startsWith("timetable_substitution_") &&
-      action !== "timetable_substitution_report") {
+  if (principal.type === "admin" && action.startsWith("timetable_substitution_")) {
     try {
       if (!(await isAdminReserveAccessEnabled())) {
         return reply(403, { error: "تم إيقاف صلاحية إدارة الاحتياط للمدير العام مؤقتاً لأغراض التشخيص." });
@@ -379,8 +376,6 @@ async function handle(req: Request) {
       ? await timetableAuthStore.hasTimetableAccess(principal.type, principal.name)
       : false;
   const hasArchivePermission = principal.type === "admin" || hasReservePermission || hasTimetableGrant;
-  const hasSubstitutionReportPermission = action === "timetable_substitution_report" &&
-    (principal.type === "admin" || (principal.type === "teacher" && principal.permissions?.reportSubstitutionDistribution === true));
   const hasDutyReportPermission = action === "timetable_duty_report_context" && (
     principal.type === "admin" || principal.dutyReportAccess === true || principal.dutyReportOnly === true
   );
@@ -390,7 +385,6 @@ async function handle(req: Request) {
   );
   if (!canUseTimetableAction(principal.type, action, principal.portalOnly === true, hasReservePermission, principal.reserveStatsOnly === true, principal.schoolwideReserveStats === true, principal.dutyReportOnly === true)
     && !hasDutyReportPermission
-    && !hasSubstitutionReportPermission
     && !(["timetable_substitution_archive","timetable_substitution_archive_access"].includes(action) && hasArchivePermission)
     && !hasTeacherActivityPermission) {
     return reply(403, { error: "تحتاج هذه العملية إلى صلاحية إدارة الاحتياط أو صلاحية أرشيف الاحتياط الممنوحة من مدير النظام العام." });
@@ -459,44 +453,6 @@ async function handle(req: Request) {
 
   if (action === "timetable_substitution_archive_access") {
     return reply(200,{ok:true,canView:hasArchivePermission});
-  }
-
-  if (action === "timetable_substitution_report") {
-    if (!hasSubstitutionReportPermission) return reply(403,{error:"لا تملك صلاحية تقرير توزيع الاحتياط."});
-    const dateFrom=String(body.dateFrom||"").trim(),dateTo=String(body.dateTo||"").trim();
-    if(!isValidSubstitutionDate(dateFrom)||!isValidSubstitutionDate(dateTo)||dateFrom>dateTo) {
-      return reply(400,{error:"حدد فترة زمنية صحيحة لتقرير توزيع الاحتياط."});
-    }
-    const fromMs=Date.parse(dateFrom+"T00:00:00Z"),toMs=Date.parse(dateTo+"T00:00:00Z");
-    if(!Number.isFinite(fromMs)||!Number.isFinite(toMs)||toMs<fromMs) {
-      return reply(400,{error:"الفترة المحددة لتقرير توزيع الاحتياط غير صالحة."});
-    }
-    const [directory,rows]=await Promise.all([
-      teacherDirectory(),
-      fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
-        .select("id,version_id,teacher_name,absent_teacher_name,assignment_type,weekday,period,status,assignment_date,class_sections,subject,reserve_reason,absence_reason,created_at,reserve_created_at")
-        .eq("assignment_type","substitution").gte("assignment_date",dateFrom).lte("assignment_date",dateTo)
-        .in("status",["assigned","confirmed","completed"])
-        .order("assignment_date").order("period").order("id").range(from,to)),
-    ]);
-    const directoryByName=new Map(directory.filter((teacher:any)=>teacher.role==="teacher").map((teacher:any)=>[teacher.name,teacher]));
-    const archive=(rows||[]).map((row:any)=>{
-      const absentName=String(row.absent_teacher_name||"");
-      const absentTeacher=directoryByName.get(absentName) as any;
-      return {
-        id:String(row.id),assignmentDate:String(row.assignment_date||""),weekday:String(row.weekday||""),
-        absentTeacherName:absentName,
-        absentTeacherDepartment:String(absentTeacher?.departmentName||absentTeacher?.department||""),
-        substituteTeacherName:String(row.teacher_name||""),
-        period:Number(row.period||0),
-        className:Array.isArray(row.class_sections)?row.class_sections.join("، "):"",
-        subject:String(row.subject||""),
-        absenceReason:String(row.absence_reason||"-"),
-        reserveReason:String(row.reserve_reason||"-"),
-        status:String(row.status||""),
-      };
-    });
-    return reply(200,{ok:true,archive,dateFrom,dateTo});
   }
 
   // Archive is independent of the currently active timetable version: historical
