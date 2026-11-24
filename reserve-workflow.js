@@ -1636,6 +1636,70 @@
   function installMainSubstitutionViewIntegration(){
     const root=$("substitutionView");
     if(!root)return;
+    let canonicalHost=$("substitutionCanonicalWorkspace");
+    if(!canonicalHost){
+      canonicalHost=document.createElement("div");
+      canonicalHost.id="substitutionCanonicalWorkspace";
+      canonicalHost.className="space-y-4";
+      $("substitutionStatsPanel")?.before(canonicalHost);
+    }
+    [$("substitutionDate")?.closest(".grid"),$("substitutionAbsenteeList")?.closest(".rounded-3xl"),$("substitutionPlanPanel"),$("subxFloatingBar")].forEach(element=>element?.classList.add("hidden"));
+    root.querySelector(".subx-stepper")?.classList.add("hidden");
+    let canonicalPanelOrigin=window.__canonicalReservePanelOrigin||null;
+    function mountCanonicalPanel(){
+      const panel=$("timetableSubstitutionPanel"),host=$("substitutionCanonicalWorkspace");
+      if(!panel||!host)return false;
+      if(panel.parentElement!==host){
+        if(!canonicalPanelOrigin){
+          const placeholder=document.createElement("div");
+          placeholder.id="timetableSubstitutionPanelReturnPoint";
+          panel.parentNode?.insertBefore(placeholder,panel);
+          canonicalPanelOrigin={placeholder,wasHidden:panel.classList.contains("hidden")};
+          window.__canonicalReservePanelOrigin=canonicalPanelOrigin;
+        }
+        host.appendChild(panel);
+      }
+      panel.classList.remove("hidden");
+      return true;
+    }
+    function restoreCanonicalPanel(){
+      const panel=$("timetableSubstitutionPanel"),origin=canonicalPanelOrigin;
+      if(!panel||!origin?.placeholder?.parentNode)return;
+      origin.placeholder.parentNode.insertBefore(panel,origin.placeholder.nextSibling);
+      origin.placeholder.remove();
+      panel.classList.toggle("hidden",origin.wasHidden===true);
+      canonicalPanelOrigin=null;
+      window.__canonicalReservePanelOrigin=null;
+    }
+    if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
+      window.openSubstitutionView=async function(){
+        const allowed=isGeneralAdminUser(activeUser)||(activeUser?.type==="teacher"&&activeUser?.permissions?.reserve===true);
+        if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
+        ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
+        root.classList.remove("hidden");
+        if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
+        const date=$("timetableSubstitutionDate");
+        if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+        const canExpand=isGeneralAdminUser(activeUser)||activeUser?.permissions?.reserve===true||appAuthSession?.principal?.permissions?.reserve===true;
+        $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
+        try{
+          if(typeof window.timetableLoadSubstitutionOptions==="function")await window.timetableLoadSubstitutionOptions();
+          if(typeof window.timetableDailyLoadArchive==="function")await window.timetableDailyLoadArchive();
+          if(typeof window.substitutionLoadStats==="function")await window.substitutionLoadStats();
+        }catch(error){status(error?.message||"تعذر تحميل بيانات توزيع الاحتياط.","error");}
+      };
+      window.openSubstitutionView.__canonicalReserveWrapped=true;
+    }
+    if(typeof window.closeSubstitutionView==="function"&&!window.closeSubstitutionView.__canonicalReserveWrapped){
+      window.closeSubstitutionView=function(){
+        restoreCanonicalPanel();
+        root.classList.add("hidden");
+        $("dashboardSelectionView")?.classList.remove("hidden");
+        if(typeof window.refreshSubstitutionDashboardCard==="function")window.refreshSubstitutionDashboardCard();
+      };
+      window.closeSubstitutionView.__canonicalReserveWrapped=true;
+    }
+    const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
@@ -1740,7 +1804,6 @@
       const initializeHomeReserveView=()=>{
         if(substitutionView.classList.contains("hidden"))return;
         installMainSubstitutionViewIntegration();
-        installHomeReserveArchive();
       };
       const substitutionVisibilityObserver=new MutationObserver(initializeHomeReserveView);
       substitutionVisibilityObserver.observe(substitutionView,{attributes:true,attributeFilter:["class"]});
