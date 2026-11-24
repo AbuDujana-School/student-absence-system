@@ -8365,6 +8365,8 @@ async function saveAttendanceSession() {
 
 /* ============ Morning Assembly Lateness ============ */
 let morningAssemblySelectedClass = null;
+let morningAssemblyLatenessToday = new Set();
+let morningAssemblyLatenessTodayLoaded = false;
 let morningAssemblyReportRows = [];
 let morningAssemblyRefreshTimer = null;
 function canUseMorningAssemblyLateness() {
@@ -8403,9 +8405,12 @@ function openMorningAssemblyLateness() {
   if (!canUseMorningAssemblyLateness()) { showToast('التسجيل متاح للمناوب في يوم تكليفه أو لمن مُنح صلاحية غير المناوب، وذلك من 7:00 إلى 8:30 صباحاً.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
   ['dashboardSelectionView','classesView','attendanceView','behaviorClassesView','behaviorSessionView','dutyView','dutyClassesView','teacherTimetableView'].forEach(id => document.getElementById(id)?.classList.add('hidden'));
   document.getElementById('morningAssemblyLatenessView')?.classList.remove('hidden');
-  document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · الحفظ فوري عند اختيار الطالب';
+  morningAssemblyLatenessToday = new Set();
+  morningAssemblyLatenessTodayLoaded = false;
+  document.getElementById('morningAssemblyTodayStatus').textContent = 'اليوم: ' + getOmanLocalDate() + ' · جارٍ تحميل حالة تسجيل الطلاب...';
   renderMorningAssemblyClasses();
   renderMorningAssemblySearch();
+  void loadMorningAssemblyLatenessToday();
 }
 function closeMorningAssemblyLateness() {
   morningAssemblySelectedClass = null;
@@ -8450,11 +8455,29 @@ function morningAssemblyMatchScore(name, query) {
   const full = n.join(' '), queryText = q.join(' ');
   return (exactTokens * 10) + (full.includes(queryText) ? 30 : 0) - Math.max(0,n.length-q.length);
 }
+function morningAssemblyStudentKey(className,studentName) {
+  return String(className) + '|' + String(studentName);
+}
+function setMorningAssemblyStudentButtonState(button,name,className) {
+  if (!button) return;
+  const recorded = morningAssemblyLatenessToday.has(morningAssemblyStudentKey(className,name));
+  button.disabled = !morningAssemblyLatenessTodayLoaded;
+  button.classList.toggle('opacity-60', !morningAssemblyLatenessTodayLoaded);
+  button.classList.toggle('border-emerald-200', recorded);
+  button.classList.toggle('bg-emerald-50', recorded);
+  button.classList.toggle('dark:bg-emerald-950/30', recorded);
+  const actionText = recorded ? 'إلغاء التأخر' : 'تسجيل متأخر';
+  const actionClass = recorded
+    ? 'bg-rose-100 dark:bg-rose-950 text-rose-700 dark:text-rose-200'
+    : 'bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-200';
+  const icon = recorded ? 'fa-minus' : 'fa-plus';
+  button.innerHTML = '<span class="font-extrabold text-xs text-slate-800 dark:text-white">' + escapeHtml(name) + '<small class="block text-[10px] text-slate-400 mt-1">صف ' + escapeHtml(formatClassName(className)) + '</small><small class="block text-[10px] mt-1 ' + (recorded ? 'text-rose-700 dark:text-rose-300' : 'text-slate-500') + '">' + actionText + '</small></span><span class="w-9 h-9 shrink-0 rounded-xl ' + actionClass + ' flex items-center justify-center"><i class="fa-solid ' + icon + '"></i></span>';
+}
 function createMorningAssemblyStudentButton(name,className) {
   const btn = document.createElement('button');
   btn.type = 'button';
   btn.className = 'w-full flex items-center justify-between gap-3 rounded-2xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/80 hover:border-fuchsia-300 hover:bg-fuchsia-50 dark:hover:bg-fuchsia-950/30 p-3 text-right transition-all active:scale-[.99]';
-  btn.innerHTML = '<span class="font-extrabold text-xs text-slate-800 dark:text-white">' + escapeHtml(name) + '<small class="block text-[10px] text-slate-400 mt-1">صف ' + escapeHtml(formatClassName(className)) + '</small></span><span class="w-9 h-9 shrink-0 rounded-xl bg-fuchsia-100 dark:bg-fuchsia-950 text-fuchsia-700 dark:text-fuchsia-200 flex items-center justify-center"><i class="fa-solid fa-plus"></i></span>';
+  setMorningAssemblyStudentButtonState(btn,name,className);
   btn.onclick = () => recordMorningAssemblyLateness(className,name,btn);
   return btn;
 }
@@ -8483,25 +8506,47 @@ async function callMorningAssemblyLatenessApi(body) {
   if (!response.ok) { const error = new Error(data.error || 'تعذر تنفيذ العملية.'); error.status = response.status; error.data = data; throw error; }
   return data;
 }
+async function loadMorningAssemblyLatenessToday() {
+  try {
+    const data = await callMorningAssemblyLatenessApi({action:'today'});
+    morningAssemblyLatenessToday = new Set((data.rows || []).map(row => morningAssemblyStudentKey(row.class_name_snapshot,row.student_name_snapshot)));
+    morningAssemblyLatenessTodayLoaded = true;
+    const status = document.getElementById('morningAssemblyTodayStatus');
+    if (status) status.textContent = 'اليوم: ' + getOmanLocalDate() + ' · اضغط على الطالب للتسجيل أو اضغط مجدداً لإلغاء التأخر';
+    renderMorningAssemblyStudents();
+    renderMorningAssemblySearch();
+  } catch (error) {
+    morningAssemblyLatenessTodayLoaded = false;
+    const status = document.getElementById('morningAssemblyTodayStatus');
+    if (status) status.textContent = 'تعذر تحميل حالة الطلاب. أعد فتح القسم للتحقق من السجلات.';
+    showToast(error.message || 'تعذر تحميل سجلات التأخر لهذا اليوم.', 'error');
+    renderMorningAssemblyStudents();
+    renderMorningAssemblySearch();
+  }
+}
 async function recordMorningAssemblyLateness(className,studentName,button) {
   if (!canUseMorningAssemblyLateness()) { showToast('انتهت فترة التسجيل أو لم تعد المناوبة مفعلة.', 'error'); refreshMorningAssemblyLatenessCard(); return; }
+  if (!morningAssemblyLatenessTodayLoaded) {
+    showToast('انتظر حتى يتم تحميل حالة تسجيل الطلاب.', 'info');
+    return;
+  }
   if (button) { button.disabled = true; button.classList.add('opacity-60'); }
   try {
-    const result = await callMorningAssemblyLatenessApi({action:'record',class_name:className,student_name:studentName});
-    showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success');
-    if (button) { button.innerHTML = '<span class="font-extrabold text-xs text-emerald-700">تم التسجيل اليوم<small class="block text-[10px] mt-1">حُفظ مباشرة</small></span><span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-check"></i></span>'; }
-  } catch (error) {
-    if (error.status === 409) {
-      showToast('هذا الطالب تم تسجيل تأخره مسبقاً اليوم.', 'info');
-      if (button) {
-        button.disabled = true;
-        button.classList.remove('opacity-60');
-        button.innerHTML = '<span class="font-extrabold text-xs text-emerald-700">مسجل مسبقاً اليوم<small class="block text-[10px] mt-1">لم يُكرر السجل</small></span><span class="w-9 h-9 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center"><i class="fa-solid fa-check"></i></span>';
-      }
+    const result = await callMorningAssemblyLatenessApi({action:'toggle',class_name:className,student_name:studentName});
+    const key = morningAssemblyStudentKey(className,studentName);
+    if (result.action === 'removed') {
+      morningAssemblyLatenessToday.delete(key);
+      showToast('تم إلغاء تأخر ' + studentName + ' وإزالته من سجل اليوم.', 'success');
     } else {
-      showToast(error.message || 'تعذر حفظ التسجيل.', 'error');
-      if (button) { button.disabled = false; button.classList.remove('opacity-60'); }
+      morningAssemblyLatenessToday.add(key);
+      showToast('تم تسجيل تأخر ' + studentName + ' بنجاح.', 'success');
     }
+    renderMorningAssemblyStudents();
+    renderMorningAssemblySearch();
+  } catch (error) {
+    showToast(error.message || 'تعذر تعديل تسجيل التأخر.', 'error');
+    if (error.status === 409) void loadMorningAssemblyLatenessToday();
+    else if (button) { button.disabled = false; button.classList.remove('opacity-60'); }
   }
 }
 function buildMorningAssemblyReportRows(rows) {
