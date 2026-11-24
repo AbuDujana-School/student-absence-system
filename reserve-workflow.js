@@ -280,6 +280,18 @@
           }).join("")+'</div>'
           :'<p class="tt-reserve-checklist-empty">'+(options.length?"لا توجد نتائج مطابقة لبحثك.":"اختر التاريخ لتحميل قائمة المعلمين.")+'</p>');
     }
+    function addAbsentWithoutReason(name){
+      if(pending.has(name)||selectedNames().includes(name))return;
+      const handler=window.timetableDailyAddAbsent;
+      const add=handler?.__reserveAbsenceReasonOriginal||handler;
+      if(typeof add!=="function"){status("تعذر إضافة المعلم الغائب.","error");return;}
+      pending.add(name);render();
+      Promise.resolve(add.call(window,name)).then(()=>{
+        persistStoredDraft();
+      }).catch(error=>{
+        status(error?.message||"تعذر إضافة المعلم الغائب.","error");
+      }).finally(()=>{pending.delete(name);render();});
+    }
     function openReason(name,adding){
       const picker=window.openSubstitutionAbsenceReasonPicker;
       if(typeof picker!=="function"){status("تعذر فتح نافذة سبب الغياب. حدّث الصفحة ثم حاول مجدداً.","error");return;}
@@ -313,7 +325,7 @@
       if(!checkbox)return;
       const name=checkbox.getAttribute("data-tt-check-absent");
       if(checkbox.checked){
-        if(!selectedNames().includes(name))openReason(name,true);
+        if(!selectedNames().includes(name))addAbsentWithoutReason(name);
         else render();
       }else if(selectedNames().includes(name)){
         window.timetableDailyRemoveAbsent?.(name);
