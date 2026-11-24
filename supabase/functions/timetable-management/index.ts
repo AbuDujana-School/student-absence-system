@@ -1572,7 +1572,7 @@ async function handle(req: Request) {
         const requestedDate=String(body.assignmentDate||"").trim();
         if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
         const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
-          (canViewSchoolwideReserveArchive(principal.type)||teacher.departmentId===actorDepartmentId)).map((teacher:any)=>teacher.name));
+          (canViewSchoolwideReserveArchive(principal.type)||Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId))).map((teacher:any)=>teacher.name));
         const archive=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&
           visibleNames.has(String(row.absent_teacher_name||""))&&
           (!requestedDate||String(row.assignment_date||"")===requestedDate))
