@@ -1893,6 +1893,9 @@
     if(typeof window.appAuthRequest==="function"&&!window.appAuthRequest.__mainReserveReasonPayloadWrapped){
       const originalRequest=window.appAuthRequest;
       const wrappedRequest=async function(body,token,signal){
+        if(["timetable_substitution_update","timetable_substitution_update_batch"].includes(String(body?.action||""))&&includeOthers()){
+          body={...body,includeOtherDepartments:true,otherDepartmentSelections:otherDepartmentSelectionsPayload()};
+        }
         if(body?.action==="timetable_substitution_batch_save"&&Array.isArray(body.assignments)){
           body={...body,assignments:body.assignments.map(item=>({
             ...item,
