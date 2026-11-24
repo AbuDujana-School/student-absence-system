@@ -1910,7 +1910,11 @@
       const substitutionVisibilityObserver=new MutationObserver(initializeHomeReserveView);
       substitutionVisibilityObserver.observe(substitutionView,{attributes:true,attributeFilter:["class"]});
       const substitutionContentObserver=new MutationObserver(initializeHomeReserveView);
-      substitutionContentObserver.observe(substitutionView,{subtree:true,childList:true});
+      // Observe only direct children of the home view. The canonical timetable
+      // workspace is mounted inside this view; observing its entire subtree
+      // re-runs the full installer for every lesson/list/status DOM update and
+      // can lock the browser during reserve loading.
+      substitutionContentObserver.observe(substitutionView,{childList:true});
       initializeHomeReserveView();
     }
     const timetablePanel=$("timetableSubstitutionPanel");
