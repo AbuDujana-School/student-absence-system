@@ -31,7 +31,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
     { id: "general admin", user: { type: "admin", name: "مدير النظام العام" }, principal: { type: "admin", name: "مدير النظام العام" }, allowed: true, expand: true, custom: false },
     { id: "delegated admin", user: { type: "teacher", name: "مدير مفوض", permissions: { admin: true } }, principal: { type: "admin", name: "مدير مفوض" }, allowed: true, expand: true, custom: false },
     { id: "reserve teacher", user: { type: "teacher", name: "معلم احتياط", permissions: { reserve: true } }, principal: { type: "teacher", name: "معلم احتياط", permissions: { reserve: true } }, allowed: true, expand: true, custom: false },
-    { id: "custom coordinator", user: { type: "teacher", name: "منسق مخصص" }, principal: { type: "custom", name: "منسق مخصص", departmentId: "science" }, allowed: true, expand: false, custom: true },
+    { id: "custom coordinator", user: { type: "teacher", name: "منسق مخصص" }, principal: { type: "custom", name: "منسق مخصص", departmentId: "science" }, allowed: true, expand: true, custom: true },
     { id: "ordinary teacher", user: { type: "teacher", name: "معلم عادي", permissions: {} }, principal: { type: "teacher", name: "معلم عادي", permissions: {} }, allowed: false, expand: false, custom: false },
   ];
   for (const role of roles) {

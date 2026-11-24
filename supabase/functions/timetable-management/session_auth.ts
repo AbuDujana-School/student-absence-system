@@ -233,11 +233,14 @@ export function canUseTimetableAction(
   }
   const customSubstitutionActions = new Set([
     "timetable_substitution_preview",
+    "timetable_substitution_departments",
     "timetable_substitution_save",
     "timetable_substitution_cancel",
     "timetable_substitution_cancel_batch",
     "timetable_substitution_batch_preview",
     "timetable_substitution_batch_save",
+    "timetable_substitution_update",
+    "timetable_substitution_update_batch",
   ]);
   return new Set([
     "health",
@@ -247,11 +250,11 @@ export function canUseTimetableAction(
   ]).has(action);
 }
 
-/** The administrator or a teacher explicitly granted reserve-distribution permission may broaden substitute candidates. */
+/** Administrators, department-scoped reserve coordinators, and reserve-enabled teachers may explicitly select support teachers. */
 export function canIncludeOtherDepartments(
   principalType: TimetablePrincipalType, requested: unknown, hasReservePermission = false,
 ): boolean {
-  return requested === true && (principalType === "admin" || (principalType === "teacher" && hasReservePermission));
+  return requested === true && (principalType === "admin" || principalType === "custom" || (principalType === "teacher" && hasReservePermission));
 }
 
 export function canAccessTeacherTimetablePortal(enabled: unknown, selectedTeacherNames: unknown, teacherName: string): boolean {

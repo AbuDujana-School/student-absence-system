@@ -268,34 +268,21 @@ Deno.test("explicit timetable permissions keep their existing scoped substitutio
 });
 
 
-Deno.test("reserve archive and edit actions require explicit reserve permission", () => {
-  const actions = [
-    "timetable_substitution_archive",
-    "timetable_substitution_update",
-    "timetable_substitution_update_batch",
-  ];
-  for (const action of actions) {
-    if (!canUseTimetableAction("teacher", action, false, true)) {
-      throw new Error("Reserve-authorized teacher was denied: " + action);
-    }
-    if (canUseTimetableAction("teacher", action)) {
-      throw new Error("Teacher without reserve permission was allowed: " + action);
-    }
-    if (canUseTimetableAction("custom", action)) {
-      throw new Error("Custom coordinator was granted archive mutation: " + action);
-    }
-    if (!canUseTimetableAction("admin", action)) {
-      throw new Error("Administrator was denied: " + action);
-    }
+Deno.test("reserve archive stays restricted while department-scoped coordinators may edit their own reserve records", () => {
+  const archive = "timetable_substitution_archive";
+  if (!canUseTimetableAction("teacher", archive, false, true)) throw new Error("Reserve-authorized teacher was denied archive");
+  if (canUseTimetableAction("teacher", archive)) throw new Error("Teacher without reserve permission was allowed archive");
+  if (canUseTimetableAction("custom", archive)) throw new Error("Custom coordinator was granted schoolwide archive access");
+  if (!canUseTimetableAction("admin", archive)) throw new Error("Administrator was denied archive");
+
+  for (const action of ["timetable_substitution_update", "timetable_substitution_update_batch"]) {
+    if (!canUseTimetableAction("teacher", action, false, true)) throw new Error("Reserve-authorized teacher was denied: " + action);
+    if (canUseTimetableAction("teacher", action)) throw new Error("Teacher without reserve permission was allowed: " + action);
+    if (!canUseTimetableAction("custom", action)) throw new Error("Department-scoped coordinator was denied current-day edit: " + action);
+    if (!canUseTimetableAction("admin", action)) throw new Error("Administrator was denied: " + action);
   }
-  for (const action of [
-    "timetable_substitution_preview",
-    "timetable_substitution_save",
-    "timetable_substitution_cancel",
-  ]) {
-    if (!canUseTimetableAction("custom", action)) {
-      throw new Error("Custom coordinator lost the existing single-slot workflow: " + action);
-    }
+  for (const action of ["timetable_substitution_preview","timetable_substitution_save","timetable_substitution_cancel"]) {
+    if (!canUseTimetableAction("custom", action)) throw new Error("Custom coordinator lost the existing single-slot workflow: " + action);
   }
 });
 

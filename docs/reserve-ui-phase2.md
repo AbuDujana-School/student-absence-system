@@ -55,3 +55,15 @@ The custom coordinator checks are enforced server-side; hiding buttons in the UI
 - The new server-side scope checks read the existing teacher directory and active timetable; they do not mutate either.
 
 This branch is separate from Phase 1 permission design and from the historical PDF/archive work. No production code is changed by this audit document. Do not merge or deploy until the unified flow and the login/permission regression suite pass.
+
+
+## Follow-up: guided coordinator workflow and multiple support departments
+
+The guided workflow keeps the current weighted batch planner and its save/report actions while presenting them as four clear stages:
+
+1. Select the date and the absent teachers in the coordinator's department.
+2. Capture an absence reason for each selected teacher. The reason options are emergency, hospital appointment, sick leave, and other; the free-text detail for other is optional.
+3. Review suggested substitutes from the absent teacher's department. The coordinator may optionally open the support picker, select multiple departments, then select one or more active-timetable teachers within each department.
+4. Review the complete distribution, approve/publish it, and use the existing WhatsApp message and official A4/PDF print flow.
+
+The server accepts a list of department-to-teacher selections rather than trusting a flat list of names. It validates each selected teacher against the exact department and active timetable. Custom coordinators remain restricted to absent teachers in their own department; selected support teachers do not broaden absent-teacher scope or grant schoolwide archive/statistics access. Current-day edit/delete actions remain subject to the existing status and lesson-time limits.
