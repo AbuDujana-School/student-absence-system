@@ -62,8 +62,8 @@ Deno.test("main substitution view requires, saves, and prints the selected absen
   assert(html.includes("absenceReasonsByTeacher.has(name)"),"A reason is required for each selected absent teacher");
   assert(html.includes('absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"'),"The chosen reason must be included in the atomic batch-save payload");
   assert(html.includes("absenceReasonsByTeacher.get(name)||storedReason"),"The selected reason must be available to the official PDF when preview rows do not carry it yet");
-  assert(source.includes('const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"]'),"The picker must retain the five approved absence reasons");
-  assert(source.includes('if(choice==="أخرى"&&!custom)'),"The custom reason must be required when «أخرى» is selected");
+  assert(source.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى"]'),"The picker must show the four agreed absence reasons");
+  assert(source.includes('const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;'),"The free-text detail for «أخرى» must remain optional");
 });
 
 Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {
@@ -129,7 +129,7 @@ Deno.test("main reserve entry point mounts one canonical batch workspace and res
   const expandStart=integration.indexOf("const canExpand=");
   const expandEnd=integration.indexOf(";",expandStart);
   assert(expandStart>=0&&expandEnd>expandStart,"Cross-department authorization must be explicit");
-  assert(!integration.slice(expandStart,expandEnd).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must not receive cross-department controls");
+  assert(integration.slice(expandStart,expandEnd).includes('reservePrincipal?.type==="custom"'),"Department-scoped coordinators may explicitly open the support department picker");
 });
 
 Deno.test("canonical batch selection requires and preserves the absence reason", () => {
@@ -183,7 +183,7 @@ Deno.test("custom coordinator opens only the scoped reserve workspace without ar
   assert(openBlock.includes("if(!isCustomCoordinator)"),"Archive and statistics loading must be gated for custom coordinators");
   assert(openBlock.includes("timetableLoadSubstitutionOptions"),"Custom coordinators must retain the scoped operational preview workflow");
   assert(openBlock.includes("timetableDailyLoadArchive")&&openBlock.includes("substitutionLoadStats"),"Authorized non-custom accounts must retain archive and statistics loading");
-  assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
+  assert(integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators may open the optional support picker while remaining department-scoped");
 });
 
 
