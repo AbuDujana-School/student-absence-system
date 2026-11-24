@@ -367,8 +367,8 @@ async function handle(req: Request) {
     }
   }
   // The live reserve grant is already included in the teacher identity lookup.
-  const hasReservePermission = principal.type === "teacher" &&
-    action.startsWith("timetable_substitution_") && principal.reserveAccess === true;
+  const hasReservePermission = (principal.type === "custom" || (principal.type === "teacher" && principal.reserveAccess === true)) &&
+    action.startsWith("timetable_substitution_");
   // Only archive actions need the separate timetable grant; avoid this
   // permission query for every ordinary read while preserving the archive recheck.
   const needsArchiveGrant = ["timetable_substitution_archive", "timetable_substitution_archive_access"].includes(action);
