@@ -14,7 +14,7 @@ function extractFunction(source, marker) {
     if (quote) { if (escaped) { escaped = false; continue; } if (c === "\\") { escaped = true; continue; } if (c === quote) quote = null; continue; }
     if (c === "/" && n === "/") { line = true; i++; continue; }
     if (c === "/" && n === "*") { block = true; i++; continue; }
-    if (c === "'" || c === '"' || c === "\`") { quote = c; continue; }
+    if (c === "'" || c === '"' || c === String.fromCharCode(96)) { quote = c; continue; }
     if (c === "{") depth++;
     else if (c === "}" && --depth === 0) return source.slice(start, i + 1);
   }
@@ -32,7 +32,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
     { id: "ordinary teacher", user: { type: "teacher", name: "معلم عادي", permissions: {} }, principal: { type: "teacher", name: "معلم عادي", permissions: {} }, allowed: false, expand: false, custom: false },
   ];
   for (const role of roles) {
-    await page.setContent(\`
+    await page.setContent(`
       <main id="dashboardSelectionView"></main>
       <section id="substitutionView" class="hidden">
         <div class="subx-stepper"></div><div class="grid"><input id="substitutionDate"></div>
@@ -42,7 +42,7 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       </section>
       <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden">
         <button id="timetableDailyOtherDepartmentsButton">other departments</button>
-      </div></section>\`);
+      </div></section>`);
     await page.evaluate(({ role, integration }) => {
       const $ = (id) => document.getElementById(id);
       const activeUser = role.user;
