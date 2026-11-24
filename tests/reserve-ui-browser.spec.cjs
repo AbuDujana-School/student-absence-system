@@ -141,3 +141,58 @@ test("home reserve observer ignores nested canonical workspace mutations", async
   expect(source).toContain("substitutionContentObserver.observe(substitutionView,{childList:true});");
   expect(source).not.toContain("substitutionContentObserver.observe(substitutionView,{subtree:true,childList:true});");
 });
+
+test("premium reserve wizard advances progressively from date to absence and approval", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const premium = extractFunction(source, "function installPremiumReserveExperience(");
+  await page.setContent(`
+    <section id="timetableSubstitutionPanel">
+      <div><h3>توزيع الاحتياط اليومي</h3><p>اختيار اليوم وإعداد التوزيع</p></div>
+      <nav class="tt-reserve-steps"></nav>
+      <label><span>التاريخ</span><input id="timetableSubstitutionDate" type="date"></label>
+      <div><label>بحث المعلم</label><input id="timetableDailyAbsentSearch"></div>
+      <div id="timetableDailyAbsentTags"></div>
+      <div class="tt-toolbar"><button id="timetableDailySaveBatchButton">حفظ</button></div>
+      <div id="timetableSubstitutionResults"></div>
+    </section>`);
+  await page.evaluate(({ premium }) => {
+    const $ = id => document.getElementById(id);
+    const preview = { assignments: [], unassigned: [], existingAssignments: [] };
+    const approved = new Set();
+    const absentees = [];
+    const install = new Function("$", "reserveBatchPreview", "reserveDraftApproved", "timetableDailyAbsentTeachers",
+      premium + "; return installPremiumReserveExperience;")($, preview, approved, absentees);
+    install($("timetableSubstitutionPanel"));
+    window.__premiumReserveState = { preview, approved, absentees };
+  }, { premium });
+
+  const initial = await page.evaluate(() => ({
+    dateVisible: !document.getElementById("ttPremiumDateCard")?.hidden,
+    absentHidden: document.getElementById("ttPremiumAbsentCard")?.hidden,
+    toolbarHidden: document.getElementById("timetableDailySaveBatchButton").parentElement.hidden,
+    resultsReady: document.getElementById("timetableSubstitutionResults").classList.contains("tt-premium-results-ready")
+  }));
+  expect(initial.dateVisible).toBe(true);
+  expect(initial.absentHidden).toBe(true);
+  expect(initial.toolbarHidden).toBe(true);
+  expect(initial.resultsReady).toBe(false);
+
+  await page.locator("#timetableSubstitutionDate").fill("2026-11-25");
+  await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
+  await page.locator('[data-premium-step="2"]').click();
+  await expect(page.locator("#timetableDailyAbsentSearch")).toBeFocused();
+
+  await page.evaluate(() => {
+    window.__premiumReserveState.absentees.push("معلم تجريبي");
+    window.__premiumReserveState.preview.assignments.push({ absentTeacherName: "معلم تجريبي" });
+    document.getElementById("timetableDailyAbsentSearch").dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(page.locator("#timetableDailySaveBatchButton").locator("..")).toBeVisible();
+  await expect(page.locator("#timetableSubstitutionResults")).toHaveClass(/tt-premium-results-ready/);
+
+  await page.evaluate(() => {
+    window.__premiumReserveState.approved.add("معلم تجريبي");
+    document.getElementById("timetableDailyAbsentSearch").dispatchEvent(new Event("change", { bubbles: true }));
+  });
+  await expect(page.locator('[data-premium-step="4"]')).toHaveClass(/is-active/);
+});

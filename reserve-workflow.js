@@ -10,6 +10,7 @@
   let reserveManualChoices = Object.create(null);
   let reserveDraftScope = "";
   let reserveOtherDepartmentId = "";
+  let reserveOtherDepartmentIds = [];
   let reserveOtherDepartments = [];
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
@@ -32,7 +33,7 @@
       const actor=currentActorName();if(!actor)return;
       const {date,weekday}=timetableSubstitutionGetDate();
       localStorage.setItem(DRAFT_STORAGE_KEY,JSON.stringify({actor,date,weekday,savedAt:Date.now(),
-        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]}));
+        absentTeachers:[...timetableDailyAbsentTeachers],manualChoices:reserveManualChoices,reasons:reserveReasons,absenceReasons:reserveAbsenceReasons,approvedAbsentTeachers:[...reserveDraftApproved],includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:(selectedOtherDepartmentIds().length?selectedOtherDepartmentIds():reserveOtherDepartmentIds),otherTeacherNames:[...reserveSelectedOtherTeacherNames]}));
     }catch{}
   }
   function restoreStoredDraft(){
@@ -51,12 +52,13 @@
       if(otherToggle)otherToggle.checked=saved.includeOtherDepartments===true;
       const otherDepartmentSelect=$("timetableDailyOtherDepartmentSelect");
       if(saved.otherDepartmentId)reserveOtherDepartmentId=String(saved.otherDepartmentId);
+      reserveOtherDepartmentIds=Array.isArray(saved.otherDepartmentIds)?saved.otherDepartmentIds.map(String):saved.otherDepartmentId?[String(saved.otherDepartmentId)]:[];
       reserveSelectedOtherTeacherNames=new Set(Array.isArray(saved.otherTeacherNames)?saved.otherTeacherNames.map(String):[]);
-      if(otherDepartmentSelect&&saved.otherDepartmentId)otherDepartmentSelect.value=saved.otherDepartmentId;
+      if(otherDepartmentSelect){const savedIds=Array.isArray(saved.otherDepartmentIds)?saved.otherDepartmentIds.map(String):saved.otherDepartmentId?[String(saved.otherDepartmentId)]:[];Array.from(otherDepartmentSelect.options).forEach(option=>option.selected=savedIds.includes(option.value));}
       const otherButton=$("timetableDailyOtherDepartmentsButton");
       if(otherButton)otherButton.innerHTML=otherToggle?.checked
-        ?'<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى'
-        :'<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        ?'<i class="fa-solid fa-chevron-up ml-1"></i> إغلاق الأقسام المساندة'
+        :'<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
       reserveManualChoices=Object.assign(Object.create(null),saved.manualChoices||{});
       reserveDraftApproved=new Set(Array.isArray(saved.approvedAbsentTeachers)?saved.approvedAbsentTeachers.filter(name=>timetableDailyAbsentTeachers.includes(name)):[]);
       reserveReasons=Object.assign(Object.create(null),saved.reasons||{});
@@ -70,7 +72,7 @@
   const draftKey = (name, period) => String(name) + "\u0000" + Number(period);
   const reserveReasonKey = (name, period) => String(name) + "::" + Number(period);
   function currentDraftScope() {
-    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+selectedOtherDepartmentId():"department"].join("|"); }
+    try { const value=timetableSubstitutionGetDate(); return [value.date,value.weekday,includeOthers()?"other:"+selectedOtherDepartmentIds().join(","):"department"].join("|"); }
     catch { return ""; }
   }
   function currentPlanRows(response) {
@@ -90,7 +92,8 @@
   const esc = value => typeof timetableEsc === "function" ? timetableEsc(value) : String(value ?? "");
   const status = (message, kind) => timetableSubstitutionSetStatus(message, kind || "info");
   const includeOthers = () => $("timetableSubstitutionOtherDepartments")?.checked === true;
-  const selectedOtherDepartmentId = () => String($("timetableDailyOtherDepartmentSelect")?.value||reserveOtherDepartmentId||"").trim();
+  const selectedOtherDepartmentIds = () => {const select=$("timetableDailyOtherDepartmentSelect");if(select&&select.options.length)return Array.from(select.selectedOptions||[]).map(option=>String(option.value||"").trim()).filter(Boolean);return [...reserveOtherDepartmentIds];};
+  const selectedOtherDepartmentId = () => selectedOtherDepartmentIds()[0] || String(reserveOtherDepartmentId||"").trim();
   function updateBatchSaveVisibility(){
     const button=$("timetableDailySaveBatchButton");
     if(!button)return;
@@ -103,15 +106,34 @@
     button.disabled=!readyToSave||timetableDailyBusy;
     document.querySelectorAll("#timetableSubstitutionPanel button[onclick*=timetableDailyPrintReport],#timetableSubstitutionPanel button[onclick*=timetableDailyShareWhatsApp]").forEach(control=>control.classList.toggle("hidden",!reportsReady));
   }
+  function renderOtherDepartmentOptions() {
+    const host=$("timetableDailyOtherDepartmentChoices"),select=$("timetableDailyOtherDepartmentSelect");
+    if(!host||!select)return;
+    const selected=new Set(selectedOtherDepartmentIds());
+    host.innerHTML=reserveOtherDepartments.length?reserveOtherDepartments.map((department,index)=>
+      '<label class="tt-department-card flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-white p-3">'+
+      '<input type="checkbox" class="h-5 w-5 accent-indigo-600" data-other-department-id="'+esc(department.id)+'"'+(selected.has(String(department.id))?" checked":"")+'>'+
+      '<span class="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-indigo-50 text-indigo-700"><i class="fa-solid fa-book-open"></i></span>'+
+      '<span class="min-w-0"><strong class="block text-xs font-black text-slate-800">'+esc(department.name)+'</strong><small class="mt-1 block text-[10px] text-slate-500">'+(Array.isArray(department.teachers)?department.teachers.length:0)+' معلم متاح في الجدول</small></span></label>'
+    ).join(""):'<p class="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">لا توجد تخصصات مساندة متاحة حالياً.</p>';
+    host.querySelectorAll("[data-other-department-id]").forEach(input=>input.addEventListener("change",()=>{
+      const option=Array.from(select.options).find(item=>item.value===input.dataset.otherDepartmentId);
+      if(option)option.selected=input.checked;
+      select.dispatchEvent(new Event("change",{bubbles:true}));
+    }));
+  }
+
   function renderOtherDepartmentTeachers() {
     const host=$("timetableDailyOtherTeacherChoices"), add=$("timetableDailyAddOtherTeachersButton");
     if(!host)return;
-    const department=reserveOtherDepartments.find(item=>String(item.id)===selectedOtherDepartmentId());
-    const teachers=Array.isArray(department?.teachers)?department.teachers:[];
-    host.innerHTML=department ? (teachers.length ? teachers.map(teacher=>
-      '<label class="flex items-center gap-2 rounded-lg border border-slate-200 bg-white p-2 text-xs font-semibold"><input type="checkbox" class="h-4 w-4" data-other-teacher-name="'+esc(teacher.name)+'"'+(reserveSelectedOtherTeacherNames.has(String(teacher.name))?" checked":"")+'><span>'+esc(teacher.name)+'</span></label>'
-    ).join("") : '<p class="text-xs text-slate-500">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>') : '<p class="text-xs text-slate-500">اختر القسم لعرض معلميه.</p>';
-    if(add)add.disabled=!department||teachers.length===0;
+    const selectedIds=selectedOtherDepartmentIds();
+    const departments=reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)));
+    const teachers=departments.flatMap(department=>(Array.isArray(department.teachers)?department.teachers:[]).map(teacher=>({...teacher,departmentName:department.name,departmentId:String(department.id)})));
+    const uniqueTeachers=[...new Map(teachers.map(teacher=>[String(teacher.name),teacher])).values()];
+    host.innerHTML=departments.length ? (uniqueTeachers.length ? uniqueTeachers.map(teacher=>
+      '<label class="tt-other-teacher-card flex items-center gap-3 rounded-xl border border-indigo-100 bg-white p-3 text-xs font-bold"><input type="checkbox" class="h-5 w-5 accent-indigo-600" data-other-teacher-name="'+esc(teacher.name)+'"'+(reserveSelectedOtherTeacherNames.has(String(teacher.name))?" checked":"")+'><span class="min-w-0"><strong class="block text-slate-800">'+esc(teacher.name)+'</strong><small class="mt-1 block text-indigo-600">'+esc(teacher.departmentName)+'</small></span></label>'
+    ).join("") : '<p class="text-xs text-slate-500">لا يوجد معلمون مؤهلون في الأقسام المحددة ضمن الجدول النشط.</p>') : '<p class="text-xs text-slate-500">حدد تخصصاً واحداً أو أكثر لعرض معلميه.</p>';
+    if(add)add.disabled=!departments.length||uniqueTeachers.length===0;
   }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
@@ -119,17 +141,20 @@
     const select=$("timetableDailyOtherDepartmentSelect");
     if(!select)return;
     reserveOtherDepartments=Array.isArray(result.departments)?result.departments:[];
-    const current=reserveOtherDepartmentId||selectedOtherDepartmentId();
-    select.innerHTML='<option value="">اختر المادة / القسم المساند</option>'+
-      reserveOtherDepartments.map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
-    if(current && reserveOtherDepartments.some(item=>item.id===current)){select.value=current;reserveOtherDepartmentId=current;}
+    const currentIds=selectedOtherDepartmentIds();
+    const current=currentIds.length?currentIds:(reserveOtherDepartmentId?[reserveOtherDepartmentId]:[]);
+    select.innerHTML=reserveOtherDepartments.map(item=>'<option value="'+esc(item.id)+'">'+esc(item.name)+'</option>').join("");
+    Array.from(select.options).forEach(option=>option.selected=current.includes(option.value));
+    reserveOtherDepartmentIds=[...current];
+    reserveOtherDepartmentId=selectedOtherDepartmentIds()[0]||"";
+    renderOtherDepartmentOptions();
     renderOtherDepartmentTeachers();
   }
 
   function reserveCurrentMuscatDate(){
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
-  const ABSENCE_REASON_OPTIONS=["طارئة","مرضية","موعد مستشفى","دورة تدريبية","أخرى"];
+  const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
     const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
@@ -137,9 +162,16 @@
     const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
     const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
     modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
-    modal.innerHTML='<section class="w-full max-w-md space-y-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl" dir="rtl">'+
-      '<div><h3 class="text-base font-black text-slate-900">تحديد سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر سبب الغياب قبل إضافة المعلم إلى توزيع الاحتياط.</p></div>'+
-      '<div class="grid gap-2">'+ABSENCE_REASON_OPTIONS.map(reason=>'<label class="flex cursor-pointer items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm font-bold text-slate-800"><input type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span>'+esc(reason)+'</span></label>').join("")+'</div>'+
+    const reasonPresentation={
+      "طارئة":{icon:"fa-bolt",hint:"حالة طارئة"},
+      "موعد مستشفى":{icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
+      "مرضية":{icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
+      "أخرى":{icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
+      "دورة تدريبية":{icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
+    };
+    modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
+      '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
+      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
       '<label id="ttAbsenceReasonOtherWrap" class="'+(selected==="أخرى"?"":"hidden")+' block text-xs font-bold text-slate-700">اكتب سبب الغياب<textarea id="ttAbsenceReasonOther" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm" placeholder="اكتب سبب الغياب بالتفصيل...">'+esc(customValue)+'</textarea></label>'+
       '<p id="ttAbsenceReasonError" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-bold text-rose-700"></p>'+
       '<div class="flex justify-end gap-2"><button type="button" data-absence-reason-cancel class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">إلغاء</button><button type="button" data-absence-reason-confirm class="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-black text-white">موافق</button></div></section>';
@@ -157,8 +189,7 @@
       const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
       const error=modal.querySelector("#ttAbsenceReasonError");
       if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
-      if(choice==="أخرى"&&!custom){error.textContent="اكتب سبب الغياب عند اختيار «أخرى».";error.classList.remove("hidden");modal.querySelector("#ttAbsenceReasonOther")?.focus();return;}
-      const value=choice==="أخرى"?"أخرى: "+custom:choice;
+      const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;
       if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
@@ -212,6 +243,69 @@
   }
 
 
+
+  function installPremiumReserveExperience(panel) {
+    if(!panel||panel.dataset.premiumReserveExperience==="1")return;
+    panel.dataset.premiumReserveExperience="1";
+    const title=panel.querySelector("h3"),intro=title?.parentElement;
+    if(intro){
+      intro.classList.add("tt-premium-hero");
+      const oldSteps=panel.querySelector(".tt-reserve-steps");
+      if(oldSteps)oldSteps.outerHTML=
+        '<nav class="tt-premium-stepper" aria-label="مراحل توزيع الاحتياط">'+
+        '<button type="button" class="tt-premium-step is-active" data-premium-step="1"><span class="tt-premium-step-icon"><i class="fa-regular fa-calendar-days"></i></span><span><b>١ · التاريخ</b><small>حدد يوم الاحتياط</small></span></button>'+
+        '<button type="button" class="tt-premium-step" data-premium-step="2"><span class="tt-premium-step-icon"><i class="fa-solid fa-user-check"></i></span><span><b>٢ · الغياب</b><small>اختر المعلمين وأسبابهم</small></span></button>'+
+        '<button type="button" class="tt-premium-step" data-premium-step="3"><span class="tt-premium-step-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span><span><b>٣ · البدلاء</b><small>اقتراحات النظام الذكي</small></span></button>'+
+        '<button type="button" class="tt-premium-step" data-premium-step="4"><span class="tt-premium-step-icon"><i class="fa-solid fa-clipboard-check"></i></span><span><b>٤ · الاعتماد</b><small>مراجعة ونشر ومشاركة</small></span></button></nav>';
+      if(!panel.querySelector(".tt-premium-intro"))intro.insertAdjacentHTML("afterend",'<div class="tt-premium-intro"><span class="tt-premium-spark"><i class="fa-solid fa-wand-magic-sparkles"></i></span><div><strong>مساحة إعداد احتياط متكاملة</strong><p>ابدأ بالتاريخ، ثم حدد الغياب، ودع النظام يقترح التوزيع الأنسب.</p></div></div>');
+    }
+    const date=$("timetableSubstitutionDate");
+    if(date){
+      const dateWrap=date.closest("label")||date.parentElement;
+      if(dateWrap&&!dateWrap.closest("#ttPremiumDateCard")){
+        const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
+        card.innerHTML='<div class="tt-premium-card-heading"><span class="tt-premium-icon tt-icon-date"><i class="fa-regular fa-calendar-check"></i></span><div><strong>الخطوة الأولى: اختر تاريخ الاحتياط</strong><small>حدد اليوم الدراسي الذي تريد إعداد التوزيع له</small></div><span class="tt-premium-chip">البداية</span></div>';
+        dateWrap.parentNode?.insertBefore(card,dateWrap);card.appendChild(dateWrap);dateWrap.classList.add("tt-premium-date-control");
+      }
+    }
+    const search=$("timetableDailyAbsentSearch");
+    if(search){
+      const searchWrap=search.parentElement;search.classList.add("tt-premium-search");search.setAttribute("aria-label","ابحث عن المعلم الغائب");
+      const label=searchWrap?.querySelector("label");if(label)label.textContent="ابحث بالاسم ثم اختر المعلم الغائب";
+      const tags=$("timetableDailyAbsentTags");if(tags)tags.classList.add("tt-premium-selected-tags");
+      if(searchWrap&&!searchWrap.closest("#ttPremiumAbsentCard")){
+        const card=document.createElement("section");card.id="ttPremiumAbsentCard";card.className="tt-premium-card tt-premium-absent-card";
+        card.innerHTML='<div class="tt-premium-card-heading"><span class="tt-premium-icon tt-icon-absent"><i class="fa-solid fa-user-minus"></i></span><div><strong>الخطوة الثانية: تحديد المعلمين الغائبين</strong><small>يمكنك اختيار أكثر من معلم، وسيُطلب سبب الغياب لكل واحد</small></div></div>';
+        searchWrap.parentNode?.insertBefore(card,searchWrap);card.appendChild(searchWrap);if(tags&&tags.parentNode!==card)card.appendChild(tags);
+      }
+    }
+    const toolbar=$("timetableDailySaveBatchButton")?.parentElement;if(toolbar)toolbar.classList.add("tt-premium-toolbar");
+    const results=$("timetableSubstitutionResults");if(results)results.classList.add("tt-premium-results");
+    const update=()=>{
+      const hasDate=!!String(date?.value||"").trim(),hasAbsentees=Array.isArray(timetableDailyAbsentTeachers)&&timetableDailyAbsentTeachers.length>0;
+      const hasPlan=!!(reserveBatchPreview&&(reserveBatchPreview.assignments?.length||reserveBatchPreview.unassigned?.length||reserveBatchPreview.existingAssignments?.length));
+      const required=[...new Set([...(reserveBatchPreview?.assignments||[]),...(reserveBatchPreview?.unassigned||[])].map(row=>String(row.absentTeacherName||"")).filter(Boolean))];
+      const allApproved=required.length>0&&required.every(name=>reserveDraftApproved.has(name));
+      const hasSaved=(reserveBatchPreview?.existingAssignments||[]).length>0;
+      const workflowComplete=allApproved||(required.length===0&&hasSaved);
+      const stage=!hasDate?1:!hasAbsentees?2:!hasPlan?3:workflowComplete?4:3;
+      panel.querySelectorAll("[data-premium-step]").forEach(step=>{const n=Number(step.dataset.premiumStep);step.classList.toggle("is-active",n===stage);step.classList.toggle("is-complete",n<stage);});
+      $("ttPremiumDateCard")?.classList.toggle("is-complete",hasDate);
+      const absentCard=$("ttPremiumAbsentCard");
+      if(absentCard){absentCard.hidden=!hasDate;absentCard.classList.toggle("is-current",hasDate);absentCard.classList.toggle("is-complete",hasAbsentees);}
+      if(toolbar){toolbar.hidden=!hasAbsentees;toolbar.classList.toggle("tt-premium-toolbar-ready",hasAbsentees);}
+      if(results)results.classList.toggle("tt-premium-results-ready",hasAbsentees);
+    };
+    panel.querySelectorAll("[data-premium-step]").forEach(button=>button.addEventListener("click",()=>{
+      const target=Number(button.dataset.premiumStep)===1?$("ttPremiumDateCard"):Number(button.dataset.premiumStep)===2?$("ttPremiumAbsentCard"):Number(button.dataset.premiumStep)===3?toolbar:results;
+      if(target&&!target.hidden){target.scrollIntoView({behavior:"smooth",block:"center"});target.querySelector("input,select,button")?.focus?.({preventScroll:true});}
+    }));
+    date?.addEventListener("change",update);date?.addEventListener("input",update);
+    panel.addEventListener("change",event=>{if(event.target?.id==="timetableDailyAbsentSearch"||event.target?.matches?.('[name="substitutionAbsentTeacher"]'))queueMicrotask(update);});
+    panel.addEventListener("click",event=>{if(event.target?.closest?.("[data-tt-remove-absent],[data-tt-approve],#timetableDailySaveBatchButton"))queueMicrotask(update);});
+    const observer=new MutationObserver(update);if(results)observer.observe(results,{childList:true,subtree:true});const tags=$("timetableDailyAbsentTags");if(tags)observer.observe(tags,{childList:true,subtree:true});update();
+  }
+
   function installReserveEnhancements() {
     const panel = $("timetableSubstitutionPanel");
     if (!panel || panel.dataset.reserveEnhanced === "1") return;
@@ -261,7 +355,7 @@
     if (otherLabel) otherLabel.classList.add("hidden");
     if (otherToggle) otherToggle.removeAttribute("onchange");
     if (toolbar) {
-      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800"><i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى</button>');
+      toolbar.insertAdjacentHTML("beforeend", '<button type="button" id="timetableDailyOtherDepartmentsButton" class="tt-action flex items-center gap-3 rounded-2xl border border-indigo-200 bg-white px-4 py-3 text-indigo-900"><span class="grid h-10 w-10 place-items-center rounded-xl bg-indigo-50 text-lg"><i class="fa-solid fa-people-group"></i></span><span class="text-right"><strong class="block text-sm font-black">استعارة معلمين من أقسام أخرى</strong><small class="mt-1 block text-[10px] font-medium text-indigo-600">اختيار تخصص واحد أو أكثر</small></span></button>');
       $("timetableDailyOtherDepartmentsButton")?.addEventListener("click", async () => {
         const toggle=$("timetableSubstitutionOtherDepartments");
         const button=$("timetableDailyOtherDepartmentsButton");
@@ -272,38 +366,42 @@
           try{
             await loadOtherDepartments();
             $("timetableDailyOtherDepartmentWrap")?.classList.remove("hidden");
-            button.innerHTML='<i class="fa-solid fa-filter-circle-xmark ml-1"></i> إخفاء الأقسام الأخرى';
+            button.innerHTML='<i class="fa-solid fa-chevron-up ml-1"></i> إغلاق الأقسام المساندة';
             if(!selectedOtherDepartmentId()){
               status("اختر القسم المساند أولاً؛ لن تظهر أسماء المعلمين قبل اختيار القسم.","info");
-              $("timetableDailyOtherDepartmentSelect")?.focus();return;
+              $("timetableDailyOtherDepartmentChoices")?.querySelector("input")?.focus();return;
             }
             await timetableDailyRefreshAll();
           }catch(error){
             toggle.checked=false;
             if(select){select.value="";select.closest("label")?.classList.add("hidden");}
-            reserveOtherDepartmentId="";
-            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+            reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];
+            button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
             status(error?.message||"تعذر تحميل الأقسام المساندة. حاول مرة أخرى.","error");
           }finally{button.disabled=false;}
           return;
         }
         toggle.checked=false;
         if(select){select.value="";select.closest("label")?.classList.add("hidden");}
-        reserveOtherDepartmentId="";reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
-        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> جلب بدلاء من الأقسام الأخرى';
+        reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
+        button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
         await timetableDailyRefreshAll();
       });
-      const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[220px] text-[10px] font-bold text-slate-600"><label class="block"><span class="mb-1 block">القسم المساند</span><select id="timetableDailyOtherDepartmentSelect" class="w-full rounded-xl border border-indigo-200 bg-white p-2 text-xs"><option value="">اختر المادة / القسم المساند</option></select></label><section class="mt-2 rounded-xl border border-indigo-100 bg-indigo-50/70 p-3"><p class="mb-2 text-xs font-black text-slate-800">حدد المعلمين الذين ترغب في إضافتهم</p><div id="timetableDailyOtherTeacherChoices" class="grid max-h-52 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر القسم لعرض معلميه.</p></div><button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-lg bg-indigo-700 px-3 py-2 text-xs font-black text-white disabled:cursor-not-allowed disabled:opacity-50" disabled>إضافة المعلمين المحددين</button><p class="mt-2 text-[10px] text-slate-500">لن يُستخدم أي معلم قبل تحديده والضغط على زر الإضافة.</p></section></div>';
+      const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[260px] text-xs font-bold text-slate-700">  <section class="rounded-2xl border border-indigo-100 bg-white p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700 text-xl"><i class="fa-solid fa-layer-group"></i></span><div><strong class="block text-sm text-slate-900">اختر التخصصات المساندة</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">يمكنك اختيار أكثر من تخصص في الوقت نفسه</small></div></div>    <div id="timetableDailyOtherDepartmentChoices" class="grid grid-cols-1 gap-2 sm:grid-cols-2"><p class="text-xs text-slate-500">جارٍ تحميل التخصصات...</p></div>    <select id="timetableDailyOtherDepartmentSelect" multiple class="hidden" aria-hidden="true" tabindex="-1"></select>  </section>  <section class="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-white text-indigo-700 text-lg"><i class="fa-solid fa-users"></i></span><div><strong class="block text-sm text-slate-900">اختر المعلمين البدلاء</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">حدد معلماً أو أكثر من التخصصات التي اخترتها</small></div></div>    <div id="timetableDailyOtherTeacherChoices" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر التخصص أولاً لعرض المعلمين.</p></div>    <button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-md disabled:cursor-not-allowed disabled:opacity-50" disabled><i class="fa-solid fa-user-plus ml-1"></i> إضافة المعلمين المحددين</button>    <p class="mt-2 text-[10px] text-slate-500">لن يدخل أي معلم في التوزيع إلا بعد تحديده والضغط على زر الإضافة.</p>  </section></div>';
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
       $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",()=>{
-        reserveOtherDepartmentId=selectedOtherDepartmentId();reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";reserveDraftApproved=new Set();
-        reserveBatchPreview=null;reserveDraftAssignments=[];renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();
-        status("حدد المعلمين الذين تريد الاستعانة بهم من القسم المختار، ثم اضغط إضافة المعلمين المحددين.","info");
+        const selectedIds=selectedOtherDepartmentIds();reserveOtherDepartmentIds=[...selectedIds];reserveOtherDepartmentId=selectedIds[0]||"";
+        renderOtherDepartmentOptions();
+        const eligibleNames=new Set(reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name))));
+        reserveSelectedOtherTeacherNames=new Set([...reserveSelectedOtherTeacherNames].filter(name=>eligibleNames.has(name)));
+        reserveDraftScope="";reserveDraftApproved=new Set();reserveBatchPreview=null;reserveDraftAssignments=[];
+        renderOtherDepartmentTeachers();window.timetableDailyRenderLessons();
+        status(selectedIds.length?"حدد المعلمين من التخصصات المختارة، ثم اضغط إضافة المعلمين المحددين. يمكنك اختيار أكثر من تخصص.":"أزلت تحديد الأقسام المساندة.","info");
       });
       $("timetableDailyAddOtherTeachersButton")?.addEventListener("click",async()=>{
         const selected=[...document.querySelectorAll("#timetableDailyOtherTeacherChoices [data-other-teacher-name]:checked")].map(input=>String(input.dataset.otherTeacherName||"")).filter(Boolean);
         if(!selected.length){status("حدد معلماً واحداً على الأقل قبل الإضافة.","error");return;}
-        reserveSelectedOtherTeacherNames=new Set(selected);reserveDraftScope="";reserveDraftApproved=new Set();
+        reserveSelectedOtherTeacherNames=new Set(selected);reserveOtherDepartmentId=selectedOtherDepartmentId();reserveDraftScope="";reserveDraftApproved=new Set();
         const add=$("timetableDailyAddOtherTeachersButton");if(add)add.disabled=true;
         try{await timetableDailyRefreshAll();status("تمت إضافة "+selected.length+" من المعلمين الذين حددتهم فقط إلى قائمة البدلاء المتاحين.","success");}
         catch(error){status(error?.message||"تعذر تحميل البدلاء المحددين.","error");}
@@ -329,7 +427,63 @@
     const style = document.createElement("style");
     style.id = "reserve-workflow-styles";
     style.textContent = [
-      "#timetableSubstitutionPanel{isolation:isolate}",
+      "#timetableSubstitutionPanel{isolation:isolate;color:#172033}",
+      "#timetableSubstitutionPanel .tt-premium-hero{position:relative;overflow:hidden;border-radius:1.5rem!important;background:radial-gradient(circle at 8% 0%,rgba(52,211,153,.22),transparent 36%),linear-gradient(125deg,#0b1830 0%,#102c43 54%,#075c50 100%)!important;color:#fff!important;padding:1.4rem!important;box-shadow:0 18px 42px rgba(15,23,42,.18)}",
+      "#timetableSubstitutionPanel .tt-premium-hero h3{color:#fff!important;font-size:clamp(1.25rem,2vw,1.65rem)!important;letter-spacing:-.02em}",
+      "#timetableSubstitutionPanel .tt-premium-hero p{color:#d8e9e8!important;font-size:.82rem!important;line-height:1.8}",
+      "#timetableSubstitutionPanel .tt-premium-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.15rem}",
+      "#timetableSubstitutionPanel .tt-premium-step{display:flex;align-items:center;gap:.7rem;min-width:0;width:100%;padding:.85rem .9rem;border:1px solid #dce5ee;border-radius:1.1rem;background:linear-gradient(145deg,#fff,#f7fafc);text-align:right;cursor:pointer;transition:all .2s ease}",
+      "#timetableSubstitutionPanel .tt-premium-step-icon{display:grid;place-items:center;flex:0 0 2.7rem;width:2.7rem;height:2.7rem;border-radius:.9rem;background:#edf2f7;color:#64748b;font-size:1.15rem}",
+      "#timetableSubstitutionPanel .tt-premium-step b{display:block;color:#334155;font-size:.75rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-premium-step small{display:block;margin-top:.18rem;color:#718096;font-size:.62rem;line-height:1.5}",
+      "#timetableSubstitutionPanel .tt-premium-step.is-active{border-color:#0f9f77;background:linear-gradient(145deg,#ecfdf5,#fff);box-shadow:0 8px 22px rgba(16,185,129,.12);transform:translateY(-1px)}",
+      "#timetableSubstitutionPanel .tt-premium-step.is-active .tt-premium-step-icon{background:#0f9f77;color:#fff}",
+      "#timetableSubstitutionPanel .tt-premium-step.is-complete .tt-premium-step-icon{background:#dcfce7;color:#047857}",
+      "#timetableSubstitutionPanel .tt-premium-intro{display:flex;align-items:center;gap:.8rem;margin:.8rem 0 1rem;padding:.9rem 1rem;border:1px solid #dcefe8;border-radius:1rem;background:linear-gradient(110deg,#f0fdf8,#f8fbff)}",
+      "#timetableSubstitutionPanel .tt-premium-spark{display:grid;place-items:center;flex:0 0 2.6rem;height:2.6rem;border-radius:.9rem;background:#d1fae5;color:#047857;font-size:1.1rem}",
+      "#timetableSubstitutionPanel .tt-premium-intro strong{display:block;color:#0f3d35;font-size:.82rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-premium-intro p{margin-top:.15rem;color:#64748b;font-size:.68rem}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked){border-color:#10b981;background:linear-gradient(120deg,#ecfdf5,#fff);box-shadow:0 7px 18px rgba(16,185,129,.12)}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked)>span:first-of-type{background:#d1fae5;color:#047857}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:focus-within{outline:3px solid rgba(16,185,129,.2);outline-offset:2px}",
+      "#timetableSubstitutionPanel .tt-premium-card{margin:1rem 0;padding:1.1rem;border:1px solid #dce5ee;border-radius:1.35rem;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s}",
+      "#timetableSubstitutionPanel .tt-premium-card.is-current{border-color:#7dd3b0;box-shadow:0 12px 32px rgba(16,185,129,.09)}",
+      "#timetableSubstitutionPanel .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
+      "#timetableSubstitutionPanel .tt-premium-card-heading{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}",
+      "#timetableSubstitutionPanel .tt-premium-card-heading>div{min-width:0;flex:1}",
+      "#timetableSubstitutionPanel .tt-premium-card-heading strong{display:block;color:#172033;font-size:.92rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-premium-card-heading small{display:block;margin-top:.2rem;color:#64748b;font-size:.68rem;line-height:1.6}",
+      "#timetableSubstitutionPanel .tt-premium-icon{display:grid;place-items:center;flex:0 0 3.2rem;width:3.2rem;height:3.2rem;border-radius:1.05rem;font-size:1.35rem}",
+      "#timetableSubstitutionPanel .tt-icon-date{background:#e0f2fe;color:#0369a1}",
+      "#timetableSubstitutionPanel .tt-icon-absent{background:#fff1f2;color:#be123c}",
+      "#timetableSubstitutionPanel .tt-premium-chip{padding:.35rem .7rem;border-radius:999px;background:#ecfdf5;color:#047857;font-size:.62rem;font-weight:900}",
+      "#timetableSubstitutionPanel .tt-premium-date-control{max-width:26rem;padding:.15rem}",
+      "#timetableSubstitutionPanel .tt-premium-date-control input{width:100%;min-height:3.2rem;border:1px solid #cbd5e1;border-radius:1rem;background:#f8fafc;padding:.75rem 1rem;font-size:1rem;font-weight:800;color:#0f172a}",
+      "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
+      "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
+      "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
+      "#timetableSubstitutionPanel [hidden]{display:none!important}",
+      "#timetableSubstitutionPanel .tt-premium-toolbar .tt-action{min-height:3rem;border-radius:1rem;padding:.75rem 1rem;font-size:.8rem;font-weight:900;box-shadow:0 4px 10px rgba(15,23,42,.05)}",
+      "#timetableSubstitutionPanel .tt-premium-results{display:none;margin-top:1rem}",
+      "#timetableSubstitutionPanel .tt-premium-results.tt-premium-results-ready{display:block}",
+      "#timetableSubstitutionPanel .tt-department-card{min-height:4.4rem;transition:border-color .15s,background .15s,box-shadow .15s}",
+      "#timetableSubstitutionPanel .tt-department-card:has(input:checked){border-color:#818cf8;background:linear-gradient(120deg,#eef2ff,#fff);box-shadow:0 5px 14px rgba(99,102,241,.09)}",
+      "#timetableSubstitutionPanel .tt-department-multiselect option{padding:.45rem;border-radius:.45rem}",
+      "#timetableSubstitutionPanel .tt-other-teacher-card{transition:border-color .15s,background .15s}",
+      "#timetableSubstitutionPanel .tt-other-teacher-card:has(input:checked){border-color:#818cf8;background:#eef2ff}",
+      ".dark #timetableSubstitutionPanel .tt-premium-card{border-color:#334155;background:linear-gradient(145deg,#111c2e,#0f172a);box-shadow:0 12px 30px rgba(0,0,0,.18)}",
+      ".dark #timetableSubstitutionPanel .tt-premium-card-heading strong,.dark #timetableSubstitutionPanel .tt-premium-step b{color:#f1f5f9}",
+      ".dark #timetableSubstitutionPanel .tt-premium-card-heading small,.dark #timetableSubstitutionPanel .tt-premium-step small{color:#a8b5c7}",
+      ".dark #timetableSubstitutionPanel .tt-premium-step{border-color:#334155;background:linear-gradient(145deg,#172338,#111c2e)}",
+      ".dark #timetableSubstitutionPanel .tt-premium-step.is-active{border-color:#34d399;background:linear-gradient(145deg,#12382f,#172338)}",
+      ".dark #timetableSubstitutionPanel .tt-premium-intro{border-color:#285348;background:linear-gradient(110deg,#102e2a,#172338)}",
+      ".dark #timetableSubstitutionPanel .tt-premium-intro strong{color:#d1fae5}",
+      ".dark #timetableSubstitutionPanel .tt-premium-date-control input,.dark #timetableSubstitutionPanel .tt-premium-search{border-color:#475569!important;background:#0f172a!important;color:#f8fafc!important}",
+      ".dark #timetableSubstitutionPanel .tt-department-card,.dark #timetableSubstitutionPanel .tt-other-teacher-card{border-color:#334155;background:#172338}",
+      ".dark #timetableSubstitutionPanel .tt-department-card strong,.dark #timetableSubstitutionPanel .tt-other-teacher-card strong{color:#f1f5f9}",
+      ".dark #timetableSubstitutionPanel .tt-department-card:has(input:checked),.dark #timetableSubstitutionPanel .tt-other-teacher-card:has(input:checked){border-color:#818cf8;background:#24264a}",
+      "@media(max-width:700px){#timetableSubstitutionPanel .tt-premium-stepper{grid-template-columns:repeat(2,minmax(0,1fr))}#timetableSubstitutionPanel .tt-premium-step{padding:.7rem}#timetableSubstitutionPanel .tt-premium-step-icon{flex-basis:2.4rem;width:2.4rem;height:2.4rem}#timetableSubstitutionPanel .tt-premium-card{padding:.9rem}}",
+      "@media(max-width:420px){#timetableSubstitutionPanel .tt-premium-stepper{grid-template-columns:1fr 1fr}#timetableSubstitutionPanel .tt-premium-step small{font-size:.55rem}}",
       "#timetableSubstitutionPanel .tt-reserve-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;margin:.2rem 0}",
       "#timetableSubstitutionPanel .tt-reserve-steps button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;column-gap:.55rem;text-align:right;padding:.7rem;border:1px solid #dbe4ed;border-radius:1rem;background:#f8fafc;min-width:0}",
       "#timetableSubstitutionPanel .tt-reserve-steps button span{grid-row:1/3;display:grid;place-items:center;width:2rem;height:2rem;border-radius:.7rem;background:#d1fae5;color:#065f46;font-weight:900}",
@@ -354,17 +508,18 @@
     ].join("\n");
     document.head.appendChild(style);
     updateBatchSaveVisibility();
+    installPremiumReserveExperience(panel);
   }
 
   async function fetchBatchPreview() {
-    if(includeOthers()&&!selectedOtherDepartmentId())throw new Error("اختر القسم المساند أولاً قبل تحميل أسماء المعلمين.");
+    if(includeOthers()&&!selectedOtherDepartmentIds().length)throw new Error("اختر تخصصاً واحداً على الأقل قبل تحميل أسماء المعلمين.");
     if(includeOthers()&&!reserveSelectedOtherTeacherNames.size)throw new Error("حدد معلماً واحداً على الأقل من القسم المساند واضغط إضافة المعلمين المحددين.");
     const {date, weekday} = timetableSubstitutionGetDate();
     const token = appAuthSession?.token || readAppAuthToken();
     if (!token) throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({
       action: "timetable_substitution_batch_preview", weekday, assignmentDate: date,
-      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId(), otherTeacherNames:[...reserveSelectedOtherTeacherNames]
+      absentTeacherNames: [...timetableDailyAbsentTeachers], includeOtherDepartments: includeOthers(), otherDepartmentId:selectedOtherDepartmentId(), otherDepartmentIds:selectedOtherDepartmentIds(), otherTeacherNames:[...reserveSelectedOtherTeacherNames]
     }, token);
   }
 
@@ -589,7 +744,7 @@
     try{
       const {date,weekday}=timetableSubstitutionGetDate(),token=appAuthSession?.token||readAppAuthToken();
       const result=await appAuthRequest({action:"timetable_substitution_batch_save",weekday,assignmentDate:date,
-        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
+        absentTeacherNames:[...timetableDailyAbsentTeachers],assignments,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
       const savedCount=Number(result.assignmentCount||assignments.length);
       // A successful batch-save response is the commit confirmation. Clear the
       // local draft immediately so a later refresh failure cannot invite a duplicate save.
@@ -690,7 +845,7 @@
     const token=appAuthSession?.token||readAppAuthToken();
     if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
     return await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,
-      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
+      absentTeacherName:absentName,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
   }
 
   window.timetableDailyRenderArchive = function () {
@@ -872,7 +1027,7 @@
     }
     try{
       const token=appAuthSession?.token||readAppAuthToken();
-      const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
+      const directoryResult=await appAuthRequest({action:"timetable_substitution_preview",weekday:item.weekday,assignmentDate:item.assignmentDate,includeOtherDepartments:includeOthers(),otherDepartmentId:selectedOtherDepartmentId(),otherDepartmentIds:selectedOtherDepartmentIds(),otherTeacherNames:[...reserveSelectedOtherTeacherNames]},token);
       const absentNames=Array.isArray(directoryResult.absentTeachers)?directoryResult.absentTeachers.slice():[];
       if(!absentNames.includes(item.absentTeacherName))absentNames.unshift(item.absentTeacherName);
       let currentPreview=await fetchArchivePreview(item.absentTeacherName,item.assignmentDate,item.weekday);
@@ -1754,6 +1909,7 @@
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
           const date=$("timetableSubstitutionDate");
           if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+          date?.dispatchEvent(new Event("change",{bubbles:true}));
           const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           const isCustomCoordinator=reservePrincipal?.type==="custom";
           $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
