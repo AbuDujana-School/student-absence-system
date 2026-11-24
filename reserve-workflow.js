@@ -24,6 +24,17 @@
   let reserveDailyArchiveLoadKey = null;
   let reserveCumulativeArchiveLoadPromise = null;
   let reserveCumulativeArchiveLoadKey = null;
+  // A stalled network request must never keep the archive single-flight lock forever.
+  // The timeout releases the UI loader; a late network response is ignored by Promise.race.
+  function reserveArchiveRequestWithTimeout(request, timeoutMs = 30000) {
+    let timeoutId = null;
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("استغرق تحميل سجل الاحتياط وقتاً أطول من المتوقع. اضغط تحديث للمحاولة مجدداً.")), timeoutMs);
+    });
+    return Promise.race([request, timeout]).finally(() => {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    });
+  }
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
   function currentActorName(){return String(appAuthSession?.principal?.name||"").trim();}
   function clearStoredDraft(){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}}
@@ -635,7 +646,7 @@
         if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
         if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
         if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
-        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+        const response=await reserveArchiveRequestWithTimeout(appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token));
         if(($("timetableDailyArchiveFrom")?.value||"")!==from||($("timetableDailyArchiveTo")?.value||"")!==to)return false;
         reserveArchive=Array.isArray(response.archive)?response.archive:[];
         timetableDailyRenderArchive();return true;
@@ -1484,7 +1495,7 @@
         setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
         const token=appAuthSession?.token||readAppAuthToken();
         if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
-        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+        const response=await reserveArchiveRequestWithTimeout(appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token));
         if(($("substitutionArchiveFrom")?.value||"")!==from||($("substitutionArchiveTo")?.value||"")!==to)return false;
         reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];
         window.substitutionRenderCumulativeArchive();
