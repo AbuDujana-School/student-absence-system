@@ -35,16 +35,12 @@ test("report loading remains inside the Student Affairs module entry path, not p
 
 const reserveWorkflow = await readFile(new URL("../reserve-workflow.js", import.meta.url), "utf8");
 
-test("admin reserve distribution report does not auto-load when login reveals its panel", () => {
-  const start = reserveWorkflow.indexOf("function installSchoolwideReserveDistributionReport()");
-  assert.notEqual(start, -1, "missing reserve report installer");
-  const end = reserveWorkflow.indexOf("\n  installSchoolwideReserveDistributionReport();", start);
-  assert.notEqual(end, -1, "missing reserve report installer boundary");
-  const installer = reserveWorkflow.slice(start, end);
-  assert.doesNotMatch(installer, /loadSubstitutionDistributionReport/);
-
-  const reportsTab = section("if (tab === 'reports') {", "if (tab === 'timetable') {");
-  assert.match(reportsTab, /loadSubstitutionDistributionReport\(true\)/);
+test("reserve admin tools use the canonical general-admin identity and never load during login", () => {
+  assert.doesNotMatch(reserveWorkflow, /schoolwideReserveReportIsAdmin/);
+  assert.match(reserveWorkflow, /function installAdminReserveTools\(\)[\s\S]*?isGeneralAdminUser\(activeUser\)/);
+  assert.match(reserveWorkflow, /if\(isGeneralAdminUser\(activeUser\)\)installAdminReserveTools\(\)/);
+  const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord(");
+  assert.doesNotMatch(login, /installAdminReserveTools\(|timetable_substitution_archive/);
 });
 
 test("staggered dashboard pilot is restricted to the non-admin Distron account", () => {
