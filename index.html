@@ -14565,7 +14565,7 @@ async function timetableSaveOwner() {
   window.refreshSubstitutionDashboardCard=function(){
     const card=document.getElementById('substitutionDashboardCard');
     if(!card)return;
-    const allowed=canManageReserveWorkspace(activeUser);
+    const allowed=canManageReserveWorkspace(activeUser)||appAuthSession?.principal?.type==="custom";
     card.classList.toggle('hidden',!allowed);
   };
   function bindOtherDepartmentControls(){
@@ -14620,7 +14620,7 @@ async function timetableSaveOwner() {
     document.getElementById('substitutionCumulativeArchivePanel')?.classList.toggle('hidden',isCustomCoordinator);
     clearPlan();
     await window.substitutionLoadAbsentees();
-    await window.substitutionLoadStats();
+    if(!isCustomCoordinator)await window.substitutionLoadStats();
   };
   window.closeSubstitutionView=function(){
     document.getElementById('substitutionView')?.classList.add('hidden');
