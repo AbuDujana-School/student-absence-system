@@ -649,6 +649,38 @@ Deno.test("additional administrator may read the reserve distribution report onl
 });
 
 
+Deno.test("delegated administrator reads reserve report only through its explicit read-only grant", async () => {
+  const session = { principal_type: "teacher", principal_name: "Delegated Admin", expires_at: EXPIRY };
+  const allowedStore = storeWith(session, {
+    teacher: {
+      name: "Delegated Admin", role: "teacher",
+      permissions: { admin: true, additionalAdmin: false, reportSubstitutionDistribution: true },
+    },
+  });
+  const reportPrincipal = await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, allowedStore, NOW, "timetable_substitution_report",
+  );
+  if (reportPrincipal?.type !== "teacher" ||
+      reportPrincipal.permissions?.reportSubstitutionDistribution !== true) {
+    throw new Error("Delegated administrator did not retain the explicit read-only report grant");
+  }
+  if (canUseTimetableAction("teacher", "timetable_substitution_reset")) {
+    throw new Error("The report grant unexpectedly enabled reserve-management actions");
+  }
+
+  const deniedStore = storeWith(session, {
+    teacher: {
+      name: "Delegated Admin", role: "teacher",
+      permissions: { admin: true, additionalAdmin: false, reportSubstitutionDistribution: false },
+    },
+  });
+  if (await resolveTimetablePrincipal(
+    "Bearer " + TOKEN, deniedStore, NOW, "timetable_substitution_report",
+  ) !== null) {
+    throw new Error("Delegated administrator bypassed a disabled report grant");
+  }
+});
+
 Deno.test("delegated full administrator is elevated only inside timetable authorization while Additional Admin stays off", async () => {
   const session = { principal_type: "teacher", principal_name: "Tester1", expires_at: EXPIRY };
   const calls: string[] = [];
