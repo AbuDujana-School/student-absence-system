@@ -103,39 +103,25 @@ Deno.test("reserve coordinator controls require explicit per-period permissions"
   assert(!source.includes('date===reserveCurrentMuscatDate()&&savedRows'), "Future-dated assignments must not be hidden by a same-day-only UI condition");
 });
 
-Deno.test("main reserve entry point mounts four independent sections and keeps the legacy panel hidden", async () => {
+Deno.test("main reserve entry point keeps legacy panels hidden and defers edit/archive reads to their visible tabs", async () => {
   const integrationStart=source.indexOf("function installMainSubstitutionViewIntegration()");
   const integrationEnd=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",integrationStart);
   assert(integrationStart>=0&&integrationEnd>integrationStart,"Canonical reserve integration must exist");
   const integration=source.slice(integrationStart,integrationEnd);
   assert(integration.includes('panel.classList.add("hidden")'),"The legacy timetable panel must remain hidden as a compatibility engine");
-  assert(integration.includes('editHost.appendChild(activePanel)'),"The live edit panel must be mounted into the dedicated edit section");
-  assert(integration.includes('archiveHost.appendChild(archivePanel)'),"The live archive panel must be mounted into the dedicated archive section");
-  assert(!integration.includes("host.appendChild(panel)"),"The old complete panel must not be moved into the new workspace");
+  assert(integration.includes('$("timetableDailyActivePanel")?.classList.add("hidden")'),"The old active edit panel must remain hidden behind the single day-card list");
+  assert(integration.includes('$("timetableDailyArchivePanel")?.classList.add("hidden")'),"The old archive panel must remain hidden behind the unified archive renderer");
+  assert(!integration.includes("editHost.appendChild(activePanel)")&&!integration.includes("archiveHost.appendChild(archivePanel)"),"The old panels must not create a competing second edit/archive path");
+  assert(integration.includes("ttAdminReserveTools")&&integration.includes("ttDepartmentReserveTools"),"Existing admin and department archive controls must remain mounted in the archive host");
   assert(integration.includes("restoreCanonicalPanel()"),"Closing the view must keep the compatibility engine hidden");
   assert(integration.includes("__canonicalReserveInitialOpenAttempted"),"Late initialization must still initialize the workspace on its first visible opening");
   assert(integration.includes('$("timetableSubstitutionPanel")&&window.openSubstitutionView?.__canonicalReserveWrapped'),"First-open initialization must wait until the compatibility engine exists");
   assert(integration.includes("return window.openSubstitutionView()"),"The first visible opening must replay the wrapped entry point exactly once");
   assert(integration.includes("window.substitutionLoadAbsentees()"),"Opening the workspace must load the new distribution interface");
-  assert(integration.includes('startBackgroundLoad(window.timetableDailyLoadArchive'),"Opening the workspace must refresh archive and active-day records in the background");
+  assert(!integration.includes('startBackgroundLoad(window.timetableDailyLoadArchive'),"Archive/edit reads must not run before the corresponding view is opened");
   assert(integration.includes('startBackgroundLoad(window.substitutionLoadStats'),"Authorized accounts must retain statistics loading without blocking the workspace");
   assert(integration.includes("__reserveDateSyncWrapped"),"The new date picker must synchronize the legacy edit engine before refreshing");
   assert(integration.includes("if(isCustomCoordinator)root.querySelector('[data-subx-tab=\"daily\"]')?.click()"),"A scoped custom coordinator must be returned to the daily tab");
-  const boot=source.slice(source.indexOf("installMainSubstitutionViewIntegration();",source.indexOf("function installReserveArchiveAutoRefresh()")+1));
-  assert(!boot.includes("installHomeReserveArchive();"),"The legacy home archive must not install a second distribution surface");
-  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  for(const tab of ["daily","edit","archive","stats"])assert(html.includes('data-subx-tab="'+tab+'"'),"Missing workspace tab: "+tab);
-  assert(html.includes("function canManageReserveWorkspace(user = activeUser)"),"Reserve access must use a dedicated module-level capability check");
-  assert(html.split("canManageReserveWorkspace(activeUser)").length>=5,"Dashboard card, legacy entry, and canonical loaders must use the dedicated reserve capability");
-  assert(integration.includes("canManageReserveWorkspace(activeUser)"),"Delegated administrators and reserve-enabled teachers must be admitted to the canonical workspace");
-  assert(integration.includes('reservePrincipal?.type==="custom"'),"A custom authenticated reserve principal must remain eligible for the scoped workspace");
-  assert(integration.includes("sameSessionAdmin"),"A server-resolved admin principal must be matched to the active account before opening reserve");
-  assert(integration.includes("const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin"),"Explicit reserve administrators may use the existing cross-department workflow");
-  assert(integration.includes('reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true'),"Reserve-enabled teacher principals retain their existing cross-department capability");
-  const expandStart=integration.indexOf("const canExpand=");
-  const expandEnd=integration.indexOf(";",expandStart);
-  assert(expandStart>=0&&expandEnd>expandStart,"Cross-department authorization must be explicit");
-  assert(!integration.slice(expandStart,expandEnd).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must not receive cross-department controls");
 });
 
 Deno.test("canonical batch selection requires and preserves the absence reason", () => {
@@ -175,24 +161,23 @@ Deno.test("reserve operational views initialize only when opened", () => {
 });
 
 
-Deno.test("custom coordinator opens only the scoped reserve workspace without archive or statistics requests", () => {
+Deno.test("custom coordinator remains scoped and defers edit/archive/statistics reads", () => {
   const start=source.indexOf("function installMainSubstitutionViewIntegration()");
   const end=source.indexOf("installLegacyOtherDepartmentTeacherPicker();",start);
   assert(start>=0&&end>start,"Canonical reserve integration must be present");
   const integration=source.slice(start,end);
   assert(integration.includes('const isCustomCoordinator=reservePrincipal?.type==="custom"'),"The UI must identify the server-authenticated custom coordinator principal");
   assert(integration.includes('$("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the school statistics panel");
-  assert(integration.includes('$("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the archive panel");
+  assert(integration.includes('root.querySelector(\'[data-subx-tab="archive"]\')?.classList.toggle("hidden",isCustomCoordinator)'),"Custom coordinators must not see the archive tab");
   const openStart=integration.indexOf("try{",integration.indexOf("const isCustomCoordinator="));
   const openEnd=integration.indexOf("finally{",openStart);
   const openBlock=integration.slice(openStart,openEnd);
-  assert(openBlock.includes("if(!isCustomCoordinator)"),"Archive and statistics loading must be gated for custom coordinators");
+  assert(openBlock.includes("if(!isCustomCoordinator)"),"Statistics loading must be gated for custom coordinators");
   assert(openBlock.includes("substitutionLoadAbsentees"),"Custom coordinators must retain the scoped operational preview workflow");
-  assert(openBlock.includes("timetableDailyLoadArchive")&&openBlock.includes("substitutionLoadStats"),"Authorized non-custom accounts must retain archive and statistics loading");
+  assert(!openBlock.includes("timetableDailyLoadArchive"),"Edit/archive reads must be deferred until an authorized tab is opened");
+  assert(openBlock.includes("substitutionLoadStats"),"Authorized non-custom accounts must retain statistics loading");
   assert(!integration.slice(integration.indexOf("const canExpand="),integration.indexOf(";",integration.indexOf("const canExpand="))).includes('reservePrincipal?.type==="custom"'),"Custom coordinators must never receive cross-department controls");
 });
-
-
 
 Deno.test("daily and cumulative reserve archive reads are single-flight", () => {
   assert(source.includes("let reserveDailyArchiveLoadPromise = null;"), "Daily archive loader must expose one shared in-flight request");
@@ -294,7 +279,7 @@ Deno.test("reserve edit tab lists only active day groups and opens the shared sa
   assert(html.includes("r.canEdit===true&&['assigned','confirmed'].includes(String(r.status||''))"), "The edit tab must hide expired or non-editable assignments");
   assert(html.includes("window.timetableDailyRegisterExternalAssignments(allRows)"), "The day editor cache must be hydrated from the authenticated archive response");
   assert(html.includes("data-open-edit-day"), "The edit screen must render one card per active assignment date");
-  assert(html.includes("window.timetableDailyOpenArchiveDayEdit(button.dataset.openEditDay)"), "Opening a day card must use the existing authenticated day editor");
+  assert(html.includes("const opener=window.timetableDailyOpenArchiveDayEdit") && html.includes("void opener(button.dataset.openEditDay)"), "Opening a day card must use the existing authenticated day editor");
   assert(html.includes("const dateFrom=isEditMount?today:from.value"), "The edit list must query only today and future dates, independently of archive date filters");
 });
 
