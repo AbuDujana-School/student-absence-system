@@ -142,3 +142,11 @@ test('reserve edit/archive state refreshes immediately when the tab returns afte
  assert.match(workflow,/addEventListener\("visibilitychange",\(\)=>\{if\(!document\.hidden\)reserveRefreshOmanDayIfChanged\(\);\}\)/);
  assert.match(workflow,/window\.dispatchEvent\(new CustomEvent\("reserve:muscat-day-changed"/);
 });
+
+test('the final substitute approval step presents a large, readable current-lesson indicator',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/\.tt-period-indicator\{[^}]*min-width:10\.5rem;min-height:6\.2rem/);
+ assert.match(workflow,/\.tt-period-indicator strong\{font-size:2\.65rem/);
+ assert.match(workflow,/<span>الحصة الحالية<\/span>/);
+ assert.match(workflow,/<em>'\+esc\(item\.className\|\|"الشعبة غير محددة"\)\+'<\/em>/);
+});
