@@ -209,16 +209,64 @@
   }
   const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"];
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
-    const picker=window.openSubstitutionAbsenceReasonPicker;
-    if(typeof picker!=="function"){
-      status("تعذر فتح نافذة سبب الغياب الموحدة. أعد فتح شاشة الاحتياط.","error");
-      return;
-    }
-    picker(absentName,initialValue,value=>{
-      if(typeof onConfirm==="function")onConfirm(value);
+    const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
+    const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
+    const normalizedCurrent=current==="إجازة مرضية"?"مرضية":current;
+    const selected=ABSENCE_REASON_OPTIONS.includes(normalizedCurrent)?normalizedCurrent:(current.startsWith("أخرى:")?"أخرى":"");
+    const customValue=current.startsWith("أخرى:")?current.slice(5).trim():"";
+    const modal=document.createElement("div");modal.id="timetableDailyAbsenceReasonModal";
+    modal.className="fixed inset-0 z-[100000] flex items-center justify-center bg-slate-950/70 p-3 backdrop-blur-sm";
+    const reasonPresentation={
+      "طارئة":{label:"طارئة",icon:"fa-bolt",hint:"حالة طارئة"},
+      "موعد مستشفى":{label:"موعد مستشفى",icon:"fa-hospital",hint:"موعد طبي أو مراجعة مستشفى"},
+      "مرضية":{label:"إجازة مرضية",icon:"fa-kit-medical",hint:"إجازة أو عذر مرضي"},
+      "أخرى":{label:"أخرى",icon:"fa-pen-to-square",hint:"يمكنك كتابة التفاصيل أو تركها فارغة"},
+      "دورة تدريبية":{label:"دورة تدريبية",icon:"fa-chalkboard-user",hint:"مشاركة في دورة أو تدريب معتمد"}
+    };
+    modal.innerHTML='<section class="w-full max-w-lg space-y-5 rounded-[1.6rem] border border-slate-200 bg-white p-5 shadow-2xl sm:p-6" dir="rtl">'+
+      '<div class="flex items-center gap-3"><span class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-rose-50 text-rose-600 text-xl"><i class="fa-solid fa-clipboard-question"></i></span><div><h3 class="text-lg font-black text-slate-900">سبب غياب '+esc(absentName)+'</h3><p class="mt-1 text-xs text-slate-500">اختر السبب المناسب للانتقال إلى اقتراح البدلاء.</p></div></div>'+
+      '<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+ABSENCE_REASON_OPTIONS.map(reason=>{const item=reasonPresentation[reason];return '<label class="tt-absence-reason-option flex min-h-[5.2rem] cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3 text-sm font-bold text-slate-800 transition"><input class="sr-only" type="radio" name="ttAbsenceReasonChoice" value="'+esc(reason)+'" '+(selected===reason?"checked":"")+'><span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-100 text-slate-600 text-lg"><i class="fa-solid '+item.icon+'"></i></span><span class="min-w-0"><strong class="block text-sm font-black">'+esc(item.label||reason)+'</strong><small class="mt-1 block text-[10px] font-medium text-slate-500">'+item.hint+'</small></span></label>'}).join("")+'</div>'+
+      '<label id="ttAbsenceReasonOtherWrap" class="'+(selected==="أخرى"?"":"hidden")+' block text-xs font-bold text-slate-700">اكتب سبب الغياب<textarea id="ttAbsenceReasonOther" rows="2" maxlength="500" class="mt-2 w-full rounded-xl border border-slate-300 p-3 text-sm" placeholder="اكتب سبب الغياب بالتفصيل...">'+esc(customValue)+'</textarea></label>'+
+      '<p id="ttAbsenceReasonError" class="hidden rounded-lg bg-rose-50 p-2 text-xs font-bold text-rose-700"></p>'+
+      '<div class="flex justify-end gap-2"><button type="button" data-absence-reason-cancel class="rounded-xl border border-slate-300 px-4 py-2 text-xs font-bold text-slate-700">إلغاء</button><button type="button" data-absence-reason-confirm class="rounded-xl bg-emerald-700 px-5 py-2 text-xs font-black text-white">موافق</button></div></section>';
+    document.body.appendChild(modal);
+    modal.querySelectorAll('input[name="ttAbsenceReasonChoice"]').forEach(radio=>radio.addEventListener("change",()=>{
+      modal.querySelector("#ttAbsenceReasonOtherWrap")?.classList.toggle("hidden",radio.value!=="أخرى");
+      if(radio.value==="أخرى")modal.querySelector("#ttAbsenceReasonOther")?.focus();
+    }));
+    let settled=false;
+    const cancel=()=>{if(settled)return;settled=true;modal.remove();if(typeof onConfirm==="function")onConfirm(null);};
+    modal.querySelector("[data-absence-reason-cancel]")?.addEventListener("click",cancel);
+    modal.addEventListener("click",event=>{if(event.target===modal)cancel();});
+    modal.querySelector("[data-absence-reason-confirm]")?.addEventListener("click",()=>{
+      const choice=modal.querySelector('input[name="ttAbsenceReasonChoice"]:checked')?.value||"";
+      const custom=String(modal.querySelector("#ttAbsenceReasonOther")?.value||"").trim();
+      const error=modal.querySelector("#ttAbsenceReasonError");
+      if(!choice){error.textContent="اختر سبب الغياب أولاً.";error.classList.remove("hidden");return;}
+      const value=choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice;
+      if(settled)return;settled=true;modal.remove();onConfirm(value);
     });
   }
-  function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
+  window.openSubstitutionAbsenceReasonPicker = function(absentName,currentValue,onConfirm){
+    openAbsenceReasonPicker(absentName,function(value){
+      if(typeof onConfirm==="function")onConfirm(value);
+    },String(currentValue||""));
+  };
+  
+  // Keep the restored premium picker as the single public entry point.
+  // Reject the legacy compact picker's late assignment and remove its DOM node.
+  const canonicalAbsenceReasonPicker = window.openSubstitutionAbsenceReasonPicker;
+  Object.defineProperty(window, "openSubstitutionAbsenceReasonPicker", {
+    configurable: true,
+    enumerable: true,
+    get() { return canonicalAbsenceReasonPicker; },
+    set(nextPicker) {
+      if (nextPicker !== canonicalAbsenceReasonPicker) {
+        document.getElementById("subxReasonPopup")?.remove();
+      }
+    }
+  });
+function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     const value=String(absenceReason||"").trim();
     const edit=allowEdit?'<button type="button" data-tt-edit-absence-reason="'+esc(absentName)+'" class="rounded-lg border border-amber-200 bg-amber-50 px-2 py-1 text-[10px] font-black text-amber-800">تغيير السبب</button>':"";
     return '<div class="flex flex-wrap items-center gap-2 text-[10px] font-black text-slate-600"><span>سبب الغياب: '+esc(value||"لم يحدد")+'</span>'+edit+'</div>';
@@ -649,100 +697,103 @@
     style.id = "reserve-workflow-styles";
     style.textContent = [
       "#timetableSubstitutionPanel{isolation:isolate;color:#172033}",
-      "#timetableSubstitutionPanel .tt-premium-hero{position:relative;overflow:hidden;border-radius:1.5rem!important;background:radial-gradient(circle at 8% 0%,rgba(52,211,153,.22),transparent 36%),linear-gradient(125deg,#0b1830 0%,#102c43 54%,#075c50 100%)!important;color:#fff!important;padding:1.4rem!important;box-shadow:0 18px 42px rgba(15,23,42,.18)}",
-      "#timetableSubstitutionPanel .tt-premium-hero h3{color:#fff!important;font-size:clamp(1.25rem,2vw,1.65rem)!important;letter-spacing:-.02em}",
-      "#timetableSubstitutionPanel .tt-premium-hero p{color:#d8e9e8!important;font-size:.82rem!important;line-height:1.8}",
-      "#timetableSubstitutionPanel .tt-premium-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.15rem}",
-      "#timetableSubstitutionPanel .tt-premium-step{display:flex;align-items:center;gap:.7rem;min-width:0;width:100%;padding:.85rem .9rem;border:1px solid #dce5ee;border-radius:1.1rem;background:linear-gradient(145deg,#fff,#f7fafc);text-align:right;cursor:pointer;transition:all .2s ease}",
-      "#timetableSubstitutionPanel .tt-premium-step-icon{display:grid;place-items:center;flex:0 0 2.7rem;width:2.7rem;height:2.7rem;border-radius:.9rem;background:#edf2f7;color:#64748b;font-size:1.15rem}",
-      "#timetableSubstitutionPanel .tt-premium-step b{display:block;color:#334155;font-size:.75rem;font-weight:900}",
-      "#timetableSubstitutionPanel .tt-premium-step small{display:block;margin-top:.18rem;color:#718096;font-size:.62rem;line-height:1.5}",
-      "#timetableSubstitutionPanel .tt-premium-step.is-active{border-color:#0f9f77;background:linear-gradient(145deg,#ecfdf5,#fff);box-shadow:0 8px 22px rgba(16,185,129,.12);transform:translateY(-1px)}",
-      "#timetableSubstitutionPanel .tt-premium-step.is-active .tt-premium-step-icon{background:#0f9f77;color:#fff}",
-      "#timetableSubstitutionPanel .tt-premium-step.is-complete .tt-premium-step-icon{background:#dcfce7;color:#047857}",
-      "#timetableSubstitutionPanel .tt-premium-intro{display:flex;align-items:center;gap:.8rem;margin:.8rem 0 1rem;padding:.9rem 1rem;border:1px solid #dcefe8;border-radius:1rem;background:linear-gradient(110deg,#f0fdf8,#f8fbff)}",
-      "#timetableSubstitutionPanel .tt-premium-spark{display:grid;place-items:center;flex:0 0 2.6rem;height:2.6rem;border-radius:.9rem;background:#d1fae5;color:#047857;font-size:1.1rem}",
-      "#timetableSubstitutionPanel .tt-premium-intro strong{display:block;color:#0f3d35;font-size:.82rem;font-weight:900}",
-      "#timetableSubstitutionPanel .tt-premium-intro p{margin-top:.15rem;color:#64748b;font-size:.68rem}",
-      "#timetableSubstitutionPanel .tt-premium-card{margin:1rem 0;padding:1.1rem;border:1px solid #dce5ee;border-radius:1.35rem;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s}",
-      "#timetableSubstitutionPanel .tt-premium-card.is-current{border-color:#7dd3b0;box-shadow:0 12px 32px rgba(16,185,129,.09)}",
-      "#timetableSubstitutionPanel .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
-      "#timetableSubstitutionPanel .tt-premium-card-heading{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}",
-      "#timetableSubstitutionPanel .tt-premium-card-heading>div{min-width:0;flex:1}",
-      "#timetableSubstitutionPanel .tt-premium-card-heading strong{display:block;color:#172033;font-size:.92rem;font-weight:900}",
-      "#timetableSubstitutionPanel .tt-premium-card-heading small{display:block;margin-top:.2rem;color:#64748b;font-size:.68rem;line-height:1.6}",
-      "#timetableSubstitutionPanel .tt-premium-icon{display:grid;place-items:center;flex:0 0 3.2rem;width:3.2rem;height:3.2rem;border-radius:1.05rem;font-size:1.35rem}",
-      "#timetableSubstitutionPanel .tt-icon-date{background:#e0f2fe;color:#0369a1}",
-      "#timetableSubstitutionPanel .tt-icon-absent{background:#fff1f2;color:#be123c}",
-      "#timetableSubstitutionPanel .tt-premium-chip{padding:.35rem .7rem;border-radius:999px;background:#ecfdf5;color:#047857;font-size:.62rem;font-weight:900}",
-      "#timetableSubstitutionPanel .tt-premium-date-control{max-width:26rem;padding:.15rem}",
-      "#timetableSubstitutionPanel .tt-premium-date-control input{width:100%;min-height:3.2rem;border:1px solid #cbd5e1;border-radius:1rem;background:#f8fafc;padding:.75rem 1rem;font-size:1rem;font-weight:800;color:#0f172a}",
-      "#timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(248,252,255,.72));backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);border-color:rgba(203,213,225,.72);box-shadow:0 18px 48px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.82)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-hero{position:relative;overflow:hidden;border-radius:1.5rem!important;background:radial-gradient(circle at 8% 0%,rgba(52,211,153,.22),transparent 36%),linear-gradient(125deg,#0b1830 0%,#102c43 54%,#075c50 100%)!important;color:#fff!important;padding:1.4rem!important;box-shadow:0 18px 42px rgba(15,23,42,.18)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-hero h3{color:#fff!important;font-size:clamp(1.25rem,2vw,1.65rem)!important;letter-spacing:-.02em}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-hero p{color:#d8e9e8!important;font-size:.82rem!important;line-height:1.8}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-stepper{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:.7rem;margin:1rem 0 1.15rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step{display:flex;align-items:center;gap:.7rem;min-width:0;width:100%;padding:.85rem .9rem;border:1px solid #dce5ee;border-radius:1.1rem;background:linear-gradient(145deg,#fff,#f7fafc);text-align:right;cursor:pointer;transition:all .2s ease}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step-icon{display:grid;place-items:center;flex:0 0 2.7rem;width:2.7rem;height:2.7rem;border-radius:.9rem;background:#edf2f7;color:#64748b;font-size:1.15rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step b{display:block;color:#334155;font-size:.75rem;font-weight:900}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step small{display:block;margin-top:.18rem;color:#718096;font-size:.62rem;line-height:1.5}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step.is-active{border-color:#0f9f77;background:linear-gradient(145deg,#ecfdf5,#fff);box-shadow:0 8px 22px rgba(16,185,129,.12);transform:translateY(-1px)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step.is-active .tt-premium-step-icon{background:#0f9f77;color:#fff}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step.is-complete .tt-premium-step-icon{background:#dcfce7;color:#047857}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-intro{display:flex;align-items:center;gap:.8rem;margin:.8rem 0 1rem;padding:.9rem 1rem;border:1px solid #dcefe8;border-radius:1rem;background:linear-gradient(110deg,#f0fdf8,#f8fbff)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-spark{display:grid;place-items:center;flex:0 0 2.6rem;height:2.6rem;border-radius:.9rem;background:#d1fae5;color:#047857;font-size:1.1rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-intro strong{display:block;color:#0f3d35;font-size:.82rem;font-weight:900}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-intro p{margin-top:.15rem;color:#64748b;font-size:.68rem}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked){border-color:#10b981;background:linear-gradient(120deg,#ecfdf5,#fff);box-shadow:0 7px 18px rgba(16,185,129,.12)}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:has(input:checked)>span:first-of-type{background:#d1fae5;color:#047857}",
+      "#timetableDailyAbsenceReasonModal .tt-absence-reason-option:focus-within{outline:3px solid rgba(16,185,129,.2);outline-offset:2px}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card{margin:1rem 0;padding:1.1rem;border:1px solid #dce5ee;border-radius:1.35rem;background:#fff;box-shadow:0 10px 30px rgba(15,23,42,.045);transition:border-color .2s,box-shadow .2s}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card.is-current{border-color:#7dd3b0;box-shadow:0 12px 32px rgba(16,185,129,.09)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card.is-complete{border-color:#a7f3d0;background:linear-gradient(130deg,#f0fdf8,#fff)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card-heading{display:flex;align-items:center;gap:.8rem;margin-bottom:.9rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card-heading>div{min-width:0;flex:1}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card-heading strong{display:block;color:#172033;font-size:.92rem;font-weight:900}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card-heading small{display:block;margin-top:.2rem;color:#64748b;font-size:.68rem;line-height:1.6}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-icon{display:grid;place-items:center;flex:0 0 3.2rem;width:3.2rem;height:3.2rem;border-radius:1.05rem;font-size:1.35rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-icon-date{background:#e0f2fe;color:#0369a1}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-icon-absent{background:#fff1f2;color:#be123c}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-chip{padding:.35rem .7rem;border-radius:999px;background:#ecfdf5;color:#047857;font-size:.62rem;font-weight:900}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-date-control{max-width:26rem;padding:.15rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-date-control input{width:100%;min-height:3.2rem;border:1px solid #cbd5e1;border-radius:1rem;background:#f8fafc;padding:.75rem 1rem;font-size:1rem;font-weight:800;color:#0f172a}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card{background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(248,252,255,.72));backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);border-color:rgba(203,213,225,.72);box-shadow:0 18px 48px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.82)}",
       ".tt-premium-date-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
       ".tt-premium-date-nav button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:2.7rem;padding:.6rem 1rem;border:1px solid rgba(148,163,184,.35);border-radius:.9rem;background:rgba(255,255,255,.72);color:#334155;font-size:.78rem;font-weight:900;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease}",
       ".tt-premium-date-nav button:hover{transform:translateY(-2px);border-color:#34d399;background:#ecfdf5;box-shadow:0 8px 18px rgba(16,185,129,.12)}",
       ".tt-premium-date-nav button.is-today{border-color:rgba(16,185,129,.4);background:rgba(236,253,245,.76);color:#047857}",
       ".tt-premium-date-nav button.is-selected{border-color:#10b981;background:linear-gradient(135deg,#059669,#0f766e);color:#fff;box-shadow:0 8px 20px rgba(5,150,105,.2)}",
       ".tt-premium-date-nav .tt-date-nav-hint{margin-inline-start:auto;color:#64748b;font-size:.68rem;font-weight:600}",
-      "#timetableSubstitutionPanel .tt-premium-toolbar{border-color:rgba(203,213,225,.7);background:linear-gradient(125deg,rgba(248,250,252,.86),rgba(236,253,245,.78));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(15,23,42,.055)}",
-      "#timetableSubstitutionPanel .tt-premium-step{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(245,249,252,.78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 22px rgba(15,23,42,.035)}",
-      "#timetableSubstitutionPanel .tt-premium-step:hover{transform:translateY(-2px);border-color:#86cdb2;box-shadow:0 12px 24px rgba(15,23,42,.08)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-toolbar{border-color:rgba(203,213,225,.7);background:linear-gradient(125deg,rgba(248,250,252,.86),rgba(236,253,245,.78));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(15,23,42,.055)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(245,249,252,.78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 22px rgba(15,23,42,.035)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step:hover{transform:translateY(-2px);border-color:#86cdb2;box-shadow:0 12px 24px rgba(15,23,42,.08)}",
       "#timetableSubstitutionPanel button:focus-visible,#timetableSubstitutionPanel input:focus-visible,#timetableSubstitutionPanel select:focus-visible{outline:3px solid rgba(16,185,129,.28);outline-offset:2px}",
-      ".dark #timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(20,34,54,.9),rgba(15,23,42,.82));border-color:rgba(71,85,105,.68);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%)}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card{background:linear-gradient(145deg,rgba(20,34,54,.9),rgba(15,23,42,.82));border-color:rgba(71,85,105,.68);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%)}",
       ".dark .tt-premium-date-nav button{border-color:#475569;background:rgba(30,41,59,.82);color:#e2e8f0}",
       ".dark .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
       ".dark .tt-premium-date-nav button.is-today{border-color:#0f766e;background:rgba(6,78,59,.35);color:#a7f3d0}",
       ".dark .tt-premium-date-nav .tt-date-nav-hint{color:#94a3b8}",
-      "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
-      "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
-      "#timetableSubstitutionPanel .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-toolbar{display:flex;flex-wrap:wrap;gap:.7rem;padding:1rem;border:1px solid #dce5ee;border-radius:1.25rem;background:linear-gradient(130deg,#f8fafc,#eef7f4)}",
       "#timetableSubstitutionPanel [hidden]{display:none!important}",
-      "#timetableSubstitutionPanel .tt-premium-toolbar .tt-action{min-height:3rem;border-radius:1rem;padding:.75rem 1rem;font-size:.8rem;font-weight:900;box-shadow:0 4px 10px rgba(15,23,42,.05)}",
-      "#timetableSubstitutionPanel .tt-premium-results{display:none;margin-top:1rem}",
-      "#timetableSubstitutionPanel .tt-premium-results.tt-premium-results-ready{display:block}",
-      "#timetableSubstitutionPanel .tt-department-card{min-height:4.4rem;transition:border-color .15s,background .15s,box-shadow .15s}",
-      "#timetableSubstitutionPanel .tt-department-card:has(input:checked){border-color:#818cf8;background:linear-gradient(120deg,#eef2ff,#fff);box-shadow:0 5px 14px rgba(99,102,241,.09)}",
-      "#timetableSubstitutionPanel .tt-department-multiselect option{padding:.45rem;border-radius:.45rem}",
-      "#timetableSubstitutionPanel .tt-other-teacher-card{transition:border-color .15s,background .15s}",
-      "#timetableSubstitutionPanel .tt-other-teacher-card:has(input:checked){border-color:#818cf8;background:#eef2ff}",
-      ".dark #timetableSubstitutionPanel .tt-premium-card{border-color:#334155;background:linear-gradient(145deg,#111c2e,#0f172a);box-shadow:0 12px 30px rgba(0,0,0,.18)}",
-      ".dark #timetableSubstitutionPanel .tt-premium-card-heading strong,.dark #timetableSubstitutionPanel .tt-premium-step b{color:#f1f5f9}",
-      ".dark #timetableSubstitutionPanel .tt-premium-card-heading small,.dark #timetableSubstitutionPanel .tt-premium-step small{color:#a8b5c7}",
-      ".dark #timetableSubstitutionPanel .tt-premium-step{border-color:#334155;background:linear-gradient(145deg,#172338,#111c2e)}",
-      ".dark #timetableSubstitutionPanel .tt-premium-step.is-active{border-color:#34d399;background:linear-gradient(145deg,#12382f,#172338)}",
-      ".dark #timetableSubstitutionPanel .tt-premium-intro{border-color:#285348;background:linear-gradient(110deg,#102e2a,#172338)}",
-      ".dark #timetableSubstitutionPanel .tt-premium-intro strong{color:#d1fae5}",
-      ".dark #timetableSubstitutionPanel .tt-premium-date-control input,.dark #timetableSubstitutionPanel .tt-premium-search{border-color:#475569!important;background:#0f172a!important;color:#f8fafc!important}",
-      ".dark #timetableSubstitutionPanel .tt-department-card,.dark #timetableSubstitutionPanel .tt-other-teacher-card{border-color:#334155;background:#172338}",
-      ".dark #timetableSubstitutionPanel .tt-department-card strong,.dark #timetableSubstitutionPanel .tt-other-teacher-card strong{color:#f1f5f9}",
-      ".dark #timetableSubstitutionPanel .tt-department-card:has(input:checked),.dark #timetableSubstitutionPanel .tt-other-teacher-card:has(input:checked){border-color:#818cf8;background:#24264a}",
-      "@media(max-width:700px){#timetableSubstitutionPanel .tt-premium-stepper{grid-template-columns:repeat(2,minmax(0,1fr))}#timetableSubstitutionPanel .tt-premium-step{padding:.7rem}#timetableSubstitutionPanel .tt-premium-step-icon{flex-basis:2.4rem;width:2.4rem;height:2.4rem}#timetableSubstitutionPanel .tt-premium-card{padding:.9rem}}",
-      "@media(max-width:420px){#timetableSubstitutionPanel .tt-premium-stepper{grid-template-columns:1fr 1fr}#timetableSubstitutionPanel .tt-premium-step small{font-size:.55rem}}",
-      "#timetableSubstitutionPanel .tt-reserve-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;margin:.2rem 0}",
-      "#timetableSubstitutionPanel .tt-reserve-steps button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;column-gap:.55rem;text-align:right;padding:.7rem;border:1px solid #dbe4ed;border-radius:1rem;background:#f8fafc;min-width:0}",
-      "#timetableSubstitutionPanel .tt-reserve-steps button span{grid-row:1/3;display:grid;place-items:center;width:2rem;height:2rem;border-radius:.7rem;background:#d1fae5;color:#065f46;font-weight:900}",
-      "#timetableSubstitutionPanel .tt-reserve-steps button strong{font-size:.72rem;color:#0f172a}",
-      "#timetableSubstitutionPanel .tt-reserve-steps button small{font-size:.58rem;color:#64748b}",
-      "@media(max-width:520px){#timetableSubstitutionPanel .tt-reserve-steps{grid-template-columns:1fr}#timetableSubstitutionPanel .tt-reserve-steps button{grid-template-columns:2rem 1fr;grid-template-rows:auto auto}}",
-      "#timetableSubstitutionPanel .tt-lesson{border-color:#dbe4ed;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 5px 18px rgba(15,23,42,.045);border-radius:1rem}",
-      "#timetableSubstitutionPanel .tt-period-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.38rem;width:max-content;min-width:10.5rem;min-height:6.2rem;padding:1rem 1.45rem;border:2px solid #0f766e;border-radius:1.25rem;background:linear-gradient(145deg,#ecfeff 0%,#cffafe 48%,#ccfbf1 100%);color:#134e4a;box-shadow:0 12px 28px rgba(13,148,136,.2),inset 0 1px 0 rgba(255,255,255,.9)}",
-      "#timetableSubstitutionPanel .tt-period-indicator span{font-size:1rem;font-weight:950;line-height:1.2;letter-spacing:.01em}",
-      "#timetableSubstitutionPanel .tt-period-indicator strong{font-size:2.65rem;line-height:1;font-weight:1000;font-variant-numeric:tabular-nums}",
-      "#timetableSubstitutionPanel .tt-period-indicator em{font-size:.85rem;font-style:normal;font-weight:900;line-height:1.2}",
-      "@media(max-width:640px){#timetableSubstitutionPanel .tt-period-indicator{min-width:9.2rem;min-height:5.8rem;padding:.85rem 1.1rem}#timetableSubstitutionPanel .tt-period-indicator strong{font-size:2.35rem}}",
-      "#timetableSubstitutionPanel .tt-lesson:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.1)}",
-      "#timetableSubstitutionPanel .tt-lesson-choice{min-width:0}",
-      "#timetableSubstitutionPanel .tt-lesson-choice select{display:block;width:100%;min-width:0;max-width:100%;border:1px solid #cbd5e1;border-radius:.8rem;background:#fff;padding:.7rem;font-size:16px;line-height:1.4}",
-      "#timetableSubstitutionPanel .tt-lesson{min-width:0}",
-      "@media(max-width:640px){#timetableSubstitutionPanel .tt-lesson{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem;padding:.85rem}#timetableSubstitutionPanel .tt-lesson-actions{display:flex;flex-wrap:wrap;gap:.4rem}#timetableSubstitutionPanel .tt-group-head{padding:.85rem}}",
-      "#timetableSubstitutionPanel .tt-group{overflow:hidden;border:1px solid #dbe4ed;border-radius:1.25rem;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.04)}",
-      "#timetableSubstitutionPanel .tt-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.1rem;background:linear-gradient(90deg,#f8fafc,#ecfdf5)}",
-      "#timetableSubstitutionPanel .tt-reason{width:100%;min-height:2.6rem;border:1px solid #cbd5e1;border-radius:.8rem;padding:.7rem;background:#fff;color:#0f172a;font-size:.75rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-toolbar .tt-action{min-height:3rem;border-radius:1rem;padding:.75rem 1rem;font-size:.8rem;font-weight:900;box-shadow:0 4px 10px rgba(15,23,42,.05)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-results{display:none;margin-top:1rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-results.tt-premium-results-ready{display:block}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-department-card{min-height:4.4rem;transition:border-color .15s,background .15s,box-shadow .15s}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-department-card:has(input:checked){border-color:#818cf8;background:linear-gradient(120deg,#eef2ff,#fff);box-shadow:0 5px 14px rgba(99,102,241,.09)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-department-multiselect option{padding:.45rem;border-radius:.45rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-other-teacher-card{transition:border-color .15s,background .15s}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-other-teacher-card:has(input:checked){border-color:#818cf8;background:#eef2ff}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card{border-color:#334155;background:linear-gradient(145deg,#111c2e,#0f172a);box-shadow:0 12px 30px rgba(0,0,0,.18)}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card-heading strong,.dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step b{color:#f1f5f9}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card-heading small,.dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step small{color:#a8b5c7}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step{border-color:#334155;background:linear-gradient(145deg,#172338,#111c2e)}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step.is-active{border-color:#34d399;background:linear-gradient(145deg,#12382f,#172338)}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-intro{border-color:#285348;background:linear-gradient(110deg,#102e2a,#172338)}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-intro strong{color:#d1fae5}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-date-control input,.dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-search{border-color:#475569!important;background:#0f172a!important;color:#f8fafc!important}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-department-card,.dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-other-teacher-card{border-color:#334155;background:#172338}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-department-card strong,.dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-other-teacher-card strong{color:#f1f5f9}",
+      ".dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-department-card:has(input:checked),.dark :is(#timetableSubstitutionPanel,#substitutionView) .tt-other-teacher-card:has(input:checked){border-color:#818cf8;background:#24264a}",
+      "@media(max-width:700px){:is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-stepper{grid-template-columns:repeat(2,minmax(0,1fr))}:is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step{padding:.7rem}:is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step-icon{flex-basis:2.4rem;width:2.4rem;height:2.4rem}:is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-card{padding:.9rem}}",
+      "@media(max-width:420px){:is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-stepper{grid-template-columns:1fr 1fr}:is(#timetableSubstitutionPanel,#substitutionView) .tt-premium-step small{font-size:.55rem}}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.55rem;margin:.2rem 0}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps button{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;column-gap:.55rem;text-align:right;padding:.7rem;border:1px solid #dbe4ed;border-radius:1rem;background:#f8fafc;min-width:0}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps button span{grid-row:1/3;display:grid;place-items:center;width:2rem;height:2rem;border-radius:.7rem;background:#d1fae5;color:#065f46;font-weight:900}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps button strong{font-size:.72rem;color:#0f172a}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps button small{font-size:.58rem;color:#64748b}",
+      "@media(max-width:520px){:is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps{grid-template-columns:1fr}:is(#timetableSubstitutionPanel,#substitutionView) .tt-reserve-steps button{grid-template-columns:2rem 1fr;grid-template-rows:auto auto}}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson{border-color:#dbe4ed;background:linear-gradient(135deg,#fff,#f8fafc);box-shadow:0 5px 18px rgba(15,23,42,.045);border-radius:1rem}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.38rem;width:max-content;min-width:10.5rem;min-height:6.2rem;padding:1rem 1.45rem;border:2px solid #0f766e;border-radius:1.25rem;background:linear-gradient(145deg,#ecfeff 0%,#cffafe 48%,#ccfbf1 100%);color:#134e4a;box-shadow:0 12px 28px rgba(13,148,136,.2),inset 0 1px 0 rgba(255,255,255,.9)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator span{font-size:1rem;font-weight:950;line-height:1.2;letter-spacing:.01em}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator strong{font-size:2.65rem;line-height:1;font-weight:1000;font-variant-numeric:tabular-nums}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator em{font-size:.85rem;font-style:normal;font-weight:900;line-height:1.2}",
+      "@media(max-width:640px){:is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator{min-width:9.2rem;min-height:5.8rem;padding:.85rem 1.1rem}:is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator strong{font-size:2.35rem}}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson:focus-within{border-color:#60a5fa;box-shadow:0 0 0 3px rgba(59,130,246,.1)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson-choice{min-width:0}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson-choice select{display:block;width:100%;min-width:0;max-width:100%;border:1px solid #cbd5e1;border-radius:.8rem;background:#fff;padding:.7rem;font-size:16px;line-height:1.4}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson{min-width:0}",
+      "@media(max-width:640px){:is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson{display:grid;grid-template-columns:minmax(0,1fr);gap:.65rem;padding:.85rem}:is(#timetableSubstitutionPanel,#substitutionView) .tt-lesson-actions{display:flex;flex-wrap:wrap;gap:.4rem}:is(#timetableSubstitutionPanel,#substitutionView) .tt-group-head{padding:.85rem}}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-group{overflow:hidden;border:1px solid #dbe4ed;border-radius:1.25rem;background:#fff;box-shadow:0 8px 24px rgba(15,23,42,.04)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-group-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:.75rem;padding:1rem 1.1rem;background:linear-gradient(90deg,#f8fafc,#ecfdf5)}",
+      ":is(#timetableSubstitutionPanel,#substitutionView) .tt-reason{width:100%;min-height:2.6rem;border:1px solid #cbd5e1;border-radius:.8rem;padding:.7rem;background:#fff;color:#0f172a;font-size:.75rem}",
       "#timetableDailySummary .tt-stat{border:1px solid #e2e8f0;border-radius:1rem;background:#f8fafc;padding:.8rem}",
       "#timetableDailySummary .tt-stat strong{display:block;font-size:1.25rem;font-weight:900;color:#0f172a}",
       "#timetableDailyArchiveResults .tt-archive-row{display:grid;grid-template-columns:1fr auto;gap:.75rem;align-items:center;border:1px solid #e2e8f0;border-radius:.9rem;background:#fff;padding:.8rem}",
       "#timetableDailyArchiveResults .tt-archive-row small{color:#64748b}",
-      "@media(max-width:768px){#timetableSubstitutionPanel .tt-group-head{align-items:stretch}#timetableDailyArchiveResults .tt-archive-row{grid-template-columns:1fr}}",
+      "@media(max-width:768px){:is(#timetableSubstitutionPanel,#substitutionView) .tt-group-head{align-items:stretch}#timetableDailyArchiveResults .tt-archive-row{grid-template-columns:1fr}}",
       "@media print{body.tt-reserve-print-mode *{visibility:hidden!important}body.tt-reserve-print-mode #sec-timetable,body.tt-reserve-print-mode #sec-timetable *{visibility:hidden!important}body.tt-reserve-print-mode #ttReservePrintRoot,body.tt-reserve-print-mode #ttReservePrintRoot *{visibility:visible!important}body.tt-reserve-print-mode #ttReservePrintRoot{display:block!important;position:absolute!important;inset:0!important;width:100%!important;margin:0!important;padding:0!important;background:#fff!important;color:#111!important}@page{size:A4 portrait;margin:10mm}#ttReservePrintRoot{direction:rtl;font-family:'Tajawal',Arial,sans-serif;color:#111;background:#fff}#ttReservePrintRoot .tt-print-header{text-align:center;font-size:10pt;font-weight:800;line-height:1.55;margin-bottom:7mm}#ttReservePrintRoot .tt-print-meta{display:flex;justify-content:space-between;gap:8mm;margin:5mm 0;font-weight:800;font-size:10pt}#ttReservePrintRoot table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9.5pt}#ttReservePrintRoot th,#ttReservePrintRoot td{border:1px solid #333;padding:2.5mm 2mm;text-align:center;vertical-align:middle;overflow-wrap:anywhere}#ttReservePrintRoot th{background:#eef1f4!important;font-weight:900;-webkit-print-color-adjust:exact;print-color-adjust:exact}#ttReservePrintRoot tr{break-inside:avoid;page-break-inside:avoid}#ttReservePrintRoot .tt-print-footer{margin-top:9mm;display:flex;justify-content:space-between;font-size:9pt;font-weight:800}}"
     ].join("\n");
     document.head.appendChild(style);
