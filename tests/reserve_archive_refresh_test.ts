@@ -112,7 +112,7 @@ Deno.test("main reserve entry point keeps legacy panels hidden and defers edit/a
   assert(integration.includes('$("timetableDailyActivePanel")?.classList.add("hidden")'),"The old active edit panel must remain hidden behind the single day-card list");
   assert(integration.includes('$("timetableDailyArchivePanel")?.classList.add("hidden")'),"The old archive panel must remain hidden behind the unified archive renderer");
   assert(!integration.includes("editHost.appendChild(activePanel)")&&!integration.includes("archiveHost.appendChild(archivePanel)"),"The old panels must not create a competing second edit/archive path");
-  assert(integration.includes("ttAdminReserveTools")&&integration.includes("ttDepartmentReserveTools"),"Existing admin and department archive controls must remain mounted in the archive host");
+  assert(!integration.includes("ttAdminReserveTools")&&!integration.includes("ttDepartmentReserveTools"),"Extra reserve administration tools must not be inserted into the canonical archive workspace");
   assert(integration.includes("restoreCanonicalPanel()"),"Closing the view must keep the compatibility engine hidden");
   assert(integration.includes('dashboardCard.addEventListener("click"'),"The visible dashboard card remains the explicit reserve entry point");
   assert(!integration.includes("__canonicalReserveInitialOpenAttempted"),"Visibility observers must never auto-open the reserve workspace during unrelated view startup");
@@ -155,8 +155,7 @@ Deno.test("reserve operational views initialize only when opened", () => {
   assert(!boot.includes('attributes:true,attributeFilter:["class","style"]'),"Reserve code must not observe all dashboard class/style mutations");
   assert(boot.includes("substitutionVisibilityObserver"),"Home reserve initialization must follow its own view visibility");
   assert(boot.includes("substitutionContentObserver"),"Dynamically-created home reserve content must still initialize");
-  assert(boot.includes("timetableVisibilityObserver"),"Timetable reserve tools must follow their own panel visibility");
-  assert(boot.includes("timetableContentObserver"),"Dynamically-created timetable reserve content must still initialize");
+  assert(!boot.includes("timetableVisibilityObserver")&&!boot.includes("timetableContentObserver"),"Removed reserve management tools must not be reinitialized by legacy panel observers");
 
 
 });
