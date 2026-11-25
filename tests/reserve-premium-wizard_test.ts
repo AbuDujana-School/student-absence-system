@@ -37,7 +37,10 @@ Deno.test("supporting teachers can be selected from multiple departments", () =>
   const batchPreviewEnd = reserveWorkflow.indexOf("window.timetableDailySetBusy", batchPreviewStart);
   const batchPreview = reserveWorkflow.slice(batchPreviewStart, batchPreviewEnd);
   assert(batchPreview.includes("otherDepartmentIds:selectedOtherDepartmentIds()"), "Batch preview must send every selected supporting department to the server");
-  assert(reserveWorkflow.includes("reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)))"), "Teacher cards must be rendered for every selected department");\n  assert(reserveWorkflow.includes("data-select-all-department"), "Each department must provide a select-all control");\n  assert(reserveWorkflow.includes("data-clear-department"), "Each department must provide a clear-all control");\n  assert(reserveWorkflow.includes("data-other-teacher-name"), "Individual supporting teachers must remain selectable");
+  assert(reserveWorkflow.includes("reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)))"), "Teacher cards must be rendered for every selected department");
+  assert(reserveWorkflow.includes("data-select-all-department"), "Each department must provide a select-all control");
+  assert(reserveWorkflow.includes("data-clear-department"), "Each department must provide a clear-all control");
+  assert(reserveWorkflow.includes("data-other-teacher-name"), "Individual supporting teachers must remain selectable");
   assert(reserveWorkflow.includes("reserveOtherDepartmentIds"), "Multiple department selections must survive draft persistence");
 });
 
