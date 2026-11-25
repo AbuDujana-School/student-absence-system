@@ -201,7 +201,6 @@ begin
     'force_points_reversal',true
   ));
   perform set_config('app.allow_substitution_replacement','true',true);
-  perform set_config('app.allow_substitution_replacement','true',true);
   v_created:=public.create_timetable_substitution_with_reason(jsonb_build_object(
     'version_id',v_old.version_id,'weekday',v_old.weekday,'period',v_period,
     'assignment_date',v_old.assignment_date,
@@ -279,6 +278,7 @@ begin
     'assignment_id',v_assignment_id,'actor_name',v_actor_name,'actor_type',v_actor_type,
     'force_points_reversal',true
   ));
+  perform set_config('app.allow_substitution_replacement','true',true);
   v_created:=public.create_timetable_substitution_with_reason(jsonb_build_object(
     'version_id',v_old.version_id,'weekday',v_old.weekday,'period',v_period,
     'assignment_date',v_old.assignment_date,'absent_teacher_name',v_absent_name,
