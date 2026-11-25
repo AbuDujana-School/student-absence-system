@@ -1329,7 +1329,7 @@ async function handle(req: Request) {
         id:String(teacher.departmentId),name:String(teacher.departmentName||teacher.departmentId),
         teachers:directory.filter((candidate:any)=>candidate.role==="teacher"&&String(candidate.departmentId)===String(teacher.departmentId)&&teachersInActiveTimetable.has(candidate.name)).map((candidate:any)=>({name:String(candidate.name)})).sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"))
       }])).values()].sort((a:any,b:any)=>a.name.localeCompare(b.name,"ar"));
-    return reply(200,{ok:true,departments,actorDepartmentName:principal.type==="admin"?"":String(actor?.departmentName||"").trim()});
+    return reply(200,{ok:true,departments,actorDepartmentName:String(actor?.departmentName||"").trim(),actorDepartmentId:String(actor?.departmentId||"")});
   }
 
   if (action === "timetable_reserve_stats_access_list") {
