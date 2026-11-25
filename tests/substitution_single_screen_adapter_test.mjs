@@ -120,7 +120,7 @@ test('midnight refresh avoids background archive requests when the legacy archiv
 test('the single canonical date navigation is Oman-local and the adapter does not add duplicate shortcuts',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/data-date-offset="0"[\s\S]*data-date-offset="1"/);
- assert.match(workflow,/timeZone:"Asia\\/Muscat"/);
+ assert.ok(workflow.includes('timeZone:"Asia/Muscat"'));
  assert.match(workflow,/distributionDate\.min=today/);
  assert.doesNotMatch(workflow,/data-date-offset="-1"/);
  assert.doesNotMatch(adapter,/data-day="0"|data-day="1"/);
