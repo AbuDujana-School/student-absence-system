@@ -51,6 +51,13 @@ Deno.test("server validates each supporting teacher against the explicitly selec
   assert(timetableEndpoint.includes("(includeOtherDepartments&&otherDepartmentIds.includes(String(teacher.departmentId||\"\")"), "The smart candidate pool must include only explicitly selected external teachers");
 });
 
+Deno.test("the primary reserve route displays the authenticated coordinator department dynamically", () => {
+  assert(reserveWorkflow.includes("result.actorDepartmentName"), "The reserve screen must read the department returned for the authenticated actor");
+  assert(reserveWorkflow.includes("التوزيع لمعلمي قسم "), "The primary route title must include the resolved department name");
+  assert(reserveWorkflow.includes("loadOtherDepartments().catch(()=>{})"), "The authenticated department must load when the reserve screen is opened");
+  assert(timetableEndpoint.includes("actorDepartmentName:principal.type===\"admin\"?\"\":String(actor?.departmentName||\"\").trim()"), "The endpoint must derive the department from the authenticated teacher directory record");
+});
+
 Deno.test("the custom absence reason may be left empty", () => {
   assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
   assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");

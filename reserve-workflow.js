@@ -12,6 +12,8 @@
   let reserveOtherDepartmentId = "";
   let reserveOtherDepartmentIds = [];
   let reserveOtherDepartments = [];
+  let reserveOtherDepartmentsLoaded = false;
+  let reserveActorDepartmentName = "";
   let reserveSelectedOtherTeacherNames = new Set();
   let reserveDraftRestoreChecked = false;
   let reserveArchive = [];
@@ -184,10 +186,15 @@
     if(add)add.disabled=!host.querySelector("[data-other-teacher-name]:checked");
   }
   async function loadOtherDepartments() {
+    if(reserveOtherDepartmentsLoaded)return;
     const token=appAuthSession?.token||readAppAuthToken();
     const result=await appAuthRequest({action:"timetable_substitution_departments"},token);
     const select=$("timetableDailyOtherDepartmentSelect");
     if(!select)return;
+    reserveOtherDepartmentsLoaded=true;
+    reserveActorDepartmentName=String(result.actorDepartmentName||"").trim();
+    const localTitle=document.querySelector(".tt-reserve-local-card .tt-reserve-choice-copy strong");
+    if(localTitle&&reserveActorDepartmentName)localTitle.textContent="التوزيع لمعلمي قسم "+reserveActorDepartmentName;
     reserveOtherDepartments=Array.isArray(result.departments)?result.departments:[];
     const currentIds=selectedOtherDepartmentIds();
     const current=currentIds.length?currentIds:(reserveOtherDepartmentId?[reserveOtherDepartmentId]:[]);
@@ -620,6 +627,8 @@
       const absentCard=$("ttPremiumAbsentCard")||$("timetableDailyAbsentSearch")?.parentElement;
       if(absentCard?.parentNode)absentCard.parentNode.insertBefore(choiceGrid,absentCard);
       localCard.querySelector("button")?.addEventListener("click",()=>{absentCard?.scrollIntoView({behavior:"smooth",block:"center"});$("timetableDailyAbsentSearch")?.focus({preventScroll:true});});
+      // Load the authenticated coordinator department so the primary route is labeled dynamically.
+      loadOtherDepartments().catch(()=>{});
       const choiceStyle=document.createElement("style");
       choiceStyle.id="ttReserveChoiceCardsStyles";
       choiceStyle.textContent=[
