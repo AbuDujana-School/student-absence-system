@@ -12,9 +12,13 @@ test('date and distribution transitions wait for their asynchronous data operati
  assert.match(adapter,/await window\.substitutionLoadAbsentees\?\.\(\);go\('absentees'\)/);
  assert.match(adapter,/await window\.substitutionGeneratePlan\?\.\(\);if\(plan/);
 });
-test('absence reason popup feeds the original reason callback',()=>{
- assert.match(adapter,/window\.openSubstitutionAbsenceReasonPicker=function/);
- assert.match(adapter,/reasonCallback\?\.\(draft\)/);
+test('one polished absence-reason picker is retained and the duplicate adapter popup is removed',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/function openAbsenceReasonPicker\(absentName,onConfirm,initialValue\)/);
+ assert.match(workflow,/window\.openSubstitutionAbsenceReasonPicker = function/);
+ assert.match(workflow,/timetableDailyAbsenceReasonModal/);
+ assert.doesNotMatch(html,/subxReasonPopup|subxPopupTeacherTitle|subxReasonConfirm/);
+ assert.doesNotMatch(adapter,/window\.openSubstitutionAbsenceReasonPicker=function/);
 });
 test('archive is loaded from the department-scoped backend archive action and has A4 print styling',()=>{
  assert.match(adapter,/action:'timetable_substitution_archive'/);
@@ -112,4 +116,14 @@ test('midnight archive refresh is scoped to the visible reserve screen and does 
  assert.match(workflow,/function reserveIsArchiveScreenVisible\(\)/);
  assert.match(workflow,/if\(reserveIsArchiveScreenVisible\(\)\)await window\.timetableDailyLoadArchive/);
  assert.match(workflow,/if\(reserveIsArchiveScreenVisible\(\)\)window\.timetableDailyLoadArchive/);
+});
+
+test('the single canonical date navigation is Oman-local and the adapter does not add duplicate shortcuts',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/data-date-offset="0"[\s\S]*data-date-offset="1"/);
+ assert.match(workflow,/timeZone:"Asia\\/Muscat"/);
+ assert.match(workflow,/distributionDate\.min=today/);
+ assert.doesNotMatch(workflow,/data-date-offset="-1"/);
+ assert.doesNotMatch(adapter,/data-day="0"|data-day="1"/);
+ assert.doesNotMatch(html,/data-day="0"|data-day="1"/);
 });
