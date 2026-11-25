@@ -30,7 +30,7 @@ Deno.test("reserve date shortcuts show only today and tomorrow without a duplica
   assert(indexHtml.includes("rows=editMode?allRows.filter(r=>r.canEdit===true||r.canDelete===true)"), "The edit screen must show only currently editable assignments");
   assert(indexHtml.includes("window.subxLoadEditableAssignments=()=>loadArchive('subxEditMountArea')"), "The edit list must have a dedicated refresh action");
   assert(indexHtml.includes("await window.subxLoadEditableAssignments?.()"), "Saving a distribution must immediately refresh the edit list");
-  assert(reserveWorkflow.includes('if(!date.value)date.value=reserveCurrentMuscatDate();'), "The visible date must default to Muscat today only when empty");
+  assert(indexHtml.includes("if(!date.value)date.value=today;"), "The visible date must default to Muscat today only when empty");
   assert(reserveWorkflow.includes('legacyDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
 });
 
