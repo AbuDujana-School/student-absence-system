@@ -39,6 +39,16 @@ test('reserve scope and supporting departments use clear glass selection control
   assert.ok(reserve.includes('subx-canonical-teacher-checkbox{width:27px!important;height:27px!important'));
 });
 
+test('reserve WhatsApp distribution uses the requested department and spaced WhatsApp formatting', () => {
+  const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
+  const share = reserve.slice(reserve.indexOf('window.timetableDailyShareWhatsApp = async function ()'), reserve.indexOf('function applyTeacherTimetablePresentation'));
+  assert.ok(share.includes('const department=await reservePrintActorSubject();'));
+  assert.ok(share.includes('`"+department+"`'));
+  assert.ok(share.includes('*المعلم الغائب* : `'));
+  assert.ok(share.includes('*الاحتياط* : `'));
+  assert.ok(share.includes('message+="\\n\\n";'));
+});
+
 test('supporting department teacher cards recover when the source renderer populates asynchronously', () => {
   const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
   assert.ok(reserve.includes('canonicalTeacherSourceHost.dataset.canonicalTeacherObserverBound'));
