@@ -2582,6 +2582,8 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       apply();
       return true;
     }
+    // This mount is reserved for the canonical editor and archive cards only.
+    // Legacy administration/reset panels are intentionally not created or moved here.
     function mountCanonicalPanel(){
       const panel=$("timetableSubstitutionPanel");
       const archiveHost=$("subxArchiveMountArea");
