@@ -420,7 +420,7 @@ test("crowded schoolwide reserve day uses real A4 print geometry and preserves e
   const rowCounts = await sheets.evaluateAll(items => items.map(sheet => sheet.querySelectorAll(".tt-official-table tbody tr").length));
   expect(rowCounts.reduce((sum, count) => sum + count, 0)).toBe(50);
   const printedNames = await page.locator(".tt-official-table .tt-official-substitute").allTextContents();
-  expect(printedNames).toEqual(rows.map(row => row.substitute));
+  expect(printedNames).toEqual(rows.slice().sort((a, b) => a.period - b.period).map(row => row.substitute));
   await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("توزيع الاحتياط");
   for (const sheet of await sheets.all()) {
     await expect(sheet.locator(".tt-official-table thead")).toBeVisible();
