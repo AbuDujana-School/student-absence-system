@@ -983,10 +983,22 @@
       reserveManualChoices=Object.create(null);
       reserveDraftApproved=new Set();
       clearStoredDraft();
+      // Include the exact committed date in the active/edit query, including future dates.
+      // The initial archive range normally ends at today and would otherwise hide a future save.
+      const archiveFrom=$("timetableDailyArchiveFrom"),archiveTo=$("timetableDailyArchiveTo");
+      if(archiveFrom&&(!archiveFrom.value||archiveFrom.value>date)){
+        const archiveStart=new Date(date+"T00:00:00Z");
+        archiveStart.setUTCDate(archiveStart.getUTCDate()-365);
+        archiveFrom.value=archiveStart.toISOString().slice(0,10);
+      }
+      if(archiveTo&&(!archiveTo.value||archiveTo.value<date))archiveTo.value=date;
       status("تم تأكيد حفظ "+savedCount+" تكليف في الخادم. يجري تحديث العرض والأرشيف...","success");
       try{
         await timetableDailyRefreshAll();
         await timetableDailyLoadArchive();
+        if(typeof window.subxLoadEditableAssignments==="function"){
+          await window.subxLoadEditableAssignments();
+        }
         // If the logged-in coordinator assigned a reserve lesson to themselves, show the daily notice immediately.
         if(typeof window.teacherShowDailySubstitutionWelcome==="function") await window.teacherShowDailySubstitutionWelcome();
         status("تم حفظ "+savedCount+" تكليف وتحديث العرض والأرشيف بنجاح.","success");
