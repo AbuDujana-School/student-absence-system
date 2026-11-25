@@ -14,13 +14,13 @@ test('date and distribution transitions wait for their asynchronous data operati
 });
 test('the restored illustrated absence-reason picker is the single modal used by all reserve flows',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
- assert.match(workflow,/function openAbsenceReasonPicker\\(absentName,onConfirm,initialValue\\)/);
- assert.match(workflow,/window\\.openSubstitutionAbsenceReasonPicker = function\\(absentName,currentValue,onConfirm\\)/);
+ assert.match(workflow,/function openAbsenceReasonPicker\(absentName,onConfirm,initialValue\)/);
+ assert.match(workflow,/window\.openSubstitutionAbsenceReasonPicker = function\(absentName,currentValue,onConfirm\)/);
  assert.match(workflow,/timetableDailyAbsenceReasonModal/);
- assert.match(workflow,/Object\\.defineProperty\\(window, "openSubstitutionAbsenceReasonPicker"/);
- assert.match(workflow,/document\\.getElementById\\("subxReasonPopup"\\)\\?\\.remove\\(\\)/);
+ assert.match(workflow,/Object\.defineProperty\(window, "openSubstitutionAbsenceReasonPicker"/);
+ assert.match(workflow,/document\.getElementById\("subxReasonPopup"\)\?\.remove\(\)/);
  assert.doesNotMatch(html,/subxReasonPopup/);
- assert.doesNotMatch(html,/window\\.openSubstitutionAbsenceReasonPicker=function/);
+ assert.doesNotMatch(html,/window\.openSubstitutionAbsenceReasonPicker=function/);
 });
 test('archive is loaded from the department-scoped backend archive action and has A4 print styling',()=>{
  assert.match(adapter,/action:'timetable_substitution_archive'/);
@@ -59,7 +59,7 @@ test('absentee selection card is made visible after moving it into its dedicated
 });
 
 test('the restored absence modal retains its selected-state and accessible choice styling',()=>{
- assert.match(workflow,/#timetableDailyAbsenceReasonModal \.tt-absence-reason-option:has\\(input:checked\\)/);
+ assert.match(workflow,/#timetableDailyAbsenceReasonModal \.tt-absence-reason-option:has\(input:checked\)/);
  assert.match(workflow,/ttAbsenceReasonChoice/);
  assert.match(workflow,/fa-hospital/);
  assert.match(workflow,/fa-kit-medical/);
