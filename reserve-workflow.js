@@ -138,12 +138,49 @@
     if(!host)return;
     const selectedIds=selectedOtherDepartmentIds();
     const departments=reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)));
-    const teachers=departments.flatMap(department=>(Array.isArray(department.teachers)?department.teachers:[]).map(teacher=>({...teacher,departmentName:department.name,departmentId:String(department.id)})));
-    const uniqueTeachers=[...new Map(teachers.map(teacher=>[String(teacher.name),teacher])).values()];
-    host.innerHTML=departments.length ? (uniqueTeachers.length ? uniqueTeachers.map(teacher=>
-      '<label class="tt-other-teacher-card flex items-center gap-3 rounded-xl border border-indigo-100 bg-white p-3 text-xs font-bold"><input type="checkbox" class="h-5 w-5 accent-indigo-600" data-other-teacher-name="'+esc(teacher.name)+'"'+(reserveSelectedOtherTeacherNames.has(String(teacher.name))?" checked":"")+'><span class="min-w-0"><strong class="block text-slate-800">'+esc(teacher.name)+'</strong><small class="mt-1 block text-indigo-600">'+esc(teacher.departmentName)+'</small></span></label>'
-    ).join("") : '<p class="text-xs text-slate-500">لا يوجد معلمون مؤهلون في الأقسام المحددة ضمن الجدول النشط.</p>') : '<p class="text-xs text-slate-500">حدد تخصصاً واحداً أو أكثر لعرض معلميه.</p>';
-    if(add)add.disabled=!departments.length||uniqueTeachers.length===0;
+    const uniqueNames=new Set();
+    const groups=departments.map(department=>{
+      const teachers=[...(Array.isArray(department.teachers)?department.teachers:[])]
+        .filter(teacher=>teacher?.name&&!uniqueNames.has(String(teacher.name))&&uniqueNames.add(String(teacher.name)));
+      const names=teachers.map(teacher=>String(teacher.name));
+      const selectedCount=names.filter(name=>reserveSelectedOtherTeacherNames.has(name)).length;
+      return '<section class="rounded-2xl border border-indigo-100 bg-white p-3 shadow-sm" data-other-department-group="'+esc(department.id)+'">'+
+        '<div class="mb-3 flex flex-wrap items-center justify-between gap-2">'+
+          '<div class="flex min-w-0 items-center gap-2"><span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-indigo-50 text-indigo-700"><i class="fa-solid fa-book-open"></i></span><div class="min-w-0"><strong class="block text-sm font-black text-slate-900">'+esc(department.name)+'</strong><small class="text-[11px] text-slate-500">'+teachers.length+' معلم متاح · '+selectedCount+' محدد</small></div></div>'+
+          '<div class="flex shrink-0 gap-2"><button type="button" data-select-all-department="'+esc(department.id)+'" class="rounded-xl border border-indigo-200 bg-indigo-50 px-3 py-2 text-xs font-black text-indigo-800">تحديد الكل</button><button type="button" data-clear-department="'+esc(department.id)+'" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-600">إلغاء الكل</button></div>'+
+        '</div>'+
+        (teachers.length?'<div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+teachers.map(teacher=>{
+          const name=String(teacher.name);
+          return '<label class="tt-other-teacher-card flex min-h-[3.5rem] cursor-pointer items-center gap-3 rounded-xl border border-slate-200 bg-slate-50/70 p-3 text-sm font-bold transition hover:border-indigo-300 hover:bg-indigo-50/50"><input type="checkbox" class="h-6 w-6 shrink-0 accent-indigo-600" data-other-teacher-name="'+esc(name)+'"'+(reserveSelectedOtherTeacherNames.has(name)?" checked":"")+'><span class="min-w-0"><strong class="block text-slate-800">'+esc(name)+'</strong><small class="mt-1 block text-[10px] font-medium text-indigo-600">'+esc(department.name)+'</small></span></label>';
+        }).join("")+'</div>':'<p class="rounded-xl bg-slate-50 p-3 text-xs text-slate-500">لا يوجد معلمون مؤهلون في هذا القسم ضمن الجدول النشط.</p>')+
+      '</section>';
+    });
+    host.innerHTML=groups.length?groups.join(""):'<p class="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-500">حدد قسماً أو أكثر لعرض المعلمين المتاحين.</p>';
+    host.querySelectorAll("[data-select-all-department]").forEach(button=>button.addEventListener("click",()=>{
+      const id=String(button.dataset.selectAllDepartment||"");
+      const department=departments.find(item=>String(item.id)===id);
+      (department?.teachers||[]).forEach(teacher=>{if(teacher?.name)reserveSelectedOtherTeacherNames.add(String(teacher.name));});
+      renderOtherDepartmentTeachers();
+    }));
+    host.querySelectorAll("[data-clear-department]").forEach(button=>button.addEventListener("click",()=>{
+      const id=String(button.dataset.clearDepartment||"");
+      const department=departments.find(item=>String(item.id)===id);
+      (department?.teachers||[]).forEach(teacher=>reserveSelectedOtherTeacherNames.delete(String(teacher.name)));
+      renderOtherDepartmentTeachers();
+    }));
+    host.querySelectorAll("[data-other-teacher-name]").forEach(input=>input.addEventListener("change",()=>{
+      const name=String(input.dataset.otherTeacherName||"");
+      if(input.checked)reserveSelectedOtherTeacherNames.add(name);else reserveSelectedOtherTeacherNames.delete(name);
+      const section=input.closest("[data-other-department-group]");
+      const department=departments.find(item=>String(item.id)===String(section?.dataset.otherDepartmentGroup||""));
+      if(section&&department){
+        const names=(department.teachers||[]).map(teacher=>String(teacher.name));
+        const count=names.filter(value=>reserveSelectedOtherTeacherNames.has(value)).length;
+        const caption=section.querySelector("small");
+        if(caption)caption.textContent=names.length+" معلم متاح · "+count+" محدد";
+      }
+    }));
+    if(add)add.disabled=!departments.length||!groups.some(group=>group!=="");
   }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
@@ -566,7 +603,7 @@
         button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
         await timetableDailyRefreshAll();
       });
-      const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[260px] text-xs font-bold text-slate-700">  <section class="rounded-2xl border border-indigo-100 bg-white p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700 text-xl"><i class="fa-solid fa-layer-group"></i></span><div><strong class="block text-sm text-slate-900">اختر التخصصات المساندة</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">يمكنك اختيار أكثر من تخصص في الوقت نفسه</small></div></div>    <div id="timetableDailyOtherDepartmentChoices" class="grid grid-cols-1 gap-2 sm:grid-cols-2"><p class="text-xs text-slate-500">جارٍ تحميل التخصصات...</p></div>    <select id="timetableDailyOtherDepartmentSelect" multiple class="hidden" aria-hidden="true" tabindex="-1"></select>  </section>  <section class="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-white text-indigo-700 text-lg"><i class="fa-solid fa-users"></i></span><div><strong class="block text-sm text-slate-900">اختر المعلمين البدلاء</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">حدد معلماً أو أكثر من التخصصات التي اخترتها</small></div></div>    <div id="timetableDailyOtherTeacherChoices" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر التخصص أولاً لعرض المعلمين.</p></div>    <button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-md disabled:cursor-not-allowed disabled:opacity-50" disabled><i class="fa-solid fa-user-plus ml-1"></i> إضافة المعلمين المحددين</button>    <p class="mt-2 text-[10px] text-slate-500">لن يدخل أي معلم في التوزيع إلا بعد تحديده والضغط على زر الإضافة.</p>  </section></div>';
+      const toolbarSelect='<div id="timetableDailyOtherDepartmentWrap" class="hidden min-w-[260px] text-xs font-bold text-slate-700">  <section class="rounded-2xl border border-indigo-100 bg-white p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-11 w-11 place-items-center rounded-xl bg-indigo-50 text-indigo-700 text-xl"><i class="fa-solid fa-layer-group"></i></span><div><strong class="block text-sm text-slate-900">اختر التخصصات المساندة</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">يمكنك اختيار أكثر من تخصص في الوقت نفسه</small></div></div>    <div id="timetableDailyOtherDepartmentChoices" class="grid grid-cols-1 gap-2 sm:grid-cols-2"><p class="text-xs text-slate-500">جارٍ تحميل التخصصات...</p></div>    <select id="timetableDailyOtherDepartmentSelect" multiple class="hidden" aria-hidden="true" tabindex="-1"></select>  </section>  <section class="mt-3 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4">    <div class="mb-3 flex items-center gap-3"><span class="grid h-10 w-10 place-items-center rounded-xl bg-white text-indigo-700 text-lg"><i class="fa-solid fa-users"></i></span><div><strong class="block text-sm text-slate-900">اختر المعلمين من الأقسام المحددة</strong><small class="mt-1 block text-[11px] font-medium text-slate-500">يمكنك تحديد معلم بعينه أو تحديد جميع معلمي القسم</small></div></div>    <div id="timetableDailyOtherTeacherChoices" class="grid max-h-64 grid-cols-1 gap-2 overflow-y-auto sm:grid-cols-2"><p class="text-xs text-slate-500">اختر التخصص أولاً لعرض المعلمين.</p></div>    <button type="button" id="timetableDailyAddOtherTeachersButton" class="mt-3 w-full rounded-xl bg-indigo-700 px-4 py-3 text-sm font-black text-white shadow-md disabled:cursor-not-allowed disabled:opacity-50" disabled><i class="fa-solid fa-user-plus ml-1"></i> اعتماد المعلمين المحددين</button>    <p class="mt-2 text-[10px] text-slate-500">اختر معلمًا واحدًا أو أكثر، أو استخدم «تحديد الكل» داخل بطاقة القسم، ثم اعتمد الاختيار لإضافتهم إلى البدلاء.</p>  </section></div>';
       $("timetableDailyOtherDepartmentsButton")?.insertAdjacentHTML("afterend",toolbarSelect);
       $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",()=>{
         const selectedIds=selectedOtherDepartmentIds();reserveOtherDepartmentIds=[...selectedIds];reserveOtherDepartmentId=selectedIds[0]||"";
