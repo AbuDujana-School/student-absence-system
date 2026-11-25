@@ -2450,7 +2450,6 @@
           "#subxScreen_smart .subx-canonical-teacher-checkbox{width:22px!important;height:22px!important;accent-color:#059669!important}",
           "#subxScreen_smart .subx-canonical-teacher-tools{background:linear-gradient(135deg,rgba(204,251,241,.72),rgba(224,242,254,.72))!important;border:1px solid rgba(13,148,136,.12)}",
           "#subxScreen_smart .subx-canonical-teacher-tools button{min-height:34px;padding:7px 11px;border-radius:10px;font-size:10px}",
-          "#subxScreen_smart .subx-canonical-teacher-checkbox{width:19px;height:19px;accent-color:#4f46e5}",
           "html.dark #subxScreen_smart .subx-department-card-toolbar{background:rgba(15,23,42,.82);color:#e2e8f0}",
           "html.dark #subxScreen_smart .subx-canonical-department-item,html.dark #subxScreen_smart #substitutionOtherTeacherChoices>section.subx-canonical-teacher-group{background:linear-gradient(145deg,rgba(15,23,42,.94),rgba(30,41,59,.92));border-color:rgba(148,163,184,.2)}",
           "html.dark #subxScreen_smart .subx-canonical-department-item.is-selected{background:linear-gradient(145deg,rgba(6,78,59,.84),rgba(15,23,42,.94));border-color:rgba(45,212,191,.55)}",
