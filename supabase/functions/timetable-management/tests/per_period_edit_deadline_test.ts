@@ -13,9 +13,9 @@ Deno.test("reserve server permissions follow each lesson's configured end time",
   assert(source.includes('if(principal.type!=="admin"&&!isSubstitutionPeriodOpen(assignmentDate,period,periodTimings))'), "Single additions must be blocked after the lesson deadline");
   assert(source.includes("planningTimetable=principal.type===\"admin\"?timetable:"), "Batch preview must not suggest new assignments for expired lessons");
   assert(source.includes('blockReason:periodOpen?null:"period_passed"'), "Single preview must explain that an expired lesson cannot receive a new assignment");
-  assert(source.includes("isSubstitutionPeriodOpen(cancellationDate,assignment.period,periodTimings)"), "Individual deletion must validate the assigned period deadline");
-  assert(source.includes("isSubstitutionPeriodOpen(assignmentDate,row.period,periodTimings)"), "Group deletion must validate every lesson independently");
-  assert(source.includes("isSubstitutionPeriodOpen(editableAssignment.assignment_date,requestedPeriod,periodTimings)"), "A reassignment must also validate the destination period deadline");
-  assert(source.includes("hasReservePermission&&isSubstitutionPeriodOpen(row.assignment_date,row.period,periodTimings)"), "Undated legacy assignments must not inherit the selected date's edit grant");
+  assert(source.includes("isSubstitutionAssignmentEditableUntilDayEnd(cancellationDate,todayInMuscat)"), "Individual deletion must remain available through the assigned day");
+  assert(source.includes("isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate,todayInMuscat)"), "Group deletion must remain available through the assigned day");
+  assert(source.includes("isSubstitutionAssignmentEditableUntilDayEnd(editableAssignment.assignment_date,todayInMuscat)"), "Saved assignment reassignment must remain available through the assigned day");
+  assert(source.includes("hasReservePermission&&isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)"), "Archive edit grants must follow the assignment day and coordinator scope");
   assert(source.includes("canDelete:Boolean(activeVersion.data"), "Archive rows must expose a separate delete permission");
 });
