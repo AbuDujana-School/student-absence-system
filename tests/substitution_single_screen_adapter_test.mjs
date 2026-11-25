@@ -179,8 +179,7 @@ test('reserve save guard accepts YYYY-MM-DD and rejects only earlier dates',()=>
  const save=html.slice(html.indexOf('window.substitutionSavePlan=async function'),html.indexOf('function buildShareMessage'));
  assert.match(save,/!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/.test\(selectedAssignmentDate\)/);
  assert.doesNotMatch(save,/!\/\^\\\\d/);
- const isoDate=new RegExp('^\\\\d{4}-\\\\d{2}-\\\\d{2}$');
- assert.ok(isoDate.test('2026-11-25'));
+ assert.ok(/^\d{4}-\d{2}-\d{2}$/.test('2026-11-25'));
  assert.ok('2026-11-25'>='2026-11-25');
  assert.ok(!('2026-11-24'>='2026-11-25'));
 });
