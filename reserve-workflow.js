@@ -2701,7 +2701,6 @@
     }
   }
   installLegacyOtherDepartmentTeacherPicker();
-  }
   installMainSubstitutionViewIntegration();
   installReserveEnhancements();
   installReserveArchiveAutoRefresh();
