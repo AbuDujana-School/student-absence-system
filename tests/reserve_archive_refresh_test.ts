@@ -478,3 +478,35 @@ Deno.test("reserve archive date controls are a one-time enhancement with no subt
   assert(enhancement.includes("subx-archive-date-input")&&enhancement.includes("subx-archive-date-label"),"The premium date styling must remain");
   assert(enhancement.includes('data-subx-archive-preset=\"7\"')&&enhancement.includes('data-subx-archive-preset=\"30\"')&&enhancement.includes('data-subx-archive-preset=\"month\"'),"The safe completed-day date shortcuts must remain");
 });
+
+Deno.test("archive access separates schoolwide visibility from switching departments", () => {
+  const start=source.indexOf("function installReserveArchiveAutoRefresh()");
+  const end=source.indexOf("// Integrate absence reasons",start);
+  assert(start>=0&&end>start,"Reserve archive request integration must exist");
+  const integration=source.slice(start,end);
+  assert(
+    integration.includes('action==="timetable_substitution_archive_access"&&result?.canView===true'),
+    "The archive UI must react only to a successful server-side archive access response",
+  );
+  assert(
+    integration.includes("archiveAccess.canSelectAnyDepartment!==true"),
+    "Only the server-issued department-selection capability may expose the all-departments picker",
+  );
+  assert(
+    integration.includes("archiveAccess.canSelectAnyDepartment===true"),
+    "The system administrator's department selector must remain available",
+  );
+  assert(
+    integration.includes("تعرض هذه البطاقة أرشيف ") &&
+      integration.includes("وتعرض البطاقة الثانية أرشيف المدرسة لجميع الأقسام والتخصصات."),
+    "The department card must explain that the second card provides the schoolwide archive",
+  );
+  assert(
+    integration.includes("Promise.resolve().then(()=>Promise.resolve().then(()=>{"),
+    "The permission-aware presentation must apply after the archive page's initial access rendering",
+  );
+  assert(
+    !integration.includes("MutationObserver"),
+    "The archive access correction must not reintroduce a subtree observer that can freeze the archive",
+  );
+});
