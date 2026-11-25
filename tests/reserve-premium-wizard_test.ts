@@ -77,7 +77,7 @@ Deno.test("supporting departments and their teachers are selectable through visi
   assert(reserveWorkflow.includes('data-canonical-department-id'), "Each supporting department card must have an independent selection control");
   assert(reserveWorkflow.includes('data-department-bulk="all"'), "The department cards must provide a select-all action");
   assert(reserveWorkflow.includes('data-department-bulk="clear"'), "The department cards must provide a clear-all action");
-  assert(reserveWorkflow.includes('data-canonical-teacher-department'), "Selected departments must render separate teacher groups");
+  assert(reserveWorkflow.includes("section.dataset.canonicalTeacherDepartment"), "Selected departments must render separate teacher groups");
   assert(reserveWorkflow.includes('data-teacher-group-action="all"'), "Each teacher group must allow selecting all its teachers");
   assert(reserveWorkflow.includes('data-teacher-group-action="clear"'), "Each teacher group must allow clearing its teacher selection");
   assert(indexHtml.includes("getSubstitutionSelectedOtherTeacherNames()"), "The canonical distribution and save handlers must consume the selected supporting teachers");
