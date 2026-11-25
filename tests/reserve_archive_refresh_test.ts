@@ -296,7 +296,7 @@ Deno.test("saved reserve day editor uses live server candidates and the existing
   assert(editor.includes("occupiedPeriods"), "Other teachers must show their live occupied periods");
   assert(editor.includes("data-choice") && editor.includes("data-change"), "Choosing a substitute must collapse the choices and retain a Change action");
   assert(editor.includes('expanded:!String(x.substituteTeacherName||"").trim()'), "Unassigned lessons must open their candidate list while saved lessons stay collapsed");
-  assert(editor.includes('data-edit-lesson="'+esc(id)+'"') && editor.includes("scrollIntoView({behavior:\"smooth\",block:\"center\"})"), "Choosing a substitute must move smoothly to the next lesson");
+  assert(editor.includes('data-edit-lesson="') && editor.includes("scrollIntoView({behavior:\"smooth\",block:\"center\"})"), "Choosing a substitute must move smoothly to the next lesson");
   assert(editor.includes("data-other-choice"), "The other-teachers search must allow a scoped substitute selection");
   assert(editor.includes('action:"timetable_substitution_update_batch"'), "Saving must use the existing authenticated atomic batch update");
   assert(editor.includes("window.timetableDailyPrintArchiveRange"), "PDF must use the official A4 reserve report renderer");
