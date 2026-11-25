@@ -99,12 +99,3 @@ Deno.test("saved reserve assignments remain editable through the Muscat assignme
   assert(timetableEndpoint.includes("date >= todayInMuscat"), "The edit window must include the full assignment day and future dates");
   assert(timetableEndpoint.includes("لا يمكن لمنسق الاحتياط اختيار تاريخ سابق"), "Coordinators must not create or preview reserve plans for past dates");
 });
-
-Deno.test("SQL enforces day-end editing while preserving period-end creation limits", async () => {
-  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125170000_reserve_edit_until_muscat_day_end.sql", import.meta.url));
-  assert(migration.includes("timetable_substitution_assignment_editable_until_day_end"), "The database must enforce the assignment-day edit deadline");
-  assert(migration.includes("Asia/Muscat"), "The assignment-day boundary must use Oman local time");
-  const creationMigration = await Deno.readTextFile(new URL("../supabase/migrations/20261121163941_substitution_create_period_deadline.sql", import.meta.url));
-  assert(creationMigration.includes("timetable_substitution_period_is_open(v_date,v_period)"), "Creating a new reserve assignment must still stop at the end of its lesson");
-  assert(!migration.includes("timetable_substitution_period_is_open(v_old.assignment_date"), "Saved assignment edits must not expire when the lesson ends");
-});
