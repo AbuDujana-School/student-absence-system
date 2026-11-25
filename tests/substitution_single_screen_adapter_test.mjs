@@ -64,3 +64,28 @@ test('absence screen has a validated next step and smart distribution owns the g
  assert.match(adapter,/حدد سبب الغياب لكل معلم قبل الانتقال/);
  assert.match(adapter,/screens\.smart\.insertBefore\(generateButton,plan\|\|null\)/);
 });
+
+test('scope selector presents two distinct glass choices and a dedicated multi-select checklist',()=>{
+ for(const token of ['subxOwnDepartmentCard','التوزيع لمعلمي القسم','subxOtherDepartmentToggle','الاستعانة بالأقسام الأخرى','subxDepartmentChecklist','subxDepartmentApply','subxScopeStartSmart'])assert.ok(adapter.includes(token),token);
+ assert.match(style,/subx-scope-card/);assert.match(style,/backdrop-filter:blur/);assert.match(style,/subx-department-option input:checked/);
+});
+test('absence flow opens scope selection and own-department choice clears all external departments',()=>{
+ assert.match(adapter,/التالي: تحديد نطاق التوزيع/);assert.match(adapter,/go\('scope'\)/);
+ assert.match(adapter,/subxOwnDepartmentCard[^;]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
+});
+test('scope checklist excludes the coordinator department and commits only approved department IDs',()=>{
+ assert.match(adapter,/function scopeAvailableDepartments\(\)[\s\S]*?String\(d\.id\)!==ownId/);
+ assert.match(adapter,/function applyScopeDepartments\(ids\)[\s\S]*?valid=\[\.\.\.new Set/);
+ assert.match(adapter,/substitutionSelectedOtherDepartmentIds=valid\.slice\(\)/);
+ assert.match(adapter,/اضغط «موافق» أولاً لاعتماد الأقسام التي اخترتها/);
+});
+test('scope selector keeps absent teachers in their original department flow and gates cross-department access',()=>{
+ assert.match(adapter,/canManageReserveWorkspace\(activeUser\)/);
+ assert.match(adapter,/subxOtherDepartmentCard\.classList\.toggle\('hidden',!allowed\)/);
+ assert.match(adapter,/substitutionLoadAbsentees/);
+});
+test('scope screen does not replace the existing smart distribution engine',()=>{
+ assert.match(adapter,/substitutionGeneratePlan/);
+ assert.match(adapter,/substitutionOtherDepartmentIds\(\)/);
+ assert.match(adapter,/screens\.smart\.append\(plan\)/);
+});
