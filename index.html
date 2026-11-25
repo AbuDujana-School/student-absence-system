@@ -2333,6 +2333,46 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  #substitutionView .subx-v2-report-actions{grid-template-columns:1fr}
 }
 @media(prefers-reduced-motion:reduce){#substitutionView *,#substitutionView *:before,#substitutionView *:after{animation:none!important;transition:none!important}}
+#substitutionView .subx-home-department-card,#substitutionView .subx-department-support-card{position:relative;display:flex;align-items:center;gap:15px;width:100%;padding:19px;border:1px solid rgba(255,255,255,.76);border-radius:24px;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(232,246,246,.74));box-shadow:0 16px 38px rgba(24,54,83,.10),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);overflow:hidden}
+#substitutionView .subx-home-department-card:before,#substitutionView .subx-department-support-card:before{content:"";position:absolute;inset:0 0 auto;height:3px;background:linear-gradient(90deg,#16a394,#3c77ad,#b78a42)}
+#substitutionView .subx-home-department-icon,#substitutionView .subx-department-trigger-icon{width:58px;height:58px;flex:0 0 58px;display:grid;place-items:center;border-radius:19px;background:linear-gradient(145deg,#1b827f,#204d70);color:white;font-size:24px;box-shadow:0 9px 22px rgba(24,84,105,.22)}
+#substitutionView .subx-home-department-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:4px}
+#substitutionView .subx-home-department-copy small{font-size:10px;font-weight:900;color:#16877f}
+#substitutionView .subx-home-department-copy b{font-size:15px;font-weight:950;color:#193d5b}
+#substitutionView .subx-home-department-copy strong{font-size:18px;font-weight:950;color:#173e62}
+#substitutionView .subx-home-department-copy em{font-size:10px;font-style:normal;color:#61758a;line-height:1.7}
+#substitutionView .subx-home-department-tag{flex:0 0 auto;padding:7px 11px;border-radius:999px;background:rgba(22,140,133,.12);color:#13756e;font-size:10px;font-weight:900}
+#substitutionView .subx-department-support-card{display:block;padding:12px}
+#substitutionView .subx-department-support-trigger{display:flex;align-items:center;gap:14px;width:100%;min-height:78px;padding:8px;border:0;border-radius:17px;background:transparent;text-align:right}
+#substitutionView .subx-department-support-trigger b{display:block;font-size:15px;font-weight:950;color:#1c4160}
+#substitutionView .subx-department-support-trigger small{display:block;margin-top:5px;font-size:10px;line-height:1.7;color:#60758a}
+#substitutionView .subx-department-trigger-state{display:grid;place-items:center;width:38px;height:38px;flex:0 0 38px;border-radius:13px;background:rgba(27,93,125,.09);color:#1b5876;transition:transform .2s}
+#substitutionView .subx-department-support-trigger[aria-expanded="true"] .subx-department-trigger-state{transform:rotate(180deg)}
+#substitutionView .subx-department-choice-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:11px;margin-top:12px}
+#substitutionView .subx-department-choice{display:flex;align-items:center;gap:10px;min-width:0;min-height:84px;padding:12px;border:1px solid rgba(130,155,176,.24);border-radius:18px;background:rgba(255,255,255,.84);cursor:pointer;transition:transform .18s,border-color .18s,background .18s,box-shadow .18s}
+#substitutionView .subx-department-choice:has(input:checked),#substitutionView .subx-department-choice.is-selected{border-color:#1b9b8e;background:linear-gradient(135deg,rgba(224,248,243,.96),rgba(235,245,255,.9));box-shadow:0 0 0 2px rgba(22,140,133,.12),0 9px 22px rgba(24,54,83,.08);transform:translateY(-1px)}
+#substitutionView .subx-department-choice input{width:25px;height:25px;flex:0 0 25px;accent-color:#138b80;cursor:pointer}
+#substitutionView .subx-department-choice-icon{width:39px;height:39px;flex:0 0 39px;display:grid;place-items:center;border-radius:13px;background:linear-gradient(145deg,#edf4fb,#e1f3ef);color:#23677a;font-size:17px}
+#substitutionView .subx-department-choice-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+#substitutionView .subx-department-choice-copy b{font-size:12px;font-weight:950;color:#1c3e5b;overflow-wrap:anywhere}
+#substitutionView .subx-department-choice-copy small{font-size:9px;color:#6a7e90}
+#substitutionView .subx-department-choice-copy em{font-size:8px;font-style:normal;font-weight:800;color:#148579}
+#substitutionView .subx-department-choice-check{display:none;width:23px;height:23px;flex:0 0 23px;place-items:center;border-radius:50%;background:#168c85;color:white;font-size:11px}
+#substitutionView .subx-department-choice.is-selected .subx-department-choice-check{display:grid}
+#substitutionView .subx-department-selection-summary{margin-top:11px;padding:10px 12px;border-radius:13px;background:rgba(24,54,83,.055);color:#526d82;font-size:10px;font-weight:850;line-height:1.7}
+#substitutionView .subx-department-empty{padding:17px;border:1px dashed rgba(100,125,150,.35);border-radius:15px;text-align:center;color:#718397;font-size:11px}
+#substitutionView #substitutionOtherDepartmentsWrap.hidden{display:none!important}
+#substitutionView #substitutionGenerateButton.subx-smart-generate{width:100%;min-height:66px;margin:5px 0 0;padding:15px 20px;border:1px solid rgba(255,255,255,.4);border-radius:22px;background:linear-gradient(115deg,#147d77,#1e547b 58%,#28446b);box-shadow:0 17px 34px rgba(22,91,112,.25),inset 0 1px 0 rgba(255,255,255,.28);color:#fff;font-size:16px;font-weight:950}
+#substitutionView #substitutionGenerateButton.subx-smart-generate:hover{transform:translateY(-2px);box-shadow:0 21px 38px rgba(22,91,112,.3)}
+#substitutionView #substitutionGenerateButton.subx-smart-generate:disabled{opacity:.48;transform:none}
+html.dark #substitutionView .subx-home-department-card,html.dark #substitutionView .subx-department-support-card{background:linear-gradient(135deg,rgba(18,37,57,.94),rgba(20,51,66,.9));border-color:rgba(148,178,198,.22)}
+html.dark #substitutionView .subx-home-department-copy b,html.dark #substitutionView .subx-home-department-copy strong,html.dark #substitutionView .subx-department-support-trigger b{color:#edf6fb}
+html.dark #substitutionView .subx-home-department-copy em,html.dark #substitutionView .subx-department-support-trigger small{color:#a9bdcc}
+html.dark #substitutionView .subx-department-choice{background:rgba(15,32,49,.88);border-color:rgba(111,145,168,.3)}
+html.dark #substitutionView .subx-department-choice-copy b{color:#e7f1f8}
+html.dark #substitutionView .subx-department-choice:has(input:checked),html.dark #substitutionView .subx-department-choice.is-selected{background:linear-gradient(135deg,rgba(15,84,76,.65),rgba(27,61,89,.9));border-color:#2dd4bf}
+html.dark #substitutionView .subx-department-selection-summary{background:rgba(148,163,184,.1);color:#c0d2df}
+@media(max-width:620px){#substitutionView .subx-home-department-card{padding:14px;gap:10px}#substitutionView .subx-home-department-icon{width:48px;height:48px;flex-basis:48px;font-size:20px}#substitutionView .subx-home-department-copy strong{font-size:15px}#substitutionView .subx-home-department-tag{font-size:9px;padding:6px 8px}#substitutionView .subx-department-choice-grid{grid-template-columns:1fr}#substitutionView .subx-department-choice{min-height:75px}}
 </style>
 <section id="substitutionView" class="hidden space-y-5" dir="rtl">
   <div class="subx-toolbar">
@@ -2372,13 +2412,14 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
       <input id="substitutionDate" type="date" onchange="substitutionDateChanged()" class="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-bold text-slate-800 outline-none focus:border-cyan-500 dark:border-slate-700 dark:bg-slate-800 dark:text-white">
       <p id="substitutionWeekdayLabel" class="mt-2 text-[11px] font-bold text-slate-500 dark:text-slate-400">—</p>
     </div>
-    <div id="substitutionOtherDepartmentsWrap" class="hidden rounded-3xl border border-indigo-200 bg-indigo-50/70 p-4 dark:border-indigo-900 dark:bg-indigo-950/30">
-      <label class="flex cursor-pointer items-start gap-3">
-        <input id="substitutionOtherDepartments" type="checkbox" class="mt-1 h-4 w-4 accent-indigo-600">
-        <span><span class="block text-xs font-black text-indigo-900 dark:text-indigo-200">إظهار البدلاء من الأقسام الأخرى</span><span class="mt-1 block text-[10px] leading-5 text-indigo-800 dark:text-indigo-300">للمدير أو المعلم المخوّل بتوزيع الاحتياط، عند الضرورة. تبقى قائمة الغائبين ضمن نطاق قسمك.</span></span>
-      </label>
-      <select id="substitutionOtherDepartmentSelect" multiple size="4" aria-label="اختر قسماً أو أكثر من الأقسام المساندة" class="hidden mt-3 w-full rounded-xl border border-indigo-200 bg-white p-3 text-xs font-bold text-slate-800 dark:border-indigo-900 dark:bg-slate-900 dark:text-white" disabled><option value="" disabled>اختر قسماً أو أكثر</option></select>
-      <div id="substitutionOtherTeacherChoices" class="hidden mt-3 rounded-2xl border border-indigo-100 bg-white p-3 dark:border-indigo-900 dark:bg-slate-900" aria-live="polite"><p class="text-xs text-slate-500">اختر القسم لعرض المعلمين.</p></div>
+    <div id="substitutionOtherDepartmentsWrap" class="hidden subx-department-support-card">
+      <button type="button" id="substitutionOtherDepartments" class="subx-department-support-trigger" aria-expanded="false">
+        <span class="subx-department-trigger-icon"><i class="fa-solid fa-people-group"></i></span>
+        <span class="min-w-0 text-right"><b>الاستعانة بالأقسام الأخرى</b><small>اختر قسمًا أو أكثر، وستُضاف جميع أسماء معلميه المؤهلين تلقائيًا</small></span>
+        <span class="subx-department-trigger-state"><i class="fa-solid fa-chevron-down"></i></span>
+      </button>
+      <select id="substitutionOtherDepartmentSelect" multiple aria-label="الأقسام المساندة المختارة" class="hidden" disabled><option value="" disabled>اختر قسمًا أو أكثر</option></select>
+      <div id="substitutionOtherTeacherChoices" class="hidden" aria-live="polite"></div>
     </div>
   </div>
 
@@ -13391,57 +13432,50 @@ async function timetableLoadSubstitutionOptions() {
   }
 }
 async function timetableLoadOtherDepartmentOptions(checkboxId,selectId) {
-  const checkbox=document.getElementById(checkboxId);
-  const select=document.getElementById(selectId);
+  const checkbox=document.getElementById(checkboxId),select=document.getElementById(selectId);
   if(!checkbox||!select)return [];
   const enabled=checkbox.type==="checkbox"?checkbox.checked===true:true;
   if(!enabled){
     select.classList.add("hidden");select.disabled=true;select.value="";select.innerHTML='<option value="">اختر القسم المطلوب</option>';
     if(checkboxId==="substitutionOtherDepartments"){
-      window.substitutionOtherDepartmentsData=[];
-      window.substitutionSelectedOtherTeacherNames=new Set();
-      window.substitutionSelectedOtherDepartmentId="";
-      window.substitutionRenderedOtherDepartmentId="";
+      window.substitutionOtherDepartmentsData=[];window.substitutionSelectedOtherTeacherNames=new Set();
+      window.substitutionSelectedOtherDepartmentIds=[];window.substitutionSelectedOtherDepartmentId="";
+      window.substitutionActorDepartmentName="";window.substitutionDepartmentsLoaded=false;
       document.getElementById("substitutionOtherTeacherChoices")?.classList.add("hidden");
     }
-    if(checkboxId==="timetableSubstitutionOtherDepartments"){
-      window.timetableSubstitutionOtherDepartmentsData=[];
-    }
+    if(checkboxId==="timetableSubstitutionOtherDepartments")window.timetableSubstitutionOtherDepartmentsData=[];
     return [];
   }
   const previousIds=select.multiple?Array.from(select.selectedOptions||[]).map(o=>String(o.value||"")):[];
-  const previous=String(select.value||"");
-  const previousNames=new Set(window.substitutionSelectedOtherTeacherNames instanceof Set?window.substitutionSelectedOtherTeacherNames:[]);
-  select.classList.remove("hidden");
-  select.disabled=true;
-  select.innerHTML='<option value="">جارٍ تحميل الأقسام...</option>';
+  const previous=String(select.value||"");select.disabled=true;
+  if(checkboxId!=="substitutionOtherDepartments")select.classList.remove("hidden");
   const token=appAuthSession?.token||readAppAuthToken();
   if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
   const response=await appAuthRequest({action:"timetable_substitution_departments"},token);
   const departments=Array.isArray(response.departments)?response.departments:[];
   if(checkboxId==="substitutionOtherDepartments"){
     window.substitutionOtherDepartmentsData=departments;
-    const selectedIds=select.multiple?previousIds:(previous?[previous]:[]);
-    const allowedNames=new Set(departments.filter(item=>selectedIds.includes(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||"")).filter(Boolean)));
-    window.substitutionSelectedOtherDepartmentIds=selectedIds.filter(id=>departments.some(item=>String(item.id)===id));
-    window.substitutionSelectedOtherDepartmentId=window.substitutionSelectedOtherDepartmentIds[0]||"";
-    window.substitutionSelectedOtherTeacherNames=new Set([...previousNames].filter(name=>allowedNames.has(name)));
-  }
-  if(checkboxId==="timetableSubstitutionOtherDepartments"){
-    window.timetableSubstitutionOtherDepartmentsData=departments;
-  }
+    window.substitutionActorDepartmentName=String(response.actorDepartmentName||"").trim();
+    window.substitutionDepartmentsLoaded=true;
+    const validIds=previousIds.filter(id=>departments.some(item=>String(item.id)===id));
+    window.substitutionSelectedOtherDepartmentIds=validIds;
+    window.substitutionSelectedOtherDepartmentId=validIds[0]||"";
+  }else if(checkboxId==="timetableSubstitutionOtherDepartments")window.timetableSubstitutionOtherDepartmentsData=departments;
   select.innerHTML='<option value="">اختر القسم المطلوب</option>'+departments.map(item=>'<option value="'+timetableEsc(item.id)+'">'+timetableEsc(item.name)+'</option>').join("");
-  if(select.multiple){Array.from(select.options).forEach(o=>o.selected=previousIds.includes(String(o.value)));}
+  if(select.multiple)Array.from(select.options).forEach(o=>o.selected=(window.substitutionSelectedOtherDepartmentIds||[]).includes(String(o.value)));
   else if(departments.some(item=>String(item.id)===previous))select.value=previous;
   select.disabled=departments.length===0;
-  if(!departments.length)select.innerHTML='<option value="">لا توجد أقسام أخرى لها معلمون في الجدول النشط</option>';
+  if(checkboxId==="substitutionOtherDepartments"){
+    window.substitutionSelectedOtherTeacherNames=new Set(departments.filter(item=>(window.substitutionSelectedOtherDepartmentIds||[]).includes(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean)));
+  }
+  if(!departments.length&&checkboxId!=="substitutionOtherDepartments")select.innerHTML='<option value="">لا توجد أقسام أخرى لها معلمون في الجدول النشط</option>';
   return departments;
 }
 function timetableGetOtherDepartmentTeacherNames(){
-  const departmentId=String(document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value||"");
+  const select=document.getElementById("timetableSubstitutionOtherDepartmentSelect");
+  const ids=new Set(select?.multiple?Array.from(select.selectedOptions||[]).map(option=>String(option.value||"")):[String(select?.value||"")]);
   const departments=Array.isArray(window.timetableSubstitutionOtherDepartmentsData)?window.timetableSubstitutionOtherDepartmentsData:[];
-  const department=departments.find(item=>String(item.id)===departmentId);
-  return Array.from(new Set((department?.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean)));
+  return Array.from(new Set(departments.filter(item=>ids.has(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean))));
 }
 function timetableSubstitutionOtherDepartmentChanged(){
   timetableDailyPreviewByAbsent.clear();
@@ -13453,22 +13487,56 @@ window.substitutionOtherDepartmentsData=window.substitutionOtherDepartmentsData|
 window.substitutionSelectedOtherTeacherNames=window.substitutionSelectedOtherTeacherNames instanceof Set?window.substitutionSelectedOtherTeacherNames:new Set();
 window.substitutionSelectedOtherDepartmentId=String(window.substitutionSelectedOtherDepartmentId||"");
 function substitutionOtherDepartmentIds(){const e=document.getElementById("substitutionOtherDepartmentSelect");if(!e)return [];return e.multiple?Array.from(e.selectedOptions||[]).map(o=>String(o.value||"")).filter(Boolean):(e.value?[String(e.value)]:[]);}
-function substitutionOtherDepartmentsEnabled(){const e=document.getElementById("substitutionOtherDepartments");return e?.type==="checkbox"?e.checked===true:substitutionOtherDepartmentIds().length>0;}
+function substitutionOtherDepartmentsEnabled(){return substitutionOtherDepartmentIds().length>0;}
+function substitutionDepartmentIcon(name){
+ const value=String(name||"");
+ if(/عربي|لغة عربية/.test(value))return "fa-book-open";
+ if(/إنجليزي|انجليزي|لغة إنجليزية|لغة انجليزية/.test(value))return "fa-language";
+ if(/اجتماع|جغرافيا|تاريخ/.test(value))return "fa-earth-asia";
+ if(/علوم|فيزياء|كيمياء|أحياء|احياء/.test(value))return "fa-flask";
+ if(/رياضيات/.test(value))return "fa-calculator";
+ if(/إسلامية|اسلامية|قرآن|قران/.test(value))return "fa-mosque";
+ if(/فنون|موسيقى|موسيقي/.test(value))return "fa-palette";
+ if(/رياضة|بدنية/.test(value))return "fa-person-running";
+ if(/تقنية|حاسوب|معلومات/.test(value))return "fa-laptop-code";
+ return "fa-book-open";
+}
 function renderSubstitutionOtherTeacherChoices(){
- const host=document.getElementById("substitutionOtherTeacherChoices"),select=document.getElementById("substitutionOtherDepartmentSelect");if(!host||!select)return;
- const ids=substitutionOtherDepartmentIds(),deps=ids.map(id=>window.substitutionOtherDepartmentsData.find(d=>String(d.id)===id)).filter(Boolean);host.dataset.departmentIds=ids.join(",");
- if(!deps.length){host.classList.add("hidden");host.innerHTML="اختر قسماً أو أكثر لعرض المعلمين.";return;}
- const allowed=new Set(deps.flatMap(d=>(d.teachers||[]).map(t=>String(t.name||"").trim()).filter(Boolean)));
- window.substitutionSelectedOtherTeacherNames=new Set([...(window.substitutionSelectedOtherTeacherNames||[])].filter(n=>allowed.has(n)));
- host.innerHTML=deps.map(d=>'<section class="mb-3"><b class="block mb-2 text-xs">معلمو '+timetableEsc(d.name)+'</b><div class="grid grid-cols-1 gap-2 sm:grid-cols-2">'+(d.teachers||[]).map(t=>{const n=String(t.name||"");return '<label class="flex items-center gap-2 rounded-xl border p-2 text-xs"><input type="checkbox" data-other-department-teacher="'+timetableEsc(n)+'" '+(window.substitutionSelectedOtherTeacherNames.has(n)?'checked':'')+'><span>'+timetableEsc(n)+'</span></label>';}).join('')+'</div></section>').join('')+'<p id="substitutionOtherTeacherSelectionCount" class="text-[10px]"></p>';
- host.classList.remove("hidden");const count=()=>{const e=document.getElementById("substitutionOtherTeacherSelectionCount");if(e)e.textContent="المعلمون المحددون: "+window.substitutionSelectedOtherTeacherNames.size;};
- host.querySelectorAll('[data-other-department-teacher]').forEach(box=>box.addEventListener('change',()=>{const n=box.getAttribute('data-other-department-teacher');if(box.checked)window.substitutionSelectedOtherTeacherNames.add(n);else window.substitutionSelectedOtherTeacherNames.delete(n);clearPlan();count();}));count();
+ const host=document.getElementById("substitutionOtherTeacherChoices"),select=document.getElementById("substitutionOtherDepartmentSelect");
+ if(!host||!select)return;
+ const ids=substitutionOtherDepartmentIds(),selected=new Set(ids);
+ const departments=Array.isArray(window.substitutionOtherDepartmentsData)?window.substitutionOtherDepartmentsData:[];
+ host.dataset.departmentIds=ids.join(",");
+ if(!departments.length){host.innerHTML='<div class="subx-department-empty">لا توجد أقسام مساندة متاحة في الجدول النشط.</div>';host.classList.remove("hidden");return;}
+ host.innerHTML='<div class="subx-department-choice-grid">'+departments.map(department=>{
+  const id=String(department.id),teachers=Array.isArray(department.teachers)?department.teachers:[],checked=selected.has(id);
+  return '<label class="subx-department-choice'+(checked?' is-selected':'')+'">'+
+   '<input type="checkbox" data-other-department-card="'+timetableEsc(id)+'" '+(checked?'checked':'')+' aria-label="اختيار قسم '+timetableEsc(department.name)+'">'+
+   '<span class="subx-department-choice-icon"><i class="fa-solid '+substitutionDepartmentIcon(department.name)+'"></i></span>'+
+   '<span class="subx-department-choice-copy"><b>'+timetableEsc(department.name)+'</b><small>'+teachers.length+' معلم مؤهل في الجدول النشط</small><em>سيُدرج جميع المعلمين تلقائيًا</em></span>'+
+   '<span class="subx-department-choice-check"><i class="fa-solid fa-check"></i></span></label>';
+ }).join("")+'</div><div class="subx-department-selection-summary" id="substitutionOtherTeacherSelectionCount"></div>';
+ host.classList.remove("hidden");
+ const update=()=>{
+  const picked=substitutionOtherDepartmentIds();
+  const names=new Set(departments.filter(item=>picked.includes(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean)));
+  window.substitutionSelectedOtherDepartmentIds=picked;window.substitutionSelectedOtherDepartmentId=picked[0]||"";
+  window.substitutionSelectedOtherTeacherNames=names;
+  host.querySelectorAll("[data-other-department-card]").forEach(box=>box.closest(".subx-department-choice")?.classList.toggle("is-selected",box.checked));
+  const count=host.querySelector("#substitutionOtherTeacherSelectionCount");
+  if(count)count.textContent=picked.length?"تم اختيار "+picked.length+" قسمًا وإدراج "+names.size+" معلمًا مؤهلًا ضمن البدلاء.":"لم يتم اختيار أقسام مساندة؛ سيعتمد النظام على معلمي قسم الغائب.";
+ };
+ host.querySelectorAll("[data-other-department-card]").forEach(box=>box.addEventListener("change",()=>{
+  const id=String(box.dataset.otherDepartmentCard||"");
+  Array.from(select.options).forEach(option=>{if(option.value===id)option.selected=box.checked;});
+  update();clearPlan();
+ }));
+ update();
 }
 function getSubstitutionSelectedOtherTeacherNames(){
- const host=document.getElementById("substitutionOtherTeacherChoices"),ids=new Set(substitutionOtherDepartmentIds());
- const allowed=new Set(window.substitutionOtherDepartmentsData.filter(d=>ids.has(String(d.id))).flatMap(d=>(d.teachers||[]).map(t=>String(t.name||"").trim()).filter(Boolean)));
- const selected=new Set([...(window.substitutionSelectedOtherTeacherNames||[])].filter(n=>allowed.has(n)));
- if(host&&host.dataset.departmentIds===Array.from(ids).join(","))host.querySelectorAll('[data-other-department-teacher]').forEach(box=>{const n=String(box.getAttribute('data-other-department-teacher')||"");if(box.checked)selected.add(n);else selected.delete(n);});window.substitutionSelectedOtherTeacherNames=selected;return [...selected];
+ const ids=new Set(substitutionOtherDepartmentIds()),departments=Array.isArray(window.substitutionOtherDepartmentsData)?window.substitutionOtherDepartmentsData:[];
+ const selected=new Set(departments.filter(item=>ids.has(String(item.id))).flatMap(item=>(item.teachers||[]).map(teacher=>String(teacher.name||"").trim()).filter(Boolean)));
+ window.substitutionSelectedOtherTeacherNames=selected;return [...selected];
 }
 async function timetableToggleOtherDepartments(checkboxId,selectId) {
   try {
@@ -13491,10 +13559,12 @@ async function timetablePreviewSubstitutions() {
     const {date,weekday}=timetableSubstitutionGetDate();
     const token=appAuthSession?.token||readAppAuthToken();
     const includeOtherDepartments=document.getElementById("timetableSubstitutionOtherDepartments")?.checked===true;
-    const otherDepartmentId=includeOtherDepartments?document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value||"":"";
+    const departmentSelect=document.getElementById("timetableSubstitutionOtherDepartmentSelect");
+    const otherDepartmentIds=includeOtherDepartments?Array.from(departmentSelect?.selectedOptions||[]).map(option=>String(option.value||"")).filter(Boolean):[];
+    const otherDepartmentId=otherDepartmentIds[0]||"";
     const otherTeacherNames=includeOtherDepartments?timetableGetOtherDepartmentTeacherNames():[];
-    if(includeOtherDepartments&&(!otherDepartmentId||!otherTeacherNames.length))throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
-    const response=await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName:absent,includeOtherDepartments,otherDepartmentId,otherTeacherNames},token);
+    if(includeOtherDepartments&&(!otherDepartmentIds.length||!otherTeacherNames.length))throw new Error("اختر قسمًا مساندًا واحدًا على الأقل.");
+    const response=await appAuthRequest({action:"timetable_substitution_preview",weekday,assignmentDate:date,absentTeacherName:absent,includeOtherDepartments,otherDepartmentId,otherDepartmentIds,otherTeacherNames},token);
     timetableSubstitutionContext={date,weekday,absentTeacherName:absent,version:response.version};
     timetableRenderSubstitutionLessons(response);
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر تحميل حصص المعلم الغائب.","error");}
@@ -13543,11 +13613,13 @@ async function timetableSaveSubstitution(period,substituteTeacherName) {
   try{
     const token=appAuthSession?.token||readAppAuthToken();
     const includeOtherDepartments=document.getElementById("timetableSubstitutionOtherDepartments")?.checked===true;
-    const otherDepartmentId=includeOtherDepartments?document.getElementById("timetableSubstitutionOtherDepartmentSelect")?.value||"":"";
+    const departmentSelect=document.getElementById("timetableSubstitutionOtherDepartmentSelect");
+    const otherDepartmentIds=includeOtherDepartments?Array.from(departmentSelect?.selectedOptions||[]).map(option=>String(option.value||"")).filter(Boolean):[];
+    const otherDepartmentId=otherDepartmentIds[0]||"";
     const otherTeacherNames=includeOtherDepartments?[substituteTeacherName]:[];
-    if(includeOtherDepartments&&!otherDepartmentId)throw new Error("اختر القسم الذي تريد الاستعانة بأحد معلميه أولاً.");
+    if(includeOtherDepartments&&!otherDepartmentIds.length)throw new Error("اختر قسمًا مساندًا واحدًا على الأقل.");
     await appAuthRequest({action:"timetable_substitution_save",weekday:context.weekday,assignmentDate:context.date,
-      absentTeacherName:context.absentTeacherName,substituteTeacherName,period,includeOtherDepartments,otherDepartmentId,otherTeacherNames},token);
+      absentTeacherName:context.absentTeacherName,substituteTeacherName,period,includeOtherDepartments,otherDepartmentId,otherDepartmentIds,otherTeacherNames},token);
     timetableSubstitutionSetStatus("تم تعيين "+substituteTeacherName+" بديلاً في الحصة "+period+".","success");
     await timetablePreviewSubstitutions();
   }catch(error){timetableSubstitutionSetStatus(error?.message||"تعذر حفظ تكليف الاحتياط.","error");}
@@ -15146,12 +15218,40 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  const hub=document.createElement('div');hub.id='subxScreen_hub';hub.className='subx-screen is-visible space-y-4';hub.innerHTML=[['date','توزيع الاحتياط','اختيار التاريخ ← تحديد المعلم الغائب ← التوزيع الذكي','calendar-plus','teal'],['edit','التعديل','تبديل البديل أو حذف تكليف سابق','pen-to-square','navy'],['archive','أرشيف الاحتياط','استعراض التوزيعات السابقة والطباعة','box-archive','gold'],['stats','الإحصائيات','نقاط المعلمين وعدد مرات الاحتياط','chart-column','indigo']].map(x=>'<button type="button" data-subx-go="'+x[0]+'" class="subx-hub-rect subx-rect-'+x[4]+'"><span class="flex items-center gap-4"><span class="subx-rect-icon bg-grad-'+x[4]+'"><i class="fa-solid fa-'+x[3]+'"></i></span><span class="text-right"><b class="subx-rect-title block">'+x[1]+'</b><small class="subx-rect-sub">'+x[2]+'</small></span></span><span class="subx-rect-arrow"><i class="fa-solid fa-chevron-left"></i></span></button>').join('');
  const screens={};['date','absentees','smart','edit','archive','stats'].forEach(n=>{const e=document.createElement('div');e.id='subxScreen_'+n;e.className='subx-screen space-y-5';screens[n]=e;});
  wrapper.append(header,hub);Object.values(screens).forEach(e=>wrapper.append(e));root.querySelectorAll(':scope > *:not(.subx-bg-layer)').forEach(e=>e.classList.add('hidden'));root.append(wrapper);
- if(oldDate)screens.date.append(oldDate);if(absentee){screens.absentees.append(absentee);absentee.classList.remove('hidden');}if(deptWrap)screens.smart.append(deptWrap);if(plan)screens.smart.append(plan);if(stats)screens.stats.append(stats);
- screens.absentees.insertAdjacentHTML('afterbegin','<div class="subx-header-banner p-4"><b class="text-white text-xl">المعلم الغائب</b><p class="text-white/80 text-xs mt-1">حدد المعلم ثم اختر سبب الغياب</p></div>');
- screens.smart.insertAdjacentHTML('afterbegin','<div class="subx-glass-card p-4"><b class="text-lg">التوزيع الذكي</b><p class="text-xs text-slate-500">راجع البدلاء ثم احفظ وشارك أو اطبع الكشف.</p></div>');
- const absenteeNext=document.createElement('button');absenteeNext.type='button';absenteeNext.id='subxAbsenteesNext';absenteeNext.className='subx-cta-primary';absenteeNext.innerHTML='<span>التالي: التوزيع الذكي للاحتياط</span><i class="fa-solid fa-arrow-left"></i>';screens.absentees.append(absenteeNext);
- absenteeNext.addEventListener('click',()=>{const selected=Array.from(root.querySelectorAll('input[name="substitutionAbsentTeacher"]:checked'));if(!selected.length){showToast('حدد معلماً غائباً واحداً على الأقل.','error');return;}const missing=selected.some(input=>{const label=input.closest('label')?.querySelector('[data-subx-absence-reason]');return !label||label.textContent.includes('لم يحدد');});if(missing){showToast('حدد سبب الغياب لكل معلم قبل الانتقال.','error');return;}go('smart');});
- const generateButton=document.getElementById('substitutionGenerateButton');if(generateButton){generateButton.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>إنشاء التوزيع الذكي المقترح';screens.smart.insertBefore(generateButton,plan||null);}
+ if(oldDate)screens.date.append(oldDate);
+ if(absentee){screens.absentees.append(absentee);absentee.classList.remove('hidden');}
+ const homeDepartmentCard=document.createElement('section');homeDepartmentCard.id='subxHomeDepartmentCard';homeDepartmentCard.className='subx-home-department-card';
+ homeDepartmentCard.innerHTML='<span class="subx-home-department-icon"><i class="fa-solid fa-book-open"></i></span><span class="subx-home-department-copy"><small>النطاق الأساسي للتوزيع</small><b>التوزيع لمعلمي القسم</b><strong id="subxHomeDepartmentName">جارٍ تحديد القسم...</strong><em>يعتمد النظام أولًا على معلمي قسم الغائب وفق الجدول والخوارزمية.</em></span><span class="subx-home-department-tag">أساسي</span>';
+ screens.absentees.append(homeDepartmentCard);
+ if(deptWrap)screens.absentees.append(deptWrap);
+ if(plan)screens.smart.append(plan);if(stats)screens.stats.append(stats);
+ screens.absentees.insertAdjacentHTML('afterbegin','<div class="subx-header-banner p-4"><b class="text-white text-xl">المعلمون الغائبون</b><p class="text-white/80 text-xs mt-1">حدد المعلمين الغائبين وأسباب غيابهم، ثم جهّز اقتراحات الاحتياط.</p></div>');
+ screens.smart.insertAdjacentHTML('afterbegin','<div class="subx-glass-card p-4"><b class="text-lg">اقتراحات التوزيع الذكي</b><p class="text-xs text-slate-500">راجع البدلاء الذين اختارتهم الخوارزمية، ثم اعتمد التوزيع عند اكتمال المراجعة.</p></div>');
+ const generateButton=document.getElementById('substitutionGenerateButton');
+ if(generateButton){generateButton.innerHTML='<i class="fa-solid fa-wand-magic-sparkles ml-2"></i>التوزيع الذكي للاحتياط';generateButton.classList.add('subx-smart-generate');screens.absentees.append(generateButton);}
+ const homeName=document.getElementById('subxHomeDepartmentName');
+ const updateHomeName=()=>{const name=String(window.substitutionActorDepartmentName||'').trim();if(homeName)homeName.textContent=name?'قسم '+name:(isGeneralAdminUser(activeUser)?'جميع أقسام المدرسة':'قسمك');};
+ window.subxUpdateHomeDepartmentName=updateHomeName;updateHomeName();
+ async function loadReserveDepartmentCards(){
+  if(!window.substitutionDepartmentsLoaded){
+   try{await window.timetableLoadOtherDepartmentOptions?.('substitutionOtherDepartments','substitutionOtherDepartmentSelect');}
+   catch(error){if(deptWrap&&!deptWrap.classList.contains('hidden'))showToast(error?.message||'تعذر تحميل الأقسام المساندة.','error');}
+  }
+  updateHomeName();
+  if(window.renderSubstitutionOtherTeacherChoices)window.renderSubstitutionOtherTeacherChoices();
+  const host=document.getElementById('substitutionOtherTeacherChoices'),trigger=document.getElementById('substitutionOtherDepartments');
+  if(host)host.classList.add('hidden');trigger?.setAttribute('aria-expanded','false');
+ }
+ if(deptWrap){
+  const trigger=document.getElementById('substitutionOtherDepartments');
+  trigger?.addEventListener('click',async()=>{
+   const host=document.getElementById('substitutionOtherTeacherChoices'),opening=host?.classList.contains('hidden');
+   if(opening){
+    if(!window.substitutionDepartmentsLoaded)await loadReserveDepartmentCards();
+    window.renderSubstitutionOtherTeacherChoices?.();host?.classList.remove('hidden');trigger.setAttribute('aria-expanded','true');
+   }else{host?.classList.add('hidden');trigger?.setAttribute('aria-expanded','false');}
+  });
+ }
 
  screens.edit.innerHTML='<div class="subx-glass-card p-5 sm:p-6 space-y-4"><h2 class="text-lg font-black">التعديل على الاحتياط السابق</h2><p class="text-xs text-slate-500">تظهر هنا التكليفات التي تسمح صلاحياتك ونافذة الحصة بتعديلها أو حذفها. اختر الإجراء بجانب التكليف.</p><div id="subxEditMountArea" class="space-y-4"><p class="text-sm text-slate-500 text-center py-6">جارٍ تحميل التكليفات...</p></div></div>';
  screens.archive.innerHTML='<div class="subx-glass-card p-6 space-y-4"><div class="flex flex-wrap items-center justify-between gap-3"><h2 class="text-lg font-black">أرشيف الاحتياط</h2><button id="subxArchivePrint" class="subx-cta-primary" type="button">طباعة الأرشيف A4</button></div><div class="grid grid-cols-2 gap-2"><input id="subxArchiveFrom" type="date" class="subx-input-field"><input id="subxArchiveTo" type="date" class="subx-input-field"></div><button id="subxArchiveLoad" class="subx-cta-primary" type="button">عرض الأرشيف</button><div id="subxArchiveMountArea" class="mt-4 space-y-4"></div></div>';
@@ -15170,7 +15270,7 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  }catch(e){host.textContent=e?.message||'تعذر تحميل الأرشيف.';}
 }
  document.getElementById('subxArchiveLoad')?.addEventListener('click',loadArchive);document.getElementById('subxArchivePrint')?.addEventListener('click',()=>window.print());
- function go(n,push=true){if(n!=='hub'&&!screens[n])return;if(push&&n!==current)history.push(current);current=n;hub.classList.toggle('is-visible',n==='hub');Object.entries(screens).forEach(([k,e])=>e.classList.toggle('is-visible',k===n));document.getElementById('subxScreenHeading').textContent=names[n];if(n==='date')document.getElementById('substitutionDate')?.setAttribute('min',window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10));if(n==='smart')window.timetableLoadOtherDepartmentOptions?.('substitutionOtherDepartments','substitutionOtherDepartmentSelect').then(()=>window.renderSubstitutionOtherTeacherChoices?.()).catch(error=>showToast(error?.message||'تعذر تحميل الأقسام المساندة.','error'));if(n==='stats')window.substitutionLoadStats?.();if(n==='archive')loadArchive('subxArchiveMountArea');if(n==='edit')loadArchive('subxEditMountArea');window.scrollTo({top:0,behavior:'smooth'});}
+ function go(n,push=true){if(n!=='hub'&&!screens[n])return;if(push&&n!==current)history.push(current);current=n;hub.classList.toggle('is-visible',n==='hub');Object.entries(screens).forEach(([k,e])=>e.classList.toggle('is-visible',k===n));document.getElementById('subxScreenHeading').textContent=names[n];if(n==='date')document.getElementById('substitutionDate')?.setAttribute('min',window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10));if(n==='absentees')loadReserveDepartmentCards();if(n==='stats')window.substitutionLoadStats?.();if(n==='archive')loadArchive('subxArchiveMountArea');if(n==='edit')loadArchive('subxEditMountArea');window.scrollTo({top:0,behavior:'smooth'});}
  hub.querySelectorAll('[data-subx-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.subxGo)));
  header.querySelector('#subxMasterBackBtn').addEventListener('click',()=>{if(current==='hub'){window.closeSubstitutionView?.();return;}go(history.pop()||'hub',false);});
  header.querySelector('#subxOpenRulesBtn').addEventListener('click',()=>{let d=root.querySelector('#subxRulesDrawer');if(!d){d=document.createElement('div');d.id='subxRulesDrawer';d.className='subx-overlay hidden';d.innerHTML='<div class="subx-popup-box"><h3 class="font-black text-lg">قواعد العدالة والنقاط</h3><p class="mt-3 text-sm">يُرتب النظام البدلاء وفق قواعد النقاط والعدالة والجدول المعتمد.</p><button class="subx-cta-primary mt-4" type="button">إغلاق</button></div>';root.append(d);d.querySelector('button').onclick=()=>d.classList.add('hidden');}d.classList.remove('hidden');});
@@ -15186,7 +15286,7 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
  let reasonCallback=null,draft='';window.openSubstitutionAbsenceReasonPicker=function(name,_unused,cb){reasonCallback=cb;draft='';popup.querySelector('#subxPopupTeacherTitle').textContent='المعلم: '+name;popup.querySelectorAll('[data-reason]').forEach(x=>x.classList.remove('is-active'));const other=popup.querySelector('#subxOtherReasonText');other.value='';other.classList.add('hidden');popup.classList.remove('hidden');};
  popup.querySelectorAll('[data-reason]').forEach(b=>b.onclick=()=>{draft=b.dataset.reason;popup.querySelectorAll('[data-reason]').forEach(x=>x.classList.toggle('is-active',x===b));popup.querySelector('#subxOtherReasonText').classList.toggle('hidden',draft!=='أخرى');});
  popup.querySelector('#subxReasonCancel').onclick=()=>{popup.classList.add('hidden');reasonCallback?.('');reasonCallback=null;draft='';};popup.querySelector('#subxReasonConfirm').onclick=()=>{if(draft==='أخرى')draft=popup.querySelector('#subxOtherReasonText').value.trim();if(!draft){popup.querySelector('#subxOtherReasonText').focus();return;}popup.classList.add('hidden');reasonCallback?.(draft);reasonCallback=null;draft='';};
- if(document.getElementById('substitutionOtherDepartmentSelect'))document.getElementById('substitutionOtherDepartmentSelect').addEventListener('change',()=>window.subxUpdateOtherDeptsCount?.());
+ if(document.getElementById('substitutionOtherDepartmentSelect'))document.getElementById('substitutionOtherDepartmentSelect').addEventListener('change',()=>{window.renderSubstitutionOtherTeacherChoices?.();window.subxUpdateOtherDeptsCount?.();});
  };
  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot,{once:true});else boot();
 })()</script>
