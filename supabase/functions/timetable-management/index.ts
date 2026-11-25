@@ -1506,7 +1506,7 @@ async function handle(req: Request) {
         const withinWindow=principal.type==="admin"
           ? cancellationDate===todayInMuscat
           : isSubstitutionDayOpen(cancellationDate);
-        if(!activeStatus||!withinWindow)return reply(409,{error:"انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية وقت الحصة المحدد في الجدول."});
+        if(!activeStatus||!withinWindow)return reply(409,{error:"انتهت مهلة حذف هذا التكليف؛ يسمح بالحذف حتى نهاية يوم التوزيع بتوقيت سلطنة عمان."});
         const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type,force_points_reversal:true}});
         if(cancelError)throw cancelError;
         return reply(200,{ok:true,assignment:data});
@@ -1675,7 +1675,7 @@ async function handle(req: Request) {
         const withinWindow=principal.type==="admin"
           ? String(editableAssignment.assignment_date||"")===todayInMuscat
           : isSubstitutionDayOpen(editableAssignment.assignment_date);
-        if(!withinWindow)return reply(409,{error:"انتهت مهلة تعديل هذه الحصة أو الحصة البديلة؛ يجب إجراء التعديل قبل نهاية وقت الحصة."});
+        if(!withinWindow)return reply(409,{error:"انتهت مهلة تعديل هذا التوزيع؛ يسمح بالتعديل حتى نهاية يوم التوزيع بتوقيت سلطنة عمان."});
         const rpcName=absentTeacherName?"reassign_timetable_substitution_absent_with_reason":"replace_timetable_substitution_with_reason";
         const {data,error}=await db.rpc(rpcName,{p_payload:{
           assignment_id:assignmentId,absent_teacher_name:absentTeacherName,period:requestedPeriod,
