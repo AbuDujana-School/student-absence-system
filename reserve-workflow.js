@@ -1162,6 +1162,19 @@
     const panel=document.getElementById("timetableDailyArchivePanel");
     return Boolean(panel&&!panel.classList.contains("hidden")&&panel.getClientRects().length);
   }
+  function reserveRefreshOmanDayIfChanged(){
+    const current=new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+    if(current===reserveLastObservedOmanDate)return;
+    reserveLastObservedOmanDate=current;
+    window.dispatchEvent(new CustomEvent("reserve:muscat-day-changed",{detail:{date:current}}));
+    if(reserveIsDailyArchivePanelVisible())window.timetableDailyLoadArchive?.();
+    reserveScheduleMidnightRefresh();
+  }
+  if(!window.__reserveOmanDayRefreshBound){
+    window.__reserveOmanDayRefreshBound=true;
+    window.addEventListener("focus",reserveRefreshOmanDayIfChanged);
+    document.addEventListener("visibilitychange",()=>{if(!document.hidden)reserveRefreshOmanDayIfChanged();});
+  }
   reserveScheduleMidnightRefresh();
 
   window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName) {
