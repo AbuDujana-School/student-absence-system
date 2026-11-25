@@ -59,7 +59,7 @@ test('reserve WhatsApp distribution uses the shared Arabic school report templat
   assert.ok(formatter.includes('مدرسة أبو دجانة الأنصاري'));
   assert.ok(formatter.includes('📚 *المادة:*'));
   assert.ok(formatter.includes('🗓️ *التاريخ:*'));
-  assert.ok(formatter.includes('*المعلم الغائب:*'));
+  assert.ok(formatter.includes('. المعلم الغائب:*'));
   assert.ok(formatter.includes('*الاحتياط:*'));
   assert.ok(formatter.includes('━━━━━━━━━━━━━━━━━━'));
   assert.ok(formatter.includes('شكرًا لتعاونكم وحرصكم الدائم'));
