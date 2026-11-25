@@ -18,15 +18,27 @@ Deno.test("reserve workspace presents a premium four-step date-first flow", () =
   assert(reserveWorkflow.includes("installPremiumReserveExperience(panel)"), "The premium workflow must be installed on the live reserve panel");
 });
 
-Deno.test("visible canonical date navigation defaults to Muscat today and provides yesterday/today/tomorrow shortcuts", () => {
+Deno.test("visible canonical date navigation offers only today and tomorrow", () => {
   assert(reserveWorkflow.includes('const distributionDate=$("substitutionDate");'), "Quick navigation must attach to the visible canonical date picker");
   assert(reserveWorkflow.includes('nav.id="subxCanonicalDateQuickNav"'), "The visible date card must include its own quick navigation");
-  assert(reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday shortcut is missing");
+  assert(!reserveWorkflow.includes('data-date-offset="-1"'), "Yesterday must not be offered as a quick shortcut");
   assert(reserveWorkflow.includes('data-date-offset="0"'), "Today shortcut is missing");
   assert(reserveWorkflow.includes('data-date-offset="1"'), "Tomorrow shortcut is missing");
-  assert(reserveWorkflow.includes('getOmanLocalDate==="function"?getOmanLocalDate()'), "Quick navigation must use the Muscat-local date supplied by the app");
-  assert(reserveWorkflow.includes('if(!date.value)date.value=today;'), "The visible date must default to Muscat today only when empty");
+  assert(reserveWorkflow.includes('اختر اليوم أو غداً، أو استخدم التقويم لتاريخ مستقبلي'), "Date navigation must explain the future-only coordinator calendar");
+  assert(reserveWorkflow.includes('distributionDate.min=todayForDateControl'), "Subject coordinators must not select a past date");
+  assert(reserveWorkflow.includes('لا يمكن لمنسق المادة اختيار تاريخ مضى'), "Past coordinator dates must be rejected clearly");
   assert(reserveWorkflow.includes('distributionDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
+});
+
+Deno.test("reserve lesson cards make the current period unmistakable", () => {
+  assert(reserveWorkflow.includes("tt-lesson-period-badge"), "The current lesson must have a dedicated prominent badge");
+  assert(reserveWorkflow.includes("tt-lesson-period-badge strong{font-size:1.45rem"), "The lesson number must be large and readable");
+  assert(reserveWorkflow.includes("background:linear-gradient(135deg,#7c3aed,#5b21b6)"), "The period badge must use the requested purple treatment");
+});
+
+Deno.test("reserve edit access lasts through the assignment day and includes future dates", async () => {
+  assert(timetableEndpoint.includes("date >= todayInMuscat && now < deadline"), "The endpoint must keep future assignment dates editable through their own day end");
+  assert(timetableEndpoint.includes("date >= todayInMuscat"), "Past dates must be read-only for coordinators");
 });
 
 Deno.test("supporting teachers can be selected from multiple departments", () => {

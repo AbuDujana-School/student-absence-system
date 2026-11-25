@@ -66,6 +66,15 @@ Deno.test("main substitution view requires, saves, and prints the selected absen
   assert(source.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'),"The custom reason may be entered or left empty when «أخرى» is selected");
 });
 
+Deno.test("confirming the premium absence reason does not open a second picker", () => {
+  const pickerStart=source.indexOf("window.openSubstitutionAbsenceReasonPicker = function");
+  const pickerEnd=source.indexOf("function reasonControlMarkup",pickerStart);
+  const picker=source.slice(pickerStart,pickerEnd);
+  assert(picker.includes("window.__mainReserveAbsenceReasons?.[selectedDate+\"::\"+String(absentName||\"\").trim()]"),"The shared reason picker must reuse the reason already confirmed in the first modal");
+  assert(picker.includes("if(alreadySelected)"),"The second picker must be bypassed after the first picker confirms");
+  assert(picker.includes("onConfirm(alreadySelected)"),"The confirmed reason must be returned to the existing selection flow");
+});
+
 Deno.test("main substitution view allows changing a reason by deselecting and reselecting", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(html.includes("absenceReasonsByTeacher.delete(input.value);"),"Deselecting an absent teacher must clear the previous choice so reselecting opens the picker again");
@@ -77,6 +86,12 @@ Deno.test("main substitution absentee list displays the chosen absence reason", 
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(html.includes("data-subx-absence-reason"),"The absentee card must display its selected absence reason");
   assert(html.includes("reasonLabel.textContent='سبب الغياب: '+String(value)"),"Confirming the modal must update the visible reason label");
+});
+
+Deno.test("future reserve assignments appear in the editable range until their date ends", () => {
+  assert(source.includes("end.setUTCDate(end.getUTCDate()+365)"),"The default edit/archive range must include future-dated distributions");
+  assert(source.includes("const activeRecords=(reserveArchive||[]).filter(item=>item.canEdit===true"),"Future assignments must appear in the active edit panel only while the server grants edit access");
+  assert(source.includes("const archivedTotal=reserveArchive.length-activeTotal"),"Expired assignments must automatically render as archived when the server closes edit access");
 });
 
 Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
@@ -279,9 +294,9 @@ Deno.test("reserve date navigation is attached to the visible canonical Muscat d
   assert(source.includes('nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط")'),"The visible quick navigation must have an accessible label");
   assert(source.includes('".tt-premium-date-nav{display:flex'),"The visible date navigation must receive layout styling outside the hidden compatibility panel");
   assert(!source.includes("ttPremiumDateQuickNav"),"The hidden compatibility panel must not create a second date navigation");
-  assert(source.includes('data-date-offset="-1"'),"The canonical date navigation must include yesterday");
+  assert(!source.includes('data-date-offset="-1"'),"The canonical date navigation must not include yesterday");
   assert(source.includes('data-date-offset="0"'),"The canonical date navigation must include today");
   assert(source.includes('data-date-offset="1"'),"The canonical date navigation must include tomorrow");
-  assert(!source.includes("date.min=today"),"Historical reserve dates must remain selectable");
+  assert(source.includes("distributionDate.min=todayForDateControl"),"Subject coordinators must not select past dates");
   assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The legacy date should default to Muscat today only when empty");
 });
