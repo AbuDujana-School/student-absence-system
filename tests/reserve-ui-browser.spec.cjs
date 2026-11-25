@@ -382,43 +382,70 @@ test("crowded A4 archive days split into readable sheets instead of shrinking te
   expect(source).toContain(".tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm");
   expect(source).toContain(".tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important");
 });
-test("crowded schoolwide reserve day splits into readable continuation sheets without losing assignments", async ({ page }) => {
+test("crowded schoolwide reserve day uses real A4 print geometry and preserves every assignment", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
-  const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
-  const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
-  const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
-  if (pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
-  const pages = source.slice(pagesStart, markupStart);
-  const markup = source.slice(markupStart, documentTitleStart);
+  const extractBetween = (startMarker, endMarker) => {
+    const start = source.indexOf(startMarker), end = source.indexOf(endMarker, start);
+    if (start < 0 || end < 0) throw new Error("Missing print source boundary: " + startMarker);
+    return source.slice(start, end);
+  };
+  const estimate = extractBetween("function reserveOfficialPrintRowHeightEstimate(", "function reserveOfficialPrintPages(");
+  const pages = extractBetween("function reserveOfficialPrintPages(", "function reserveOfficialPrintMarkup(");
+  const markup = extractBetween("function reserveOfficialPrintMarkup(", "function reservePrintDocumentTitle(");
   const period = extractFunction(source, "function formatReservePrintPeriod(");
-  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE",
+  const printDocumentTitle = extractBetween("function reservePrintDocumentTitle(", "function printOfficialReservePages(");
+  const printFunction = extractBetween("function printOfficialReservePages(", "async function reservePrintActorSubject(");
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE", "RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM",
     period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
-    markup + ";" + pages + "; return reserveOfficialPrintPages;"
-  )(value => String(value ?? ""), () => "التاريخ", 22);
+    estimate + ";" + markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ", 22, 176);
   const rows = Array.from({ length: 50 }, (_, index) => ({
-    period: index % 8 + 1, className: "صف تجريبي " + (index + 1), substitute: "معلم احتياط " + (index + 1)
+    period: index % 8 + 1,
+    className: "الصف الدراسي التجريبي رقم " + (index + 1) + " — شعبة طويلة",
+    substitute: "محمد بن سالم الخروصي — معلم احتياط تجريبي رقم " + (index + 1)
   }));
-  const output = build([{ absentName: "المعلم الغائب", absenceReason: "مرضية", rows }], "2026-11-24", "الثلاثاء", "", {
+  const output = build([{ absentName: "أحمد سعيد الهنائي — المعلم الغائب", absenceReason: "مرضية", rows }], "2026-11-24", "الثلاثاء", "", {
     singlePage: true, title: "توزيع الاحتياط", continuationTitle: "تابع كشف توزيع الاحتياط"
   });
-  expect(output).toHaveLength(3);
-  await page.setContent("<div id='pages'>" + output.join("") + "</div>");
+  expect(output).toHaveLength(5);
+  await page.setContent("<main></main>");
+  await page.evaluate(({ output, printDocumentTitle, printFunction }) => {
+    window.print = () => {};
+    const print = new Function("reservePrintDocumentTitle", printDocumentTitle + ";" + printFunction + "; return printOfficialReservePages;")(() => "توزيع الاحتياط");
+    print(output, "", {});
+  }, { output, printDocumentTitle, printFunction });
+  await page.emulateMedia({ media: "print" });
   const sheets = page.locator(".tt-official-page");
-  await expect(sheets).toHaveCount(3);
-  await expect(sheets.nth(0).locator(".tt-official-table tbody tr")).toHaveCount(22);
-  await expect(sheets.nth(1).locator(".tt-official-table tbody tr")).toHaveCount(22);
-  await expect(sheets.nth(2).locator(".tt-official-table tbody tr")).toHaveCount(6);
-  await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("توزيع الاحتياط");
-  await expect(sheets.nth(1).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
-  await expect(sheets.nth(2).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
+  await expect(sheets).toHaveCount(5);
+  const rowCounts = await sheets.evaluateAll(items => items.map(sheet => sheet.querySelectorAll(".tt-official-table tbody tr").length));
+  expect(rowCounts.reduce((sum, count) => sum + count, 0)).toBe(50);
   const printedNames = await page.locator(".tt-official-table .tt-official-substitute").allTextContents();
-  expect(printedNames).toHaveLength(50);
-  expect(printedNames.slice().sort()).toEqual(rows.map(row => row.substitute).sort());
+  expect(printedNames).toEqual(rows.map(row => row.substitute));
+  await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("توزيع الاحتياط");
   for (const sheet of await sheets.all()) {
     await expect(sheet.locator(".tt-official-table thead")).toBeVisible();
     await expect(sheet.locator(".tt-official-footer")).toBeAttached();
     await expect(sheet.locator(".tt-official-meta")).toContainText("2026");
   }
+  const geometry = await sheets.evaluateAll(items => items.map(sheet => {
+    const pageRect = sheet.getBoundingClientRect();
+    const tableRect = sheet.querySelector(".tt-official-table").getBoundingClientRect();
+    const footerRect = sheet.querySelector(".tt-official-footer").getBoundingClientRect();
+    return {
+      overflow: sheet.scrollHeight - sheet.clientHeight,
+      tableBottom: tableRect.bottom - pageRect.top,
+      footerTop: footerRect.top - pageRect.top,
+      footerBottom: footerRect.bottom - pageRect.top,
+      pageHeight: pageRect.height
+    };
+  }));
+  for (const metric of geometry) {
+    expect(metric.overflow).toBeLessThanOrEqual(1);
+    expect(metric.tableBottom).toBeLessThanOrEqual(metric.footerTop + 1);
+    expect(metric.footerBottom).toBeLessThanOrEqual(metric.pageHeight + 1);
+  }
+  const pdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+  expect(pdf.byteLength).toBeGreaterThan(1000);
 });
 
 
