@@ -21,8 +21,9 @@ Deno.test("reserve server permissions follow each lesson's configured end time",
 });
 
 Deno.test("authorized future reserve assignments remain editable and deletable until their assigned Muscat day ends", () => {
-  assert(source.includes('return /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date >= todayInMuscat;'),
-    "Today and future dates must remain open; past dates must be closed");
+  assert(source.includes('import { isSubstitutionDayOpen } from "./reserve_edit_window.ts";') &&
+    source.includes("return isSubstitutionDayOpen(assignmentDate);"),
+    "Today and future dates must remain editable through the shared validated Muscat-day window");
   assert(source.includes('principal.type==="admin"?isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat)'),
     "Admin deletion permissions must use the same assigned-day cutoff as coordinators");
   assert(source.includes('return !isSubstitutionAssignmentEditableUntilDayEnd(row.assignment_date,todayInMuscat);'),
