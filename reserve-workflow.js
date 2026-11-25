@@ -1343,20 +1343,37 @@
     return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
   }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 22;
+  const RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM = 176;
+  function reserveOfficialPrintRowHeightEstimate(row){
+    const classLength=Array.from(String(row?.className||"")).length;
+    const substituteLength=Array.from(String(row?.substitute||"")).length;
+    const lines=Math.max(1,Math.ceil(classLength/13),Math.ceil(substituteLength/16));
+    return 1.2+lines*3.4;
+  }
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
-    const pageLimit=options?.singlePage?RESERVE_OFFICIAL_ROWS_PER_PAGE:RESERVE_OFFICIAL_ROWS_PER_PAGE;
-    const pages=[];let current=[],count=0;
+    const pages=[];let current=[],count=0,usedHeight=0,activeGroupPage=null;
+    const flush=()=>{
+      if(current.length)pages.push(current);
+      current=[];count=0;usedHeight=0;activeGroupPage=null;
+    };
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return;
-      // Split oversized absent-teacher groups without dropping or duplicating a lesson.
-      // Each chunk repeats the absent teacher and absence reason in its own merged cells.
-      for(let offset=0;offset<rows.length;offset+=pageLimit){
-        const chunk=rows.slice(offset,offset+pageLimit);
-        if(count+chunk.length>pageLimit){pages.push(current);current=[];count=0;}
-        current.push({...group,rows:chunk});count+=chunk.length;
-        if(count===pageLimit){pages.push(current);current=[];count=0;}
-      }
+      rows.forEach(row=>{
+        const estimatedHeight=options?.singlePage
+          ?reserveOfficialPrintRowHeightEstimate(row)
+          :6.8;
+        const crowded=options?.singlePage&&count>0&&usedHeight+estimatedHeight>RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM;
+        if(count>=RESERVE_OFFICIAL_ROWS_PER_PAGE||crowded)flush();
+        if(!activeGroupPage){
+          activeGroupPage={...group,rows:[]};
+          current.push(activeGroupPage);
+        }
+        activeGroupPage.rows.push(row);
+        count++;
+        usedHeight+=estimatedHeight;
+        if(count>=RESERVE_OFFICIAL_ROWS_PER_PAGE)flush();
+      });
     });
     if(current.length)pages.push(current);
     if(!pages.length)pages.push([]);
