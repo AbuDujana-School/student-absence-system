@@ -1793,7 +1793,13 @@ async function handle(req: Request) {
         const periodOpen=principal.type==="admin"||(forEdit
           ?isSubstitutionAssignmentEditableUntilDayEnd(date,todayInMuscat)
           :isSubstitutionPeriodOpen(date,lesson.period,periodTimings));
-        const eligible=periodOpen?getAvailableSubstitutionCandidates({teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],assignmentDate:date||undefined,versionId:activeVersion.id}):[];
+        const eligibleRaw=periodOpen?getAvailableSubstitutionCandidates({teachers:candidates,timetable,assignments,absentTeacherId:absentTeacherName,weekday,period:lesson.period,departmentId:absent?.departmentId||"",includeOtherDepartments:includeOtherDepartments||false,otherDepartmentTeacherIds:includeOtherDepartments?otherTeacherNames:[],assignmentDate:date||undefined,versionId:activeVersion.id}):[];
+        const eligible=eligibleRaw.map((candidate:any)=>{
+          const teacherName=String(candidate.name||candidate.id||"");
+          const occupiedPeriods=timetable.filter((cell:any)=>cell.teacherId===teacherName&&cell.status==="teaching")
+            .map((cell:any)=>Number(cell.period)).filter((period:number)=>Number.isInteger(period)&&period>0).sort((a:number,b:number)=>a-b);
+          return {...candidate,occupiedPeriods};
+        });
         const sourceCell=dayCells.find((c:any)=>c.matched_teacher_name===absentTeacherName&&Number(c.period)===lesson.period);
         const existing=(assignmentRows||[]).find((x:any)=>x.source_cell_id===sourceCell?.id&&(!date||!x.assignment_date||x.assignment_date===date)&&x.status!=="cancelled");
         return {...lesson,candidates:eligible,blockReason:periodOpen?null:"period_passed",assignment:existing?{id:existing.id,substituteTeacherName:String(existing.teacher_name),status:String(existing.status)}:null};
