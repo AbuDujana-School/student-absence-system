@@ -79,7 +79,7 @@ Deno.test("main substitution absentee list displays the chosen absence reason", 
   assert(html.includes("reasonLabel.textContent='سبب الغياب: '+String(value)"),"Confirming the modal must update the visible reason label");
 });
 
-Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
+Deno.test("whole-absence deletion and assignment-day group editing include completed same-day lessons", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
   const editEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",editStart);
@@ -89,7 +89,7 @@ Deno.test("whole-absence deletion includes completed same-day lessons while grou
   const editing=source.slice(editStart,editEnd);
   assert(deletion.includes('["assigned","confirmed","completed"].includes(item.status)'),"Whole-group deletion must include completed lessons");
   assert(deletion.includes('action:"timetable_substitution_cancel_batch"'),"Whole-group deletion must use the atomic batch cancellation action");
-  assert(editing.includes('["assigned","confirmed"].includes(item.status)'),"Group editing must include only active lessons");
+  assert(editing.includes('["assigned","confirmed","completed"].includes(item.status)'),"Group editing must keep completed lessons editable until the assignment date ends");
   assert(source.includes('const canDeleteGroup=currentRows.length>0&&currentRows.every(item=>item.canDelete===true);'),"Archive group deletion must use the separate same-day delete grant and exclude historical rows");
 });
 
