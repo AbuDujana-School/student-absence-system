@@ -1,4 +1,5 @@
 const reserveWorkflow = await Deno.readTextFile(new URL("../reserve-workflow.js", import.meta.url));
+const indexHtml = await Deno.readTextFile(new URL("../index.html", import.meta.url));
 const timetableEndpoint = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
 
 function assert(condition: boolean, message: string) {
@@ -68,6 +69,18 @@ Deno.test("department choice cards are mounted in the visible single-screen smar
   assert(reserveWorkflow.includes('loadOtherDepartments()'), "The primary department label must resolve from the authenticated coordinator record");
   assert(reserveWorkflow.includes('grid.dataset.scope==="external"&&canExpand'), "The supporting department picker must only appear after explicit selection");
   assert(reserveWorkflow.includes('subx-smart-generate-button'), "The actual smart distribution action must be emphasized in the visible smart screen");
+});
+
+
+Deno.test("supporting departments and their teachers are selectable through visible cards", () => {
+  assert(reserveWorkflow.includes('departmentCardsHost.id="subxReserveDepartmentCards"'), "The canonical smart screen must render supporting departments as cards");
+  assert(reserveWorkflow.includes('data-canonical-department-id'), "Each supporting department card must have an independent selection control");
+  assert(reserveWorkflow.includes('data-department-bulk="all"'), "The department cards must provide a select-all action");
+  assert(reserveWorkflow.includes('data-department-bulk="clear"'), "The department cards must provide a clear-all action");
+  assert(reserveWorkflow.includes("section.dataset.canonicalTeacherDepartment"), "Selected departments must render separate teacher groups");
+  assert(reserveWorkflow.includes('data-teacher-group-action="all"'), "Each teacher group must allow selecting all its teachers");
+  assert(reserveWorkflow.includes('data-teacher-group-action="clear"'), "Each teacher group must allow clearing its teacher selection");
+  assert(indexHtml.includes("getSubstitutionSelectedOtherTeacherNames()"), "The canonical distribution and save handlers must consume the selected supporting teachers");
 });
 
 Deno.test("the custom absence reason may be left empty", () => {
