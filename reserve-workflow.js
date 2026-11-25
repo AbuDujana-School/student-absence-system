@@ -1163,9 +1163,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         const absentGroups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
           const currentRows=rows.filter(item=>["assigned","confirmed","completed"].includes(item.status));
-          const editableRows=rows.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
-          const groupEdit=editableRows.length?
-            '<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit-group-date="'+esc(date)+'" data-tt-edit-group-absent="'+esc(absentName)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل التوزيع ('+editableRows.length+')</button>':"";
           const canDeleteGroup=currentRows.length>0&&currentRows.every(item=>item.canDelete===true);
           const groupDelete=canDeleteGroup?
             '<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete-group-date="'+esc(date)+'" data-tt-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+rows.length+')</button>':"";
@@ -1179,8 +1176,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
             return '<div class="tt-archive-row"><div><div class="text-xs font-black text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</div>'+
               '<small>سبب الغياب: '+esc(item.absenceReason||"-")+'</small><small class="block">سبب الاحتياط: '+esc(item.reason||"-")+' · '+state+'</small></div>'+actions+'</div>';
           }).join("");
-          const groupActions=groupEdit||groupDelete?'<div class="flex flex-wrap gap-2">'+groupEdit+groupDelete+'</div>':"";
-          return '<section class="rounded-xl border border-slate-200 bg-white p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+groupActions+'</div><div class="space-y-2">'+rowsMarkup+'</div></section>';
+          return '<section class="rounded-xl border border-slate-200 bg-white p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+groupDelete+'</div><div class="space-y-2">'+rowsMarkup+'</div></section>';
         }).join("");
         return '<details open class="rounded-xl border border-slate-200 bg-white p-3"><summary class="cursor-pointer text-xs font-black text-slate-800">'+esc(date)+' · '+items.length+' تكليف</summary>'+
           '<div class="mt-3 flex justify-end">'+dayButton+'</div><div class="mt-3 space-y-3">'+absentGroups+'</div></details>';
@@ -1188,7 +1184,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
     host.querySelectorAll("[data-tt-archive-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.ttArchiveEdit)));
     host.querySelectorAll("[data-tt-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.ttDelete)));
     host.querySelectorAll("[data-tt-open-day-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveDayEdit(button.dataset.ttOpenDayEdit)));
-    host.querySelectorAll("[data-tt-edit-group-date]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveDayEdit(button.dataset.ttEditGroupDate,button.dataset.ttEditGroupAbsent)));
     host.querySelectorAll("[data-tt-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.ttDeleteGroupDate,button.dataset.ttDeleteGroupAbsent)));
   };
   // Reclassify saved assignments at the exact Muscat day boundary. The server
@@ -2165,8 +2160,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         const groups=Array.from(byAbsent.entries()).sort((a,b)=>a[0].localeCompare(b[0],"ar")).map(([absentName,rows])=>{
           rows.sort((a,b)=>Number(a.period)-Number(b.period));
           const current=rows.filter(item=>["assigned","confirmed","completed"].includes(item.status));
-          const editable=rows.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
-          const editGroup=editable.length?'<button type="button" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800" data-home-edit-group-date="'+esc(date)+'" data-home-edit-group-absent="'+esc(absentName)+'"><i class="fa-solid fa-pen-to-square ml-1"></i> تعديل التوزيع ('+editable.length+')</button>':"";
           const canDelete=current.length>0&&current.every(item=>item.canDelete===true);
           const deleteAll=canDelete?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-delete-group-date="'+esc(date)+'" data-home-delete-group-absent="'+esc(absentName)+'">حذف التوزيع بالكامل ('+current.length+')</button>':"";
           const rowHtml=rows.map(item=>{
@@ -2176,14 +2169,12 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
             const actions=editButton||deleteButton?'<div class="flex gap-1">'+editButton+deleteButton+'</div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&item.canDelete!==true?"انتهى يوم التوزيع · للقراءة فقط":state)+'</span>';
             return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3"><div><strong class="block text-xs text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</strong><span class="block text-[10px] text-amber-700">سبب الغياب: '+esc(item.absenceReason||"-")+'</span><span class="block text-[10px] text-indigo-700">سبب الاحتياط: '+esc(item.reason||"-")+'</span><span class="block text-[10px] text-slate-500">'+state+'</span></div>'+actions+'</div>';
           }).join("");
-          const groupActions=editGroup||deleteAll?'<div class="flex flex-wrap gap-2">'+editGroup+deleteAll+'</div>':"";
-          return '<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+groupActions+'</div><div class="space-y-2">'+rowHtml+'</div></section>';
+          return '<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+deleteAll+'</div><div class="space-y-2">'+rowHtml+'</div></section>';
         }).join("");
         return '<details open class="rounded-xl border border-slate-200 bg-white p-3"><summary class="cursor-pointer text-xs font-black text-slate-800">'+esc(date)+' · '+items.length+' تكليف</summary><div class="mt-3 space-y-3">'+groups+'</div></details>';
       }).join("");
     host.querySelectorAll("[data-home-archive-edit]").forEach(button=>button.addEventListener("click",()=>timetableDailyOpenArchiveEdit(button.dataset.homeArchiveEdit)));
     host.querySelectorAll("[data-home-archive-delete]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAssignment(button.dataset.homeArchiveDelete)));
-    host.querySelectorAll("[data-home-edit-group-date]").forEach(button=>button.addEventListener("click",()=>window.timetableDailyOpenArchiveDayEdit(button.dataset.homeEditGroupDate,button.dataset.homeEditGroupAbsent)));
     host.querySelectorAll("[data-home-delete-group-date]").forEach(button=>button.addEventListener("click",()=>timetableDailyCancelAbsentDistribution(button.dataset.homeDeleteGroupDate,button.dataset.homeDeleteGroupAbsent)));
   };
   function installReserveArchiveAutoRefresh() {
