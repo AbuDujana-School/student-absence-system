@@ -187,7 +187,9 @@ test('canonical reserve panel keeps legacy edit/archive panels hidden behind the
  assert.match(mount,/!\$\("subxEditMountArea"\)/);
  assert.match(mount,/\$\("timetableDailyActivePanel"\)\?\.classList\.add\("hidden"\)/);
  assert.match(mount,/\$\("timetableDailyArchivePanel"\)\?\.classList\.add\("hidden"\)/);
- assert.match(mount,/ttAdminReserveTools/);
+ assert.doesNotMatch(mount,/ttAdminReserveTools|ttDepartmentReserveTools/);
+ assert.doesNotMatch(mount,/appendChild/);
+ assert.doesNotMatch(workflow,/function installAdminReserveTools|function installDepartmentReserveTools/);
  assert.match(adapter,/id=\"subxEditMountArea\"/);
  assert.match(adapter,/id=\"subxArchiveMountArea\"/);
  assert.doesNotMatch(mount,/subxEditContent|subxArchiveContent/);
