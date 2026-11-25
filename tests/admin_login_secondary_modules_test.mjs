@@ -35,12 +35,11 @@ test("report loading remains inside the Student Affairs module entry path, not p
 
 const reserveWorkflow = await readFile(new URL("../reserve-workflow.js", import.meta.url), "utf8");
 
-test("reserve admin tools use the canonical general-admin identity and never load during login", () => {
+test("legacy reserve administration tools are removed and never load during login", () => {
   assert.doesNotMatch(reserveWorkflow, /schoolwideReserveReportIsAdmin/);
-  assert.match(reserveWorkflow, /function installAdminReserveTools\(\)[\s\S]*?isGeneralAdminUser\(activeUser\)/);
-  assert.match(reserveWorkflow, /if\(isGeneralAdminUser\(activeUser\)\)installAdminReserveTools\(\)/);
+  assert.doesNotMatch(reserveWorkflow, /installAdminReserveTools|installDepartmentReserveTools|ttAdminReserveTools|ttDepartmentReserveTools/);
   const login = section("async function handleUserLogin(e)", "async function findUserByPinWithRecord(");
-  assert.doesNotMatch(login, /installAdminReserveTools\(|timetable_substitution_archive/);
+  assert.doesNotMatch(login, /installAdminReserveTools|installDepartmentReserveTools|timetable_substitution_archive/);
 });
 
 test("staggered dashboard pilot is restricted to the non-admin Distron account", () => {
@@ -103,7 +102,7 @@ test("delegated admin permission grants reserve management without the general-a
   assert.doesNotMatch(identity, /permissions\?\.admin/);
   const adminPanels = section("function hasAdminPanelAccess(", "function hasAnyPermission(");
   assert.doesNotMatch(adminPanels, /canManageReserveWorkspace|permissions\?\.admin/);
-  assert.match(reserveWorkflow, /if\(!isGeneralAdminUser\(activeUser\)\)\{say\("هذه الميزة متاحة لمدير النظام العام فقط\./);
+  assert.doesNotMatch(reserveWorkflow, /installAdminReserveTools|installDepartmentReserveTools|ttAdminReserveTools|ttDepartmentReserveTools/);
 });
 
 const morningLateness = await readFile(new URL("../supabase/functions/morning-assembly-lateness/index.ts", import.meta.url), "utf8");
@@ -114,11 +113,10 @@ test("additional administrators use teacher-scoped morning lateness permissions"
 });
 
 
-test("reserve tools are restricted to the canonical general administrator identity", () => {
+test("legacy reserve management panels are absent from the reserve workflow", () => {
   assert.doesNotMatch(reserveWorkflow, /schoolwideReserveReportIsAdmin/);
-  assert.match(reserveWorkflow, /function installAdminReserveTools\(\)[\s\S]*?isGeneralAdminUser\(activeUser\)/);
-  assert.match(reserveWorkflow, /if\(isGeneralAdminUser\(activeUser\)\)installAdminReserveTools\(\)/);
-  assert.match(reserveWorkflow, /if\(!isGeneralAdminUser\(activeUser\)\)\{say\("هذه الميزة متاحة لمدير النظام العام فقط\."/);
+  assert.doesNotMatch(reserveWorkflow, /installAdminReserveTools|installDepartmentReserveTools|ttAdminReserveTools|ttDepartmentReserveTools/);
+  assert.doesNotMatch(reserveWorkflow, /timetableDailyInstallAdminTools|timetableDailyInstallDepartmentTools/);
 });
 
 test("attendance and behavior statistics require their matching read permissions while admins retain access", () => {
