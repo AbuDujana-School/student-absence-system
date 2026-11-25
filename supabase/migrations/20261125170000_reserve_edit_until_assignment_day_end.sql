@@ -107,7 +107,7 @@ begin
       raise exception 'يمكن لمدير النظام إدارة هذا السجل خلال يوم تنفيذه فقط.';
     end if;
   elsif not public.timetable_substitution_day_is_open(v_assignment.assignment_date) then
-    raise exception 'انتهت مهلة التعديل والحذف لهذه الحصة؛ يسمح بذلك حتى نهاية وقت الحصة المحدد في الجدول.';
+    raise exception 'انتهى يوم التوزيع؛ أصبحت السجلات في الأرشيف للقراءة فقط.';
   end if;
   select id into v_active_version_id from public.timetable_weekly_versions
     where status='active' limit 1;
@@ -193,7 +193,7 @@ begin
       raise exception 'يمكن لمدير النظام تعديل هذا السجل خلال يوم تنفيذه فقط.';
     end if;
   elsif not public.timetable_substitution_day_is_open(v_old.assignment_date) then
-    raise exception 'انتهت مهلة التعديل لهذه الحصة أو للحصة البديلة؛ يجب إجراء التعديل قبل نهاية وقت الحصة.';
+    raise exception 'انتهى يوم التوزيع؛ أصبحت السجلات في الأرشيف للقراءة فقط.';
   end if;
 
   v_cancel:=public.cancel_timetable_substitution(jsonb_build_object(
