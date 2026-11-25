@@ -180,7 +180,7 @@
         if(caption)caption.textContent=names.length+" معلم متاح · "+count+" محدد";
       }
     }));
-    if(add)add.disabled=!departments.length||!groups.some(group=>group!=="");
+    if(add)add.disabled=!host.querySelector("[data-other-teacher-name]:checked");
   }
   async function loadOtherDepartments() {
     const token=appAuthSession?.token||readAppAuthToken();
