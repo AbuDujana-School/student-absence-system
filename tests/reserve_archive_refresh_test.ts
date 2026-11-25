@@ -287,3 +287,32 @@ Deno.test("reserve date navigation is attached to the visible canonical Muscat d
   assert(!source.includes("date.min=today"),"Historical reserve dates must remain selectable");
   assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The legacy date should default to Muscat today only when empty");
 });
+
+
+Deno.test("reserve edit tab lists only active day groups and opens the shared saved-day editor", async () => {
+  const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
+  assert(html.includes("r.canEdit===true&&['assigned','confirmed'].includes(String(r.status||''))"), "The edit tab must hide expired or non-editable assignments");
+  assert(html.includes("window.timetableDailyRegisterExternalAssignments(allRows)"), "The day editor cache must be hydrated from the authenticated archive response");
+  assert(html.includes("data-open-edit-day"), "The edit screen must render one card per active assignment date");
+  assert(html.includes("window.timetableDailyOpenArchiveDayEdit(button.dataset.openEditDay)"), "Opening a day card must use the existing authenticated day editor");
+  assert(html.includes("const dateFrom=isEditMount?today:from.value"), "The edit list must query only today and future dates, independently of archive date filters");
+});
+
+Deno.test("saved reserve day editor uses live server candidates and the existing atomic save and official PDF paths", () => {
+  const previewStart = source.indexOf("async function fetchArchivePreview");
+  const previewEnd = source.indexOf("window.timetableDailyRenderArchive", previewStart);
+  const preview = source.slice(previewStart, previewEnd);
+  assert(preview.includes("forEdit:true"), "Saved edits must ask the server for candidates after the lesson's new-assignment cutoff");
+  const editorStart = source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName)");
+  const editorEnd = source.indexOf("window.timetableDailyCancelAssignment = async function (assignmentId)", editorStart);
+  const editor = source.slice(editorStart, editorEnd);
+  assert(editorStart >= 0 && editorEnd > editorStart, "The saved-day editor must exist as one complete function");
+  assert(editor.includes("editTeacherDirectory"), "The other-teachers search must use the server-filtered active teacher directory");
+  assert(editor.includes("occupiedPeriods"), "Other teachers must show their live occupied periods");
+  assert(editor.includes("data-choice") && editor.includes("data-change"), "Choosing a substitute must collapse the choices and retain a Change action");
+  assert(editor.includes("data-other-choice"), "The other-teachers search must allow a scoped substitute selection");
+  assert(editor.includes('action:"timetable_substitution_update_batch"'), "Saving must use the existing authenticated atomic batch update");
+  assert(editor.includes("window.timetableDailyPrintArchiveRange"), "PDF must use the official A4 reserve report renderer");
+  assert(!editor.includes("prompt("), "The redesigned day editor must not use legacy prompt-based editing");
+  assert(!editor.includes("allSchoolTeachers"), "The editor must not use a hard-coded or mock teacher directory");
+});
