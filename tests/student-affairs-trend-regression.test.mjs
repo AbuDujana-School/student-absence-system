@@ -117,17 +117,32 @@ test("notice modal and print entry points remain present outside the four tab pa
 });
 
 
-test("dashboard home includes a permission-mirrored Student Affairs card",()=>{
-  const dashboard = getElementById(html,"dashboardSelectionView");
-  const gridStart = dashboard.indexOf('id="attendanceDashboardCard"');
-  const affairsStart = dashboard.indexOf('id="studentAffairsDashboardCard"');
-  const behaviorStart = dashboard.indexOf('id="behaviorDashboardCard"');
-  const dutyStart = dashboard.indexOf('id="dutyDashboardCard"');
-  assert.ok(gridStart >= 0 && behaviorStart > gridStart && affairsStart > behaviorStart && dutyStart > affairsStart,
-    "Student Affairs card is placed between behavior and duty in the main dashboard grid");
-  const card = getElementById(dashboard,"studentAffairsDashboardCard");
-  assert.ok(card.includes('onclick="openStudentAffairsView(true)"'));
-  assert.ok(card.includes('role="button"') && card.includes('tabindex="0"'));
-  assert.ok(!card.includes('class="hidden'));
-  assert.ok(html.includes('body:has(#studentAffairsBtn:not(.hidden)) #studentAffairsDashboardCard{display:flex!important}'));
+test("Student Affairs navigation is four independent square cards with responsive 4/2-column layout",()=>{
+  const content = getElementById(html,"saContent");
+  const nav = getElementById(content,"saMainNav");
+  assert.equal((nav.match(/class="sa-nav-card/g)||[]).length,4);
+  for(const label of [
+    "متابعة الغياب والسلوكيات",
+    "مؤشرات الغياب والسلوكيات",
+    "طباعة التنبيهات",
+    "السجل التفصيلي للطالب"
+  ]) assert.ok(nav.includes(label), "missing card title: " + label);
+  assert.equal((nav.match(/class="sa-nav-icon"/g)||[]).length,4);
+  assert.ok(nav.includes('role="group"'));
+  assert.match(html,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(html,/max-width:760px\)[\s\S]*grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
+  assert.match(html,/aspect-ratio:1 \/ 1/);
+  assert.match(html,/flex-direction:column/);
+  assert.doesNotMatch(html,/id="studentAffairsDashboardCard"/);
+});
+
+test("only the selected Student Affairs pane can remain visible, including indicators pane",()=>{
+  assert.match(html,/\.sa-main-pane\.hidden\{display:none!important\}/);
+  assert.match(html,/#saSec2:not\(\.hidden\)\{display:flex/);
+  const controller = getElementById(html,"sa-four-section-navigation-controller");
+  assert.match(controller,/pane\.classList\.toggle\("hidden",pane\.id!==\"saSec\"\+selected\)/);
+  assert.match(controller,/button\.setAttribute\("aria-selected",active\?\"true\":\"false\"\)/);
+  assert.match(controller,/button\.setAttribute\("aria-pressed",active\?\"true\":\"false\"\)/);
+  assert.match(controller,/saSupervisionTrendChart/);
+  assert.match(controller,/saSupervisionBehaviorChart/);
 });
