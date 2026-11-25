@@ -512,7 +512,7 @@ async function handle(req: Request) {
     const visibleTeachers=directory.filter((teacher:any)=>teacher.role==="teacher"&&
       (schoolwide||(requestedArchiveScope===""&&principal.type==="admin")||
         Boolean(targetDepartmentId&&String(teacher.departmentId||"")===targetDepartmentId)||
-        (requestedArchiveScope===""&&!canViewSchoolwide&&Boolean(actorDepartmentId&&String(teacher.departmentId||"")===actorDepartmentId))));
+        (requestedArchiveScope===""&&principal.type!=="admin"&&Boolean(actorDepartmentId&&String(teacher.departmentId||"")===actorDepartmentId))));
     const visibleNames=new Set(visibleTeachers.map((teacher:any)=>teacher.name));
     const teacherDepartmentByName=new Map<string,{departmentId:string;departmentName:string}>(
       visibleTeachers.map((teacher:any)=>[String(teacher.name),{
