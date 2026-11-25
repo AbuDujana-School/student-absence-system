@@ -2705,10 +2705,9 @@
       bridge.__mainReservePrimaryReasonPicker=true;
       window.openSubstitutionAbsenceReasonPicker=bridge;
     };
-    if(document.readyState==="loading"){
-      document.addEventListener("DOMContentLoaded",()=>queueMicrotask(installPrimaryReasonPickerBridge),{once:true});
-      window.addEventListener("load",installPrimaryReasonPickerBridge,{once:true});
-    }else queueMicrotask(installPrimaryReasonPickerBridge);
+    if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>queueMicrotask(installPrimaryReasonPickerBridge),{once:true});
+    else queueMicrotask(installPrimaryReasonPickerBridge);
+    window.addEventListener("load",installPrimaryReasonPickerBridge,{once:true});
     if(root.dataset.mainReserveReasonsInstalled!=="1"){
       root.dataset.mainReserveReasonsInstalled="1";
       root.addEventListener("change",event=>{
