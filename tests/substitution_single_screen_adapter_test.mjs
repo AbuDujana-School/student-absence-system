@@ -64,7 +64,7 @@ test('absence screen presents the dynamic home department and optional supportin
  assert.match(adapter,/substitutionActorDepartmentName/);
  assert.match(adapter,/screens\.absentees\.append\(deptWrap\)/);
  assert.match(adapter,/screens\.absentees\.append\(generateButton\)/);
- assert.match(adapter,/id='subxAbsenteesNext'/, 'the old intermediate smart-step button must not return');
+ assert.doesNotMatch(adapter,/id='subxAbsenteesNext'/, 'the old intermediate smart-step button must not return');
  assert.match(html,/subx-department-choice-grid/);
  assert.match(html,/سيُدرج جميع المعلمين تلقائيًا/);
 });
