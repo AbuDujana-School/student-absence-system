@@ -252,3 +252,20 @@ Deno.test("the four-section reserve workspace shows daily teaching load and pres
   assert(source.includes('undefined,{singlePage:true}'),"The official archive PDF must create one A4 page for each day containing actual records");
   assert(source.includes('filter(item=>item.status!=="cancelled"&&item.assignmentDate)'),"Cancelled or undated rows must not create empty archive print pages");
 });
+
+
+Deno.test("daily and cumulative reserve archive requests time out and release their locks", () => {
+  assert(source.includes("function reserveArchiveRequestWithTimeout(request, timeoutMs = 30000)"), "Archive requests must have a bounded wait");
+  assert(source.includes("Promise.race([request, timeout])"), "A stalled archive request must not block the loader forever");
+  assert(source.includes("if (timeoutId !== null) clearTimeout(timeoutId);"), "Archive timeout timers must be cleared after settlement");
+  const dailyStart=source.indexOf("window.timetableDailyLoadArchive = function ()");
+  const dailyEnd=source.indexOf("window.timetableDailyPrintArchiveRange",dailyStart);
+  const cumulativeStart=source.indexOf("window.substitutionLoadCumulativeArchive = function()");
+  const cumulativeEnd=source.indexOf("function setHomeTodayStatus",cumulativeStart);
+  const daily=source.slice(dailyStart,dailyEnd);
+  const cumulative=source.slice(cumulativeStart,cumulativeEnd);
+  assert(daily.includes("await reserveArchiveRequestWithTimeout(appAuthRequest("), "Daily archive reads must use the bounded request helper");
+  assert(cumulative.includes("await reserveArchiveRequestWithTimeout(appAuthRequest("), "Cumulative archive reads must use the bounded request helper");
+  assert(daily.includes("finally{reserveDailyArchiveLoadPromise=null;reserveDailyArchiveLoadKey=null;}"), "Daily lock must release after a timeout");
+  assert(cumulative.includes("finally{reserveCumulativeArchiveLoadPromise=null;reserveCumulativeArchiveLoadKey=null;}"), "Cumulative lock must release after a timeout");
+});
