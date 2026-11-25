@@ -17,10 +17,10 @@ Deno.test("reserve server permissions follow each lesson's configured end time",
   assert(source.includes("isSubstitutionDayOpen(cancellationDate)"), "Individual deletion must remain available through the end of the assignment day");
   assert(source.includes("isSubstitutionDayOpen(assignmentDate)"), "Group deletion must remain available through the end of the assignment day");
   assert(source.includes("isSubstitutionDayOpen(editableAssignment.assignment_date)"), "A reassignment must use the assignment-day edit window rather than the period end");
-  assert(source.includes("(hasReservePermission||principal.type==="custom")&&isSubstitutionDayOpen(row.assignment_date)"), "Archive edit controls must remain available through the end of the assignment day");
+  assert(source.includes(`(hasReservePermission||principal.type==="custom")&&isSubstitutionDayOpen(row.assignment_date)`), "Archive edit controls must remain available through the end of the assignment day");
   assert(source.includes("isSubstitutionPeriodOpen(assignmentDate,period,periodTimings)"), "New single assignments must still obey the period-end creation deadline");
   assert(source.includes("normalized.some((item:any)=>!isSubstitutionPeriodOpen(assignmentDate,item.period,periodTimings))"), "New batch assignments must still obey each period-end creation deadline");
-  assert(source.includes('principal.type==="custom"&&dateScopedCreateActions.has(actionName)'), "Subject coordinators must be blocked from creating or previewing a past-date distribution");
+  assert(source.includes(`(principal.type==="custom"||hasReservePermission)&&dateScopedCreateActions.has(actionName)`), "Subject coordinators must be blocked from creating or previewing a past-date distribution");
   assert(source.includes("canDelete:Boolean(activeVersion.data"), "Archive rows must expose a separate delete permission");
   assert(source.includes('body.editableOnly===true&&principal.type==="custom"'), "Scoped custom coordinators must be able to query all future active assignments without widening schoolwide archive access");
 });
