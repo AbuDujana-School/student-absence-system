@@ -71,7 +71,7 @@ test('scope selector presents two distinct glass choices and a dedicated multi-s
 });
 test('absence flow opens scope selection and own-department choice clears all external departments',()=>{
  assert.match(adapter,/التالي: تحديد نطاق التوزيع/);assert.match(adapter,/go\('scope'\)/);
- assert.match(adapter,/subxOwnDepartmentCard[^;]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
+ assert.match(adapter,/subxOwnDepartmentCard[^\n]*applyScopeDepartments\(\[\]\);go\('smart'\)/);
 });
 test('scope checklist excludes the coordinator department and commits only approved department IDs',()=>{
  assert.match(adapter,/function scopeAvailableDepartments\(\)[\s\S]*?String\(d\.id\)!==ownId/);
@@ -88,4 +88,11 @@ test('scope screen does not replace the existing smart distribution engine',()=>
  assert.match(adapter,/substitutionGeneratePlan/);
  assert.match(adapter,/substitutionOtherDepartmentIds\(\)/);
  assert.match(adapter,/screens\.smart\.append\(plan\)/);
+});
+
+test('department options response identifies the coordinator even when no active timetable exists',()=>{
+ const action=backend.slice(backend.indexOf('if (action === "timetable_substitution_departments")'),backend.indexOf('if (action === "timetable_reserve_stats_access_list")'));
+ assert.ok(action.indexOf('const actor = directory.find')<action.indexOf('if(!activeVersionId)'));
+ assert.match(action,/departments:\[\],actorDepartmentName,actorDepartmentId/);
+ assert.match(action,/principal\.type !== "admin" && actor\?\.canManageSubstitutions !== true/);
 });
