@@ -385,6 +385,7 @@ Deno.test("reserve archive v2 separates department and school views and prints o
   assert(html.includes("subxArchiveSchoolFrom") && html.includes("subxArchiveSchoolTo"), "School archive needs its own date range");
   assert(html.includes("archiveScope:mode") && html.includes("subxArchiveBuildDays"), "The client must request a defined scope and group real saved rows by day");
   assert(html.includes("b[0].localeCompare(a[0])"), "Archive days must be sorted newest first");
+  assert(!html.includes(String.raw`function subxArchiveValidDate(value){if(!/^\d{4}`), "Date validation must use a single digit matcher escape");
   assert(backend.includes('requestedArchiveScope==="school"&&!canViewSchoolwide'), "Non-admins must be blocked from schoolwide archive");
   assert(backend.includes('requestedArchiveScope==="department"'), "The server must enforce the department scope");
   assert(backend.includes('departmentName:String(teacherDepartment?.departmentName||"")'), "Archive rows must include the absent teacher's department");
