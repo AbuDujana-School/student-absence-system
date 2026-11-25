@@ -127,3 +127,10 @@ test('the single canonical date navigation is Oman-local and the adapter does no
  assert.doesNotMatch(adapter,/data-day="0"|data-day="1"/);
  assert.doesNotMatch(html,/data-day="0"|data-day="1"/);
 });
+
+test('edit and archive screens partition saved assignments at the Oman-local date boundary',()=>{
+ assert.match(html,/isEditMount=hostId==='subxEditMountArea'/);
+ assert.match(html,/isEditMount\?assignedDate>=today:assignedDate<today/);
+ assert.match(html,/timeZone:'Asia\/Muscat'/);
+ assert.match(html,/current==='edit'[\s\S]*loadArchive\('subxEditMountArea'\)[\s\S]*current==='archive'[\s\S]*loadArchive\('subxArchiveMountArea'\)/);
+});
