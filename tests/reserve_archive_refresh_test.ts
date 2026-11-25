@@ -79,7 +79,7 @@ Deno.test("main substitution absentee list displays the chosen absence reason", 
   assert(html.includes("reasonLabel.textContent='سبب الغياب: '+String(value)"),"Confirming the modal must update the visible reason label");
 });
 
-Deno.test("whole-absence deletion includes completed same-day lessons while group editing excludes them", () => {
+Deno.test("whole-absence deletion and assignment-day group editing include completed same-day lessons", () => {
   const deleteStart=source.indexOf("window.timetableDailyCancelAbsentDistribution = async function");
   const editStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(");
   const editEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",editStart);
@@ -89,7 +89,7 @@ Deno.test("whole-absence deletion includes completed same-day lessons while grou
   const editing=source.slice(editStart,editEnd);
   assert(deletion.includes('["assigned","confirmed","completed"].includes(item.status)'),"Whole-group deletion must include completed lessons");
   assert(deletion.includes('action:"timetable_substitution_cancel_batch"'),"Whole-group deletion must use the atomic batch cancellation action");
-  assert(editing.includes('["assigned","confirmed"].includes(item.status)'),"Group editing must include only active lessons");
+  assert(editing.includes('["assigned","confirmed","completed"].includes(item.status)'),"Group editing must keep completed lessons editable until the assignment date ends");
   assert(source.includes('const canDeleteGroup=currentRows.length>0&&currentRows.every(item=>item.canDelete===true);'),"Archive group deletion must use the separate same-day delete grant and exclude historical rows");
 });
 
@@ -271,7 +271,7 @@ Deno.test("daily and cumulative reserve archive requests time out and release th
 });
 
 
-Deno.test("reserve date navigation is attached to the visible canonical Muscat date picker", async () => {
+Deno.test("reserve date navigation is attached to the visible canonical Muscat date picker without a yesterday shortcut", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
   assert(!html.includes("shortcuts.className='subx-date-shortcuts'"),"The legacy inline shortcut row must not duplicate the canonical date navigation");
   assert(source.includes('const distributionDate=$("substitutionDate");'),"The quick navigation must target the visible canonical date picker");
@@ -279,9 +279,19 @@ Deno.test("reserve date navigation is attached to the visible canonical Muscat d
   assert(source.includes('nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط")'),"The visible quick navigation must have an accessible label");
   assert(source.includes('".tt-premium-date-nav{display:flex'),"The visible date navigation must receive layout styling outside the hidden compatibility panel");
   assert(!source.includes("ttPremiumDateQuickNav"),"The hidden compatibility panel must not create a second date navigation");
-  assert(source.includes('data-date-offset="-1"'),"The canonical date navigation must include yesterday");
+  assert(!source.includes('data-date-offset="-1"'),"Yesterday must not appear as a quick action");
   assert(source.includes('data-date-offset="0"'),"The canonical date navigation must include today");
   assert(source.includes('data-date-offset="1"'),"The canonical date navigation must include tomorrow");
-  assert(!source.includes("date.min=today"),"Historical reserve dates must remain selectable");
+  assert(source.includes("distributionDate.min=today"),"Custom subject coordinators must not select past dates");
+  assert(source.includes("appAuthSession?.principal?.type!==\"custom\""),"The past-date restriction must be scoped to subject coordinators");
+  assert(source.includes("includeFutureActive:true"),"Future saved distributions must load into the edit list regardless of the archive date filter");
+  assert(source.includes("historyRecords=(reserveArchive||[]).filter"),"Only expired/non-editable records should appear in archive history");
   assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The legacy date should default to Muscat today only when empty");
+});
+
+Deno.test("reserve edit/archive lifecycle is based on the assignment date, not save time", () => {
+  assert(source.includes('["assigned","confirmed","completed"].includes(item.status)'),"Completed same-day assignments must remain editable until midnight");
+  assert(source.includes("timetableDailyOpenArchiveDayEdit"),"The full-day edit workflow must remain available for the saved distribution");
+  assert(source.includes("تعديلها حتى نهاية يومها بتوقيت سلطنة عمان"),"The interface must explain the Muscat end-of-day edit deadline");
+  assert(source.includes("item.canDelete===true?"),"Delete actions must retain their separate per-period permission");
 });
