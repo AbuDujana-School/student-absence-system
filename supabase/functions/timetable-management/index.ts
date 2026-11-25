@@ -1812,12 +1812,20 @@ async function handle(req: Request) {
         return hasReservePermission&&includeOtherDepartments&&otherDepartmentIds.includes(String(teacher.departmentId||""))&&otherTeacherNames.includes(teacher.name);
       }).map((teacher:any)=>{
         const teacherCells=timetable.filter((cell:any)=>cell.teacherId===teacher.name&&cell.status==="teaching");
+        const teachingPeriods=teacherCells.map((cell:any)=>Number(cell.period));
+        const reservePeriods=(assignmentRows||[]).filter((row:any)=>
+          String(row.teacher_name||"")===String(teacher.name)&&row.assignment_type==="substitution"&&
+          ["assigned","confirmed","completed"].includes(String(row.status||""))&&
+          (row.assignment_date?String(row.assignment_date)===date:String(row.weekday)===weekday&&String(row.version_id)===String(activeVersion.id))
+        ).map((row:any)=>Number(row.period));
+        const occupiedPeriods=[...new Set([...teachingPeriods,...reservePeriods])]
+          .filter((period:number)=>Number.isInteger(period)&&period>0).sort((a:number,b:number)=>a-b);
         return {
           name:String(teacher.name),
           departmentId:String(teacher.departmentId||""),
           departmentName:String(teacher.departmentName||teacher.department||""),
           subject:[...new Set(teacherCells.map((cell:any)=>String(cell.subject||"").trim()).filter(Boolean))].join("، "),
-          occupiedPeriods:teacherCells.map((cell:any)=>Number(cell.period)).filter((period:number)=>Number.isInteger(period)&&period>0).sort((a:number,b:number)=>a-b)
+          occupiedPeriods
         };
       }):undefined;
       return reply(200,{ok:true,active:true,version:activeVersion,weekday,absentTeacherName,lessons:lessonOptions,includeOtherDepartments,...(forEdit?{editTeacherDirectory}: {})});
