@@ -270,7 +270,8 @@
       const wrapped=function(...args){
         const absentName=args.map(value=>typeof value==="string"?value:String(value?.name||"").trim())
           .find(value=>value&&value.length<=160&&!timetableDailyAbsentTeachers.includes(value));
-        if(!absentName||document.getElementById("timetableDailyAbsenceReasonModal"))return original.apply(this,args);
+        if(!absentName)return original.apply(this,args);
+        if(document.getElementById("timetableDailyAbsenceReasonModal"))return;
         const selectedDate=timetableSubstitutionGetDate().date;
         const existing=[...(reserveArchive||[]),...(reserveCumulativeArchive||[]),...(reserveHomeToday||[]),...(reserveBatchPreview?.existingAssignments||[])]
           .find(row=>row.absentTeacherName===absentName&&row.assignmentDate===selectedDate&&row.status!=="cancelled"&&row.absenceReason&&row.absenceReason!=="-");
@@ -921,7 +922,7 @@
           choice='<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-xs font-bold text-emerald-800"><div>البديل المحفوظ: '+esc(item.substituteTeacherName)+' · '+state+'</div><div class="mt-1 text-[10px] font-normal">سبب الغياب: '+esc(item.absenceReason||"-")+'</div><div class="mt-1 text-[10px] font-normal">سبب الاحتياط: '+esc(item.reason||"-")+'</div></div>';
           const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-indigo-200 bg-indigo-50 text-indigo-800" data-tt-edit="'+esc(item.id)+'">تعديل</button>':"";
           const deleteButton=item.canDelete===true&&["assigned","confirmed","completed"].includes(item.status)&&item.id?'<button type="button" class="tt-action border border-rose-200 bg-rose-50 text-rose-700" data-tt-delete="'+esc(item.id)+'">حذف</button>':"";
-          action=editButton||deleteButton?'<div class="flex flex-wrap gap-1">'+editButton+deleteButton+'</div>':(item.canEdit===false&&item.canDelete!==true?'<span class="text-[10px] text-slate-400">انتهت مهلة الحصة · للقراءة فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
+          action=editButton||deleteButton?'<div class="flex flex-wrap gap-1">'+editButton+deleteButton+'</div>':(item.canEdit===false&&item.canDelete!==true?'<span class="text-[10px] text-slate-400">انتهى يوم التوزيع · للقراءة فقط</span>':'<span class="text-[10px] text-slate-400">'+state+'</span>');
         } else {
           const candidates=item.candidateOptions||[];
           const options=candidates.map(candidate=>{const occupied=(Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods:[]).map(Number).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b);const periodText=occupied.length?occupied.map(period=>new Intl.NumberFormat("ar").format(period)).join("، "):"—";return '<option value="'+esc(candidate.teacherName)+'" '+(draft?.substituteTeacherName===candidate.teacherName?"selected":"")+'>'+esc(candidate.teacherName)+' · الحصص '+periodText+'</option>';}).join("");
@@ -2087,7 +2088,7 @@
             const state=item.status==="cancelled"?"ملغى":item.status==="completed"?"مكتمل":item.status==="confirmed"?"مؤكد":"محفوظ";
             const editButton=item.canEdit===true&&["assigned","confirmed"].includes(item.status)?'<button type="button" class="rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-2 text-[10px] font-black text-indigo-800" data-home-archive-edit="'+esc(item.id)+'">تعديل</button>':"";
             const deleteButton=item.canDelete===true?'<button type="button" class="rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-[10px] font-black text-rose-700" data-home-archive-delete="'+esc(item.id)+'">حذف</button>':"";
-            const actions=editButton||deleteButton?'<div class="flex gap-1">'+editButton+deleteButton+'</div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&item.canDelete!==true?"انتهت مهلة الحصة · للقراءة فقط":state)+'</span>';
+            const actions=editButton||deleteButton?'<div class="flex gap-1">'+editButton+deleteButton+'</div>':'<span class="text-[10px] text-slate-400">'+(item.canEdit===false&&item.canDelete!==true?"انتهى يوم التوزيع · للقراءة فقط":state)+'</span>';
             return '<div class="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white p-3"><div><strong class="block text-xs text-slate-800">الحصة '+Number(item.period)+' · '+esc(item.className||"—")+' ← '+esc(item.substituteTeacherName||"")+'</strong><span class="block text-[10px] text-amber-700">سبب الغياب: '+esc(item.absenceReason||"-")+'</span><span class="block text-[10px] text-indigo-700">سبب الاحتياط: '+esc(item.reason||"-")+'</span><span class="block text-[10px] text-slate-500">'+state+'</span></div>'+actions+'</div>';
           }).join("");
           return '<section class="rounded-xl border border-slate-200 bg-slate-50 p-3"><div class="mb-2 flex flex-wrap items-center justify-between gap-2"><strong class="text-xs font-black text-slate-800">المعلم الغائب: '+esc(absentName)+'</strong>'+deleteAll+'</div><div class="space-y-2">'+rowHtml+'</div></section>';
