@@ -2623,7 +2623,6 @@
     }
     const distributionDate=$("substitutionDate");
     if(distributionDate){
-      const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
       if(distributionDate.dataset.canonicalLegacyDateSync!=="1"){
         distributionDate.dataset.canonicalLegacyDateSync="1";
         distributionDate.addEventListener("change",()=>{
