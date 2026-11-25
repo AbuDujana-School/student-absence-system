@@ -94,6 +94,10 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
     if (role.allowed) {
       await page.waitForFunction(() => window.calls.options === 1);
       await page.waitForTimeout(0);
+      const quickDateNav = page.locator("#subxCanonicalDateQuickNav");
+      await expect(quickDateNav, role.id + " visible canonical date navigation").toBeVisible();
+      await quickDateNav.locator('[data-date-offset="-1"]').click();
+      expect(await page.locator("#substitutionDate").inputValue(), role.id + " yesterday shortcut").toBe("2026-11-23");
       const inFlightCalls = await page.evaluate(() => window.calls.options);
       expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
       await page.evaluate(() => window.releaseOptions());
