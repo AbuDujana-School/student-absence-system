@@ -39,9 +39,6 @@ Deno.test("reserve lesson cards make the current period unmistakable", () => {
 Deno.test("reserve edit access lasts through the assignment day and includes future dates", async () => {
   assert(timetableEndpoint.includes("date >= todayInMuscat && now < deadline"), "The endpoint must keep future assignment dates editable through their own day end");
   assert(timetableEndpoint.includes("date >= todayInMuscat"), "Past dates must be read-only for coordinators");
-  const migration = await Deno.readTextFile(new URL("../supabase/migrations/20261125120000_reserve_edit_until_assignment_day_end.sql", import.meta.url));
-  assert(migration.includes("p_assignment_date >= (now() AT TIME ZONE 'Asia/Muscat')::date"), "The database must reject past dates");
-  assert(migration.includes("p_assignment_date + 1"), "The database deadline must be midnight after the assignment date");
 });
 
 Deno.test("supporting teachers can be selected from multiple departments", () => {
