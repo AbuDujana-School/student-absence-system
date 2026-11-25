@@ -628,7 +628,7 @@
             await timetableDailyRefreshAll();
           }catch(error){
             toggle.checked=false;
-            if(select){select.value="";select.closest("label")?.classList.add("hidden");}
+            if(select){Array.from(select.options).forEach(option=>option.selected=false);select.closest("label")?.classList.add("hidden");}
             reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];
             button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
             status(error?.message||"تعذر تحميل الأقسام المساندة. حاول مرة أخرى.","error");
@@ -636,7 +636,7 @@
           return;
         }
         toggle.checked=false;
-        if(select){select.value="";select.closest("label")?.classList.add("hidden");}
+        if(select){Array.from(select.options).forEach(option=>option.selected=false);select.closest("label")?.classList.add("hidden");}
         reserveOtherDepartmentId="";reserveOtherDepartmentIds=[];reserveSelectedOtherTeacherNames=new Set();reserveDraftScope="";
         button.innerHTML='<i class="fa-solid fa-people-group ml-1"></i> استعارة معلمين من أقسام أخرى';
         await timetableDailyRefreshAll();
@@ -653,6 +653,17 @@
       if(externalButton){externalButton.classList.add("tt-reserve-choice-original");externalCard.appendChild(externalButton);}
       const externalDepartmentWrap=$("timetableDailyOtherDepartmentWrap");
       if(externalDepartmentWrap)externalCard.appendChild(externalDepartmentWrap);
+      externalCard.style.cursor="pointer";
+      externalCard.addEventListener("click",event=>{
+        if(event.target.closest("#timetableDailyOtherDepartmentsButton")||event.target.closest("#timetableDailyOtherDepartmentWrap"))return;
+        externalButton?.click();
+      });
+      localCard.style.cursor="pointer";
+      localCard.addEventListener("click",event=>{
+        if(event.target.closest("button"))return;
+        absentCard?.scrollIntoView({behavior:"smooth",block:"center"});
+        $("timetableDailyAbsentSearch")?.focus({preventScroll:true});
+      });
       const reservePrincipal=appAuthSession?.principal||activeUser||{};
       const canBorrowDepartments=reservePrincipal.type==="admin"||(reservePrincipal.type==="teacher"&&reservePrincipal.permissions?.reserve===true);
       externalCard.classList.toggle("hidden",!canBorrowDepartments);
