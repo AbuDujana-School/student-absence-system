@@ -17,6 +17,8 @@ test('substitution flow inserts a dedicated scope step after the absent-teacher 
   assert.match(adapter,/التالي: تحديد نطاق التوزيع/);
   assert.match(adapter,/go\('scope'\)/);
   assert.match(adapter,/scope:'نطاق توزيع الاحتياط'/);
+  assert.match(adapter,/function scopeAvailableDepartments\(\)/);
+  assert.match(adapter,/ownId\?String\(d\.id\)!==ownId/);
   assert.doesNotThrow(()=>new Function(adapter));
 });
 
