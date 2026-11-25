@@ -2062,6 +2062,18 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-6xl mx-auto mt-6">
+      <div id="studentAffairsDashboardCard" role="button" tabindex="0" aria-label="فتح قسم شؤون الطلبة" onclick="openStudentAffairsView(true)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStudentAffairsView(true);}" class="hero-card relative overflow-hidden rounded-[2.5rem] p-8 text-white shadow-2xl border cursor-pointer group flex flex-col justify-between min-h-[240px]">
+        <div class="absolute -left-8 -top-10 w-36 h-36 rounded-full bg-white/10 blur-3xl pointer-events-none"></div>
+        <div class="relative z-10">
+          <div class="w-16 h-16 bg-white/15 backdrop-blur-md text-violet-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner"><i class="fa-solid fa-user-graduate"></i></div>
+        </div>
+        <div class="relative z-10 mt-6"><h4 class="text-3xl font-black text-white mb-2">شؤون الطلبة</h4></div>
+        <div class="relative z-10 mt-6 flex items-center justify-between pt-4 border-t border-white/15 text-xs font-bold text-violet-100">
+          <span>افتح القسم</span>
+          <div class="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center"><i class="fa-solid fa-arrow-left text-sm"></i></div>
+        </div>
+      </div>
+
       <div id="attendanceDashboardCard" onclick="goToAttendanceSection()" class="hero-card relative overflow-hidden bg-gradient-to-br from-emerald-700 via-teal-800 to-emerald-950 rounded-[2.5rem] p-8 text-white shadow-2xl border border-emerald-400/30 cursor-pointer group flex flex-col justify-between min-h-[240px]">
         <div class="relative z-10"><div class="w-16 h-16 bg-white/15 backdrop-blur-md text-emerald-100 rounded-3xl flex items-center justify-center text-3xl border border-white/20 shadow-inner"><i class="fa-solid fa-clipboard-user"></i></div></div>
         <div class="relative z-10 mt-6"><h4 class="text-3xl font-black text-white mb-2">الغياب</h4></div>
@@ -12281,6 +12293,17 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
 <style id="sa-four-section-navigation-ui">
 @media screen {
+
+  /* Mirror the existing authorized top-bar button; do not duplicate permission logic. */
+  #studentAffairsDashboardCard{
+    display:none!important;
+    background:linear-gradient(135deg,#6d28d9 0%,#5b21b6 55%,#183653 100%);
+    border-color:rgba(196,181,253,.36);
+    box-shadow:0 24px 48px -18px rgba(109,40,217,.42)
+  }
+  body:has(#studentAffairsBtn:not(.hidden)) #studentAffairsDashboardCard{display:flex!important}
+  #studentAffairsDashboardCard:hover{box-shadow:0 28px 56px -18px rgba(109,40,217,.55)}
+  .dark #studentAffairsDashboardCard{background:linear-gradient(135deg,#5b21b6 0%,#312e81 58%,#0f1a2b 100%);border-color:rgba(196,181,253,.32)}
   #studentAffairsView .sa-main-nav{
     display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;
     padding:8px;border:1px solid rgba(22,140,133,.2);border-radius:22px;
