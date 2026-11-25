@@ -1263,7 +1263,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         const rows=byAbsent.get(item.absentTeacherName)?.editTeacherDirectory||[],query=otherQuery.trim().toLowerCase();
         const filtered=rows.filter(t=>!query||String(t.name||"").toLowerCase().includes(query)||String(t.subject||t.departmentName||"").toLowerCase().includes(query));
         host.innerHTML=filtered.length?filtered.map(t=>{
-          const busy=Array.isArray(t.occupiedPeriods)?t.occupiedPeriods.map(Number):[],blocked=busy.includes(Number(item.period))&&String(t.name)!==String(item.substituteTeacherName);
+          const busy=Array.isArray(t.occupiedPeriods)?t.occupiedPeriods.map(Number):[],selected=state.get(String(item.id))?.sub||item.substituteTeacherName,blocked=busy.includes(Number(item.period))&&String(t.name)!==String(selected);
           return '<button type="button" class="reserve-edit-candidate" data-other-choice="'+esc(String(item.id))+'" data-teacher="'+esc(t.name)+'" '+(blocked?'disabled':'')+'><span><strong>'+esc(t.name)+'</strong><small>مشغول: <b dir="ltr">'+esc(list(busy))+'</b></small></span><em>'+(blocked?'مشغول بهذه الحصة':'اختيار')+'</em></button>';
         }).join(""):'<p class="p-4 text-center text-xs text-slate-500">لا توجد نتائج ضمن نطاق صلاحيتك.</p>';
       }
@@ -1319,7 +1319,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         }
         if(button.hasAttribute("data-share")){
           const grouped=new Map();items.forEach(x=>{const n=String(x.absentTeacherName||"غير محدد");if(!grouped.has(n))grouped.set(n,[]);grouped.get(n).push(x);});
-          const tick=String.fromCharCode(96);let message="*توزيع حصص الاحتياط*\\n\\n"+date+"\\n\\n",number=0;
+          const tick=String.fromCharCode(96);let message="*توزيع حصص الاحتياط*\n\n"+date+"\n\n",number=0;
           for(const [name,rows] of grouped){number++;message+="*"+number+"-* *المعلم الغائب* : "+tick+name+tick+"\\n\\n";for(const x of rows){message+="- الحصة *"+fmt(x.period)+"* | الصف "+(x.className||"غير محدد")+"\\n*الاحتياط* : "+tick+(state.get(String(x.id))?.sub||x.substituteTeacherName||"لم يحدد")+tick+"\\n\\n";}}
           window.open("https://wa.me/?text="+encodeURIComponent(message.trim()),"_blank","noopener,noreferrer");return;
         }
