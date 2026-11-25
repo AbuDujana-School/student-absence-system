@@ -12,8 +12,8 @@ test('installed PWA checks for a fresh service worker immediately on startup', (
 });
 
 test('service worker updates rotate both application caches', () => {
-  assert.match(sw, /abudujana-app-v50/);
-  assert.match(sw, /abudujana-static-v57/);
+  assert.match(sw, /abudujana-app-v51/);
+  assert.match(sw, /abudujana-static-v58/);
   assert.match(sw, /fetch\(request,\s*\{\s*cache:\s*'no-store'/);
 });
 
