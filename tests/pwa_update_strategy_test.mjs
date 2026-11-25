@@ -28,13 +28,13 @@ test('installed pages refresh after a new worker controls the login page', () =>
 
 test('reserve scope and supporting departments use clear glass selection controls', () => {
   const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
-  assert.match(reserve, /data-reserve-scope="local"/);
-  assert.match(reserve, /data-reserve-scope="external"/);
-  assert.match(reserve, /\\.subx-department-choice-card\\[data-reserve-scope=local\\]\\.is-active\\{background:linear-gradient/);
-  assert.match(reserve, /data-canonical-department-id/);
-  assert.match(reserve, /subx-canonical-department-card input\{position:static;display:block;width:27px;height:27px/);
-  assert.match(reserve, /data-department-bulk="all"/);
-  assert.match(reserve, /data-teacher-group-action="all"/);
-  assert.match(reserve, /expanded\.hidden=!ids\.includes\(id\)/);
-  assert.match(reserve, /subx-canonical-teacher-checkbox\{width:27px!important;height:27px!important/);
+  assert.ok(reserve.includes('data-reserve-scope="local"'));
+  assert.ok(reserve.includes('data-reserve-scope="external"'));
+  assert.ok(reserve.includes('.subx-department-choice-card[data-reserve-scope=local].is-active{background:linear-gradient'));
+  assert.ok(reserve.includes('data-canonical-department-id'));
+  assert.ok(reserve.includes('subx-canonical-department-card input{position:static;display:block;width:27px;height:27px'));
+  assert.ok(reserve.includes('data-department-bulk="all"'));
+  assert.ok(reserve.includes('data-teacher-group-action="all"'));
+  assert.ok(reserve.includes('expanded.hidden=!ids.includes(id)'));
+  assert.ok(reserve.includes('subx-canonical-teacher-checkbox{width:27px!important;height:27px!important'));
 });
