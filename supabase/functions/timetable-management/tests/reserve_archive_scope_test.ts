@@ -29,7 +29,11 @@ Deno.test("the archive endpoint uses the shared server-side scope policy", async
   );
   assert(
     backend.includes('requestedArchiveScope==="school"&&!canViewSchoolwide'),
-    "A non-admin principal must be rejected when requesting the schoolwide archive",
+    "A principal without a validated archive grant must be rejected when requesting the schoolwide archive",
+  );
+  assert(
+    backend.includes('requestedArchiveScope===""&&principal.type!=="admin"&&Boolean(actorDepartmentId&&String(teacher.departmentId||"")===actorDepartmentId)'),
+    "Legacy archive requests without an explicit scope must remain pinned to the authenticated actor's department",
   );
   assert(
     backend.includes('Boolean(targetDepartmentId&&String(teacher.departmentId||"")===targetDepartmentId)'),
@@ -42,7 +46,7 @@ Deno.test("the archive endpoint uses the shared server-side scope policy", async
 });
 
 
-Deno.test("archive access exposes department capability to scoped accounts and schoolwide capability only to admins", async () => {
+Deno.test("archive access exposes both scopes to all principals with a validated archive grant", async () => {
   const backend = await Deno.readTextFile(new URL("../index.ts", import.meta.url));
   assert(backend.includes("canViewDepartmentArchive") && backend.includes("canViewSchoolwide"), "Access response must distinguish department and schoolwide archive");
   assert(backend.includes("const canSelectAnyDepartment=principal.type===\"admin\";"), "Only administrators may select another department for the department archive");
