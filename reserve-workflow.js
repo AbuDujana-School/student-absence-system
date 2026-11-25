@@ -2222,13 +2222,11 @@
           const option=Array.from(select.options).find(item=>String(item.value||"")===id);
           if(option)option.selected=box.checked;
           select.dispatchEvent(new Event("change",{bubbles:true}));
-          renderCanonicalDepartmentCards();
         }));
         departmentCardsHost.querySelectorAll("[data-department-bulk]").forEach(button=>button.addEventListener("click",()=>{
           const selectAll=button.dataset.departmentBulk==="all";
           Array.from(select.options).forEach(option=>{if(option.value)option.selected=selectAll;});
           select.dispatchEvent(new Event("change",{bubbles:true}));
-          renderCanonicalDepartmentCards();
         }));
         // The source renderer owns the real teacher checkboxes and their change handlers.
         // Move those existing sections into the matching expandable department card.
@@ -2236,7 +2234,7 @@
       };
       if(select&&!select.dataset.canonicalDepartmentCardsBound){
         select.dataset.canonicalDepartmentCardsBound="1";
-        select.addEventListener("change",renderCanonicalDepartmentCards);
+        select.addEventListener("change",renderCanonicalDepartmentCards,true);
       }
 
       const enhanceCanonicalTeacherCards=()=>{
@@ -2265,14 +2263,12 @@
                 if(!box.checked){box.checked=true;box.dispatchEvent(new Event("change",{bubbles:true}));}
               });
               updateTeacherGroupCount();
-              renderCanonicalDepartmentCards();
             });
             tools.querySelector('[data-teacher-group-action="clear"]')?.addEventListener("click",()=>{
               section.querySelectorAll("[data-other-department-teacher]").forEach(box=>{
                 if(box.checked){box.checked=false;box.dispatchEvent(new Event("change",{bubbles:true}));}
               });
               updateTeacherGroupCount();
-              renderCanonicalDepartmentCards();
             });
           }
           section.querySelectorAll("label").forEach(label=>label.classList.add("subx-canonical-teacher-option"));
