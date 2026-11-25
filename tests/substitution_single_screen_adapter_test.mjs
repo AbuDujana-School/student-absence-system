@@ -93,9 +93,19 @@ test('the canonical picker selection is reused by the absentee checkbox handler 
 test('canonical distribution date never permits a past date and quick navigation exposes only today and tomorrow',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/distributionDate\.min=today/);
- assert.match(workflow,/distributionDate\.addEventListener\("input",enforceNoPastDistributionDate\)/);
+ assert.match(workflow,/distributionDate\.addEventListener\("input",enforceNoPastDistributionDate,true\)/);
  assert.match(workflow,/data-date-offset="0"[\s\S]*data-date-offset="1"/);
  assert.doesNotMatch(workflow,/data-date-offset="-1"/);
+});
+test('initial reserve date normalization does not synthesize change events during unrelated app startup',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ const start=workflow.indexOf('const enforceNoPastDistributionDate=()=>{');
+ const end=workflow.indexOf('const dateCard=distributionDate.closest',start);
+ assert.ok(start>=0&&end>start);
+ const normalize=workflow.slice(start,end);
+ assert.match(normalize,/distributionDate\\.value=today/);
+ assert.doesNotMatch(normalize,/dispatchEvent/);
+ assert.match(normalize,/addEventListener\\("change",enforceNoPastDistributionDate,true\\)/);
 });
 test('period indicator is deliberately enlarged and future active assignments remain in the default edit range',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
