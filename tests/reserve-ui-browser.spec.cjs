@@ -353,10 +353,12 @@ test("official reserve archive printing orders days newest first and creates one
 
 test("crowded A4 archive days split into readable sheets instead of shrinking text", async ({ page }) => {
   const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const estimateStart = source.indexOf("function reserveOfficialPrintRowHeightEstimate(");
   const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
   const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
   const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
-  if (pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  if (estimateStart < 0 || pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  const estimate = source.slice(estimateStart, pagesStart);
   const pages = source.slice(pagesStart, markupStart);
   const markup = source.slice(markupStart, documentTitleStart);
   const period = extractFunction(source, "function formatReservePrintPeriod(");
