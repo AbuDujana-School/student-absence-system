@@ -2089,9 +2089,10 @@
     window.appAuthRequest=async function(body,token,signal) {
       const action=String(body?.action||"");
       const result=await originalRequest.call(this,body,token,signal);
-      const accessGranted=action==="timetable_substitution_archive_access"&&result?.canView===true;
       const reserveMutation=mutationActions.has(action);
-      if(accessGranted||reserveMutation)refreshDailyArchiveInBackground();
+      // Do not warm archive/preview/statistics reads as a side effect of a permission check.
+      // The edit/archive screen loads its own data when the user opens it.
+      if(reserveMutation)refreshDailyArchiveInBackground();
       if(reserveMutation&&$("substitutionTodayAssignmentsResults")){
         refreshInBackground("Reserve home-today refresh failed.",window.substitutionLoadHomeTodayAssignments);
       }
