@@ -314,18 +314,38 @@ Deno.test("per-teacher reserve editing belongs in the edit tab, not in either ar
   const editTab=html.slice(editStart,archiveStart);
   assert(editTab.includes("subx-edit-open-absent"),"Each absent-teacher row in the edit tab must expose its own edit action");
   assert(editTab.includes("data-edit-absent-day")&&editTab.includes("data-edit-absent-name"),"The edit action must retain the exact date and absent-teacher identity");
-  assert(editTab.includes("const opener=window.timetableDailyOpenArchiveDayEdit"),"The edit row must use the existing authenticated editor");
-  assert(editTab.includes("void opener(button.dataset.editAbsentDay,button.dataset.editAbsentName)"),"The action must open the existing editor for this absent teacher only");
+  assert(editTab.includes("const opener=window.subxOpenSavedReserveReview"),"The edit row must open the canonical saved-distribution review screen");
+  assert(editTab.includes("void opener(button.dataset.editAbsentDay,button.dataset.editAbsentName)"),"The action must load only this absent teacher into the review screen");
   assert(editTab.includes("subx-edit-delete-group")&&editTab.includes("data-delete-edit-day"),"The existing per-teacher delete action must remain available");
+  assert(!editTab.includes("window.timetableDailyOpenArchiveDayEdit"),"The edit-tab action must not launch the detached candidate-picker workspace");
   assert(!source.includes("data-tt-edit-group-date"),"The daily archive must not receive the new group edit action");
   assert(!source.includes("data-home-edit-group-date"),"The cumulative archive must not receive the new group edit action");
 
-  const editorStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName)");
-  const editorEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",editorStart);
-  assert(editorStart>=0&&editorEnd>editorStart,"The saved distribution editor must remain available");
-  const editor=source.slice(editorStart,editorEnd);
-  assert(editor.includes("(!absentTeacherName||item.absentTeacherName===absentTeacherName)"),"The editor must load only the selected absent teacher's assignments when called from the row");
-  assert(editor.includes('action:"timetable_substitution_update_batch"'),"The edit action must save through the existing atomic update endpoint");
-  assert(editor.includes("assignmentId:x.id"),"Editing must update the original assignment IDs, not create a new distribution");
-  assert(editor.includes("data-save")&&editor.includes("اعتماد وحفظ التوزيع"),"The existing review-and-save controls must remain in the editor");
+  const legacyStart=source.indexOf("window.timetableDailyOpenArchiveDayEdit = async function(date,absentTeacherName)");
+  const legacyEnd=source.indexOf("window.timetableDailyCancelAssignment = async function",legacyStart);
+  assert(legacyStart>=0&&legacyEnd>legacyStart,"The compatibility editor must remain available to older in-app callers");
+  const legacy=source.slice(legacyStart,legacyEnd);
+  assert(legacy.includes('action:"timetable_substitution_update_batch"'),"The compatibility editor must keep its authenticated atomic update action");
+});
+
+Deno.test("per-teacher edit opens the canonical saved review and updates original assignment rows", async () => {
+  const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  const openStart=html.indexOf("window.subxOpenSavedReserveReview=async function(date,absentTeacherName)");
+  const openEnd=html.indexOf("async function saveSavedReserveReviewChanges()",openStart);
+  assert(openStart>=0&&openEnd>openStart,"A saved-review loader must be available to the edit-tab action");
+  const loader=html.slice(openStart,openEnd);
+  assert(loader.includes("timetable_substitution_archive")&&loader.includes("timetable_substitution_preview"),"Saved records and live substitute candidates must be fetched from the authenticated server");
+  assert(loader.includes("forEdit:true"),"Candidate choices must use the server's edit-window rules");
+  assert(loader.includes("window.subxNavigateToScreen('smart',true)"),"The edit action must return to the original distribution review screen");
+  assert(loader.includes("renderPlan()"),"The saved distribution must use the original review renderer");
+  assert(loader.includes("candidateOptions:[currentOption,...candidates"),"The already-selected substitute must remain visible alongside eligible alternatives");
+
+  const saveStart=html.indexOf("async function saveSavedReserveReviewChanges()");
+  const saveEnd=html.indexOf("window.substitutionSavePlan=async function()",saveStart);
+  assert(saveStart>=0&&saveEnd>saveStart,"The saved review must have its own save handler");
+  const save=html.slice(saveStart,saveEnd);
+  assert(save.includes("timetable_substitution_update_batch"),"Changes must use the existing atomic update endpoint");
+  assert(save.includes("assignmentId:String(item.id||item.assignmentId)"),"Changes must target the original assignment identifiers");
+  assert(!save.includes("timetable_substitution_batch_save"),"Saved-review changes must never create duplicate assignments");
+  assert(html.includes("window.subxNavigateToScreen=function(name,push)"),"The canonical screen adapter must expose in-app navigation to review");
 });
