@@ -25,3 +25,16 @@ test('installed pages refresh after a new worker controls the login page', () =>
   assert.match(html, /pwaUpdateNotice/);
   assert.match(html, /تحديث الآن/);
 });
+
+test('reserve scope and supporting departments use clear glass selection controls', () => {
+  const reserve = readFileSync(new URL('../reserve-workflow.js', import.meta.url), 'utf8');
+  assert.match(reserve, /data-reserve-scope="local"/);
+  assert.match(reserve, /data-reserve-scope="external"/);
+  assert.match(reserve, /\.subx-department-choice-card\.is-active\{[^}]*background:linear-gradient/);
+  assert.match(reserve, /data-canonical-department-id/);
+  assert.match(reserve, /subx-canonical-department-card input\{position:static;display:block;width:27px;height:27px/);
+  assert.match(reserve, /data-department-bulk="all"/);
+  assert.match(reserve, /data-teacher-group-action="all"/);
+  assert.match(reserve, /expanded\.hidden=!ids\.includes\(id\)/);
+  assert.match(reserve, /subx-canonical-teacher-checkbox\{width:27px!important;height:27px!important/);
+});
