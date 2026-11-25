@@ -101,3 +101,14 @@ Deno.test("saved reserve assignments remain editable through the Muscat assignme
   assert(timetableEndpoint.includes("date >= todayInMuscat"), "The edit window must include the full assignment day and future dates");
   assert(timetableEndpoint.includes("لا يمكن لمنسق الاحتياط اختيار تاريخ سابق"), "Coordinators must not create or preview reserve plans for past dates");
 });
+
+
+Deno.test("batch save refreshes the edit list and includes the saved assignment date", () => {
+  const start = reserveWorkflow.indexOf("window.timetableDailySaveBatch = async function ()");
+  const end = reserveWorkflow.indexOf("window.timetableDailyToggleArchive", start);
+  assert(start >= 0 && end > start, "The canonical batch-save handler must exist");
+  const flow = reserveWorkflow.slice(start, end);
+  assert(flow.includes('archiveTo&&(!archiveTo.value||archiveTo.value<date)'), "The archive query must extend through the exact date saved, including future dates");
+  assert(flow.includes('archiveFrom&&(!archiveFrom.value||archiveFrom.value>date)'), "The archive query start must not exclude the just-saved date");
+  assert(flow.includes("await window.subxLoadEditableAssignments();"), "The dedicated edit screen must refresh after a confirmed batch save");
+});
