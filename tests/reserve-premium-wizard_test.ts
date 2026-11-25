@@ -1,5 +1,6 @@
 const reserveWorkflow = await Deno.readTextFile(new URL("../reserve-workflow.js", import.meta.url));
 const timetableEndpoint = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/index.ts", import.meta.url));
+const timetableSessionAuth = await Deno.readTextFile(new URL("../supabase/functions/timetable-management/session_auth.ts", import.meta.url));
 
 function assert(condition: boolean, message: string) {
   if (!condition) throw new Error(message);
@@ -28,7 +29,7 @@ Deno.test("visible canonical date navigation defaults to Muscat today and provid
   assert(reserveWorkflow.includes('distributionDate.dispatchEvent(new Event("change",{bubbles:true}))'), "Changing the visible date must refresh the existing date-driven workflow");
 });
 
-Deno.test("supporting teachers can be selected from multiple departments", () => {
+Deno.test("supporting department cards automatically include all eligible teachers from every selected section", () => {
   assert(reserveWorkflow.includes('multiple class="hidden"'), "The department ID control must preserve multiple selections behind the visual picker");
   assert(reserveWorkflow.includes("timetableDailyOtherDepartmentChoices"), "Departments must be shown as visible selectable cards");
   assert(reserveWorkflow.includes("selectedOtherDepartmentIds"), "The UI must track the selected department set");
@@ -37,11 +38,24 @@ Deno.test("supporting teachers can be selected from multiple departments", () =>
   const batchPreviewEnd = reserveWorkflow.indexOf("window.timetableDailySetBusy", batchPreviewStart);
   const batchPreview = reserveWorkflow.slice(batchPreviewStart, batchPreviewEnd);
   assert(batchPreview.includes("otherDepartmentIds:selectedOtherDepartmentIds()"), "Batch preview must send every selected supporting department to the server");
-  assert(reserveWorkflow.includes("reserveOtherDepartments.filter(item=>selectedIds.includes(String(item.id)))"), "Teacher cards must be rendered for every selected department");
-  assert(reserveWorkflow.includes("data-select-all-department"), "Each department must provide a select-all control");
-  assert(reserveWorkflow.includes("data-clear-department"), "Each department must provide a clear-all control");
-  assert(reserveWorkflow.includes("data-other-teacher-name"), "Individual supporting teachers must remain selectable");
+  assert(batchPreview.includes("otherTeacherNames:selectedOtherTeacherNames()"), "Batch preview must send all eligible teachers from the selected sections");
+  assert(reserveWorkflow.includes("reserveOtherDepartments.filter(item=>selectedIds.has(String(item.id)))"), "The summary must be built from every selected department");
+  assert(reserveWorkflow.includes("data-other-department-id"), "Each department must have a visible checkbox");
+  assert(reserveWorkflow.includes("new Set(selectedOtherTeacherNames())"), "All eligible teachers must be selected automatically");
+  assert(reserveWorkflow.includes("سيُدرجون تلقائيًا ضمن البدلاء"), "The user must be told all teachers will be included automatically");
+  assert(!reserveWorkflow.includes("data-other-teacher-name"), "Individual teacher checkboxes must no longer be required");
+  assert(!reserveWorkflow.includes("timetableDailyAddOtherTeachersButton"), "The separate manual-add button must be removed");
   assert(reserveWorkflow.includes("reserveOtherDepartmentIds"), "Multiple department selections must survive draft persistence");
+});
+Deno.test("local department name is dynamic and smart generation opens a separate proposals screen", () => {
+  assert(reserveWorkflow.includes('id="ttReserveLocalDepartmentTitle"'), "The local section card must expose its dynamic title");
+  assert(reserveWorkflow.includes("currentReserveActorDepartmentName()"), "The local card must read the authenticated user's department");
+  assert(reserveWorkflow.includes('title.textContent="التوزيع لمعلمي "+label'), "The section name must appear in the local distribution card");
+  assert(reserveWorkflow.includes("ttReserveProposalHeader"), "Smart proposals must have a dedicated next-screen heading");
+  assert(reserveWorkflow.includes("ttReserveProposalBack"), "The proposals screen must provide a clear back action");
+  assert(reserveWorkflow.includes("proposalScreenActive=true"), "Successful smart generation must switch to the proposal screen");
+  assert(reserveWorkflow.includes("tt-reserve-proposal-mode"), "The proposal screen must hide setup cards while showing suggestions");
+  assert(reserveWorkflow.includes("absentCard.insertAdjacentElement(\"afterend\",choiceGrid)"), "The two department cards must follow absent-teacher selection");
 });
 
 Deno.test("server validates each supporting teacher against the explicitly selected departments", () => {
@@ -51,14 +65,14 @@ Deno.test("server validates each supporting teacher against the explicitly selec
   assert(timetableEndpoint.includes("(includeOtherDepartments&&otherDepartmentIds.includes(String(teacher.departmentId||\"\")"), "The smart candidate pool must include only explicitly selected external teachers");
 });
 
-Deno.test("the primary reserve route displays the authenticated coordinator department dynamically", () => {
-  assert(reserveWorkflow.includes("result.actorDepartmentName"), "The reserve screen must read the department returned for the authenticated actor");
-  assert(reserveWorkflow.includes("التوزيع لمعلمي قسم "), "The primary route title must include the resolved department name");
-  assert(reserveWorkflow.includes("loadOtherDepartments().catch(()=>{})"), "The authenticated department must load when the reserve screen is opened");
-  assert(timetableEndpoint.includes("actorDepartmentName:principal.type===\"admin\"?\"\":String(actor?.departmentName||\"\").trim()"), "The endpoint must derive the department from the authenticated teacher directory record");
-});
-
 Deno.test("the custom absence reason may be left empty", () => {
   assert(reserveWorkflow.includes('choice==="أخرى"?(custom?"أخرى: "+custom:"أخرى"):choice'), "Selecting أخرى without text must remain valid");
   assert(reserveWorkflow.includes('const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"]'), "Requested reasons must appear first while preserving the existing training option");
+});
+
+Deno.test("custom coordinators receive their own dynamic section name but no external department list", () => {
+  assert(timetableSessionAuth.includes('"timetable_substitution_departments"'), "Custom coordinators must be allowed to request the scoped section label");
+  assert(timetableEndpoint.includes('principal.type !== "admin" && principal.type !== "teacher" && principal.type !== "custom"'), "The department lookup must recognize custom coordinators");
+  assert(timetableEndpoint.includes('if(principal.type==="custom")return reply(200,{ok:true,departments:[],actorDepartmentName});'), "Custom coordinators must receive only their own department name");
+  assert(timetableEndpoint.includes('const actorDepartmentName=String(actor?.departmentName||"").trim();'), "The department label must come from the authenticated directory");
 });
