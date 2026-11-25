@@ -42,10 +42,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         <div class="subx-stepper"></div><div class="grid"><input id="substitutionDate"></div>
         <div class="rounded-3xl"><div id="substitutionAbsenteeList"></div></div>
         <div id="substitutionPlanPanel"></div><div id="subxFloatingBar"></div>
-        <div id="substitutionStatsPanel">stats</div><div id="timetableDailyArchivePanel">archive</div>
+        <div id="substitutionStatsPanel">stats</div><div id="substitutionOtherDepartmentsWrap" class="hidden">other departments</div>
+        <section id="subxEditPanel"><div id="subxEditContent"></div></section>
+        <section id="subxArchivePanel"><div id="subxArchiveContent"></div></section>
       </section>
       <section id="timetableOrigin"><div id="timetableSubstitutionPanel" class="hidden">
         <button id="timetableDailyOtherDepartmentsButton">other departments</button>
+        <div id="timetableDailyActivePanel">active assignments</div>
+        <div id="timetableDailyArchivePanel" class="hidden">archive</div>
       </div></section>`);
     await page.evaluate(({ role, integration, generalAdminHelper, reserveCapabilityHelper }) => {
       const $ = (id) => document.getElementById(id);
@@ -58,7 +62,17 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const openAbsenceReasonPicker = () => {};
       window.calls = { options: 0, archive: 0, stats: 0 };
       window.appAuthRequest = async () => ({});
-      window.timetableLoadSubstitutionOptions = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
+      window.substitutionLoadAbsentees = async () => { window.calls.options++; await new Promise(resolve => { window.releaseOptions = resolve; }); };
+      window.timetableDailyInstallAdminTools = async () => {
+        if (role.user.type === "admin" || role.user.permissions?.admin === true) {
+          $("timetableSubstitutionPanel").insertAdjacentHTML("beforeend", '<div id="ttAdminReserveTools">admin tools</div>');
+        }
+      };
+      window.timetableDailyInstallDepartmentTools = async () => {
+        if (role.user.permissions?.reserve === true) {
+          $("timetableSubstitutionPanel").insertAdjacentHTML("beforeend", '<div id="ttDepartmentReserveTools">department tools</div>');
+        }
+      };
       window.timetableDailyLoadArchive = () => { window.calls.archive++; return new Promise(() => {}); };
       window.substitutionLoadStats = () => { window.calls.stats++; return new Promise(() => {}); };
       window.openSubstitutionView = async () => {};
@@ -80,6 +94,10 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
     if (role.allowed) {
       await page.waitForFunction(() => window.calls.options === 1);
       await page.waitForTimeout(0);
+      const quickDateNav = page.locator("#subxCanonicalDateQuickNav");
+      await expect(quickDateNav, role.id + " visible canonical date navigation").toBeVisible();
+      await quickDateNav.locator('[data-date-offset="-1"]').click();
+      expect(await page.locator("#substitutionDate").inputValue(), role.id + " yesterday shortcut").toBe("2026-11-23");
       const inFlightCalls = await page.evaluate(() => window.calls.options);
       expect(inFlightCalls, role.id + " duplicate observer open").toBe(1);
       await page.evaluate(() => window.releaseOptions());
@@ -93,8 +111,13 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       const $ = (id) => document.getElementById(id);
       return {
         visible: !$("substitutionView").classList.contains("hidden"),
-        mounted: $("timetableSubstitutionPanel").parentElement?.id === "substitutionCanonicalWorkspace",
-        crossDepartment: !$("timetableDailyOtherDepartmentsButton").classList.contains("hidden"),
+        legacyHidden: $("timetableSubstitutionPanel").classList.contains("hidden"),
+        legacyStillInOrigin: $("timetableSubstitutionPanel").parentElement?.id === "timetableOrigin",
+        editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditContent",
+        archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveContent",
+        adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveContent",
+        departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveContent",
+        crossDepartment: !$("substitutionOtherDepartmentsWrap").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
         archive: !$("timetableDailyArchivePanel").classList.contains("hidden"),
         calls: window.calls,
@@ -103,7 +126,12 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
     });
     if (role.allowed) {
       expect(result.visible, role.id).toBe(true);
-      expect(result.mounted, role.id).toBe(true);
+      expect(result.legacyHidden, role.id).toBe(true);
+      expect(result.legacyStillInOrigin, role.id).toBe(true);
+      expect(result.editMounted, role.id).toBe(true);
+      expect(result.archiveMounted, role.id).toBe(true);
+      expect(result.adminToolsMounted, role.id).toBe(role.id === "general admin" || role.id === "delegated admin");
+      expect(result.departmentToolsMounted, role.id).toBe(role.id === "reserve teacher");
       expect(result.crossDepartment, role.id).toBe(role.expand);
       expect(result.stats, role.id).toBe(!role.custom);
       expect(result.archive, role.id).toBe(!role.custom);
@@ -111,9 +139,13 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.calls.archive, role.id).toBe(role.custom ? 0 : 1);
       expect(result.calls.stats, role.id).toBe(role.custom ? 0 : 1);
       await page.evaluate(() => window.closeSubstitutionView());
-      expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel").count(), role.id + " restore").toBe(1);
+      expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel").count(), role.id + " compatibility engine remains mounted").toBe(1);
+      expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel.hidden").count(), role.id + " compatibility engine stays hidden").toBe(1);
     } else {
-      expect(result.mounted, role.id).toBe(false);
+      expect(result.legacyHidden, role.id).toBe(true);
+      expect(result.legacyStillInOrigin, role.id).toBe(true);
+      expect(result.editMounted, role.id).toBe(false);
+      expect(result.archiveMounted, role.id).toBe(false);
       expect(result.calls.options, role.id).toBe(0);
       expect(result.denials, role.id).toBe(1);
     }
@@ -177,13 +209,8 @@ test("premium reserve wizard advances progressively from date to absence and app
   await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
   await expect.poll(() => page.evaluate(() => window.__dateRefreshes || 0)).toBe(1);
   await page.locator("#timetableSubstitutionDate").fill("2026-11-30");
-  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"-1\"]").click();
-  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-23");
-  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"0\"]").click();
-  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-24");
-  await page.locator("#ttPremiumDateQuickNav [data-date-offset=\"1\"]").click();
-  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-25");
-  await expect.poll(() => page.evaluate(() => window.__dateRefreshes || 0)).toBe(5);
+  await expect(page.locator("#timetableSubstitutionDate")).toHaveValue("2026-11-30");
+  await expect.poll(() => page.evaluate(() => window.__dateRefreshes || 0)).toBe(2);
   await expect(page.locator("#ttPremiumAbsentCard")).toBeVisible();
   expect(initial.absentHidden).toBe(false);
   expect(initial.toolbarHidden).toBe(true);
@@ -295,4 +322,166 @@ test("absence reason picker uses the four requested categories and keeps legacy 
   await expect(page.locator("#ttAbsenceReasonOtherWrap")).toBeVisible();
   await page.locator('[data-absence-reason-confirm]').click();
   expect(await page.evaluate(() => window.__reasonResult)).toBe("أخرى");
+});
+
+
+test("official reserve archive printing orders days newest first and creates one A4 sheet per day", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const printRange = extractFunction(source, "window.timetableDailyPrintArchiveRange = function (sourceRecords) {");
+  const calls = [];
+  const printed = [];
+  const run = new Function("window", "status", "reserveArchive", "reserveOfficialPrintPages", "printOfficialReservePages",
+    printRange + "; return window.timetableDailyPrintArchiveRange;");
+  const print = run({}, () => {}, [], (groups, date, weekday, subject, options) => {
+    calls.push({ date, weekday, groups, options });
+    return ["A4:" + date];
+  }, pages => printed.push(...pages));
+  print([
+    { id: "older-a", assignmentDate: "2026-11-23", absentTeacherName: "أحمد", substituteTeacherName: "سالم", period: 2, status: "completed" },
+    { id: "newer-a", assignmentDate: "2026-11-24", absentTeacherName: "محمد", substituteTeacherName: "علي", period: 1, status: "assigned" },
+    { id: "newer-b", assignmentDate: "2026-11-24", absentTeacherName: "محمد", substituteTeacherName: "ناصر", period: 3, status: "confirmed" },
+    { id: "cancelled", assignmentDate: "2026-11-25", absentTeacherName: "ملغى", period: 1, status: "cancelled" },
+    { id: "undated", absentTeacherName: "بلا تاريخ", period: 1, status: "completed" }
+  ]);
+  expect(calls.map(call => call.date)).toEqual(["2026-11-24", "2026-11-23"]);
+  expect(calls.map(call => call.options.singlePage)).toEqual([true, true]);
+  expect(calls[0].groups).toHaveLength(1);
+  expect(calls[0].groups[0].absentName).toBe("محمد");
+  expect(calls[0].groups[0].rows).toHaveLength(2);
+  expect(printed).toEqual(["A4:2026-11-24", "A4:2026-11-23"]);
+});
+
+test("crowded A4 archive days split into readable sheets instead of shrinking text", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const estimateStart = source.indexOf("function reserveOfficialPrintRowHeightEstimate(");
+  const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
+  const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
+  const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
+  if (estimateStart < 0 || pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  const estimate = source.slice(estimateStart, pagesStart);
+  const pages = source.slice(pagesStart, markupStart);
+  const markup = source.slice(markupStart, documentTitleStart);
+  const period = extractFunction(source, "function formatReservePrintPeriod(");
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE", "RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM",
+    period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
+    estimate + ";" + markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ", 22, 176);
+  const rows = Array.from({ length: 40 }, (_, index) => ({
+    period: index % 8 + 1, className: "الصف " + (index + 1), substitute: "معلم " + (index + 1)
+  }));
+  const output = build([{ absentName: "معلم غائب", absenceReason: "مرضية", rows }], "2026-11-24", "", "", { singlePage: true });
+  expect(output).toHaveLength(2);
+  await page.setContent("<div id='pages'>" + output.join("") + "</div>");
+  const sheets = page.locator(".tt-official-page");
+  await expect(sheets).toHaveCount(2);
+  await expect(sheets.nth(0).locator(".tt-official-table tbody tr")).toHaveCount(22);
+  await expect(sheets.nth(1).locator(".tt-official-table tbody tr")).toHaveCount(18);
+  await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("كشف توزيع");
+  await expect(sheets.nth(1).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
+  await expect(sheets.nth(0).locator(".tt-official-table")).toHaveAttribute("style", "font-size:9.2pt");
+  const names = await page.locator(".tt-official-substitute").allTextContents();
+  expect(names.slice().sort()).toEqual(rows.map(row => row.substitute).sort());
+  expect(source).toContain(".tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm");
+  expect(source).toContain(".tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important");
+});
+test("crowded schoolwide reserve day uses real A4 print geometry and preserves every assignment", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const extractBetween = (startMarker, endMarker) => {
+    const start = source.indexOf(startMarker), end = source.indexOf(endMarker, start);
+    if (start < 0 || end < 0) throw new Error("Missing print source boundary: " + startMarker);
+    return source.slice(start, end);
+  };
+  const estimate = extractBetween("function reserveOfficialPrintRowHeightEstimate(", "function reserveOfficialPrintPages(");
+  const pages = extractBetween("function reserveOfficialPrintPages(", "function reserveOfficialPrintMarkup(");
+  const markup = extractBetween("function reserveOfficialPrintMarkup(", "function reservePrintDocumentTitle(");
+  const period = extractFunction(source, "function formatReservePrintPeriod(");
+  const printDocumentTitle = extractBetween("function reservePrintDocumentTitle(", "function printOfficialReservePages(");
+  const printFunction = extractBetween("function printOfficialReservePages(", "async function reservePrintActorSubject(");
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE", "RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM",
+    period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
+    estimate + ";" + markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ", 22, 176);
+  const rows = Array.from({ length: 50 }, (_, index) => ({
+    period: index % 8 + 1,
+    className: "الصف الدراسي التجريبي رقم " + (index + 1) + " — شعبة طويلة",
+    substitute: "محمد بن سالم الخروصي — معلم احتياط تجريبي رقم " + (index + 1)
+  }));
+  const output = build([{ absentName: "أحمد سعيد الهنائي — المعلم الغائب", absenceReason: "مرضية", rows }], "2026-11-24", "الثلاثاء", "", {
+    singlePage: true, title: "توزيع الاحتياط", continuationTitle: "تابع كشف توزيع الاحتياط"
+  });
+  expect(output.length).toBeGreaterThan(1);
+  await page.setContent("<main></main>");
+  await page.evaluate(({ output, printDocumentTitle, printFunction }) => {
+    window.print = () => {};
+    const print = new Function("reservePrintDocumentTitle", printDocumentTitle + ";" + printFunction + "; return printOfficialReservePages;")(() => "توزيع الاحتياط");
+    print(output, "", {});
+  }, { output, printDocumentTitle, printFunction });
+  await page.emulateMedia({ media: "print" });
+  const sheets = page.locator(".tt-official-page");
+  await expect(sheets).toHaveCount(output.length);
+  const rowCounts = await sheets.evaluateAll(items => items.map(sheet => sheet.querySelectorAll(".tt-official-table tbody tr").length));
+  expect(rowCounts.reduce((sum, count) => sum + count, 0)).toBe(50);
+  const printedNames = await page.locator(".tt-official-table .tt-official-substitute").allTextContents();
+  expect(printedNames).toEqual(rows.slice().sort((a, b) => a.period - b.period).map(row => row.substitute));
+  await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("توزيع الاحتياط");
+  for (const sheet of await sheets.all()) {
+    await expect(sheet.locator(".tt-official-table thead")).toBeVisible();
+    await expect(sheet.locator(".tt-official-footer")).toBeAttached();
+    await expect(sheet.locator(".tt-official-meta")).toContainText("2026");
+  }
+  const geometry = await sheets.evaluateAll(items => items.map(sheet => {
+    const pageRect = sheet.getBoundingClientRect();
+    const tableRect = sheet.querySelector(".tt-official-table").getBoundingClientRect();
+    const footerRect = sheet.querySelector(".tt-official-footer").getBoundingClientRect();
+    return {
+      overflow: sheet.scrollHeight - sheet.clientHeight,
+      tableBottom: tableRect.bottom - pageRect.top,
+      footerTop: footerRect.top - pageRect.top,
+      footerBottom: footerRect.bottom - pageRect.top,
+      pageHeight: pageRect.height
+    };
+  }));
+  for (const metric of geometry) {
+    expect(metric.overflow).toBeLessThanOrEqual(1);
+    expect(metric.tableBottom).toBeLessThanOrEqual(metric.footerTop + 1);
+    expect(metric.footerBottom).toBeLessThanOrEqual(metric.pageHeight + 1);
+  }
+  const pdf = await page.pdf({ format: "A4", printBackground: true, preferCSSPageSize: true });
+  expect(pdf.byteLength).toBeGreaterThan(1000);
+});
+
+
+test("long Arabic teacher and class names paginate before the A4 signature area", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const estimateStart = source.indexOf("function reserveOfficialPrintRowHeightEstimate(");
+  const pagesStart = source.indexOf("function reserveOfficialPrintPages(");
+  const markupStart = source.indexOf("function reserveOfficialPrintMarkup(");
+  const documentTitleStart = source.indexOf("function reservePrintDocumentTitle(");
+  if (estimateStart < 0 || pagesStart < 0 || markupStart < 0 || documentTitleStart < 0) throw new Error("Missing official print functions");
+  const estimate = source.slice(estimateStart, pagesStart);
+  const pages = source.slice(pagesStart, markupStart);
+  const markup = source.slice(markupStart, documentTitleStart);
+  const period = extractFunction(source, "function formatReservePrintPeriod(");
+  const build = new Function("esc", "formatReserveDateArabic", "RESERVE_OFFICIAL_ROWS_PER_PAGE", "RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM",
+    period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
+    estimate + ";" + markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ", 22, 176);
+  const rows = Array.from({ length: 22 }, (_, index) => ({
+    period: index % 8 + 1,
+    className: "الصف الثالث الأساسي الشعبة الأولى للعام الدراسي ٢٠٢٦",
+    substitute: "محمد سعيد عبدالله الخروصي الهنائي معلم احتياط تجريبي " + (index + 1)
+  }));
+  const output = build([{ absentName: "أحمد سعيد عبدالله الهنائي", absenceReason: "إجازة مرضية", rows }],
+    "2026-11-25", "الأربعاء", "", { singlePage: true, title: "توزيع الاحتياط" });
+  expect(output).toHaveLength(3);
+  await page.setContent(output.join(""));
+  const sheets = page.locator(".tt-official-page");
+  await expect(sheets.nth(0).locator("tbody tr")).toHaveCount(10);
+  await expect(sheets.nth(1).locator("tbody tr")).toHaveCount(10);
+  await expect(sheets.nth(2).locator("tbody tr")).toHaveCount(2);
+  expect(await page.locator(".tt-official-substitute").count()).toBe(22);
+  expect((await page.locator(".tt-official-substitute").allTextContents()).sort((a, b) => a.localeCompare(b, "ar"))).toEqual(
+    rows.map(row => row.substitute).sort((a, b) => a.localeCompare(b, "ar"))
+  );
+  await expect(sheets.nth(1).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
 });

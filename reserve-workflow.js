@@ -25,6 +25,16 @@
   let reserveDailyArchiveLoadKey = null;
   let reserveCumulativeArchiveLoadPromise = null;
   let reserveCumulativeArchiveLoadKey = null;
+  // Bound archive waits so a stalled request cannot leave the loader locked forever.
+  function reserveArchiveRequestWithTimeout(request, timeoutMs = 30000) {
+    let timeoutId = null;
+    const timeout = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => reject(new Error("استغرق تحميل سجل الاحتياط وقتاً أطول من المتوقع. اضغط تحديث للمحاولة مجدداً.")), timeoutMs);
+    });
+    return Promise.race([request, timeout]).finally(() => {
+      if (timeoutId !== null) clearTimeout(timeoutId);
+    });
+  }
   const DRAFT_STORAGE_KEY="abu-dujana-reserve-draft-v1";
   function currentActorName(){return String(appAuthSession?.principal?.name||"").trim();}
   function clearStoredDraft(){try{localStorage.removeItem(DRAFT_STORAGE_KEY);}catch{}}
@@ -432,19 +442,6 @@
         const card=document.createElement("section");card.id="ttPremiumDateCard";card.className="tt-premium-card tt-premium-date-card";
         card.innerHTML='<div class="tt-premium-card-heading"><span class="tt-premium-icon tt-icon-date"><i class="fa-regular fa-calendar-check"></i></span><div><strong>الخطوة الأولى: اختر تاريخ الاحتياط</strong><small>حدد اليوم الدراسي الذي تريد إعداد التوزيع له</small></div><span class="tt-premium-chip">البداية</span></div>';
         dateWrap.parentNode?.insertBefore(card,dateWrap);card.appendChild(dateWrap);dateWrap.classList.add("tt-premium-date-control");
-        if(!card.querySelector("#ttPremiumDateQuickNav")){
-          const nav=document.createElement("div");nav.id="ttPremiumDateQuickNav";nav.className="tt-premium-date-nav";
-          nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
-          card.appendChild(nav);
-          const toLocalISO=value=>{const y=value.getFullYear(),m=String(value.getMonth()+1).padStart(2,"0"),d=String(value.getDate()).padStart(2,"0");return y+"-"+m+"-"+d;};
-          nav.addEventListener("click",event=>{
-            const button=event.target.closest("[data-date-offset]");if(!button||!date)return;
-            const offset=Number(button.dataset.dateOffset),base=reserveCurrentMuscatDate();
-            const parts=base.split("-").map(Number),selected=new Date(parts[0],parts[1]-1,parts[2]+offset,12,0,0);
-            date.value=toLocalISO(selected);date.dispatchEvent(new Event("input",{bubbles:true}));date.dispatchEvent(new Event("change",{bubbles:true}));
-            nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
-          });
-        }
         if(!date.value){date.value=reserveCurrentMuscatDate();defaultDateInitialized=true;}
       }
     }
@@ -597,14 +594,14 @@
       results.insertAdjacentHTML("beforebegin", '<div id="timetableDailySummary" class="grid grid-cols-2 gap-2 sm:grid-cols-4"></div>');
       results.insertAdjacentHTML("afterend",
         '<section id="timetableDailyArchivePanel" class="hidden mt-5 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-950/40">' +
-        '<div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="font-black text-sm text-slate-900 dark:text-white">سجل الاحتياط التراكمي</h4><p class="mt-1 text-[10px] text-slate-500">يعرض جميع توزيعات المدرسة من المواد كافة، مرتبة حسب التاريخ. كل يوم في صفحة مستقلة.</p></div></div>' +
+        '<div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="font-black text-sm text-slate-900 dark:text-white">أرشيف الاحتياط</h4><p class="mt-1 text-[10px] text-slate-500">يعرض السجلات ضمن نطاق صلاحيتك، مرتبة من الأحدث إلى الأقدم. كل يوم فعلي في صفحة مستقلة.</p></div></div>' +
         '<div class="grid gap-2 rounded-xl border border-indigo-100 bg-white p-3 sm:grid-cols-[1fr_1fr_auto_auto] sm:items-end"><label class="text-[10px] font-bold text-slate-600">من تاريخ<input id="timetableDailyArchiveFrom" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><label class="text-[10px] font-bold text-slate-600">إلى تاريخ<input id="timetableDailyArchiveTo" type="date" class="mt-1 w-full rounded-lg border border-slate-300 p-2 text-xs"></label><button type="button" id="timetableDailyArchiveReload" class="tt-action border border-slate-300 bg-white text-slate-800">عرض السجلات</button><button type="button" id="timetableDailyArchivePrint" class="tt-action bg-indigo-700 text-white"><i class="fa-solid fa-print ml-1"></i> طباعة كشف PDF</button></div><div id="timetableDailyArchiveResults" class="space-y-3"></div></section>');
       $("timetableDailyArchivePanel")?.insertAdjacentHTML("afterend",
-        '<section id="timetableDailyActivePanel" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="text-sm font-black text-emerald-950">التوزيعات الحالية — قابلة للتعديل والحذف خلال اليوم الحالي</h4><p class="mt-1 text-[10px] text-emerald-800">تُحمّل سجلات اليوم تلقائياً بعد التحقق من صلاحية الدخول. ويمكنك تحديثها يدوياً في أي وقت.</p></div><div class="flex items-center gap-2"><span id="timetableDailyActiveCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="timetableDailyActiveReload" class="tt-action border border-emerald-300 bg-white text-emerald-900">تحديث سجلات اليوم</button></div></div><div id="timetableDailyActiveResults" class="space-y-2"><p class="text-center text-xs text-slate-500">جارٍ انتظار التحقق من صلاحية الدخول لتحميل سجلات اليوم.</p></div></section>');
+        '<section id="timetableDailyActivePanel" class="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50/70 p-4"><div class="mb-3 flex flex-wrap items-center justify-between gap-2"><div><h4 class="text-sm font-black text-emerald-950">التكليفات النشطة القابلة للتعديل أو الإلغاء</h4><p class="mt-1 text-[10px] text-emerald-800">تُعرض التكليفات النشطة ضمن الفترة المحددة، وتظهر أدوات التعديل والإلغاء للحصص التي ما زالت ضمن المهلة المعتمدة.</p></div><div class="flex items-center gap-2"><span id="timetableDailyActiveCount" class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-black text-emerald-900">0</span><button type="button" id="timetableDailyActiveReload" class="tt-action border border-emerald-300 bg-white text-emerald-900">تحديث سجلات اليوم</button></div></div><div id="timetableDailyActiveResults" class="space-y-2"><p class="text-center text-xs text-slate-500">جارٍ انتظار التحقق من صلاحية الدخول لتحميل سجلات اليوم.</p></div></section>');
       $("timetableDailyArchiveReload")?.addEventListener("click", timetableDailyLoadArchive);
       $("timetableDailyArchivePrint")?.addEventListener("click", timetableDailyPrintArchiveRange);
       $("timetableDailyActiveReload")?.addEventListener("click", timetableDailyLoadArchive);
-      try{const today=timetableSubstitutionGetDate().date;$("timetableDailyArchiveFrom").value=today;$("timetableDailyArchiveTo").value=today;}catch{}
+      try{const today=timetableSubstitutionGetDate().date;const start=new Date(today+"T00:00:00Z");start.setUTCDate(start.getUTCDate()-365);const from=start.toISOString().slice(0,10);const fromInput=$("timetableDailyArchiveFrom"),toInput=$("timetableDailyArchiveTo");if(fromInput&&!fromInput.value)fromInput.value=from;if(toInput&&!toInput.value)toInput.value=today;}catch{}
     }
     const style = document.createElement("style");
     style.id = "reserve-workflow-styles";
@@ -642,21 +639,21 @@
       "#timetableSubstitutionPanel .tt-premium-date-control{max-width:26rem;padding:.15rem}",
       "#timetableSubstitutionPanel .tt-premium-date-control input{width:100%;min-height:3.2rem;border:1px solid #cbd5e1;border-radius:1rem;background:#f8fafc;padding:.75rem 1rem;font-size:1rem;font-weight:800;color:#0f172a}",
       "#timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(255,255,255,.82),rgba(248,252,255,.72));backdrop-filter:blur(18px) saturate(145%);-webkit-backdrop-filter:blur(18px) saturate(145%);border-color:rgba(203,213,225,.72);box-shadow:0 18px 48px rgba(15,23,42,.075),inset 0 1px 0 rgba(255,255,255,.82)}",
-      "#timetableSubstitutionPanel .tt-premium-date-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
-      "#timetableSubstitutionPanel .tt-premium-date-nav button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:2.7rem;padding:.6rem 1rem;border:1px solid rgba(148,163,184,.35);border-radius:.9rem;background:rgba(255,255,255,.72);color:#334155;font-size:.78rem;font-weight:900;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease}",
-      "#timetableSubstitutionPanel .tt-premium-date-nav button:hover{transform:translateY(-2px);border-color:#34d399;background:#ecfdf5;box-shadow:0 8px 18px rgba(16,185,129,.12)}",
-      "#timetableSubstitutionPanel .tt-premium-date-nav button.is-today{border-color:rgba(16,185,129,.4);background:rgba(236,253,245,.76);color:#047857}",
-      "#timetableSubstitutionPanel .tt-premium-date-nav button.is-selected{border-color:#10b981;background:linear-gradient(135deg,#059669,#0f766e);color:#fff;box-shadow:0 8px 20px rgba(5,150,105,.2)}",
-      "#timetableSubstitutionPanel .tt-date-nav-hint{margin-inline-start:auto;color:#64748b;font-size:.68rem;font-weight:600}",
+      ".tt-premium-date-nav{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
+      ".tt-premium-date-nav button{display:inline-flex;align-items:center;justify-content:center;gap:.45rem;min-height:2.7rem;padding:.6rem 1rem;border:1px solid rgba(148,163,184,.35);border-radius:.9rem;background:rgba(255,255,255,.72);color:#334155;font-size:.78rem;font-weight:900;transition:transform .18s ease,background .18s ease,border-color .18s ease,box-shadow .18s ease}",
+      ".tt-premium-date-nav button:hover{transform:translateY(-2px);border-color:#34d399;background:#ecfdf5;box-shadow:0 8px 18px rgba(16,185,129,.12)}",
+      ".tt-premium-date-nav button.is-today{border-color:rgba(16,185,129,.4);background:rgba(236,253,245,.76);color:#047857}",
+      ".tt-premium-date-nav button.is-selected{border-color:#10b981;background:linear-gradient(135deg,#059669,#0f766e);color:#fff;box-shadow:0 8px 20px rgba(5,150,105,.2)}",
+      ".tt-premium-date-nav .tt-date-nav-hint{margin-inline-start:auto;color:#64748b;font-size:.68rem;font-weight:600}",
       "#timetableSubstitutionPanel .tt-premium-toolbar{border-color:rgba(203,213,225,.7);background:linear-gradient(125deg,rgba(248,250,252,.86),rgba(236,253,245,.78));backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);box-shadow:0 12px 32px rgba(15,23,42,.055)}",
       "#timetableSubstitutionPanel .tt-premium-step{background:linear-gradient(145deg,rgba(255,255,255,.9),rgba(245,249,252,.78));backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);box-shadow:0 8px 22px rgba(15,23,42,.035)}",
       "#timetableSubstitutionPanel .tt-premium-step:hover{transform:translateY(-2px);border-color:#86cdb2;box-shadow:0 12px 24px rgba(15,23,42,.08)}",
       "#timetableSubstitutionPanel button:focus-visible,#timetableSubstitutionPanel input:focus-visible,#timetableSubstitutionPanel select:focus-visible{outline:3px solid rgba(16,185,129,.28);outline-offset:2px}",
       ".dark #timetableSubstitutionPanel .tt-premium-card{background:linear-gradient(145deg,rgba(20,34,54,.9),rgba(15,23,42,.82));border-color:rgba(71,85,105,.68);backdrop-filter:blur(18px) saturate(135%);-webkit-backdrop-filter:blur(18px) saturate(135%)}",
-      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button{border-color:#475569;background:rgba(30,41,59,.82);color:#e2e8f0}",
-      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
-      ".dark #timetableSubstitutionPanel .tt-premium-date-nav button.is-today{border-color:#0f766e;background:rgba(6,78,59,.35);color:#a7f3d0}",
-      ".dark #timetableSubstitutionPanel .tt-date-nav-hint{color:#94a3b8}",
+      ".dark .tt-premium-date-nav button{border-color:#475569;background:rgba(30,41,59,.82);color:#e2e8f0}",
+      ".dark .tt-premium-date-nav button:hover{border-color:#34d399;background:#12382f}",
+      ".dark .tt-premium-date-nav button.is-today{border-color:#0f766e;background:rgba(6,78,59,.35);color:#a7f3d0}",
+      ".dark .tt-premium-date-nav .tt-date-nav-hint{color:#94a3b8}",
       "@media(prefers-reduced-motion:reduce){#timetableSubstitutionPanel *,#timetableDailyAbsenceReasonModal *{scroll-behavior:auto!important;transition:none!important;animation:none!important}}",
       "#timetableSubstitutionPanel .tt-premium-search{width:100%;min-height:3.4rem;border:1.5px solid #cbd5e1!important;border-radius:1rem!important;background:#f8fafc!important;padding:.9rem 1rem!important;font-size:1rem!important;font-weight:700}",
       "#timetableSubstitutionPanel .tt-premium-selected-tags{display:flex;flex-wrap:wrap;gap:.55rem;margin-top:.8rem}",
@@ -989,7 +986,7 @@
         if(!token)throw new Error("سجّل الدخول أولاً لعرض التوزيعات الحالية.");
         if(!from||!to){throw new Error("حدد تاريخ البداية وتاريخ النهاية.");}
         if(from>to){throw new Error("تاريخ البداية يجب أن يسبق تاريخ النهاية أو يساويه.");}
-        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+        const response=await reserveArchiveRequestWithTimeout(appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token));
         if(($("timetableDailyArchiveFrom")?.value||"")!==from||($("timetableDailyArchiveTo")?.value||"")!==to)return false;
         reserveArchive=Array.isArray(response.archive)?response.archive:[];
         timetableDailyRenderArchive();return true;
@@ -1035,7 +1032,7 @@
           reserveReason:String(item.reason||"")
         });
       });
-      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"");
+      return reserveOfficialPrintPages([...byAbsent.values()],date,items[0]?.weekday||"",undefined,{singlePage:true});
     });
     printOfficialReservePages(pages);
   };
@@ -1074,7 +1071,7 @@
     host.innerHTML='<div class="mb-3 grid gap-2 sm:grid-cols-2">'+
       '<div class="rounded-xl border border-emerald-200 bg-emerald-50 p-3"><strong class="block text-xs text-emerald-900">توزيعات نشطة قابلة للتعديل والحذف</strong><span class="text-[10px] text-emerald-800">'+activeTotal+' تكليف متاح تعديلها وحذفها حتى نهاية اليوم بتوقيت سلطنة عمان</span></div>'+
       '<div class="rounded-xl border border-slate-200 bg-slate-50 p-3"><strong class="block text-xs text-slate-800">السجل التاريخي للقراءة والطباعة</strong><span class="text-[10px] text-slate-600">'+archivedTotal+' تكليف محفوظ في الأرشيف</span></div></div>'+
-      Array.from(grouped.entries()).sort((a,b)=>a[0].localeCompare(b[0])).map(([date,items])=>{
+      Array.from(grouped.entries()).sort((a,b)=>b[0].localeCompare(a[0])).map(([date,items])=>{
         const byAbsent=new Map();
         items.forEach(item=>{const name=String(item.absentTeacherName||"غير محدد");if(!byAbsent.has(name))byAbsent.set(name,[]);byAbsent.get(name).push(item);});
         const editableItems=items.filter(item=>item.canEdit===true&&["assigned","confirmed"].includes(item.status));
@@ -1346,18 +1343,51 @@
     return match ? Number(match[3])+" / "+Number(match[2])+" / "+match[1]+" م" : formatReserveDateArabic(dateValue);
   }
   const RESERVE_OFFICIAL_ROWS_PER_PAGE = 22;
+  const RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM = 176;
+  function reserveOfficialPrintRowHeightEstimate(row){
+    const classLength=Array.from(String(row?.className||"")).length;
+    const substituteLength=Array.from(String(row?.substitute||"")).length;
+    const lines=Math.max(1,Math.ceil(classLength/13),Math.ceil(substituteLength/16));
+    return 2+lines*4.4;
+  }
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
-    if(options?.singlePage)return [reserveOfficialPrintMarkup(groups,date,weekday,subject,options)];
-    const pages=[];let current=[],count=0;
+    const maxRowsPerPage=RESERVE_OFFICIAL_ROWS_PER_PAGE;
+    // Reserve a measured 176 mm content budget for the table, leaving the
+    // school heading, date, repeated table header, manager signature and stamp
+    // safely inside the A4 page.
+    const maxLineUnitsPerPage=Math.floor(RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM/4.4);
+    const pages=[];let current=[],pageRows=0,pageUnits=0;
+    const flushPage=()=>{if(current.length)pages.push(current);current=[];pageRows=0;pageUnits=0;};
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return;
-      if(rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){if(count){pages.push(current);current=[];count=0;}for(let i=0;i<rows.length;i+=RESERVE_OFFICIAL_ROWS_PER_PAGE)pages.push([{...group,rows:rows.slice(i,i+RESERVE_OFFICIAL_ROWS_PER_PAGE)}]);return;}
-      if(count+rows.length>RESERVE_OFFICIAL_ROWS_PER_PAGE){pages.push(current);current=[];count=0;}
-      current.push({...group,rows});count+=rows.length;
+      const absentLines=Math.max(1,Math.ceil(Array.from(String(group.absentName||"")).length/22));
+      const reasonLines=Math.max(1,Math.ceil(Array.from(String(group.absenceReason||group.reason||"")).length/18));
+      let chunk=[];
+      const flushChunk=()=>{if(chunk.length){current.push({...group,rows:chunk});chunk=[];}};
+      rows.forEach(row=>{
+        const estimatedRowHeight=reserveOfficialPrintRowHeightEstimate(row);
+        const rowUnits=Math.max(
+          1,
+          Math.ceil((estimatedRowHeight-2)/4.4),
+          Math.ceil(absentLines/rows.length),
+          Math.ceil(reasonLines/rows.length)
+        );
+        if(pageRows&&(pageRows>=maxRowsPerPage||pageUnits+rowUnits>maxLineUnitsPerPage)){
+          flushChunk();flushPage();
+        }
+        chunk.push(row);pageRows++;pageUnits+=rowUnits;
+      });
+      flushChunk();
     });
-    if(current.length)pages.push(current);if(!pages.length)pages.push([]);
-    return pages.map(pageGroups=>reserveOfficialPrintMarkup(pageGroups,date,weekday,subject));
+    flushPage();
+    if(!pages.length)pages.push([]);
+    return pages.map((pageGroups,index)=>{
+      const pageOptions=options?.singlePage&&index>0
+        ?{...options,title:options.continuationTitle||"تابع كشف توزيع الاحتياط"}
+        :options;
+      return reserveOfficialPrintMarkup(pageGroups,date,weekday,subject,pageOptions);
+    });
   }
   function reserveOfficialPrintMarkup(groups,date,weekday,subject,options={}){
     const widths=[20,16,10.5,10.5,13,11,19];
@@ -1387,7 +1417,7 @@
       '<div class="tt-official-meta"><div><strong>اليوم:</strong> '+esc(resolvedWeekday)+'</div><div><strong>التاريخ:</strong> '+esc(formatReservePrintFullDate(safeDate))+'</div></div>'+
 
       '<div class="tt-official-subject"><span>'+esc(subjectTitle)+'</span></div>'+
-      '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+'"'+(options?.singlePage?' style="font-size:'+singlePageFontSize+'pt"':'')+'>'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
+      '<table class="tt-official-table '+(reservedSecondTeacher?'tt-official-table-full':'')+(options?.singlePage?' tt-official-single-page':'')+'"'+(options?.singlePage?' style="font-size:'+singlePageFontSize+'pt"':'')+'>'+columns+header+'<tbody>'+rowsMarkup+reservedSecondTeacher+'</tbody></table>'+
       '<footer class="tt-official-footer"><div class="tt-official-manager"><strong>د. ناصر السناني</strong><span>مدير المدرسة</span></div><div class="tt-official-stamp" aria-label="مساحة مخصصة للختم"></div></footer></main>';
   }
   function reservePrintDocumentTitle(subject){
@@ -1402,7 +1432,7 @@
     style.textContent='@page{size:A4 portrait;margin:8mm}html,body{margin:0!important;padding:0!important;background:#fff!important}body.tt-reserve-print-mode>*:not(#ttReservePrintRoot){display:none!important}body.tt-reserve-print-mode{background:#fff!important;color:#111!important}#ttReservePrintRoot{display:block!important;width:100%;margin:0!important;padding:0!important;color:#111!important;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;direction:rtl}'+
       '.tt-official-page{box-sizing:border-box;width:100%;height:281mm;max-height:281mm;display:flex;flex-direction:column;direction:rtl;background:#fff;border:.35mm solid #333;padding:2.5mm 3mm 2mm;overflow:hidden;page-break-after:always;break-after:page}.tt-official-page:last-child{page-break-after:auto;break-after:auto}'+
       '.tt-official-heading{flex:0 0 auto;text-align:center;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;line-height:1.35;padding:2.5mm 2mm 2mm;background:#078b98;color:#fff;border-bottom:1mm solid #155e75;-webkit-print-color-adjust:exact;print-color-adjust:exact}.tt-official-heading>div{margin:0}.tt-official-school{font-weight:900;font-size:12.5pt;margin-top:.7mm!important}'+
-      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}#ttReservePrintRoot .tt-official-table thead th{height:9mm;font-size:10pt!important;line-height:1.5!important;font-weight:900!important;background:#12345a!important;background-color:#12345a!important;color:#fff!important;border:1.2px solid #0b1f36!important;text-shadow:0 1px 0 rgba(0,0,0,.25);-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
+      '.tt-official-meta{flex:0 0 auto;display:flex;justify-content:space-between;align-items:center;gap:10mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;font-weight:700;margin:2mm 0 1.5mm}.tt-official-subject{flex:0 0 auto;text-align:center;font-size:10.5pt;font-weight:900;margin:0 auto 1.5mm;width:max-content;max-width:92%;padding:1mm 7mm;background:#e8f1ff;border:1.2px solid #315b91;border-radius:2mm;color:#173b68;box-shadow:0 0 0 .5mm #e8f1ff}.tt-official-table{flex:0 0 auto;width:100%;height:auto;border-collapse:collapse;table-layout:fixed;direction:rtl;margin:0;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:10.5pt;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-table-full{height:162mm}.tt-official-table thead{display:table-header-group;height:9mm}.tt-official-table th,.tt-official-table td{box-sizing:border-box;border:1px solid #222;text-align:center;vertical-align:middle;padding:.7mm .8mm;overflow-wrap:anywhere}#ttReservePrintRoot .tt-official-table thead th{height:9mm;font-size:10pt!important;line-height:1.5!important;font-weight:900!important;background:#12345a!important;background-color:#12345a!important;color:#fff!important;border:1.2px solid #0b1f36!important;text-shadow:0 1px 0 rgba(0,0,0,.25);-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}.tt-official-table tbody tr{height:6.8mm;break-inside:avoid;page-break-inside:avoid}.tt-official-table tbody td{height:6.8mm;font-size:9pt}.tt-official-table.tt-official-single-page tbody tr{height:auto!important;min-height:0;break-inside:avoid;page-break-inside:avoid}.tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important;line-height:1.12;padding:.25mm .4mm}.tt-official-table .tt-official-merged{font-weight:800;white-space:normal}.tt-official-table .tt-official-group-start td{border-top:1.5px solid #111}'+
       '.tt-official-footer{direction:ltr;flex:0 0 19mm;display:flex;justify-content:space-between;align-items:flex-end;margin-top:auto;padding-top:1.5mm;font-family:"Noto Naskh Arabic","Traditional Arabic","Times New Roman",serif;font-size:13pt}.tt-official-manager{direction:rtl;display:flex;flex-direction:column;gap:2mm;text-align:center;font-weight:700}.tt-official-stamp{direction:rtl;width:42mm;height:16mm;flex:0 0 42mm;display:block;font-weight:700}'+
       '.tt-official-summary{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2mm;margin:0 0 2mm;padding:2mm;background:#f8fafc;border:1.2px solid #1e293b;border-radius:1.5mm;direction:rtl;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}'+
       '.tt-official-summary-box{min-width:0;display:flex;flex-direction:column;gap:.7mm;padding:1.5mm 2mm;background:#fff;border:1px solid #1e293b;border-radius:1mm;color:#000;overflow-wrap:anywhere}'+
@@ -1450,9 +1480,9 @@
     printOfficialReservePages(pages,subject);
   };
   window.printSchoolwideReserveDistributionReport=function(dayReports){
-    const options={singlePage:true,title:"توزيع الاحتياط"};
-    const pages=(Array.isArray(dayReports)?dayReports:[]).map(day=>
-      reserveOfficialPrintMarkup(Array.isArray(day?.groups)?day.groups:[],day?.date||"",day?.weekday||"","",options)
+    const options={singlePage:true,title:"توزيع الاحتياط",continuationTitle:"تابع كشف توزيع الاحتياط"};
+    const pages=(Array.isArray(dayReports)?dayReports:[]).flatMap(day=>
+      reserveOfficialPrintPages(Array.isArray(day?.groups)?day.groups:[],day?.date||"",day?.weekday||"","",options)
     );
     if(pages.length)printOfficialReservePages(pages,"",options);
   };
@@ -1838,7 +1868,7 @@
         setHomeArchiveStatus("يتم جلب التوزيعات المحفوظة من النظام...");
         const token=appAuthSession?.token||readAppAuthToken();
         if(!token)throw new Error("انتهت جلسة الدخول. سجّل الدخول مجدداً.");
-        const response=await appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token);
+        const response=await reserveArchiveRequestWithTimeout(appAuthRequest({action:"timetable_substitution_archive",dateFrom:from,dateTo:to},token));
         if(($("substitutionArchiveFrom")?.value||"")!==from||($("substitutionArchiveTo")?.value||"")!==to)return false;
         reserveCumulativeArchive=Array.isArray(response.archive)?response.archive:[];
         window.substitutionRenderCumulativeArchive();
@@ -2057,40 +2087,27 @@
         dashboardCard.click();
       });
     }
-    let canonicalHost=$("substitutionCanonicalWorkspace");
-    if(!canonicalHost){
-      canonicalHost=document.createElement("div");
-      canonicalHost.id="substitutionCanonicalWorkspace";
-      canonicalHost.className="space-y-4";
-      $("substitutionStatsPanel")?.before(canonicalHost);
-    }
-    [$("substitutionDate")?.closest(".grid"),$("substitutionAbsenteeList")?.closest(".rounded-3xl"),$("substitutionPlanPanel"),$("subxFloatingBar")].forEach(element=>element?.classList.add("hidden"));
-    root.querySelector(".subx-stepper")?.classList.add("hidden");
-    let canonicalPanelOrigin=window.__canonicalReservePanelOrigin||null;
+    // The legacy panel remains hidden as a compatibility engine. Its archive
+    // and editable-today records are mounted in the four-section workspace.
     function mountCanonicalPanel(){
-      const panel=$("timetableSubstitutionPanel"),host=$("substitutionCanonicalWorkspace");
-      if(!panel||!host)return false;
-      if(panel.parentElement!==host){
-        if(!canonicalPanelOrigin){
-          const placeholder=document.createElement("div");
-          placeholder.id="timetableSubstitutionPanelReturnPoint";
-          panel.parentNode?.insertBefore(placeholder,panel);
-          canonicalPanelOrigin={placeholder,wasHidden:panel.classList.contains("hidden")};
-          window.__canonicalReservePanelOrigin=canonicalPanelOrigin;
-        }
-        host.appendChild(panel);
-      }
-      panel.classList.remove("hidden");
+      const panel=$("timetableSubstitutionPanel");
+      const editHost=$("subxEditContent"),archiveHost=$("subxArchiveContent");
+      if(!panel||!editHost||!archiveHost)return false;
+      panel.classList.add("hidden");
+      const activePanel=$("timetableDailyActivePanel");
+      const archivePanel=$("timetableDailyArchivePanel");
+      const adminTools=$("ttAdminReserveTools");
+      const departmentTools=$("ttDepartmentReserveTools");
+      if(activePanel&&activePanel.parentElement!==editHost)editHost.appendChild(activePanel);
+      if(archivePanel&&archivePanel.parentElement!==archiveHost)archiveHost.appendChild(archivePanel);
+      if(adminTools&&adminTools.parentElement!==archiveHost)archiveHost.appendChild(adminTools);
+      if(departmentTools&&departmentTools.parentElement!==archiveHost)archiveHost.appendChild(departmentTools);
+      activePanel?.classList.remove("hidden");
+      archivePanel?.classList.remove("hidden");
       return true;
     }
     function restoreCanonicalPanel(){
-      const panel=$("timetableSubstitutionPanel"),origin=canonicalPanelOrigin;
-      if(!panel||!origin?.placeholder?.parentNode)return;
-      origin.placeholder.parentNode.insertBefore(panel,origin.placeholder.nextSibling);
-      origin.placeholder.remove();
-      panel.classList.toggle("hidden",origin.wasHidden===true);
-      canonicalPanelOrigin=null;
-      window.__canonicalReservePanelOrigin=null;
+      $("timetableSubstitutionPanel")?.classList.add("hidden");
     }
     if(typeof window.openSubstitutionView==="function"&&!window.openSubstitutionView.__canonicalReserveWrapped){
       window.openSubstitutionView=async function(){
@@ -2103,24 +2120,33 @@
           const sameSessionAdmin=reservePrincipal?.type==="admin"&&reservePrincipal?.name===activeUser?.name;
           const allowed=canManageReserveWorkspace(activeUser)||sameSessionAdmin||reservePrincipal?.type==="custom"||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           if(!allowed){showToast("لا تملك صلاحية توزيع حصص الاحتياط.","error");return;}
+          if(typeof window.timetableDailyInstallAdminTools==="function")await window.timetableDailyInstallAdminTools();
+          if(typeof window.timetableDailyInstallDepartmentTools==="function")await window.timetableDailyInstallDepartmentTools();
           ["dashboardSelectionView","dutyView","dutyClassesView","teacherTimetableView","attendanceView","classesView","behaviorClassesView","behaviorSessionView"].forEach(id=>$(id)?.classList.add("hidden"));
           root.classList.remove("hidden");
           if(!mountCanonicalPanel()){showToast("تعذر فتح مساحة توزيع الاحتياط الموحدة. أعد تحميل الصفحة وحاول مجدداً.","error");return;}
-          const date=$("timetableSubstitutionDate");
-          if(date&&!date.value)date.value=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
-          date?.dispatchEvent(new Event("change",{bubbles:true}));
+          const today=typeof getOmanLocalDate==="function"?getOmanLocalDate():new Date().toISOString().slice(0,10);
+          const date=$("substitutionDate");
+          if(date){
+            // Historical dates remain selectable; default only an empty date to Muscat today.
+            if(!date.value)date.value=today;
+          }
+          const legacyDate=$("timetableSubstitutionDate");
+          if(legacyDate)legacyDate.value=date?.value||today;
           const canExpand=canManageReserveWorkspace(activeUser)||sameSessionAdmin||(reservePrincipal?.type==="teacher"&&reservePrincipal?.permissions?.reserve===true);
           const isCustomCoordinator=reservePrincipal?.type==="custom";
+          $("substitutionOtherDepartmentsWrap")?.classList.toggle("hidden",!canExpand);
           $("timetableDailyOtherDepartmentsButton")?.classList.toggle("hidden",!canExpand);
-          // Custom coordinators can use only the scoped preview/save/cancel workflow.
-          // Do not expose archive/statistics surfaces or issue requests the server must reject.
+          root.querySelector('[data-subx-tab="edit"]')?.classList.toggle("hidden",isCustomCoordinator);
+          root.querySelector('[data-subx-tab="stats"]')?.classList.toggle("hidden",isCustomCoordinator);
+          root.querySelector('[data-subx-tab="archive"]')?.classList.toggle("hidden",isCustomCoordinator);
+          if(isCustomCoordinator)root.querySelector('[data-subx-tab="daily"]')?.click();
+          $("timetableDailyActivePanel")?.classList.toggle("hidden",isCustomCoordinator);
           $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
           $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
-          // Only timetable options are required for the core workspace. Archive
-          // and statistics are secondary panels and must never hold the screen open.
-          if(typeof window.timetableLoadSubstitutionOptions==="function"){
-            try{await window.timetableLoadSubstitutionOptions();}
-            catch(error){status(error?.message||"تعذر تحميل خيارات توزيع الاحتياط.","error");}
+          if(typeof window.substitutionLoadAbsentees==="function"){
+            try{await window.substitutionLoadAbsentees();}
+            catch(error){status(error?.message||"تعذر تحميل قائمة المعلمين الغائبين.","error");}
           }
           if(!isCustomCoordinator){
             const startBackgroundLoad=(loader,fallback)=>{
@@ -2157,7 +2183,59 @@
       };
       window.closeSubstitutionView.__canonicalReserveWrapped=true;
     }
+    const distributionDate=$("substitutionDate");
+    if(distributionDate){
+      const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
+      if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
+        const nav=document.createElement("div");
+        nav.id="subxCanonicalDateQuickNav";
+        nav.className="tt-premium-date-nav";
+        nav.setAttribute("role","group");
+        nav.setAttribute("aria-label","التنقل السريع بين تواريخ الاحتياط");
+        nav.setAttribute("aria-controls","substitutionDate");
+        nav.innerHTML='<button type="button" data-date-offset="-1"><i class="fa-solid fa-chevron-right"></i><span>أمس</span></button><button type="button" data-date-offset="0" class="is-today"><i class="fa-regular fa-calendar-check"></i><span>اليوم</span></button><button type="button" data-date-offset="1"><span>غداً</span><i class="fa-solid fa-chevron-left"></i></button><span class="tt-date-nav-hint">يمكنك اختيار أي تاريخ من التقويم</span>';
+        dateCard.appendChild(nav);
+        nav.addEventListener("click",event=>{
+          const button=event.target.closest("[data-date-offset]");
+          if(!button)return;
+          const base=typeof getOmanLocalDate==="function"
+            ?String(getOmanLocalDate())
+            :new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
+          const parts=base.split("-").map(Number);
+          if(parts.length!==3||parts.some(value=>!Number.isFinite(value)))return;
+          const offset=Number(button.dataset.dateOffset);
+          const selected=new Date(Date.UTC(parts[0],parts[1]-1,parts[2]+offset,12));
+          distributionDate.value=selected.toISOString().slice(0,10);
+          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
+          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
+          nav.querySelectorAll("button").forEach(item=>item.classList.toggle("is-selected",item===button));
+        });
+      }
+      if(distributionDate.dataset.canonicalLegacyDateSync!=="1"){
+        distributionDate.dataset.canonicalLegacyDateSync="1";
+        distributionDate.addEventListener("change",()=>{
+          const legacyDate=$("timetableSubstitutionDate");
+          if(!legacyDate||legacyDate.value===distributionDate.value)return;
+          legacyDate.value=distributionDate.value;
+          legacyDate.dispatchEvent(new Event("change",{bubbles:true}));
+        });
+      }
+    }
     const reasons=window.__mainReserveAbsenceReasons||(window.__mainReserveAbsenceReasons=Object.create(null));
+    // The new date picker is authoritative. Keep the hidden compatibility
+    // engine's date synchronized before its original loader refreshes the plan.
+    if(typeof window.substitutionDateChanged==="function"&&!window.substitutionDateChanged.__reserveDateSyncWrapped){
+      const originalDateChanged=window.substitutionDateChanged;
+      const syncedDateChanged=async function(...args){
+        const selectedDate=String($("substitutionDate")?.value||"").trim();
+        const legacyDate=$("timetableSubstitutionDate");
+        if(legacyDate&&selectedDate)legacyDate.value=selectedDate;
+        return originalDateChanged.apply(this,args);
+      };
+      syncedDateChanged.__reserveDateSyncWrapped=true;
+      syncedDateChanged.__original=originalDateChanged;
+      window.substitutionDateChanged=syncedDateChanged;
+    }
     const reasonKey=name=>String(document.getElementById("substitutionDate")?.value||"")+"::"+String(name||"").trim();
     const bypass=window.__mainReserveReasonBypass||(window.__mainReserveReasonBypass=new WeakSet());
     if(root.dataset.mainReserveReasonsInstalled!=="1"){

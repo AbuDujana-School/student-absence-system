@@ -9,7 +9,7 @@ import { fetchAllTimetablePages } from "./timetable_pagination.ts";
 import { selectTeacherTimetableCells, TEACHER_TIMETABLE_FALLBACK_FILTER } from "./teacher_timetable_cells.ts";
 import { buildBatchSubstitutionPlan, countTeacherTeachingPeriods, getAbsentTeacherLessons, getAvailableSubstitutionCandidates, getVisibleAbsentTeachers, isValidSubstitutionDate, type TimetableEntry, type SubstitutionAssignment, type SubstitutionTeacher } from "./substitution_policy.ts";
 import { canAccessTeacherTimetablePortal, canIncludeOtherDepartments, canUseTimetableAction, resolveTimetablePrincipal, type TimetableAuthStore, type TimetablePrincipal } from "./session_auth.ts";
-import { canCustomCoordinatorManageDepartment } from "./reserve_authorization.ts";
+import { canCustomCoordinatorManageDepartment, canViewSchoolwideReserveArchive } from "./reserve_authorization.ts";
 
 const URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -476,9 +476,10 @@ async function handle(req: Request) {
     if(activeVersion.error)throw activeVersion.error;
     const actor=directory.find((teacher:any)=>teacher.name===principal.name);
     const homeToday=body.homeToday===true;
-    // The home panel is department-scoped for teachers even when they hold
-    // reserve/archive permissions. Archive access remains schoolwide as granted.
-    const schoolwide=principal.type==="admin"||(!homeToday&&(hasTimetableGrant||hasReservePermission));
+    // Reserve/archive permission grants access to the feature, not schoolwide
+    // visibility. Only system admins receive the consolidated cross-department
+    // archive; every other principal is restricted to their own department.
+    const schoolwide=canViewSchoolwideReserveArchive(principal.type);
     const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
       (schoolwide||Boolean(actor?.departmentId&&teacher.departmentId===actor.departmentId))).map((teacher:any)=>teacher.name));
     const rows=await fetchAllSubstitutionRows((from,to)=>db.from("timetable_assignments")
@@ -494,7 +495,7 @@ async function handle(req: Request) {
       const approvedAt=Date.parse(String(row.reserve_created_at||row.created_at||""));
       return Number.isFinite(approvedAt)&&approvedAt>=homeCutoff;
     })
-      .sort((a:any,b:any)=>String(a.assignment_date||"").localeCompare(String(b.assignment_date||""))||
+      .sort((a:any,b:any)=>String(b.assignment_date||"").localeCompare(String(a.assignment_date||""))||
         Number(a.period)-Number(b.period)||String(a.absent_teacher_name||"").localeCompare(String(b.absent_teacher_name||""),"ar"))
       .map((row:any)=>({
         id:String(row.id),assignmentDate:row.assignment_date||null,weekday:String(row.weekday||""),
@@ -1571,7 +1572,7 @@ async function handle(req: Request) {
         const requestedDate=String(body.assignmentDate||"").trim();
         if(requestedDate&&!isValidSubstitutionDate(requestedDate))return reply(400,{error:"تاريخ الأرشيف غير صالح."});
         const visibleNames=new Set(directory.filter((teacher:any)=>teacher.role==="teacher"&&
-          (principal.type==="admin"||hasReservePermission||teacher.departmentId===actorDepartmentId)).map((teacher:any)=>teacher.name));
+          (canViewSchoolwideReserveArchive(principal.type)||Boolean(actorDepartmentId&&teacher.departmentId===actorDepartmentId))).map((teacher:any)=>teacher.name));
         const archive=(assignmentRows||[]).filter((row:any)=>row.assignment_type==="substitution"&&
           visibleNames.has(String(row.absent_teacher_name||""))&&
           (!requestedDate||String(row.assignment_date||"")===requestedDate))

@@ -21,3 +21,12 @@ export function canCustomCoordinatorManageDepartment(input: {
   }
   return true;
 }
+
+
+/**
+ * Archive permissions grant access to a principal's own department only.
+ * The consolidated cross-department archive is reserved for system admins.
+ */
+export function canViewSchoolwideReserveArchive(principalType: string): boolean {
+  return principalType === "admin";
+}
