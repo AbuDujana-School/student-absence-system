@@ -14919,12 +14919,19 @@ async function timetableSaveOwner() {
     });
     let html='';
     groups.forEach(function(rows,absentName){
-      const periodNumbers=rows.map(row=>Number(row.item.period)).filter(period=>Number.isInteger(period)&&period>0).sort((a,b)=>a-b).map(period=>new Intl.NumberFormat('en-US').format(period)).join(', ');
-      const countLabel=rows.length===1?'حصة':rows.length===2?'حصتان':rows.length<=10?'حصص':'حصة';
+      const summaryPeriods=[
+        ...rows.map(row=>Number(row.item.period)),
+        ...(currentPlan.existingAssignments||[]).filter(item=>item.absentTeacherName===absentName).map(item=>Number(item.period)),
+        ...(unassignedRows||[]).filter(item=>item.absentTeacherName===absentName).map(item=>Number(item.period))
+      ];
+      const uniquePeriods=[...new Set(summaryPeriods.filter(period=>Number.isInteger(period)&&period>0))].sort((a,b)=>a-b);
+      const periodNumbers=uniquePeriods.map(period=>new Intl.NumberFormat('en-US').format(period)).join(', ');
+      const periodCount=uniquePeriods.length||rows.length;
+      const countLabel=periodCount===1?'حصة':periodCount===2?'حصتان':periodCount<=10?'حصص':'حصة';
       html+='<section class="subx-review-absent">'+
         '<header class="subx-review-absent-head">'+
           '<div><span class="subx-review-absent-label">المعلم الغائب</span><h4 class="subx-review-absent-name">'+esc(absentName)+'</h4></div>'+
-          '<div class="subx-review-period-summary"><strong>'+rows.length+' '+countLabel+'</strong><span dir="ltr">('+periodNumbers+')</span></div>'+
+          '<div class="subx-review-period-summary"><strong>'+periodCount+' '+countLabel+'</strong><span dir="ltr">('+periodNumbers+')</span></div>'+
         '</header><div class="subx-review-slots">';
       rows.forEach(function(row){
         const item=row.item,index=row.index;
@@ -14960,7 +14967,7 @@ async function timetableSaveOwner() {
           body='<div class="subx-review-slot-body">'+
             '<p class="mb-3 text-[10px] font-black text-slate-500 dark:text-slate-400">اختر أحد البدلاء المقترحين لهذه الحصة:</p>'+
             (candidateCards?'<div class="subx-review-candidates">'+candidateCards+'</div>':'<div class="rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4 text-xs font-bold text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-200">لا تتوفر قائمة بدلاء لهذه الحصة.</div>')+
-            (candidates.length>5?'<div class="mt-3 flex justify-center"><button type="button" class="subx-review-more" data-subx-open-candidates="'+index+'"><i class="fa-solid fa-magnifying-glass"></i>بحث في بقية المعلمين ('+(candidates.length-5)+')</button></div>':'')+
+
           '</div>';
         }else{
           const selectedName=selectedOption?.teacherName||item.substituteTeacherName||'لم يحدد';
