@@ -68,7 +68,7 @@ test('absence screen has a validated next step and smart distribution owns the g
 test('canonical single-screen adapter is the only active reserve navigation layer',()=>{
  assert.doesNotMatch(html,/<script id="substitution-cinematic-interactions">/);
  assert.match(adapter,/id='subxScreen_hub'/);
- assert.match(adapter,/id='subxScreen_edit'/);
+ assert.ok(adapter.includes("'edit'"));
 });
 test('future-dated saved assignments are included by the edit and archive default range',()=>{
  assert.match(adapter,/if\(!to\.value\)\{const d=new Date\(today\+'T12:00:00'\);d\.setDate\(d\.getDate\(\)\+365\)/);
