@@ -237,7 +237,8 @@ Deno.test("the four-section reserve workspace shows daily teaching load and pres
     assert(html.includes('data-subx-tab="'+tab+'"'),"The workspace must expose the "+tab+" section");
   }
   assert(source.includes("sort((a,b)=>b[0].localeCompare(a[0]))"),"Archive dates must be ordered newest first");
-  assert(source.includes('undefined,{singlePage:true}'),"The official archive PDF must create one A4 page for each day containing actual records");
+  assert(source.includes('const options={singlePage:true,title:pageTitle,showDepartment:includeDepartment}'),"Each archive day must retain the official single-page table layout");
+  assert(source.includes('return reserveOfficialPrintPages(dayGroups,date,items[0]?.weekday||"",undefined,options)'),"Legacy archive callers must preserve measured official pagination for crowded days");
   assert(source.includes('filter(item=>item.status!=="cancelled"&&item.assignmentDate)'),"Cancelled or undated rows must not create empty archive print pages");
 });
 
@@ -386,7 +387,7 @@ Deno.test("reserve archive v2 separates department and school views and prints o
   assert(html.includes("b[0].localeCompare(a[0])"), "Archive days must be sorted newest first");
   assert(backend.includes('requestedArchiveScope==="school"&&!canViewSchoolwide'), "Non-admins must be blocked from schoolwide archive");
   assert(backend.includes('requestedArchiveScope==="department"'), "The server must enforce the department scope");
-  assert(backend.includes('departmentName:String(teacherDepartment.departmentName||"")'), "Archive rows must include the absent teacher's department");
+  assert(backend.includes('departmentName:String(teacherDepartment?.departmentName||"")'), "Archive rows must include the absent teacher's department");
   assert(workflow.includes('return [reserveOfficialPrintMarkup(dayGroups,date,items[0]?.weekday||"",undefined,options)]'), "The new archive must render one official A4 page per day");
   assert(workflow.includes("القسم: '+esc(departmentLabel)"), "The schoolwide print must stack the department under the absent teacher name");
   assert(workflow.includes("const widths=[20,16,10.5,10.5,13,11,19]"), "Official seven-column widths must not change");

@@ -1106,6 +1106,7 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       });
       const dayGroups=[...byAbsent.values()].sort((a,b)=>a.absentName.localeCompare(b.absentName,"ar"));
       const options={singlePage:true,title:pageTitle,showDepartment:includeDepartment};
+      // New archive cards force one official sheet per day; legacy callers retain measured overflow handling.
       if(printOptions?.archiveMode===true)return [reserveOfficialPrintMarkup(dayGroups,date,items[0]?.weekday||"",undefined,options)];
       return reserveOfficialPrintPages(dayGroups,date,items[0]?.weekday||"",undefined,options);
     });
