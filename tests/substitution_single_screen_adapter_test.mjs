@@ -134,3 +134,11 @@ test('edit and archive screens partition saved assignments at the Oman-local dat
  assert.match(html,/timeZone:'Asia\/Muscat'/);
  assert.match(html,/current==='edit'[\s\S]*loadArchive\('subxEditMountArea'\)[\s\S]*current==='archive'[\s\S]*loadArchive\('subxArchiveMountArea'\)/);
 });
+
+test('reserve edit/archive state refreshes immediately when the tab returns after Muscat midnight',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ assert.match(workflow,/function reserveRefreshOmanDayIfChanged\(\)/);
+ assert.match(workflow,/addEventListener\("focus",reserveRefreshOmanDayIfChanged\)/);
+ assert.match(workflow,/addEventListener\("visibilitychange",\(\)=>\{if\(!document\.hidden\)reserveRefreshOmanDayIfChanged\(\)\}\)/);
+ assert.match(workflow,/window\.dispatchEvent\(new CustomEvent\("reserve:muscat-day-changed"/);
+});
