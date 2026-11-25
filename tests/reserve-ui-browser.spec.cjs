@@ -388,3 +388,57 @@ test("single-day A4 archive sheets apply compact row typography instead of clipp
   await expect(page.locator(".tt-official-table")).toHaveAttribute("style", "font-size:7.4pt");
   expect(source).toContain(".tt-official-table.tt-official-single-page tbody td{height:auto!important;font-size:inherit!important");
 });
+
+
+test("crowded schoolwide reserve day splits into readable continuation sheets without losing assignments", async ({ page }) => {
+  const source = fs.readFileSync(path.join(process.cwd(), "reserve-workflow.js"), "utf8");
+  const extractPrintFunction = marker => {
+    const start = source.indexOf(marker);
+    if (start < 0) throw new Error("Missing " + marker);
+    const brace = source.indexOf("){", start) + 1;
+    let depth = 0, quote = null, escaped = false, line = false, block = false;
+    for (let i = brace; i < source.length; i++) {
+      const ch = source[i], next = source[i + 1];
+      if (line) { if (ch === "\\n") line = false; continue; }
+      if (block) { if (ch === "*" && next === "/") { block = false; i++; } continue; }
+      if (quote) { if (escaped) { escaped = false; continue; } if (ch === "\\\\") { escaped = true; continue; } if (ch === quote) quote = null; continue; }
+      if (ch === "/" && next === "/") { line = true; i++; continue; }
+      if (ch === "/" && next === "*") { block = true; i++; continue; }
+      if (ch === "'" || ch === '"' || ch === "`") { quote = ch; continue; }
+      if (ch === "{") depth++;
+      else if (ch === "}" && --depth === 0) return source.slice(start, i + 1);
+    }
+    throw new Error("Unbalanced " + marker);
+  };
+  const pages = extractPrintFunction("function reserveOfficialPrintPages(");
+  const markup = extractPrintFunction("function reserveOfficialPrintMarkup(");
+  const period = extractFunction(source, "function formatReservePrintPeriod(");
+  const build = new Function("esc", "formatReserveDateArabic",
+    period + "; function formatReservePrintFullDate(value){return String(value || \"\");}" +
+    markup + ";" + pages + "; return reserveOfficialPrintPages;"
+  )(value => String(value ?? ""), () => "التاريخ");
+  const rows = Array.from({ length: 50 }, (_, index) => ({
+    period: index % 8 + 1, className: "صف تجريبي " + (index + 1), substitute: "معلم احتياط " + (index + 1)
+  }));
+  const output = build([{ absentName: "المعلم الغائب", absenceReason: "مرضية", rows }], "2026-11-24", "الثلاثاء", "", {
+    singlePage: true, title: "توزيع الاحتياط", continuationTitle: "تابع كشف توزيع الاحتياط"
+  });
+  expect(output).toHaveLength(3);
+  await page.setContent("<div id='pages'>" + output.join("") + "</div>");
+  const sheets = page.locator(".tt-official-page");
+  await expect(sheets).toHaveCount(3);
+  await expect(sheets.nth(0).locator(".tt-official-table tbody tr")).toHaveCount(22);
+  await expect(sheets.nth(1).locator(".tt-official-table tbody tr")).toHaveCount(22);
+  await expect(sheets.nth(2).locator(".tt-official-table tbody tr")).toHaveCount(6);
+  await expect(sheets.nth(0).locator(".tt-official-subject")).toContainText("توزيع الاحتياط");
+  await expect(sheets.nth(1).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
+  await expect(sheets.nth(2).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
+  const printedNames = await page.locator(".tt-official-table .tt-official-substitute").allTextContents();
+  expect(printedNames).toHaveLength(50);
+  expect(printedNames).toEqual(rows.map(row => row.substitute));
+  for (const sheet of await sheets.all()) {
+    await expect(sheet.locator(".tt-official-table thead")).toBeVisible();
+    await expect(sheet.locator(".tt-official-footer")).toBeAttached();
+    await expect(sheet.locator(".tt-official-meta")).toContainText("2026");
+  }
+});
