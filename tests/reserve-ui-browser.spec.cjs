@@ -181,7 +181,8 @@ test("reserve workspace does not prefetch preview or statistics when the view is
     const getOmanLocalDate = () => "2026-11-25";
     const status = () => {};
     const openAbsenceReasonPicker = () => {};
-    window.reserveReads = { preview: 0, stats: 0 };\n    window.reserveDateChanges = 0;
+    window.reserveReads = { preview: 0, stats: 0 };
+    window.reserveDateChanges = 0;
     window.appAuthRequest = async () => ({});
     window.substitutionLoadAbsentees = async () => { window.reserveReads.preview += 1; };
     window.substitutionLoadStats = async () => { window.reserveReads.stats += 1; };
