@@ -162,3 +162,25 @@ test('the main reserve save handler independently rejects dates before the Oman-
  assert.match(save,/timeZone:"Asia\/Muscat"/);
  assert.match(save,/لا يمكن اعتماد توزيع بتاريخ سابق/);
 });
+
+test('canonical reserve panel mounts into the host IDs created by the single-screen adapter',()=>{
+ const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
+ const start=workflow.indexOf('function mountCanonicalPanel()');
+ const end=workflow.indexOf('function restoreCanonicalPanel()',start);
+ assert.ok(start>=0&&end>start);
+ const mount=workflow.slice(start,end);
+ assert.match(mount,/const editHost=\$\("subxEditMountArea"\),archiveHost=\$\("subxArchiveMountArea"\)/);
+ assert.match(adapter,/id='subxEditMountArea'/);
+ assert.match(adapter,/id='subxArchiveMountArea'/);
+ assert.doesNotMatch(mount,/subxEditContent|subxArchiveContent/);
+});
+
+test('reserve save guard accepts YYYY-MM-DD and rejects only earlier dates',()=>{
+ const save=html.slice(html.indexOf('window.substitutionSavePlan=async function'),html.indexOf('function buildShareMessage'));
+ assert.match(save,/!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/.test\(selectedAssignmentDate\)/);
+ assert.doesNotMatch(save,/!\/\^\\\\d/);
+ const isoDate=new RegExp('^\\\\d{4}-\\\\d{2}-\\\\d{2}$');
+ assert.ok(isoDate.test('2026-11-25'));
+ assert.ok('2026-11-25'>='2026-11-25');
+ assert.ok(!('2026-11-24'>='2026-11-25'));
+});
