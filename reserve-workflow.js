@@ -208,7 +208,7 @@
     return new Intl.DateTimeFormat("en-CA",{timeZone:"Asia/Muscat",year:"numeric",month:"2-digit",day:"2-digit"}).format(new Date());
   }
   const ABSENCE_REASON_OPTIONS=["طارئة","موعد مستشفى","مرضية","أخرى","دورة تدريبية"];
-  // One illustrated reason picker is shared by both the original and canonical reserve selection flows.
+  // One illustrated reason picker is shared by both reserve flows; «أخرى» remains valid without extra text.
   function openAbsenceReasonPicker(absentName,onConfirm,initialValue){
     const old=document.getElementById("timetableDailyAbsenceReasonModal");if(old)old.remove();
     const current=String(initialValue!==undefined?initialValue:(reserveAbsenceReasons[absentName]||""));
