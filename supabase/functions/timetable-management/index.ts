@@ -80,7 +80,7 @@ function isSubstitutionPeriodOpen(assignmentDate: unknown, period: unknown, timi
 }
 function isSubstitutionAssignmentDayOpen(assignmentDate: unknown, today = muscatDateAndWeekday().date): boolean {
   const date = String(assignmentDate ?? "").trim();
-  return /^\\d{4}-\\d{2}-\\d{2}$/.test(date) && date >= today;
+  return /^\d{4}-\d{2}-\d{2}$/.test(date) && date >= today;
 }
 async function loadSubstitutionPeriodTimings(): Promise<Record<string, unknown>> {
   const { data, error } = await db.from("school_settings").select("value").eq("key", "period_timings").maybeSingle();
