@@ -2579,8 +2579,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
       dashboardCard.removeAttribute("onkeydown");
       dashboardCard.addEventListener("click",event=>{
         event.preventDefault();
-        // Reserve reads begin only after an explicit user action on this card.
-        window.__reserveUserInitiatedOpen=true;
         const opener=window.openSubstitutionView;
         if(typeof opener!=="function"){
           showToast("تعذر تشغيل شاشة توزيع الاحتياط. حدّث الصفحة ثم حاول مجدداً.","error");
@@ -2671,7 +2669,6 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
           }
         }finally{
           window.__canonicalReserveOpening=false;
-          window.__reserveUserInitiatedOpen=false;
         }
       };
       window.openSubstitutionView.__canonicalReserveWrapped=true;
