@@ -151,3 +151,10 @@ test('the final substitute approval step presents a large, readable current-less
  assert.match(workflow,/<span>الحصة الحالية<\/span>/);
  assert.match(workflow,/<em>'\+esc\(item\.className\|\|"الشعبة غير محددة"\)\+'<\/em>/);
 });
+
+test('the main reserve save handler independently rejects dates before the Oman-local day',()=>{
+ const save=html.slice(html.indexOf('window.substitutionSavePlan=async function'),html.indexOf('function buildShareMessage'));
+ assert.match(save,/selectedAssignmentDate<omanToday/);
+ assert.match(save,/timeZone:"Asia\/Muscat"/);
+ assert.match(save,/لا يمكن اعتماد توزيع بتاريخ سابق/);
+});
