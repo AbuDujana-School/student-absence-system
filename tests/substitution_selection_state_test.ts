@@ -112,11 +112,15 @@ Deno.test("department options use a softer modern glass treatment and the smart 
 Deno.test("WhatsApp uses the requested department/date/absent-teacher/lesson message layout", () => {
   const share = section("function buildShareMessage(){", "\n  window.substitutionShareWhatsapp=function(){");
   assert(share.includes("data-reserve-department-title"), "The department title must be read dynamically from the active school department");
-  assert(share.includes("*توزيع حصص الاحتياط*"), "The share must use the requested title");
-  assert(share.includes("`'+department+'`"), "The department must appear as WhatsApp inline code");
-  assert(share.includes("*'+(index+1)+'-* *المعلم الغائب* : `'+group.name+'`"), "Each absent teacher must be numbered and shown in the requested format");
-  assert(share.includes("*الاحتياط* : `'+String(row.substitute||'لم يحدد')+'`"), "Each substitute must appear on its own line as inline code");
-  assert(share.includes("new Intl.NumberFormat('en-US'"), "Period digits must remain English digits");
+  assert(share.includes("✨ *كـشـف تـوزيـع حـصـص الاحـتـيـاط* ✨"), "The share must use the approved report title");
+  assert(share.includes('message+="📚 *المادة:* "+tick+department+tick+"\\n";'), "The selected department must be shown as the subject");
+  assert(share.includes('message+="🗓️ *التاريخ:* *"+weekday+"، "+formattedDate+"*\\n\\n";'), "The Arabic weekday and date must be shown in bold");
+  assert(share.includes('message+="👤 *"+formatArabicDigits(index+1)+". المعلم الغائب:* "+tick+group.name+tick+"\\n\\n";'), "Each absent teacher must be numbered in Arabic and shown in inline code");
+  assert(share.includes('message+="🔹 *الحصة "+periodLabel+"* | الصف "+tick+String(row.className||\\'غير محدد\\')+tick+"\\n";'), "Each lesson must use the requested bullet and class formatting");
+  assert(share.includes('message+="   ↳ *الاحتياط:* *"+String(row.substitute||\\'لم يحدد\\')+"*\\n\\n";'), "Each substitute must appear bold on its own indented line");
+  assert(share.includes("formatArabicDigits(new Intl.NumberFormat('en-US'"), "Period digits must be converted to Arabic digits");
+  assert(share.includes("🙏 *شكرًا لتعاونكم وحرصكم الدائم، ونتمنى لكم يومًا دراسيًا موفقًا ومثمرًا.* 🌟"), "The requested closing line must be included");
+  assert(!share.includes("*توزيع حصص الاحتياط*") && !share.includes("- الحصة *"), "The previous compact message layout must not return");
   assert(!share.includes("dailyTeachingCount"), "The WhatsApp message must not append teaching-load details");
   assert(!share.includes("إدارة المدرسة"), "The WhatsApp message must not append the old closing line");
 });
