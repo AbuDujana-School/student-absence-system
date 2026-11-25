@@ -115,13 +115,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
         visible: !$("substitutionView").classList.contains("hidden"),
         legacyHidden: $("timetableSubstitutionPanel").classList.contains("hidden"),
         legacyStillInOrigin: $("timetableSubstitutionPanel").parentElement?.id === "timetableOrigin",
-        editMounted: $("timetableDailyActivePanel").parentElement?.id === "subxEditMountArea",
-        archiveMounted: $("timetableDailyArchivePanel").parentElement?.id === "subxArchiveMountArea",
+        editMounted: $("subxEditMountArea").parentElement?.id === "subxEditPanel" && !$("substitutionView").classList.contains("hidden"),
+        archiveMounted: $("subxArchiveMountArea").parentElement?.id === "subxArchivePanel" && !$("substitutionView").classList.contains("hidden"),
+        legacyActiveHidden: $("timetableDailyActivePanel").classList.contains("hidden"),
+        legacyArchiveHidden: $("timetableDailyArchivePanel").classList.contains("hidden"),
         adminToolsMounted: $("ttAdminReserveTools")?.parentElement?.id === "subxArchiveMountArea",
         departmentToolsMounted: $("ttDepartmentReserveTools")?.parentElement?.id === "subxArchiveMountArea",
         crossDepartment: !$("substitutionOtherDepartmentsWrap").classList.contains("hidden"),
         stats: !$("substitutionStatsPanel").classList.contains("hidden"),
-        archive: !$("timetableDailyArchivePanel").classList.contains("hidden"),
         calls: window.calls,
         denials: window.denials || 0
       };
@@ -132,13 +133,14 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.legacyStillInOrigin, role.id).toBe(true);
       expect(result.editMounted, role.id).toBe(true);
       expect(result.archiveMounted, role.id).toBe(true);
+      expect(result.legacyActiveHidden, role.id).toBe(true);
+      expect(result.legacyArchiveHidden, role.id).toBe(true);
       expect(result.adminToolsMounted, role.id).toBe(role.id === "general admin" || role.id === "delegated admin");
       expect(result.departmentToolsMounted, role.id).toBe(role.id === "reserve teacher");
       expect(result.crossDepartment, role.id).toBe(role.expand);
       expect(result.stats, role.id).toBe(!role.custom);
-      expect(result.archive, role.id).toBe(!role.custom);
       expect(result.calls.options, role.id).toBe(1);
-      expect(result.calls.archive, role.id).toBe(role.custom ? 0 : 1);
+      expect(result.calls.archive, role.id).toBe(0);
       expect(result.calls.stats, role.id).toBe(role.custom ? 0 : 1);
       await page.evaluate(() => window.closeSubstitutionView());
       expect(await page.locator("#timetableOrigin > #timetableSubstitutionPanel").count(), role.id + " compatibility engine remains mounted").toBe(1);
@@ -148,6 +150,8 @@ test("canonical reserve UI opens with the correct five role boundaries", async (
       expect(result.legacyStillInOrigin, role.id).toBe(true);
       expect(result.editMounted, role.id).toBe(false);
       expect(result.archiveMounted, role.id).toBe(false);
+      expect(result.legacyActiveHidden, role.id).toBe(true);
+      expect(result.legacyArchiveHidden, role.id).toBe(true);
       expect(result.calls.options, role.id).toBe(0);
       expect(result.denials, role.id).toBe(1);
     }
