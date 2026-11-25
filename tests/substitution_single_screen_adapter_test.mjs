@@ -102,20 +102,19 @@ test('saved group edit actions use the saved assignment date, not the currently 
  assert.match(workflow,/savedRows\[0\]\?\.assignmentDate\|\|timetableSubstitutionGetDate\(\)\.date/);
 });
 
-test('active reserve records are reclassified automatically at Muscat midnight and on app return',()=>{
+test('active reserve records are reclassified at Muscat midnight and the visible single-screen list refreshes',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
  assert.match(workflow,/nextMidnightUtc=Date\.UTC\(today\[0\],today\[1\]-1,today\[2\]\+1,0\)-4\*60\*60\*1000/);
- assert.match(workflow,/window\.timetableDailyLoadArchive\?\.\(\)/);
- assert.match(workflow,/if\(dayChanged&&reserveIsArchiveScreenVisible\(\)\)await window\.timetableDailyLoadArchive/);
- assert.doesNotMatch(workflow,/addEventListener\("focus"/);
- assert.doesNotMatch(workflow,/addEventListener\("visibilitychange"/);
+ assert.match(workflow,/new CustomEvent\("reserve:muscat-day-changed"/);
+ assert.match(workflow,/if\(reserveIsDailyArchivePanelVisible\(\)\)await window\.timetableDailyLoadArchive/);
+ assert.match(html,/addEventListener\('reserve:muscat-day-changed',[\s\S]*current==='edit'[\s\S]*current==='archive'/);
 });
 
-test('midnight archive refresh is scoped to the visible reserve screen and does not create background traffic elsewhere',()=>{
+test('midnight refresh avoids background archive requests when the legacy archive panel is closed',()=>{
  const workflow=fs.readFileSync(new URL('../reserve-workflow.js',import.meta.url),'utf8');
- assert.match(workflow,/function reserveIsArchiveScreenVisible\(\)/);
- assert.match(workflow,/if\(reserveIsArchiveScreenVisible\(\)\)await window\.timetableDailyLoadArchive/);
- assert.match(workflow,/if\(reserveIsArchiveScreenVisible\(\)\)window\.timetableDailyLoadArchive/);
+ assert.match(workflow,/function reserveIsDailyArchivePanelVisible\(\)/);
+ assert.match(workflow,/panel&&!panel\.classList\.contains\("hidden"\)/);
+ assert.match(workflow,/if\(reserveIsDailyArchivePanelVisible\(\)\)await window\.timetableDailyLoadArchive/);
 });
 
 test('the single canonical date navigation is Oman-local and the adapter does not add duplicate shortcuts',()=>{
