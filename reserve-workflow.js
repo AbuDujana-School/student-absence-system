@@ -2641,9 +2641,11 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
           root.querySelector('[data-subx-tab="stats"]')?.classList.toggle("hidden",isCustomCoordinator);
           root.querySelector('[data-subx-tab="archive"]')?.classList.toggle("hidden",isCustomCoordinator);
           if(isCustomCoordinator)root.querySelector('[data-subx-tab="daily"]')?.click();
-          $("timetableDailyActivePanel")?.classList.toggle("hidden",isCustomCoordinator);
+          // The new day-card renderer owns the edit/archive views for every authorized role.
+          // Keep the legacy daily panels hidden so they cannot become a second competing path.
+          $("timetableDailyActivePanel")?.classList.add("hidden");
           $("substitutionStatsPanel")?.classList.toggle("hidden",isCustomCoordinator);
-          $("timetableDailyArchivePanel")?.classList.toggle("hidden",isCustomCoordinator);
+          $("timetableDailyArchivePanel")?.classList.add("hidden");
           if(typeof window.substitutionLoadAbsentees==="function"){
             try{await window.substitutionLoadAbsentees();}
             catch(error){status(error?.message||"تعذر تحميل قائمة المعلمين الغائبين.","error");}
