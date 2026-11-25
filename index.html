@@ -2455,16 +2455,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
  reportsPanel.id='subxReportsPanel';reportsPanel.className='subx-v2-panel hidden';reportsPanel.innerHTML='<div><h3><i class="fa-solid fa-box-archive"></i> أرشيف الاحتياط</h3><p>السجلات المحفوظة مرتبة حسب التاريخ، مع أدوات الاستعراض والطباعة الرسمية.</p></div><div id="subxArchiveContent" class="mt-3"></div>';
  root.append(logPanel,reportsPanel);
  const pdf=$('#substitutionPdfButton'),wa=$('#substitutionWhatsappButton');
- const date=$('#substitutionDate');
- if(date){
-  const shortcuts=document.createElement('div');shortcuts.className='subx-date-shortcuts';shortcuts.innerHTML='<button type="button" data-subx-date-shift="-1">أمس</button><button type="button" data-subx-date-shift="0">اليوم</button><button type="button" data-subx-date-shift="1">غداً</button>';
-  date.insertAdjacentElement('afterend',shortcuts);
-  shortcuts.querySelectorAll('button').forEach(button=>button.addEventListener('click',()=>{
-   const shift=Number(button.dataset.subxDateShift||0),today=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Muscat',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date()),base=today,parsed=new Date(base+'T12:00:00+04:00');
-   if(!Number.isFinite(parsed.getTime()))return;parsed.setDate(parsed.getDate()+shift);date.value=parsed.toISOString().slice(0,10);
-   if(typeof window.substitutionDateChanged==='function')window.substitutionDateChanged();
-  }));
- }
+ // Date navigation is installed once by reserve-workflow.js in the premium date card.
  const metrics=document.createElement('div');metrics.className='subx-live-metrics';metrics.innerHTML='<div class="subx-live-metric"><i class="fa-solid fa-user-minus"></i><div><small>المعلمون المحددون</small><strong id="subxMetricAbsentees">0</strong></div></div><div class="subx-live-metric"><i class="fa-solid fa-hourglass-half"></i><div><small>حصص دون بديل</small><strong id="subxMetricUnassigned">0</strong></div></div><div class="subx-live-metric"><i class="fa-solid fa-circle-check"></i><div><small>حصص موزعة</small><strong id="subxMetricAssigned">0</strong></div></div>';
  if(dateGrid)dateGrid.insertAdjacentElement('afterend',metrics);
  function updateMetrics(){
