@@ -20,5 +20,6 @@ Deno.test("saved reserve edit preview is separate from the per-period new-assign
   if (!source.includes(":isSubstitutionPeriodOpen(date,lesson.period,periodTimings)")) throw new Error("Ordinary previews must keep the existing lesson-end deadline");
   if (!source.includes("const editTeacherDirectory=forEdit?directory.filter")) throw new Error("The other-teachers search directory must be created only for saved edits and filtered by scope");
   if (!source.includes('teacher.role!=="teacher"||!activeTeachingTeacherNames.has(teacher.name)')) throw new Error("The edit search must exclude inactive or non-teaching directory entries");
-  if (!source.includes("occupiedPeriods:teacherCells.map")) throw new Error("The edit search must expose occupied periods from the active timetable");
+  if (!source.includes("const reservePeriods=(assignmentRows||[]).filter")) throw new Error("The edit search must include saved reserve assignments when calculating busy periods");
+  if (!source.includes("const occupiedPeriods=[...new Set([...teachingPeriods,...reservePeriods])]")) throw new Error("The edit search must combine timetable and saved reserve busy periods");
 });
