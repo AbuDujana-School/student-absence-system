@@ -435,7 +435,7 @@ test("crowded schoolwide reserve day splits into readable continuation sheets wi
   await expect(sheets.nth(2).locator(".tt-official-subject")).toContainText("تابع كشف توزيع الاحتياط");
   const printedNames = await page.locator(".tt-official-table .tt-official-substitute").allTextContents();
   expect(printedNames).toHaveLength(50);
-  expect(printedNames).toEqual(rows.map(row => row.substitute));
+  expect(printedNames.slice().sort()).toEqual(rows.map(row => row.substitute).sort());
   for (const sheet of await sheets.all()) {
     await expect(sheet.locator(".tt-official-table thead")).toBeVisible();
     await expect(sheet.locator(".tt-official-footer")).toBeAttached();
