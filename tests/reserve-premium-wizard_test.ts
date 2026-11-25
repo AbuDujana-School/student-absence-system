@@ -30,8 +30,8 @@ Deno.test("visible canonical date navigation offers only today and tomorrow shor
 });
 
 Deno.test("saved reserve cards use a prominent period indicator", () => {
-  assert(reserveWorkflow.includes("tt-period-indicator"), "The lesson period must be shown in a prominent indicator");
-  assert(reserveWorkflow.includes("font-size:1.35rem"), "The period number must be visually readable");
+  assert(reserveWorkflow.includes(":is(#timetableSubstitutionPanel,#substitutionView) .tt-period-indicator{display:flex;flex-direction:column"), "The period indicator styles must apply to the visible canonical reserve workspace");
+  assert(reserveWorkflow.includes("font-size:2.65rem"), "The period number must be large and visually prominent");
 });
 
 Deno.test("supporting teachers can be selected from multiple departments", () => {
