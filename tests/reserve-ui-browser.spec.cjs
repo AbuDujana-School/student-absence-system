@@ -166,7 +166,7 @@ test("reserve workspace does not prefetch preview or statistics when the view is
     <main id="dashboardSelectionView"></main>
     <div id="substitutionDashboardCard" role="button" tabindex="0">توزيع الاحتياط</div>
     <section id="substitutionView">
-      <input id="substitutionDate" type="date" value="2026-11-25">
+      <input id="substitutionDate" type="date" onchange="window.reserveDateChanges += 1">
       <section id="subxEditPanel"><div id="subxEditMountArea"></div></section>
       <section id="subxArchivePanel"><div id="subxArchiveMountArea"></div></section>
     </section>
@@ -181,7 +181,7 @@ test("reserve workspace does not prefetch preview or statistics when the view is
     const getOmanLocalDate = () => "2026-11-25";
     const status = () => {};
     const openAbsenceReasonPicker = () => {};
-    window.reserveReads = { preview: 0, stats: 0 };
+    window.reserveReads = { preview: 0, stats: 0 };\n    window.reserveDateChanges = 0;
     window.appAuthRequest = async () => ({});
     window.substitutionLoadAbsentees = async () => { window.reserveReads.preview += 1; };
     window.substitutionLoadStats = async () => { window.reserveReads.stats += 1; };
@@ -198,6 +198,7 @@ test("reserve workspace does not prefetch preview or statistics when the view is
   }, { integration, generalAdminHelper, reserveCapabilityHelper });
   await page.waitForTimeout(0);
   expect(await page.evaluate(() => window.reserveReads), "Visibility at page startup must not trigger reserve network reads").toEqual({ preview: 0, stats: 0 });
+  expect(await page.evaluate(() => ({ value: document.getElementById("substitutionDate").value, changes: window.reserveDateChanges })), "Initial date normalization must be silent").toEqual({ value: "2026-11-25", changes: 0 });
   await page.locator("#substitutionDashboardCard").click();
   await page.waitForFunction(() => window.reserveReads.preview === 1 && window.reserveReads.stats === 1);
   expect(await page.evaluate(() => window.reserveReads), "Explicit dashboard action must still initialize the reserve workspace").toEqual({ preview: 1, stats: 1 });
