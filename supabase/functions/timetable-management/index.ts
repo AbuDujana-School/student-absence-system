@@ -1498,9 +1498,7 @@ async function handle(req: Request) {
           return reply(403,{error:"يمكن لمنسق الاحتياط المخصص إلغاء تكليفات قسمه فقط."});
         }
         const activeStatus=["assigned","confirmed"].includes(String(assignment.status||""));
-        const withinWindow=principal.type==="admin"
-          ? cancellationDate===todayInMuscat
-          : isSubstitutionAssignmentEditableUntilDayEnd(cancellationDate,todayInMuscat);
+        const withinWindow=isSubstitutionAssignmentEditableUntilDayEnd(cancellationDate,todayInMuscat);
         if(!activeStatus||!withinWindow)return reply(409,{error:"انتهى يوم التوزيع؛ يمكن الحذف حتى نهاية يوم التوزيع بتوقيت سلطنة عمان."});
         const {data,error:cancelError}=await db.rpc("cancel_timetable_substitution",{p_payload:{assignment_id:body.assignmentId,actor_name:principal.name,actor_type:principal.type,force_points_reversal:true}});
         if(cancelError)throw cancelError;
@@ -1527,9 +1525,7 @@ async function handle(req: Request) {
           const statusAllowed=principal.type==="admin"
             ? ["assigned","confirmed","completed"].includes(status)
             : ["assigned","confirmed"].includes(status);
-          const withinWindow=principal.type==="admin"
-            ? assignmentDate===todayInMuscat
-            : isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate,todayInMuscat);
+        const withinWindow=isSubstitutionAssignmentEditableUntilDayEnd(assignmentDate,todayInMuscat);
           return row.absent_teacher_name!==absentName||row.assignment_date!==assignmentDate||
             row.weekday!==weekday||!statusAllowed||!withinWindow;
         })) {
