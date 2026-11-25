@@ -2694,15 +2694,15 @@ function reasonControlMarkup(absentName, absenceReason, allowEdit=true) {
         const today=omanToday();
         distributionDate.min=today;
         distributionDate.setAttribute("min",today);
-        if(!distributionDate.value||distributionDate.value<today){
-          distributionDate.value=today;
-          distributionDate.dispatchEvent(new Event("input",{bubbles:true}));
-          distributionDate.dispatchEvent(new Event("change",{bubbles:true}));
-        }
+        // Initial normalization is silent: dispatching "change" here runs the
+        // legacy inline handler and preloads reserve data during unrelated app boot.
+        if(!distributionDate.value||distributionDate.value<today)distributionDate.value=today;
       };
       enforceNoPastDistributionDate();
-      distributionDate.addEventListener("input",enforceNoPastDistributionDate);
-      distributionDate.addEventListener("change",enforceNoPastDistributionDate);
+      // Capture before the inline onchange handler so an invalid past date is
+      // corrected before substitutionDateChanged reads it. No synthetic events.
+      distributionDate.addEventListener("input",enforceNoPastDistributionDate,true);
+      distributionDate.addEventListener("change",enforceNoPastDistributionDate,true);
       const dateCard=distributionDate.closest(".subx-date-card")||distributionDate.parentElement;
       if(dateCard&&!dateCard.querySelector("#subxCanonicalDateQuickNav")){
         const nav=document.createElement("div");
