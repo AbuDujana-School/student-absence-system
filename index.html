@@ -2361,6 +2361,8 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 #substitutionView .subx-candidate-tag{flex:0 0 auto;padding:4px 7px;border-radius:8px;background:#e8f6f3;color:#0f766e;font-size:9px;font-weight:900}
 #substitutionView .subx-candidate-busy{display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#718096;font-size:10px;font-weight:800}
 #substitutionView .subx-candidate-busy b{color:#334155;font-size:11px;font-weight:900;font-variant-numeric:tabular-nums}
+#substitutionView .subx-candidate-daily{display:block;margin-top:2px;color:#8293a1;font-size:9px;font-weight:800}
+#substitutionView .subx-candidate-daily b{color:#475569;font-size:10px;font-weight:900;font-variant-numeric:tabular-nums}
 #substitutionView .subx-candidate-action{display:flex;align-items:center;justify-content:center;min-height:34px;border-radius:10px;background:#f1f6f8;color:#35566d;font-size:10px;font-weight:900}
 #substitutionView .subx-candidate-card.is-current .subx-candidate-action{background:#168c85;color:#fff}
 #substitutionView .subx-review-selected{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px;border:1px solid #b8e0d8;border-radius:15px;background:linear-gradient(115deg,#eefaf6,#f7fbfc)}
@@ -2386,6 +2388,7 @@ body.sa-notice-print-mode #saNoticePrintRoot .notice-heading *{
 .dark #substitutionView .subx-candidate-card{background:#1e293b;border-color:#475569}
 .dark #substitutionView .subx-candidate-card.is-current{background:linear-gradient(135deg,rgba(15,118,110,.22),rgba(30,41,59,.95));border-color:#2dd4bf}
 .dark #substitutionView .subx-candidate-name,.dark #substitutionView .subx-review-selected-name{color:#f1f5f9}
+.dark #substitutionView .subx-candidate-daily b{color:#e2e8f0}
 .dark #substitutionView .subx-candidate-action,.dark #substitutionView .subx-review-change{background:#0f172a;border-color:#475569;color:#cbd5e1}
 .dark #substitutionView .subx-review-selected{background:rgba(15,118,110,.13);border-color:#0f766e}
 .dark #substitutionView .subx-candidate-search-dialog{background:#0f172a;border-color:#334155}
@@ -14862,8 +14865,9 @@ async function timetableSaveOwner() {
     }
     host.innerHTML=filtered.map(option=>{
       const selected=option.teacherName===item.substituteTeacherName;
+      const dailyCount=Number(option.dailyTeachingCount);
       return '<button type="button" class="subx-candidate-search-row" data-subx-modal-select="'+esc(option.teacherName)+'">'+
-        '<span class="min-w-0"><strong>'+esc(option.teacherName)+'</strong><small>مشغول: <b dir="ltr">'+reserveCandidateBusyText(option)+'</b></small></span>'+
+        '<span class="min-w-0"><strong>'+esc(option.teacherName)+'</strong><small>مشغول: <b dir="ltr">'+reserveCandidateBusyText(option)+'</b></small><small class="mt-1">حصص التدريس اليوم: <b dir="ltr">'+new Intl.NumberFormat('en-US').format(Number.isFinite(dailyCount)?dailyCount:0)+'</b></small></span>'+
         '<span class="shrink-0 rounded-lg px-3 py-2 text-[10px] font-black '+(selected?'bg-teal-600 text-white':'bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-200')+'">'+(selected?'المختار حالياً':'اختيار')+'</span>'+
       '</button>';
     }).join('');
@@ -14955,12 +14959,14 @@ async function timetableSaveOwner() {
           const candidateCards=visibleOptions.map(function(option){
             const isSelected=option.teacherName===item.substituteTeacherName;
             const isSuggested=option.teacherName===item.systemSuggestedSubstituteTeacherName;
+            const dailyCount=Number(option.dailyTeachingCount);
             const tag=isSuggested
               ?'<span class="subx-candidate-tag">ترشيح النظام</span>'
               :isSelected?'<span class="subx-candidate-tag">الاختيار الحالي</span>':'';
             return '<button type="button" class="subx-candidate-card '+(isSelected?'is-current':'')+'" data-subx-select-candidate="'+index+'" data-candidate-name="'+esc(option.teacherName)+'" aria-pressed="'+(isSelected?'true':'false')+'">'+
               '<span class="subx-candidate-top"><strong class="subx-candidate-name">'+esc(option.teacherName)+'</strong>'+tag+'</span>'+
               '<span class="subx-candidate-busy"><span class="inline-block h-2 w-2 rounded-full bg-amber-500"></span><span>مشغول:</span><b dir="ltr">'+reserveCandidateBusyText(option)+'</b></span>'+
+              '<span class="subx-candidate-daily">حصص التدريس اليوم: <b dir="ltr">'+new Intl.NumberFormat('en-US').format(Number.isFinite(dailyCount)?dailyCount:0)+'</b></span>'+
               '<span class="subx-candidate-action">'+(isSelected?'المختار حالياً':'اختيار هذا المعلم')+'</span>'+
             '</button>';
           }).join('');
