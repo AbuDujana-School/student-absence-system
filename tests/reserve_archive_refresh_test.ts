@@ -63,7 +63,7 @@ Deno.test("main substitution view requires, saves, and prints the selected absen
   assert(html.includes("absenceReasonsByTeacher.has(name)"),"A reason is required for each selected absent teacher");
   assert(html.includes('absenceReason:absenceReasonsByTeacher.get(item.absentTeacherName)||"-"'),"The chosen reason must be included in the atomic batch-save payload");
   assert(html.includes("absenceReasonsByTeacher.get(name)||storedReason"),"The selected reason must be available to the official PDF when preview rows do not carry it yet");
-  assert(html.includes("['طارئة','إجازة مرضية','دورة تدريبية','موعد مستشفى','أخرى']"),"The original picker must present the requested reasons first and preserve the training option");
+  assert(html.includes("[['طارئة','طارئة'],['مرضية','إجازة مرضية'],['دورة تدريبية','دورة تدريبية'],['موعد مستشفى','موعد مستشفى'],['أخرى','أخرى']]"),"The original picker must present the requested reasons first and preserve the training option");
   assert(html.includes("draft=detail?'أخرى: '+detail:'أخرى'"),"The custom reason may be entered or left empty when «أخرى» is selected");
 });
 
