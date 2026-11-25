@@ -88,6 +88,7 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121163355_substitution_per_period_edit_deadline.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121163941_substitution_create_period_deadline.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261125170000_reserve_edit_until_muscat_day_end.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/reserve_edit_until_muscat_day_end.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121132216_force_full_points_reversal_on_batch_cancel.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/migrations/20261121133012_allow_completed_same_day_absence_group_cancellation.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/functions/timetable-management/tests/sql/substitution_batch_cancel_reverses_all_points.sql
