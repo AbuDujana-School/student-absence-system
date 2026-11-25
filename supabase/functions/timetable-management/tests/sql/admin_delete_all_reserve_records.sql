@@ -12,7 +12,7 @@ declare
   v_rejected boolean := false;
 begin
   insert into public.timetable_weekly_versions(version, status, created_by, period_count)
-  values (9901, 'active', 'admin-reserve-clear-test', 7)
+  values (9901, 'draft', 'admin-reserve-clear-test', 7)
   returning id into v_version_id;
 
   insert into public.timetable_assignments(
@@ -110,7 +110,7 @@ begin
   if v_count <> 2 then raise exception 'Duty/other audit rows were changed by reserve reset.'; end if;
 
   select count(*) into v_count from public.timetable_weekly_versions
-   where id = v_version_id and status = 'active';
+   where id = v_version_id and status = 'draft';
   if v_count <> 1 then raise exception 'Weekly timetable version was changed by reserve reset.'; end if;
 end;
 $test$;
