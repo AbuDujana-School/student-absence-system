@@ -271,12 +271,15 @@ Deno.test("daily and cumulative reserve archive requests time out and release th
 });
 
 
-Deno.test("reserve date navigation is installed once in the premium Muscat date card", async () => {
+Deno.test("reserve date navigation is attached to the visible canonical Muscat date picker", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
-  assert(!html.includes("shortcuts.className='subx-date-shortcuts'"),"The legacy inline shortcut row must not duplicate the premium date navigation");
-  assert(source.includes('data-date-offset="-1"'),"The premium date navigation must include yesterday");
-  assert(source.includes('data-date-offset="0"'),"The premium date navigation must include today");
-  assert(source.includes('data-date-offset="1"'),"The premium date navigation must include tomorrow");
+  assert(!html.includes("shortcuts.className='subx-date-shortcuts'"),"The legacy inline shortcut row must not duplicate the canonical date navigation");
+  assert(source.includes('const distributionDate=$("substitutionDate");'),"The quick navigation must target the visible canonical date picker");
+  assert(source.includes('nav.id="subxCanonicalDateQuickNav"'),"The quick navigation must be mounted in the visible reserve date card");
+  assert(!source.includes("ttPremiumDateQuickNav"),"The hidden compatibility panel must not create a second date navigation");
+  assert(source.includes('data-date-offset="-1"'),"The canonical date navigation must include yesterday");
+  assert(source.includes('data-date-offset="0"'),"The canonical date navigation must include today");
+  assert(source.includes('data-date-offset="1"'),"The canonical date navigation must include tomorrow");
   assert(!source.includes("date.min=today"),"Historical reserve dates must remain selectable");
-  assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The reserve date should default to Muscat today only when empty");
+  assert(source.includes("if(!date.value){date.value=reserveCurrentMuscatDate();"),"The legacy date should default to Muscat today only when empty");
 });
