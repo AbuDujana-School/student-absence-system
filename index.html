@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#183653">
-<meta name="app-build" content="2026-11-25-reserve-per-absent-edit-2">
+<meta name="app-build" content="2026-11-25-reserve-saved-review-edit-1">
 <title>مدرسة ابو دجانة</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -11766,7 +11766,7 @@ if (!IS_UI_REVIEW_PREVIEW && "serviceWorker" in navigator) {
 
   // Register immediately instead of waiting for window.load: external CDN assets
   // must not delay the installed app's service-worker update check.
-  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-per-absent-edit-2", { updateViaCache: "none" }).then(registration => {
+  navigator.serviceWorker.register("./sw.js?v=20261125-reserve-saved-review-edit-1", { updateViaCache: "none" }).then(registration => {
     // Check for a newer worker on every application start, including PWA windows.
     return registration.update();
   }).catch(error => {
@@ -14548,6 +14548,7 @@ async function timetableSaveOwner() {
   let planExpansionInitialized=false;
   let candidateSearchRowIndex=-1;
   const absenceReasonsByTeacher=new Map();
+  let savedReviewEditContext=null;
   const dayNames=['الأحد','الاثنين','الثلاثاء','الأربعاء','الخميس'];
   function esc(value){
     return String(value==null?'':value).replace(/[&<>"']/g,function(ch){
@@ -14571,7 +14572,7 @@ async function timetableSaveOwner() {
     if(el){el.textContent=message;el.className='text-[11px] font-bold '+(error?'text-rose-600 dark:text-rose-300':'text-slate-500 dark:text-slate-400');}
   }
   function clearPlan(){
-    currentPlan=null;currentAbsentNames=[];savedPlan=false;
+    currentPlan=null;currentAbsentNames=[];savedPlan=false;savedReviewEditContext=null;
     expandedPlanRows.clear();planExpansionInitialized=false;
     window.subxCloseCandidateSearch?.();
     document.getElementById('substitutionPlanPanel')?.classList.add('hidden');
@@ -14795,7 +14796,7 @@ async function timetableSaveOwner() {
       },getToken());
       currentPlan=result;
       currentAbsentNames=names.slice();
-      savedPlan=false;
+      savedPlan=false;savedReviewEditContext=null;
       expandedPlanRows.clear();planExpansionInitialized=false;
       renderPlan();
       setStatus('اكتمل الاقتراح. راجع البدلاء وعدّل ما تراه مناسباً قبل الحفظ.');
@@ -15035,22 +15036,182 @@ async function timetableSaveOwner() {
         openSubstitutionCandidateSearch(Number(button.getAttribute('data-subx-open-candidates')));
       });
     });
+    const savedEditDirty=!!savedReviewEditContext&&assignments.some(function(item){
+      const original=savedReviewEditContext.originals.get(String(item.id||item.assignmentId||''));
+      return String(item.substituteTeacherName||'')!==String(original?.substituteTeacherName||'');
+    });
     const summary=document.getElementById('substitutionPlanSummary');
-    if(summary)summary.textContent=assignments.length+' جديدة · '+existing.length+' محفوظة · '+(currentPlan.unassignedCount||0)+' دون بديل';
+    if(summary)summary.textContent=savedReviewEditContext
+      ?assignments.length+' محفوظة · '+(savedEditDirty?'تعديلات غير محفوظة':'توزيع محفوظ')
+      :assignments.length+' جديدة · '+existing.length+' محفوظة · '+(currentPlan.unassignedCount||0)+' دون بديل';
     if(unassignedRows.length){
       unassigned.classList.remove('hidden');
       unassigned.innerHTML='<div class="mb-2 font-black"><i class="fa-solid fa-triangle-exclamation ml-2"></i>حصص لم يتوفر لها بديل</div>'+
         unassignedRows.map(function(item){return '<div class="border-t border-amber-200/70 py-2 dark:border-amber-900/50">'+esc(item.absentTeacherName)+' · الحصة '+item.period+' · '+esc(item.className||'—')+'</div>';}).join('');
     }else{unassigned.classList.add('hidden');unassigned.innerHTML='';}
-    savedPlan=assignments.length===0&&existing.length>0;
-    const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=assignments.length===0;
+    savedPlan=savedReviewEditContext?!savedEditDirty:assignments.length===0&&existing.length>0;
+    const save=document.getElementById('substitutionSaveButton');if(save)save.disabled=savedReviewEditContext?!savedEditDirty:assignments.length===0;
     const pdf=document.getElementById('substitutionPdfButton');if(pdf)pdf.disabled=!savedPlan;
     const wa=document.getElementById('substitutionWhatsappButton');if(wa)wa.disabled=!savedPlan;
     const status=document.getElementById('substitutionSaveStatus');
-    if(status)status.textContent=savedPlan?'كل التكليفات المحددة محفوظة مسبقاً؛ يمكنك طباعة الكشف أو مشاركته.':'الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل قبل الحفظ.';
+    if(status)status.textContent=savedReviewEditContext
+      ?(savedPlan?'التوزيع المحفوظ جاهز للمشاركة والطباعة. يمكنك تبديل أي معلم احتياط ثم اعتماد التعديل.':'غيّرت أحد البدلاء. اضغط «اعتماد وحفظ التوزيع» لحفظ التعديل على السجلات الموجودة.')
+      :savedPlan?'كل التكليفات المحددة محفوظة مسبقاً؛ يمكنك طباعة الكشف أو مشاركته.':'الاقتراح غير محفوظ بعد. يمكنك تغيير أي بديل قبل الحفظ.';
+  }
+  async function fetchSavedReserveReviewState(date,absentTeacherName){
+    const weekday=weekdayFor(date),token=getToken();
+    if(!weekday)throw new Error('تاريخ التوزيع المحفوظ ليس من أيام الدراسة المعتمدة.');
+    if(!token)throw new Error('انتهت جلسة الدخول. سجّل الدخول مجدداً.');
+    const includeOtherDepartments=typeof substitutionOtherDepartmentsEnabled==='function'&&substitutionOtherDepartmentsEnabled();
+    const otherDepartmentIds=includeOtherDepartments&&typeof substitutionOtherDepartmentIds==='function'?substitutionOtherDepartmentIds():[];
+    const otherTeacherNames=includeOtherDepartments&&typeof getSubstitutionSelectedOtherTeacherNames==='function'?getSubstitutionSelectedOtherTeacherNames():[];
+    const [archiveResponse,preview]=await Promise.all([
+      appAuthRequest({action:'timetable_substitution_archive',assignmentDate:date},token),
+      appAuthRequest({action:'timetable_substitution_preview',weekday,assignmentDate:date,forEdit:true,absentTeacherName,
+        includeOtherDepartments,otherDepartmentId:otherDepartmentIds[0]||'',otherDepartmentIds,otherTeacherNames},token)
+    ]);
+    if(preview?.active===false)throw new Error('لا توجد نسخة جدول أسبوعية نشطة لهذا التاريخ.');
+    const allRows=Array.isArray(archiveResponse?.archive)?archiveResponse.archive:[];
+    if(typeof window.timetableDailyRegisterExternalAssignments==='function')window.timetableDailyRegisterExternalAssignments(allRows);
+    const rows=allRows.filter(function(row){
+      return String(row.assignmentDate||'')===date&&String(row.absentTeacherName||'')===absentTeacherName&&
+        row.canEdit===true&&['assigned','confirmed'].includes(String(row.status||''));
+    }).sort(function(a,b){return Number(a.period)-Number(b.period);});
+    if(!rows.length)throw new Error('لا توجد حصص محفوظة لهذا المعلم ضمن مهلة التعديل. حدّث القائمة وحاول مجدداً.');
+    const lessonByPeriod=new Map((Array.isArray(preview.lessons)?preview.lessons:[]).map(function(lesson){return [Number(lesson.period),lesson];}));
+    const assignments=rows.map(function(row){
+      const lesson=lessonByPeriod.get(Number(row.period));
+      if(!lesson)throw new Error('تعذر مطابقة الحصة '+row.period+' مع الجدول النشط؛ لم يتم فتح التعديل حتى لا يتغير سجل غير مطابق.');
+      if(lesson.assignment?.id&&String(lesson.assignment.id)!==String(row.id))throw new Error('اختلف معرّف سجل الحصة عن التوزيع المحفوظ. حدّث القائمة قبل التعديل.');
+      const selectedName=String(row.substituteTeacherName||lesson.assignment?.substituteTeacherName||'').trim();
+      if(!selectedName)throw new Error('يوجد سجل محفوظ دون اسم معلم احتياط واضح في الحصة '+row.period+'.');
+      const candidates=(Array.isArray(lesson.candidates)?lesson.candidates:[]).map(function(candidate){
+        const teacherName=String(candidate.name||candidate.teacherName||candidate.id||'').trim();
+        if(!teacherName)return null;
+        return {
+          teacherName,
+          dailyTeachingCount:Number(candidate.dailyTeachingCount)||0,
+          dailySubstitutionCount:Number(candidate.dailySubstitutionCount)||0,
+          occupiedPeriods:Array.isArray(candidate.occupiedPeriods)?candidate.occupiedPeriods.map(Number).filter(Number.isInteger):[],
+          createsThreeConsecutive:candidate.wouldCreateTriple===true||candidate.createsThreeConsecutive===true,
+          pointsBalance:Number(candidate.pointsBalance)||0
+        };
+      }).filter(Boolean);
+      const currentDirectory=(Array.isArray(preview.editTeacherDirectory)?preview.editTeacherDirectory:[]).find(function(teacher){return String(teacher.name||'')===selectedName;});
+      const currentCandidate=candidates.find(function(candidate){return candidate.teacherName===selectedName;});
+      const currentOption=currentCandidate
+        ?{...currentCandidate,occupiedPeriods:(currentCandidate.occupiedPeriods||[]).filter(function(period){return Number(period)!==Number(row.period);})}
+        :{
+          teacherName:selectedName,dailyTeachingCount:0,dailySubstitutionCount:1,
+          occupiedPeriods:(Array.isArray(currentDirectory?.occupiedPeriods)?currentDirectory.occupiedPeriods:[]).map(Number).filter(function(period){return Number.isInteger(period)&&Number(period)!==Number(row.period);}),
+          createsThreeConsecutive:false,pointsBalance:0
+        };
+      return {
+        id:String(row.id),assignmentId:String(row.id),absentTeacherName,
+        substituteTeacherName:selectedName,originalSubstituteTeacherName:selectedName,
+        systemSuggestedSubstituteTeacherName:'',
+        period:Number(row.period),className:String(row.className||lesson.className||''),subject:String(row.subject||lesson.subject||''),
+        reason:String(row.reason||'-'),reserveReason:String(row.reason||'-'),absenceReason:String(row.absenceReason||'-'),
+        candidateOptions:[currentOption,...candidates.filter(function(candidate){return candidate.teacherName!==selectedName;})]
+      };
+    });
+    return {date,weekday,absentTeacherName,includeOtherDepartments,assignments};
+  }
+  function applySavedReserveReviewState(state){
+    currentPlan={active:true,weekday:state.weekday,assignments:state.assignments,existingAssignments:[],unassigned:[],unassignedCount:0};
+    currentAbsentNames=[state.absentTeacherName];
+    absenceReasonsByTeacher.set(state.absentTeacherName,String(state.assignments[0]?.absenceReason||'-'));
+    savedReviewEditContext={
+      date:state.date,absentTeacherName:state.absentTeacherName,includeOtherDepartments:state.includeOtherDepartments,
+      originals:new Map(state.assignments.map(function(item){return [String(item.id),{substituteTeacherName:String(item.substituteTeacherName||'')}];}))
+    };
+    savedPlan=true;expandedPlanRows.clear();planExpansionInitialized=false;
+    renderPlan();
+  }
+  window.subxOpenSavedReserveReview=async function(date,absentTeacherName){
+    date=String(date||'').trim();absentTeacherName=String(absentTeacherName||'').trim();
+    if(!date||!absentTeacherName){showToast('تعذر تحديد تاريخ التوزيع أو اسم المعلم الغائب.','error');return;}
+    if(typeof window.subxNavigateToScreen!=='function'){showToast('شاشة مراجعة التوزيع غير جاهزة. حدّث الصفحة وحاول مجدداً.','error');return;}
+    const weekday=weekdayFor(date);
+    if(!weekday){showToast('التاريخ المحدد ليس من أيام الدراسة المعتمدة.','error');return;}
+    const dateInput=document.getElementById('substitutionDate');if(dateInput)dateInput.value=date;
+    const weekdayLabel=document.getElementById('substitutionWeekdayLabel');if(weekdayLabel)weekdayLabel.textContent=dateLabel(date);
+    const legacyDate=document.getElementById('timetableSubstitutionDate');if(legacyDate)legacyDate.value=date;
+    const legacyWeekday=document.getElementById('timetableSubstitutionWeekday');if(legacyWeekday)legacyWeekday.value=weekday;
+    currentPlan=null;savedReviewEditContext=null;
+    window.subxNavigateToScreen('smart',true);
+    const panel=document.getElementById('substitutionPlanPanel'),host=document.getElementById('substitutionPlanAssignments');
+    panel?.classList.remove('hidden');
+    if(host)host.innerHTML='<div class="rounded-2xl border border-slate-200 bg-white p-6 text-center text-xs font-bold text-slate-500 dark:border-slate-700 dark:bg-slate-900">جارٍ استرجاع التوزيع المحفوظ وتجهيز بدلاء كل حصة...</div>';
+    const saveButton=document.getElementById('substitutionSaveButton');if(saveButton)saveButton.disabled=true;
+    const pdfButton=document.getElementById('substitutionPdfButton');if(pdfButton)pdfButton.disabled=true;
+    const whatsappButton=document.getElementById('substitutionWhatsappButton');if(whatsappButton)whatsappButton.disabled=true;
+    const status=document.getElementById('substitutionSaveStatus');if(status)status.textContent='جارٍ تحميل سجلات المعلم الغائب وخيارات التبديل من الجدول النشط...';
+    try{
+      const state=await fetchSavedReserveReviewState(date,absentTeacherName);
+      applySavedReserveReviewState(state);
+      const resultStatus=document.getElementById('substitutionSaveStatus');
+      if(resultStatus)resultStatus.textContent='تم استرجاع '+state.assignments.length+' حصة محفوظة للمعلم '+absentTeacherName+'. بدّل أي معلم احتياط ثم اضغط «اعتماد وحفظ التوزيع».';
+      panel?.scrollIntoView({behavior:'smooth',block:'start'});
+    }catch(error){
+      currentPlan=null;savedReviewEditContext=null;
+      if(host)host.innerHTML='<div class="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-xs font-bold text-rose-700 dark:border-rose-900 dark:bg-rose-950/30 dark:text-rose-200">'+esc(error?.message||'تعذر استرجاع التوزيع المحفوظ.')+'</div>';
+      if(status)status.textContent=error?.message||'تعذر استرجاع التوزيع المحفوظ.';
+      showToast(error?.message||'تعذر فتح التوزيع المحفوظ.','error');
+    }
+  };
+  async function saveSavedReserveReviewChanges(){
+    const context=savedReviewEditContext;
+    if(!context||!currentPlan)return;
+    const changes=currentPlan.assignments.filter(function(item){
+      const original=context.originals.get(String(item.id||item.assignmentId||''));
+      return original&&String(item.substituteTeacherName||'').trim()!==String(original.substituteTeacherName||'').trim();
+    });
+    if(!changes.length){savedPlan=true;renderPlan();showToast('لم تغيّر أي معلم احتياط. التوزيع المحفوظ كما هو.','info');return;}
+    const button=document.getElementById('substitutionSaveButton'),oldLabel=button?.innerHTML;
+    if(button){button.disabled=true;button.innerHTML='<i class="fa-solid fa-spinner fa-spin ml-2"></i>جارٍ اعتماد التعديلات...';}
+    try{
+      const includeOtherDepartments=(typeof substitutionOtherDepartmentsEnabled==='function'&&substitutionOtherDepartmentsEnabled())||context.includeOtherDepartments===true;
+      const result=await appAuthRequest({
+        action:'timetable_substitution_update_batch',includeOtherDepartments,
+        assignments:changes.map(function(item){return {
+          assignmentId:String(item.id||item.assignmentId),absentTeacherName:String(item.absentTeacherName||context.absentTeacherName),
+          period:Number(item.period),substituteTeacherName:String(item.substituteTeacherName||'').trim(),
+          reserveReason:String(item.reserveReason||item.reason||'-').trim()||'-',
+          absenceReason:String(item.absenceReason||absenceReasonsByTeacher.get(context.absentTeacherName)||'-').trim()||'-'
+        };})
+      },getToken());
+      changes.forEach(function(item){context.originals.set(String(item.id||item.assignmentId),{substituteTeacherName:String(item.substituteTeacherName||'').trim()});});
+      savedPlan=true;renderPlan();
+      const savedCount=Number(result?.updatedCount)||changes.length;
+      showToast('تم اعتماد تبديل '+savedCount+' من معلمي الاحتياط مع تحديث السجلات الأصلية.','success');
+      const status=document.getElementById('substitutionSaveStatus');if(status)status.textContent='تم حفظ '+savedCount+' تعديل على التوزيع المحفوظ نفسه، دون إنشاء تكليفات جديدة.';
+      try{
+        const refreshed=await fetchSavedReserveReviewState(context.date,context.absentTeacherName);
+        applySavedReserveReviewState(refreshed);
+        const refreshedStatus=document.getElementById('substitutionSaveStatus');if(refreshedStatus)refreshedStatus.textContent='تم حفظ التعديلات وتحديث قائمة البدلاء والسجلات المحفوظة بنجاح.';
+      }catch(refreshError){console.warn('Saved reserve edits committed, but the review refresh failed.',refreshError);}
+      if(typeof window.substitutionLoadStats==='function'){
+        try{await window.substitutionLoadStats();}
+        catch(refreshError){console.warn('Saved reserve edits committed, but statistics refresh failed.',refreshError);}
+      }
+    }catch(error){
+      showToast(error?.message||'تعذر حفظ تبديل معلمي الاحتياط؛ لم يتم اعتماد أي تعديل جزئي.','error');
+      const status=document.getElementById('substitutionSaveStatus');if(status)status.textContent=(error?.message||'تعذر حفظ التعديلات.')+' بقي التوزيع المحفوظ السابق دون تغيير.';
+    }finally{
+      if(button){
+        button.innerHTML=oldLabel||'<i class="fa-solid fa-floppy-disk ml-2"></i>اعتماد وحفظ التوزيع';
+        const stillDirty=!!currentPlan?.assignments?.some(function(item){
+          const original=context.originals.get(String(item.id||item.assignmentId||''));
+          return original&&String(item.substituteTeacherName||'').trim()!==String(original.substituteTeacherName||'').trim();
+        });
+        button.disabled=!stillDirty;
+      }
+    }
   }
   window.substitutionSavePlan=async function(){
     if(!currentPlan||!currentPlan.assignments?.length)return;
+    if(savedReviewEditContext){await saveSavedReserveReviewChanges();return;}
     const selectedAssignmentDate=String(selectedDate()||"").trim();
     const omanToday=typeof window.getOmanLocalDate==="function"
       ?String(window.getOmanLocalDate())
@@ -15285,7 +15446,7 @@ html.dark #teacherTimetableWeekGrid tr.teacher-timetable-current-day-row > td.te
   background-image: linear-gradient(rgba(255, 220, 125, 0.10), rgba(255, 220, 125, 0.10)) !important;
 }
 </style>
-<script src="./reserve-workflow.js?v=20261125-reserve-per-absent-edit-2"></script>
+<script src="./reserve-workflow.js?v=20261125-reserve-saved-review-edit-1"></script>
 <script src="./teacher-attendance-compliance.js?v=1"></script>
 
 <style id="substitution-single-screen-theme-v3">
@@ -15386,16 +15547,11 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
           const deleteButton=records.every(record=>record.canDelete===true)?'<button type="button" class="subx-edit-delete-group rounded-xl border border-rose-200 bg-rose-50 px-3 py-2 text-rose-700 transition hover:bg-rose-100" data-delete-edit-day="'+escapeHtml(date)+'" data-delete-edit-absent="'+escapeHtml(name)+'" aria-label="حذف توزيع المعلم '+escapeHtml(name)+'"><i class="fa-regular fa-trash-can"></i></button>':'';
           return '<div class="flex min-w-0 items-center justify-between gap-2 rounded-xl border border-white/70 bg-white/70 px-3 py-2"><div class="min-w-0 flex-1"><span class="block truncate text-xs font-extrabold text-slate-700">'+escapeHtml(name)+'</span><span class="mt-1 block text-[10px] font-bold text-slate-500" dir="ltr">'+records.length+' · '+periods+'</span></div><div class="flex shrink-0 items-center gap-1">'+editButton+deleteButton+'</div></div>';
         }).join('');
-        return '<article class="subx-glass-card group relative overflow-hidden rounded-3xl border border-white/80 p-4 shadow-glass transition hover:-translate-y-0.5 hover:shadow-glassHover sm:p-5"><div class="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-teal-300/15 blur-2xl"></div><div class="relative flex items-start gap-3"><div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-sky-50 text-teal-700 shadow-sm"><i class="fa-regular fa-calendar-days text-xl"></i></div><div class="min-w-0 flex-1"><p class="text-[10px] font-black tracking-wide text-teal-700">توزيع نشط</p><h4 class="mt-1 font-display text-lg font-black text-slate-900 dark:text-white">'+escapeHtml(formatDate(date))+'</h4><div class="mt-2 flex flex-wrap gap-2"><span class="rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 text-[10px] font-extrabold text-sky-800">'+absent.size+' معلم غائب</span><span class="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold text-amber-800">'+items.length+' حصة احتياط</span></div></div></div><div class="relative mt-4 space-y-2">'+absentMarkup+'</div><button type="button" class="subx-edit-open-day mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-l from-sapphire to-lagoon px-4 py-3.5 text-sm font-black text-white shadow-md transition hover:brightness-110 active:scale-[.99]" data-open-edit-day="'+escapeHtml(date)+'"><i class="fa-solid fa-pen-to-square"></i><span>فتح وتعديل اليوم</span><i class="fa-solid fa-arrow-left mr-auto"></i></button></article>';
+        return '<article class="subx-glass-card group relative overflow-hidden rounded-3xl border border-white/80 p-4 shadow-glass transition hover:-translate-y-0.5 hover:shadow-glassHover sm:p-5"><div class="pointer-events-none absolute -left-10 -top-10 h-32 w-32 rounded-full bg-teal-300/15 blur-2xl"></div><div class="relative flex items-start gap-3"><div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl border border-teal-100 bg-gradient-to-br from-teal-50 to-sky-50 text-teal-700 shadow-sm"><i class="fa-regular fa-calendar-days text-xl"></i></div><div class="min-w-0 flex-1"><p class="text-[10px] font-black tracking-wide text-teal-700">توزيع نشط</p><h4 class="mt-1 font-display text-lg font-black text-slate-900 dark:text-white">'+escapeHtml(formatDate(date))+'</h4><div class="mt-2 flex flex-wrap gap-2"><span class="rounded-full border border-sky-100 bg-sky-50 px-2.5 py-1 text-[10px] font-extrabold text-sky-800">'+absent.size+' معلم غائب</span><span class="rounded-full border border-amber-100 bg-amber-50 px-2.5 py-1 text-[10px] font-extrabold text-amber-800">'+items.length+' حصة احتياط</span></div></div></div><div class="relative mt-4 space-y-2">'+absentMarkup+'</div></article>';
       }).join('')+'</div>';
-      host.querySelectorAll('[data-open-edit-day]').forEach(button=>button.addEventListener('click',()=>{
-        const opener=window.timetableDailyOpenArchiveDayEdit;
-        if(typeof opener!=='function'){showToast('أداة تعديل اليوم غير جاهزة. حدّث الصفحة وحاول مجدداً.','error');return;}
-        void opener(button.dataset.openEditDay);
-      }));
       host.querySelectorAll('[data-edit-absent-day]').forEach(button=>button.addEventListener('click',()=>{
-        const opener=window.timetableDailyOpenArchiveDayEdit;
-        if(typeof opener!=='function'){showToast('أداة تعديل الاحتياط غير جاهزة. حدّث الصفحة وحاول مجدداً.','error');return;}
+        const opener=window.subxOpenSavedReserveReview;
+        if(typeof opener!=='function'){showToast('شاشة مراجعة التوزيع المحفوظ غير جاهزة. حدّث الصفحة وحاول مجدداً.','error');return;}
         void opener(button.dataset.editAbsentDay,button.dataset.editAbsentName);
       }));
       host.querySelectorAll('[data-delete-edit-day]').forEach(button=>button.addEventListener('click',()=>{
@@ -15423,6 +15579,7 @@ html.dark #substitutionView .subx-topbar .subx-main-heading{color:#f1f6fa!import
 window.addEventListener('reserve:muscat-day-changed',()=>{if(current==='edit')void loadArchive('subxEditMountArea');else if(current==='archive')void loadArchive('subxArchiveMountArea');});
  document.getElementById('subxArchiveLoad')?.addEventListener('click',loadArchive);document.getElementById('subxArchivePrint')?.addEventListener('click',()=>window.print());
  function go(n,push=true){if(n!=='hub'&&!screens[n])return;if(push&&n!==current)history.push(current);current=n;hub.classList.toggle('is-visible',n==='hub');Object.entries(screens).forEach(([k,e])=>e.classList.toggle('is-visible',k===n));document.getElementById('subxScreenHeading').textContent=names[n];if(n==='date')document.getElementById('substitutionDate')?.setAttribute('min',window.getOmanLocalDate?.()||new Date().toISOString().slice(0,10));if(n==='smart')window.timetableLoadOtherDepartmentOptions?.('substitutionOtherDepartments','substitutionOtherDepartmentSelect').then(()=>window.renderSubstitutionOtherTeacherChoices?.()).catch(error=>showToast(error?.message||'تعذر تحميل الأقسام المساندة.','error'));if(n==='stats')window.substitutionLoadStats?.();if(n==='archive')loadArchive('subxArchiveMountArea');if(n==='edit')loadArchive('subxEditMountArea');window.scrollTo({top:0,behavior:'smooth'});}
+ window.subxNavigateToScreen=function(name,push){go(name,push!==false);};
  hub.querySelectorAll('[data-subx-go]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.subxGo)));
  header.querySelector('#subxMasterBackBtn').addEventListener('click',()=>{if(current==='hub'){window.closeSubstitutionView?.();return;}go(history.pop()||'hub',false);});
  header.querySelector('#subxOpenRulesBtn').addEventListener('click',()=>{let d=root.querySelector('#subxRulesDrawer');if(!d){d=document.createElement('div');d.id='subxRulesDrawer';d.className='subx-overlay hidden';d.innerHTML='<div class="subx-popup-box"><h3 class="font-black text-lg">قواعد العدالة والنقاط</h3><p class="mt-3 text-sm">يُرتب النظام البدلاء وفق قواعد النقاط والعدالة والجدول المعتمد.</p><button class="subx-cta-primary mt-4" type="button">إغلاق</button></div>';root.append(d);d.querySelector('button').onclick=()=>d.classList.add('hidden');}d.classList.remove('hidden');});
