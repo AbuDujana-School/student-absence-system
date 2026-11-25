@@ -637,7 +637,7 @@
         ".tt-premium-toolbar button[onclick*=timetableDailyAutoAssign]{display:flex!important;align-items:center;justify-content:center;width:100%;min-height:4rem;margin:.5rem 0!important;border:1px solid rgba(255,255,255,.5)!important;border-radius:1.25rem!important;background:linear-gradient(105deg,#7c3aed 0%,#4f46e5 36%,#0ea5e9 72%,#0d9488 100%)!important;color:#fff!important;box-shadow:0 16px 34px rgba(79,70,229,.28),inset 0 1px 0 rgba(255,255,255,.3)!important;font-size:1.05rem!important;font-weight:1000!important;letter-spacing:.01em}",
         ".dark .tt-reserve-choice-card{border-color:rgba(255,255,255,.18);box-shadow:0 18px 42px rgba(0,0,0,.28)}.dark #timetableDailyOtherDepartmentWrap>section{background:linear-gradient(145deg,rgba(6,78,59,.72),rgba(15,23,42,.92))!important}.dark #timetableDailyOtherDepartmentChoices label{background:rgba(15,23,42,.78)!important;color:#f8fafc}",
         "@media(max-width:680px){.tt-reserve-choice-grid{grid-template-columns:1fr;gap:.75rem}.tt-reserve-choice-card{padding:1rem}.tt-reserve-choice-copy strong{font-size:.98rem}}"
-      ].join("\\n");
+      ].join("\n");
       document.head.appendChild(choiceStyle);
 
       $("timetableDailyOtherDepartmentSelect")?.addEventListener("change",()=>{
