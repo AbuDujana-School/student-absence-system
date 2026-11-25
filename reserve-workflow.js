@@ -1351,31 +1351,33 @@
     return 2+lines*4.4;
   }
   function reserveOfficialPrintPages(groups,date,weekday,subject,options={}){
-    const pages=[];let current=[],count=0,usedHeight=0,activeGroupPage=null;
-    const flush=()=>{
-      if(current.length)pages.push(current);
-      current=[];count=0;usedHeight=0;activeGroupPage=null;
-    };
+    const maxRowsPerPage=RESERVE_OFFICIAL_ROWS_PER_PAGE;
+    // Keep long Arabic class/teacher names readable. A row with wrapped text
+    // consumes more of the printable height than a short one-line row.
+    const maxLineUnitsPerPage=44;
+    const pages=[];let current=[],pageRows=0,pageUnits=0;
+    const flushPage=()=>{if(current.length)pages.push(current);current=[];pageRows=0;pageUnits=0;};
     (groups||[]).forEach(group=>{
       const rows=(group.rows||[]).slice().sort((a,b)=>Number(a.period)-Number(b.period));
       if(!rows.length)return;
+      const absentLines=Math.max(1,Math.ceil(String(group.absentName||"").length/22));
+      const reasonLines=Math.max(1,Math.ceil(String(group.absenceReason||group.reason||"").length/18));
+      let chunk=[];
+      const flushChunk=()=>{if(chunk.length){current.push({...group,rows:chunk});chunk=[];}};
       rows.forEach(row=>{
-        const estimatedHeight=options?.singlePage
-          ?reserveOfficialPrintRowHeightEstimate(row)
-          :6.8;
-        const crowded=options?.singlePage&&count>0&&usedHeight+estimatedHeight>RESERVE_OFFICIAL_SINGLE_PAGE_CONTENT_MM;
-        if(count>=RESERVE_OFFICIAL_ROWS_PER_PAGE||crowded)flush();
-        if(!activeGroupPage){
-          activeGroupPage={...group,rows:[]};
-          current.push(activeGroupPage);
+        const classLines=Math.max(1,Math.ceil(String(row.className||"").length/12));
+        const substituteLines=Math.max(1,Math.ceil(String(row.substitute||"").length/15));
+        const mergedAbsentLines=Math.max(1,Math.ceil(absentLines/rows.length));
+        const mergedReasonLines=Math.max(1,Math.ceil(reasonLines/rows.length));
+        const rowUnits=Math.max(classLines,substituteLines,mergedAbsentLines,mergedReasonLines);
+        if(pageRows&&(pageRows>=maxRowsPerPage||pageUnits+rowUnits>maxLineUnitsPerPage)){
+          flushChunk();flushPage();
         }
-        activeGroupPage.rows.push(row);
-        count++;
-        usedHeight+=estimatedHeight;
-        if(count>=RESERVE_OFFICIAL_ROWS_PER_PAGE)flush();
+        chunk.push(row);pageRows++;pageUnits+=rowUnits;
       });
+      flushChunk();
     });
-    if(current.length)pages.push(current);
+    flushPage();
     if(!pages.length)pages.push([]);
     return pages.map((pageGroups,index)=>{
       const pageOptions=options?.singlePage&&index>0
