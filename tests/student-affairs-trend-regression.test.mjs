@@ -63,3 +63,55 @@ test("competition API complete snapshots are normalized to the UI approved contr
   assert.equal(normalize({ status: "no_completed_weeks", teams: [] }).status, "no_completed_weeks");
   assert.ok(html.includes('const response=await saRequest(request);' + String.fromCharCode(10) + '    const data=saNormalizeCompetitionResponse(response);'));
 });
+
+
+function getElementById(source,id){
+  const openPattern = new RegExp('<([A-Za-z][\\w:-]*)\\b(?=[^>]*\\bid="' + id + '")[^>]*>',"i");
+  const open = openPattern.exec(source);
+  assert.ok(open, "missing element #" + id);
+  const tag = open[1].toLowerCase();
+  const token = new RegExp('<\\/?' + tag + '\\b[^>]*>',"gi");
+  token.lastIndex = open.index;
+  let depth = 0, match;
+  while((match = token.exec(source))){
+    if(/^<\\//.test(match[0])) depth--;
+    else if(!/\\/>$/.test(match[0])) depth++;
+    if(depth === 0) return source.slice(open.index, token.lastIndex);
+  }
+  assert.fail("unclosed element #" + id);
+}
+
+test("four main sections are presentation-only and retain the original report controls",()=>{
+  const content = getElementById(html,"saContent");
+  const nav = getElementById(content,"saMainNav");
+  assert.equal((nav.match(/class="sa-nav-card/g)||[]).length,4);
+  for(const sec of ["1","2","3","4"]) assert.ok(nav.includes('data-sec="' + sec + '"'));
+  const first = getElementById(content,"saSec1");
+  for(const id of ["saAttendanceTab","saBehaviorTab","saDatePreset","saFrom","saTo","saReportClass","saReportClassPicker","saStatusFilterWrap","saStatusCheckboxesContainer","saSummary","saResults"]) assert.ok(first.includes('id="' + id + '"'), "#" + id + " remains in reports");
+  assert.ok(first.includes("saSetDomain('attendance')"));
+  assert.ok(first.includes("saSetDomain('behavior')"));
+  const second = getElementById(content,"saSec2");
+  for(const id of ["saSupervisionPanel","saSupervisionTeamBtn","saSupervisionTeacherWrap","saSupervisionStatus","saSupervisionTrendChart","saSupervisionBehaviorChart","saCompetitionPanel","saCompetitionStatus","saCompetitionPodium","saCompetitionOtherRanksSection","saCompetitionOtherRanksList"]) assert.ok(second.includes('id="' + id + '"'), "#" + id + " remains in indicators");
+  const third = getElementById(content,"saSec3");
+  assert.ok(third.includes('id="saAutomaticNotices"'));
+  assert.ok(third.includes('onclick="saOpenNoticeModal()"'));
+  const fourth = getElementById(content,"saSec4");
+  for(const id of ["saStudentProfileClass","saStudentProfileName","saStudentProfileNames","saStudentProfileStatus","saStudentProfileResult","saStudentProfilePrintRoot"]) assert.ok(fourth.includes('id="' + id + '"'), "#" + id + " remains in student profile");
+});
+
+test("main menu access gates and original Student Affairs permission logic remain intact",()=>{
+  assert.ok(html.includes('const showStudentAffairs = !localOnlySession && (isAdmin || activeUser.permissions?.studentAffairs === true) && !distronDashboardStagePending(15000);'));
+  assert.ok(html.includes('const allowed = isGeneralAdminUser(activeUser) ||\\n    activeUser?.permissions?.studentAffairs === true;'));
+  const controller = getElementById(html,"sa-four-section-navigation-controller");
+  assert.doesNotMatch(controller,/saRequest|saReportPermissions|activeUser|saLoadReport|saLoadCompetition|saLoadStudentProfileDirectory/);
+});
+
+test("notice modal and print entry points remain present outside the four tab panes",()=>{
+  const content = getElementById(html,"saContent");
+  assert.ok(!content.includes('id="saNoticeModal"'));
+  const modal = getElementById(html,"saNoticeModal");
+  for(const id of ["saNoticeTargetWrap","saNoticeThreshold","saNoticeIssueMode","saNoticeTypeFilters","saNoticePreviewPanel","saNoticePreviewSummary","saNoticePrintRoot"]) assert.ok(modal.includes('id="' + id + '"'));
+  for(const fn of ["saOpenNoticeModal","saCloseNoticeModal","saGenerateAutomaticNotices","saNoticeBackToConfig","saNoticeHandlePrint","saPrint","saBuildPrintHtml","saStudentProfilePrintableHtml"]) {
+    assert.ok(html.includes("function " + fn + "(") || html.includes("async function " + fn + "("), "original function " + fn + " remains");
+  }
+});
