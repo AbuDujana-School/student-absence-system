@@ -275,12 +275,18 @@ Deno.test("reserve date navigation is attached to the visible canonical Muscat d
 });
 
 
-Deno.test("reserve edit tab lists only active day groups and opens the shared saved-day editor", async () => {
+Deno.test("reserve edit tab lists active days and enters editing only from each absent-teacher row", async () => {
   const html = await Deno.readTextFile(new URL("../index.html", import.meta.url));
   assert(html.includes("r.canEdit===true&&['assigned','confirmed'].includes(String(r.status||''))"), "The edit tab must hide expired or non-editable assignments");
-  assert(html.includes("window.timetableDailyRegisterExternalAssignments(allRows)"), "The day editor cache must be hydrated from the authenticated archive response");
-  assert(html.includes("data-open-edit-day"), "The edit screen must render one card per active assignment date");
-  assert(html.includes("const opener=window.timetableDailyOpenArchiveDayEdit") && html.includes("void opener(button.dataset.openEditDay)"), "Opening a day card must use the existing authenticated day editor");
+  assert(html.includes("window.timetableDailyRegisterExternalAssignments(allRows)"), "The edit list cache must be hydrated from the authenticated archive response");
+  assert(!html.includes("data-open-edit-day"), "The detached whole-day editor entry point must be removed from the edit tab");
+  const editStart=html.indexOf("if(isEditMount){");
+  const archiveStart=html.indexOf("host.innerHTML=[...groups.entries()]",editStart);
+  assert(editStart>=0&&archiveStart>editStart, "The edit-tab renderer must be present");
+  const editTab=html.slice(editStart,archiveStart);
+  assert(editTab.includes("data-edit-absent-day")&&editTab.includes("data-edit-absent-name"), "Each absent teacher must retain its own date and identity on the edit action");
+  assert(editTab.includes("const opener=window.subxOpenSavedReserveReview")&&editTab.includes("void opener(button.dataset.editAbsentDay,button.dataset.editAbsentName)"), "Each teacher's edit action must open the canonical saved-review page");
+  assert(!editTab.includes("window.timetableDailyOpenArchiveDayEdit"), "The edit tab must not expose the detached edit workspace");
   assert(html.includes("const dateFrom=isEditMount?today:from.value"), "The edit list must query only today and future dates, independently of archive date filters");
 });
 
@@ -330,10 +336,11 @@ Deno.test("per-teacher reserve editing belongs in the edit tab, not in either ar
 
 Deno.test("per-teacher edit opens the canonical saved review and updates original assignment rows", async () => {
   const html=await Deno.readTextFile(new URL("../index.html",import.meta.url));
+  const fetchStart=html.indexOf("async function fetchSavedReserveReviewState(date,absentTeacherName)");
   const openStart=html.indexOf("window.subxOpenSavedReserveReview=async function(date,absentTeacherName)");
   const openEnd=html.indexOf("async function saveSavedReserveReviewChanges()",openStart);
-  assert(openStart>=0&&openEnd>openStart,"A saved-review loader must be available to the edit-tab action");
-  const loader=html.slice(openStart,openEnd);
+  assert(fetchStart>=0&&openStart>fetchStart&&openEnd>openStart,"The saved-review loader and route must be available to the edit-tab action");
+  const loader=html.slice(fetchStart,openEnd);
   assert(loader.includes("timetable_substitution_archive")&&loader.includes("timetable_substitution_preview"),"Saved records and live substitute candidates must be fetched from the authenticated server");
   assert(loader.includes("forEdit:true"),"Candidate choices must use the server's edit-window rules");
   assert(loader.includes("window.subxNavigateToScreen('smart',true)"),"The edit action must return to the original distribution review screen");
